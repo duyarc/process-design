@@ -1399,20 +1399,24 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
                             }}
                             onClick={() => {
                               const currentUrl = workflowFormsData[formName]?.onlineUrl || '';
-                              const url = window.prompt(`Enter URL for ${formName} online version:`, currentUrl);
-                              if (url !== null) {
-                                setWorkflowFormsData(prev => ({
-                                  ...prev,
-                                  [formName]: {
-                                    ...prev[formName] || {},
-                                    onlineUrl: url.trim()
-                                  }
-                                }));
+                              if (currentUrl) {
+                                window.open(currentUrl, '_blank');
+                              } else {
+                                const url = window.prompt(`Enter URL for ${formName} online version:`, currentUrl);
+                                if (url !== null) {
+                                  setWorkflowFormsData(prev => ({
+                                    ...prev,
+                                    [formName]: {
+                                      ...prev[formName] || {},
+                                      onlineUrl: url.trim()
+                                    }
+                                  }));
+                                }
                               }
                             }}
                           >
                             <LinkIcon size={13} />
-                            Link Online Form
+                            {workflowFormsData[formName]?.onlineUrl ? 'Open Online Form' : 'Link Online Form'}
                           </button>
                         </div>
                       )}
