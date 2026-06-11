@@ -1424,20 +1424,23 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
 
                     {/* Status badges */}
                     {(workflowFormsData[formName]?.pdfName || workflowFormsData[formName]?.onlineUrl) && (
-                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
+                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
                         {workflowFormsData[formName]?.pdfName && (
                           <div style={{ 
                             display: 'inline-flex', 
                             alignItems: 'center', 
                             gap: '0.35rem', 
-                            padding: '0.25rem 0.5rem', 
-                            background: '#eff6ff', 
-                            border: '1px solid #bfdbfe', 
-                            borderRadius: '4px',
-                            fontSize: '0.75rem',
-                            color: '#1e40af'
+                            padding: '0.35rem 0.75rem', 
+                            background: '#f3f4f6', 
+                            border: '1px solid #d1d5db', 
+                            borderRadius: '6px',
+                            fontSize: '0.8rem',
+                            color: '#374151',
+                            cursor: 'default'
                           }}>
-                            <span>PDF Attachment: <strong>{workflowFormsData[formName].pdfName}</strong></span>
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                              <span>📄</span> <strong>{workflowFormsData[formName].pdfName}</strong>
+                            </span>
                             {!isReadOnly && (
                               <button 
                                 type="button" 
@@ -1449,9 +1452,9 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
                                   color: '#ef4444',
                                   display: 'flex',
                                   alignItems: 'center',
-                                  fontSize: '0.9rem',
+                                  fontSize: '1rem',
                                   fontWeight: 'bold',
-                                  marginLeft: '0.25rem'
+                                  marginLeft: '0.5rem'
                                 }} 
                                 onClick={() => {
                                   setWorkflowFormsData(prev => {
@@ -1471,18 +1474,28 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
                         )}
 
                         {workflowFormsData[formName]?.onlineUrl && (
-                          <div style={{ 
-                            display: 'inline-flex', 
-                            alignItems: 'center', 
-                            gap: '0.35rem', 
-                            padding: '0.25rem 0.5rem', 
-                            background: '#f0fdf4', 
-                            border: '1px solid #bbf7d0', 
-                            borderRadius: '4px',
-                            fontSize: '0.75rem',
-                            color: '#166534'
-                          }}>
-                            <span>Online URL: <a href={workflowFormsData[formName].onlineUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#166534', fontWeight: 600 }}>{workflowFormsData[formName].onlineUrl}</a></span>
+                          <div 
+                            onClick={() => window.open(workflowFormsData[formName].onlineUrl, '_blank')}
+                            style={{ 
+                              display: 'inline-flex', 
+                              alignItems: 'center', 
+                              gap: '0.35rem', 
+                              padding: '0.35rem 0.75rem', 
+                              background: 'var(--primary)', 
+                              color: '#ffffff',
+                              border: 'none', 
+                              borderRadius: '6px',
+                              fontSize: '0.8rem',
+                              fontWeight: '600',
+                              cursor: 'pointer',
+                              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+                              transition: 'opacity 0.15s ease'
+                            }}
+                            className="hover-opacity"
+                          >
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                              <span>🔗</span> {workflowFormsData[formName].onlineUrl}
+                            </span>
                             {!isReadOnly && (
                               <button 
                                 type="button" 
@@ -1491,14 +1504,15 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
                                   background: 'none', 
                                   padding: 0, 
                                   cursor: 'pointer', 
-                                  color: '#ef4444',
+                                  color: '#fecaca',
                                   display: 'flex',
                                   alignItems: 'center',
-                                  fontSize: '0.9rem',
+                                  fontSize: '1.1rem',
                                   fontWeight: 'bold',
-                                  marginLeft: '0.25rem'
+                                  marginLeft: '0.5rem'
                                 }} 
-                                onClick={() => {
+                                onClick={(e) => {
+                                  e.stopPropagation(); // Prevent opening the link when deleting
                                   setWorkflowFormsData(prev => {
                                     const copy = { ...prev };
                                     if (copy[formName]) {
