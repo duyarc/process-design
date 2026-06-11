@@ -471,9 +471,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({ processId, onBack,
                   )}
                 </div>
 
-                <h4 style={{ margin: '1rem 0 0.5rem 0', fontSize: '0.85rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 600 }}>
-                  Approvals
-                </h4>
+
                 <div style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '0.5rem' }}>
                     <thead>
