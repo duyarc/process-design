@@ -1093,7 +1093,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
                                     marginTop: '2px'
                                   }}
                                 >
-                                  <Plus size={12} /> Add Form Checksheet
+                                  <Plus size={12} /> Add form
                                 </button>
                               ) : (
                                 <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center', width: '100%', marginTop: '2px' }}>
