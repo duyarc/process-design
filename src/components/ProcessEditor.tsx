@@ -965,20 +965,6 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
               ) : (
                 <div>
                   <BpmnViewerComponent xml={generateBPMNXML(steps, title || 'Untitled Process', roles || [])} />
-                  {processId && !isReadOnly && !steps.some(s => s.layoutX !== undefined) && (
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '-0.75rem', marginBottom: '1.5rem' }}>
-                      <button
-                        type="button"
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => {
-                          setBpmnViewMode('custom');
-                        }}
-                        style={{ fontSize: '0.75rem', padding: '4px 10px', display: 'flex', alignItems: 'center', gap: '4px' }}
-                      >
-                        🎨 Customize Diagram Layout Visually
-                      </button>
-                    </div>
-                  )}
                 </div>
               )}
             </div>
