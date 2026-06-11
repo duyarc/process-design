@@ -1345,7 +1345,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
                       <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.95rem' }}>{formName}</span>
                       
                       {!isReadOnly && (
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                           {/* File input (hidden) */}
                           <input 
                             type="file" 
@@ -1365,97 +1365,49 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
                               }
                             }}
                           />
-                          <button
-                            type="button"
-                            className="btn btn-secondary"
-                            style={{ 
-                              display: 'flex', 
-                              alignItems: 'center', 
-                              gap: '0.35rem', 
-                              padding: '0.35rem 0.75rem', 
-                              fontSize: '0.8rem',
-                              height: '32px',
-                              background: '#ffffff',
-                              border: '1px solid var(--neutral-border)'
-                            }}
-                            onClick={() => document.getElementById(`pdf-file-${formName}`)?.click()}
-                          >
-                            <Upload size={13} />
-                            Upload PDF
-                          </button>
 
-                          <button
-                            type="button"
-                            className="btn btn-secondary"
-                            style={{ 
-                              display: 'flex', 
-                              alignItems: 'center', 
-                              gap: '0.35rem', 
-                              padding: '0.35rem 0.75rem', 
-                              fontSize: '0.8rem',
-                              height: '32px',
-                              background: '#ffffff',
-                              border: '1px solid var(--neutral-border)'
-                            }}
-                            onClick={() => {
-                              const currentUrl = workflowFormsData[formName]?.onlineUrl || '';
-                              if (currentUrl) {
-                                window.open(currentUrl, '_blank');
-                              } else {
-                                const url = window.prompt(`Enter URL for ${formName} online version:`, currentUrl);
-                                if (url !== null) {
-                                  setWorkflowFormsData(prev => ({
-                                    ...prev,
-                                    [formName]: {
-                                      ...prev[formName] || {},
-                                      onlineUrl: url.trim()
-                                    }
-                                  }));
-                                }
-                              }
-                            }}
-                          >
-                            <LinkIcon size={13} />
-                            {workflowFormsData[formName]?.onlineUrl ? 'Open Online Form' : 'Link Online Form'}
-                          </button>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Status badges */}
-                    {(workflowFormsData[formName]?.pdfName || workflowFormsData[formName]?.onlineUrl) && (
-                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
-                        {workflowFormsData[formName]?.pdfName && (
-                          <div style={{ 
-                            display: 'inline-flex', 
-                            alignItems: 'center', 
-                            gap: '0.35rem', 
-                            padding: '0.35rem 0.75rem', 
-                            background: '#f3f4f6', 
-                            border: '1px solid #d1d5db', 
-                            borderRadius: '6px',
-                            fontSize: '0.8rem',
-                            color: '#374151',
-                            cursor: 'default'
-                          }}>
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                              <span>📄</span> <strong>{workflowFormsData[formName].pdfName}</strong>
-                            </span>
-                            {!isReadOnly && (
-                              <button 
-                                type="button" 
-                                style={{ 
-                                  border: 'none', 
-                                  background: 'none', 
-                                  padding: 0, 
-                                  cursor: 'pointer', 
-                                  color: '#ef4444',
+                          {/* PDF Upload / Remove Buttons */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                            <button
+                              type="button"
+                              className="btn btn-secondary"
+                              style={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: '0.35rem', 
+                                padding: '0.35rem 0.75rem', 
+                                fontSize: '0.8rem',
+                                height: '32px',
+                                background: workflowFormsData[formName]?.pdfName ? '#eff6ff' : '#ffffff',
+                                border: workflowFormsData[formName]?.pdfName ? '1px solid #bfdbfe' : '1px solid var(--neutral-border)',
+                                color: workflowFormsData[formName]?.pdfName ? '#1e40af' : 'inherit'
+                              }}
+                              onClick={() => document.getElementById(`pdf-file-${formName}`)?.click()}
+                            >
+                              <Upload size={13} />
+                              {workflowFormsData[formName]?.pdfName ? `PDF: ${workflowFormsData[formName].pdfName.slice(0, 15)}${workflowFormsData[formName].pdfName.length > 15 ? '...' : ''}` : 'Upload PDF'}
+                            </button>
+                            
+                            {workflowFormsData[formName]?.pdfName && (
+                              <button
+                                type="button"
+                                title="Remove PDF"
+                                style={{
                                   display: 'flex',
                                   alignItems: 'center',
+                                  justifyContent: 'center',
+                                  height: '32px',
+                                  width: '32px',
+                                  minWidth: '32px',
+                                  padding: 0,
+                                  border: '1px solid #fca5a5',
+                                  background: '#fee2e2',
+                                  borderRadius: '6px',
+                                  color: '#ef4444',
+                                  cursor: 'pointer',
                                   fontSize: '1rem',
-                                  fontWeight: 'bold',
-                                  marginLeft: '0.5rem'
-                                }} 
+                                  fontWeight: 'bold'
+                                }}
                                 onClick={() => {
                                   setWorkflowFormsData(prev => {
                                     const copy = { ...prev };
@@ -1471,48 +1423,67 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
                               </button>
                             )}
                           </div>
-                        )}
 
-                        {workflowFormsData[formName]?.onlineUrl && (
-                          <div 
-                            onClick={() => window.open(workflowFormsData[formName].onlineUrl, '_blank')}
-                            style={{ 
-                              display: 'inline-flex', 
-                              alignItems: 'center', 
-                              gap: '0.35rem', 
-                              padding: '0.35rem 0.75rem', 
-                              background: 'var(--primary)', 
-                              color: '#ffffff',
-                              border: 'none', 
-                              borderRadius: '6px',
-                              fontSize: '0.8rem',
-                              fontWeight: '600',
-                              cursor: 'pointer',
-                              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-                              transition: 'opacity 0.15s ease'
-                            }}
-                            className="hover-opacity"
-                          >
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                              <span>🔗</span> {workflowFormsData[formName].onlineUrl}
-                            </span>
-                            {!isReadOnly && (
-                              <button 
-                                type="button" 
-                                style={{ 
-                                  border: 'none', 
-                                  background: 'none', 
-                                  padding: 0, 
-                                  cursor: 'pointer', 
-                                  color: '#fecaca',
+                          {/* Link / Open / Remove Online Form Buttons */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                            <button
+                              type="button"
+                              className="btn btn-secondary"
+                              style={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: '0.35rem', 
+                                padding: '0.35rem 0.75rem', 
+                                fontSize: '0.8rem',
+                                height: '32px',
+                                background: workflowFormsData[formName]?.onlineUrl ? '#10b981' : '#ffffff',
+                                border: workflowFormsData[formName]?.onlineUrl ? 'none' : '1px solid var(--neutral-border)',
+                                color: workflowFormsData[formName]?.onlineUrl ? '#ffffff' : 'inherit',
+                                boxShadow: workflowFormsData[formName]?.onlineUrl ? '0 1px 2px rgba(0, 0, 0, 0.05)' : undefined
+                              }}
+                              onClick={() => {
+                                const currentUrl = workflowFormsData[formName]?.onlineUrl || '';
+                                if (currentUrl) {
+                                  window.open(currentUrl, '_blank');
+                                } else {
+                                  const url = window.prompt(`Enter URL for ${formName} online version:`, currentUrl);
+                                  if (url !== null) {
+                                    setWorkflowFormsData(prev => ({
+                                      ...prev,
+                                      [formName]: {
+                                        ...prev[formName] || {},
+                                        onlineUrl: url.trim()
+                                      }
+                                    }));
+                                  }
+                                }
+                              }}
+                            >
+                              <LinkIcon size={13} />
+                              {workflowFormsData[formName]?.onlineUrl ? 'Open Online Form' : 'Link Online Form'}
+                            </button>
+
+                            {workflowFormsData[formName]?.onlineUrl && (
+                              <button
+                                type="button"
+                                title="Remove Link"
+                                style={{
                                   display: 'flex',
                                   alignItems: 'center',
-                                  fontSize: '1.1rem',
-                                  fontWeight: 'bold',
-                                  marginLeft: '0.5rem'
-                                }} 
-                                onClick={(e) => {
-                                  e.stopPropagation(); // Prevent opening the link when deleting
+                                  justifyContent: 'center',
+                                  height: '32px',
+                                  width: '32px',
+                                  minWidth: '32px',
+                                  padding: 0,
+                                  border: '1px solid #fca5a5',
+                                  background: '#fee2e2',
+                                  borderRadius: '6px',
+                                  color: '#ef4444',
+                                  cursor: 'pointer',
+                                  fontSize: '1rem',
+                                  fontWeight: 'bold'
+                                }}
+                                onClick={() => {
                                   setWorkflowFormsData(prev => {
                                     const copy = { ...prev };
                                     if (copy[formName]) {
@@ -1527,9 +1498,9 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
                               </button>
                             )}
                           </div>
-                        )}
-                      </div>
-                    )}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
