@@ -508,7 +508,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({ processId, onBack,
               {/* Card 2: Attached Forms */}
               <div className="paper-card sop-print-card" style={{ borderLeft: '4px solid var(--primary)' }}>
                 <h3 style={{ margin: '0 0 1rem 0', fontSize: '1rem', color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 700, borderBottom: '1px solid var(--neutral-border)', paddingBottom: '0.5rem' }}>
-                  WORKFLOW FORMS
+                  FORMS
                 </h3>
 
                 {workflowForms.length === 0 ? (
