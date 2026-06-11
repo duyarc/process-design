@@ -1,13 +1,94 @@
+require('dotenv').config();
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const csvParser = require('csv-parser');
+const { Pool } = require('pg');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 const CSV_PATH = path.join(__dirname, 'data', 'processes.csv');
 
 app.use(express.json());
+
+const DATABASE_URL = process.env.DATABASE_URL;
+let dbPool = null;
+
+if (DATABASE_URL) {
+  console.log('Connecting to database...');
+  dbPool = new Pool({
+    connectionString: DATABASE_URL,
+    ssl: {
+      rejectUnauthorized: false
+    }
+  });
+} else {
+  console.log('No DATABASE_URL found. Operating in local CSV file-based mode.');
+}
+
+const INITIALIZE_SCHEMA_QUERY = `
+  CREATE TABLE IF NOT EXISTS processes (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    description TEXT,
+    version TEXT,
+    "lastUpdated" TEXT,
+    roles JSONB,
+    steps JSONB,
+    "formFields" JSONB,
+    "sopSignoffs" JSONB,
+    "workflowFormsData" JSONB,
+    "parentProcessId" TEXT,
+    status TEXT
+  );
+`;
+
+async function initDatabase() {
+  if (!dbPool) return;
+  try {
+    const client = await dbPool.connect();
+    console.log('Connected to CockroachDB database successfully!');
+    await client.query(INITIALIZE_SCHEMA_QUERY);
+    console.log('Database schema verified/created.');
+
+    const res = await client.query('SELECT COUNT(*) FROM processes');
+    const dbCount = parseInt(res.rows[0].count, 10);
+    if (dbCount === 0) {
+      console.log('Database is empty. Checking for local CSV data to migrate...');
+      if (fs.existsSync(CSV_PATH)) {
+        const processes = await readProcessesFromCSV();
+        if (processes.length > 0) {
+          console.log(`Found ${processes.length} local processes in CSV. Starting migration...`);
+          for (const proc of processes) {
+            await client.query(`
+              INSERT INTO processes (
+                id, title, description, version, "lastUpdated", roles, steps, "formFields", "sopSignoffs", "workflowFormsData", "parentProcessId", status
+              ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            `, [
+              proc.id,
+              proc.title,
+              proc.description || '',
+              proc.version || '1',
+              proc.lastUpdated,
+              JSON.stringify(proc.roles || []),
+              JSON.stringify(proc.steps || []),
+              JSON.stringify(proc.formFields || []),
+              JSON.stringify(proc.sopSignoffs || {}),
+              JSON.stringify(proc.workflowFormsData || {}),
+              proc.parentProcessId || proc.id,
+              proc.status || 'Active'
+            ]);
+          }
+          console.log('Migration completed successfully!');
+        }
+      }
+    }
+    client.release();
+  } catch (err) {
+    console.error('Failed to initialize CockroachDB database:', err);
+  }
+}
+
 
 // Helper function to escape CSV fields
 function escapeCSVField(val) {
@@ -123,8 +204,13 @@ function writeProcessesToCSV(processes) {
 // GET /api/processes - List all processes
 app.get('/api/processes', async (req, res) => {
   try {
-    const processes = await readProcessesFromCSV();
-    res.json(processes);
+    if (dbPool) {
+      const result = await dbPool.query('SELECT * FROM processes');
+      res.json(result.rows);
+    } else {
+      const processes = await readProcessesFromCSV();
+      res.json(processes);
+    }
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to read processes database' });
@@ -139,68 +225,170 @@ app.post('/api/processes', async (req, res) => {
       return res.status(400).json({ error: 'Title is required' });
     }
 
-    const processes = await readProcessesFromCSV();
     const now = new Date().toISOString();
 
-    if (processData.id) {
-      // Update existing
-      const index = processes.findIndex(p => p.id === processData.id);
-      if (index !== -1) {
-        const previousStatus = processes[index].status || 'Active';
-        const currentStatus = processData.status || 'Draft';
-        const parentId = processData.parentProcessId || processes[index].parentProcessId || processData.id;
+    if (dbPool) {
+      if (processData.id) {
+        // Update existing
+        const checkRes = await dbPool.query('SELECT * FROM processes WHERE id = $1', [processData.id]);
+        if (checkRes.rows.length > 0) {
+          const existing = checkRes.rows[0];
+          const previousStatus = existing.status || 'Active';
+          const currentStatus = processData.status || 'Draft';
+          const parentId = processData.parentProcessId || existing.parentProcessId || processData.id;
 
-        processes[index] = {
-          ...processes[index],
-          ...processData,
-          parentProcessId: parentId,
-          lastUpdated: now
-        };
+          const updatedProcess = {
+            ...existing,
+            ...processData,
+            parentProcessId: parentId,
+            lastUpdated: now
+          };
 
-        if (currentStatus === 'Active' && previousStatus !== 'Active') {
-          // Setting a draft or pending to Active!
-          // Supersede all other active versions of this process family
-          processes.forEach(p => {
-            if ((p.parentProcessId === parentId || p.id === parentId) && p.id !== processData.id && p.status === 'Active') {
-              p.status = 'Superseded';
-            }
-          });
+          await dbPool.query(`
+            UPDATE processes SET 
+              title = $1, 
+              description = $2, 
+              version = $3, 
+              "lastUpdated" = $4, 
+              roles = $5, 
+              steps = $6, 
+              "formFields" = $7, 
+              "sopSignoffs" = $8, 
+              "workflowFormsData" = $9, 
+              "parentProcessId" = $10, 
+              status = $11 
+            WHERE id = $12
+          `, [
+            updatedProcess.title,
+            updatedProcess.description || '',
+            updatedProcess.version || '1',
+            updatedProcess.lastUpdated,
+            JSON.stringify(updatedProcess.roles || []),
+            JSON.stringify(updatedProcess.steps || []),
+            JSON.stringify(updatedProcess.formFields || []),
+            JSON.stringify(updatedProcess.sopSignoffs || {}),
+            JSON.stringify(updatedProcess.workflowFormsData || {}),
+            updatedProcess.parentProcessId,
+            updatedProcess.status,
+            updatedProcess.id
+          ]);
+
+          if (currentStatus === 'Active' && previousStatus !== 'Active') {
+            await dbPool.query(`
+              UPDATE processes SET status = 'Superseded'
+              WHERE ("parentProcessId" = $1 OR id = $1) AND id <> $2 AND status = 'Active'
+            `, [parentId, updatedProcess.id]);
+          }
+
+          return res.json(updatedProcess);
         }
-
-        await writeProcessesToCSV(processes);
-        return res.json(processes[index]);
       }
-    }
 
-    // Create new
-    const newId = 'proc_' + Date.now();
-    const newProcess = {
-      id: newId,
-      parentProcessId: processData.parentProcessId || newId,
-      status: processData.status || 'Draft',
-      title: processData.title,
-      description: processData.description || '',
-      version: processData.version || '1',
-      lastUpdated: now,
-      roles: processData.roles || [],
-      steps: processData.steps || [],
-      formFields: processData.formFields || [],
-      sopSignoffs: processData.sopSignoffs || {},
-      workflowFormsData: processData.workflowFormsData || {}
-    };
+      // Create new
+      const newId = 'proc_' + Date.now();
+      const newProcess = {
+        id: newId,
+        parentProcessId: processData.parentProcessId || newId,
+        status: processData.status || 'Draft',
+        title: processData.title,
+        description: processData.description || '',
+        version: processData.version || '1',
+        lastUpdated: now,
+        roles: processData.roles || [],
+        steps: processData.steps || [],
+        formFields: processData.formFields || [],
+        sopSignoffs: processData.sopSignoffs || {},
+        workflowFormsData: processData.workflowFormsData || {}
+      };
 
-    if (newProcess.status === 'Active') {
-      const parentId = newProcess.parentProcessId;
-      processes.forEach(p => {
-        if ((p.parentProcessId === parentId || p.id === parentId) && p.id !== newProcess.id && p.status === 'Active') {
-          p.status = 'Superseded';
+      await dbPool.query(`
+        INSERT INTO processes (
+          id, title, description, version, "lastUpdated", roles, steps, "formFields", "sopSignoffs", "workflowFormsData", "parentProcessId", status
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      `, [
+        newProcess.id,
+        newProcess.title,
+        newProcess.description || '',
+        newProcess.version || '1',
+        newProcess.lastUpdated,
+        JSON.stringify(newProcess.roles),
+        JSON.stringify(newProcess.steps),
+        JSON.stringify(newProcess.formFields),
+        JSON.stringify(newProcess.sopSignoffs),
+        JSON.stringify(newProcess.workflowFormsData),
+        newProcess.parentProcessId,
+        newProcess.status
+      ]);
+
+      if (newProcess.status === 'Active') {
+        await dbPool.query(`
+          UPDATE processes SET status = 'Superseded'
+          WHERE ("parentProcessId" = $1 OR id = $1) AND id <> $2 AND status = 'Active'
+        `, [newProcess.parentProcessId, newProcess.id]);
+      }
+
+      return res.status(201).json(newProcess);
+    } else {
+      // Local CSV mode
+      const processes = await readProcessesFromCSV();
+      if (processData.id) {
+        // Update existing
+        const index = processes.findIndex(p => p.id === processData.id);
+        if (index !== -1) {
+          const previousStatus = processes[index].status || 'Active';
+          const currentStatus = processData.status || 'Draft';
+          const parentId = processData.parentProcessId || processes[index].parentProcessId || processData.id;
+
+          processes[index] = {
+            ...processes[index],
+            ...processData,
+            parentProcessId: parentId,
+            lastUpdated: now
+          };
+
+          if (currentStatus === 'Active' && previousStatus !== 'Active') {
+            processes.forEach(p => {
+              if ((p.parentProcessId === parentId || p.id === parentId) && p.id !== processData.id && p.status === 'Active') {
+                p.status = 'Superseded';
+              }
+            });
+          }
+
+          await writeProcessesToCSV(processes);
+          return res.json(processes[index]);
         }
-      });
-    }
+      }
 
-    processes.push(newProcess);
-    await writeProcessesToCSV(processes);
-    res.status(201).json(newProcess);
+      // Create new
+      const newId = 'proc_' + Date.now();
+      const newProcess = {
+        id: newId,
+        parentProcessId: processData.parentProcessId || newId,
+        status: processData.status || 'Draft',
+        title: processData.title,
+        description: processData.description || '',
+        version: processData.version || '1',
+        lastUpdated: now,
+        roles: processData.roles || [],
+        steps: processData.steps || [],
+        formFields: processData.formFields || [],
+        sopSignoffs: processData.sopSignoffs || {},
+        workflowFormsData: processData.workflowFormsData || {}
+      };
+
+      if (newProcess.status === 'Active') {
+        const parentId = newProcess.parentProcessId;
+        processes.forEach(p => {
+          if ((p.parentProcessId === parentId || p.id === parentId) && p.id !== newProcess.id && p.status === 'Active') {
+            p.status = 'Superseded';
+          }
+        });
+      }
+
+      processes.push(newProcess);
+      await writeProcessesToCSV(processes);
+      res.status(201).json(newProcess);
+    }
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to save process' });
@@ -211,54 +399,120 @@ app.post('/api/processes', async (req, res) => {
 app.post('/api/processes/:id/new-version', async (req, res) => {
   try {
     const id = req.params.id;
-    const processes = await readProcessesFromCSV();
-    const source = processes.find(p => p.id === id);
-    if (!source) {
-      return res.status(404).json({ error: 'Source process not found' });
-    }
 
-    // Find the max version number for this parentProcessId
-    const parentId = source.parentProcessId || source.id;
-    const siblingVersions = processes.filter(p => p.parentProcessId === parentId || p.id === parentId);
-    
-    // If a draft already exists for this process family, return it instead of creating a new one
-    const existingDraft = siblingVersions.find(p => p.status === 'Draft');
-    if (existingDraft) {
-      return res.json(existingDraft);
-    }
-    
-    // Parse versions as integers to find max, progressive numbering
-    let maxVer = 0;
-    siblingVersions.forEach(p => {
-      const verNum = parseInt(p.version, 10);
-      if (!isNaN(verNum) && verNum > maxVer) {
-        maxVer = verNum;
+    if (dbPool) {
+      const checkRes = await dbPool.query('SELECT * FROM processes WHERE id = $1', [id]);
+      if (checkRes.rows.length === 0) {
+        return res.status(404).json({ error: 'Source process not found' });
       }
-    });
+      const source = checkRes.rows[0];
+      const parentId = source.parentProcessId || source.id;
 
-    const nextVer = maxVer + 1;
-    const now = new Date().toISOString();
-    const newId = `proc_${parentId}_v${nextVer}`;
+      const siblingRes = await dbPool.query(
+        'SELECT * FROM processes WHERE "parentProcessId" = $1 OR id = $1',
+        [parentId]
+      );
+      const siblings = siblingRes.rows;
 
-    const newProcess = {
-      ...source,
-      id: newId,
-      parentProcessId: parentId,
-      version: String(nextVer),
-      status: 'Draft',
-      lastUpdated: now,
-      // Clear signatures/dates for the new draft, keeping structure
-      sopSignoffs: {
-        author: source.sopSignoffs?.author || { name: '', title: '' },
-        reviewers: (source.sopSignoffs?.reviewers || []).map(r => ({ name: r.name, title: r.title })),
-        authorisers: (source.sopSignoffs?.authorisers || []).map(a => ({ name: a.name, title: a.title })),
-        effectiveDate: ''
+      const existingDraft = siblings.find(p => p.status === 'Draft');
+      if (existingDraft) {
+        return res.json(existingDraft);
       }
-    };
 
-    processes.push(newProcess);
-    await writeProcessesToCSV(processes);
-    res.status(201).json(newProcess);
+      let maxVer = 0;
+      siblings.forEach(p => {
+        const verNum = parseInt(p.version, 10);
+        if (!isNaN(verNum) && verNum > maxVer) {
+          maxVer = verNum;
+        }
+      });
+
+      const nextVer = maxVer + 1;
+      const now = new Date().toISOString();
+      const newId = `proc_${parentId}_v${nextVer}`;
+
+      const newProcess = {
+        ...source,
+        id: newId,
+        parentProcessId: parentId,
+        version: String(nextVer),
+        status: 'Draft',
+        lastUpdated: now,
+        sopSignoffs: {
+          author: source.sopSignoffs?.author || { name: '', title: '' },
+          reviewers: (source.sopSignoffs?.reviewers || []).map(r => ({ name: r.name, title: r.title })),
+          authorisers: (source.sopSignoffs?.authorisers || []).map(a => ({ name: a.name, title: a.title })),
+          effectiveDate: ''
+        }
+      };
+
+      await dbPool.query(`
+        INSERT INTO processes (
+          id, title, description, version, "lastUpdated", roles, steps, "formFields", "sopSignoffs", "workflowFormsData", "parentProcessId", status
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      `, [
+        newProcess.id,
+        newProcess.title,
+        newProcess.description || '',
+        newProcess.version || '1',
+        newProcess.lastUpdated,
+        JSON.stringify(newProcess.roles || []),
+        JSON.stringify(newProcess.steps || []),
+        JSON.stringify(newProcess.formFields || []),
+        JSON.stringify(newProcess.sopSignoffs || {}),
+        JSON.stringify(newProcess.workflowFormsData || {}),
+        newProcess.parentProcessId,
+        newProcess.status
+      ]);
+
+      res.status(201).json(newProcess);
+    } else {
+      // Local CSV mode
+      const processes = await readProcessesFromCSV();
+      const source = processes.find(p => p.id === id);
+      if (!source) {
+        return res.status(404).json({ error: 'Source process not found' });
+      }
+
+      const parentId = source.parentProcessId || source.id;
+      const siblingVersions = processes.filter(p => p.parentProcessId === parentId || p.id === parentId);
+      
+      const existingDraft = siblingVersions.find(p => p.status === 'Draft');
+      if (existingDraft) {
+        return res.json(existingDraft);
+      }
+      
+      let maxVer = 0;
+      siblingVersions.forEach(p => {
+        const verNum = parseInt(p.version, 10);
+        if (!isNaN(verNum) && verNum > maxVer) {
+          maxVer = verNum;
+        }
+      });
+
+      const nextVer = maxVer + 1;
+      const now = new Date().toISOString();
+      const newId = `proc_${parentId}_v${nextVer}`;
+
+      const newProcess = {
+        ...source,
+        id: newId,
+        parentProcessId: parentId,
+        version: String(nextVer),
+        status: 'Draft',
+        lastUpdated: now,
+        sopSignoffs: {
+          author: source.sopSignoffs?.author || { name: '', title: '' },
+          reviewers: (source.sopSignoffs?.reviewers || []).map(r => ({ name: r.name, title: r.title })),
+          authorisers: (source.sopSignoffs?.authorisers || []).map(a => ({ name: a.name, title: a.title })),
+          effectiveDate: ''
+        }
+      };
+
+      processes.push(newProcess);
+      await writeProcessesToCSV(processes);
+      res.status(201).json(newProcess);
+    }
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to create new version draft' });
@@ -269,15 +523,24 @@ app.post('/api/processes/:id/new-version', async (req, res) => {
 app.delete('/api/processes/:id', async (req, res) => {
   try {
     const id = req.params.id;
-    const processes = await readProcessesFromCSV();
-    const filtered = processes.filter(p => p.id !== id);
-    
-    if (processes.length === filtered.length) {
-      return res.status(404).json({ error: 'Process not found' });
-    }
+    if (dbPool) {
+      const deleteRes = await dbPool.query('DELETE FROM processes WHERE id = $1', [id]);
+      if (deleteRes.rowCount === 0) {
+        return res.status(404).json({ error: 'Process not found' });
+      }
+      res.json({ success: true });
+    } else {
+      // Local CSV mode
+      const processes = await readProcessesFromCSV();
+      const filtered = processes.filter(p => p.id !== id);
+      
+      if (processes.length === filtered.length) {
+        return res.status(404).json({ error: 'Process not found' });
+      }
 
-    await writeProcessesToCSV(filtered);
-    res.json({ success: true });
+      await writeProcessesToCSV(filtered);
+      res.json({ success: true });
+    }
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to delete process' });
@@ -285,7 +548,21 @@ app.delete('/api/processes/:id', async (req, res) => {
 });
 
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`Backend server running on http://localhost:${PORT}`);
+// Serve static assets from Vite's build directory in production
+app.use(express.static(path.join(__dirname, 'dist')));
+
+// Fallback all non-API calls to the React App's index.html (supporting SPA routing)
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api')) {
+    return next();
+  }
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
+
+// Start server after initializing database (if configured)
+initDatabase().then(() => {
+  app.listen(PORT, () => {
+    console.log(`Backend server running on http://localhost:${PORT}`);
+  });
+});
+
