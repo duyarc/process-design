@@ -1,0 +1,41 @@
+# Checklist: Process & Form Design Portal
+
+- `[x]` Environment Setup & Initialization
+    - `[x]` Initialize Vite React project
+    - `[x]` Install packages (`express`, `csv-writer`, `csv-parser`, `mermaid`, `lucide-react`)
+    - `[x]` Create `data` directory and `processes.csv`
+- `[x]` Backend API Setup
+    - `[x]` Implement `server.js` with CSV CRUD routes
+    - `[x]` Verify CSV read/write capabilities
+- `[x]` Frontend Core & Styling
+    - `[x]` Configure Vite Dev Server proxy
+    - `[x]` Add global styles in `src/index.css` (custom tokens, glassmorphism)
+    - `[x]` Add print styling in `src/print.css` (A4 media-print layout)
+    - `[x]` Add mock `AuthContext` for future-ready role check
+    - `[x]` Add TypeScript types in `src/types.ts`
+- `[x]` Component Implementation
+    - `[x]` Implement `src/components/Dashboard.tsx`
+    - `[x]` Implement `src/components/ProcessEditor.tsx`
+    - `[x]` Implement `src/components/ProcessReader.tsx`
+    - `[x]` Connect components in `src/App.tsx`
+- `[x]` Verification & Launch
+    - `[x]` Run typescript check
+    - `[x]` Verify printing layout and Mermaid rendering
+    - `[x]` Verify CSV reads/writes
+- `[x]` BPMN Connector Routing Optimization
+    - `[x]` Increase vertical alignment threshold to 35px
+    - `[x]` Output three waypoints for straight vertical lines (start, mid, end) in both layout modes
+    - `[x]` Confirm clean compiling and build
+- `[x]` Swimlane Preservation during Custom Layout Edits
+    - `[x]` Unify layout engine under the wrapping lane generator
+    - `[x]` Inject custom steps coordinates layoutX/layoutY dynamically into standard lane rows
+    - `[x]` Remove duplicate, single-row custom coordinate XML generation branch
+    - `[x]` Validate clean compiling and production build
+- `[x]` Custom Layout Modeler Frame Scaling & Auto-Zoom
+    - `[x]` Implement dynamic height scaling state in BpmnModelerComponent
+    - `[x]` Revert the BPMN diagram shapes back to monotone black/white styling (XML side).
+- `[x]` Correct Link Throw event shape connector positions (restore missing else block in waypoint routing).
+- `[x]` Align Throw/Catch link event pairs into the same swimlane (assign target step's role to the Throw event).
+    - `[x]` Implement fitDiagram callback for viewport alignment
+    - `[x]` Auto-trigger fitDiagram on Modeler initialization, Save Layout click, and Zoom Reset click
+    - `[x]` Confirm successful typescript check and build

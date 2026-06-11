@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" 
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" 
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" 
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI" 
+                  id="Definitions_01" 
+                  targetNamespace="http://bpmn.io/schema/bpmn" 
+                  exporter="ProcessPortal" 
+                  exporterVersion="1.0">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="Participant_1" name="Sample Process" processRef="Process_1" />
+  </bpmn:collaboration>
+  <bpmn:process id="Process_1" isExecutable="false">
+    <bpmn:laneSet id="LaneSet_1">
+      <bpmn:lane id="Lane_Role_0_Row_1" name="Sales">
+        <bpmn:flowNodeRef>step_17810879032182fg2u</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>step_1781148649957el5rl</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>step_1781148694503ber3q</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Role_1_Row_1" name="Finance">
+        <bpmn:flowNodeRef>step_17810876147615svsk</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>step_17810878270645jny7</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>step_1781087753895nksg5</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>LinkCatch_step_178107724348540j3v_to_step_17810876147615svsk</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Role_2_Row_1" name="Warehouse">
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:task id="step_17810876147615svsk" name="Collect Payment">
+    <bpmn:incoming>Flow_catch_to_step_17810876147615svsk</bpmn:incoming>
+    <bpmn:outgoing>Flow_step_17810876147615svsk_step_17810878270645jny7</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="step_17810878270645jny7" name="Payment Collected ?">
+    <bpmn:incoming>Flow_step_17810876147615svsk_step_17810878270645jny7</bpmn:incoming>
+    <bpmn:outgoing>Flow_step_17810878270645jny7_yes</bpmn:outgoing>
+    <bpmn:outgoing>Flow_step_17810878270645jny7_no</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="step_17810879032182fg2u" name="Beg customer">
+    <bpmn:incoming>Flow_step_17810878270645jny7_no</bpmn:incoming>
+    <bpmn:outgoing>Flow_step_17810879032182fg2u_step_1781148649957el5rl</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="step_1781148649957el5rl" name="Payment Collected?">
+    <bpmn:incoming>Flow_step_17810879032182fg2u_step_1781148649957el5rl</bpmn:incoming>
+    <bpmn:outgoing>Flow_step_1781148649957el5rl_yes</bpmn:outgoing>
+    <bpmn:outgoing>Flow_step_1781148649957el5rl_no</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="step_1781148694503ber3q" name="DPD">
+    <bpmn:incoming>Flow_step_1781148649957el5rl_no</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:endEvent id="step_1781087753895nksg5" name="Order Successful">
+    <bpmn:incoming>Flow_step_17810878270645jny7_yes</bpmn:incoming>
+    <bpmn:incoming>Flow_step_1781148649957el5rl_yes</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:textAnnotation id="TextAnnotation_Row_1">
+      <bpmn:text>Page 2</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:intermediateCatchEvent id="LinkCatch_step_178107724348540j3v_to_step_17810876147615svsk" name="A">
+    <bpmn:outgoing>Flow_catch_to_step_17810876147615svsk</bpmn:outgoing>
+      <bpmn:linkEventDefinition id="LinkEventDef_Catch_LinkCatch_step_178107724348540j3v_to_step_17810876147615svsk" name="A" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:sequenceFlow id="Flow_catch_to_step_17810876147615svsk" sourceRef="LinkCatch_step_178107724348540j3v_to_step_17810876147615svsk" targetRef="step_17810876147615svsk" />
+    <bpmn:sequenceFlow id="Flow_step_17810876147615svsk_step_17810878270645jny7" sourceRef="step_17810876147615svsk" targetRef="step_17810878270645jny7" />
+    <bpmn:sequenceFlow id="Flow_step_17810878270645jny7_yes" sourceRef="step_17810878270645jny7" targetRef="step_1781087753895nksg5" name="Y" />
+    <bpmn:sequenceFlow id="Flow_step_17810878270645jny7_no" sourceRef="step_17810878270645jny7" targetRef="step_17810879032182fg2u" name="N" />
+    <bpmn:sequenceFlow id="Flow_step_17810879032182fg2u_step_1781148649957el5rl" sourceRef="step_17810879032182fg2u" targetRef="step_1781148649957el5rl" />
+    <bpmn:sequenceFlow id="Flow_step_1781148649957el5rl_yes" sourceRef="step_1781148649957el5rl" targetRef="step_1781087753895nksg5" name="Y" />
+    <bpmn:sequenceFlow id="Flow_step_1781148649957el5rl_no" sourceRef="step_1781148649957el5rl" targetRef="step_1781148694503ber3q" name="N" />
+  </bpmn:process>
+  
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <!-- Participant Pool -->
+      <bpmndi:BPMNShape id="Participant_1_di" bpmnElement="Participant_1" isHorizontal="true">
+        <dc:Bounds x="120" y="0" width="890" height="480" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_Role_0_Row_1_di" bpmnElement="Lane_Role_0_Row_1" isHorizontal="true">
+        <dc:Bounds x="150" y="0" width="860" height="160" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_Role_1_Row_1_di" bpmnElement="Lane_Role_1_Row_1" isHorizontal="true">
+        <dc:Bounds x="150" y="160" width="860" height="160" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_Role_2_Row_1_di" bpmnElement="Lane_Role_2_Row_1" isHorizontal="true">
+        <dc:Bounds x="150" y="320" width="860" height="160" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="step_17810876147615svsk_di" bpmnElement="step_17810876147615svsk">
+        <dc:Bounds x="345" y="200" width="110" height="80" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="325" y="225" width="150" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="step_17810878270645jny7_di" bpmnElement="step_17810878270645jny7">
+        <dc:Bounds x="555" y="215" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="552" y="273" width="56" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="step_17810879032182fg2u_di" bpmnElement="step_17810879032182fg2u">
+        <dc:Bounds x="525" y="40" width="110" height="80" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="505" y="65" width="150" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="step_1781148649957el5rl_di" bpmnElement="step_1781148649957el5rl">
+        <dc:Bounds x="735" y="55" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="734" y="18" width="52" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="step_1781148694503ber3q_di" bpmnElement="step_1781148694503ber3q">
+        <dc:Bounds x="922" y="62" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="928" y="106" width="24" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="step_1781087753895nksg5_di" bpmnElement="step_1781087753895nksg5">
+        <dc:Bounds x="922" y="222" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="898" y="266" width="85" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="TextAnnotation_Row_1_di" bpmnElement="TextAnnotation_Row_1">
+        <dc:Bounds x="170" y="10" width="100" height="30" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="LinkCatch_step_178107724348540j3v_to_step_17810876147615svsk_di" bpmnElement="LinkCatch_step_178107724348540j3v_to_step_17810876147615svsk">
+        <dc:Bounds x="202" y="222" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="182" y="266" width="76" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_catch_to_step_17810876147615svsk_di" bpmnElement="Flow_catch_to_step_17810876147615svsk">
+        <di:waypoint x="238" y="240" />
+        <di:waypoint x="345" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_step_17810876147615svsk_step_17810878270645jny7_di" bpmnElement="Flow_step_17810876147615svsk_step_17810878270645jny7">
+        <di:waypoint x="455" y="240" />
+        <di:waypoint x="555" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_step_17810878270645jny7_yes_di" bpmnElement="Flow_step_17810878270645jny7_yes">
+        <di:waypoint x="605" y="240" />
+        <di:waypoint x="922" y="240" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="613" y="221" width="20" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_step_17810878270645jny7_no_di" bpmnElement="Flow_step_17810878270645jny7_no">
+        <di:waypoint x="580" y="215" />
+        <di:waypoint x="580" y="168" />
+        <di:waypoint x="580" y="120" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="558" y="190" width="20" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_step_17810879032182fg2u_step_1781148649957el5rl_di" bpmnElement="Flow_step_17810879032182fg2u_step_1781148649957el5rl">
+        <di:waypoint x="635" y="80" />
+        <di:waypoint x="735" y="80" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_step_1781148649957el5rl_yes_di" bpmnElement="Flow_step_1781148649957el5rl_yes">
+        <di:waypoint x="760" y="105" />
+        <di:waypoint x="760" y="240" />
+        <di:waypoint x="922" y="240" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="762" y="116" width="20" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_step_1781148649957el5rl_no_di" bpmnElement="Flow_step_1781148649957el5rl_no">
+        <di:waypoint x="785" y="80" />
+        <di:waypoint x="922" y="80" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="793" y="61" width="20" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

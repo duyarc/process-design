@@ -1,0 +1,207 @@
+/* Screen utility for hiding print-only elements */
+.print-only {
+  display: none !important;
+}
+
+/* Styles specifically for printing (A4 size paper) */
+@media print {
+  /* Print utility for showing print-only elements */
+  .print-only {
+    display: block !important;
+  }
+  span.print-only {
+    display: inline !important;
+  }
+  td.print-only {
+    display: table-cell !important;
+  }
+  div.print-only {
+    display: block !important;
+  }
+
+  /* Hide UI elements */
+  header,
+  footer,
+  .no-print,
+  button,
+  .btn,
+  .actions-cell,
+  input,
+  textarea,
+  select,
+  .editor-controls,
+  .navigation-bar,
+  .back-btn,
+  .role-selector {
+    display: none !important;
+  }
+
+  /* Reset layout for paper */
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 11pt !important;
+    line-height: 1.4 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .app-container,
+  .main-content {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  /* Setup A4 Paper Page Margins */
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
+
+  /* Container structure for print */
+  .print-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+  }
+
+  /* Page breaks optimization */
+  .page-break-before {
+    page-break-before: always !important;
+  }
+
+  .avoid-page-break {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* Tables layout for paper */
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    page-break-inside: auto !important;
+  }
+
+  tr {
+    page-break-inside: avoid !important;
+    page-break-after: auto !important;
+  }
+
+  thead {
+    display: table-header-group !important;
+  }
+
+  th, td {
+    border: 1px solid #111111 !important;
+    padding: 6px 8px !important;
+    color: #000000 !important;
+    font-size: 10pt !important;
+    background: transparent !important;
+  }
+
+  th {
+    font-weight: bold !important;
+    background-color: #f0f0f0 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Force Mermaid diagram to fit width */
+  .mermaid-print-wrapper {
+    width: 100% !important;
+    max-width: 100% !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    margin-bottom: 20px !important;
+    text-align: center !important;
+  }
+
+  .mermaid-print-wrapper svg {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+
+  /* Specific styles for BPMN viewer in print mode */
+  .flowchart-print-card {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 0 20px 0 !important;
+    background: transparent !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .bpmn-viewer-card {
+    border: none !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    background: transparent !important;
+  }
+
+  .bpmn-viewer-card svg {
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  /* Cards styling for paper - remove shadows, use thin border */
+  .card, .paper-card {
+    border: 1px solid #cccccc !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    margin-bottom: 15px !important;
+    padding: 10px !important;
+    border-radius: 4px !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* Headers */
+  h1, h2, h3, h4, h5, h6 {
+    color: #000000 !important;
+    page-break-after: avoid !important;
+  }
+
+  /* Color-coded targets in print */
+  .print-target-box {
+    border: 1px solid #000000 !important;
+    background-color: #f9f9f9 !important;
+    font-weight: bold !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+
+/* Screen overrides when printing is active, to force print layout calculations on screen before capture */
+body.printing-active .app-container,
+body.printing-active .main-content,
+body.printing-active .print-container,
+body.printing-active .reader-layout-grid,
+body.printing-active .reader-main-content {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+body.printing-active .bpmn-viewer-card {
+  border: none !important;
+  box-shadow: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+
+

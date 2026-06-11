@@ -1,0 +1,244 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" 
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" 
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" 
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI" 
+                  id="Definitions_01" 
+                  targetNamespace="http://bpmn.io/schema/bpmn" 
+                  exporter="ProcessPortal" 
+                  exporterVersion="1.0">
+  <bpmn:collaboration id="Collaboration_1">
+    <bpmn:participant id="Participant_1" name="Test Process" processRef="Process_1" />
+  </bpmn:collaboration>
+  <bpmn:process id="Process_1" isExecutable="false">
+    <bpmn:laneSet id="LaneSet_1">
+      <bpmn:lane id="Lane_Role_0_Row_0" name="Operator">
+        <bpmn:flowNodeRef>Step_1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Step_2</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Step_3</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Step_4</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Step_5</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>LinkThrow_Step_5_to_Step_6</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>LinkThrow_Step_5_to_Step_7</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Role_0_Row_1" name="Operator">
+        <bpmn:flowNodeRef>Step_6</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Step_7</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>Step_8</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>LinkCatch_Step_5_to_Step_6</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>LinkCatch_Step_5_to_Step_7</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="Step_1" name="Start">
+    <bpmn:outgoing>Flow_Step_1_Step_2</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:task id="Step_2" name="Step 2 Task">
+    <bpmn:incoming>Flow_Step_1_Step_2</bpmn:incoming>
+    <bpmn:outgoing>Flow_Step_2_Step_3</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Step_3" name="Step 3 Task">
+    <bpmn:incoming>Flow_Step_2_Step_3</bpmn:incoming>
+    <bpmn:outgoing>Flow_Step_3_Step_4</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Step_4" name="Step 4 Task">
+    <bpmn:incoming>Flow_Step_3_Step_4</bpmn:incoming>
+    <bpmn:outgoing>Flow_Step_4_Step_5</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:exclusiveGateway id="Step_5" name="Step 5 Gateway">
+    <bpmn:incoming>Flow_Step_4_Step_5</bpmn:incoming>
+    <bpmn:outgoing>Flow_Step_5_yes_to_throw</bpmn:outgoing>
+    <bpmn:outgoing>Flow_Step_5_no_to_throw</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:task id="Step_6" name="Step 6 Task (Y)">
+    <bpmn:incoming>Flow_catch_to_Step_6</bpmn:incoming>
+    <bpmn:outgoing>Flow_Step_6_Step_8</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:task id="Step_7" name="Step 7 Task (N)">
+    <bpmn:incoming>Flow_catch_to_Step_7</bpmn:incoming>
+    <bpmn:outgoing>Flow_Step_7_Step_8</bpmn:outgoing>
+    </bpmn:task>
+    <bpmn:endEvent id="Step_8" name="End">
+    <bpmn:incoming>Flow_Step_6_Step_8</bpmn:incoming>
+    <bpmn:incoming>Flow_Step_7_Step_8</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:textAnnotation id="TextAnnotation_Row_0">
+      <bpmn:text>Page 1</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:textAnnotation id="TextAnnotation_Row_1">
+      <bpmn:text>Page 2</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:intermediateThrowEvent id="LinkThrow_Step_5_to_Step_6" name="A">
+    <bpmn:incoming>Flow_Step_5_yes_to_throw</bpmn:incoming>
+      <bpmn:linkEventDefinition id="LinkEventDef_Throw_LinkThrow_Step_5_to_Step_6" name="A" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateCatchEvent id="LinkCatch_Step_5_to_Step_6" name="A">
+    <bpmn:outgoing>Flow_catch_to_Step_6</bpmn:outgoing>
+      <bpmn:linkEventDefinition id="LinkEventDef_Catch_LinkCatch_Step_5_to_Step_6" name="A" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:intermediateThrowEvent id="LinkThrow_Step_5_to_Step_7" name="B">
+    <bpmn:incoming>Flow_Step_5_no_to_throw</bpmn:incoming>
+      <bpmn:linkEventDefinition id="LinkEventDef_Throw_LinkThrow_Step_5_to_Step_7" name="B" />
+    </bpmn:intermediateThrowEvent>
+    <bpmn:intermediateCatchEvent id="LinkCatch_Step_5_to_Step_7" name="B">
+    <bpmn:outgoing>Flow_catch_to_Step_7</bpmn:outgoing>
+      <bpmn:linkEventDefinition id="LinkEventDef_Catch_LinkCatch_Step_5_to_Step_7" name="B" />
+    </bpmn:intermediateCatchEvent>
+    <bpmn:sequenceFlow id="Flow_Step_1_Step_2" sourceRef="Step_1" targetRef="Step_2" />
+    <bpmn:sequenceFlow id="Flow_Step_2_Step_3" sourceRef="Step_2" targetRef="Step_3" />
+    <bpmn:sequenceFlow id="Flow_Step_3_Step_4" sourceRef="Step_3" targetRef="Step_4" />
+    <bpmn:sequenceFlow id="Flow_Step_4_Step_5" sourceRef="Step_4" targetRef="Step_5" />
+    <bpmn:sequenceFlow id="Flow_Step_5_yes_to_throw" sourceRef="Step_5" targetRef="LinkThrow_Step_5_to_Step_6" name="Y" />
+    <bpmn:sequenceFlow id="Flow_catch_to_Step_6" sourceRef="LinkCatch_Step_5_to_Step_6" targetRef="Step_6" />
+    <bpmn:sequenceFlow id="Flow_Step_5_no_to_throw" sourceRef="Step_5" targetRef="LinkThrow_Step_5_to_Step_7" name="N" />
+    <bpmn:sequenceFlow id="Flow_catch_to_Step_7" sourceRef="LinkCatch_Step_5_to_Step_7" targetRef="Step_7" />
+    <bpmn:sequenceFlow id="Flow_Step_6_Step_8" sourceRef="Step_6" targetRef="Step_8" />
+    <bpmn:sequenceFlow id="Flow_Step_7_Step_8" sourceRef="Step_7" targetRef="Step_8" />
+  </bpmn:process>
+  
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1">
+      <!-- Participant Pool -->
+      <bpmndi:BPMNShape id="Participant_1_di" bpmnElement="Participant_1" isHorizontal="true">
+        <dc:Bounds x="120" y="0" width="1070" height="400" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_Role_0_Row_0_di" bpmnElement="Lane_Role_0_Row_0" isHorizontal="true">
+        <dc:Bounds x="150" y="0" width="1040" height="160" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Lane_Role_0_Row_1_di" bpmnElement="Lane_Role_0_Row_1" isHorizontal="true">
+        <dc:Bounds x="150" y="240" width="1040" height="160" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Step_1_di" bpmnElement="Step_1">
+        <dc:Bounds x="202" y="62" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="182" y="106" width="76" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Step_2_di" bpmnElement="Step_2">
+        <dc:Bounds x="345" y="40" width="110" height="80" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="325" y="65" width="150" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Step_3_di" bpmnElement="Step_3">
+        <dc:Bounds x="525" y="40" width="110" height="80" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="505" y="65" width="150" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Step_4_di" bpmnElement="Step_4">
+        <dc:Bounds x="705" y="40" width="110" height="80" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="685" y="65" width="150" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Step_5_di" bpmnElement="Step_5">
+        <dc:Bounds x="915" y="55" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="895" y="113" width="90" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Step_6_di" bpmnElement="Step_6">
+        <dc:Bounds x="345" y="280" width="110" height="80" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="325" y="305" width="150" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Step_7_di" bpmnElement="Step_7">
+        <dc:Bounds x="525" y="280" width="110" height="80" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="505" y="305" width="150" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Step_8_di" bpmnElement="Step_8">
+        <dc:Bounds x="742" y="302" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="722" y="346" width="76" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="TextAnnotation_Row_0_di" bpmnElement="TextAnnotation_Row_0">
+        <dc:Bounds x="170" y="10" width="100" height="30" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="TextAnnotation_Row_1_di" bpmnElement="TextAnnotation_Row_1">
+        <dc:Bounds x="170" y="250" width="100" height="30" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="LinkThrow_Step_5_to_Step_6_di" bpmnElement="LinkThrow_Step_5_to_Step_6">
+        <dc:Bounds x="1102" y="40" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1082" y="84" width="76" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="LinkCatch_Step_5_to_Step_6_di" bpmnElement="LinkCatch_Step_5_to_Step_6">
+        <dc:Bounds x="202" y="280" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="182" y="324" width="76" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="LinkThrow_Step_5_to_Step_7_di" bpmnElement="LinkThrow_Step_5_to_Step_7">
+        <dc:Bounds x="1102" y="85" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1082" y="129" width="76" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="LinkCatch_Step_5_to_Step_7_di" bpmnElement="LinkCatch_Step_5_to_Step_7">
+        <dc:Bounds x="202" y="325" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="182" y="369" width="76" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_Step_1_Step_2_di" bpmnElement="Flow_Step_1_Step_2">
+        <di:waypoint x="238" y="80" />
+        <di:waypoint x="345" y="80" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Step_2_Step_3_di" bpmnElement="Flow_Step_2_Step_3">
+        <di:waypoint x="455" y="80" />
+        <di:waypoint x="525" y="80" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Step_3_Step_4_di" bpmnElement="Flow_Step_3_Step_4">
+        <di:waypoint x="635" y="80" />
+        <di:waypoint x="705" y="80" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Step_4_Step_5_di" bpmnElement="Flow_Step_4_Step_5">
+        <di:waypoint x="815" y="80" />
+        <di:waypoint x="915" y="80" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Step_5_yes_to_throw_di" bpmnElement="Flow_Step_5_yes_to_throw">
+        <di:waypoint x="965" y="80" />
+        <di:waypoint x="1034" y="80" />
+        <di:waypoint x="1034" y="58" />
+        <di:waypoint x="1102" y="58" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="973" y="61" width="20" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_catch_to_Step_6_di" bpmnElement="Flow_catch_to_Step_6">
+        <di:waypoint x="238" y="298" />
+        <di:waypoint x="292" y="298" />
+        <di:waypoint x="292" y="320" />
+        <di:waypoint x="345" y="320" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Step_5_no_to_throw_di" bpmnElement="Flow_Step_5_no_to_throw">
+        <di:waypoint x="965" y="80" />
+        <di:waypoint x="1034" y="80" />
+        <di:waypoint x="1034" y="103" />
+        <di:waypoint x="1102" y="103" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="973" y="61" width="20" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_catch_to_Step_7_di" bpmnElement="Flow_catch_to_Step_7">
+        <di:waypoint x="238" y="343" />
+        <di:waypoint x="382" y="343" />
+        <di:waypoint x="382" y="320" />
+        <di:waypoint x="525" y="320" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Step_6_Step_8_di" bpmnElement="Flow_Step_6_Step_8">
+        <di:waypoint x="455" y="320" />
+        <di:waypoint x="742" y="320" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Step_7_Step_8_di" bpmnElement="Flow_Step_7_Step_8">
+        <di:waypoint x="635" y="320" />
+        <di:waypoint x="742" y="320" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
