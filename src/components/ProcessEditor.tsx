@@ -1446,7 +1446,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
                                 if (currentUrl) {
                                   window.open(currentUrl, '_blank');
                                 } else {
-                                  const url = window.prompt(`Enter URL for ${formName} online version:`, currentUrl);
+                                  const url = window.prompt("URL", currentUrl);
                                   if (url !== null) {
                                     setWorkflowFormsData(prev => ({
                                       ...prev,

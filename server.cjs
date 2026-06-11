@@ -41,6 +41,20 @@ const INITIALIZE_SCHEMA_QUERY = `
     "parentProcessId" TEXT,
     status TEXT
   );
+
+  CREATE TABLE IF NOT EXISTS process_forms (
+    id SERIAL PRIMARY KEY,
+    process_id TEXT NOT NULL REFERENCES processes(id) ON DELETE CASCADE,
+    form_name TEXT NOT NULL,
+    online_url TEXT,
+    pdf_name TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT unique_process_form UNIQUE (process_id, form_name)
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_process_forms_name ON process_forms(form_name);
+  CREATE INDEX IF NOT EXISTS idx_process_forms_url ON process_forms(online_url);
 `;
 
 async function initDatabase() {
@@ -83,9 +97,67 @@ async function initDatabase() {
         }
       }
     }
+
+    // Auto-migration: check if there are records in processes with workflowFormsData, 
+    // and populate process_forms if it is empty.
+    const formCountRes = await client.query('SELECT COUNT(*) FROM process_forms');
+    const formCount = parseInt(formCountRes.rows[0].count, 10);
+    if (formCount === 0) {
+      console.log('process_forms table is empty. Attempting migration of existing forms from JSONB fields...');
+      const processesRes = await client.query('SELECT id, "workflowFormsData" FROM processes');
+      for (const row of processesRes.rows) {
+        const workflowFormsData = row.workflowFormsData || {};
+        for (const [formName, formData] of Object.entries(workflowFormsData)) {
+          if (formData && (formData.onlineUrl || formData.pdfName)) {
+            await client.query(`
+              INSERT INTO process_forms (process_id, form_name, online_url, pdf_name)
+              VALUES ($1, $2, $3, $4)
+              ON CONFLICT (process_id, form_name) DO NOTHING
+            `, [row.id, formName, formData.onlineUrl || null, formData.pdfName || null]);
+          }
+        }
+      }
+      console.log('Relational forms migration completed.');
+    }
+
     client.release();
   } catch (err) {
     console.error('Failed to initialize CockroachDB database:', err);
+  }
+}
+
+// Sync process forms to the relational table
+async function syncProcessForms(clientOrPool, processId, workflowFormsData) {
+  const activeFormNames = Object.keys(workflowFormsData || {});
+  
+  if (activeFormNames.length > 0) {
+    await clientOrPool.query(
+      'DELETE FROM process_forms WHERE process_id = $1 AND form_name NOT IN (SELECT unnest($2::text[]))',
+      [processId, activeFormNames]
+    );
+  } else {
+    await clientOrPool.query(
+      'DELETE FROM process_forms WHERE process_id = $1',
+      [processId]
+    );
+  }
+  
+  for (const [formName, formData] of Object.entries(workflowFormsData || {})) {
+    if (formData && (formData.onlineUrl || formData.pdfName)) {
+      await clientOrPool.query(`
+        INSERT INTO process_forms (process_id, form_name, online_url, pdf_name, updated_at)
+        VALUES ($1, $2, $3, $4, NOW())
+        ON CONFLICT (process_id, form_name) DO UPDATE SET
+          online_url = EXCLUDED.online_url,
+          pdf_name = EXCLUDED.pdf_name,
+          updated_at = EXCLUDED.updated_at
+      `, [
+        processId,
+        formName,
+        formData.onlineUrl || null,
+        formData.pdfName || null
+      ]);
+    }
   }
 }
 
@@ -206,7 +278,25 @@ app.get('/api/processes', async (req, res) => {
   try {
     if (dbPool) {
       const result = await dbPool.query('SELECT * FROM processes');
-      res.json(result.rows);
+      const formsRes = await dbPool.query('SELECT * FROM process_forms');
+      
+      const formsByProcess = {};
+      for (const formRow of formsRes.rows) {
+        if (!formsByProcess[formRow.process_id]) {
+          formsByProcess[formRow.process_id] = {};
+        }
+        formsByProcess[formRow.process_id][formRow.form_name] = {
+          onlineUrl: formRow.online_url || '',
+          pdfName: formRow.pdf_name || ''
+        };
+      }
+      
+      const processes = result.rows.map(proc => ({
+        ...proc,
+        workflowFormsData: formsByProcess[proc.id] || {}
+      }));
+      
+      res.json(processes);
     } else {
       const processes = await readProcessesFromCSV();
       res.json(processes);
@@ -273,6 +363,8 @@ app.post('/api/processes', async (req, res) => {
             updatedProcess.id
           ]);
 
+          await syncProcessForms(dbPool, updatedProcess.id, updatedProcess.workflowFormsData || {});
+
           if (currentStatus === 'Active' && previousStatus !== 'Active') {
             await dbPool.query(`
               UPDATE processes SET status = 'Superseded'
@@ -319,6 +411,8 @@ app.post('/api/processes', async (req, res) => {
         newProcess.parentProcessId,
         newProcess.status
       ]);
+
+      await syncProcessForms(dbPool, newProcess.id, newProcess.workflowFormsData || {});
 
       if (newProcess.status === 'Active') {
         await dbPool.query(`
@@ -464,6 +558,8 @@ app.post('/api/processes/:id/new-version', async (req, res) => {
         newProcess.parentProcessId,
         newProcess.status
       ]);
+
+      await syncProcessForms(dbPool, newProcess.id, newProcess.workflowFormsData || {});
 
       res.status(201).json(newProcess);
     } else {
