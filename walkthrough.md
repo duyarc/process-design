@@ -252,5 +252,14 @@ To keep the interface clean and focus on general process optimization language:
 * **Sample Flowchart Title**: Changed the subtitle from `"Sample BPMN Flowchart Rendering"` to **`"Sample Flowchart Rendering"`** in [BPMNGuide.tsx](file:///d:/Code/antigravity/process-optimization/src/components/BPMNGuide.tsx#L577).
 * **Editor Table Header**: Renamed the column header from `"BPMN Shape"` to **`"Shape"`** in [ProcessEditor.tsx](file:///d:/Code/antigravity/process-optimization/src/components/ProcessEditor.tsx#L1024).
 
+---
+
+## 22. Cloudflare R2 Upload Fix (Checksum Disabling)
+
+To resolve file upload failures where direct uploads via presigned URLs were blocked by a CORS/403 error:
+* **Checksum Configuration**: Configured the AWS SDK v3 `S3Client` instantiation in [server.cjs](file:///d:/Code/antigravity/process-optimization/server.cjs) to use `requestChecksumCalculation: "WHEN_REQUIRED"` and `responseChecksumValidation: "WHEN_REQUIRED"`. This prevents the client library from automatically calculating and adding checksum parameters/headers (like `x-amz-checksum-crc32`), which Cloudflare R2 rejects for S3-presigned URL uploads.
+* **CORS Settings Instructions**: Provided instructions to configure the CORS policy in the Cloudflare R2 bucket dashboard to allow `PUT` and other requests from the live app (`https://process-design.onrender.com`) and local development origins.
+
+
 
 
