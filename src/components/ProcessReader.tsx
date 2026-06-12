@@ -25,6 +25,18 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({ processId, onBack,
   const [allVersions, setAllVersions] = useState<Process[]>([]);
   const { hasPermission } = useAuth();
 
+  const handleDownloadPdf = async (pdfKey: string) => {
+    try {
+      const res = await fetch(`/api/storage/download-url?key=${encodeURIComponent(pdfKey)}`);
+      if (!res.ok) throw new Error('Failed to get download URL');
+      const { downloadUrl } = await res.json();
+      window.open(downloadUrl, '_blank');
+    } catch (err) {
+      console.error(err);
+      alert('Failed to load PDF attachment.');
+    }
+  };
+
   const fetchProcess = async () => {
     try {
       setLoading(true);
@@ -526,12 +538,49 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({ processId, onBack,
                         attachmentText = `Custom Form (${formData.fields.length} fields)`;
                       }
 
+                      const hasPdf = !!formData.pdfName;
+                      const hasUrl = !!formData.onlineUrl;
+
                       return (
-                        <div key={formName} style={{ display: 'flex', flexDirection: 'column', padding: '0.6rem 0.8rem', background: '#f9fafb', border: '1px solid var(--neutral-border)', borderRadius: '4px', fontSize: '0.8rem' }}>
-                          <span style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: attachmentText ? '0.2rem' : 0 }}>{formName}</span>
-                          {attachmentText && (
-                            <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>{attachmentText}</span>
-                          )}
+                        <div key={formName} style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          padding: '0.6rem 0.8rem',
+                          background: '#f9fafb',
+                          border: '1px solid var(--neutral-border)',
+                          borderRadius: '4px',
+                          fontSize: '0.8rem'
+                        }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, marginRight: '1rem' }}>
+                            <span style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: attachmentText ? '0.2rem' : 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{formName}</span>
+                            {attachmentText && (
+                              <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{attachmentText}</span>
+                            )}
+                          </div>
+                          <div className="no-print" style={{ display: 'flex', gap: '0.4rem', flexShrink: 0 }}>
+                            {hasPdf && formData.pdfKey && (
+                              <button
+                                type="button"
+                                className="btn btn-secondary btn-sm"
+                                onClick={() => handleDownloadPdf(formData.pdfKey!)}
+                                style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', margin: 0 }}
+                              >
+                                View PDF
+                              </button>
+                            )}
+                            {hasUrl && (
+                              <a
+                                href={formData.onlineUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="btn btn-secondary btn-sm"
+                                style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', margin: 0, textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
+                              >
+                                Open Link
+                              </a>
+                            )}
+                          </div>
                         </div>
                       );
                     })}

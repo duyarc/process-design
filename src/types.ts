@@ -64,6 +64,8 @@ export interface Process {
     [formName: string]: {
       pdfName?: string;
       pdfUrl?: string;
+      pdfKey?: string;
+      pdfSize?: number;
       onlineUrl?: string;
       fields?: FormDesignerField[];
     }

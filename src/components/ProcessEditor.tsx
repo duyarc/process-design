@@ -103,6 +103,8 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
     [formName: string]: {
       pdfName?: string;
       pdfUrl?: string;
+      pdfKey?: string;
+      pdfSize?: number;
       onlineUrl?: string;
       fields?: FormDesignerField[];
     }
@@ -112,6 +114,8 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
   const [loading, setLoading] = useState(false);
   const [bpmnViewMode, setBpmnViewMode] = useState<'auto' | 'custom'>('auto');
   const [savingBpmn, setSavingBpmn] = useState(false);
+  const [quota, setQuota] = useState<{ totalSize: number; quotaLimit: number; percentage: string; isConfigured: boolean } | null>(null);
+  const [isUploading, setIsUploading] = useState<{ [formName: string]: boolean }>({});
 
   const isReadOnly = status !== 'Draft';
 
@@ -134,6 +138,152 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
       setSaving(false);
     }
   };
+
+  const fetchQuotaStatus = async () => {
+    try {
+      const res = await fetch('/api/storage/quota-status');
+      if (res.ok) {
+        const data = await res.json();
+        setQuota(data);
+      }
+    } catch (err) {
+      console.error('Error fetching quota status:', err);
+    }
+  };
+
+  const formatBytes = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const handlePdfUpload = async (formName: string, file: File) => {
+    if (!processId) {
+      alert('Please save the process document as a draft first before uploading files.');
+      return;
+    }
+
+    setIsUploading(prev => ({ ...prev, [formName]: true }));
+
+    try {
+      // 1. Get presigned upload URL
+      const presignRes = await fetch('/api/storage/presign-upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          processId,
+          formName,
+          fileName: file.name,
+          fileSize: file.size,
+          fileType: file.type
+        })
+      });
+
+      if (!presignRes.ok) {
+        const errData = await presignRes.json();
+        throw new Error(errData.error || 'Failed to get secure upload URL.');
+      }
+
+      const { uploadUrl, pdfKey } = await presignRes.json();
+
+      // 2. Perform direct upload to R2
+      const uploadRes = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': file.type || 'application/pdf'
+        },
+        body: file
+      });
+
+      if (!uploadRes.ok) {
+        throw new Error('Failed to upload file to Cloudflare storage.');
+      }
+
+      // 3. Confirm upload with backend
+      const confirmRes = await fetch('/api/storage/confirm-upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          processId,
+          formName,
+          pdfName: file.name,
+          pdfKey,
+          pdfSize: file.size
+        })
+      });
+
+      if (!confirmRes.ok) {
+        throw new Error('Failed to save file references to the database.');
+      }
+
+      // 4. Update local state
+      setWorkflowFormsData(prev => ({
+        ...prev,
+        [formName]: {
+          ...prev[formName] || {},
+          pdfName: file.name,
+          pdfKey,
+          pdfSize: file.size
+        }
+      }));
+
+      // 5. Refresh quota usage
+      fetchQuotaStatus();
+
+      alert(`Successfully uploaded PDF for "${formName}".`);
+    } catch (err) {
+      console.error(err);
+      alert(err instanceof Error ? err.message : 'An error occurred during file upload.');
+    } finally {
+      setIsUploading(prev => ({ ...prev, [formName]: false }));
+    }
+  };
+
+  const handlePdfDelete = async (formName: string, pdfKey: string) => {
+    if (!window.confirm(`Are you sure you want to delete the PDF attachment for "${formName}"? This will permanently delete the file.`)) return;
+
+    setIsUploading(prev => ({ ...prev, [formName]: true }));
+
+    try {
+      const res = await fetch('/api/storage/delete-file', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          processId,
+          formName,
+          pdfKey
+        })
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Failed to delete file.');
+      }
+
+      // Update local state
+      setWorkflowFormsData(prev => {
+        const copy = { ...prev };
+        if (copy[formName]) {
+          const { pdfName, pdfKey: k, pdfSize: s, ...rest } = copy[formName];
+          copy[formName] = rest;
+        }
+        return copy;
+      });
+
+      // Refresh quota usage
+      fetchQuotaStatus();
+
+      alert(`Successfully deleted PDF for "${formName}".`);
+    } catch (err) {
+      console.error(err);
+      alert(err instanceof Error ? err.message : 'An error occurred while deleting the file.');
+    } finally {
+      setIsUploading(prev => ({ ...prev, [formName]: false }));
+    }
+  };
+
 
   const handleAddRole = () => {
     const trimmed = newRoleInput.trim();
@@ -489,6 +639,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
     if (processId) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       fetchProcess(processId);
+      fetchQuotaStatus();
     } else {
       // Initialize with default Start step and one form field
       setStatus('Draft');
@@ -502,8 +653,15 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
       };
       setSteps([step1]);
       handleAddFormField();
+      fetchQuotaStatus();
     }
   }, [processId]);
+
+  useEffect(() => {
+    if (activeTab === 'form') {
+      fetchQuotaStatus();
+    }
+  }, [activeTab]);
 
 
 
@@ -1354,6 +1512,46 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
         {activeTab === 'form' && (
           <div className="paper-card accent-teal">
 
+            {quota && quota.isConfigured && (
+              <div className="quota-container" style={{
+                background: '#f8fafc',
+                border: '1px solid var(--neutral-border)',
+                borderRadius: '8px',
+                padding: '1rem',
+                marginBottom: '1.5rem',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    ☁️ Cloud Storage Quota (2 GB Limit)
+                  </span>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: parseFloat(quota.percentage) > 85 ? '#ef4444' : 'var(--primary)' }}>
+                    {formatBytes(quota.totalSize)} / {formatBytes(quota.quotaLimit)} ({quota.percentage}%)
+                  </span>
+                </div>
+                <div style={{
+                  background: '#e2e8f0',
+                  borderRadius: '9999px',
+                  height: '8px',
+                  overflow: 'hidden',
+                  width: '100%'
+                }}>
+                  <div style={{
+                    background: parseFloat(quota.percentage) > 85 ? '#ef4444' : 'linear-gradient(90deg, var(--primary) 0%, #10b981 100%)',
+                    height: '100%',
+                    width: `${Math.min(parseFloat(quota.percentage), 100)}%`,
+                    borderRadius: '9999px',
+                    transition: 'width 0.4s ease'
+                  }} />
+                </div>
+                {parseFloat(quota.percentage) > 85 && (
+                  <p style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.4rem', marginBottom: 0, fontWeight: 500 }}>
+                    ⚠️ Storage quota is running low. Please remove unused PDF attachments before uploading new ones.
+                  </p>
+                )}
+              </div>
+            )}
+
             {workflowForms.length === 0 ? (
               <div style={{ padding: '2.5rem', border: '1px dashed var(--neutral-border)', borderRadius: '8px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem', background: '#fafafa' }}>
                 No output forms are currently declared in the workflow.
@@ -1387,16 +1585,11 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
                             accept=".pdf" 
                             style={{ display: 'none' }} 
                             id={`pdf-file-${formName}`}
+                            disabled={isUploading[formName]}
                             onChange={(e) => {
                               const file = e.target.files?.[0];
                               if (file) {
-                                setWorkflowFormsData(prev => ({
-                                  ...prev,
-                                  [formName]: {
-                                    ...prev[formName] || {},
-                                    pdfName: file.name
-                                  }
-                                }));
+                                handlePdfUpload(formName, file);
                               }
                             }}
                           />
@@ -1406,6 +1599,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
                             <button
                               type="button"
                               className="btn btn-secondary"
+                              disabled={isUploading[formName] || !processId}
                               style={{ 
                                 display: 'flex', 
                                 alignItems: 'center', 
@@ -1417,16 +1611,23 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
                                 border: workflowFormsData[formName]?.pdfName ? '1px solid #bfdbfe' : '1px solid var(--neutral-border)',
                                 color: workflowFormsData[formName]?.pdfName ? '#1e40af' : 'inherit'
                               }}
-                              onClick={() => document.getElementById(`pdf-file-${formName}`)?.click()}
+                              onClick={() => {
+                                if (!processId) {
+                                  alert('Please save the process document as a draft first before uploading files.');
+                                  return;
+                                }
+                                document.getElementById(`pdf-file-${formName}`)?.click();
+                              }}
                             >
                               <Upload size={13} />
-                              {workflowFormsData[formName]?.pdfName ? `PDF: ${workflowFormsData[formName].pdfName.slice(0, 15)}${workflowFormsData[formName].pdfName.length > 15 ? '...' : ''}` : 'Upload PDF'}
+                              {isUploading[formName] ? 'Working...' : (workflowFormsData[formName]?.pdfName ? `PDF: ${workflowFormsData[formName].pdfName.slice(0, 15)}${workflowFormsData[formName].pdfName.length > 15 ? '...' : ''}` : 'Upload PDF')}
                             </button>
                             
                             {workflowFormsData[formName]?.pdfName && (
                               <button
                                 type="button"
                                 title="Remove PDF"
+                                disabled={isUploading[formName]}
                                 style={{
                                   display: 'flex',
                                   alignItems: 'center',
@@ -1443,19 +1644,16 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
                                   fontSize: '1rem',
                                   fontWeight: 'bold'
                                 }}
-                                onClick={() => {
-                                  setWorkflowFormsData(prev => {
-                                    const copy = { ...prev };
-                                    if (copy[formName]) {
-                                      const { pdfName, ...rest } = copy[formName];
-                                      copy[formName] = rest;
-                                    }
-                                    return copy;
-                                  });
-                                }}
+                                onClick={() => handlePdfDelete(formName, workflowFormsData[formName].pdfKey || '')}
                               >
                                 &times;
                               </button>
+                            )}
+
+                            {!processId && (
+                              <span style={{ fontSize: '0.725rem', color: 'var(--text-muted)', fontStyle: 'italic', marginLeft: '0.25rem' }}>
+                                (Save draft first to upload)
+                              </span>
                             )}
                           </div>
 

@@ -1,4 +1,6 @@
 require('dotenv').config();
+const { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
+const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
@@ -26,6 +28,29 @@ if (DATABASE_URL) {
   console.log('No DATABASE_URL found. Operating in local CSV file-based mode.');
 }
 
+// Cloudflare R2 Client configuration
+const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID;
+const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY;
+const R2_ENDPOINT = process.env.R2_ENDPOINT;
+const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME;
+
+let r2Client = null;
+if (R2_ACCESS_KEY_ID && R2_SECRET_ACCESS_KEY && R2_ENDPOINT && R2_BUCKET_NAME) {
+  console.log('Initializing Cloudflare R2 client...');
+  r2Client = new S3Client({
+    region: 'auto',
+    endpoint: R2_ENDPOINT,
+    forcePathStyle: true,
+    credentials: {
+      accessKeyId: R2_ACCESS_KEY_ID,
+      secretAccessKey: R2_SECRET_ACCESS_KEY,
+    },
+  });
+} else {
+  console.log('Cloudflare R2 credentials missing. File upload endpoints will be disabled.');
+}
+
+
 const INITIALIZE_SCHEMA_QUERY = `
   CREATE TABLE IF NOT EXISTS processes (
     id TEXT PRIMARY KEY,
@@ -48,6 +73,8 @@ const INITIALIZE_SCHEMA_QUERY = `
     form_name TEXT NOT NULL,
     online_url TEXT,
     pdf_name TEXT,
+    pdf_key TEXT,
+    pdf_size INTEGER DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT unique_process_form UNIQUE (process_id, form_name)
@@ -63,6 +90,13 @@ async function initDatabase() {
     const client = await dbPool.connect();
     console.log('Connected to CockroachDB database successfully!');
     await client.query(INITIALIZE_SCHEMA_QUERY);
+    
+    // Add columns dynamically for existing databases
+    await client.query(`
+      ALTER TABLE process_forms ADD COLUMN IF NOT EXISTS pdf_key TEXT;
+      ALTER TABLE process_forms ADD COLUMN IF NOT EXISTS pdf_size INTEGER DEFAULT 0;
+    `);
+    
     console.log('Database schema verified/created.');
 
     const res = await client.query('SELECT COUNT(*) FROM processes');
@@ -145,17 +179,21 @@ async function syncProcessForms(clientOrPool, processId, workflowFormsData) {
   for (const [formName, formData] of Object.entries(workflowFormsData || {})) {
     if (formData && (formData.onlineUrl || formData.pdfName)) {
       await clientOrPool.query(`
-        INSERT INTO process_forms (process_id, form_name, online_url, pdf_name, updated_at)
-        VALUES ($1, $2, $3, $4, NOW())
+        INSERT INTO process_forms (process_id, form_name, online_url, pdf_name, pdf_key, pdf_size, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $6, NOW())
         ON CONFLICT (process_id, form_name) DO UPDATE SET
           online_url = EXCLUDED.online_url,
           pdf_name = EXCLUDED.pdf_name,
+          pdf_key = EXCLUDED.pdf_key,
+          pdf_size = EXCLUDED.pdf_size,
           updated_at = EXCLUDED.updated_at
       `, [
         processId,
         formName,
         formData.onlineUrl || null,
-        formData.pdfName || null
+        formData.pdfName || null,
+        formData.pdfKey || null,
+        formData.pdfSize || 0
       ]);
     }
   }
@@ -287,7 +325,9 @@ app.get('/api/processes', async (req, res) => {
         }
         formsByProcess[formRow.process_id][formRow.form_name] = {
           onlineUrl: formRow.online_url || '',
-          pdfName: formRow.pdf_name || ''
+          pdfName: formRow.pdf_name || '',
+          pdfKey: formRow.pdf_key || '',
+          pdfSize: formRow.pdf_size || 0
         };
       }
       
@@ -640,6 +680,248 @@ app.delete('/api/processes/:id', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to delete process' });
+  }
+});
+
+
+// Storage Quota Constant: 2 GB (1/5 of Cloudflare R2's 10 GB free tier)
+const STORAGE_QUOTA_LIMIT = 2 * 1024 * 1024 * 1024; // 2,147,483,648 bytes
+
+// Helper to get total storage usage
+async function getTotalStorageUsage() {
+  if (dbPool) {
+    const res = await dbPool.query('SELECT COALESCE(SUM(pdf_size), 0) AS total_size FROM process_forms');
+    return parseInt(res.rows[0].total_size, 10) || 0;
+  } else {
+    const processes = await readProcessesFromCSV();
+    let totalSize = 0;
+    processes.forEach(proc => {
+      const forms = proc.workflowFormsData || {};
+      Object.values(forms).forEach(form => {
+        if (form && form.pdfSize) {
+          totalSize += parseInt(form.pdfSize, 10) || 0;
+        }
+      });
+    });
+    return totalSize;
+  }
+}
+
+// GET /api/storage/quota-status - Retrieve current storage usage and limit info
+app.get('/api/storage/quota-status', async (req, res) => {
+  try {
+    const totalSize = await getTotalStorageUsage();
+    res.json({
+      totalSize,
+      quotaLimit: STORAGE_QUOTA_LIMIT,
+      percentage: ((totalSize / STORAGE_QUOTA_LIMIT) * 100).toFixed(2),
+      isConfigured: r2Client !== null
+    });
+  } catch (err) {
+    console.error('Error fetching quota status:', err);
+    res.status(500).json({ error: 'Failed to fetch storage quota status' });
+  }
+});
+
+// POST /api/storage/presign-upload - Generate secure R2 upload URL with quota checks
+app.post('/api/storage/presign-upload', async (req, res) => {
+  try {
+    if (!r2Client) {
+      return res.status(503).json({ error: 'Cloudflare R2 is not configured on this server.' });
+    }
+
+    const { processId, formName, fileName, fileSize, fileType } = req.body;
+    if (!processId || !formName || !fileName || !fileSize) {
+      return res.status(400).json({ error: 'Missing required upload parameters (processId, formName, fileName, fileSize).' });
+    }
+
+    // 1. Enforce individual file size limit (50 MB)
+    const MAX_FILE_SIZE = 50 * 1024 * 1024;
+    if (fileSize > MAX_FILE_SIZE) {
+      return res.status(400).json({ error: `File size is too large. Maximum allowed size is 50 MB.` });
+    }
+
+    // 2. Check total storage quota (2 GB)
+    const totalUsage = await getTotalStorageUsage();
+    if (totalUsage + fileSize > STORAGE_QUOTA_LIMIT) {
+      return res.status(400).json({
+        error: `Storage quota exceeded. Uploading this file will exceed the 2 GB storage limit (1/5 of Cloudflare R2's free tier).`
+      });
+    }
+
+    // 3. Generate secure path in bucket
+    const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const pdfKey = `uploads/${processId}/${formName.replace(/[^a-zA-Z0-9-]/g, '_')}_${Date.now()}_${sanitizedFileName}`;
+
+    // 4. Generate presigned URL for PUT request
+    const command = new PutObjectCommand({
+      Bucket: R2_BUCKET_NAME,
+      Key: pdfKey,
+      ContentType: fileType || 'application/pdf',
+    });
+
+    const uploadUrl = await getSignedUrl(r2Client, command, { expiresIn: 300 }); // 5 minutes expiration
+
+    res.json({ uploadUrl, pdfKey });
+  } catch (err) {
+    console.error('Error generating presigned upload URL:', err);
+    res.status(500).json({ error: 'Failed to generate secure upload URL' });
+  }
+});
+
+// POST /api/storage/confirm-upload - Confirm file has been uploaded and update DB/CSV
+app.post('/api/storage/confirm-upload', async (req, res) => {
+  try {
+    const { processId, formName, pdfName, pdfKey, pdfSize } = req.body;
+    if (!processId || !formName || !pdfName || !pdfKey || !pdfSize) {
+      return res.status(400).json({ error: 'Missing required confirmation parameters.' });
+    }
+
+    if (dbPool) {
+      // 1. Update relational table
+      await dbPool.query(`
+        INSERT INTO process_forms (process_id, form_name, pdf_name, pdf_key, pdf_size, updated_at)
+        VALUES ($1, $2, $3, $4, $5, NOW())
+        ON CONFLICT (process_id, form_name) DO UPDATE SET
+          pdf_name = EXCLUDED.pdf_name,
+          pdf_key = EXCLUDED.pdf_key,
+          pdf_size = EXCLUDED.pdf_size,
+          updated_at = EXCLUDED.updated_at
+      `, [processId, formName, pdfName, pdfKey, pdfSize]);
+
+      // 2. Load processes row to get workflowFormsData JSONB
+      const processRes = await dbPool.query('SELECT "workflowFormsData" FROM processes WHERE id = $1', [processId]);
+      if (processRes.rows.length > 0) {
+        const workflowFormsData = processRes.rows[0].workflowFormsData || {};
+        workflowFormsData[formName] = {
+          ...workflowFormsData[formName],
+          pdfName,
+          pdfKey,
+          pdfSize
+        };
+        await dbPool.query(
+          'UPDATE processes SET "workflowFormsData" = $1, "lastUpdated" = $2 WHERE id = $3',
+          [JSON.stringify(workflowFormsData), new Date().toISOString(), processId]
+        );
+      }
+    } else {
+      // Local CSV mode
+      const processes = await readProcessesFromCSV();
+      const idx = processes.findIndex(p => p.id === processId);
+      if (idx !== -1) {
+        const workflowFormsData = processes[idx].workflowFormsData || {};
+        workflowFormsData[formName] = {
+          ...workflowFormsData[formName],
+          pdfName,
+          pdfKey,
+          pdfSize
+        };
+        processes[idx].workflowFormsData = workflowFormsData;
+        processes[idx].lastUpdated = new Date().toISOString();
+        await writeProcessesToCSV(processes);
+      }
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Error confirming upload:', err);
+    res.status(500).json({ error: 'Failed to confirm file upload' });
+  }
+});
+
+// DELETE /api/storage/delete-file - Remove file from R2 bucket and update DB/CSV
+app.delete('/api/storage/delete-file', async (req, res) => {
+  try {
+    const { processId, formName, pdfKey } = req.body;
+    if (!processId || !formName || !pdfKey) {
+      return res.status(400).json({ error: 'Missing processId, formName, or pdfKey.' });
+    }
+
+    // 1. Delete object from R2
+    if (r2Client) {
+      try {
+        await r2Client.send(new DeleteObjectCommand({
+          Bucket: R2_BUCKET_NAME,
+          Key: pdfKey
+        }));
+        console.log(`Successfully deleted key ${pdfKey} from R2 bucket.`);
+      } catch (s3Err) {
+        console.error('Error deleting object from S3 storage:', s3Err);
+        // Continue database updates even if R2 delete fails, to keep database consistent
+      }
+    }
+
+    // 2. Update database
+    if (dbPool) {
+      // Set columns to NULL in process_forms
+      await dbPool.query(`
+        UPDATE process_forms 
+        SET pdf_name = NULL, pdf_key = NULL, pdf_size = 0, updated_at = NOW()
+        WHERE process_id = $1 AND form_name = $2
+      `, [processId, formName]);
+
+      // Update processes JSONB column
+      const processRes = await dbPool.query('SELECT "workflowFormsData" FROM processes WHERE id = $1', [processId]);
+      if (processRes.rows.length > 0) {
+        const workflowFormsData = processRes.rows[0].workflowFormsData || {};
+        if (workflowFormsData[formName]) {
+          delete workflowFormsData[formName].pdfName;
+          delete workflowFormsData[formName].pdfKey;
+          delete workflowFormsData[formName].pdfSize;
+        }
+        await dbPool.query(
+          'UPDATE processes SET "workflowFormsData" = $1, "lastUpdated" = $2 WHERE id = $3',
+          [JSON.stringify(workflowFormsData), new Date().toISOString(), processId]
+        );
+      }
+    } else {
+      // Local CSV mode
+      const processes = await readProcessesFromCSV();
+      const idx = processes.findIndex(p => p.id === processId);
+      if (idx !== -1) {
+        const workflowFormsData = processes[idx].workflowFormsData || {};
+        if (workflowFormsData[formName]) {
+          delete workflowFormsData[formName].pdfName;
+          delete workflowFormsData[formName].pdfKey;
+          delete workflowFormsData[formName].pdfSize;
+        }
+        processes[idx].workflowFormsData = workflowFormsData;
+        processes[idx].lastUpdated = new Date().toISOString();
+        await writeProcessesToCSV(processes);
+      }
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Error deleting file:', err);
+    res.status(500).json({ error: 'Failed to delete file' });
+  }
+});
+
+// GET /api/storage/download-url - Retrieve secure presigned GET URL for reading file
+app.get('/api/storage/download-url', async (req, res) => {
+  try {
+    if (!r2Client) {
+      return res.status(503).json({ error: 'Cloudflare R2 is not configured on this server.' });
+    }
+
+    const { key } = req.query;
+    if (!key) {
+      return res.status(400).json({ error: 'Missing required query parameter "key".' });
+    }
+
+    // Generate presigned URL for GET request (valid for 15 minutes)
+    const command = new GetObjectCommand({
+      Bucket: R2_BUCKET_NAME,
+      Key: key,
+    });
+
+    const downloadUrl = await getSignedUrl(r2Client, command, { expiresIn: 900 });
+
+    res.json({ downloadUrl });
+  } catch (err) {
+    console.error('Error generating presigned download URL:', err);
+    res.status(500).json({ error: 'Failed to generate download URL' });
   }
 });
 
