@@ -260,6 +260,16 @@ To resolve file upload failures where direct uploads via presigned URLs were blo
 * **Checksum Configuration**: Configured the AWS SDK v3 `S3Client` instantiation in [server.cjs](file:///d:/Code/antigravity/process-optimization/server.cjs) to use `requestChecksumCalculation: "WHEN_REQUIRED"` and `responseChecksumValidation: "WHEN_REQUIRED"`. This prevents the client library from automatically calculating and adding checksum parameters/headers (like `x-amz-checksum-crc32`), which Cloudflare R2 rejects for S3-presigned URL uploads.
 * **CORS Settings Instructions**: Provided instructions to configure the CORS policy in the Cloudflare R2 bucket dashboard to allow `PUT` and other requests from the live app (`https://process-design.onrender.com`) and local development origins.
 
+---
+
+## 23. Simplified PDF Button Labels
+
+To simplify the user interface, the file upload and file viewing button labels have been shortened to standard identifiers:
+* **Editor Upload Button**: Changed `'Upload PDF'` to `'PDF'` in [ProcessEditor.tsx](file:///d:/Code/antigravity/process-optimization/src/components/ProcessEditor.tsx).
+* **Editor View Button**: Changed `'View PDF: [filename]'` to `'PDF'` in [ProcessEditor.tsx](file:///d:/Code/antigravity/process-optimization/src/components/ProcessEditor.tsx), adding `title={filename}` so users can view the full filename on hover.
+* **Reader View Button**: Changed `'View PDF'` to `'PDF'` in [ProcessReader.tsx](file:///d:/Code/antigravity/process-optimization/src/components/ProcessReader.tsx), adding `title={filename}` for hover description compatibility.
+
+
 
 
 

@@ -563,10 +563,11 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({ processId, onBack,
                               <button
                                 type="button"
                                 className="btn btn-secondary btn-sm"
+                                title={formData.pdfName}
                                 onClick={() => handleDownloadPdf(formData.pdfKey!)}
                                 style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', margin: 0 }}
                               >
-                                View PDF
+                                PDF
                               </button>
                             )}
                             {hasUrl && (

@@ -1620,14 +1620,14 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
                                   document.getElementById(`pdf-file-${formName}`)?.click();
                                 }}
                               >
-                                <Upload size={13} />
-                                {isUploading[formName] ? 'Working...' : 'Upload PDF'}
+                                {isUploading[formName] ? 'Working...' : 'PDF'}
                               </button>
                             ) : (
                               <>
                                 <button
                                   type="button"
                                   className="btn btn-secondary"
+                                  title={workflowFormsData[formName].pdfName}
                                   disabled={isUploading[formName]}
                                   style={{ 
                                     display: 'flex', 
@@ -1656,7 +1656,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
                                   }}
                                 >
                                   <Eye size={13} />
-                                  {`View PDF: ${workflowFormsData[formName].pdfName.slice(0, 12)}${workflowFormsData[formName].pdfName.length > 12 ? '...' : ''}`}
+                                  PDF
                                 </button>
 
                                 <button
