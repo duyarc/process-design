@@ -833,12 +833,12 @@ app.post('/api/storage/confirm-upload', async (req, res) => {
 app.delete('/api/storage/delete-file', async (req, res) => {
   try {
     const { processId, formName, pdfKey } = req.body;
-    if (!processId || !formName || !pdfKey) {
-      return res.status(400).json({ error: 'Missing processId, formName, or pdfKey.' });
+    if (!processId || !formName) {
+      return res.status(400).json({ error: 'Missing processId or formName.' });
     }
 
-    // 1. Delete object from R2
-    if (r2Client) {
+    // 1. Delete object from R2 (only if key exists)
+    if (r2Client && pdfKey) {
       try {
         await r2Client.send(new DeleteObjectCommand({
           Bucket: R2_BUCKET_NAME,
