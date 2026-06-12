@@ -310,7 +310,7 @@ export const BPMNGuide: React.FC<BPMNGuideProps> = () => {
             padding: '0.75rem 1.5rem'
           }}
         >
-          1. BPMN Shapes Glossary
+          1. Shapes Glossary
         </button>
         <button
           onClick={() => setActiveTab('methodology')}
@@ -572,9 +572,9 @@ export const BPMNGuide: React.FC<BPMNGuideProps> = () => {
               </div>
             </div>
 
-            {/* Sample BPMN Process Flowchart Section */}
+            {/* Sample Process Flowchart Section */}
             <div style={{ marginTop: '3rem' }}>
-              <h2 style={{ borderBottom: '2px solid var(--neutral-border)', paddingBottom: '0.5rem', color: 'var(--text-primary)' }}>Sample BPMN Flowchart Rendering</h2>
+              <h2 style={{ borderBottom: '2px solid var(--neutral-border)', paddingBottom: '0.5rem', color: 'var(--text-primary)' }}>Sample Flowchart Rendering</h2>
               <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
                 This is a live example of how swimlanes, events, tasks, and gateways connect horizontally to represent a business process workflow.
               </p>

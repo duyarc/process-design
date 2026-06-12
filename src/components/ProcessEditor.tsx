@@ -1021,7 +1021,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
               <div>#</div>
               <div>Action Command*</div>
               <div>Responsible Role</div>
-              <div>BPMN Shape</div>
+              <div>Shape</div>
               <div>Connects to</div>
               <div style={{ textAlign: 'center' }}>Actions</div>
             </div>

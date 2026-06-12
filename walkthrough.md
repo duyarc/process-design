@@ -243,5 +243,14 @@ To simplify the page visual hierarchy:
 * **Removed Info Card**: Removed the `"About BPMN 2.0 inside our Process Design tool"` info card from the elements glossary tab in [BPMNGuide.tsx](file:///d:/Code/antigravity/process-optimization/src/components/BPMNGuide.tsx#L348).
 * **Removed Unused Import**: Cleaned up the unused `Info` icon import from `lucide-react` in the guide file.
 
+---
+
+## 21. Removed Explicit User-Facing BPMN references
+
+To keep the interface clean and focus on general process optimization language:
+* **Glossary Tab Renamed**: Changed the tab title from `"1. BPMN Shapes Glossary"` to **`"1. Shapes Glossary"`** in [BPMNGuide.tsx](file:///d:/Code/antigravity/process-optimization/src/components/BPMNGuide.tsx#L313).
+* **Sample Flowchart Title**: Changed the subtitle from `"Sample BPMN Flowchart Rendering"` to **`"Sample Flowchart Rendering"`** in [BPMNGuide.tsx](file:///d:/Code/antigravity/process-optimization/src/components/BPMNGuide.tsx#L577).
+* **Editor Table Header**: Renamed the column header from `"BPMN Shape"` to **`"Shape"`** in [ProcessEditor.tsx](file:///d:/Code/antigravity/process-optimization/src/components/ProcessEditor.tsx#L1024).
+
 
 
