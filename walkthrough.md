@@ -217,7 +217,7 @@ To help users adhere to proper naming rules based on the selected step type, pla
 * **Task Steps**: Display `"[Verb] [Noun] [Target]"` (e.g. standard workflow tasks).
 * **Start / End Event Steps**: Display `"[Noun] [Passive Verb]"` (e.g. event status triggers).
 * **Gateway Steps**: Display `"[Question]"` (e.g. decision branches).
-* **Simplified Header**: Renamed the step table column header from `"Action Command (Verb + Noun + Target)*"` to a clean, simple **`"Action Command"`** in [ProcessEditor.tsx](file:///d:/Code/antigravity/process-optimization/src/components/ProcessEditor.tsx#L1022), as the grammatical guide formulas have moved to the input placeholders.
+* **Simplified Header**: Renamed the step table column header from `"Action Command (Verb + Noun + Target)*"` to a clean, simple **`"Action Command*"`** in [ProcessEditor.tsx](file:///d:/Code/antigravity/process-optimization/src/components/ProcessEditor.tsx#L1022), as the grammatical guide formulas have moved to the input placeholders.
 
 
 

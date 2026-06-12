@@ -1019,7 +1019,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
               gap: '0.5rem'
             }}>
               <div>#</div>
-              <div>Action Command</div>
+              <div>Action Command*</div>
               <div>Responsible Role</div>
               <div>BPMN Shape</div>
               <div>Connects to</div>
