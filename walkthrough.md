@@ -183,5 +183,41 @@ I have simplified and enhanced the action buttons in the Process Reader panel:
   * If the displayed version status is **`Active`** (or superseded/retired), the button shows **`New Version`** with a plus icon (`Plus`).
 * **Print Button:** Changed label from `'Print Flowchart (A4 Landscape)'` to a clean, simple **'Print'**.
 
+---
+
+## 14. Navigation & Label Simplifications
+
+I have updated the application header to simplify navigation and clean up the UI:
+* **Dashboard Button Removal**: Removed the redundant "Dashboard" button from the navigation menu in the header.
+* **Clickable Logo Header**: Configured the "Process Design" logo header (with the BookOpen icon) to be clickable. When clicked, it resets the selected process ID and returns the user to the main Dashboard page.
+* **Simplified 'Guide' Button**: Renamed the "BPMN Guide" button to a simpler "Guide" button in the navigation menu.
+
+---
+
+## 15. Role Renaming & First-Role Customization
+
+To make it easy to replace or customize the default "Operator" role, I added a renaming option directly in the Involved Roles list:
+* **Inline Rename Button**: Added a pencil icon (`Edit2`) next to each role badge inside the "Involved Roles" input container.
+* **Cascade Updates to Steps**: Renaming a role (e.g. changing the default "Operator" to "Technician") instantly updates all workflow steps currently assigned to that role, preserving step mappings and preventing orphaned steps.
+
+---
+
+## 16. Default Process Initialization Simplification
+
+To avoid pre-populating unnecessary shapes when creating a new process standard and follow proper BPMN event naming:
+* **Start Task Only**: Reduced the default workflow steps on initialization in [ProcessEditor.tsx](file:///d:/Code/antigravity/process-optimization/src/components/ProcessEditor.tsx#L492-L509) to only contain the initial Start event.
+* **BPMN-Compliant Trigger Name**: Changed the default action name of the Start event from `"Start Process"` to a state-based trigger name, **`"Order received"`** (Noun + Passive Verb), showing proper BPMN convention.
+* **User-Defined End Task**: Removed the hardcoded "End Process" step, allowing the user to design the workflow sequence and add the End task manually when ready.
+
+---
+
+## 17. Shape-Specific Descriptive Placeholders & Header Simplification
+
+To help users adhere to proper naming rules based on the selected step type, placeholders are dynamically updated:
+* **Task Steps**: Display `"[Verb] [Noun] [Target]"` (e.g. standard workflow tasks).
+* **Start / End Event Steps**: Display `"[Noun] [Passive Verb]"` (e.g. event status triggers).
+* **Gateway Steps**: Display `"[Question]"` (e.g. decision branches).
+* **Simplified Header**: Renamed the step table column header from `"Action Command (Verb + Noun + Target)*"` to a clean, simple **`"Action Command"`** in [ProcessEditor.tsx](file:///d:/Code/antigravity/process-optimization/src/components/ProcessEditor.tsx#L1022), as the grammatical guide formulas have moved to the input placeholders.
+
 
 

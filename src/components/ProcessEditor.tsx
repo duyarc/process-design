@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { Process, ProcessStep, FormField, FormDesignerField, SOPSignOff, SOPSignOffs } from '../types';
-import { ArrowLeft, Save, Plus, Trash2, ArrowUp, ArrowDown, Upload, Link as LinkIcon } from 'lucide-react';
+import { ArrowLeft, Save, Plus, Trash2, ArrowUp, ArrowDown, Upload, Link as LinkIcon, Edit2 } from 'lucide-react';
 import { generateBPMNXML } from '../utils/bpmnXmlGenerator';
 import { useAuth } from '../context/AuthContext';
 import { BpmnViewerComponent } from './BpmnViewerComponent';
@@ -158,6 +158,21 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
       return;
     }
     setRoles(prev => prev.filter(r => r !== roleToDelete));
+  };
+
+  const handleRenameRole = (oldRoleName: string) => {
+    const newRoleName = window.prompt(`Rename role "${oldRoleName}" to:`, oldRoleName);
+    if (!newRoleName) return;
+    const trimmed = newRoleName.trim();
+    if (!trimmed || trimmed === oldRoleName) return;
+
+    if (roles.includes(trimmed)) {
+      alert('A role with this name already exists.');
+      return;
+    }
+
+    setRoles(prev => prev.map(r => r === oldRoleName ? trimmed : r));
+    setSteps(prev => prev.map(s => s.role === oldRoleName ? { ...s, role: trimmed } : s));
   };
 
   const fetchProcess = async (id: string) => {
@@ -475,23 +490,17 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
       // eslint-disable-next-line react-hooks/set-state-in-effect
       fetchProcess(processId);
     } else {
-      // Initialize with two default empty steps (Start and End) and one form field
+      // Initialize with default Start step and one form field
       setStatus('Draft');
       setParentProcessId('');
       setVersion('1');
       const step1: ProcessStep = {
         id: 'step_start_' + Math.random().toString(36).substr(2, 5),
         role: 'Operator',
-        action: 'Start Process',
+        action: 'Order received',
         bpmnShape: 'start-event'
       };
-      const step2: ProcessStep = {
-        id: 'step_end_' + Math.random().toString(36).substr(2, 5),
-        role: 'Operator',
-        action: 'End Process',
-        bpmnShape: 'end-event'
-      };
-      setSteps([step1, step2]);
+      setSteps([step1]);
       handleAddFormField();
     }
   }, [processId]);
@@ -651,24 +660,44 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
                     style={{ 
                       backgroundColor: 'var(--primary)', 
                       color: '#ffffff', 
-                      padding: '0.25rem 0.5rem', 
+                      padding: '0.25rem 0.55rem', 
                       display: 'inline-flex', 
                       alignItems: 'center', 
-                      gap: '0.25rem',
+                      gap: '0.4rem',
                       textTransform: 'none',
                       fontWeight: 500,
-                      fontSize: '0.8rem'
+                      fontSize: '0.8rem',
+                      borderRadius: '4px'
                     }}
                   >
-                    {role}
+                    <span>{role}</span>
+                    {!isReadOnly && (
+                      <button 
+                        type="button" 
+                        onClick={() => handleRenameRole(role)}
+                        title="Rename role"
+                        style={{ 
+                          border: 'none', 
+                          background: 'transparent', 
+                          color: 'rgba(255, 255, 255, 0.75)', 
+                          cursor: 'pointer',
+                          padding: 0,
+                          display: 'flex',
+                          alignItems: 'center'
+                        }}
+                      >
+                        <Edit2 size={12} />
+                      </button>
+                    )}
                     {!isReadOnly && (
                       <button 
                         type="button" 
                         onClick={() => handleDeleteRole(role)}
+                        title="Delete role"
                         style={{ 
                           border: 'none', 
                           background: 'transparent', 
-                          color: 'rgba(255, 255, 255, 0.8)', 
+                          color: 'rgba(255, 255, 255, 0.75)', 
                           cursor: 'pointer',
                           padding: 0,
                           lineHeight: 1,
@@ -990,7 +1019,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
               gap: '0.5rem'
             }}>
               <div>#</div>
-              <div>Action Command (Verb + Noun + Target)*</div>
+              <div>Action Command</div>
               <div>Responsible Role</div>
               <div>BPMN Shape</div>
               <div>Connects to</div>
@@ -1043,7 +1072,13 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                           <input
                             type="text"
-                            placeholder="e.g. Turn valve A..."
+                            placeholder={
+                              step.bpmnShape === 'start-event' || step.bpmnShape === 'end-event'
+                                ? '[Noun] [Passive Verb]'
+                                : step.bpmnShape === 'exclusive-gateway'
+                                  ? '[Question]'
+                                  : '[Verb] [Noun] [Target]'
+                            }
                             value={step.action}
                             onChange={(e) => handleStepChange(index, 'action', e.target.value)}
                             style={{ 

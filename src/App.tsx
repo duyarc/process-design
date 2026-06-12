@@ -31,25 +31,18 @@ const MainApp: React.FC = () => {
       {/* Navbar Panel */}
       <header className="app-header no-print">
         <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
-          <div className="logo-container" style={{ cursor: 'pointer' }} onClick={() => setPage('dashboard')}>
+          <div className="logo-container" style={{ cursor: 'pointer' }} onClick={() => { setPage('dashboard'); setSelectedProcessId(null); }}>
             <BookOpen size={24} style={{ color: 'var(--primary)' }} />
             <span className="logo-text">Process Design</span>
           </div>
           
           <nav style={{ display: 'flex', gap: '0.5rem' }}>
             <button 
-              className={`btn btn-sm ${page === 'dashboard' ? 'btn-primary' : 'btn-secondary'}`}
-              onClick={() => { setPage('dashboard'); setSelectedProcessId(null); }}
-              style={{ borderRadius: '20px', padding: '0.35rem 1rem' }}
-            >
-              Dashboard
-            </button>
-            <button 
               className={`btn btn-sm ${page === 'guide' ? 'btn-primary' : 'btn-secondary'}`}
               onClick={() => setPage('guide')}
               style={{ borderRadius: '20px', padding: '0.35rem 1rem' }}
             >
-              BPMN Guide
+              Guide
             </button>
           </nav>
         </div>
