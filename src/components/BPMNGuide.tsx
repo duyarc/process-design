@@ -211,11 +211,9 @@ const sampleXml = `<?xml version="1.0" encoding="UTF-8"?>
   </bpmndi:BPMNDiagram>
 </bpmn:definitions>`;
 
-interface BPMNGuideProps {
-  onBack: () => void;
-}
+interface BPMNGuideProps {}
 
-export const BPMNGuide: React.FC<BPMNGuideProps> = ({ onBack }) => {
+export const BPMNGuide: React.FC<BPMNGuideProps> = () => {
   const [activeTab, setActiveTab] = useState<'elements' | 'methodology' | 'best-practices'>('elements');
   const [testInput, setTestInput] = useState('');
   const [testFeedback, setTestFeedback] = useState<{
@@ -286,20 +284,15 @@ export const BPMNGuide: React.FC<BPMNGuideProps> = ({ onBack }) => {
     <div style={{ maxWidth: '1100px', margin: '0 auto', paddingBottom: '3rem' }}>
       {/* Header Banner */}
       <div className="paper-card accent-teal" style={{ marginBottom: '2rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-              <BookOpen size={20} style={{ color: 'var(--primary)' }} />
-              <span className="badge" style={{ backgroundColor: 'var(--primary)', color: '#fff' }}>Reference Manual</span>
-            </div>
-            <h1 style={{ marginTop: '0.25rem', marginBottom: '0.5rem' }}>BPMN 2.0 & Process Design Guide</h1>
-            <p style={{ margin: 0, fontSize: '0.95rem' }}>
-              Standard operating guide for designing process swimlanes, checklists, and writing actionable workplace instructions.
-            </p>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+            <BookOpen size={20} style={{ color: 'var(--primary)' }} />
+            <span className="badge" style={{ backgroundColor: 'var(--primary)', color: '#fff' }}>Reference Manual</span>
           </div>
-          <button className="btn btn-secondary no-print" onClick={onBack}>
-            Back to Dashboard
-          </button>
+          <h1 style={{ marginTop: '0.25rem', marginBottom: '0.5rem' }}>Process Design Guide</h1>
+          <p style={{ margin: 0, fontSize: '0.95rem' }}>
+            Standard operating guide for designing process swimlanes, checklists, and writing actionable workplace instructions.
+          </p>
         </div>
       </div>
 

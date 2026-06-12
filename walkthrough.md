@@ -219,5 +219,14 @@ To help users adhere to proper naming rules based on the selected step type, pla
 * **Gateway Steps**: Display `"[Question]"` (e.g. decision branches).
 * **Simplified Header**: Renamed the step table column header from `"Action Command (Verb + Noun + Target)*"` to a clean, simple **`"Action Command*"`** in [ProcessEditor.tsx](file:///d:/Code/antigravity/process-optimization/src/components/ProcessEditor.tsx#L1022), as the grammatical guide formulas have moved to the input placeholders.
 
+---
+
+## 18. Guide Page Header Simplification
+
+To clean up the layout and simplify user navigation inside the Reference Manual:
+* **Simplified Title**: Renamed the guide banner header from `"BPMN 2.0 & Process Design Guide"` to **`"Process Design Guide"`** in [BPMNGuide.tsx](file:///d:/Code/antigravity/process-optimization/src/components/BPMNGuide.tsx#L295).
+* **Removed 'Back to Dashboard' Button**: Removed the redundant "Back to Dashboard" button in the guide banner since the clickable logo in the global navbar handles dashboard routing. 
+* **Cleaned Props**: Removed the unused `onBack` prop from `BPMNGuideProps` and `BPMNGuide` definition, and simplified the instantiation in [App.tsx](file:///d:/Code/antigravity/process-optimization/src/App.tsx#L103).
+
 
 

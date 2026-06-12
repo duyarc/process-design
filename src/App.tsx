@@ -100,7 +100,7 @@ const MainApp: React.FC = () => {
           />
         )}
         {page === 'guide' && (
-          <BPMNGuide onBack={() => setPage('dashboard')} />
+          <BPMNGuide />
         )}
       </main>
     </div>
