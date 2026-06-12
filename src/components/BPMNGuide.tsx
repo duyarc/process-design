@@ -236,7 +236,7 @@ export const BPMNGuide: React.FC<BPMNGuideProps> = () => {
     const words = trimmed.split(/\s+/);
     const firstWord = words[0]?.toLowerCase() || '';
 
-    // Standard active action verbs in VPO/BPMN
+    // Standard active action verbs in process design
     const strongVerbs = [
       'verify', 'check', 'press', 'turn', 'adjust', 'inspect', 'close', 
       'open', 'start', 'stop', 'clean', 'flush', 'fill', 'drain', 
@@ -603,7 +603,7 @@ export const BPMNGuide: React.FC<BPMNGuideProps> = () => {
         <div>
           <h2>The Action-Target Formula</h2>
           <p style={{ marginBottom: '1.5rem' }}>
-            In standard operations, vague step statements result in operator mistakes. VPO standards dictate that every workflow action must be written as a direct imperative command using the formula:
+            In standard operations, vague step statements result in operator mistakes. Process standards dictate that every workflow action must be written as a direct imperative command using the formula:
           </p>
 
           <div style={{ display: 'flex', justifyContent: 'center', margin: '2rem 0' }}>
@@ -658,7 +658,7 @@ export const BPMNGuide: React.FC<BPMNGuideProps> = () => {
               Direct Command Grammar Tool
             </h3>
             <p style={{ fontSize: '0.9rem' }}>
-              Draft a process step action text below to check if it matches the VPO Action-Target structure.
+              Draft a process step action text below to check if it matches the Action-Target structure.
             </p>
 
             <div className="form-group" style={{ marginBottom: '1.5rem' }}>

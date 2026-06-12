@@ -228,5 +228,12 @@ To clean up the layout and simplify user navigation inside the Reference Manual:
 * **Removed 'Back to Dashboard' Button**: Removed the redundant "Back to Dashboard" button in the guide banner since the clickable logo in the global navbar handles dashboard routing. 
 * **Cleaned Props**: Removed the unused `onBack` prop from `BPMNGuideProps` and `BPMNGuide` definition, and simplified the instantiation in [App.tsx](file:///d:/Code/antigravity/process-optimization/src/App.tsx#L103).
 
+---
+
+## 19. Removed Explicit VPO Branding references
+
+To genericize the guidelines and align with proprietary standards:
+* **Text Replacements**: Replaced all occurrences of `"VPO"` inside [BPMNGuide.tsx](file:///d:/Code/antigravity/process-optimization/src/components/BPMNGuide.tsx) with generic equivalents (such as "process design" or "process standards"), keeping the core Action-Target methodology intact.
+
 
 
