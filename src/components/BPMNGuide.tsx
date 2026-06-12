@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BookOpen, Award, ShieldAlert, CheckCircle2, Info, HelpCircle } from 'lucide-react';
+import { BookOpen, Award, ShieldAlert, CheckCircle2, HelpCircle } from 'lucide-react';
 import { BpmnViewerComponent } from './BpmnViewerComponent';
 
 const sampleXml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -345,15 +345,6 @@ export const BPMNGuide: React.FC<BPMNGuideProps> = () => {
       {/* TAB 1: ELEMENTS GLOSSARY */}
       {activeTab === 'elements' && (
         <div>
-          <div className="paper-card" style={{ padding: '1.25rem', marginBottom: '2rem', background: '#f9fafb' }}>
-            <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Info size={18} style={{ color: 'var(--primary)' }} />
-              About BPMN 2.0 inside our Process Design tool
-            </h3>
-            <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.9rem', lineHeight: '1.6' }}>
-              We use a clean, web-friendly rendering configuration of BPMN 2.0 elements. Whether you construct diagrams using visual modellers like <strong>bpmn-js</strong> or structural codes, each symbol represents a specific, globally standardized operational behavior.
-            </p>
-          </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
             {/* Events Section */}

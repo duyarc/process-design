@@ -235,5 +235,13 @@ To clean up the layout and simplify user navigation inside the Reference Manual:
 To genericize the guidelines and align with proprietary standards:
 * **Text Replacements**: Replaced all occurrences of `"VPO"` inside [BPMNGuide.tsx](file:///d:/Code/antigravity/process-optimization/src/components/BPMNGuide.tsx) with generic equivalents (such as "process design" or "process standards"), keeping the core Action-Target methodology intact.
 
+---
+
+## 20. Removed 'About' Info Card from Glossary
+
+To simplify the page visual hierarchy:
+* **Removed Info Card**: Removed the `"About BPMN 2.0 inside our Process Design tool"` info card from the elements glossary tab in [BPMNGuide.tsx](file:///d:/Code/antigravity/process-optimization/src/components/BPMNGuide.tsx#L348).
+* **Removed Unused Import**: Cleaned up the unused `Info` icon import from `lucide-react` in the guide file.
+
 
 
