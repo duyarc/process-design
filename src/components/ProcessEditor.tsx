@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { Process, ProcessStep, FormField, FormDesignerField, SOPSignOff, SOPSignOffs } from '../types';
-import { ArrowLeft, Save, Plus, Trash2, ArrowUp, ArrowDown, Upload, Link as LinkIcon, Edit2 } from 'lucide-react';
+import { ArrowLeft, Save, Plus, Trash2, ArrowUp, ArrowDown, Upload, Link as LinkIcon, Edit2, Eye } from 'lucide-react';
 import { generateBPMNXML } from '../utils/bpmnXmlGenerator';
 import { useAuth } from '../context/AuthContext';
 import { BpmnViewerComponent } from './BpmnViewerComponent';
@@ -1594,60 +1594,117 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
                             }}
                           />
 
-                          {/* PDF Upload / Remove Buttons */}
+                          {/* PDF Upload / View / Replace / Remove Buttons */}
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                            <button
-                              type="button"
-                              className="btn btn-secondary"
-                              disabled={isUploading[formName] || !processId}
-                              style={{ 
-                                display: 'flex', 
-                                alignItems: 'center', 
-                                gap: '0.35rem', 
-                                padding: '0.35rem 0.75rem', 
-                                fontSize: '0.8rem',
-                                height: '32px',
-                                background: workflowFormsData[formName]?.pdfName ? '#eff6ff' : '#ffffff',
-                                border: workflowFormsData[formName]?.pdfName ? '1px solid #bfdbfe' : '1px solid var(--neutral-border)',
-                                color: workflowFormsData[formName]?.pdfName ? '#1e40af' : 'inherit'
-                              }}
-                              onClick={() => {
-                                if (!processId) {
-                                  alert('Please save the process document as a draft first before uploading files.');
-                                  return;
-                                }
-                                document.getElementById(`pdf-file-${formName}`)?.click();
-                              }}
-                            >
-                              <Upload size={13} />
-                              {isUploading[formName] ? 'Working...' : (workflowFormsData[formName]?.pdfName ? `PDF: ${workflowFormsData[formName].pdfName.slice(0, 15)}${workflowFormsData[formName].pdfName.length > 15 ? '...' : ''}` : 'Upload PDF')}
-                            </button>
-                            
-                            {workflowFormsData[formName]?.pdfName && (
+                            {!workflowFormsData[formName]?.pdfName ? (
                               <button
                                 type="button"
-                                title="Remove PDF"
-                                disabled={isUploading[formName]}
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
+                                className="btn btn-secondary"
+                                disabled={isUploading[formName] || !processId}
+                                style={{ 
+                                  display: 'flex', 
+                                  alignItems: 'center', 
+                                  gap: '0.35rem', 
+                                  padding: '0.35rem 0.75rem', 
+                                  fontSize: '0.8rem',
                                   height: '32px',
-                                  width: '32px',
-                                  minWidth: '32px',
-                                  padding: 0,
-                                  border: '1px solid #fca5a5',
-                                  background: '#fee2e2',
-                                  borderRadius: '6px',
-                                  color: '#ef4444',
-                                  cursor: 'pointer',
-                                  fontSize: '1rem',
-                                  fontWeight: 'bold'
+                                  background: '#ffffff',
+                                  border: '1px solid var(--neutral-border)',
+                                  color: 'inherit'
                                 }}
-                                onClick={() => handlePdfDelete(formName, workflowFormsData[formName].pdfKey || '')}
+                                onClick={() => {
+                                  if (!processId) {
+                                    alert('Please save the process document as a draft first before uploading files.');
+                                    return;
+                                  }
+                                  document.getElementById(`pdf-file-${formName}`)?.click();
+                                }}
                               >
-                                &times;
+                                <Upload size={13} />
+                                {isUploading[formName] ? 'Working...' : 'Upload PDF'}
                               </button>
+                            ) : (
+                              <>
+                                <button
+                                  type="button"
+                                  className="btn btn-secondary"
+                                  disabled={isUploading[formName]}
+                                  style={{ 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    gap: '0.35rem', 
+                                    padding: '0.35rem 0.75rem', 
+                                    fontSize: '0.8rem',
+                                    height: '32px',
+                                    background: '#eff6ff',
+                                    border: '1px solid #bfdbfe',
+                                    color: '#1e40af'
+                                  }}
+                                  onClick={async () => {
+                                    const pdfKey = workflowFormsData[formName]?.pdfKey;
+                                    if (pdfKey) {
+                                      try {
+                                        const res = await fetch(`/api/storage/download-url?key=${encodeURIComponent(pdfKey)}`);
+                                        if (!res.ok) throw new Error('Failed to get download URL');
+                                        const { downloadUrl } = await res.json();
+                                        window.open(downloadUrl, '_blank');
+                                      } catch (err) {
+                                        console.error(err);
+                                        alert('Failed to load PDF attachment.');
+                                      }
+                                    }
+                                  }}
+                                >
+                                  <Eye size={13} />
+                                  {`View PDF: ${workflowFormsData[formName].pdfName.slice(0, 12)}${workflowFormsData[formName].pdfName.length > 12 ? '...' : ''}`}
+                                </button>
+
+                                <button
+                                  type="button"
+                                  className="btn btn-secondary"
+                                  title="Replace PDF"
+                                  disabled={isUploading[formName]}
+                                  style={{ 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    justifyContent: 'center',
+                                    height: '32px',
+                                    width: '32px',
+                                    minWidth: '32px',
+                                    padding: 0,
+                                    border: '1px solid var(--neutral-border)',
+                                    background: '#ffffff'
+                                  }}
+                                  onClick={() => document.getElementById(`pdf-file-${formName}`)?.click()}
+                                >
+                                  <Upload size={13} />
+                                </button>
+
+                                <button
+                                  type="button"
+                                  title="Remove PDF"
+                                  disabled={isUploading[formName]}
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    height: '32px',
+                                    width: '32px',
+                                    minWidth: '32px',
+                                    padding: 0,
+                                    border: '1px solid #fca5a5',
+                                    background: '#fee2e2',
+                                    borderRadius: '6px',
+                                    color: '#ef4444',
+                                    cursor: 'pointer',
+                                    fontSize: '1rem',
+                                    fontWeight: 'bold'
+                                  }}
+                                  onClick={() => handlePdfDelete(formName, workflowFormsData[formName].pdfKey || '')}
+                                >
+                                  &times;
+                                </button>
+                              </>
                             )}
 
                             {!processId && (
