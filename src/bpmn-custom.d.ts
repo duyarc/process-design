@@ -1,6 +1,6 @@
 declare module 'bpmn-js/lib/Viewer' {
   class Viewer {
-    constructor(options: { container: HTMLElement; keyboard?: { bindTo: HTMLElement | Window } });
+    constructor(options: { container: HTMLElement; keyboard?: { bindTo: HTMLElement | Window }; additionalModules?: any[] });
     importXML(xml: string): Promise<void>;
     destroy(): void;
     get(service: string): unknown;
@@ -10,7 +10,7 @@ declare module 'bpmn-js/lib/Viewer' {
 
 declare module 'bpmn-js/lib/NavigatedViewer' {
   class NavigatedViewer {
-    constructor(options: { container: HTMLElement; keyboard?: { bindTo: HTMLElement | Window } });
+    constructor(options: { container: HTMLElement; keyboard?: { bindTo: HTMLElement | Window }; additionalModules?: any[] });
     importXML(xml: string): Promise<void>;
     destroy(): void;
     get(service: string): unknown;
@@ -20,7 +20,7 @@ declare module 'bpmn-js/lib/NavigatedViewer' {
 
 declare module 'bpmn-js/lib/Modeler' {
   class Modeler {
-    constructor(options: { container: HTMLElement; keyboard?: { bindTo: HTMLElement | Window } });
+    constructor(options: { container: HTMLElement; keyboard?: { bindTo: HTMLElement | Window }; additionalModules?: any[] });
     importXML(xml: string): Promise<void>;
     saveXML(options?: { format?: boolean }): Promise<{ xml: string }>;
     destroy(): void;

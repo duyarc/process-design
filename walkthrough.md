@@ -280,8 +280,54 @@ To streamline the attachments functionality and focus exclusively on PDF files:
 * **Reader Cleanup**: Removed the online URL open button/anchor and description display logic from [ProcessReader.tsx](file:///d:/Code/antigravity/process-optimization/src/components/ProcessReader.tsx).
 * **Type Safety**: Removed the `onlineUrl` property from [types.ts](file:///d:/Code/antigravity/process-optimization/src/types.ts).
 
+---
 
+## 25. Message End Event Support
 
+To allow cleaner and more consolidated notification flows, added standard BPMN Message End Event shape support:
+* **UI Integration**:
+  * Added **"Message End"** as a selectable shape option in the builder checklist dropdown in [ProcessEditor.tsx](file:///d:/Code/antigravity/process-optimization/src/components/ProcessEditor.tsx).
+  * Enforced validation rules so that steps designated as `message-end-event` are treated as terminal nodes (hiding the "Connects to" target selector and mapping to the red left-border card accent `#ef4444` in the editor checklist).
+* **XML Generator Integration**:
+  * Updated `generateBPMNXML` in [bpmnXmlGenerator.ts](file:///d:/Code/antigravity/process-optimization/src/utils/bpmnXmlGenerator.ts) to support the `'message-end-event'` shape type.
+  * Outputs `<bpmn:endEvent>` with an inner `<bpmn:messageEventDefinition>` element so that `bpmn-js` and standard BPMN software automatically render a bold end circle containing a dark envelope symbol.
+* **Type Safety**:
+  * Added `'message-end-event'` to the allowed `bpmnShape` union type inside [types.ts](file:///d:/Code/antigravity/process-optimization/src/types.ts).
+* **Outgoing Sequence Flow Exclusions**:
+  * Modified the sequence flow collection loop in [bpmnXmlGenerator.ts](file:///d:/Code/antigravity/process-optimization/src/utils/bpmnXmlGenerator.ts#L226-L236) to explicitly check that the step shape is neither `end-event` nor `message-end-event` before generating sequential next-step connections.
+  * This prevents the diagram layout from drawing erroneous arrows originating from the Message End Event envelopes.
 
+---
 
+## 26. Debounced Diagram Rendering (Flicker Prevention)
 
+To prevent the BPMN diagram from flickering and reloading on every single keystroke while typing step names:
+* **State Debouncer**:
+  * Introduced a `debouncedXml` state in [ProcessEditor.tsx](file:///d:/Code/antigravity/process-optimization/src/components/ProcessEditor.tsx).
+  * Added a `useEffect` hook that triggers immediately on first load (to prevent any visual loading lag when opening a process) but debounces subsequent updates by **500ms** while the user is actively typing.
+* **Component Integration**:
+  * Passed the `debouncedXml` state instead of inline XML generation results to both the `BpmnModelerComponent` and `BpmnViewerComponent`.
+  * This keeps input fields 100% responsive (updating instantly on every keypress) while preventing heavy diagram imports and re-render cycles until typing stops.
+
+---
+
+## 27. Locked Viewport Zoom and Pan Prevention
+
+To ensure a completely consistent visual size of flowchart blocks and prevent users from accidentally panning the diagram into blank space:
+* **Fixed Width Viewbox Math**:
+  * Modified the viewbox calculations in [BpmnViewerComponent.tsx](file:///d:/Code/antigravity/process-optimization/src/components/BpmnViewerComponent.tsx) and [BpmnModelerComponent.tsx](file:///d:/Code/antigravity/process-optimization/src/components/BpmnModelerComponent.tsx).
+  * Locked the horizontal viewing width of the diagrams to exactly **`1070px`** (the width required to display 6 horizontal shapes - columns 0 to 5) starting from a fixed left coordinate of `120px` (the pool participant boundary).
+  * The zoom scale is now dynamically proportional to the container width but fixed across all diagrams, maintaining identical shape and text sizes regardless of whether a process has 1 step or 5 steps.
+* **Native Panning and Zoom-Scroll Prevention**:
+  * Configured both the `BpmnViewer` and `BpmnModeler` instantiations to disable the `zoomScroll` and `moveCanvas` modules:
+    ```typescript
+    additionalModules: [
+      {
+        zoomScroll: [ 'value', null ],
+        moveCanvas: [ 'value', null ]
+      }
+    ]
+    ```
+  * This completely disables mouse-wheel zoom and canvas-background dragging (preventing scrolling away) while preserving shape selection and manual position dragging inside the custom layout modeler.
+* **Type Declarations**:
+  * Updated constructor type options inside [bpmn-custom.d.ts](file:///d:/Code/antigravity/process-optimization/src/bpmn-custom.d.ts) to support `additionalModules`.

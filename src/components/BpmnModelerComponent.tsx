@@ -56,17 +56,17 @@ export const BpmnModelerComponent = forwardRef<BpmnModelerRef, BpmnModelerCompon
     try {
       const canvas = modelerRef.current.get('canvas') as BpmnCanvas;
       
-      // 1. Zoom to 1.0 to get layout bounds in standard coordinates
       canvas.zoom(1.0);
       const viewbox = canvas.viewbox();
-      const diagramWidth = viewbox.inner.width || 1000;
       const diagramHeight = viewbox.inner.height || 450;
-      const diagramX = viewbox.inner.x || 0;
       const diagramY = viewbox.inner.y || 0;
 
+      const fixedMinX = 120;
+      const fixedWidth = 1070; // Width of 6 horizontal shapes (columns 0 to 5)
+
       const containerWidth = containerRef.current.clientWidth || 1000;
-      // Calculate the scale to fit the diagram width (with 40px horizontal padding)
-      const scale = Math.min(1.0, containerWidth / (diagramWidth + 40));
+      // Lock scale to fit the 1070px width (with 40px horizontal padding)
+      const scale = containerWidth / (fixedWidth + 40);
       
       // Calculate target container height in pixels
       const targetHeight = (diagramHeight + 50) * scale;
@@ -78,9 +78,9 @@ export const BpmnModelerComponent = forwardRef<BpmnModelerRef, BpmnModelerCompon
       // Set the viewbox to align and fit perfectly
       setTimeout(() => {
         canvas.viewbox({
-          x: diagramX - 20,
+          x: fixedMinX - 20,
           y: diagramY - 10,
-          width: diagramWidth + 40,
+          width: fixedWidth + 40,
           height: diagramHeight + 50
         });
       }, 50);
@@ -96,9 +96,15 @@ export const BpmnModelerComponent = forwardRef<BpmnModelerRef, BpmnModelerCompon
     setLoading(true);
     setError(null);
 
-    // Initialize Modeler without keyboard binding (prevents keyboard element deletions)
+    // Initialize Modeler without keyboard binding and disable pan & zoom interaction modules
     const modeler = new BpmnModeler({
-      container: containerRef.current
+      container: containerRef.current,
+      additionalModules: [
+        {
+          zoomScroll: [ 'value', null ],
+          moveCanvas: [ 'value', null ]
+        }
+      ]
     });
     modelerRef.current = modeler;
 

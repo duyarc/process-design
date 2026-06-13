@@ -531,7 +531,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({ processId, onBack,
                       const formData = (process.workflowFormsData || {})[formName] || {};
                       let attachmentText = '';
                       if (formData.pdfName) {
-                        attachmentText = `PDF Attachment: ${formData.pdfName}`;
+                        attachmentText = formData.pdfName;
                       } else if (formData.fields && formData.fields.length > 0) {
                         attachmentText = `Custom Form (${formData.fields.length} fields)`;
                       }
@@ -549,10 +549,10 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({ processId, onBack,
                           borderRadius: '4px',
                           fontSize: '0.8rem'
                         }}>
-                          <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, marginRight: '1rem' }}>
-                            <span style={{ fontWeight: 600, color: 'var(--text-primary)', marginBottom: attachmentText ? '0.2rem' : 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{formName}</span>
+                          <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', minWidth: 0, marginRight: '1rem', flexWrap: 'wrap' }}>
+                            <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{formName}</span>
                             {attachmentText && (
-                              <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{attachmentText}</span>
+                              <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>({attachmentText})</span>
                             )}
                           </div>
                           <div className="no-print" style={{ display: 'flex', gap: '0.4rem', flexShrink: 0 }}>

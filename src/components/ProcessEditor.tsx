@@ -24,7 +24,7 @@ const enforceStepShapes = (stepsList: ProcessStep[]): ProcessStep[] => {
     const nextSeqId = idx < stepsList.length - 1 ? stepsList[idx + 1].id : undefined;
     
     let nextStepId = step.nextStepId;
-    if (shape !== 'end-event') {
+    if (shape !== 'end-event' && shape !== 'message-end-event') {
       if (!nextStepId || !ids.has(nextStepId)) {
         nextStepId = nextSeqId;
       }
@@ -74,6 +74,31 @@ const enforceStepShapes = (stepsList: ProcessStep[]): ProcessStep[] => {
   });
 };
 
+const updateSequentialConnections = (oldSteps: ProcessStep[], newSteps: ProcessStep[]): ProcessStep[] => {
+  const oldIndexMap = new Map<string, number>();
+  oldSteps.forEach((s, idx) => oldIndexMap.set(s.id, idx));
+
+  return newSteps.map((step, idx) => {
+    const oldIdx = oldIndexMap.get(step.id);
+    if (oldIdx === undefined) {
+      return {
+        ...step,
+        nextStepId: idx < newSteps.length - 1 ? newSteps[idx + 1].id : undefined
+      };
+    }
+
+    const wasSequential = oldIdx < oldSteps.length - 1 && oldSteps[oldIdx].nextStepId === oldSteps[oldIdx + 1].id;
+    if (wasSequential || !step.nextStepId) {
+      return {
+        ...step,
+        nextStepId: idx < newSteps.length - 1 ? newSteps[idx + 1].id : undefined
+      };
+    }
+
+    return step;
+  });
+};
+
 interface ProcessEditorProps {
   processId: string | null; // null means create new
   onCancel: () => void;
@@ -115,6 +140,26 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
   const [savingBpmn, setSavingBpmn] = useState(false);
   const [quota, setQuota] = useState<{ totalSize: number; quotaLimit: number; percentage: string; isConfigured: boolean } | null>(null);
   const [isUploading, setIsUploading] = useState<{ [formName: string]: boolean }>({});
+  const [debouncedXml, setDebouncedXml] = useState('');
+
+  // Debounce diagram updates to prevent flickering when typing step action commands
+  useEffect(() => {
+    const xml = generateBPMNXML(steps, title || 'Untitled Process', roles || []);
+    
+    // If it's the first time generating XML, apply it immediately to avoid mount delay
+    setDebouncedXml(prev => {
+      if (!prev) {
+        return xml;
+      }
+      return prev;
+    });
+
+    const timer = setTimeout(() => {
+      setDebouncedXml(xml);
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, [steps, title, roles]);
 
   const isReadOnly = status !== 'Draft';
 
@@ -373,7 +418,56 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
   };
 
   const handleRemoveStep = (index: number) => {
-    setSteps(prev => enforceStepShapes(prev.filter((_, i) => i !== index)));
+    setSteps(prev => {
+      const oldSteps = [...prev];
+      const removedStepId = prev[index]?.id;
+      const filtered = prev.filter((_, i) => i !== index);
+      const connected = updateSequentialConnections(oldSteps, filtered);
+
+      const resetStepIds = new Set<string>();
+      if (removedStepId) {
+        resetStepIds.add(removedStepId);
+      }
+
+      const updated = connected.map((step, idx) => {
+        if (idx >= index) {
+          const resetStep = { ...step };
+          delete resetStep.layoutX;
+          delete resetStep.layoutY;
+          delete resetStep.layoutWaypointsMap;
+          delete resetStep.layoutCatchWaypoints;
+          delete resetStep.labelX;
+          delete resetStep.labelY;
+          delete resetStep.labelW;
+          delete resetStep.labelH;
+          resetStepIds.add(resetStep.id);
+          return resetStep;
+        }
+        return step;
+      });
+
+      const finalSteps = updated.map((step, idx) => {
+        if (idx < index && step.layoutWaypointsMap) {
+          const newMap = { ...step.layoutWaypointsMap };
+          let changed = false;
+          for (const targetId in newMap) {
+            if (resetStepIds.has(targetId)) {
+              delete newMap[targetId];
+              changed = true;
+            }
+          }
+          if (changed) {
+            return {
+              ...step,
+              layoutWaypointsMap: Object.keys(newMap).length > 0 ? newMap : undefined
+            };
+          }
+        }
+        return step;
+      });
+
+      return enforceStepShapes(finalSteps);
+    });
   };
 
   const handleStepChange = (index: number, field: keyof ProcessStep, value: string | boolean) => {
@@ -389,12 +483,56 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
     if (direction === 'down' && index === steps.length - 1) return;
 
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    const minIdx = Math.min(index, targetIndex);
+
     setSteps(prev => {
-      const updated = [...prev];
-      const temp = updated[index];
-      updated[index] = updated[targetIndex];
-      updated[targetIndex] = temp;
-      return enforceStepShapes(updated);
+      const oldSteps = [...prev];
+      const swapped = [...prev];
+      const temp = swapped[index];
+      swapped[index] = swapped[targetIndex];
+      swapped[targetIndex] = temp;
+
+      const connected = updateSequentialConnections(oldSteps, swapped);
+
+      const resetStepIds = new Set<string>();
+      const updated = connected.map((step, idx) => {
+        if (idx >= minIdx) {
+          const resetStep = { ...step };
+          delete resetStep.layoutX;
+          delete resetStep.layoutY;
+          delete resetStep.layoutWaypointsMap;
+          delete resetStep.layoutCatchWaypoints;
+          delete resetStep.labelX;
+          delete resetStep.labelY;
+          delete resetStep.labelW;
+          delete resetStep.labelH;
+          resetStepIds.add(resetStep.id);
+          return resetStep;
+        }
+        return step;
+      });
+
+      const finalSteps = updated.map((step, idx) => {
+        if (idx < minIdx && step.layoutWaypointsMap) {
+          const newMap = { ...step.layoutWaypointsMap };
+          let changed = false;
+          for (const targetId in newMap) {
+            if (resetStepIds.has(targetId)) {
+              delete newMap[targetId];
+              changed = true;
+            }
+          }
+          if (changed) {
+            return {
+              ...step,
+              layoutWaypointsMap: Object.keys(newMap).length > 0 ? newMap : undefined
+            };
+          }
+        }
+        return step;
+      });
+
+      return enforceStepShapes(finalSteps);
     });
   };
 
@@ -1136,7 +1274,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
                 <div>
                   <BpmnModelerComponent
                     ref={modelerRef}
-                    xml={generateBPMNXML(steps, title || 'Untitled Process', roles || [])}
+                    xml={debouncedXml}
                     onSavePositions={handleSaveBpmnPositions}
                     onReset={handleResetBpmnPositions}
                     isSaving={savingBpmn}
@@ -1150,7 +1288,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
                 </div>
               ) : (
                 <div>
-                  <BpmnViewerComponent xml={generateBPMNXML(steps, title || 'Untitled Process', roles || [])} />
+                   <BpmnViewerComponent xml={debouncedXml} />
                 </div>
               )}
             </div>
@@ -1195,7 +1333,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
                   borderLeftColor = '#10b981'; // Start (Emerald Green)
                 } else if (step.bpmnShape === 'exclusive-gateway') {
                   borderLeftColor = '#f59e0b'; // Gateway (Amber Gold)
-                } else if (step.bpmnShape === 'end-event') {
+                } else if (step.bpmnShape === 'end-event' || step.bpmnShape === 'message-end-event') {
                   borderLeftColor = '#ef4444'; // End (Rose/Red)
                 }
 
@@ -1230,7 +1368,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
                           <input
                             type="text"
                             placeholder={
-                              step.bpmnShape === 'start-event' || step.bpmnShape === 'end-event'
+                              step.bpmnShape === 'start-event' || step.bpmnShape === 'end-event' || step.bpmnShape === 'message-end-event'
                                 ? '[Noun] [Passive Verb]'
                                 : step.bpmnShape === 'exclusive-gateway'
                                   ? '[Question]'
@@ -1341,6 +1479,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
                               <option value="task">Task</option>
                               <option value="exclusive-gateway">Gateway (XOR)</option>
                               <option value="end-event">End</option>
+                              <option value="message-end-event">Message End</option>
                             </select>
                           )}
                         </div>
@@ -1356,7 +1495,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
                               {steps.map((s, sIdx) => (
                                 s.id !== step.id && (
                                   <option key={s.id} value={s.id}>
-                                    #{sIdx + 1}: {s.bpmnShape === 'start-event' ? 'Start' : s.bpmnShape === 'end-event' ? 'End' : (s.action ? (s.action.slice(0, 20) + (s.action.length > 20 ? '...' : '')) : `Untitled (${s.bpmnShape || 'task'})`)}
+                                    #{sIdx + 1}: {s.bpmnShape === 'start-event' ? 'Start' : (s.bpmnShape === 'end-event' || s.bpmnShape === 'message-end-event') ? 'End' : (s.action ? (s.action.slice(0, 20) + (s.action.length > 20 ? '...' : '')) : `Untitled (${s.bpmnShape || 'task'})`)}
                                   </option>
                                 )
                               ))}
@@ -1435,7 +1574,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
                                 {steps.map((s, sIdx) => (
                                   s.id !== step.id && (
                                     <option key={s.id} value={s.id}>
-                                      #{sIdx + 1}: {s.bpmnShape === 'start-event' ? 'Start' : s.bpmnShape === 'end-event' ? 'End' : (s.action ? (s.action.slice(0, 20) + (s.action.length > 20 ? '...' : '')) : `Untitled (${s.bpmnShape || 'task'})`)}
+                                      #{sIdx + 1}: {s.bpmnShape === 'start-event' ? 'Start' : (s.bpmnShape === 'end-event' || s.bpmnShape === 'message-end-event') ? 'End' : (s.action ? (s.action.slice(0, 20) + (s.action.length > 20 ? '...' : '')) : `Untitled (${s.bpmnShape || 'task'})`)}
                                     </option>
                                   )
                                 ))}
@@ -1478,7 +1617,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
                                 {steps.map((s, sIdx) => (
                                   s.id !== step.id && (
                                     <option key={s.id} value={s.id}>
-                                      #{sIdx + 1}: {s.bpmnShape === 'start-event' ? 'Start' : s.bpmnShape === 'end-event' ? 'End' : (s.action ? (s.action.slice(0, 20) + (s.action.length > 20 ? '...' : '')) : `Untitled (${s.bpmnShape || 'task'})`)}
+                                      #{sIdx + 1}: {s.bpmnShape === 'start-event' ? 'Start' : (s.bpmnShape === 'end-event' || s.bpmnShape === 'message-end-event') ? 'End' : (s.action ? (s.action.slice(0, 20) + (s.action.length > 20 ? '...' : '')) : `Untitled (${s.bpmnShape || 'task'})`)}
                                     </option>
                                   )
                                 ))}

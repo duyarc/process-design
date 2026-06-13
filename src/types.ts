@@ -2,7 +2,7 @@ export interface ProcessStep {
   id: string;
   role: string;
   action: string;
-  bpmnShape?: 'task' | 'exclusive-gateway' | 'start-event' | 'end-event';
+  bpmnShape?: 'task' | 'exclusive-gateway' | 'start-event' | 'end-event' | 'message-end-event';
   nextStepId?: string;
   branchYesLabel?: string;
   branchYesTargetId?: string;

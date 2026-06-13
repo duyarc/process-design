@@ -223,7 +223,7 @@ export function generateBPMNXML(
           });
         }
       } else {
-        if (step.bpmnShape !== 'end-event') {
+        if (step.bpmnShape !== 'end-event' && step.bpmnShape !== 'message-end-event') {
           const targetId = step.nextStepId || (idx < steps.length - 1 ? steps[idx + 1].id : null);
           if (targetId) {
             originalFlows.push({
@@ -434,6 +434,11 @@ export function generateBPMNXML(
         xml += `
     <bpmn:endEvent id="${node.id}" name="${escapedAction}">${incomingStr}
     </bpmn:endEvent>`;
+      } else if (shape === 'message-end-event') {
+        xml += `
+    <bpmn:endEvent id="${node.id}" name="${escapedAction}">${incomingStr}
+      <bpmn:messageEventDefinition id="MessageEventDef_${node.id}" />
+    </bpmn:endEvent>`;
       } else if (shape === 'intermediate-event') {
         xml += `
     <bpmn:intermediateEvent id="${node.id}" name="${escapedAction}">${incomingStr}${outgoingStr}
@@ -620,7 +625,7 @@ export function generateBPMNXML(
       <bpmndi:BPMNShape id="DataObjectRef_${node.id}_di" bpmnElement="DataObjectRef_${node.id}">
         <dc:Bounds x="${doX}" y="${doY}" width="36" height="50" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="${doX - 20}" y="${doY - 20}" width="76" height="14" />
+          <dc:Bounds x="${doX - 32}" y="${doY - 35}" width="100" height="30" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>`;
       }

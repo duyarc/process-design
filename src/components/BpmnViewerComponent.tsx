@@ -31,9 +31,15 @@ export const BpmnViewerComponent: React.FC<BpmnViewerComponentProps> = ({ xml })
     setLoading(true);
     setError(null);
 
-    // Initialize base bpmn-js Viewer (disables pan & zoom interaction)
+    // Initialize base bpmn-js Viewer and disable pan & zoom interaction modules
     const viewer = new BpmnViewer({
-      container: containerRef.current
+      container: containerRef.current,
+      additionalModules: [
+        {
+          zoomScroll: [ 'value', null ],
+          moveCanvas: [ 'value', null ]
+        }
+      ]
     });
 
     viewer.importXML(xml.trim())
@@ -43,39 +49,32 @@ export const BpmnViewerComponent: React.FC<BpmnViewerComponentProps> = ({ xml })
         
         const canvas = viewer.get('canvas') as BpmnCanvas;
         
-        // Parse all dc:Bounds elements to find the exact bounding box of the diagram
-        let minX = Infinity;
+        // Parse y bounds to find the exact vertical bounding box of the diagram
         let minY = Infinity;
-        let maxX = -Infinity;
         let maxY = -Infinity;
 
-        const boundsRegex = /<dc:Bounds[^>]*?x="(-?\d+)"[^>]*?y="(-?\d+)"[^>]*?width="(\d+)"[^>]*?height="(\d+)"/g;
+        const boundsRegex = /<dc:Bounds[^>]*?y="(-?\d+)"[^>]*?height="(\d+)"/g;
         let match;
         while ((match = boundsRegex.exec(xml)) !== null) {
-          const x = parseInt(match[1], 10);
-          const y = parseInt(match[2], 10);
-          const w = parseInt(match[3], 10);
-          const h = parseInt(match[4], 10);
-          if (x < minX) minX = x;
+          const y = parseInt(match[1], 10);
+          const h = parseInt(match[2], 10);
           if (y < minY) minY = y;
-          if (x + w > maxX) maxX = x + w;
           if (y + h > maxY) maxY = y + h;
         }
 
         // Fallback if parsing failed
-        if (minX === Infinity) {
-          minX = 120;
+        if (minY === Infinity) {
           minY = 0;
-          maxX = 1120;
           maxY = 450;
         }
 
-        const exactWidth = maxX - minX;
+        const fixedMinX = 120;
+        const fixedWidth = 1070; // Width of 6 horizontal shapes (columns 0 to 5)
         const exactHeight = maxY - minY;
 
         const containerWidth = containerRef.current?.clientWidth || 1000;
-        // Calculate scale (allow up to 1.15x zoom for readability of small charts)
-        const scale = Math.min(1.15, containerWidth / (exactWidth + 16));
+        // Lock scale to fit the 1070px width (with 16px padding)
+        const scale = containerWidth / (fixedWidth + 16);
         
         // Calculate target container height in pixels
         const targetHeight = (exactHeight + 16) * scale;
@@ -142,9 +141,9 @@ export const BpmnViewerComponent: React.FC<BpmnViewerComponentProps> = ({ xml })
         setTimeout(() => {
           if (active) {
             canvas.viewbox({
-              x: minX - 8,
+              x: fixedMinX - 8,
               y: minY - 8,
-              width: exactWidth + 16,
+              width: fixedWidth + 16,
               height: exactHeight + 16
             });
           }
@@ -158,7 +157,7 @@ export const BpmnViewerComponent: React.FC<BpmnViewerComponentProps> = ({ xml })
             containerRef.current.style.width = '1020px';
             
             // Dynamically calculate the printable height based on A4 landscape print width (1020px)
-            const printScale = Math.min(1.15, 1020 / (exactWidth + 16));
+            const printScale = 1020 / (fixedWidth + 16);
             const printHeight = (exactHeight + 16) * printScale;
             containerRef.current.style.height = `${printHeight}px`;
 
@@ -166,9 +165,9 @@ export const BpmnViewerComponent: React.FC<BpmnViewerComponentProps> = ({ xml })
             void containerRef.current.offsetHeight;
           }
           canvas.viewbox({
-            x: minX - 8,
+            x: fixedMinX - 8,
             y: minY - 8,
-            width: exactWidth + 16,
+            width: fixedWidth + 16,
             height: exactHeight + 16
           });
         };
@@ -182,9 +181,9 @@ export const BpmnViewerComponent: React.FC<BpmnViewerComponentProps> = ({ xml })
             void containerRef.current.offsetHeight;
           }
           canvas.viewbox({
-            x: minX - 8,
+            x: fixedMinX - 8,
             y: minY - 8,
-            width: exactWidth + 16,
+            width: fixedWidth + 16,
             height: exactHeight + 16
           });
         };
