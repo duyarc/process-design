@@ -62,10 +62,10 @@ export const BpmnModelerComponent = forwardRef<BpmnModelerRef, BpmnModelerCompon
       const diagramY = viewbox.inner.y || 0;
 
       const fixedMinX = 120;
-      const fixedWidth = 1070; // Width of 6 horizontal shapes (columns 0 to 5)
+      const fixedWidth = 1250; // Width of pool up to Column 6 (Throw Event)
 
       const containerWidth = containerRef.current.clientWidth || 1000;
-      // Lock scale to fit the 1070px width (with 40px horizontal padding)
+      // Lock scale to fit the 1250px width (with 40px horizontal padding)
       const scale = containerWidth / (fixedWidth + 40);
       
       // Calculate target container height in pixels

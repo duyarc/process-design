@@ -69,11 +69,11 @@ export const BpmnViewerComponent: React.FC<BpmnViewerComponentProps> = ({ xml })
         }
 
         const fixedMinX = 120;
-        const fixedWidth = 1070; // Width of 6 horizontal shapes (columns 0 to 5)
+        const fixedWidth = 1250; // Width of pool up to Column 6 (Throw Event)
         const exactHeight = maxY - minY;
 
         const containerWidth = containerRef.current?.clientWidth || 1000;
-        // Lock scale to fit the 1070px width (with 16px padding)
+        // Lock scale to fit the 1250px width (with 16px padding)
         const scale = containerWidth / (fixedWidth + 16);
         
         // Calculate target container height in pixels
