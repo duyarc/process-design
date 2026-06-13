@@ -269,6 +269,18 @@ To simplify the user interface, the file upload and file viewing button labels h
 * **Editor View Button**: Changed `'View PDF: [filename]'` to `'PDF'` in [ProcessEditor.tsx](file:///d:/Code/antigravity/process-optimization/src/components/ProcessEditor.tsx), adding `title={filename}` so users can view the full filename on hover.
 * **Reader View Button**: Changed `'View PDF'` to `'PDF'` in [ProcessReader.tsx](file:///d:/Code/antigravity/process-optimization/src/components/ProcessReader.tsx), adding `title={filename}` for hover description compatibility.
 
+---
+
+## 24. Removed Online Form Linking Functionality
+
+To streamline the attachments functionality and focus exclusively on PDF files:
+* **Database Cleanup**: Removed the `online_url` column and index from the relational `process_forms` table in [server.cjs](file:///d:/Code/antigravity/process-optimization/server.cjs) schema definition, and added an automatic startup migration (`ALTER TABLE process_forms DROP COLUMN IF EXISTS online_url`) to cleanly drop it from existing database instances.
+* **Backend Cleanup**: Removed `onlineUrl` references from startup migrations and sync/mapping routes in [server.cjs](file:///d:/Code/antigravity/process-optimization/server.cjs).
+* **Interface Cleanup**: Removed the `"Link Online Form"`, `"Open Online Form"`, and `"Remove Link"` buttons and event handlers from the editor in [ProcessEditor.tsx](file:///d:/Code/antigravity/process-optimization/src/components/ProcessEditor.tsx).
+* **Reader Cleanup**: Removed the online URL open button/anchor and description display logic from [ProcessReader.tsx](file:///d:/Code/antigravity/process-optimization/src/components/ProcessReader.tsx).
+* **Type Safety**: Removed the `onlineUrl` property from [types.ts](file:///d:/Code/antigravity/process-optimization/src/types.ts).
+
+
 
 
 

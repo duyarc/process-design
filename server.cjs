@@ -73,7 +73,6 @@ const INITIALIZE_SCHEMA_QUERY = `
     id SERIAL PRIMARY KEY,
     process_id TEXT NOT NULL REFERENCES processes(id) ON DELETE CASCADE,
     form_name TEXT NOT NULL,
-    online_url TEXT,
     pdf_name TEXT,
     pdf_key TEXT,
     pdf_size INTEGER DEFAULT 0,
@@ -83,7 +82,6 @@ const INITIALIZE_SCHEMA_QUERY = `
   );
 
   CREATE INDEX IF NOT EXISTS idx_process_forms_name ON process_forms(form_name);
-  CREATE INDEX IF NOT EXISTS idx_process_forms_url ON process_forms(online_url);
 `;
 
 async function initDatabase() {
@@ -93,10 +91,11 @@ async function initDatabase() {
     console.log('Connected to CockroachDB database successfully!');
     await client.query(INITIALIZE_SCHEMA_QUERY);
     
-    // Add columns dynamically for existing databases
+    // Add columns dynamically for existing databases, and drop old onlineUrl functionality
     await client.query(`
       ALTER TABLE process_forms ADD COLUMN IF NOT EXISTS pdf_key TEXT;
       ALTER TABLE process_forms ADD COLUMN IF NOT EXISTS pdf_size INTEGER DEFAULT 0;
+      ALTER TABLE process_forms DROP COLUMN IF EXISTS online_url;
     `);
     
     console.log('Database schema verified/created.');
@@ -144,12 +143,12 @@ async function initDatabase() {
       for (const row of processesRes.rows) {
         const workflowFormsData = row.workflowFormsData || {};
         for (const [formName, formData] of Object.entries(workflowFormsData)) {
-          if (formData && (formData.onlineUrl || formData.pdfName)) {
+          if (formData && (formData.pdfName || formData.pdfKey)) {
             await client.query(`
-              INSERT INTO process_forms (process_id, form_name, online_url, pdf_name)
-              VALUES ($1, $2, $3, $4)
+              INSERT INTO process_forms (process_id, form_name, pdf_name, pdf_key, pdf_size)
+              VALUES ($1, $2, $3, $4, $5)
               ON CONFLICT (process_id, form_name) DO NOTHING
-            `, [row.id, formName, formData.onlineUrl || null, formData.pdfName || null]);
+            `, [row.id, formName, formData.pdfName || null, formData.pdfKey || null, formData.pdfSize || 0]);
           }
         }
       }
@@ -179,12 +178,11 @@ async function syncProcessForms(clientOrPool, processId, workflowFormsData) {
   }
   
   for (const [formName, formData] of Object.entries(workflowFormsData || {})) {
-    if (formData && (formData.onlineUrl || formData.pdfName)) {
+    if (formData && (formData.pdfName || formData.pdfKey)) {
       await clientOrPool.query(`
-        INSERT INTO process_forms (process_id, form_name, online_url, pdf_name, pdf_key, pdf_size, updated_at)
-        VALUES ($1, $2, $3, $4, $5, $6, NOW())
+        INSERT INTO process_forms (process_id, form_name, pdf_name, pdf_key, pdf_size, updated_at)
+        VALUES ($1, $2, $3, $4, $5, NOW())
         ON CONFLICT (process_id, form_name) DO UPDATE SET
-          online_url = EXCLUDED.online_url,
           pdf_name = EXCLUDED.pdf_name,
           pdf_key = EXCLUDED.pdf_key,
           pdf_size = EXCLUDED.pdf_size,
@@ -192,7 +190,6 @@ async function syncProcessForms(clientOrPool, processId, workflowFormsData) {
       `, [
         processId,
         formName,
-        formData.onlineUrl || null,
         formData.pdfName || null,
         formData.pdfKey || null,
         formData.pdfSize || 0
@@ -326,7 +323,6 @@ app.get('/api/processes', async (req, res) => {
           formsByProcess[formRow.process_id] = {};
         }
         formsByProcess[formRow.process_id][formRow.form_name] = {
-          onlineUrl: formRow.online_url || '',
           pdfName: formRow.pdf_name || '',
           pdfKey: formRow.pdf_key || '',
           pdfSize: formRow.pdf_size || 0

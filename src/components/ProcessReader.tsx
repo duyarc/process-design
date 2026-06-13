@@ -532,14 +532,11 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({ processId, onBack,
                       let attachmentText = '';
                       if (formData.pdfName) {
                         attachmentText = `PDF Attachment: ${formData.pdfName}`;
-                      } else if (formData.onlineUrl) {
-                        attachmentText = `Online URL Link: ${formData.onlineUrl}`;
                       } else if (formData.fields && formData.fields.length > 0) {
                         attachmentText = `Custom Form (${formData.fields.length} fields)`;
                       }
 
                       const hasPdf = !!formData.pdfName;
-                      const hasUrl = !!formData.onlineUrl;
 
                       return (
                         <div key={formName} style={{
@@ -569,17 +566,6 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({ processId, onBack,
                               >
                                 PDF
                               </button>
-                            )}
-                            {hasUrl && (
-                              <a
-                                href={formData.onlineUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="btn btn-secondary btn-sm"
-                                style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', margin: 0, textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
-                              >
-                                Open Link
-                              </a>
                             )}
                           </div>
                         </div>

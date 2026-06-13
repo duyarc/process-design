@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { Process, ProcessStep, FormField, FormDesignerField, SOPSignOff, SOPSignOffs } from '../types';
-import { ArrowLeft, Save, Plus, Trash2, ArrowUp, ArrowDown, Upload, Link as LinkIcon, Edit2, Eye } from 'lucide-react';
+import { ArrowLeft, Save, Plus, Trash2, ArrowUp, ArrowDown, Upload, Edit2, Eye } from 'lucide-react';
 import { generateBPMNXML } from '../utils/bpmnXmlGenerator';
 import { useAuth } from '../context/AuthContext';
 import { BpmnViewerComponent } from './BpmnViewerComponent';
@@ -105,7 +105,6 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
       pdfUrl?: string;
       pdfKey?: string;
       pdfSize?: number;
-      onlineUrl?: string;
       fields?: FormDesignerField[];
     }
   }>({});
@@ -1711,81 +1710,6 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
                               <span style={{ fontSize: '0.725rem', color: 'var(--text-muted)', fontStyle: 'italic', marginLeft: '0.25rem' }}>
                                 (Save draft first to upload)
                               </span>
-                            )}
-                          </div>
-
-                          {/* Link / Open / Remove Online Form Buttons */}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                            <button
-                              type="button"
-                              className="btn btn-secondary"
-                              style={{ 
-                                display: 'flex', 
-                                alignItems: 'center', 
-                                gap: '0.35rem', 
-                                padding: '0.35rem 0.75rem', 
-                                fontSize: '0.8rem',
-                                height: '32px',
-                                background: workflowFormsData[formName]?.onlineUrl ? '#10b981' : '#ffffff',
-                                border: workflowFormsData[formName]?.onlineUrl ? 'none' : '1px solid var(--neutral-border)',
-                                color: workflowFormsData[formName]?.onlineUrl ? '#ffffff' : 'inherit',
-                                boxShadow: workflowFormsData[formName]?.onlineUrl ? '0 1px 2px rgba(0, 0, 0, 0.05)' : undefined
-                              }}
-                              onClick={() => {
-                                const currentUrl = workflowFormsData[formName]?.onlineUrl || '';
-                                if (currentUrl) {
-                                  window.open(currentUrl, '_blank');
-                                } else {
-                                  const url = window.prompt("URL", currentUrl);
-                                  if (url !== null) {
-                                    setWorkflowFormsData(prev => ({
-                                      ...prev,
-                                      [formName]: {
-                                        ...prev[formName] || {},
-                                        onlineUrl: url.trim()
-                                      }
-                                    }));
-                                  }
-                                }
-                              }}
-                            >
-                              <LinkIcon size={13} />
-                              {workflowFormsData[formName]?.onlineUrl ? 'Open Online Form' : 'Link Online Form'}
-                            </button>
-
-                            {workflowFormsData[formName]?.onlineUrl && (
-                              <button
-                                type="button"
-                                title="Remove Link"
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  height: '32px',
-                                  width: '32px',
-                                  minWidth: '32px',
-                                  padding: 0,
-                                  border: '1px solid #fca5a5',
-                                  background: '#fee2e2',
-                                  borderRadius: '6px',
-                                  color: '#ef4444',
-                                  cursor: 'pointer',
-                                  fontSize: '1rem',
-                                  fontWeight: 'bold'
-                                }}
-                                onClick={() => {
-                                  setWorkflowFormsData(prev => {
-                                    const copy = { ...prev };
-                                    if (copy[formName]) {
-                                      const { onlineUrl, ...rest } = copy[formName];
-                                      copy[formName] = rest;
-                                    }
-                                    return copy;
-                                  });
-                                }}
-                              >
-                                &times;
-                              </button>
                             )}
                           </div>
                         </div>
