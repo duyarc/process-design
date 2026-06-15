@@ -748,10 +748,37 @@ export function generateBPMNXML(
           }
         } else if (fromPos.x + fromPos.width <= toPos.x) {
           if (Math.abs(startY - endY) < 5) {
-            edgeWaypoints = [
-              { x: startX, y: startY },
-              { x: endX, y: endY }
-            ];
+            let hasHorizontalCollision = false;
+            const fromNode = layoutNodes.find(n => n.id === flow.sourceId);
+            const toNode = layoutNodes.find(n => n.id === flow.targetId);
+            if (fromNode && toNode) {
+              const minCol = Math.min(fromNode.col, toNode.col);
+              const maxCol = Math.max(fromNode.col, toNode.col);
+              hasHorizontalCollision = layoutNodes.some(node =>
+                node.type === 'step' &&
+                node.id !== fromNode.id &&
+                node.id !== toNode.id &&
+                node.row === fromNode.row &&
+                node.role === fromNode.role &&
+                node.col > minCol &&
+                node.col < maxCol
+              );
+            }
+
+            if (hasHorizontalCollision) {
+              const routeY = fromPos.y - 25; // Route 25px above the shapes (inside the lane)
+              edgeWaypoints = [
+                { x: Math.round(fromPos.x + fromPos.width / 2), y: Math.round(fromPos.y) },
+                { x: Math.round(fromPos.x + fromPos.width / 2), y: Math.round(routeY) },
+                { x: Math.round(toPos.x + toPos.width / 2), y: Math.round(routeY) },
+                { x: Math.round(toPos.x + toPos.width / 2), y: Math.round(toPos.y) }
+              ];
+            } else {
+              edgeWaypoints = [
+                { x: startX, y: startY },
+                { x: endX, y: endY }
+              ];
+            }
           } else {
             const midX = Math.round((startX + endX) / 2);
             edgeWaypoints = [

@@ -189,3 +189,13 @@ This walkthrough describes the implementation of automatic flowchart wrapping us
     *   **Upstream Waypoint Sweep**: Automatically sweeps all remaining upstream steps (index `< minIdx` or `< index`) and deletes any key in their `layoutWaypointsMap` pointing to any of the deleted or reset downstream steps.
 *   **Result**: Eliminates overlapping shapes, crossed connections, and spaghetti lines when steps are inserted, reordered, or deleted in Custom Layout mode, allowing downstream shapes to reflow cleanly into auto-layout columns.
 
+---
+
+## 10. Horizontal Collision Detection & Routing (Auto-Layout)
+
+### Corrective Routing for Blocked Paths
+*   **[bpmnXmlGenerator.ts](file:///d:/Code/antigravity/process-optimization/src/utils/bpmnXmlGenerator.ts) [MODIFY]**
+    *   Added a horizontal collision check when sequence flows are on the same horizontal line.
+    *   If intermediate shapes are found directly in the path between the source and target columns, the sequence flow is routed vertically above the shapes (`routeY = fromPos.y - 25`) with a 4-point orthogonal route.
+    *   This prevents sequence flow lines from cutting straight through intermediate shapes, separates the "Yes" and "No" line trajectories, and resolves overlapping gateway branch labels.
+
