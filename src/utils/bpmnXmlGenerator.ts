@@ -111,7 +111,18 @@ export function generateBPMNXML(
       const prevRole = steps[idx - 1].role || 'Operator';
       const prevCol = stepCols[idx - 1];
       let col: number;
-      if (role === prevRole) {
+      let forceIncrement = false;
+      if (idx > 0) {
+        const prevStep = steps[idx - 1];
+        if (
+          step.bpmnShape === 'exclusive-gateway' ||
+          prevStep.bpmnShape === 'exclusive-gateway'
+        ) {
+          forceIncrement = true;
+        }
+      }
+
+      if (role === prevRole || forceIncrement) {
         const lastColForRole = lastColInRow[prevRow]?.[role] ?? -1;
         col = Math.max(prevCol + 1, lastColForRole + 1);
       } else {
