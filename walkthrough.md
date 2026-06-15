@@ -191,11 +191,11 @@ This walkthrough describes the implementation of automatic flowchart wrapping us
 
 ---
 
-## 10. Horizontal Collision Detection & Routing (Auto-Layout)
+## 10. Gateway Branch Routing Enhancements (Auto-Layout)
 
-### Corrective Routing for Blocked Paths
+### Corrective Routing for Same-Lane & Different-Lane Branches
 *   **[bpmnXmlGenerator.ts](file:///d:/Code/antigravity/process-optimization/src/utils/bpmnXmlGenerator.ts) [MODIFY]**
-    *   Added a horizontal collision check when sequence flows are on the same horizontal line.
-    *   If intermediate shapes are found directly in the path between the source and target columns, the sequence flow is routed vertically above the shapes (`routeY = fromPos.y - 25`) with a 4-point orthogonal route.
-    *   This prevents sequence flow lines from cutting straight through intermediate shapes, separates the "Yes" and "No" line trajectories, and resolves overlapping gateway branch labels.
+    *   **Same-Lane Branches (Horizontal Collision)**: Added a horizontal collision check when sequence flows are on the same horizontal line. If intermediate shapes are found directly in the path between the source and target columns, the flow is routed vertically above the shapes (`routeY = fromPos.y - 25`) with a 4-point orthogonal route.
+    *   **Different-Lane Branches (Vertical Exit)**: If the source shape is a Gateway and the target is in a different lane, the sequence flow is routed to exit vertically (from the top of the gateway if target is above, or bottom if target is below) using a 3-point orthogonal path.
+    *   *Result*: Prevents sequence flow lines from cutting straight through intermediate shapes, separates the "Yes" and "No" branch line trajectories, and completely eliminates overlapping/scrambled gateway branch labels.
 

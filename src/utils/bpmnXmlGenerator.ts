@@ -780,13 +780,34 @@ export function generateBPMNXML(
               ];
             }
           } else {
-            const midX = Math.round((startX + endX) / 2);
-            edgeWaypoints = [
-              { x: startX, y: startY },
-              { x: midX, y: startY },
-              { x: midX, y: endY },
-              { x: endX, y: endY }
-            ];
+            const fromNode = layoutNodes.find(n => n.id === flow.sourceId);
+            if (fromNode?.bpmnShape?.includes('gateway')) {
+              const fromCenterX = Math.round(fromPos.x + fromPos.width / 2);
+              const toCenterY = Math.round(toPos.y + toPos.height / 2);
+              if (toCenterY < startY) {
+                // Target is above: exit top of gateway
+                edgeWaypoints = [
+                  { x: fromCenterX, y: Math.round(fromPos.y) },
+                  { x: fromCenterX, y: toCenterY },
+                  { x: Math.round(toPos.x), y: toCenterY }
+                ];
+              } else {
+                // Target is below: exit bottom of gateway
+                edgeWaypoints = [
+                  { x: fromCenterX, y: Math.round(fromPos.y + fromPos.height) },
+                  { x: fromCenterX, y: toCenterY },
+                  { x: Math.round(toPos.x), y: toCenterY }
+                ];
+              }
+            } else {
+              const midX = Math.round((startX + endX) / 2);
+              edgeWaypoints = [
+                { x: startX, y: startY },
+                { x: midX, y: startY },
+                { x: midX, y: endY },
+                { x: endX, y: endY }
+              ];
+            }
           }
         } else {
           const p1_x = startX + 20;
