@@ -1043,9 +1043,17 @@ app.use((req, res, next) => {
 });
 
 // Start server after initializing database (if configured)
-initDatabase().then(() => {
-  app.listen(PORT, () => {
-    console.log(`Backend server running on http://localhost:${PORT}`);
+if (require.main === module) {
+  initDatabase().then(() => {
+    app.listen(PORT, () => {
+      console.log(`Backend server running on http://localhost:${PORT}`);
+    });
   });
-});
+} else {
+  // In serverless environments, initialize database but export the app
+  initDatabase();
+}
+
+module.exports = app;
+
 
