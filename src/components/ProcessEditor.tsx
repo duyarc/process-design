@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { Process, ProcessStep, FormField, FormDesignerField, SOPSignOff, SOPSignOffs } from '../types';
-import { ArrowLeft, Save, Plus, Trash2, ArrowUp, ArrowDown, Upload, Edit2, Eye } from 'lucide-react';
+import { ArrowLeft, Save, Plus, Trash2, ArrowUp, ArrowDown, Upload, Edit2, Eye, PenTool } from 'lucide-react';
+import FormBuilder from './FormBuilder';
 import { generateBPMNXML } from '../utils/bpmnXmlGenerator';
 import { useAuth } from '../context/AuthContext';
 import { BpmnViewerComponent } from './BpmnViewerComponent';
@@ -109,6 +110,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
   const { hasPermission } = useAuth();
   const modelerRef = useRef<BpmnModelerRef | null>(null);
   const [activeTab, setActiveTab] = useState<'description' | 'workflow' | 'form'>('description');
+  const [activeFormToBuild, setActiveFormToBuild] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [version, setVersion] = useState('1');
@@ -131,6 +133,12 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
       pdfKey?: string;
       pdfSize?: number;
       fields?: FormDesignerField[];
+      formId?: string;
+      formTitle?: string;
+      version?: string;
+      status?: 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
+      isoFields?: any[];
+      revisionHistory?: any[];
     }
   }>({});
 
@@ -1854,6 +1862,54 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
                         </div>
                       )}
                     </div>
+                    
+                    {/* ISO 2026 Digital Form builder row */}
+                    <div style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center', 
+                      marginTop: '0.5rem',
+                      paddingTop: '0.5rem',
+                      borderTop: '1px dashed #e2e8f0',
+                      fontSize: '0.85rem'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)' }}>
+                        <PenTool size={14} />
+                        {workflowFormsData[formName]?.formId ? (
+                          <span>
+                            Digital Template: <strong>{workflowFormsData[formName].formId}</strong> (
+                            {workflowFormsData[formName].version}) - {' '}
+                            <span className={`badge ${workflowFormsData[formName].status === 'ACTIVE' ? 'badge-success' : 'badge-warning'}`} style={{ fontSize: '0.65rem', padding: '0.1rem 0.3rem' }}>
+                              {workflowFormsData[formName].status}
+                            </span>
+                          </span>
+                        ) : (
+                          <span style={{ fontStyle: 'italic' }}>No digital form configured yet</span>
+                        )}
+                      </div>
+                      
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        style={{
+                          fontSize: '0.75rem',
+                          padding: '0.2rem 0.6rem',
+                          height: '28px',
+                          background: workflowFormsData[formName]?.formId ? '#f0fdf4' : '#f8fafc',
+                          borderColor: workflowFormsData[formName]?.formId ? '#bbf7d0' : '#cbd5e1',
+                          color: workflowFormsData[formName]?.formId ? '#15803d' : 'inherit'
+                        }}
+                        onClick={() => {
+                          if (!processId) {
+                            alert('Please save the process document as a draft first to enable the form builder.');
+                            return;
+                          }
+                          setActiveFormToBuild(formName);
+                        }}
+                      >
+                        {workflowFormsData[formName]?.formId ? 'Edit Digital Form' : 'Build Form Online'}
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -1862,6 +1918,39 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
         )}
         </fieldset>
       </div>
+
+      {activeFormToBuild && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000,
+          padding: '2rem'
+        }}>
+          <div style={{ width: '95%', maxWidth: '1200px', background: '#ffffff', borderRadius: '8px', overflow: 'hidden' }}>
+            <FormBuilder
+              formName={activeFormToBuild}
+              initialData={workflowFormsData[activeFormToBuild]}
+              onSave={(savedFormData) => {
+                setWorkflowFormsData(prev => ({
+                  ...prev,
+                  [activeFormToBuild]: {
+                    ...prev[activeFormToBuild],
+                    ...savedFormData
+                  }
+                }));
+              }}
+              onClose={() => setActiveFormToBuild(null)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

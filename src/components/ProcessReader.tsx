@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import type { Process } from '../types';
+import type { Process, FormFieldISO, SubmissionFieldSnapshot } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { ArrowLeft, Printer, Edit2, Calendar, Plus } from 'lucide-react';
+import { ArrowLeft, Printer, Edit2, Calendar, Plus, Camera, AlertTriangle, X } from 'lucide-react';
 import { generateBPMNXML, getNumRows } from '../utils/bpmnXmlGenerator';
 import { BpmnViewerComponent } from './BpmnViewerComponent';
+import PrintBlankForm from './print/PrintBlankForm';
 
 interface ProcessReaderProps {
   processId: string;
@@ -25,6 +26,16 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({ processId, onBack,
   const [allVersions, setAllVersions] = useState<Process[]>([]);
   const { hasPermission } = useAuth();
 
+  // ISO Form execution states
+  const [activeFormToFill, setActiveFormToFill] = useState<string | null>(null);
+  const [formValues, setFormValues] = useState<{ [fieldId: string]: string }>({});
+  const [fieldReactions, setFieldReactions] = useState<{ [fieldId: string]: string }>({});
+  const [uploadedPhotos, setUploadedPhotos] = useState<{ [fieldId: string]: string[] }>({}); // fieldId -> array of keys
+  const [isPhotoUploading, setIsPhotoUploading] = useState<{ [fieldId: string]: boolean }>({});
+  const [operatorId, setOperatorId] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [printTemplateData, setPrintTemplateData] = useState<any | null>(null);
+
   const handleDownloadPdf = async (pdfKey: string) => {
     try {
       const res = await fetch(`/api/storage/download-url?key=${encodeURIComponent(pdfKey)}`);
@@ -34,6 +45,158 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({ processId, onBack,
     } catch (err) {
       console.error(err);
       alert('Failed to load PDF attachment.');
+    }
+  };
+
+  const handlePhotoUpload = async (fieldId: string, file: File) => {
+    if (!process || !activeFormToFill) return;
+    setIsPhotoUploading(prev => ({ ...prev, [fieldId]: true }));
+    try {
+      const presignRes = await fetch('/api/storage/presign-upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          processId: process.id,
+          formName: activeFormToFill,
+          fileName: file.name,
+          fileSize: file.size,
+          fileType: file.type
+        })
+      });
+
+      if (!presignRes.ok) {
+        const errData = await presignRes.json();
+        throw new Error(errData.error || 'Failed to get secure upload URL.');
+      }
+
+      const { uploadUrl, pdfKey } = await presignRes.json();
+
+      const uploadRes = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': file.type || 'image/jpeg'
+        },
+        body: file
+      });
+
+      if (!uploadRes.ok) {
+        throw new Error('Failed to upload file to Cloudflare storage.');
+      }
+
+      setUploadedPhotos(prev => ({
+        ...prev,
+        [fieldId]: [...(prev[fieldId] || []), pdfKey]
+      }));
+
+      alert('Photo evidence uploaded successfully!');
+    } catch (err) {
+      console.error(err);
+      alert(`Error uploading photo: ${err instanceof Error ? err.message : 'Upload failed'}`);
+    } finally {
+      setIsPhotoUploading(prev => ({ ...prev, [fieldId]: false }));
+    }
+  };
+
+  const handleSubmitForm = async (formTemplate: any) => {
+    if (!process) return;
+    if (!operatorId.trim()) {
+      alert('Please enter your Operator ID to sign off this submission (Attributability).');
+      return;
+    }
+
+    const missingFields = formTemplate.isoFields.filter((field: any) => {
+      const val = formValues[field.id];
+      return val === undefined || val === '';
+    });
+
+    if (missingFields.length > 0) {
+      alert(`Please fill out all check items. (${missingFields.length} remaining).`);
+      return;
+    }
+
+    try {
+      let isOverallPass = true;
+      const snapshots: SubmissionFieldSnapshot[] = formTemplate.isoFields.map((field: any) => {
+        const val = formValues[field.id];
+        let fieldStatus: 'PASS' | 'FAIL' = 'PASS';
+        let targetRange = '';
+
+        if (field.type === 'number') {
+          const numVal = parseFloat(val);
+          const minVal = field.minSpec ?? -Infinity;
+          const maxVal = field.maxSpec ?? Infinity;
+          targetRange = `${minVal} - ${maxVal} ${field.unit || ''}`;
+          if (isNaN(numVal) || numVal < minVal || numVal > maxVal) {
+            fieldStatus = 'FAIL';
+            isOverallPass = false;
+          }
+        } else if (field.type === 'checkbox') {
+          targetRange = field.targetRange || 'Checked & Ok';
+          if (val !== 'PASS') {
+            fieldStatus = 'FAIL';
+            isOverallPass = false;
+          }
+        } else {
+          targetRange = field.targetRange || 'Required';
+        }
+
+        if (fieldStatus === 'FAIL' && !fieldReactions[field.id]?.trim()) {
+          throw new Error(`Corrective Action Containment log is required for failed check: "${field.checkItem}".`);
+        }
+
+        return {
+          id: field.id,
+          checkItem: field.checkItem,
+          locationCode: field.locationCode || 'N/A',
+          targetRange,
+          reactionProtocol: field.reactionProtocol,
+          value: val + (fieldStatus === 'FAIL' ? ` (Action: ${fieldReactions[field.id]})` : ''),
+          status: fieldStatus
+        };
+      });
+
+      const allMediaKeys: string[] = [];
+      Object.values(uploadedPhotos).forEach(keys => {
+        allMediaKeys.push(...keys);
+      });
+
+      if (!isOverallPass && allMediaKeys.length === 0) {
+        throw new Error('⚠️ QMS Protocol: Photo evidence is required for out-of-specification abnormalities.');
+      }
+
+      setSubmitting(true);
+      const submissionId = `sub_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+      
+      const payload = {
+        id: submissionId,
+        processId: process.id,
+        formId: formTemplate.formId,
+        formVersion: formTemplate.version,
+        operatorId,
+        status: isOverallPass ? 'PASS' : 'ABNORMALITY',
+        formData: snapshots,
+        mediaUrls: allMediaKeys
+      };
+
+      const res = await fetch('/api/submissions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) throw new Error('Submission server error');
+      
+      alert(`Record submitted successfully! ID: ${submissionId}`);
+      
+      setFormValues({});
+      setFieldReactions({});
+      setUploadedPhotos({});
+      setActiveFormToFill(null);
+    } catch (err) {
+      console.error(err);
+      alert(`Failed to submit: ${err instanceof Error ? err.message : 'Server error'}`);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -204,6 +367,15 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({ processId, onBack,
       name: '',
       title: '',
     });
+  }
+
+  if (printTemplateData) {
+    return (
+      <PrintBlankForm
+        template={printTemplateData}
+        onClose={() => setPrintTemplateData(null)}
+      />
+    );
   }
 
   return (
@@ -530,8 +702,12 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({ processId, onBack,
                     {workflowForms.map((formName) => {
                       const formData = (process.workflowFormsData || {})[formName] || {};
                       let attachmentText = '';
+                      const hasDigitalForm = !!formData.formId;
+                      
                       if (formData.pdfName) {
                         attachmentText = formData.pdfName;
+                      } else if (hasDigitalForm) {
+                        attachmentText = `Digital Template: ${formData.formId} (${formData.version})`;
                       } else if (formData.fields && formData.fields.length > 0) {
                         attachmentText = `Custom Form (${formData.fields.length} fields)`;
                       }
@@ -556,6 +732,27 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({ processId, onBack,
                             )}
                           </div>
                           <div className="no-print" style={{ display: 'flex', gap: '0.4rem', flexShrink: 0 }}>
+                            {hasDigitalForm && formData.isoFields && (
+                              <>
+                                <button
+                                  type="button"
+                                  className="btn btn-secondary btn-sm"
+                                  onClick={() => setActiveFormToFill(formName)}
+                                  style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', margin: 0, background: '#f0fdf4', color: '#166534', borderColor: '#bbf7d0' }}
+                                >
+                                  Fill Form
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn-secondary btn-sm"
+                                  onClick={() => setPrintTemplateData(formData as any)}
+                                  style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', margin: 0 }}
+                                >
+                                  Print Blank
+                                </button>
+                              </>
+                            )}
+
                             {hasPdf && formData.pdfKey && (
                               <button
                                 type="button"
@@ -612,6 +809,378 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({ processId, onBack,
           </div>
         </div>
       </div>
+      
+      {activeFormToFill && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000,
+          padding: '2rem'
+        }}>
+          <div style={{
+            width: '90%',
+            maxWidth: '800px',
+            background: '#ffffff',
+            borderRadius: '8px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            maxHeight: '90vh',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden'
+          }}>
+            {/* Header */}
+            {(() => {
+              const formTemplate = (process.workflowFormsData || {})[activeFormToFill];
+              if (!formTemplate || !formTemplate.isoFields) {
+                return (
+                  <div style={{ padding: '2rem', textAlign: 'center' }}>
+                    <p>Digital template fields are not defined for this form.</p>
+                    <button type="button" className="btn btn-secondary" onClick={() => setActiveFormToFill(null)}>Close</button>
+                  </div>
+                );
+              }
+
+              return (
+                <>
+                  <div style={{
+                    padding: '1rem 1.5rem',
+                    borderBottom: '1px solid var(--neutral-border)',
+                    background: '#f8fafc',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}>
+                    <div>
+                      <h3 style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text-primary)' }}>
+                        📝 Fill Form: {formTemplate.formTitle || activeFormToFill}
+                      </h3>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
+                        Document ID: <strong>{formTemplate.formId}</strong> | Version: <strong>{formTemplate.version}</strong>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setActiveFormToFill(null)}
+                      style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                    >
+                      <X size={20} />
+                    </button>
+                  </div>
+
+                  {/* Body Form Fields */}
+                  <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                    {/* Operator identification (ALCOA+ Attributability) */}
+                    <div style={{
+                      background: '#eff6ff',
+                      border: '1px solid #bfdbfe',
+                      padding: '1rem',
+                      borderRadius: '6px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.35rem'
+                    }}>
+                      <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#1e40af', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <span>Operator Signature / ID (Attributable Signature) *</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={operatorId}
+                        onChange={(e) => setOperatorId(e.target.value)}
+                        placeholder="Enter your Name or Badge ID (e.g. John Doe / OP-42)"
+                        style={{
+                          padding: '0.45rem 0.6rem',
+                          fontSize: '0.85rem',
+                          border: '1px solid #93c5fd',
+                          borderRadius: '4px',
+                          outline: 'none',
+                          background: '#ffffff'
+                        }}
+                      />
+                    </div>
+
+                    {/* Field checklist */}
+                    {formTemplate.isoFields.map((field: FormFieldISO, idx: number) => {
+                      const value = formValues[field.id] || '';
+                      
+                      // Out of spec detection
+                      let isOutOfSpec = false;
+                      let specHint = '';
+
+                      if (field.type === 'number' && value !== '') {
+                        const num = parseFloat(value);
+                        const min = field.minSpec ?? -Infinity;
+                        const max = field.maxSpec ?? Infinity;
+                        specHint = `Target: ${min} - ${max} ${field.unit || ''}`;
+                        if (isNaN(num) || num < min || num > max) {
+                          isOutOfSpec = true;
+                        }
+                      } else if (field.type === 'checkbox') {
+                        specHint = `Target: ${field.targetRange || 'Checked & Ok'}`;
+                        if (value === 'FAIL') {
+                          isOutOfSpec = true;
+                        }
+                      } else if (field.type === 'text') {
+                        specHint = field.targetRange ? `Target: ${field.targetRange}` : '';
+                      }
+
+                      return (
+                        <div key={field.id} style={{
+                          border: '1px solid var(--neutral-border)',
+                          borderRadius: '6px',
+                          padding: '1rem',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '0.75rem',
+                          background: isOutOfSpec ? '#fff5f5' : '#ffffff',
+                          borderColor: isOutOfSpec ? '#fca5a5' : 'var(--neutral-border)'
+                        }}>
+                          {/* Row 1: Label and Code */}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                            <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+                              {idx + 1}. {field.checkItem}
+                            </span>
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', background: '#f1f5f9', padding: '0.15rem 0.4rem', borderRadius: '4px' }}>
+                              Location: {field.locationCode || 'N/A'} | {field.frequency}
+                            </span>
+                          </div>
+
+                          {/* Row 2: Target Spec Hint */}
+                          {specHint && (
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                              🎯 {specHint}
+                            </div>
+                          )}
+
+                          {/* Row 3: Inputs */}
+                          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                            {field.type === 'number' && (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <input
+                                  type="number"
+                                  value={value}
+                                  onChange={(e) => setFormValues(prev => ({ ...prev, [field.id]: e.target.value }))}
+                                  placeholder="Enter value"
+                                  style={{ padding: '0.4rem 0.5rem', fontSize: '0.85rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', width: '120px' }}
+                                />
+                                <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{field.unit}</span>
+                              </div>
+                            )}
+
+                            {field.type === 'checkbox' && (
+                              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                <button
+                                  type="button"
+                                  className="btn"
+                                  onClick={() => setFormValues(prev => ({ ...prev, [field.id]: 'PASS' }))}
+                                  style={{
+                                    padding: '0.35rem 0.75rem',
+                                    fontSize: '0.8rem',
+                                    background: value === 'PASS' ? '#10b981' : '#f1f5f9',
+                                    color: value === 'PASS' ? '#ffffff' : 'var(--text-primary)',
+                                    borderColor: value === 'PASS' ? '#10b981' : 'var(--neutral-border)'
+                                  }}
+                                >
+                                  OK
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn"
+                                  onClick={() => setFormValues(prev => ({ ...prev, [field.id]: 'FAIL' }))}
+                                  style={{
+                                    padding: '0.35rem 0.75rem',
+                                    fontSize: '0.8rem',
+                                    background: value === 'FAIL' ? '#ef4444' : '#f1f5f9',
+                                    color: value === 'FAIL' ? '#ffffff' : 'var(--text-primary)',
+                                    borderColor: value === 'FAIL' ? '#ef4444' : 'var(--neutral-border)'
+                                  }}
+                                >
+                                  FAIL
+                                </button>
+                              </div>
+                            )}
+
+                            {field.type === 'text' && (
+                              <input
+                                type="text"
+                                value={value}
+                                onChange={(e) => setFormValues(prev => ({ ...prev, [field.id]: e.target.value }))}
+                                placeholder="Enter observation note"
+                                style={{ padding: '0.4rem 0.5rem', fontSize: '0.85rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', flex: 1 }}
+                              />
+                            )}
+
+                            {field.type === 'date' && (
+                              <input
+                                type="date"
+                                value={value}
+                                onChange={(e) => setFormValues(prev => ({ ...prev, [field.id]: e.target.value }))}
+                                style={{ padding: '0.4rem 0.5rem', fontSize: '0.85rem', border: '1px solid var(--neutral-border)', borderRadius: '4px' }}
+                              />
+                            )}
+
+                            {field.type === 'signature' && (
+                              <input
+                                type="text"
+                                value={value}
+                                onChange={(e) => setFormValues(prev => ({ ...prev, [field.id]: e.target.value }))}
+                                placeholder="Type full name to sign"
+                                style={{ padding: '0.4rem 0.5rem', fontSize: '0.85rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', flex: 1, fontStyle: 'italic' }}
+                              />
+                            )}
+
+                            {field.type === 'photo' && (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  style={{ display: 'none' }}
+                                  id={`evidence-photo-${field.id}`}
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) handlePhotoUpload(field.id, file);
+                                  }}
+                                />
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                  <button
+                                    type="button"
+                                    className="btn btn-secondary btn-sm"
+                                    disabled={isPhotoUploading[field.id]}
+                                    onClick={() => document.getElementById(`evidence-photo-${field.id}`)?.click()}
+                                    style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', height: '32px' }}
+                                  >
+                                    <Camera size={14} />
+                                    <span>{isPhotoUploading[field.id] ? 'Uploading...' : 'Take/Upload Photo'}</span>
+                                  </button>
+                                  {uploadedPhotos[field.id]?.length > 0 && (
+                                    <span style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 600 }}>
+                                      ✓ {uploadedPhotos[field.id].length} photo(s) attached
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Row 4: Reaction Protocol Trigger */}
+                          {isOutOfSpec && (
+                            <div style={{
+                              background: '#fffbeb',
+                              border: '1px solid #fde68a',
+                              padding: '0.75rem',
+                              borderRadius: '4px',
+                              color: '#b45309',
+                              fontSize: '0.8rem',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '0.5rem',
+                              marginTop: '0.25rem'
+                            }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 'bold' }}>
+                                <AlertTriangle size={15} />
+                                <span>Out-of-Specification Abnormality Detected!</span>
+                              </div>
+                              <div style={{ fontStyle: 'italic' }}>
+                                <strong>Reaction Protocol:</strong> {field.reactionProtocol || 'Notify lead technician immediately.'}
+                              </div>
+                              
+                              {/* Containment action input */}
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', marginTop: '0.25rem' }}>
+                                <label style={{ fontWeight: 600, fontSize: '0.75rem' }}>Describe Containment Action Taken *</label>
+                                <textarea
+                                  value={fieldReactions[field.id] || ''}
+                                  onChange={(e) => setFieldReactions(prev => ({ ...prev, [field.id]: e.target.value }))}
+                                  placeholder="Describe corrective action applied to return process to control..."
+                                  rows={2}
+                                  style={{ padding: '0.35rem 0.5rem', fontSize: '0.8rem', border: '1px solid #fcd34d', borderRadius: '4px', resize: 'none', background: '#ffffff' }}
+                                />
+                              </div>
+
+                              {/* Force media attachment for failure */}
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', marginTop: '0.25rem' }}>
+                                <label style={{ fontWeight: 600, fontSize: '0.75rem', color: '#ef4444' }}>
+                                  ⚠️ Photo Evidence Required for Fails *
+                                </label>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  style={{ display: 'none' }}
+                                  id={`fail-photo-${field.id}`}
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) handlePhotoUpload(field.id, file);
+                                  }}
+                                />
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                  <button
+                                    type="button"
+                                    className="btn btn-secondary btn-sm"
+                                    disabled={isPhotoUploading[field.id]}
+                                    onClick={() => document.getElementById(`fail-photo-${field.id}`)?.click()}
+                                    style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', height: '32px', borderColor: '#fca5a5', background: '#fffbeb' }}
+                                  >
+                                    <Camera size={14} style={{ color: '#ef4444' }} />
+                                    <span style={{ color: '#b91c1c' }}>Upload Failure Photo</span>
+                                  </button>
+                                  {uploadedPhotos[field.id]?.length > 0 ? (
+                                    <span style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 600 }}>
+                                      ✓ Photo attached
+                                    </span>
+                                  ) : (
+                                    <span style={{ fontSize: '0.75rem', color: '#ef4444', fontStyle: 'italic' }}>
+                                      Please attach photo of abnormality.
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                            </div>
+                          )}
+
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Actions footer */}
+                  <div style={{
+                    padding: '1rem 1.5rem',
+                    borderTop: '1px solid var(--neutral-border)',
+                    background: '#f8fafc',
+                    display: 'flex',
+                    justifyContent: 'flex-end',
+                    gap: '0.5rem'
+                  }}>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      disabled={submitting}
+                      onClick={() => setActiveFormToFill(null)}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      disabled={submitting}
+                      onClick={() => handleSubmitForm(formTemplate)}
+                      style={{ background: '#10b981', borderColor: '#10b981' }}
+                    >
+                      {submitting ? 'Submitting...' : 'Submit Completed Record'}
+                    </button>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

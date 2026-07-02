@@ -82,6 +82,22 @@ const INITIALIZE_SCHEMA_QUERY = `
   );
 
   CREATE INDEX IF NOT EXISTS idx_process_forms_name ON process_forms(form_name);
+
+  CREATE TABLE IF NOT EXISTS submissions (
+    id TEXT PRIMARY KEY,
+    process_id TEXT NOT NULL REFERENCES processes(id) ON DELETE CASCADE,
+    form_id TEXT NOT NULL,
+    form_version TEXT NOT NULL,
+    operator_id TEXT NOT NULL,
+    submitted_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    status TEXT NOT NULL,
+    form_data JSONB NOT NULL,
+    media_urls JSONB DEFAULT '[]'::jsonb,
+    supervisor_signoff JSONB DEFAULT NULL
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_submissions_process_id ON submissions(process_id);
+  CREATE INDEX IF NOT EXISTS idx_submissions_form_id ON submissions(form_id);
 `;
 
 async function initDatabase() {
@@ -154,6 +170,18 @@ async function initDatabase() {
       }
       console.log('Relational forms migration completed.');
     }
+
+    // Database Keep-Alive: Ping database every 1 hour to prevent sleep
+    setInterval(async () => {
+      try {
+        if (dbPool) {
+          await dbPool.query('SELECT 1');
+          console.log('Database keep-alive ping sent.');
+        }
+      } catch (err) {
+        console.error('Database keep-alive ping failed:', err);
+      }
+    }, 1000 * 60 * 60);
 
     client.release();
   } catch (err) {
@@ -920,6 +948,85 @@ app.get('/api/storage/download-url', async (req, res) => {
   } catch (err) {
     console.error('Error generating presigned download URL:', err);
     res.status(500).json({ error: 'Failed to generate download URL' });
+  }
+});
+
+
+// GET /api/submissions - Retrieve all submissions from CockroachDB
+app.get('/api/submissions', async (req, res) => {
+  try {
+    if (!dbPool) {
+      return res.status(503).json({ error: 'Database connection not available.' });
+    }
+    const result = await dbPool.query('SELECT * FROM submissions ORDER BY submitted_at DESC');
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error fetching submissions:', err);
+    res.status(500).json({ error: 'Failed to retrieve submission records.' });
+  }
+});
+
+// POST /api/submissions - Save a completed form submission
+app.post('/api/submissions', async (req, res) => {
+  try {
+    if (!dbPool) {
+      return res.status(503).json({ error: 'Database connection not available.' });
+    }
+    const { id, processId, formId, formVersion, operatorId, status, formData, mediaUrls } = req.body;
+    if (!id || !processId || !formId || !operatorId || !status || !formData) {
+      return res.status(400).json({ error: 'Missing required submission fields.' });
+    }
+
+    await dbPool.query(`
+      INSERT INTO submissions (
+        id, process_id, form_id, form_version, operator_id, status, form_data, media_urls
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    `, [
+      id,
+      processId,
+      formId,
+      formVersion,
+      operatorId,
+      status,
+      JSON.stringify(formData),
+      JSON.stringify(mediaUrls || [])
+    ]);
+
+    res.json({ success: true, id });
+  } catch (err) {
+    console.error('Error saving submission:', err);
+    res.status(500).json({ error: 'Failed to save submission record.' });
+  }
+});
+
+// POST /api/submissions/:id/signoff - Add supervisor sign-off to a submission
+app.post('/api/submissions/:id/signoff', async (req, res) => {
+  try {
+    if (!dbPool) {
+      return res.status(503).json({ error: 'Database connection not available.' });
+    }
+    const { id } = req.params;
+    const { signedBy, notes } = req.body;
+    if (!signedBy) {
+      return res.status(400).json({ error: 'Missing supervisor signature name.' });
+    }
+
+    const signoffData = {
+      signedBy,
+      signedAt: new Date().toISOString(),
+      notes: notes || ''
+    };
+
+    await dbPool.query(`
+      UPDATE submissions 
+      SET supervisor_signoff = $1
+      WHERE id = $2
+    `, [JSON.stringify(signoffData), id]);
+
+    res.json({ success: true, signoffData });
+  } catch (err) {
+    console.error('Error signing off submission:', err);
+    res.status(500).json({ error: 'Failed to save supervisor sign-off.' });
   }
 });
 

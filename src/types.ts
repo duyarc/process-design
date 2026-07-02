@@ -67,6 +67,70 @@ export interface Process {
       pdfKey?: string;
       pdfSize?: number;
       fields?: FormDesignerField[];
+      // ISO 2026 Form Builder Additions
+      formId?: string;
+      formTitle?: string;
+      version?: string; // vX.Y (YYYY-MM-DD)
+      status?: 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
+      isoFields?: FormFieldISO[];
+      revisionHistory?: FormRevisionEntry[];
     }
   };
 }
+
+export interface FormFieldISO {
+  id: string;
+  type: 'text' | 'number' | 'date' | 'checkbox' | 'signature' | 'photo';
+  checkItem: string;
+  locationCode: string;
+  minSpec?: number;
+  maxSpec?: number;
+  unit?: string;
+  targetRange?: string; // For text/boolean targets e.g. "Released & functional"
+  frequency: string;
+  reactionProtocol: string;
+}
+
+export interface FormRevisionEntry {
+  version: string;
+  date: string;
+  author: string;
+  change: string;
+}
+
+export interface FormTemplateISO {
+  formId: string;
+  formTitle: string;
+  version: string; // vX.Y (YYYY-MM-DD)
+  status: 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
+  fields: FormFieldISO[];
+  revisionHistory: FormRevisionEntry[];
+}
+
+export interface SubmissionFieldSnapshot {
+  id: string;
+  checkItem: string;
+  locationCode: string;
+  targetRange: string;
+  reactionProtocol: string;
+  value: string;
+  status: 'PASS' | 'FAIL';
+}
+
+export interface Submission {
+  id: string;
+  processId: string;
+  formId: string;
+  formVersion: string;
+  operatorId: string;
+  submittedAt: string;
+  status: 'PASS' | 'FAIL' | 'ABNORMALITY';
+  formData: SubmissionFieldSnapshot[];
+  mediaUrls?: string[];
+  supervisorSignoff?: {
+    signedBy: string;
+    signedAt: string;
+    notes?: string;
+  } | null;
+}
+

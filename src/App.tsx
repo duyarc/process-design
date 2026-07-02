@@ -4,10 +4,11 @@ import { Dashboard } from './components/Dashboard';
 import { ProcessEditor } from './components/ProcessEditor';
 import { ProcessReader } from './components/ProcessReader';
 import { BPMNGuide } from './components/BPMNGuide';
+import SubmissionManager from './components/SubmissionManager';
 import { BookOpen, UserCheck } from 'lucide-react';
 
 const MainApp: React.FC = () => {
-  const [page, setPage] = useState<'dashboard' | 'editor' | 'reader' | 'guide'>('dashboard');
+  const [page, setPage] = useState<'dashboard' | 'editor' | 'reader' | 'guide' | 'submissions'>('dashboard');
   const [selectedProcessId, setSelectedProcessId] = useState<string | null>(null);
   
   const { currentUser, setCurrentUser } = useAuth();
@@ -37,6 +38,13 @@ const MainApp: React.FC = () => {
           </div>
           
           <nav style={{ display: 'flex', gap: '0.5rem' }}>
+            <button 
+              className={`btn btn-sm ${page === 'submissions' ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setPage('submissions')}
+              style={{ borderRadius: '20px', padding: '0.35rem 1rem' }}
+            >
+              Submissions
+            </button>
             <button 
               className={`btn btn-sm ${page === 'guide' ? 'btn-primary' : 'btn-secondary'}`}
               onClick={() => setPage('guide')}
@@ -101,6 +109,9 @@ const MainApp: React.FC = () => {
         )}
         {page === 'guide' && (
           <BPMNGuide />
+        )}
+        {page === 'submissions' && (
+          <SubmissionManager onBack={() => setPage('dashboard')} />
         )}
       </main>
     </div>
