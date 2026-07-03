@@ -43,6 +43,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
   const [operatorId, setOperatorId] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [printTemplateData, setPrintTemplateData] = useState<any | null>(null);
+  const [isDirectPrint, setIsDirectPrint] = useState(false);
 
   const handleDownloadPdf = async (pdfKey: string) => {
     try {
@@ -287,6 +288,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
       const formData = process.workflowFormsData[initialPrintFormName];
       if (formData) {
         setPrintTemplateData(formData as any);
+        setIsDirectPrint(true);
       }
       if (onClearPrintForm) {
         onClearPrintForm();
@@ -442,7 +444,12 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
     return (
       <PrintBlankForm
         template={printTemplateData}
-        onClose={() => setPrintTemplateData(null)}
+        onClose={() => {
+          setPrintTemplateData(null);
+          if (isDirectPrint) {
+            onBack();
+          }
+        }}
       />
     );
   }
