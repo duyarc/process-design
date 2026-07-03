@@ -171,14 +171,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectProcess, onEditPro
           onClick={() => { setViewMode('processes'); setSearchQuery(''); }}
           style={{ borderRadius: '20px', padding: '0.35rem 1.25rem' }}
         >
-          Workflows & Processes
+          Processes
         </button>
         <button
           className={`btn btn-sm ${viewMode === 'forms' ? 'btn-primary' : 'btn-secondary'}`}
           onClick={() => { setViewMode('forms'); setSearchQuery(''); }}
           style={{ borderRadius: '20px', padding: '0.35rem 1.25rem' }}
         >
-          Form Templates
+          Forms
         </button>
       </div>
 
