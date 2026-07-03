@@ -10,6 +10,7 @@ export interface ProcessStep {
   branchNoTargetId?: string;
   producesForm?: boolean;
   formName?: string;
+  formNames?: string[];
   layoutX?: number;
   layoutY?: number;
   layoutWaypointsMap?: { [targetId: string]: { x: number; y: number }[] };
@@ -29,10 +30,16 @@ export interface FormField {
   frequency: string;
 }
 
+export interface RadioOption {
+  label: string;   // Nhãn hiển thị — ví dụ: "Đạt", "Loại B"
+  value: string;   // Giá trị lưu   — ví dụ: "PASS", "GRADE_B"
+  isPass: boolean; // Lựa chọn này có được tính là đạt không?
+}
+
 export interface FormDesignerField {
   id: string;
   label: string;
-  type: 'text' | 'number' | 'date' | 'checkbox' | 'signature';
+  type: 'text' | 'number' | 'date' | 'checkbox' | 'radio' | 'signature';
   options?: string[];
 }
 
@@ -66,13 +73,12 @@ export interface Process {
       pdfUrl?: string;
       pdfKey?: string;
       pdfSize?: number;
-      fields?: FormDesignerField[];
       // ISO 2026 Form Builder Additions
       formId?: string;
       formTitle?: string;
       version?: string; // vX.Y (YYYY-MM-DD)
       status?: 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
-      isoFields?: FormFieldISO[];
+      layoutBlocks?: LayoutBlockISO[];
       revisionHistory?: FormRevisionEntry[];
     }
   };
@@ -80,13 +86,14 @@ export interface Process {
 
 export interface FormFieldISO {
   id: string;
-  type: 'text' | 'number' | 'date' | 'checkbox' | 'signature' | 'photo';
+  type: 'text' | 'number' | 'date' | 'checkbox' | 'radio' | 'signature' | 'photo';
   checkItem: string;
   locationCode: string;
   minSpec?: number;
   maxSpec?: number;
   unit?: string;
   targetRange?: string; // For text/boolean targets e.g. "Released & functional"
+  options?: RadioOption[]; // For radio type: list of selectable options
   frequency: string;
   reactionProtocol: string;
 }
@@ -98,12 +105,39 @@ export interface FormRevisionEntry {
   change: string;
 }
 
+export interface MatrixConfigISO {
+  rowHeader: string;         // Tiêu đề dòng (e.g. "Lớp")
+  rowCount: number;          // Số lượng dòng (e.g. 17)
+  columnHeader: string;      // Tiêu đề nhóm cột (e.g. "Tên hàng, quy cách")
+  columns: string[];         // Danh sách tên cột sản phẩm (e.g. ["SP 1", "SP 2", "SP 3"])
+  showTotalColumn: boolean;  // Có hiện cột tính tổng dòng không
+  totalColumnHeader: string; // Tiêu đề cột tổng (e.g. "Tổng mỗi lớp")
+  showNotesColumn: boolean;  // Có hiện cột ghi chú không
+  notesColumnHeader: string; // Tiêu đề cột ghi chú (e.g. "Ghi chú")
+}
+
+export interface LayoutBlockISO {
+  id: string;
+  type: 'TITLE' | 'INFO_GRID' | 'CHECKLIST_TABLE' | 'MATRIX_TABLE' | 'SIGN';
+  columns: 1 | 2 | 3;
+  title: string;
+  fields: FormFieldISO[];
+  logo?: string;
+  columnLabels?: {
+    stt: string;
+    item: string;
+    target: string;
+    reaction: string;
+  };
+  matrixConfig?: MatrixConfigISO;
+}
+
 export interface FormTemplateISO {
   formId: string;
   formTitle: string;
   version: string; // vX.Y (YYYY-MM-DD)
   status: 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
-  fields: FormFieldISO[];
+  layoutBlocks: LayoutBlockISO[];
   revisionHistory: FormRevisionEntry[];
 }
 

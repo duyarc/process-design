@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import type { Process, FormFieldISO, SubmissionFieldSnapshot } from '../types';
+import type { Process, SubmissionFieldSnapshot } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { ArrowLeft, Printer, Edit2, Calendar, Plus, Camera, AlertTriangle, X } from 'lucide-react';
 import { generateBPMNXML, getNumRows } from '../utils/bpmnXmlGenerator';
@@ -104,7 +104,9 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({ processId, onBack,
       return;
     }
 
-    const missingFields = formTemplate.isoFields.filter((field: any) => {
+    const allFields = formTemplate.layoutBlocks?.flatMap((b: any) => b.fields) || [];
+
+    const missingFields = allFields.filter((field: any) => {
       const val = formValues[field.id];
       return val === undefined || val === '';
     });
@@ -116,7 +118,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({ processId, onBack,
 
     try {
       let isOverallPass = true;
-      const snapshots: SubmissionFieldSnapshot[] = formTemplate.isoFields.map((field: any) => {
+      const snapshots: SubmissionFieldSnapshot[] = allFields.map((field: any) => {
         const val = formValues[field.id];
         let fieldStatus: 'PASS' | 'FAIL' = 'PASS';
         let targetRange = '';
@@ -130,9 +132,10 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({ processId, onBack,
             fieldStatus = 'FAIL';
             isOverallPass = false;
           }
-        } else if (field.type === 'checkbox') {
-          targetRange = field.targetRange || 'Checked & Ok';
-          if (val !== 'PASS') {
+        } else if (field.type === 'radio' || field.type === 'checkbox') {
+          const selectedOpt = field.options?.find((o: any) => o.value === val);
+          targetRange = field.options ? field.options.filter((o: any) => o.isPass).map((o: any) => o.label).join(' / ') : (field.targetRange || 'Checked & Ok');
+          if (!selectedOpt?.isPass) {
             fieldStatus = 'FAIL';
             isOverallPass = false;
           }
@@ -153,6 +156,43 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({ processId, onBack,
           value: val + (fieldStatus === 'FAIL' ? ` (Action: ${fieldReactions[field.id]})` : ''),
           status: fieldStatus
         };
+      });
+
+      // Collect matrix table values dynamically
+      formTemplate.layoutBlocks?.forEach((block: any) => {
+        if (block.type === 'MATRIX_TABLE' && block.matrixConfig) {
+          const config = block.matrixConfig;
+          for (let rIdx = 0; rIdx < config.rowCount; rIdx++) {
+            config.columns.forEach((colName: string, cIdx: number) => {
+              const key = `${block.id}_row_${rIdx}_col_${cIdx}`;
+              const val = formValues[key] || '';
+              snapshots.push({
+                id: key,
+                checkItem: `${config.rowHeader} ${rIdx + 1} - ${colName || `Cột ${cIdx + 1}`}`,
+                locationCode: 'N/A',
+                targetRange: 'Tally Count',
+                reactionProtocol: '',
+                value: val || '0',
+                status: 'PASS'
+              });
+            });
+            if (config.showNotesColumn) {
+              const noteKey = `${block.id}_row_${rIdx}_note`;
+              const noteVal = formValues[noteKey] || '';
+              if (noteVal.trim()) {
+                snapshots.push({
+                  id: noteKey,
+                  checkItem: `${config.rowHeader} ${rIdx + 1} - Ghi chú`,
+                  locationCode: 'N/A',
+                  targetRange: 'Ghi chú',
+                  reactionProtocol: '',
+                  value: noteVal,
+                  status: 'PASS'
+                });
+              }
+            }
+          }
+        }
       });
 
       const allMediaKeys: string[] = [];
@@ -318,11 +358,20 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({ processId, onBack,
   const colors = statusColors[status] || { bg: '#e5e7eb', text: '#4b5563', border: '#cbd5e1' };
 
   // Calculate workflow output forms
-  const workflowForms = Array.from(new Set(
-    (process.steps || [])
-      .filter(s => s.bpmnShape === 'task' && s.producesForm && s.formName?.trim())
-      .map(s => s.formName!.trim())
-  ));
+  const workflowFormsList: string[] = [];
+  (process.steps || []).forEach((s: any) => {
+    if (s.bpmnShape === 'task' && s.producesForm) {
+      const names = s.formNames && s.formNames.length > 0
+        ? s.formNames.map((n: string) => n.trim()).filter(Boolean)
+        : (s.formName ? [s.formName.trim()] : []);
+      names.forEach((name: string) => {
+        if (!workflowFormsList.includes(name)) {
+          workflowFormsList.push(name);
+        }
+      });
+    }
+  });
+  const workflowForms = workflowFormsList;
 
   // Compute sign-off rows for approvals
   const signoffs = process.sopSignoffs || {};
@@ -708,8 +757,9 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({ processId, onBack,
                         attachmentText = formData.pdfName;
                       } else if (hasDigitalForm) {
                         attachmentText = `Digital Template: ${formData.formId} (${formData.version})`;
-                      } else if (formData.fields && formData.fields.length > 0) {
-                        attachmentText = `Custom Form (${formData.fields.length} fields)`;
+                      } else if (formData.layoutBlocks && formData.layoutBlocks.length > 0) {
+                        const totalFields = formData.layoutBlocks.flatMap((b: any) => b.fields).length;
+                        attachmentText = `Custom Form (${totalFields} fields)`;
                       }
 
                       const hasPdf = !!formData.pdfName;
@@ -732,7 +782,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({ processId, onBack,
                             )}
                           </div>
                           <div className="no-print" style={{ display: 'flex', gap: '0.4rem', flexShrink: 0 }}>
-                            {hasDigitalForm && formData.isoFields && (
+                            {hasDigitalForm && formData.layoutBlocks && (
                               <>
                                 <button
                                   type="button"
@@ -784,8 +834,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({ processId, onBack,
                   <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead>
                       <tr style={{ background: '#f9fafb' }}>
-                        <th style={{ padding: '0.45rem 0.6rem', textAlign: 'left', fontWeight: 600, fontSize: '0.75rem', width: '25%' }}>Check Item / Parameter</th>
-                        <th style={{ padding: '0.45rem 0.6rem', textAlign: 'left', fontWeight: 600, fontSize: '0.75rem', width: '15%' }}>Location Code</th>
+                        <th style={{ padding: '0.45rem 0.6rem', textAlign: 'left', fontWeight: 600, fontSize: '0.75rem', width: '40%' }}>Check Item / Parameter</th>
                         <th style={{ padding: '0.45rem 0.6rem', textAlign: 'left', fontWeight: 600, fontSize: '0.75rem', width: '15%' }}>Target Range</th>
                         <th style={{ padding: '0.45rem 0.6rem', textAlign: 'left', fontWeight: 600, fontSize: '0.75rem', width: '12%' }}>Frequency</th>
                         <th style={{ padding: '0.45rem 0.6rem', textAlign: 'left', fontWeight: 600, fontSize: '0.75rem', width: '33%' }}>Reaction Protocol / Consequence</th>
@@ -795,7 +844,6 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({ processId, onBack,
                       {process.formFields.map((field, index) => (
                         <tr key={field.id || index} style={{ borderBottom: '1px solid var(--neutral-border)' }}>
                           <td style={{ padding: '0.45rem 0.6rem', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-primary)' }}>{field.checkItem}</td>
-                          <td style={{ padding: '0.45rem 0.6rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{field.locationCode}</td>
                           <td style={{ padding: '0.45rem 0.6rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{field.targetRange}</td>
                           <td style={{ padding: '0.45rem 0.6rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{field.frequency}</td>
                           <td style={{ padding: '0.45rem 0.6rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{field.reactionProtocol}</td>
@@ -838,7 +886,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({ processId, onBack,
             {/* Header */}
             {(() => {
               const formTemplate = (process.workflowFormsData || {})[activeFormToFill];
-              if (!formTemplate || !formTemplate.isoFields) {
+              if (!formTemplate || !formTemplate.layoutBlocks) {
                 return (
                   <div style={{ padding: '2rem', textAlign: 'center' }}>
                     <p>Digital template fields are not defined for this form.</p>
@@ -905,244 +953,471 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({ processId, onBack,
                       />
                     </div>
 
-                    {/* Field checklist */}
-                    {formTemplate.isoFields.map((field: FormFieldISO, idx: number) => {
-                      const value = formValues[field.id] || '';
-                      
-                      // Out of spec detection
-                      let isOutOfSpec = false;
-                      let specHint = '';
-
-                      if (field.type === 'number' && value !== '') {
-                        const num = parseFloat(value);
-                        const min = field.minSpec ?? -Infinity;
-                        const max = field.maxSpec ?? Infinity;
-                        specHint = `Target: ${min} - ${max} ${field.unit || ''}`;
-                        if (isNaN(num) || num < min || num > max) {
-                          isOutOfSpec = true;
-                        }
-                      } else if (field.type === 'checkbox') {
-                        specHint = `Target: ${field.targetRange || 'Checked & Ok'}`;
-                        if (value === 'FAIL') {
-                          isOutOfSpec = true;
-                        }
-                      } else if (field.type === 'text') {
-                        specHint = field.targetRange ? `Target: ${field.targetRange}` : '';
-                      }
+                    {/* Field checklist grouped by Layout Blocks */}
+                    {formTemplate.layoutBlocks && formTemplate.layoutBlocks.map((block: any) => {
+                      if (block.fields.length === 0 && block.type !== 'TITLE') return null;
 
                       return (
-                        <div key={field.id} style={{
-                          border: '1px solid var(--neutral-border)',
-                          borderRadius: '6px',
-                          padding: '1rem',
+                        <div key={block.id} style={{
+                          border: '1.5px solid var(--neutral-border)',
+                          borderRadius: '8px',
+                          padding: '1.25rem',
+                          background: '#ffffff',
+                          marginBottom: '0.5rem',
                           display: 'flex',
                           flexDirection: 'column',
-                          gap: '0.75rem',
-                          background: isOutOfSpec ? '#fff5f5' : '#ffffff',
-                          borderColor: isOutOfSpec ? '#fca5a5' : 'var(--neutral-border)'
+                          gap: '1rem'
                         }}>
-                          {/* Row 1: Label and Code */}
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                            <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
-                              {idx + 1}. {field.checkItem}
-                            </span>
-                            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', background: '#f1f5f9', padding: '0.15rem 0.4rem', borderRadius: '4px' }}>
-                              Location: {field.locationCode || 'N/A'} | {field.frequency}
-                            </span>
-                          </div>
+                          <h4 style={{
+                            margin: 0,
+                            fontSize: '0.9rem',
+                            fontWeight: 700,
+                            textTransform: 'uppercase',
+                            color: 'var(--text-primary)',
+                            borderBottom: '2.5px solid var(--primary)',
+                            paddingBottom: '0.25rem'
+                          }}>
+                            {block.title}
+                          </h4>
 
-                          {/* Row 2: Target Spec Hint */}
-                          {specHint && (
-                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                              🎯 {specHint}
+                          {/* 1. TITLE BLOCK */}
+                          {block.type === 'TITLE' && (
+                            <div style={{ textAlign: 'center', padding: '0.5rem 0' }}>
+                              <h1 style={{ fontSize: '1.2rem', fontWeight: 800, margin: '0 0 0.25rem 0' }}>{block.title}</h1>
+                              <p style={{ fontSize: '0.8rem', fontStyle: 'italic', color: 'var(--text-secondary)' }}>
+                                {block.fields[0]?.checkItem}
+                              </p>
                             </div>
                           )}
 
-                          {/* Row 3: Inputs */}
-                          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                            {field.type === 'number' && (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                <input
-                                  type="number"
-                                  value={value}
-                                  onChange={(e) => setFormValues(prev => ({ ...prev, [field.id]: e.target.value }))}
-                                  placeholder="Enter value"
-                                  style={{ padding: '0.4rem 0.5rem', fontSize: '0.85rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', width: '120px' }}
-                                />
-                                <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{field.unit}</span>
-                              </div>
-                            )}
-
-                            {field.type === 'checkbox' && (
-                              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                <button
-                                  type="button"
-                                  className="btn"
-                                  onClick={() => setFormValues(prev => ({ ...prev, [field.id]: 'PASS' }))}
-                                  style={{
-                                    padding: '0.35rem 0.75rem',
-                                    fontSize: '0.8rem',
-                                    background: value === 'PASS' ? '#10b981' : '#f1f5f9',
-                                    color: value === 'PASS' ? '#ffffff' : 'var(--text-primary)',
-                                    borderColor: value === 'PASS' ? '#10b981' : 'var(--neutral-border)'
-                                  }}
-                                >
-                                  OK
-                                </button>
-                                <button
-                                  type="button"
-                                  className="btn"
-                                  onClick={() => setFormValues(prev => ({ ...prev, [field.id]: 'FAIL' }))}
-                                  style={{
-                                    padding: '0.35rem 0.75rem',
-                                    fontSize: '0.8rem',
-                                    background: value === 'FAIL' ? '#ef4444' : '#f1f5f9',
-                                    color: value === 'FAIL' ? '#ffffff' : 'var(--text-primary)',
-                                    borderColor: value === 'FAIL' ? '#ef4444' : 'var(--neutral-border)'
-                                  }}
-                                >
-                                  FAIL
-                                </button>
-                              </div>
-                            )}
-
-                            {field.type === 'text' && (
-                              <input
-                                type="text"
-                                value={value}
-                                onChange={(e) => setFormValues(prev => ({ ...prev, [field.id]: e.target.value }))}
-                                placeholder="Enter observation note"
-                                style={{ padding: '0.4rem 0.5rem', fontSize: '0.85rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', flex: 1 }}
-                              />
-                            )}
-
-                            {field.type === 'date' && (
-                              <input
-                                type="date"
-                                value={value}
-                                onChange={(e) => setFormValues(prev => ({ ...prev, [field.id]: e.target.value }))}
-                                style={{ padding: '0.4rem 0.5rem', fontSize: '0.85rem', border: '1px solid var(--neutral-border)', borderRadius: '4px' }}
-                              />
-                            )}
-
-                            {field.type === 'signature' && (
-                              <input
-                                type="text"
-                                value={value}
-                                onChange={(e) => setFormValues(prev => ({ ...prev, [field.id]: e.target.value }))}
-                                placeholder="Type full name to sign"
-                                style={{ padding: '0.4rem 0.5rem', fontSize: '0.85rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', flex: 1, fontStyle: 'italic' }}
-                              />
-                            )}
-
-                            {field.type === 'photo' && (
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                                <input
-                                  type="file"
-                                  accept="image/*"
-                                  style={{ display: 'none' }}
-                                  id={`evidence-photo-${field.id}`}
-                                  onChange={(e) => {
-                                    const file = e.target.files?.[0];
-                                    if (file) handlePhotoUpload(field.id, file);
-                                  }}
-                                />
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                  <button
-                                    type="button"
-                                    className="btn btn-secondary btn-sm"
-                                    disabled={isPhotoUploading[field.id]}
-                                    onClick={() => document.getElementById(`evidence-photo-${field.id}`)?.click()}
-                                    style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', height: '32px' }}
-                                  >
-                                    <Camera size={14} />
-                                    <span>{isPhotoUploading[field.id] ? 'Uploading...' : 'Take/Upload Photo'}</span>
-                                  </button>
-                                  {uploadedPhotos[field.id]?.length > 0 && (
-                                    <span style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 600 }}>
-                                      ✓ {uploadedPhotos[field.id].length} photo(s) attached
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Row 4: Reaction Protocol Trigger */}
-                          {isOutOfSpec && (
+                          {/* 2. INFO GRID BLOCK */}
+                          {block.type === 'INFO_GRID' && (
                             <div style={{
-                              background: '#fffbeb',
-                              border: '1px solid #fde68a',
-                              padding: '0.75rem',
-                              borderRadius: '4px',
-                              color: '#b45309',
-                              fontSize: '0.8rem',
-                              display: 'flex',
-                              flexDirection: 'column',
-                              gap: '0.5rem',
-                              marginTop: '0.25rem'
+                              display: 'grid',
+                              gridTemplateColumns: `repeat(${block.columns}, 1fr)`,
+                              gap: '1rem'
                             }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 'bold' }}>
-                                <AlertTriangle size={15} />
-                                <span>Out-of-Specification Abnormality Detected!</span>
-                              </div>
-                              <div style={{ fontStyle: 'italic' }}>
-                                <strong>Reaction Protocol:</strong> {field.reactionProtocol || 'Notify lead technician immediately.'}
-                              </div>
-                              
-                              {/* Containment action input */}
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', marginTop: '0.25rem' }}>
-                                <label style={{ fontWeight: 600, fontSize: '0.75rem' }}>Describe Containment Action Taken *</label>
-                                <textarea
-                                  value={fieldReactions[field.id] || ''}
-                                  onChange={(e) => setFieldReactions(prev => ({ ...prev, [field.id]: e.target.value }))}
-                                  placeholder="Describe corrective action applied to return process to control..."
-                                  rows={2}
-                                  style={{ padding: '0.35rem 0.5rem', fontSize: '0.8rem', border: '1px solid #fcd34d', borderRadius: '4px', resize: 'none', background: '#ffffff' }}
-                                />
-                              </div>
-
-                              {/* Force media attachment for failure */}
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', marginTop: '0.25rem' }}>
-                                <label style={{ fontWeight: 600, fontSize: '0.75rem', color: '#ef4444' }}>
-                                  ⚠️ Photo Evidence Required for Fails *
-                                </label>
-                                <input
-                                  type="file"
-                                  accept="image/*"
-                                  style={{ display: 'none' }}
-                                  id={`fail-photo-${field.id}`}
-                                  onChange={(e) => {
-                                    const file = e.target.files?.[0];
-                                    if (file) handlePhotoUpload(field.id, file);
-                                  }}
-                                />
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                  <button
-                                    type="button"
-                                    className="btn btn-secondary btn-sm"
-                                    disabled={isPhotoUploading[field.id]}
-                                    onClick={() => document.getElementById(`fail-photo-${field.id}`)?.click()}
-                                    style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', height: '32px', borderColor: '#fca5a5', background: '#fffbeb' }}
-                                  >
-                                    <Camera size={14} style={{ color: '#ef4444' }} />
-                                    <span style={{ color: '#b91c1c' }}>Upload Failure Photo</span>
-                                  </button>
-                                  {uploadedPhotos[field.id]?.length > 0 ? (
-                                    <span style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 600 }}>
-                                      ✓ Photo attached
-                                    </span>
-                                  ) : (
-                                    <span style={{ fontSize: '0.75rem', color: '#ef4444', fontStyle: 'italic' }}>
-                                      Please attach photo of abnormality.
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-
+                              {block.fields.map((field: any) => {
+                                const value = formValues[field.id] || '';
+                                return (
+                                  <div key={field.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                    <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                                      {field.checkItem}
+                                    </label>
+                                    {field.type === 'date' ? (
+                                      <input
+                                        type="date"
+                                        value={value}
+                                        onChange={(e) => setFormValues(prev => ({ ...prev, [field.id]: e.target.value }))}
+                                        style={{ padding: '0.4rem 0.5rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', width: '100%', height: '34px' }}
+                                      />
+                                    ) : (field.type === 'radio' || field.type === 'checkbox') ? (
+                                      <select
+                                        value={value}
+                                        onChange={(e) => setFormValues(prev => ({ ...prev, [field.id]: e.target.value }))}
+                                        style={{ padding: '0.4rem 0.5rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', width: '100%', height: '34px' }}
+                                      >
+                                        <option value="">-- Chọn --</option>
+                                        {(field.options ?? [{ label: 'Đạt', value: 'PASS', isPass: true }, { label: 'Không Đạt', value: 'FAIL', isPass: false }]).map((opt: any) => (
+                                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                        ))}
+                                      </select>
+                                    ) : (
+                                      <input
+                                        type="text"
+                                        value={value}
+                                        onChange={(e) => setFormValues(prev => ({ ...prev, [field.id]: e.target.value }))}
+                                        style={{ padding: '0.4rem 0.5rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', width: '100%', height: '34px' }}
+                                      />
+                                    )}
+                                  </div>
+                                );
+                              })}
                             </div>
                           )}
 
+                          {/* 3. CHECKLIST TABLE BLOCK */}
+                          {block.type === 'CHECKLIST_TABLE' && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                              {block.fields.map((field: any, fIdx: number) => {
+                                const value = formValues[field.id] || '';
+                                
+                                // Out of spec detection
+                                let isOutOfSpec = false;
+                                let specHint = '';
+
+                                if (field.type === 'number' && value !== '') {
+                                  const num = parseFloat(value);
+                                  const min = field.minSpec ?? -Infinity;
+                                  const max = field.maxSpec ?? Infinity;
+                                  specHint = `Target: ${min} - ${max} ${field.unit || ''}`;
+                                  if (isNaN(num) || num < min || num > max) {
+                                    isOutOfSpec = true;
+                                  }
+                                } else if (field.type === 'radio' || field.type === 'checkbox') {
+                                  const passLabels = field.options ? field.options.filter((o: any) => o.isPass).map((o: any) => o.label).join(' / ') : 'Đạt';
+                                  specHint = `Target: ${passLabels}`;
+                                  const selectedOpt = field.options?.find((o: any) => o.value === value);
+                                  if (value !== '' && !selectedOpt?.isPass) {
+                                    isOutOfSpec = true;
+                                  }
+                                } else if (field.type === 'text') {
+                                  specHint = field.targetRange ? `Target: ${field.targetRange}` : '';
+                                }
+
+                                return (
+                                  <div key={field.id} style={{
+                                    border: '1px solid var(--neutral-border)',
+                                    borderRadius: '6px',
+                                    padding: '0.85rem',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '0.5rem',
+                                    background: isOutOfSpec ? '#fff5f5' : '#ffffff',
+                                    borderColor: isOutOfSpec ? '#fca5a5' : 'var(--neutral-border)'
+                                  }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                                      <span style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-primary)' }}>
+                                        {fIdx + 1}. {field.checkItem}
+                                      </span>
+                                      <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', background: '#f1f5f9', padding: '0.15rem 0.4rem', borderRadius: '4px' }}>
+                                        {field.frequency}
+                                      </span>
+                                    </div>
+
+                                    {specHint && (
+                                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                        🎯 {specHint}
+                                      </div>
+                                    )}
+
+                                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                                      {field.type === 'number' && (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                          <input
+                                            type="number"
+                                            value={value}
+                                            onChange={(e) => setFormValues(prev => ({ ...prev, [field.id]: e.target.value }))}
+                                            placeholder="Enter value"
+                                            style={{ padding: '0.4rem 0.5rem', fontSize: '0.85rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', width: '120px' }}
+                                          />
+                                          <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{field.unit}</span>
+                                        </div>
+                                      )}
+
+                                      {(field.type === 'radio' || field.type === 'checkbox') && (
+                                         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                           {(field.options ?? [{ label: 'Đạt', value: 'PASS', isPass: true }, { label: 'Không Đạt', value: 'FAIL', isPass: false }]).map((opt: any) => {
+                                             const isSelected = value === opt.value;
+                                             const activeColor = opt.isPass ? '#10b981' : '#ef4444';
+                                             return (
+                                               <button
+                                                 key={opt.value}
+                                                 type="button"
+                                                 className="btn btn-sm"
+                                                 onClick={() => setFormValues(prev => ({ ...prev, [field.id]: isSelected ? '' : opt.value }))}
+                                                 style={{
+                                                   padding: '0.4rem 1rem',
+                                                   fontSize: '0.8rem',
+                                                   fontWeight: 600,
+                                                   borderRadius: '20px',
+                                                   background: isSelected ? activeColor : '#f8fafc',
+                                                   color: isSelected ? '#ffffff' : '#64748b',
+                                                   borderColor: isSelected ? activeColor : '#cbd5e1',
+                                                   display: 'flex',
+                                                   alignItems: 'center',
+                                                   gap: '4px',
+                                                   transition: 'all 0.2s ease'
+                                                 }}
+                                               >
+                                                 {isSelected && <span>{opt.isPass ? '✓' : '✗'}</span>}
+                                                 {opt.label}
+                                               </button>
+                                             );
+                                           })}
+                                         </div>
+                                       )}
+
+                                      {field.type === 'text' && (
+                                        <input
+                                          type="text"
+                                          value={value}
+                                          onChange={(e) => setFormValues(prev => ({ ...prev, [field.id]: e.target.value }))}
+                                          placeholder="Enter observation note"
+                                          style={{ padding: '0.4rem 0.5rem', fontSize: '0.85rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', flex: 1 }}
+                                        />
+                                      )}
+
+                                      {field.type === 'photo' && (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                          <input
+                                            type="file"
+                                            accept="image/*"
+                                            style={{ display: 'none' }}
+                                            id={`evidence-photo-${field.id}`}
+                                            onChange={(e) => {
+                                              const file = e.target.files?.[0];
+                                              if (file) handlePhotoUpload(field.id, file);
+                                            }}
+                                          />
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            <button
+                                              type="button"
+                                              className="btn btn-secondary btn-sm"
+                                              disabled={isPhotoUploading[field.id]}
+                                              onClick={() => document.getElementById(`evidence-photo-${field.id}`)?.click()}
+                                              style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', height: '32px' }}
+                                            >
+                                              <Camera size={14} />
+                                              <span>{isPhotoUploading[field.id] ? 'Uploading...' : 'Take/Upload Photo'}</span>
+                                            </button>
+                                            {uploadedPhotos[field.id]?.length > 0 && (
+                                              <span style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 600 }}>
+                                                ✓ {uploadedPhotos[field.id].length} photo(s) attached
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+
+                                    {isOutOfSpec && (
+                                      <div style={{
+                                        background: '#fffbeb',
+                                        border: '1px solid #fde68a',
+                                        padding: '0.75rem',
+                                        borderRadius: '4px',
+                                        color: '#b45309',
+                                        fontSize: '0.8rem',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        gap: '0.5rem',
+                                        marginTop: '0.25rem'
+                                      }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 'bold' }}>
+                                          <AlertTriangle size={15} />
+                                          <span>Out-of-Specification Abnormality Detected!</span>
+                                        </div>
+                                        <div style={{ fontStyle: 'italic' }}>
+                                          <strong>Reaction Protocol:</strong> {field.reactionProtocol || 'Notify lead technician immediately.'}
+                                        </div>
+                                        
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', marginTop: '0.25rem' }}>
+                                          <label style={{ fontWeight: 600, fontSize: '0.75rem' }}>Describe Containment Action Taken *</label>
+                                          <textarea
+                                            value={fieldReactions[field.id] || ''}
+                                            onChange={(e) => setFieldReactions(prev => ({ ...prev, [field.id]: e.target.value }))}
+                                            placeholder="Describe corrective action applied to return process to control..."
+                                            rows={2}
+                                            style={{ padding: '0.35rem 0.5rem', fontSize: '0.8rem', border: '1px solid #fcd34d', borderRadius: '4px', resize: 'none', background: '#ffffff' }}
+                                          />
+                                        </div>
+
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', marginTop: '0.25rem' }}>
+                                          <label style={{ fontWeight: 600, fontSize: '0.75rem', color: '#ef4444' }}>
+                                            ⚠️ Photo Evidence Required for Fails *
+                                          </label>
+                                          <input
+                                            type="file"
+                                            accept="image/*"
+                                            style={{ display: 'none' }}
+                                            id={`fail-photo-${field.id}`}
+                                            onChange={(e) => {
+                                              const file = e.target.files?.[0];
+                                              if (file) handlePhotoUpload(field.id, file);
+                                            }}
+                                          />
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            <button
+                                              type="button"
+                                              className="btn btn-secondary btn-sm"
+                                              disabled={isPhotoUploading[field.id]}
+                                              onClick={() => document.getElementById(`fail-photo-${field.id}`)?.click()}
+                                              style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', height: '32px', borderColor: '#fca5a5', background: '#fffbeb' }}
+                                            >
+                                              <Camera size={14} style={{ color: '#ef4444' }} />
+                                              <span style={{ color: '#b91c1c' }}>Upload Failure Photo</span>
+                                            </button>
+                                            {uploadedPhotos[field.id]?.length > 0 ? (
+                                              <span style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 600 }}>
+                                                ✓ Photo attached
+                                              </span>
+                                            ) : (
+                                              <span style={{ fontSize: '0.75rem', color: '#ef4444', fontStyle: 'italic' }}>
+                                                Please attach photo of abnormality.
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+
+                          {/* 3.1 MATRIX TABLE BLOCK */}
+                          {block.type === 'MATRIX_TABLE' && block.matrixConfig && (() => {
+                            const config = block.matrixConfig;
+                            // Pre-calculate totals for rendering
+                            const rowTotals = Array.from({ length: config.rowCount }).map((_: any, rIdx: number) => {
+                              return config.columns.reduce((sum: number, _: any, cIdx: number) => {
+                                const val = parseInt(formValues[`${block.id}_row_${rIdx}_col_${cIdx}`] || '0', 10);
+                                return sum + (isNaN(val) ? 0 : val);
+                              }, 0);
+                            });
+
+                            const colTotals = config.columns.map((_: any, cIdx: number) => {
+                              return Array.from({ length: config.rowCount }).reduce((sum: number, _: any, rIdx: number) => {
+                                const val = parseInt(formValues[`${block.id}_row_${rIdx}_col_${cIdx}`] || '0', 10);
+                                return sum + (isNaN(val) ? 0 : val);
+                              }, 0);
+                            });
+
+                            const grandTotal = rowTotals.reduce((sum: number, val: number) => sum + val, 0);
+
+                            return (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '1rem', marginBottom: '1rem' }}>
+                                <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                                  {block.title}
+                                </div>
+                                <div style={{ overflowX: 'auto', border: '1px solid var(--neutral-border)', borderRadius: '6px' }}>
+                                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', background: '#ffffff' }}>
+                                    <thead>
+                                      <tr style={{ background: '#f1f5f9', borderBottom: '2px solid var(--neutral-border)' }}>
+                                        <th rowSpan={2} style={{ padding: '8px', borderRight: '1px solid var(--neutral-border)', textAlign: 'center', width: '60px', fontWeight: 'bold' }}>
+                                          {config.rowHeader}
+                                        </th>
+                                        <th colSpan={config.columns.length} style={{ padding: '6px', borderRight: '1px solid var(--neutral-border)', borderBottom: '1px solid var(--neutral-border)', textAlign: 'center', fontWeight: 'bold' }}>
+                                          {config.columnHeader}
+                                        </th>
+                                        {config.showTotalColumn && (
+                                          <th rowSpan={2} style={{ padding: '8px', borderRight: '1px solid var(--neutral-border)', textAlign: 'center', width: '120px', fontWeight: 'bold' }}>
+                                            {config.totalColumnHeader}
+                                          </th>
+                                        )}
+                                        {config.showNotesColumn && (
+                                          <th rowSpan={2} style={{ padding: '8px', textAlign: 'left', minWidth: '160px', fontWeight: 'bold' }}>
+                                            {config.notesColumnHeader}
+                                          </th>
+                                        )}
+                                      </tr>
+                                      <tr style={{ background: '#f8fafc', borderBottom: '2px solid var(--neutral-border)' }}>
+                                        {config.columns.map((colName: string, cIdx: number) => (
+                                          <th key={cIdx} style={{ padding: '6px', borderRight: '1px solid var(--neutral-border)', textAlign: 'center', fontWeight: 600 }}>
+                                            {colName || `Cột ${cIdx + 1}`}
+                                          </th>
+                                        ))}
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {Array.from({ length: config.rowCount }).map((_: any, rIdx: number) => (
+                                        <tr key={rIdx} style={{ borderBottom: '1px solid var(--neutral-border)' }}>
+                                          <td style={{ padding: '8px', borderRight: '1px solid var(--neutral-border)', textAlign: 'center', fontWeight: 'bold', background: '#f8fafc' }}>
+                                            {rIdx + 1}
+                                          </td>
+                                          {config.columns.map((_: any, cIdx: number) => {
+                                            const key = `${block.id}_row_${rIdx}_col_${cIdx}`;
+                                            return (
+                                              <td key={cIdx} style={{ padding: '4px', borderRight: '1px solid var(--neutral-border)', textAlign: 'center' }}>
+                                                <input
+                                                  type="number"
+                                                  min="0"
+                                                  value={formValues[key] || ''}
+                                                  onChange={(e) => setFormValues(prev => ({ ...prev, [key]: e.target.value }))}
+                                                  placeholder="0"
+                                                  style={{
+                                                    width: '100%',
+                                                    border: '1px solid var(--neutral-border)',
+                                                    borderRadius: '4px',
+                                                    padding: '0.25rem 0.35rem',
+                                                    textAlign: 'center',
+                                                    fontSize: '0.8rem'
+                                                  }}
+                                                />
+                                              </td>
+                                            );
+                                          })}
+                                          {config.showTotalColumn && (
+                                            <td style={{ padding: '8px', borderRight: '1px solid var(--neutral-border)', textAlign: 'center', background: '#f8fafc', fontWeight: 'bold', color: 'var(--primary)' }}>
+                                              {rowTotals[rIdx]}
+                                            </td>
+                                          )}
+                                          {config.showNotesColumn && (() => {
+                                            const key = `${block.id}_row_${rIdx}_note`;
+                                            return (
+                                              <td style={{ padding: '4px' }}>
+                                                <input
+                                                  type="text"
+                                                  value={formValues[key] || ''}
+                                                  onChange={(e) => setFormValues(prev => ({ ...prev, [key]: e.target.value }))}
+                                                  placeholder="Ghi chú..."
+                                                  style={{
+                                                    width: '100%',
+                                                    border: '1px solid var(--neutral-border)',
+                                                    borderRadius: '4px',
+                                                    padding: '0.25rem 0.35rem',
+                                                    fontSize: '0.8rem'
+                                                  }}
+                                                />
+                                              </td>
+                                            );
+                                          })()}
+                                        </tr>
+                                      ))}
+                                      {/* Grand Total Row */}
+                                      <tr style={{ background: '#f1f5f9', fontWeight: 'bold', borderTop: '2.5px solid var(--neutral-border)' }}>
+                                        <td style={{ padding: '8px', borderRight: '1px solid var(--neutral-border)', textAlign: 'center' }}>
+                                          TỔNG
+                                        </td>
+                                        {colTotals.map((total: number, cIdx: number) => (
+                                          <td key={cIdx} style={{ padding: '8px', borderRight: '1px solid var(--neutral-border)', textAlign: 'center', color: 'var(--text-primary)' }}>
+                                            {total}
+                                          </td>
+                                        ))}
+                                        {config.showTotalColumn && (
+                                          <td style={{ padding: '8px', borderRight: '1px solid var(--neutral-border)', textAlign: 'center', background: '#e2e8f0', color: 'var(--primary)' }}>
+                                            {grandTotal}
+                                          </td>
+                                        )}
+                                        {config.showNotesColumn && (
+                                          <td style={{ padding: '8px' }}></td>
+                                        )}
+                                      </tr>
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </div>
+                            );
+                          })()}
+
+                          {/* 4. SIGN BLOCK */}
+                          {block.type === 'SIGN' && (
+                            <div style={{
+                              display: 'grid',
+                              gridTemplateColumns: `repeat(${block.columns}, 1fr)`,
+                              gap: '1rem'
+                            }}>
+                              {block.fields.map((field: any) => {
+                                const value = formValues[field.id] || '';
+                                return (
+                                  <div key={field.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                    <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                                      {field.checkItem}
+                                    </label>
+                                    <input
+                                      type="text"
+                                      value={value}
+                                      onChange={(e) => setFormValues(prev => ({ ...prev, [field.id]: e.target.value }))}
+                                      placeholder="Type full name to sign"
+                                      style={{ padding: '0.4rem 0.5rem', fontSize: '0.85rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', fontStyle: 'italic' }}
+                                    />
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
                         </div>
                       );
                     })}

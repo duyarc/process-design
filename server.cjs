@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
+const { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand, ListObjectsV2Command } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const express = require('express');
 const fs = require('fs');
@@ -407,6 +407,10 @@ app.post('/api/processes', async (req, res) => {
           const currentStatus = processData.status || 'Draft';
           const parentId = processData.parentProcessId || existing.parentProcessId || processData.id;
 
+          const oldLogoKeys = getLogoKeysFromForms(existing.workflowFormsData);
+          const newLogoKeys = getLogoKeysFromForms(processData.workflowFormsData);
+          const deReferencedKeys = [...oldLogoKeys].filter(k => !newLogoKeys.has(k));
+
           const updatedProcess = {
             ...existing,
             ...processData,
@@ -444,6 +448,11 @@ app.post('/api/processes', async (req, res) => {
           ]);
 
           await syncProcessForms(dbPool, updatedProcess.id, updatedProcess.workflowFormsData || {});
+
+          // Automatically trigger clean up for de-referenced logo files
+          for (const key of deReferencedKeys) {
+            await deleteLogoFromR2IfUnused(key);
+          }
 
           if (currentStatus === 'Active' && previousStatus !== 'Active') {
             await dbPool.query(`
@@ -509,12 +518,17 @@ app.post('/api/processes', async (req, res) => {
         // Update existing
         const index = processes.findIndex(p => p.id === processData.id);
         if (index !== -1) {
-          const previousStatus = processes[index].status || 'Active';
+          const existing = processes[index];
+          const previousStatus = existing.status || 'Active';
           const currentStatus = processData.status || 'Draft';
-          const parentId = processData.parentProcessId || processes[index].parentProcessId || processData.id;
+          const parentId = processData.parentProcessId || existing.parentProcessId || processData.id;
+
+          const oldLogoKeys = getLogoKeysFromForms(existing.workflowFormsData);
+          const newLogoKeys = getLogoKeysFromForms(processData.workflowFormsData);
+          const deReferencedKeys = [...oldLogoKeys].filter(k => !newLogoKeys.has(k));
 
           processes[index] = {
-            ...processes[index],
+            ...existing,
             ...processData,
             parentProcessId: parentId,
             lastUpdated: now
@@ -529,6 +543,11 @@ app.post('/api/processes', async (req, res) => {
           }
 
           await writeProcessesToCSV(processes);
+
+          // Automatically trigger clean up for de-referenced logo files
+          for (const key of deReferencedKeys) {
+            await deleteLogoFromR2IfUnused(key);
+          }
           return res.json(processes[index]);
         }
       }
@@ -699,15 +718,30 @@ app.post('/api/processes/:id/new-version', async (req, res) => {
 app.delete('/api/processes/:id', async (req, res) => {
   try {
     const id = req.params.id;
+    let existingProcess = null;
+
     if (dbPool) {
+      const resSelect = await dbPool.query('SELECT "workflowFormsData" FROM processes WHERE id = $1', [id]);
+      if (resSelect.rows.length > 0) {
+        existingProcess = resSelect.rows[0];
+      }
+
       const deleteRes = await dbPool.query('DELETE FROM processes WHERE id = $1', [id]);
       if (deleteRes.rowCount === 0) {
         return res.status(404).json({ error: 'Process not found' });
+      }
+
+      if (existingProcess) {
+        const logoKeys = getLogoKeysFromForms(existingProcess.workflowFormsData);
+        for (const key of logoKeys) {
+          await deleteLogoFromR2IfUnused(key);
+        }
       }
       res.json({ success: true });
     } else {
       // Local CSV mode
       const processes = await readProcessesFromCSV();
+      existingProcess = processes.find(p => p.id === id);
       const filtered = processes.filter(p => p.id !== id);
       
       if (processes.length === filtered.length) {
@@ -715,6 +749,13 @@ app.delete('/api/processes/:id', async (req, res) => {
       }
 
       await writeProcessesToCSV(filtered);
+
+      if (existingProcess) {
+        const logoKeys = getLogoKeysFromForms(existingProcess.workflowFormsData);
+        for (const key of logoKeys) {
+          await deleteLogoFromR2IfUnused(key);
+        }
+      }
       res.json({ success: true });
     }
   } catch (err) {
@@ -763,6 +804,129 @@ app.get('/api/storage/quota-status', async (req, res) => {
   }
 });
 
+// Helper: extract all logo keys from a workflowFormsData object
+function getLogoKeysFromForms(workflowFormsData) {
+  const keys = new Set();
+  if (!workflowFormsData) return keys;
+  let formsData = workflowFormsData;
+  if (typeof formsData === 'string') {
+    try { formsData = JSON.parse(formsData); } catch (e) { formsData = {}; }
+  }
+  for (const form of Object.values(formsData)) {
+    if (form && form.layoutBlocks) {
+      for (const block of form.layoutBlocks) {
+        if (block.logo && block.logo.startsWith('uploads/logo_')) {
+          keys.add(block.logo);
+        }
+      }
+    }
+  }
+  return keys;
+}
+
+// Helper: check if a logo key is still used in any form
+async function isLogoKeyUsed(logoKey) {
+  let allProcesses = [];
+  if (dbPool) {
+    const res = await dbPool.query('SELECT "workflowFormsData" FROM processes');
+    allProcesses = res.rows;
+  } else {
+    allProcesses = await readProcessesFromCSV();
+  }
+
+  for (const proc of allProcesses) {
+    let formsData = proc.workflowFormsData;
+    if (typeof formsData === 'string') {
+      try { formsData = JSON.parse(formsData); } catch (e) { formsData = {}; }
+    }
+    if (!formsData) continue;
+    for (const form of Object.values(formsData)) {
+      if (form && form.layoutBlocks) {
+        for (const block of form.layoutBlocks) {
+          if (block.logo === logoKey) {
+            return true;
+          }
+        }
+      }
+    }
+  }
+  return false;
+}
+
+// Helper: Delete logo from R2 if not used anywhere
+async function deleteLogoFromR2IfUnused(logoKey) {
+  if (!logoKey || !logoKey.startsWith('uploads/logo_') || !r2Client) return;
+  try {
+    const isUsed = await isLogoKeyUsed(logoKey);
+    if (!isUsed) {
+      console.log(`Logo key ${logoKey} is no longer used. Deleting from R2...`);
+      const command = new DeleteObjectCommand({
+        Bucket: R2_BUCKET_NAME,
+        Key: logoKey,
+      });
+      await r2Client.send(command);
+      console.log(`Successfully deleted orphaned logo ${logoKey} from R2.`);
+    } else {
+      console.log(`Logo key ${logoKey} is still in use. Keeping in R2.`);
+    }
+  } catch (err) {
+    console.error(`Failed to cleanup logo ${logoKey} from R2:`, err);
+  }
+}
+
+// GET /api/storage/logos - List all logo files in R2 storage with usage metadata
+app.get('/api/storage/logos', async (req, res) => {
+  try {
+    if (!r2Client) {
+      return res.json({ logos: [] });
+    }
+    const command = new ListObjectsV2Command({
+      Bucket: R2_BUCKET_NAME,
+      Prefix: 'uploads/logo_',
+    });
+    const s3Res = await r2Client.send(command);
+    const keys = (s3Res.Contents || []).map(item => item.Key);
+    
+    // Check usage of each logo key
+    const logos = await Promise.all(keys.map(async (key) => {
+      const isUsed = await isLogoKeyUsed(key);
+      return { key, isUsed };
+    }));
+    
+    res.json({ logos });
+  } catch (err) {
+    console.error('Error listing logos:', err);
+    res.status(500).json({ error: 'Failed to list logo files' });
+  }
+});
+
+// DELETE /api/storage/logos - Delete an unused logo from R2 storage
+app.delete('/api/storage/logos', async (req, res) => {
+  try {
+    if (!r2Client) {
+      return res.status(503).json({ error: 'Cloudflare R2 is not configured.' });
+    }
+    const { logoKey } = req.body;
+    if (!logoKey) {
+      return res.status(400).json({ error: 'Missing logoKey.' });
+    }
+    const isUsed = await isLogoKeyUsed(logoKey);
+    if (isUsed) {
+      return res.status(400).json({ error: 'This logo is currently in use by a form and cannot be deleted.' });
+    }
+    const command = new DeleteObjectCommand({
+      Bucket: R2_BUCKET_NAME,
+      Key: logoKey,
+    });
+    await r2Client.send(command);
+    console.log(`Successfully deleted unused logo ${logoKey} from R2 via gallery.`);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Error deleting logo:', err);
+    res.status(500).json({ error: 'Failed to delete logo file' });
+  }
+});
+
 // POST /api/storage/presign-upload - Generate secure R2 upload URL with quota checks
 app.post('/api/storage/presign-upload', async (req, res) => {
   try {
@@ -770,9 +934,13 @@ app.post('/api/storage/presign-upload', async (req, res) => {
       return res.status(503).json({ error: 'Cloudflare R2 is not configured on this server.' });
     }
 
-    const { processId, formName, fileName, fileSize, fileType } = req.body;
-    if (!processId || !formName || !fileName || !fileSize) {
+    const { processId, formName, fileName, fileSize, fileType, isLogo, logoName } = req.body;
+    
+    if (!isLogo && (!processId || !formName || !fileName || !fileSize)) {
       return res.status(400).json({ error: 'Missing required upload parameters (processId, formName, fileName, fileSize).' });
+    }
+    if (isLogo && (!fileName || !fileSize || !logoName)) {
+      return res.status(400).json({ error: 'Missing required upload parameters (fileName, fileSize, logoName).' });
     }
 
     // 1. Enforce individual file size limit (50 MB)
@@ -790,8 +958,14 @@ app.post('/api/storage/presign-upload', async (req, res) => {
     }
 
     // 3. Generate secure path in bucket
-    const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const pdfKey = `uploads/${processId}/${formName.replace(/[^a-zA-Z0-9-]/g, '_')}_${Date.now()}_${sanitizedFileName}`;
+    let pdfKey;
+    if (isLogo && logoName) {
+      const extension = fileName.split('.').pop().toLowerCase();
+      pdfKey = `uploads/logo_${logoName.replace(/[^a-zA-Z0-9_-]/g, '_')}.${extension}`;
+    } else {
+      const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
+      pdfKey = `uploads/${processId}/${formName.replace(/[^a-zA-Z0-9-]/g, '_')}_${Date.now()}_${sanitizedFileName}`;
+    }
 
     // 4. Generate presigned URL for PUT request
     const command = new PutObjectCommand({

@@ -56,9 +56,11 @@ const enforceStepShapes = (stepsList: ProcessStep[]): ProcessStep[] => {
 
     let producesForm = step.producesForm;
     let formName = step.formName;
+    let formNames = step.formNames;
     if (shape !== 'task') {
       producesForm = undefined;
       formName = undefined;
+      formNames = undefined;
     }
     
     return { 
@@ -70,7 +72,8 @@ const enforceStepShapes = (stepsList: ProcessStep[]): ProcessStep[] => {
       branchNoLabel, 
       branchNoTargetId,
       producesForm,
-      formName
+      formName,
+      formNames
     };
   });
 };
@@ -137,7 +140,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
       formTitle?: string;
       version?: string;
       status?: 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
-      isoFields?: any[];
+      layoutBlocks?: any[];
       revisionHistory?: any[];
     }
   }>({});
@@ -686,7 +689,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
     }
   };
 
-  const handleSave = async () => {
+  const handleSave = async (customFormsData?: Record<string, any>) => {
     if (!title.trim()) {
       alert('Please enter a process title.');
       return;
@@ -748,14 +751,25 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
     }
 
     // Clean up workflowFormsData by only keeping forms currently declared in steps
-    const activeFormNames = stepsToSave
-      .filter(s => s.bpmnShape === 'task' && s.producesForm && s.formName?.trim())
-      .map(s => s.formName?.trim() || '');
+    const activeFormNames: string[] = [];
+    stepsToSave.forEach(s => {
+      if (s.bpmnShape === 'task' && s.producesForm) {
+        const names = s.formNames && s.formNames.length > 0
+          ? s.formNames.map(n => n.trim()).filter(Boolean)
+          : (s.formName ? [s.formName.trim()] : []);
+        names.forEach(name => {
+          if (!activeFormNames.includes(name)) {
+            activeFormNames.push(name);
+          }
+        });
+      }
+    });
 
     const cleanedFormsData: Record<string, any> = {};
     activeFormNames.forEach(name => {
-      if (name && workflowFormsData[name]) {
-        cleanedFormsData[name] = workflowFormsData[name];
+      const dataSrc = customFormsData || workflowFormsData;
+      if (name && dataSrc[name]) {
+        cleanedFormsData[name] = dataSrc[name];
       }
     });
 
@@ -830,11 +844,19 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
     );
   }
 
-  const workflowForms = Array.from(new Set(
-    steps
-      .filter(s => s.bpmnShape === 'task' && s.producesForm && s.formName?.trim())
-      .map(s => s.formName!.trim())
-  ));
+  const workflowForms: string[] = [];
+  steps.forEach(s => {
+    if (s.bpmnShape === 'task' && s.producesForm) {
+      const names = s.formNames && s.formNames.length > 0
+        ? s.formNames.map(n => n.trim()).filter(Boolean)
+        : (s.formName ? [s.formName.trim()] : []);
+      names.forEach(name => {
+        if (!workflowForms.includes(name)) {
+          workflowForms.push(name);
+        }
+      });
+    }
+  });
 
   return (
     <div>
@@ -1408,67 +1430,112 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
                             }}
                           />
                           {/* Form Button/Input inside the Action column, rendered inline right below it */}
-                          {hasFormOption && (
-                            <div style={{ display: 'flex', alignItems: 'center' }}>
-                              {!step.producesForm ? (
-                                <button
-                                  type="button"
-                                  className="btn btn-secondary btn-sm"
-                                  onClick={() => handleStepChange(index, 'producesForm', true)}
-                                  style={{ 
-                                    display: 'inline-flex', 
-                                    alignItems: 'center', 
-                                    gap: '0.25rem',
-                                    padding: '2px 6px',
-                                    fontSize: '0.75rem',
-                                    fontWeight: 500,
-                                    background: 'transparent',
-                                    border: '1px dashed #cbd5e1',
-                                    boxShadow: 'none',
-                                    color: 'var(--text-secondary)',
-                                    marginTop: '2px'
-                                  }}
-                                >
-                                  <Plus size={12} /> Add form
-                                </button>
-                              ) : (
-                                <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center', width: '100%', marginTop: '2px' }}>
-                                  <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>Form:</span>
-                                  <input
-                                    type="text"
-                                    placeholder="e.g. Tank CIP Checklist"
-                                    value={step.formName || ''}
-                                    onChange={(e) => handleStepChange(index, 'formName', e.target.value)}
-                                    style={{ 
-                                      flex: 1, 
-                                      padding: '2px 6px', 
-                                      fontSize: '0.75rem',
-                                      margin: 0,
-                                      height: '24px'
-                                    }}
-                                  />
+                          {hasFormOption && (() => {
+                            const currentFormNames = step.formNames && step.formNames.length > 0 
+                              ? step.formNames 
+                              : (step.formName ? [step.formName] : []);
+
+                            return (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', width: '100%', marginTop: '2px' }}>
+                                {step.producesForm && currentFormNames.map((formName, fIdx) => (
+                                  <div key={fIdx} style={{ display: 'flex', gap: '0.25rem', alignItems: 'center', width: '100%' }}>
+                                    <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                                      Form{currentFormNames.length > 1 ? ` #${fIdx + 1}` : ''}:
+                                    </span>
+                                    <input
+                                      type="text"
+                                      placeholder="e.g. Tank CIP Checklist"
+                                      value={formName || ''}
+                                      onChange={(e) => {
+                                        const updatedNames = [...currentFormNames];
+                                        updatedNames[fIdx] = e.target.value;
+                                        setSteps(prev => {
+                                          const updated = [...prev];
+                                          updated[index] = {
+                                            ...updated[index],
+                                            formName: updatedNames[0],
+                                            formNames: updatedNames
+                                          };
+                                          return enforceStepShapes(updated);
+                                        });
+                                      }}
+                                      style={{ 
+                                        flex: 1, 
+                                        padding: '2px 6px', 
+                                        fontSize: '0.75rem',
+                                        margin: 0,
+                                        height: '24px'
+                                      }}
+                                    />
+                                    <button
+                                      type="button"
+                                      className="step-delete-btn"
+                                      onClick={() => {
+                                        const updatedNames = currentFormNames.filter((_, idx) => idx !== fIdx);
+                                        setSteps(prev => {
+                                          const updated = [...prev];
+                                          if (updatedNames.length === 0) {
+                                            updated[index] = { 
+                                              ...updated[index], 
+                                              producesForm: false, 
+                                              formName: '',
+                                              formNames: []
+                                            };
+                                          } else {
+                                            updated[index] = { 
+                                              ...updated[index], 
+                                              formName: updatedNames[0],
+                                              formNames: updatedNames
+                                            };
+                                          }
+                                          return enforceStepShapes(updated);
+                                        });
+                                      }}
+                                      style={{ padding: '2px 4px', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '24px', cursor: 'pointer' }}
+                                    >
+                                      <Trash2 size={12} />
+                                    </button>
+                                  </div>
+                                ))}
+
+                                {/* Add Form button - always show if not producesForm or producesForm is true */}
+                                <div style={{ display: 'flex' }}>
                                   <button
                                     type="button"
-                                    className="step-delete-btn"
+                                    className="btn btn-secondary btn-sm"
                                     onClick={() => {
                                       setSteps(prev => {
                                         const updated = [...prev];
-                                        updated[index] = { 
-                                          ...updated[index], 
-                                          producesForm: false, 
-                                          formName: '' 
+                                        const newFormNames = step.producesForm ? [...currentFormNames, ''] : [''];
+                                        updated[index] = {
+                                          ...updated[index],
+                                          producesForm: true,
+                                          formName: newFormNames[0],
+                                          formNames: newFormNames
                                         };
                                         return enforceStepShapes(updated);
                                       });
                                     }}
-                                    style={{ padding: '2px 4px', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '24px', cursor: 'pointer' }}
+                                    style={{ 
+                                      display: 'inline-flex', 
+                                      alignItems: 'center', 
+                                      gap: '0.25rem',
+                                      padding: '2px 6px',
+                                      fontSize: '0.75rem',
+                                      fontWeight: 500,
+                                      background: 'transparent',
+                                      border: '1px dashed #cbd5e1',
+                                      boxShadow: 'none',
+                                      color: 'var(--text-secondary)',
+                                      marginTop: '1px'
+                                    }}
                                   >
-                                    <Trash2 size={12} />
+                                    <Plus size={12} /> Add form
                                   </button>
                                 </div>
-                              )}
-                            </div>
-                          )}
+                              </div>
+                            );
+                          })()}
                         </div>
 
                         {/* Responsible Role Select */}
@@ -1476,7 +1543,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
                           <select
                             value={step.role}
                             onChange={(e) => handleStepChange(index, 'role', e.target.value)}
-                            style={{ padding: '0.35rem 0.5rem', fontSize: '0.85rem', width: '100%', margin: 0 }}
+                            style={{ padding: '0.35rem 1.5rem 0.35rem 0.5rem', fontSize: '0.85rem', width: '100%', margin: 0 }}
                           >
                             {(roles.includes(step.role) ? roles : [...roles, step.role].filter(Boolean)).map(r => (
                               <option key={r} value={r}>{r}</option>
@@ -1494,7 +1561,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
                             <select
                               value={step.bpmnShape || 'task'}
                               onChange={(e) => handleStepChange(index, 'bpmnShape', e.target.value)}
-                              style={{ padding: '0.35rem 0.5rem', fontSize: '0.85rem', width: '100%', margin: 0 }}
+                              style={{ padding: '0.35rem 1.5rem 0.35rem 0.5rem', fontSize: '0.85rem', width: '100%', margin: 0 }}
                             >
                               <option value="task">Task</option>
                               <option value="exclusive-gateway">Gateway (XOR)</option>
@@ -1510,7 +1577,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
                             <select
                               value={step.nextStepId || ''}
                               onChange={(e) => handleStepChange(index, 'nextStepId', e.target.value)}
-                              style={{ padding: '0.35rem 0.5rem', fontSize: '0.85rem', width: '100%', margin: 0 }}
+                              style={{ padding: '0.35rem 1.5rem 0.35rem 0.5rem', fontSize: '0.85rem', width: '100%', margin: 0 }}
                             >
                               {steps.map((s, sIdx) => (
                                 s.id !== step.id && (
@@ -1950,13 +2017,15 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
               formName={activeFormToBuild}
               initialData={workflowFormsData[activeFormToBuild]}
               onSave={(savedFormData) => {
-                setWorkflowFormsData(prev => ({
-                  ...prev,
+                const nextFormsData = {
+                  ...workflowFormsData,
                   [activeFormToBuild]: {
-                    ...prev[activeFormToBuild],
+                    ...workflowFormsData[activeFormToBuild],
                     ...savedFormData
                   }
-                }));
+                };
+                setWorkflowFormsData(nextFormsData);
+                handleSave(nextFormsData);
               }}
               onClose={() => setActiveFormToBuild(null)}
             />
