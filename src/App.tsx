@@ -9,18 +9,22 @@ import { BookOpen, UserCheck } from 'lucide-react';
 
 const MainApp: React.FC = () => {
   const [page, setPage] = useState<'dashboard' | 'editor' | 'reader' | 'guide' | 'submissions'>('dashboard');
+  const [prevPage, setPrevPage] = useState<'dashboard' | 'editor' | 'reader' | 'guide' | 'submissions'>('dashboard');
   const [selectedProcessId, setSelectedProcessId] = useState<string | null>(null);
   const [initialFormFilter, setInitialFormFilter] = useState<string | null>(null);
   const [initialPrintFormName, setInitialPrintFormName] = useState<string | null>(null);
+  const [dashboardViewMode, setDashboardViewMode] = useState<'processes' | 'forms'>('processes');
   
   const { currentUser, setCurrentUser } = useAuth();
 
   const handleSelectProcess = (id: string) => {
+    setPrevPage(page);
     setSelectedProcessId(id);
     setPage('reader');
   };
 
   const handleEditProcess = (id: string | null) => {
+    setPrevPage(page);
     setSelectedProcessId(id);
     setPage('editor');
   };
@@ -30,11 +34,13 @@ const MainApp: React.FC = () => {
   };
 
   const handleViewFormSubmissions = (formName: string) => {
+    setPrevPage(page);
     setInitialFormFilter(formName);
     setPage('submissions');
   };
 
   const handlePrintForm = (processId: string, formName: string) => {
+    setPrevPage(page);
     setSelectedProcessId(processId);
     setInitialPrintFormName(formName);
     setPage('reader');
@@ -106,19 +112,21 @@ const MainApp: React.FC = () => {
             onEditProcess={handleEditProcess} 
             onViewFormSubmissions={handleViewFormSubmissions}
             onPrintForm={handlePrintForm}
+            viewMode={dashboardViewMode}
+            onViewModeChange={setDashboardViewMode}
           />
         )}
         {page === 'editor' && (
           <ProcessEditor 
             processId={selectedProcessId} 
-            onCancel={() => setPage('dashboard')} 
+            onCancel={() => setPage(prevPage)} 
             onSaveSuccess={handleSaveSuccess} 
           />
         )}
         {page === 'reader' && (
           <ProcessReader 
             processId={selectedProcessId!} 
-            onBack={() => { setPage('dashboard'); setInitialPrintFormName(null); }} 
+            onBack={() => { setPage(prevPage); setInitialPrintFormName(null); }} 
             onEdit={handleEditProcess} 
             initialPrintFormName={initialPrintFormName}
             onClearPrintForm={() => setInitialPrintFormName(null)}
@@ -128,7 +136,7 @@ const MainApp: React.FC = () => {
           <BPMNGuide />
         )}
         {page === 'submissions' && (
-          <SubmissionManager onBack={() => setPage('dashboard')} initialFormFilter={initialFormFilter} />
+          <SubmissionManager onBack={() => setPage(prevPage)} initialFormFilter={initialFormFilter} />
         )}
       </main>
     </div>

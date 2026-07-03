@@ -8,6 +8,8 @@ interface DashboardProps {
   onEditProcess: (id: string | null) => void;
   onViewFormSubmissions?: (formName: string) => void;
   onPrintForm?: (processId: string, formName: string) => void;
+  viewMode?: 'processes' | 'forms';
+  onViewModeChange?: (mode: 'processes' | 'forms') => void;
 }
 
 const statusColors: { [key: string]: { bg: string, text: string, border: string } } = {
@@ -18,10 +20,16 @@ const statusColors: { [key: string]: { bg: string, text: string, border: string 
   'Retired': { bg: '#fef2f2', text: '#b91c1c', border: '#fca5a5' }
 };
 
-export const Dashboard: React.FC<DashboardProps> = ({ onSelectProcess, onEditProcess, onViewFormSubmissions, onPrintForm }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ 
+  onSelectProcess, 
+  onEditProcess, 
+  onViewFormSubmissions, 
+  onPrintForm,
+  viewMode = 'processes',
+  onViewModeChange
+}) => {
   const [processes, setProcesses] = useState<Process[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [viewMode, setViewMode] = useState<'processes' | 'forms'>('processes');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedVersions, setExpandedVersions] = useState<{ [parentId: string]: boolean }>({});
@@ -169,14 +177,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectProcess, onEditPro
       <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--neutral-border)', paddingBottom: '0.75rem' }}>
         <button
           className={`btn btn-sm ${viewMode === 'processes' ? 'btn-primary' : 'btn-secondary'}`}
-          onClick={() => { setViewMode('processes'); setSearchQuery(''); }}
+          onClick={() => { onViewModeChange && onViewModeChange('processes'); setSearchQuery(''); }}
           style={{ borderRadius: '20px', padding: '0.35rem 1.25rem' }}
         >
           Processes
         </button>
         <button
           className={`btn btn-sm ${viewMode === 'forms' ? 'btn-primary' : 'btn-secondary'}`}
-          onClick={() => { setViewMode('forms'); setSearchQuery(''); }}
+          onClick={() => { onViewModeChange && onViewModeChange('forms'); setSearchQuery(''); }}
           style={{ borderRadius: '20px', padding: '0.35rem 1.25rem' }}
         >
           Forms
