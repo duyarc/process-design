@@ -747,6 +747,18 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
       setSteps(stepsToSave);
     }
 
+    // Clean up workflowFormsData by only keeping forms currently declared in steps
+    const activeFormNames = stepsToSave
+      .filter(s => s.bpmnShape === 'task' && s.producesForm && s.formName?.trim())
+      .map(s => s.formName?.trim() || '');
+
+    const cleanedFormsData: Record<string, any> = {};
+    activeFormNames.forEach(name => {
+      if (name && workflowFormsData[name]) {
+        cleanedFormsData[name] = workflowFormsData[name];
+      }
+    });
+
     const processPayload = {
       id: processId || undefined,
       parentProcessId: parentProcessId || undefined,
@@ -758,7 +770,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
       steps: stepsToSave,
       formFields: filteredFields,
       sopSignoffs,
-      workflowFormsData
+      workflowFormsData: cleanedFormsData
     };
 
     try {
