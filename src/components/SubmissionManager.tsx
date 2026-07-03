@@ -18,9 +18,10 @@ import PrintRecord from './print/PrintRecord';
 
 interface SubmissionManagerProps {
   onBack: () => void;
+  initialFormFilter?: string | null;
 }
 
-export default function SubmissionManager({ onBack }: SubmissionManagerProps) {
+export default function SubmissionManager({ onBack, initialFormFilter }: SubmissionManagerProps) {
   const { currentUser } = useAuth();
   
   // Data States
@@ -40,7 +41,7 @@ export default function SubmissionManager({ onBack }: SubmissionManagerProps) {
   const [signingOff, setSigningOff] = useState(false);
   
   // Filter States
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState(initialFormFilter || '');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'PASS' | 'ABNORMALITY'>('ALL');
   const [signoffFilter, setSignoffFilter] = useState<'ALL' | 'PENDING' | 'VERIFIED'>('ALL');
 
@@ -124,9 +125,11 @@ export default function SubmissionManager({ onBack }: SubmissionManagerProps) {
     const procTitle = getProcessTitle(sub.processId).toLowerCase();
     const opId = sub.operatorId.toLowerCase();
     const subId = sub.id.toLowerCase();
+    const fId = (sub.formId || '').toLowerCase();
     const matchSearch = procTitle.includes(searchTerm.toLowerCase()) || 
                         opId.includes(searchTerm.toLowerCase()) || 
-                        subId.includes(searchTerm.toLowerCase());
+                        subId.includes(searchTerm.toLowerCase()) ||
+                        fId.includes(searchTerm.toLowerCase());
     
     const matchStatus = statusFilter === 'ALL' || sub.status === statusFilter;
     
@@ -301,7 +304,14 @@ export default function SubmissionManager({ onBack }: SubmissionManagerProps) {
                         }}
                       >
                         <td style={{ padding: '0.6rem', fontWeight: 500, fontFamily: 'monospace' }}>{sub.id}</td>
-                        <td style={{ padding: '0.6rem', fontWeight: 600 }}>{getProcessTitle(sub.processId)}</td>
+                        <td style={{ padding: '0.6rem', fontWeight: 600 }}>
+                          {getProcessTitle(sub.processId)}
+                          {sub.formId && (
+                            <div style={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--text-secondary)', marginTop: '2px' }}>
+                              Template: {sub.formId}
+                            </div>
+                          )}
+                        </td>
                         <td style={{ padding: '0.6rem', textAlign: 'center' }}>{sub.operatorId}</td>
                         <td style={{ padding: '0.6rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
                           {new Date(sub.submittedAt).toLocaleDateString()} {new Date(sub.submittedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

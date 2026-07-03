@@ -10,6 +10,7 @@ import { BookOpen, UserCheck } from 'lucide-react';
 const MainApp: React.FC = () => {
   const [page, setPage] = useState<'dashboard' | 'editor' | 'reader' | 'guide' | 'submissions'>('dashboard');
   const [selectedProcessId, setSelectedProcessId] = useState<string | null>(null);
+  const [initialFormFilter, setInitialFormFilter] = useState<string | null>(null);
   
   const { currentUser, setCurrentUser } = useAuth();
 
@@ -27,12 +28,17 @@ const MainApp: React.FC = () => {
     setSelectedProcessId(id);
   };
 
+  const handleViewFormSubmissions = (formName: string) => {
+    setInitialFormFilter(formName);
+    setPage('submissions');
+  };
+
   return (
     <div className="app-container">
       {/* Navbar Panel */}
       <header className="app-header no-print">
         <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
-          <div className="logo-container" style={{ cursor: 'pointer' }} onClick={() => { setPage('dashboard'); setSelectedProcessId(null); }}>
+          <div className="logo-container" style={{ cursor: 'pointer' }} onClick={() => { setPage('dashboard'); setSelectedProcessId(null); setInitialFormFilter(null); }}>
             <BookOpen size={24} style={{ color: 'var(--primary)' }} />
             <span className="logo-text">Process Design</span>
           </div>
@@ -40,7 +46,7 @@ const MainApp: React.FC = () => {
           <nav style={{ display: 'flex', gap: '0.5rem' }}>
             <button 
               className={`btn btn-sm ${page === 'submissions' ? 'btn-primary' : 'btn-secondary'}`}
-              onClick={() => setPage('submissions')}
+              onClick={() => { setInitialFormFilter(null); setPage('submissions'); }}
               style={{ borderRadius: '20px', padding: '0.35rem 1rem' }}
             >
               Submissions
@@ -91,6 +97,7 @@ const MainApp: React.FC = () => {
           <Dashboard 
             onSelectProcess={handleSelectProcess} 
             onEditProcess={handleEditProcess} 
+            onViewFormSubmissions={handleViewFormSubmissions}
           />
         )}
         {page === 'editor' && (
@@ -111,7 +118,7 @@ const MainApp: React.FC = () => {
           <BPMNGuide />
         )}
         {page === 'submissions' && (
-          <SubmissionManager onBack={() => setPage('dashboard')} />
+          <SubmissionManager onBack={() => setPage('dashboard')} initialFormFilter={initialFormFilter} />
         )}
       </main>
     </div>

@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import type { Process } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { Plus, Search, FileText, Eye, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Search, FileText, Eye, Calendar, ChevronDown, ChevronUp, Printer, History, PenTool, Edit2 } from 'lucide-react';
 
 interface DashboardProps {
   onSelectProcess: (id: string) => void;
   onEditProcess: (id: string | null) => void;
+  onViewFormSubmissions?: (formName: string) => void;
 }
 
 const statusColors: { [key: string]: { bg: string, text: string, border: string } } = {
@@ -16,9 +17,10 @@ const statusColors: { [key: string]: { bg: string, text: string, border: string 
   'Retired': { bg: '#fef2f2', text: '#b91c1c', border: '#fca5a5' }
 };
 
-export const Dashboard: React.FC<DashboardProps> = ({ onSelectProcess, onEditProcess }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ onSelectProcess, onEditProcess, onViewFormSubmissions }) => {
   const [processes, setProcesses] = useState<Process[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [viewMode, setViewMode] = useState<'processes' | 'forms'>('processes');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedVersions, setExpandedVersions] = useState<{ [parentId: string]: boolean }>({});
@@ -102,6 +104,55 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectProcess, onEditPro
     return repMatches || stepMatches || fieldMatches;
   });
 
+  // Extract all forms from processes and group them by Process Family
+  const groupedForms: { [processId: string]: { processTitle: string, forms: any[] } } = {};
+
+  processes.forEach(proc => {
+    const parentId = proc.parentProcessId || proc.id;
+    const allVersions = groups[parentId] || [];
+    const rep = getRepresentative(allVersions);
+    
+    if (proc.id === rep.id && proc.workflowFormsData) {
+      Object.entries(proc.workflowFormsData).forEach(([formName, formData]: [string, any]) => {
+        // Filter by search query if viewMode is forms
+        const q = searchQuery.toLowerCase();
+        const match = formName.toLowerCase().includes(q) || 
+                      (formData.formId || '').toLowerCase().includes(q) || 
+                      proc.title.toLowerCase().includes(q);
+        
+        if (searchQuery && !match) return;
+
+        if (!groupedForms[proc.id]) {
+          groupedForms[proc.id] = {
+            processTitle: proc.title,
+            forms: []
+          };
+        }
+        
+        const blocksCount = formData.layoutBlocks?.length || 0;
+        const blockTypesList = formData.layoutBlocks?.map((b: any) => {
+          if (b.type === 'TITLE') return 'Title';
+          if (b.type === 'INFO_GRID') return 'Info Grid';
+          if (b.type === 'CHECKLIST_TABLE') return 'Table';
+          if (b.type === 'MATRIX_TABLE') return 'Matrix Table';
+          if (b.type === 'SIGN') return 'Sign';
+          return b.type;
+        }) || [];
+        const blockTypes = Array.from(new Set(blockTypesList)).join(', ');
+
+        groupedForms[proc.id].forms.push({
+          formName,
+          formId: formData.formId || 'N/A',
+          version: formData.version || 'v1.0',
+          status: formData.status || 'DRAFT',
+          blocksCount,
+          blockTypes,
+          processId: proc.id
+        });
+      });
+    }
+  });
+
   return (
     <div>
       <div className="quote-card">
@@ -113,18 +164,36 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectProcess, onEditPro
         </p>
       </div>
 
+      {/* View Switcher Tabs */}
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--neutral-border)', paddingBottom: '0.75rem' }}>
+        <button
+          className={`btn btn-sm ${viewMode === 'processes' ? 'btn-primary' : 'btn-secondary'}`}
+          onClick={() => { setViewMode('processes'); setSearchQuery(''); }}
+          style={{ borderRadius: '20px', padding: '0.35rem 1.25rem' }}
+        >
+          Workflows & Processes
+        </button>
+        <button
+          className={`btn btn-sm ${viewMode === 'forms' ? 'btn-primary' : 'btn-secondary'}`}
+          onClick={() => { setViewMode('forms'); setSearchQuery(''); }}
+          style={{ borderRadius: '20px', padding: '0.35rem 1.25rem' }}
+        >
+          Form Templates
+        </button>
+      </div>
+
       <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '2rem' }}>
         <div className="search-wrapper" style={{ flex: 1, marginBottom: 0 }}>
           <Search className="search-icon" size={20} />
           <input
             type="text"
             className="search-input"
-            placeholder="Search processes by title, description or checks..."
+            placeholder={viewMode === 'processes' ? "Search processes by title, description or checks..." : "Search forms by name, form ID, or linked process..."}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        {hasPermission('create_process') && (
+        {hasPermission('create_process') && viewMode === 'processes' && (
           <button 
             className="btn btn-primary" 
             onClick={() => onEditProcess(null)}
@@ -146,7 +215,134 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectProcess, onEditPro
         <div style={{ textAlign: 'center', padding: '3rem' }}>
           <p>Loading processes database...</p>
         </div>
-      ) : filteredFamilies.length === 0 ? (
+      ) : viewMode === 'forms' ? (() => {
+        const hasAnyForm = Object.values(groupedForms).some(g => g.forms.length > 0);
+        if (!hasAnyForm) {
+          return (
+            <div className="paper-card" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
+              <FileText size={48} style={{ color: 'var(--text-secondary)', marginBottom: '1rem', opacity: 0.5 }} />
+              <h3>No Form Templates Found</h3>
+              <p style={{ maxWidth: '480px', margin: '0 auto 1.5rem auto' }}>
+                {searchQuery 
+                  ? 'No results match your search query. Try clearing the filter or checking your spelling.'
+                  : 'There are currently no form templates created in your processes. Design a process and add forms to get started.'}
+              </p>
+              {searchQuery && (
+                <button className="btn btn-secondary" onClick={() => setSearchQuery('')}>Clear Search</button>
+              )}
+            </div>
+          );
+        }
+
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+            {Object.entries(groupedForms).map(([procId, { processTitle, forms }]) => {
+              if (forms.length === 0) return null;
+              return (
+                <div key={procId} className="paper-card accent-teal" style={{ padding: '1.5rem' }}>
+                  <h4 style={{ margin: '0 0 1.25rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-primary)', fontSize: '1.05rem', fontWeight: 700 }}>
+                    <FileText size={18} style={{ color: 'var(--primary)' }} />
+                    {processTitle}
+                  </h4>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
+                    {forms.map((form) => {
+                      const status = form.status || 'DRAFT';
+                      const colors = status === 'ACTIVE' 
+                        ? { bg: '#f0fdf4', text: '#15803d', border: '#bbf7d0' } 
+                        : { bg: '#fffbeb', text: '#b45309', border: '#fde68a' };
+
+                      return (
+                        <div 
+                          key={form.formName} 
+                          style={{ 
+                            background: '#ffffff', 
+                            border: '1px solid var(--neutral-border)', 
+                            borderRadius: '8px', 
+                            padding: '1.25rem 1rem 1rem 1rem',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'space-between',
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                            transition: 'transform 0.15s ease, box-shadow 0.15s ease'
+                          }}
+                          className="hover-card-bg"
+                        >
+                          <div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+                              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', background: '#f1f5f9', padding: '0.1rem 0.4rem', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
+                                {form.formId}
+                              </span>
+                              <span className="badge" style={{ backgroundColor: colors.bg, color: colors.text, border: `1px solid ${colors.border}`, textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 700, padding: '0.1rem 0.4rem', borderRadius: '4px' }}>
+                                {status}
+                              </span>
+                            </div>
+                            
+                            <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.3 }}>
+                              {form.formName}
+                            </h4>
+                            
+                            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+                              <div>Version: {form.version}</div>
+                              <div style={{ marginTop: '0.35rem', color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+                                Config: {form.blocksCount} block(s) ({form.blockTypes})
+                              </div>
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'flex', gap: '0.35rem', borderTop: '1px solid var(--neutral-border)', paddingTop: '0.75rem', marginTop: '0.5rem' }}>
+                            <button 
+                              className="btn btn-secondary btn-sm"
+                              style={{ flex: 1, padding: '0.3rem 0.4rem', fontSize: '0.75rem', margin: 0, gap: '0.2rem', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                              title="Fill Form"
+                              onClick={() => onSelectProcess(form.processId)}
+                            >
+                              <PenTool size={13} style={{ flexShrink: 0 }} />
+                              Fill
+                            </button>
+                            
+                            <button 
+                              className="btn btn-secondary btn-sm"
+                              style={{ flex: 1, padding: '0.3rem 0.4rem', fontSize: '0.75rem', margin: 0, gap: '0.2rem', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                              title="Print Blank Form"
+                              onClick={() => onSelectProcess(form.processId)}
+                            >
+                              <Printer size={13} style={{ flexShrink: 0 }} />
+                              Print
+                            </button>
+                            
+                            {hasPermission('create_process') && (
+                              <button 
+                                className="btn btn-secondary btn-sm"
+                                style={{ flex: 1, padding: '0.3rem 0.4rem', fontSize: '0.75rem', margin: 0, gap: '0.2rem', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                                title="Edit Template"
+                                onClick={() => onEditProcess(form.processId)}
+                              >
+                                <Edit2 size={13} style={{ flexShrink: 0 }} />
+                                Edit
+                              </button>
+                            )}
+                            
+                            <button 
+                              className="btn btn-secondary btn-sm"
+                              style={{ flex: 1, padding: '0.3rem 0.4rem', fontSize: '0.75rem', margin: 0, gap: '0.2rem', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                              title="View Submissions"
+                              onClick={() => onViewFormSubmissions && onViewFormSubmissions(form.formName)}
+                            >
+                              <History size={13} style={{ flexShrink: 0 }} />
+                              Audit
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })() : filteredFamilies.length === 0 ? (
         <div className="paper-card" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
           <FileText size={48} style={{ color: 'var(--text-secondary)', marginBottom: '1rem', opacity: 0.5 }} />
           <h3>No Processes Found</h3>
