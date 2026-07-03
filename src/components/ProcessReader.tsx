@@ -10,6 +10,8 @@ interface ProcessReaderProps {
   processId: string;
   onBack: () => void;
   onEdit: (id: string) => void;
+  initialPrintFormName?: string | null;
+  onClearPrintForm?: () => void;
 }
 
 const statusColors: { [key: string]: { bg: string, text: string, border: string } } = {
@@ -20,7 +22,13 @@ const statusColors: { [key: string]: { bg: string, text: string, border: string 
   'Retired': { bg: '#fef2f2', text: '#b91c1c', border: '#fca5a5' }
 };
 
-export const ProcessReader: React.FC<ProcessReaderProps> = ({ processId, onBack, onEdit }) => {
+export const ProcessReader: React.FC<ProcessReaderProps> = ({ 
+  processId, 
+  onBack, 
+  onEdit, 
+  initialPrintFormName, 
+  onClearPrintForm 
+}) => {
   const [process, setProcess] = useState<Process | null>(null);
   const [loading, setLoading] = useState(true);
   const [allVersions, setAllVersions] = useState<Process[]>([]);
@@ -273,6 +281,18 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({ processId, onBack,
     fetchProcess();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [processId]);
+
+  useEffect(() => {
+    if (initialPrintFormName && process && process.workflowFormsData) {
+      const formData = process.workflowFormsData[initialPrintFormName];
+      if (formData) {
+        setPrintTemplateData(formData as any);
+      }
+      if (onClearPrintForm) {
+        onClearPrintForm();
+      }
+    }
+  }, [initialPrintFormName, process]);
 
   const handlePrint = () => {
     window.print();

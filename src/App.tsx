@@ -11,6 +11,7 @@ const MainApp: React.FC = () => {
   const [page, setPage] = useState<'dashboard' | 'editor' | 'reader' | 'guide' | 'submissions'>('dashboard');
   const [selectedProcessId, setSelectedProcessId] = useState<string | null>(null);
   const [initialFormFilter, setInitialFormFilter] = useState<string | null>(null);
+  const [initialPrintFormName, setInitialPrintFormName] = useState<string | null>(null);
   
   const { currentUser, setCurrentUser } = useAuth();
 
@@ -31,6 +32,12 @@ const MainApp: React.FC = () => {
   const handleViewFormSubmissions = (formName: string) => {
     setInitialFormFilter(formName);
     setPage('submissions');
+  };
+
+  const handlePrintForm = (processId: string, formName: string) => {
+    setSelectedProcessId(processId);
+    setInitialPrintFormName(formName);
+    setPage('reader');
   };
 
   return (
@@ -98,6 +105,7 @@ const MainApp: React.FC = () => {
             onSelectProcess={handleSelectProcess} 
             onEditProcess={handleEditProcess} 
             onViewFormSubmissions={handleViewFormSubmissions}
+            onPrintForm={handlePrintForm}
           />
         )}
         {page === 'editor' && (
@@ -110,8 +118,10 @@ const MainApp: React.FC = () => {
         {page === 'reader' && (
           <ProcessReader 
             processId={selectedProcessId!} 
-            onBack={() => setPage('dashboard')} 
+            onBack={() => { setPage('dashboard'); setInitialPrintFormName(null); }} 
             onEdit={handleEditProcess} 
+            initialPrintFormName={initialPrintFormName}
+            onClearPrintForm={() => setInitialPrintFormName(null)}
           />
         )}
         {page === 'guide' && (

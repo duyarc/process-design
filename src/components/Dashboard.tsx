@@ -7,6 +7,7 @@ interface DashboardProps {
   onSelectProcess: (id: string) => void;
   onEditProcess: (id: string | null) => void;
   onViewFormSubmissions?: (formName: string) => void;
+  onPrintForm?: (processId: string, formName: string) => void;
 }
 
 const statusColors: { [key: string]: { bg: string, text: string, border: string } } = {
@@ -17,7 +18,7 @@ const statusColors: { [key: string]: { bg: string, text: string, border: string 
   'Retired': { bg: '#fef2f2', text: '#b91c1c', border: '#fca5a5' }
 };
 
-export const Dashboard: React.FC<DashboardProps> = ({ onSelectProcess, onEditProcess, onViewFormSubmissions }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ onSelectProcess, onEditProcess, onViewFormSubmissions, onPrintForm }) => {
   const [processes, setProcesses] = useState<Process[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'processes' | 'forms'>('processes');
@@ -284,9 +285,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectProcess, onEditPro
                             
                             <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
                               <div>Version: {form.version}</div>
-                              <div style={{ marginTop: '0.35rem', color: 'var(--text-muted)', fontSize: '0.75rem' }}>
-                                Config: {form.blocksCount} block(s) ({form.blockTypes})
-                              </div>
                             </div>
                           </div>
 
@@ -305,7 +303,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onSelectProcess, onEditPro
                               className="btn btn-secondary btn-sm"
                               style={{ flex: 1, padding: '0.3rem 0.4rem', fontSize: '0.75rem', margin: 0, gap: '0.2rem', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
                               title="Print Blank Form"
-                              onClick={() => onSelectProcess(form.processId)}
+                              onClick={() => onPrintForm ? onPrintForm(form.processId, form.formName) : onSelectProcess(form.processId)}
                             >
                               <Printer size={13} style={{ flexShrink: 0 }} />
                               Print
