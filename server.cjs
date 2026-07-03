@@ -357,10 +357,24 @@ app.get('/api/processes', async (req, res) => {
         };
       }
       
-      const processes = result.rows.map(proc => ({
-        ...proc,
-        workflowFormsData: formsByProcess[proc.id] || {}
-      }));
+      const processes = result.rows.map(proc => {
+        const dbFormsData = proc.workflowFormsData || {};
+        const relFormsData = formsByProcess[proc.id] || {};
+        
+        // Merge the relational PDF metadata with the digital templates stored in processes table
+        const mergedFormsData = { ...dbFormsData };
+        for (const [formName, relData] of Object.entries(relFormsData)) {
+          mergedFormsData[formName] = {
+            ...(mergedFormsData[formName] || {}),
+            ...relData
+          };
+        }
+        
+        return {
+          ...proc,
+          workflowFormsData: mergedFormsData
+        };
+      });
       
       res.json(processes);
     } else {
