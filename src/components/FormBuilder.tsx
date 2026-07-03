@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { FormFieldISO, FormRevisionEntry } from '../types';
+import type { FormFieldISO, FormRevisionEntry, FormTemplateISO } from '../types';
 import { 
   Plus, 
   Trash2, 
@@ -17,8 +17,10 @@ import {
   Clock, 
   Settings,
   PenTool,
-  Camera
+  Camera,
+  Printer
 } from 'lucide-react';
+import PrintBlankForm from './print/PrintBlankForm';
 
 interface FormBuilderProps {
   formName: string;
@@ -46,6 +48,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
   // Editorial states
   const [changeSummary, setChangeSummary] = useState('');
   const [isLocked, setIsLocked] = useState(initialData?.status === 'ACTIVE');
+  const [printPreviewData, setPrintPreviewData] = useState<FormTemplateISO | null>(null);
 
   useEffect(() => {
     setIsLocked(status === 'ACTIVE');
@@ -194,6 +197,15 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
     
     alert(`New draft version created: ${draftVersion}. You can now make edits. The previous version remains active in production until you publish this draft.`);
   };
+
+  if (printPreviewData) {
+    return (
+      <PrintBlankForm
+        template={printPreviewData}
+        onClose={() => setPrintPreviewData(null)}
+      />
+    );
+  }
 
   return (
     <div style={{
@@ -764,6 +776,25 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                   <span>Create New Version</span>
                 </button>
               )}
+
+              <button
+                type="button"
+                onClick={() => setPrintPreviewData({
+                  formId,
+                  formTitle,
+                  version,
+                  status,
+                  fields,
+                  revisionHistory
+                })}
+                className="btn btn-secondary"
+                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', fontSize: '0.85rem', marginTop: '0.5rem', background: '#f1f5f9', border: '1px solid #cbd5e1', color: '#334155' }}
+              >
+                <Printer size={16} />
+                <span>Print Preview (A4)</span>
+              </button>
+              
+              <div style={{ borderTop: '1px solid var(--neutral-border)', margin: '0.25rem 0' }} />
             </div>
           </div>
 
