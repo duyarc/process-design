@@ -37,10 +37,6 @@ const MainApp: React.FC = () => {
 
   const { currentUser, logout, hasPermission } = useAuth();
 
-  // If not logged in, render the Login page
-  if (!currentUser) {
-    return <LoginPage />;
-  }
 
   // Detect shareable form links in the URL query string (only when logged in)
   // eslint-disable-next-line react-hooks/rules-of-hooks
@@ -111,6 +107,11 @@ const MainApp: React.FC = () => {
     setPrevPage(page);
     setPage('user-management');
   };
+
+  // If not logged in, render the Login page
+  if (!currentUser) {
+    return <LoginPage />;
+  }
 
   return (
     <div className="app-container">
