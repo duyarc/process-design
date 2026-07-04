@@ -568,7 +568,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
           Back to Dashboard
         </button>
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-          {status === 'Draft' && hasPermission('edit_process') && (
+          {status === 'Draft' && hasPermission('design_document') && (
             <>
               <button className="btn btn-secondary" onClick={() => handleStatusTransition('Pending Review')}>
                 Submit for Review
@@ -578,12 +578,12 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
               </button>
             </>
           )}
-          {status === 'Pending Review' && hasPermission('edit_process') && (
+          {status === 'Pending Review' && hasPermission('design_document') && (
             <button className="btn btn-primary" onClick={handleActivate}>
               Activate / Sign-off
             </button>
           )}
-          {hasPermission('edit_process') && (
+          {hasPermission('design_document') && (
             <button 
               className="btn btn-secondary" 
               onClick={status === 'Draft' ? (() => onEdit(process.id)) : handleCreateNewDraft}

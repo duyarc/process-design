@@ -890,7 +890,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
           Back to Dashboard
         </button>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
-          {processId && hasPermission('delete_process') && !isReadOnly && (
+          {processId && hasPermission('version_document') && !isReadOnly && (
             <button 
               className="btn btn-outline-danger" 
               onClick={handleDeleteProcess} 

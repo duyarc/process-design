@@ -204,7 +204,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        {hasPermission('create_process') && viewMode === 'processes' && (
+        {hasPermission('design_document') && viewMode === 'processes' && (
           <button 
             className="btn btn-primary" 
             onClick={() => onEditProcess(null)}
@@ -319,7 +319,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                               Print
                             </button>
                             
-                            {hasPermission('create_process') && (
+                            {hasPermission('design_document') && (
                               <button 
                                 className="btn btn-secondary btn-sm"
                                 style={{ flex: 1, padding: '0.3rem 0.4rem', fontSize: '0.75rem', margin: 0, gap: '0.2rem', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
@@ -362,7 +362,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           {searchQuery ? (
             <button className="btn btn-secondary" onClick={() => setSearchQuery('')}>Clear Search</button>
           ) : (
-            hasPermission('create_process') && (
+            hasPermission('design_document') && (
               <button className="btn btn-primary" onClick={() => onEditProcess(null)}>
                 <Plus size={18} />
                 New Process

@@ -1,38 +1,176 @@
 import React, { createContext, useContext, useState } from 'react';
 
+// ─────────────────────────────────────────────────────────────
+// PERMISSION KEYS - All available permissions in the system
+// ─────────────────────────────────────────────────────────────
+export type PermissionKey =
+  // Document Design branch (applies to both Process & Form)
+  | 'view_document'      // View & Print diagrams, forms
+  | 'design_document'    // Create / Edit DRAFT documents
+  | 'version_document'   // Publish (DRAFT → ACTIVE), create revision, delete
+  // Form Run branch
+  | 'fill_form'          // Submit a new form record
+  | 'view_records'       // View & Print submitted records
+  | 'verify_records'     // Review, feedback & sign-off records
+  // User Management branch
+  | 'manage_users';      // Create / edit user accounts
+
+// ─────────────────────────────────────────────────────────────
+// ROLE DEFINITIONS
+// ─────────────────────────────────────────────────────────────
+export type RoleId = 'admin' | 'supervisor' | 'operator';
+
+export interface Role {
+  id: RoleId;
+  name: string;            // Display name
+  description: string;
+}
+
+export const ROLES: Role[] = [
+  { id: 'admin',      name: 'Admin (Quản trị)',          description: 'Toàn quyền hệ thống' },
+  { id: 'supervisor', name: 'Supervisor (Giám sát)',      description: 'Thiết kế tài liệu, duyệt form, cấp tài khoản Operator' },
+  { id: 'operator',   name: 'Operator (Người vận hành)', description: 'Xem tài liệu, điền form, xem bản ghi của mình' },
+];
+
+// ─────────────────────────────────────────────────────────────
+// ROLE PERMISSIONS MATRIX (dynamic - can be modified at runtime)
+// Each key maps a RoleId to the set of PermissionKeys it holds.
+// ─────────────────────────────────────────────────────────────
+export type RolePermissionsMatrix = Record<RoleId, Set<PermissionKey>>;
+
+const DEFAULT_ROLE_PERMISSIONS: RolePermissionsMatrix = {
+  admin: new Set<PermissionKey>([
+    'view_document',
+    'design_document',
+    'version_document',
+    'fill_form',
+    'view_records',
+    'verify_records',
+    'manage_users',
+  ]),
+  supervisor: new Set<PermissionKey>([
+    'view_document',
+    'design_document',
+    'version_document',
+    'fill_form',
+    'view_records',
+    'verify_records',
+    'manage_users',   // Limited: can only create/edit Operator accounts
+  ]),
+  operator: new Set<PermissionKey>([
+    'view_document',
+    'fill_form',
+    'view_records',
+  ]),
+};
+
+// ─────────────────────────────────────────────────────────────
+// USER MODEL
+// ─────────────────────────────────────────────────────────────
 export interface User {
   id: string;
-  name: string;
-  role: 'admin' | 'editor' | 'viewer';
+  username: string;       // Login credential
+  password: string;       // Stored plain text for mock; hash in production
+  full_name: string;      // Ho ten
+  title: string;          // Chuc vu
+  role_id: RoleId;
+  status: 'active' | 'inactive';
 }
 
+// ─────────────────────────────────────────────────────────────
+// MOCK USER DATABASE (replace with real DB calls later)
+// ─────────────────────────────────────────────────────────────
+const MOCK_USERS: User[] = [
+  {
+    id: 'u1',
+    username: 'admin',
+    password: 'admin123',
+    full_name: 'Tran Duy Anh',
+    title: 'Admin CNTT',
+    role_id: 'admin',
+    status: 'active',
+  },
+  {
+    id: 'u2',
+    username: 'supervisor01',
+    password: 'sup123',
+    full_name: 'Nguyen Van Binh',
+    title: 'Truong ca san xuat',
+    role_id: 'supervisor',
+    status: 'active',
+  },
+  {
+    id: 'u3',
+    username: 'operator01',
+    password: 'op123',
+    full_name: 'Le Thi Cam',
+    title: 'Cong nhan van hanh',
+    role_id: 'operator',
+    status: 'active',
+  },
+];
+
+// ─────────────────────────────────────────────────────────────
+// AUTH CONTEXT TYPES
+// ─────────────────────────────────────────────────────────────
 interface AuthContextType {
-  currentUser: User;
-  setCurrentUser: (user: User) => void;
-  hasPermission: (action: 'edit_process' | 'create_process' | 'delete_process' | 'view_process') => boolean;
+  currentUser: User | null;
+  users: User[];
+  rolePermissions: RolePermissionsMatrix;
+
+  /** Attempt login; returns error message string on failure, null on success */
+  login: (username: string, password: string) => string | null;
+  logout: () => void;
+
+  /** Check if currentUser holds a specific permission */
+  hasPermission: (key: PermissionKey) => boolean;
+
+  /** Update the full user list (used by UserManagement component) */
+  setUsers: React.Dispatch<React.SetStateAction<User[]>>;
+
+  /** Update the role-permissions matrix (used by the Role Matrix UI) */
+  setRolePermissions: React.Dispatch<React.SetStateAction<RolePermissionsMatrix>>;
 }
 
+// ─────────────────────────────────────────────────────────────
+// CONTEXT SETUP
+// ─────────────────────────────────────────────────────────────
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Set default role to 'admin' (can be changed manually or via toggle to test role behaviors)
-  const [currentUser, setCurrentUser] = useState<User>({
-    id: 'user_1',
-    name: 'Process Leader',
-    role: 'admin', // Future role management check: change to 'editor' or 'viewer' to test
-  });
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [users, setUsers] = useState<User[]>(MOCK_USERS);
+  const [rolePermissions, setRolePermissions] = useState<RolePermissionsMatrix>(DEFAULT_ROLE_PERMISSIONS);
 
-  const hasPermission = (action: 'edit_process' | 'create_process' | 'delete_process' | 'view_process'): boolean => {
-    if (currentUser.role === 'admin') return true;
-    if (currentUser.role === 'editor') {
-      return action !== 'delete_process'; // Editors can edit and create, but not delete
-    }
-    // Viewers can only view
-    return action === 'view_process';
+  const login = (username: string, password: string): string | null => {
+    const found = users.find(
+      (u) => u.username === username && u.password === password && u.status === 'active'
+    );
+    if (!found) return 'Ten dang nhap hoac mat khau khong dung.';
+    setCurrentUser(found);
+    return null; // success
+  };
+
+  const logout = () => setCurrentUser(null);
+
+  const hasPermission = (key: PermissionKey): boolean => {
+    if (!currentUser) return false;
+    return rolePermissions[currentUser.role_id]?.has(key) ?? false;
   };
 
   return (
-    <AuthContext.Provider value={{ currentUser, setCurrentUser, hasPermission }}>
+    <AuthContext.Provider
+      value={{
+        currentUser,
+        users,
+        rolePermissions,
+        login,
+        logout,
+        hasPermission,
+        setUsers,
+        setRolePermissions,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

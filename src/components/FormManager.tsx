@@ -38,7 +38,7 @@ export default function FormManager({ processId, formName, onOpenFormFiller, onB
   const [printSubmission, setPrintSubmission] = useState<Submission | null>(null);
   
   // Supervisor verification states
-  const [supervisorName, setSupervisorName] = useState(currentUser.role === 'admin' ? 'Supervisor Lead' : '');
+  const [supervisorName, setSupervisorName] = useState(currentUser?.role_id === 'admin' || currentUser?.role_id === 'supervisor' ? currentUser.full_name : '');
   const [verificationNotes, setVerificationNotes] = useState('');
   const [signingOff, setSigningOff] = useState(false);
   
