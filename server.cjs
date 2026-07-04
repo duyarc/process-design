@@ -6,12 +6,19 @@ const fs = require('fs');
 const path = require('path');
 const csvParser = require('csv-parser');
 const { Pool } = require('pg');
+const { OAuth2Client } = require('google-auth-library');
+const jwt = require('jsonwebtoken');
+
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 const CSV_PATH = path.join(__dirname, 'data', 'processes.csv');
 
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const JWT_SECRET = process.env.JWT_SECRET || 'process_optimization_secure_jwt_secret_key_2026';
+
 app.use(express.json());
+
 
 const DATABASE_URL = process.env.DATABASE_URL;
 let dbPool = null;
@@ -98,6 +105,18 @@ const INITIALIZE_SCHEMA_QUERY = `
 
   CREATE INDEX IF NOT EXISTS idx_submissions_process_id ON submissions(process_id);
   CREATE INDEX IF NOT EXISTS idx_submissions_form_id ON submissions(form_id);
+
+  CREATE TABLE IF NOT EXISTS users (
+    id TEXT PRIMARY KEY,
+    email TEXT UNIQUE NOT NULL,
+    username TEXT UNIQUE,
+    password TEXT,
+    full_name TEXT NOT NULL,
+    title TEXT,
+    role_id TEXT NOT NULL DEFAULT 'operator',
+    status TEXT NOT NULL DEFAULT 'active',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+  );
 `;
 
 async function initDatabase() {
@@ -115,6 +134,21 @@ async function initDatabase() {
     `);
     
     console.log('Database schema verified/created.');
+
+    const usersCountRes = await client.query('SELECT COUNT(*) FROM users');
+    const usersCount = parseInt(usersCountRes.rows[0].count, 10);
+    if (usersCount === 0) {
+      console.log('Seeding default users...');
+      await client.query(`
+        INSERT INTO users (id, email, username, password, full_name, title, role_id, status)
+        VALUES 
+          ('u1', 'admin@wolver.vn', 'admin', 'admin123', 'Tran Duy Anh', 'Admin CNTT', 'admin', 'active'),
+          ('u2', 'supervisor@wolver.vn', 'supervisor01', 'sup123', 'Nguyen Van Binh', 'Truong ca san xuat', 'supervisor', 'active'),
+          ('u3', 'operator@wolver.vn', 'operator01', 'op123', 'Le Thi Cam', 'Cong nhan van hanh', 'operator', 'active'),
+          ('google_admin_seed', 'tranducduy@gmail.com', 'tranducduy', 'dev123', 'Tran Duc Duy', 'Admin Google', 'admin', 'active')
+      `);
+      console.log('Seeding default users completed.');
+    }
 
     const res = await client.query('SELECT COUNT(*) FROM processes');
     const dbCount = parseInt(res.rows[0].count, 10);
@@ -1217,6 +1251,209 @@ app.post('/api/submissions/:id/signoff', async (req, res) => {
     res.status(500).json({ error: 'Failed to save supervisor sign-off.' });
   }
 });
+
+
+// ─────────────────────────────────────────────────────────────
+// AUTHENTICATION & USER MANAGEMENT ENDPOINTS
+// ─────────────────────────────────────────────────────────────
+
+// POST /api/auth/google - Authenticate using Google ID Token
+app.post('/api/auth/google', async (req, res) => {
+  const { idToken } = req.body;
+  if (!idToken) {
+    return res.status(400).json({ error: 'Missing ID Token' });
+  }
+
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID
+    });
+    const payload = ticket.getPayload();
+    const { email, name, sub } = payload;
+
+    if (!email) {
+      return res.status(400).json({ error: 'Google Account has no email associated' });
+    }
+
+    if (!dbPool) {
+      return res.status(503).json({ error: 'Database connection not available.' });
+    }
+
+    // Check if user exists in database
+    let userRes = await dbPool.query('SELECT * FROM users WHERE email = $1', [email]);
+    let user = null;
+
+    if (userRes.rows.length === 0) {
+      // If user does not exist, insert them with default role 'operator'
+      // Unless they are the developer email (tranducduy@gmail.com) who should be admin
+      const roleId = (email === 'tranducduy@gmail.com') ? 'admin' : 'operator';
+      const insertRes = await dbPool.query(`
+        INSERT INTO users (id, email, username, full_name, role_id, status)
+        VALUES ($1, $2, $3, $4, $5, 'active')
+        RETURNING *
+      `, [sub, email, email.split('@')[0], name || 'Google User', roleId]);
+      user = insertRes.rows[0];
+      console.log(`Created new Google user in DB: ${email} with role ${roleId}`);
+    } else {
+      user = userRes.rows[0];
+      // If the user's ID was the seed ID, update it to their actual Google sub ID
+      if (user.id === 'google_admin_seed' || user.id.startsWith('google_')) {
+        await dbPool.query('UPDATE users SET id = $1 WHERE email = $2', [sub, email]);
+        user.id = sub;
+      }
+    }
+
+    if (user.status !== 'active') {
+      return res.status(403).json({ error: 'Tài khoản của bạn đã bị khóa.' });
+    }
+
+    // Sign JWT
+    const token = jwt.sign(
+      { id: user.id, email: user.email, role_id: user.role_id },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    res.json({
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        full_name: user.full_name,
+        title: user.title,
+        role_id: user.role_id,
+        status: user.status
+      }
+    });
+
+  } catch (err) {
+    console.error('Error verifying Google ID Token:', err);
+    res.status(401).json({ error: 'Xác thực tài khoản Google thất bại.' });
+  }
+});
+
+// POST /api/auth/login - Traditional username/password fallback login
+app.post('/api/auth/login', async (req, res) => {
+  const { username, password } = req.body;
+  if (!username || !password) {
+    return res.status(400).json({ error: 'Missing credentials.' });
+  }
+
+  try {
+    if (!dbPool) {
+      return res.status(503).json({ error: 'Database connection not available.' });
+    }
+
+    const result = await dbPool.query(
+      'SELECT * FROM users WHERE username = $1 AND password = $2',
+      [username.trim(), password]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(401).json({ error: 'Tên đăng nhập hoặc mật khẩu không đúng.' });
+    }
+
+    const user = result.rows[0];
+    if (user.status !== 'active') {
+      return res.status(403).json({ error: 'Tài khoản của bạn đã bị khóa.' });
+    }
+
+    // Sign JWT
+    const token = jwt.sign(
+      { id: user.id, email: user.email, role_id: user.role_id },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    res.json({
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        full_name: user.full_name,
+        title: user.title,
+        role_id: user.role_id,
+        status: user.status
+      }
+    });
+  } catch (err) {
+    console.error('Login error:', err);
+    res.status(500).json({ error: 'Failed to process login.' });
+  }
+});
+
+// GET /api/users - Get all users
+app.get('/api/users', async (req, res) => {
+  try {
+    if (!dbPool) {
+      return res.status(503).json({ error: 'Database connection not available.' });
+    }
+    const result = await dbPool.query('SELECT id, email, username, full_name, title, role_id, status FROM users ORDER BY created_at DESC');
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error fetching users:', err);
+    res.status(500).json({ error: 'Failed to fetch users.' });
+  }
+});
+
+// POST /api/users - Create or update user
+app.post('/api/users', async (req, res) => {
+  const { id, email, username, password, full_name, title, role_id, status } = req.body;
+  try {
+    if (!dbPool) {
+      return res.status(503).json({ error: 'Database connection not available.' });
+    }
+
+    if (id) {
+      // Update
+      const result = await dbPool.query(`
+        UPDATE users 
+        SET email = $1, username = $2, password = COALESCE($3, password), full_name = $4, title = $5, role_id = $6, status = $7
+        WHERE id = $8
+        RETURNING id, email, username, full_name, title, role_id, status
+      `, [email, username, password || null, full_name, title, role_id, status, id]);
+      
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: 'User not found.' });
+      }
+      res.json(result.rows[0]);
+    } else {
+      // Create
+      const newId = 'u_' + Date.now();
+      const result = await dbPool.query(`
+        INSERT INTO users (id, email, username, password, full_name, title, role_id, status)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        RETURNING id, email, username, full_name, title, role_id, status
+      `, [newId, email, username, password || null, full_name, title, role_id, status || 'active']);
+      res.json(result.rows[0]);
+    }
+  } catch (err) {
+    console.error('Error saving user:', err);
+    res.status(500).json({ error: 'Failed to save user.' });
+  }
+});
+
+// DELETE /api/users/:id - Delete user
+app.delete('/api/users/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    if (!dbPool) {
+      return res.status(503).json({ error: 'Database connection not available.' });
+    }
+    const result = await dbPool.query('DELETE FROM users WHERE id = $1 RETURNING id', [id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+    res.json({ success: true, id });
+  } catch (err) {
+    console.error('Error deleting user:', err);
+    res.status(500).json({ error: 'Failed to delete user.' });
+  }
+});
+
 
 
 // Serve static assets from Vite's build directory in production

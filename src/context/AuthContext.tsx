@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
 // ─────────────────────────────────────────────────────────────
 // PERMISSION KEYS - All available permissions in the system
@@ -69,6 +69,7 @@ const DEFAULT_ROLE_PERMISSIONS: RolePermissionsMatrix = {
 // ─────────────────────────────────────────────────────────────
 export interface User {
   id: string;
+  email?: string;          // Email for Google Login
   username: string;       // Login credential
   password: string;       // Stored plain text for mock; hash in production
   full_name: string;      // Ho ten
@@ -119,7 +120,8 @@ interface AuthContextType {
   rolePermissions: RolePermissionsMatrix;
 
   /** Attempt login; returns error message string on failure, null on success */
-  login: (username: string, password: string) => string | null;
+  login: (username: string, password: string) => Promise<string | null>;
+  loginWithGoogle: (idToken: string) => Promise<string | null>;
   logout: () => void;
 
   /** Check if currentUser holds a specific permission */
@@ -138,20 +140,87 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    const saved = localStorage.getItem('currentUser');
+    return saved ? JSON.parse(saved) : null;
+  });
   const [users, setUsers] = useState<User[]>(MOCK_USERS);
   const [rolePermissions, setRolePermissions] = useState<RolePermissionsMatrix>(DEFAULT_ROLE_PERMISSIONS);
 
-  const login = (username: string, password: string): string | null => {
-    const found = users.find(
-      (u) => u.username === username && u.password === password && u.status === 'active'
-    );
-    if (!found) return 'Ten dang nhap hoac mat khau khong dung.';
-    setCurrentUser(found);
-    return null; // success
+  // Fetch users when logged in as admin or supervisor
+  useEffect(() => {
+    const fetchUsers = async () => {
+      const token = localStorage.getItem('jwt_token');
+      if (!token) return;
+      try {
+        const res = await fetch('/api/users', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setUsers(data);
+        }
+      } catch (err) {
+        console.error('Error fetching users:', err);
+      }
+    };
+
+    if (currentUser && (currentUser.role_id === 'admin' || currentUser.role_id === 'supervisor')) {
+      fetchUsers();
+    } else {
+      setUsers(MOCK_USERS);
+    }
+  }, [currentUser]);
+
+  const login = async (username: string, password: string): Promise<string | null> => {
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        return data.error || 'Tên đăng nhập hoặc mật khẩu không đúng.';
+      }
+      localStorage.setItem('jwt_token', data.token);
+      localStorage.setItem('currentUser', JSON.stringify(data.user));
+      setCurrentUser(data.user);
+      return null; // success
+    } catch (err) {
+      console.error('Login error:', err);
+      return 'Không thể kết nối đến máy chủ.';
+    }
   };
 
-  const logout = () => setCurrentUser(null);
+  const loginWithGoogle = async (idToken: string): Promise<string | null> => {
+    try {
+      const res = await fetch('/api/auth/google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        return data.error || 'Đăng nhập Google thất bại.';
+      }
+      localStorage.setItem('jwt_token', data.token);
+      localStorage.setItem('currentUser', JSON.stringify(data.user));
+      setCurrentUser(data.user);
+      return null; // success
+    } catch (err) {
+      console.error('Google login error:', err);
+      return 'Không thể kết nối đến máy chủ để xác thực Google.';
+    }
+  };
+
+  const logout = () => {
+    localStorage.removeItem('jwt_token');
+    localStorage.removeItem('currentUser');
+    setCurrentUser(null);
+  };
 
   const hasPermission = (key: PermissionKey): boolean => {
     if (!currentUser) return false;
@@ -165,6 +234,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         users,
         rolePermissions,
         login,
+        loginWithGoogle,
         logout,
         hasPermission,
         setUsers,

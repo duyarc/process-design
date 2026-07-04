@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import { Dashboard } from './components/Dashboard';
 import { ProcessEditor } from './components/ProcessEditor';
 import { ProcessReader } from './components/ProcessReader';
@@ -258,9 +259,11 @@ const MainApp: React.FC = () => {
 
 const App: React.FC = () => {
   return (
-    <AuthProvider>
-      <MainApp />
-    </AuthProvider>
+    <GoogleOAuthProvider clientId="244282178050-4mgutp8fhcfiirb82m9sto9f02mkgttj.apps.googleusercontent.com">
+      <AuthProvider>
+        <MainApp />
+      </AuthProvider>
+    </GoogleOAuthProvider>
   );
 };
 

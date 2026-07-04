@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { BookOpen, Lock, User, AlertCircle } from 'lucide-react';
+import { GoogleLogin } from '@react-oauth/google';
 
 const LoginPage: React.FC = () => {
-  const { login } = useAuth();
+  const { login, loginWithGoogle } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     if (!username.trim() || !password.trim()) {
@@ -17,12 +18,14 @@ const LoginPage: React.FC = () => {
       return;
     }
     setIsLoading(true);
-    // Simulate async (replace with real API call later)
-    setTimeout(() => {
-      const err = login(username.trim(), password);
+    try {
+      const err = await login(username.trim(), password);
       if (err) setError(err);
+    } catch (err: any) {
+      setError('Đăng nhập thất bại. Vui lòng kiểm tra lại kết nối.');
+    } finally {
       setIsLoading(false);
-    }, 400);
+    }
   };
 
   return (
@@ -178,6 +181,44 @@ const LoginPage: React.FC = () => {
             {isLoading ? 'Đang xác thực...' : 'Đăng nhập'}
           </button>
         </form>
+
+        {/* OR separator */}
+        <div style={{
+          display: 'flex', alignItems: 'center', margin: '1.5rem 0',
+          fontSize: '0.8rem', color: 'rgba(255,255,255,0.3)',
+          fontFamily: 'inherit'
+        }}>
+          <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.1)' }}></div>
+          <span style={{ padding: '0 0.75rem' }}>HOẶC</span>
+          <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.1)' }}></div>
+        </div>
+
+        {/* Google Login button */}
+        <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }} id="login-google-btn">
+          <GoogleLogin
+            onSuccess={async (credentialResponse) => {
+              if (credentialResponse.credential) {
+                setIsLoading(true);
+                setError(null);
+                try {
+                  const err = await loginWithGoogle(credentialResponse.credential);
+                  if (err) setError(err);
+                } catch (err: any) {
+                  setError('Đăng nhập Google thất bại.');
+                } finally {
+                  setIsLoading(false);
+                }
+              }
+            }}
+            onError={() => {
+              setError('Xác thực tài khoản Google thất bại.');
+            }}
+            theme="filled_blue"
+            shape="pill"
+            text="signin_with"
+            width="336px"
+          />
+        </div>
 
         {/* Dev hint (remove in production) */}
         <div style={{

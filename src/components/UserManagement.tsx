@@ -46,6 +46,7 @@ const ROLE_COLORS: Record<RoleId, { bg: string; color: string }> = {
 // BLANK USER TEMPLATE
 // ─────────────────────────────────────────────────────────────
 const blankUser = (): Omit<User, 'id'> => ({
+  email: '',
   username: '',
   password: '',
   full_name: '',
@@ -102,8 +103,9 @@ const UserManagement: React.FC<Props> = ({ onBack }) => {
   const closeDrawer = () => setDrawerOpen(false);
 
   // ── Save user (add or edit) ───────────────────────────────
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.full_name.trim()) { setFormError('Vui lòng nhập Họ tên.'); return; }
+    if (!formData.email?.trim()) { setFormError('Vui lòng nhập Email.'); return; }
     if (!formData.username.trim()) { setFormError('Vui lòng nhập Tên đăng nhập.'); return; }
     if (!formData.password.trim()) { setFormError('Vui lòng nhập Mật khẩu.'); return; }
 
@@ -113,19 +115,49 @@ const UserManagement: React.FC<Props> = ({ onBack }) => {
     );
     if (dupCheck) { setFormError('Tên đăng nhập này đã tồn tại.'); return; }
 
-    if (editingUser) {
-      setUsers((prev) => prev.map((u) => u.id === editingUser.id ? { ...u, ...formData } : u));
-    } else {
-      const newUser: User = {
-        id: `u${Date.now()}`,
-        ...formData,
-        username: formData.username.trim(),
-        full_name: formData.full_name.trim(),
-        title: formData.title.trim(),
-      };
-      setUsers((prev) => [...prev, newUser]);
+    // Duplicate email check (excluding self when editing)
+    const dupEmailCheck = users.find(
+      (u) => u.email === formData.email?.trim() && u.id !== editingUser?.id
+    );
+    if (dupEmailCheck) { setFormError('Email này đã được sử dụng.'); return; }
+
+    const token = localStorage.getItem('jwt_token');
+    try {
+      const res = await fetch('/api/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          id: editingUser?.id,
+          email: formData.email.trim(),
+          username: formData.username.trim(),
+          password: formData.password,
+          full_name: formData.full_name.trim(),
+          title: formData.title.trim(),
+          role_id: formData.role_id,
+          status: formData.status
+        })
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        setFormError(data.error || 'Có lỗi xảy ra khi lưu thông tin.');
+        return;
+      }
+
+      const savedUser = await res.json();
+
+      if (editingUser) {
+        setUsers((prev) => prev.map((u) => u.id === editingUser.id ? savedUser : u));
+      } else {
+        setUsers((prev) => [...prev, savedUser]);
+      }
+      closeDrawer();
+    } catch (err) {
+      setFormError('Không thể kết nối đến máy chủ.');
     }
-    closeDrawer();
   };
 
   // ── Toggle a permission for a role in the matrix ──────────
@@ -418,6 +450,7 @@ const UserManagement: React.FC<Props> = ({ onBack }) => {
               {[
                 { label: 'Họ tên *', field: 'full_name', type: 'text', placeholder: 'Nguyễn Văn A' },
                 { label: 'Chức vụ', field: 'title', type: 'text', placeholder: 'Công nhân vận hành' },
+                { label: 'Email *', field: 'email', type: 'text', placeholder: 'email@gmail.com' },
                 { label: 'Tên đăng nhập *', field: 'username', type: 'text', placeholder: 'username' },
                 { label: 'Mật khẩu *', field: 'password', type: 'password', placeholder: '••••••••' },
               ].map(({ label, field, type, placeholder }) => (
