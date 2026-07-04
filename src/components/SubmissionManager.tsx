@@ -55,7 +55,7 @@ export default function SubmissionManager({ onBack, initialFormFilter }: Submiss
       if (!subRes.ok) throw new Error('Failed to fetch submissions');
       const subData: Submission[] = await subRes.json();
       
-      // Parse JSON columns in case they are returned as string from CockroachDB (pg client sometimes does this if not auto-parsed)
+      // Parse JSON columns in case they are returned as string from Supabase (pg client sometimes does this if not auto-parsed)
       const parsedSubs = subData.map(sub => {
         return {
           ...sub,

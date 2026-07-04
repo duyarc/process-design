@@ -67,7 +67,7 @@ MAX_FILE_SIZE_LIMIT=52428800
 npm install @aws-sdk/client-s3 @aws-sdk/s3-request-presigner express pg dotenv
 ```
 
-### Step B: Database Schema (CockroachDB / PostgreSQL)
+### Step B: Database Schema (Supabase / PostgreSQL)
 Track file metadata in the relational database to calculate quota usage instantly:
 ```sql
 CREATE TABLE IF NOT EXISTS process_forms (

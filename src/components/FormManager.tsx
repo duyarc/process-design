@@ -66,7 +66,7 @@ export default function FormManager({ processId, formName, onOpenFormFiller, onB
       if (!subRes.ok) throw new Error('Failed to fetch submissions');
       const subData: Submission[] = await subRes.json();
       
-      // Parse JSON columns in case they are returned as string from CockroachDB
+      // Parse JSON columns in case they are returned as string from Supabase
       const parsedSubs = subData.map(sub => {
         return {
           ...sub,

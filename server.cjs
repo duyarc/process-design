@@ -104,7 +104,7 @@ async function initDatabase() {
   if (!dbPool) return;
   try {
     const client = await dbPool.connect();
-    console.log('Connected to CockroachDB database successfully!');
+    console.log('Connected to Supabase database successfully!');
     await client.query(INITIALIZE_SCHEMA_QUERY);
     
     // Add columns dynamically for existing databases, and drop old onlineUrl functionality
@@ -185,7 +185,7 @@ async function initDatabase() {
 
     client.release();
   } catch (err) {
-    console.error('Failed to initialize CockroachDB database:', err);
+    console.error('Failed to initialize Supabase database:', err);
   }
 }
 
@@ -1140,7 +1140,7 @@ app.get('/api/storage/download-url', async (req, res) => {
 });
 
 
-// GET /api/submissions - Retrieve all submissions from CockroachDB
+// GET /api/submissions - Retrieve all submissions from Supabase
 app.get('/api/submissions', async (req, res) => {
   try {
     if (!dbPool) {
