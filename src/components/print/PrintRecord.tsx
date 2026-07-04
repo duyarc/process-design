@@ -68,15 +68,24 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
     fetchImages();
   }, [submission]);
 
-  // 2. Trigger print dialog after images loaded
+  // 2. Trigger print dialog after images loaded and close when done
   useEffect(() => {
     if (!loadingImages) {
+      const handleAfterPrint = () => {
+        onClose();
+      };
+      window.addEventListener('afterprint', handleAfterPrint);
+
       const timer = setTimeout(() => {
         window.print();
       }, 800);
-      return () => clearTimeout(timer);
+
+      return () => {
+        window.removeEventListener('afterprint', handleAfterPrint);
+        clearTimeout(timer);
+      };
     }
-  }, [loadingImages]);
+  }, [loadingImages, onClose]);
 
   const [layoutBlocks, setLayoutBlocks] = useState<any[]>([]);
 
@@ -230,17 +239,22 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
           #root {
             display: none !important;
           }
+          html, body {
+            height: 100% !important;
+          }
           .print-container {
             position: static !important;
             width: 100% !important;
             height: auto !important;
+            min-height: 100% !important;
             overflow: visible !important;
-            padding: 0 !important;
+            padding: 0 0 30px 0 !important;
             margin: 0 !important;
+            box-sizing: border-box !important;
           }
           @page {
             size: A4 portrait;
-            margin: 15mm 15mm 20mm 15mm;
+            margin: 15mm 15mm 15mm 15mm;
           }
           body {
             background: #ffffff !important;
@@ -252,10 +266,11 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
             display: none !important;
           }
           .print-block {
-            margin-bottom: 20px;
+            margin-bottom: 12px;
           }
           .print-block-avoid {
             page-break-inside: avoid;
+            break-inside: avoid;
           }
           .print-table tfoot td {
             border-bottom: none !important;
@@ -265,7 +280,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
           }
           .print-footer {
             position: fixed;
-            bottom: 0;
+            bottom: 8px;
             left: 0;
             right: 0;
             display: flex;
@@ -276,6 +291,12 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
           }
         }
       `}</style>
+
+      {/* Default footer forced at the bottom of printed page (Moved to top for Chromium print viewport rendering fix) */}
+      <div className="print-footer">
+        <span>Mã tài liệu: {submission.formId || 'N/A'}</span>
+        <span>Phiên bản: {submission.formVersion || 'v1.0'}</span>
+      </div>
 
       {/* Close button (only visible on screen) */}
       <div className="no-print" style={{
@@ -489,11 +510,6 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                 return renderRows;
               })}
             </tbody>
-            <tfoot>
-              <tr>
-                <td colSpan={4} style={{ height: '35px' }}></td>
-              </tr>
-            </tfoot>
           </table>
         </div>
       )}
@@ -594,11 +610,6 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                   )}
                 </tr>
               </tbody>
-              <tfoot>
-                <tr>
-                  <td colSpan={1 + block.columns.length + (block.showTotalColumn ? 1 : 0) + (block.showNotesColumn ? 1 : 0)} style={{ height: '35px' }}></td>
-                </tr>
-              </tfoot>
             </table>
           </div>
         );
@@ -640,9 +651,9 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
 
       {/* SIGN BLOCK & AUDIT SIGN-OFF */}
       <div className="print-block print-block-avoid" style={{
-        paddingTop: '15px',
-        marginTop: '25px',
-        marginBottom: '15px',
+        paddingTop: '5px',
+        marginTop: '12px',
+        marginBottom: '45px',
         display: 'flex',
         justifyContent: 'space-between',
         gap: '40px'
@@ -696,12 +707,6 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
             </div>
           )}
         </div>
-      </div>
-
-      {/* Default footer forced at the bottom of printed page */}
-      <div className="print-footer">
-        <span>Mã tài liệu: {submission.formId || 'N/A'}</span>
-        <span>Phiên bản: {submission.formVersion || 'v1.0'}</span>
       </div>
     </div>,
     document.body

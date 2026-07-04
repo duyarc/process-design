@@ -890,7 +890,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                   style={{ justifyContent: 'start', padding: '0.4rem 0.5rem', fontSize: '0.75rem' }}
                 >
                   <PenTool size={13} style={{ marginRight: '0.35rem' }} />
-                  Signature Pad
+                  Sign-off
                 </button>
                 <button 
                   type="button" 
@@ -1307,11 +1307,14 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                                     background: isFieldSelected ? 'rgba(16, 163, 163, 0.05)' : '#f8fafc'
                                   }}
                                 >
-                                  <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '1.5rem', color: 'var(--text-secondary)' }}>
+                                  <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
                                     {f.checkItem}
                                   </div>
+                                  <div style={{ fontSize: '0.65rem', fontStyle: 'italic', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+                                    {f.reactionProtocol ? (f.reactionProtocol.startsWith('(') ? f.reactionProtocol : `(${f.reactionProtocol})`) : '(Ký và ghi rõ họ tên)'}
+                                  </div>
                                   <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', borderTop: '1px dotted #cbd5e1', paddingTop: '4px' }}>
-                                    Digital Signature Pad Slot
+                                    Sign-off slot
                                   </div>
                                 </div>
                               );
@@ -1377,16 +1380,30 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                   />
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                  <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Check Frequency</label>
-                  <input
-                    type="text"
-                    disabled={isLocked}
-                    value={activeField.frequency}
-                    onChange={(e) => handleUpdateField(activeBlockId!, activeFieldId!, { frequency: e.target.value })}
-                    style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
-                  />
-                </div>
+                {activeField.type === 'signature' ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                    <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Ghi chú</label>
+                    <input
+                      type="text"
+                      disabled={isLocked}
+                      placeholder="Ký và ghi rõ họ tên"
+                      value={activeField.reactionProtocol || ''}
+                      onChange={(e) => handleUpdateField(activeBlockId!, activeFieldId!, { reactionProtocol: e.target.value })}
+                      style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
+                    />
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                    <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Check Frequency</label>
+                    <input
+                      type="text"
+                      disabled={isLocked}
+                      value={activeField.frequency}
+                      onChange={(e) => handleUpdateField(activeBlockId!, activeFieldId!, { frequency: e.target.value })}
+                      style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
+                    />
+                  </div>
+                )}
 
                 {activeField.type === 'number' && (
                   <>

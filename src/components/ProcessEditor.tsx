@@ -107,9 +107,19 @@ interface ProcessEditorProps {
   processId: string | null; // null means create new
   onCancel: () => void;
   onSaveSuccess: (id: string) => void;
+  initialTab?: 'description' | 'workflow' | 'form';
+  initialFormToBuild?: string | null;
+  onClearInitialEditOpts?: () => void;
 }
 
-export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCancel, onSaveSuccess }) => {
+export const ProcessEditor: React.FC<ProcessEditorProps> = ({ 
+  processId, 
+  onCancel, 
+  onSaveSuccess,
+  initialTab,
+  initialFormToBuild,
+  onClearInitialEditOpts
+}) => {
   const { hasPermission } = useAuth();
   const modelerRef = useRef<BpmnModelerRef | null>(null);
   const [activeTab, setActiveTab] = useState<'description' | 'workflow' | 'form'>('description');
@@ -152,6 +162,19 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
   const [quota, setQuota] = useState<{ totalSize: number; quotaLimit: number; percentage: string; isConfigured: boolean } | null>(null);
   const [isUploading, setIsUploading] = useState<{ [formName: string]: boolean }>({});
   const [debouncedXml, setDebouncedXml] = useState('');
+
+  // Handle initial tab / form builder redirection
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+    if (initialFormToBuild) {
+      setActiveFormToBuild(initialFormToBuild);
+    }
+    if (onClearInitialEditOpts) {
+      onClearInitialEditOpts();
+    }
+  }, [initialTab, initialFormToBuild]);
 
   // Debounce diagram updates to prevent flickering when typing step action commands
   useEffect(() => {
@@ -2025,6 +2048,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({ processId, onCance
                   }
                 };
                 setWorkflowFormsData(nextFormsData);
+                setActiveFormToBuild(null);
                 handleSave(nextFormsData);
               }}
               onClose={() => setActiveFormToBuild(null)}

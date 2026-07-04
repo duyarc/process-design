@@ -1,21 +1,41 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Dashboard } from './components/Dashboard';
 import { ProcessEditor } from './components/ProcessEditor';
 import { ProcessReader } from './components/ProcessReader';
 import { BPMNGuide } from './components/BPMNGuide';
 import SubmissionManager from './components/SubmissionManager';
+import FormManager from './components/FormManager';
+import FormFiller from './components/FormFiller';
 import { BookOpen, UserCheck } from 'lucide-react';
 
 const MainApp: React.FC = () => {
-  const [page, setPage] = useState<'dashboard' | 'editor' | 'reader' | 'guide' | 'submissions'>('dashboard');
-  const [prevPage, setPrevPage] = useState<'dashboard' | 'editor' | 'reader' | 'guide' | 'submissions'>('dashboard');
+  const [page, setPage] = useState<'dashboard' | 'editor' | 'reader' | 'guide' | 'submissions' | 'form-manager' | 'fill-form'>('dashboard');
+  const [prevPage, setPrevPage] = useState<'dashboard' | 'editor' | 'reader' | 'guide' | 'submissions' | 'form-manager' | 'fill-form'>('dashboard');
   const [selectedProcessId, setSelectedProcessId] = useState<string | null>(null);
+  const [selectedFormName, setSelectedFormName] = useState<string | null>(null);
   const [initialFormFilter, setInitialFormFilter] = useState<string | null>(null);
   const [initialPrintFormName, setInitialPrintFormName] = useState<string | null>(null);
   const [dashboardViewMode, setDashboardViewMode] = useState<'processes' | 'forms'>('processes');
   
+  const [initialEditorTab, setInitialEditorTab] = useState<'description' | 'workflow' | 'form' | undefined>(undefined);
+  const [initialFormToBuild, setInitialFormToBuild] = useState<string | null>(null);
+  
   const { currentUser, setCurrentUser } = useAuth();
+
+  // Detect shareable form links in the URL query string
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const qPage = params.get('page');
+    const qProcessId = params.get('processId');
+    const qFormName = params.get('formName');
+
+    if (qPage === 'fill' && qProcessId && qFormName) {
+      setSelectedProcessId(qProcessId);
+      setSelectedFormName(qFormName);
+      setPage('fill-form');
+    }
+  }, []);
 
   const handleSelectProcess = (id: string) => {
     setPrevPage(page);
@@ -23,14 +43,33 @@ const MainApp: React.FC = () => {
     setPage('reader');
   };
 
-  const handleEditProcess = (id: string | null) => {
+  const handleOpenFormManager = (procId: string, formName: string) => {
+    setPrevPage(page);
+    setSelectedProcessId(procId);
+    setSelectedFormName(formName);
+    setPage('form-manager');
+  };
+
+  const handleOpenFormFiller = (procId: string, formName: string) => {
+    setPrevPage(page);
+    setSelectedProcessId(procId);
+    setSelectedFormName(formName);
+    setPage('fill-form');
+  };
+
+  const handleEditProcess = (id: string | null, tab?: 'description' | 'workflow' | 'form', formName?: string) => {
     setPrevPage(page);
     setSelectedProcessId(id);
+    setInitialEditorTab(tab);
+    setInitialFormToBuild(formName || null);
     setPage('editor');
   };
 
   const handleSaveSuccess = (id: string) => {
     setSelectedProcessId(id);
+    setPage(prevPage);
+    setInitialEditorTab(undefined);
+    setInitialFormToBuild(null);
   };
 
   const handleViewFormSubmissions = (formName: string) => {
@@ -112,6 +151,7 @@ const MainApp: React.FC = () => {
             onEditProcess={handleEditProcess} 
             onViewFormSubmissions={handleViewFormSubmissions}
             onPrintForm={handlePrintForm}
+            onOpenFormManager={handleOpenFormManager}
             viewMode={dashboardViewMode}
             onViewModeChange={setDashboardViewMode}
           />
@@ -119,8 +159,18 @@ const MainApp: React.FC = () => {
         {page === 'editor' && (
           <ProcessEditor 
             processId={selectedProcessId} 
-            onCancel={() => setPage(prevPage)} 
+            onCancel={() => {
+              setPage(prevPage);
+              setInitialEditorTab(undefined);
+              setInitialFormToBuild(null);
+            }} 
             onSaveSuccess={handleSaveSuccess} 
+            initialTab={initialEditorTab}
+            initialFormToBuild={initialFormToBuild}
+            onClearInitialEditOpts={() => {
+              setInitialEditorTab(undefined);
+              setInitialFormToBuild(null);
+            }}
           />
         )}
         {page === 'reader' && (
@@ -130,6 +180,22 @@ const MainApp: React.FC = () => {
             onEdit={handleEditProcess} 
             initialPrintFormName={initialPrintFormName}
             onClearPrintForm={() => setInitialPrintFormName(null)}
+          />
+        )}
+        {page === 'form-manager' && (
+          <FormManager 
+            processId={selectedProcessId!}
+            formName={selectedFormName!}
+            onOpenFormFiller={handleOpenFormFiller}
+            onBack={() => setPage(prevPage)}
+          />
+        )}
+        {page === 'fill-form' && (
+          <FormFiller 
+            processId={selectedProcessId!}
+            formName={selectedFormName!}
+            onBack={currentUser ? () => setPage('form-manager') : undefined}
+            isPublic={!currentUser}
           />
         )}
         {page === 'guide' && (

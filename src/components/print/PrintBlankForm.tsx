@@ -35,13 +35,22 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
     }
   }, [titleBlockLogo]);
 
-  // Trigger print dialog immediately on mount
+  // Trigger print dialog immediately on mount and close when done
   React.useEffect(() => {
+    const handleAfterPrint = () => {
+      onClose();
+    };
+    window.addEventListener('afterprint', handleAfterPrint);
+
     const timer = setTimeout(() => {
       window.print();
     }, 500);
-    return () => clearTimeout(timer);
-  }, []);
+
+    return () => {
+      window.removeEventListener('afterprint', handleAfterPrint);
+      clearTimeout(timer);
+    };
+  }, [onClose]);
 
   return ReactDOM.createPortal(
     <div className="print-container" style={{
@@ -63,17 +72,22 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
           #root {
             display: none !important;
           }
+          html, body {
+            height: 100% !important;
+          }
           .print-container {
             position: static !important;
             width: 100% !important;
             height: auto !important;
+            min-height: 100% !important;
             overflow: visible !important;
-            padding: 0 !important;
+            padding: 0 0 30px 0 !important;
             margin: 0 !important;
+            box-sizing: border-box !important;
           }
           @page {
             size: A4 portrait;
-            margin: 15mm 15mm 20mm 15mm;
+            margin: 15mm 15mm 15mm 15mm;
           }
           body {
             background: #ffffff !important;
@@ -85,10 +99,11 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
             display: none !important;
           }
           .print-block {
-            margin-bottom: 20px;
+            margin-bottom: 12px;
           }
           .print-block-avoid {
             page-break-inside: avoid;
+            break-inside: avoid;
           }
           .print-table tfoot td {
             border-bottom: none !important;
@@ -98,7 +113,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
           }
           .print-footer {
             position: fixed;
-            bottom: 0;
+            bottom: 8px;
             left: 0;
             right: 0;
             display: flex;
@@ -109,6 +124,12 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
           }
         }
       `}</style>
+
+      {/* Default footer forced at the bottom of printed page (Moved to top for Chromium print viewport rendering fix) */}
+      <div className="print-footer">
+        <span>Mã tài liệu: {template.formId || 'N/A'}</span>
+        <span>Phiên bản: {template.version || 'v1.0'}</span>
+      </div>
 
       {/* Close button (only visible on screen) */}
       <div className="no-print" style={{
@@ -327,11 +348,6 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                       return renderRows;
                     })}
                   </tbody>
-                  <tfoot>
-                    <tr>
-                      <td colSpan={4} style={{ height: '35px' }}></td>
-                    </tr>
-                  </tfoot>
                 </table>
               </div>
             )}
@@ -401,11 +417,6 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                       )}
                     </tr>
                   </tbody>
-                  <tfoot>
-                    <tr>
-                      <td colSpan={1 + block.matrixConfig.columns.length + (block.matrixConfig.showTotalColumn ? 1 : 0) + (block.matrixConfig.showNotesColumn ? 1 : 0)} style={{ height: '35px' }}></td>
-                    </tr>
-                  </tfoot>
                 </table>
               </div>
             )}
@@ -413,9 +424,9 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
             {/* 4. SIGN BLOCK */}
             {block.type === 'SIGN' && (
               <div style={{
-                paddingTop: '15px',
-                marginTop: '25px',
-                marginBottom: '15px',
+                paddingTop: '5px',
+                marginTop: '12px',
+                marginBottom: '45px',
                 display: 'flex',
                 justifyContent: 'space-between',
                 gap: '40px'
@@ -426,12 +437,14 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                     height: '80px',
                     display: 'flex',
                     flexDirection: 'column',
-                    justifyContent: 'space-between'
+                    alignItems: 'center',
+                    justifyContent: 'flex-start',
+                    gap: '4px'
                   }}>
                     <span style={{ fontSize: '0.85rem', fontWeight: 'bold', textAlign: 'center' }}>{f.checkItem}</span>
-                    <div style={{ display: 'flex', justifyContent: 'center', fontSize: '0.8rem', color: '#475569' }}>
-                      <span>Ký tên: ________________________</span>
-                    </div>
+                    <span style={{ fontSize: '0.75rem', fontStyle: 'italic', color: '#475569', textAlign: 'center' }}>
+                      {f.reactionProtocol ? (f.reactionProtocol.startsWith('(') ? f.reactionProtocol : `(${f.reactionProtocol})`) : '(Ký và ghi rõ họ tên)'}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -440,14 +453,6 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
           </div>
         );
       })}
-
-
-
-      {/* Default footer forced at the bottom of printed page */}
-      <div className="print-footer">
-        <span>Mã tài liệu: {template.formId || 'N/A'}</span>
-        <span>Phiên bản: {template.version || 'v1.0'}</span>
-      </div>
     </div>,
     document.body
   );

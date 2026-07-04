@@ -5,9 +5,10 @@ import { Plus, Search, FileText, Eye, Calendar, ChevronDown, ChevronUp, Printer,
 
 interface DashboardProps {
   onSelectProcess: (id: string) => void;
-  onEditProcess: (id: string | null) => void;
+  onEditProcess: (id: string | null, tab?: 'description' | 'workflow' | 'form', formName?: string) => void;
   onViewFormSubmissions?: (formName: string) => void;
   onPrintForm?: (processId: string, formName: string) => void;
+  onOpenFormManager?: (processId: string, formName: string) => void;
   viewMode?: 'processes' | 'forms';
   onViewModeChange?: (mode: 'processes' | 'forms') => void;
 }
@@ -25,6 +26,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onEditProcess, 
   onViewFormSubmissions, 
   onPrintForm,
+  onOpenFormManager,
   viewMode = 'processes',
   onViewModeChange
 }) => {
@@ -301,7 +303,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                               className="btn btn-secondary btn-sm"
                               style={{ flex: 1, padding: '0.3rem 0.4rem', fontSize: '0.75rem', margin: 0, gap: '0.2rem', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
                               title="Fill Form"
-                              onClick={() => onSelectProcess(form.processId)}
+                              onClick={() => onOpenFormManager ? onOpenFormManager(form.processId, form.formName) : onSelectProcess(form.processId)}
                             >
                               <PenTool size={13} style={{ flexShrink: 0 }} />
                               Fill
@@ -322,7 +324,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                 className="btn btn-secondary btn-sm"
                                 style={{ flex: 1, padding: '0.3rem 0.4rem', fontSize: '0.75rem', margin: 0, gap: '0.2rem', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
                                 title="Edit Template"
-                                onClick={() => onEditProcess(form.processId)}
+                                onClick={() => onEditProcess(form.processId, 'form', form.formName)}
                               >
                                 <Edit2 size={13} style={{ flexShrink: 0 }} />
                                 Edit
@@ -333,7 +335,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                               className="btn btn-secondary btn-sm"
                               style={{ flex: 1, padding: '0.3rem 0.4rem', fontSize: '0.75rem', margin: 0, gap: '0.2rem', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
                               title="View Submissions"
-                              onClick={() => onViewFormSubmissions && onViewFormSubmissions(form.formName)}
+                              onClick={() => onOpenFormManager ? onOpenFormManager(form.processId, form.formName) : (onViewFormSubmissions && onViewFormSubmissions(form.formName))}
                             >
                               <History size={13} style={{ flexShrink: 0 }} />
                               Audit
