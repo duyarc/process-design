@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import type { Process, FormTemplateISO, SubmissionFieldSnapshot } from '../types';
 import { 
   ArrowLeft, 
-  FileText, 
   CheckCircle2, 
   X, 
   Camera, 
@@ -13,11 +12,10 @@ import {
 interface FormFillerProps {
   processId: string;
   formName: string;
-  onBack?: () => void;
-  isPublic?: boolean;
+  onBack: () => void;
 }
 
-export default function FormFiller({ processId, formName, onBack, isPublic = false }: FormFillerProps) {
+export default function FormFiller({ processId, formName, onBack }: FormFillerProps) {
   const [process, setProcess] = useState<Process | null>(null);
   const [loading, setLoading] = useState(true);
   
@@ -303,42 +301,33 @@ export default function FormFiller({ processId, formName, onBack, isPublic = fal
             Fill Another Record
           </button>
           
-          {onBack && (
-            <button className="btn btn-secondary" onClick={onBack}>
-              Back to Form Manager
-            </button>
-          )}
+          <button className="btn btn-secondary" onClick={onBack}>
+            Back to Form Manager
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div style={{ maxWidth: '800px', margin: isPublic ? '2rem auto' : '0 auto', width: '100%', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+    <div style={{ maxWidth: '800px', margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       
       {/* Standalone Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          {onBack ? (
-            <button className="btn btn-secondary btn-sm" onClick={onBack} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-              <ArrowLeft size={14} /> Back
-            </button>
-          ) : (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--primary)', fontWeight: 700, fontSize: '0.9rem' }}>
-              <FileText size={18} />
-              <span>Digital checksheet portal</span>
-            </div>
-          )}
+          <button className="btn btn-secondary btn-sm" onClick={onBack} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+            <ArrowLeft size={14} /> Back
+          </button>
         </div>
 
         <button 
           className="btn btn-secondary btn-sm" 
           onClick={handleCopyShareLink}
           style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.35rem 0.75rem' }}
-          title="Copy public link to share"
+          title="Copy link to this form"
         >
           <Link2 size={13} />
-          <span>Share Form Link</span>
+          <span>Copy Form Link</span>
         </button>
       </div>
 

@@ -194,8 +194,7 @@ const MainApp: React.FC = () => {
           <FormFiller 
             processId={selectedProcessId!}
             formName={selectedFormName!}
-            onBack={currentUser ? () => setPage('form-manager') : undefined}
-            isPublic={!currentUser}
+            onBack={() => setPage('form-manager')}
           />
         )}
         {page === 'guide' && (
