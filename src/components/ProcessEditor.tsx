@@ -1392,7 +1392,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                 </table>
 
                 {/* Add controls */}
-                <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem', borderBottom: '1px solid rgba(0,0,0,0.05)', paddingBottom: '1rem' }}>
+                <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.25rem' }}>
                   <button type="button" className="btn btn-secondary btn-sm"
                     onClick={() => setSopSignoffs(prev => ({ ...prev, reviewers: [...(prev.reviewers || []), { name: '', title: '' }] }))}
                     style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
@@ -1403,19 +1403,6 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                     style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
                     <Plus size={14} /> Add Authoriser
                   </button>
-                </div>
-
-                {/* Effective Date */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <label className="form-label" style={{ fontWeight: 600, fontSize: '0.8rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', margin: 0, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                    <Calendar size={14} /> Effective Date:
-                  </label>
-                  <input
-                    type="date"
-                    value={sopSignoffs.effectiveDate || ''}
-                    onChange={(e) => setSopSignoffs(prev => ({ ...prev, effectiveDate: e.target.value }))}
-                    style={{ padding: '0.45rem 0.6rem', fontSize: '0.875rem', width: '200px', margin: 0, background: '#ffffff' }}
-                  />
                 </div>
               </div>
             </div>
