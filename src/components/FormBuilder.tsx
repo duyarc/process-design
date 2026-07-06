@@ -309,7 +309,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
         showTotalColumn: true,
         totalColumnHeader: 'Tổng mỗi lớp (bao/carton)',
         showNotesColumn: true,
-        notesColumnHeader: 'Ghi chú'
+        notesColumnHeader: 'Ghi chú',
+        columnAlign: 'center'
       } : undefined
     };
     setLayoutBlocks(prev => [...prev, newBlock]);
@@ -1226,7 +1227,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                                 </tr>
                                 <tr style={{ background: '#f8fafc', borderBottom: '1.5px solid #cbd5e1' }}>
                                   {block.matrixConfig.columns.map((colName, cIdx) => (
-                                    <th key={cIdx} style={{ padding: '4px', borderRight: '1px solid #cbd5e1', textAlign: 'center', fontWeight: 'normal', fontSize: '0.7rem' }}>
+                                    <th key={cIdx} style={{ padding: '4px', borderRight: '1px solid #cbd5e1', textAlign: block.matrixConfig!.columnAlign || 'center', fontWeight: 'normal', fontSize: '0.7rem' }}>
                                       {colName || `(Cột ${cIdx + 1})`}
                                     </th>
                                   ))}
@@ -1239,7 +1240,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                                       {rowIdx}
                                     </td>
                                     {block.matrixConfig!.columns.map((_, cIdx) => (
-                                      <td key={cIdx} style={{ padding: '4px', borderRight: '1px solid #cbd5e1', textAlign: 'center' }}>
+                                      <td key={cIdx} style={{ padding: '4px', borderRight: '1px solid #cbd5e1', textAlign: block.matrixConfig!.columnAlign || 'center' }}>
                                         <div style={{ border: '1px dashed #cbd5e1', padding: '2px', background: '#f8fafc', color: '#94a3b8', fontSize: '0.65rem' }}>
                                           [0]
                                         </div>
@@ -1755,6 +1756,19 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                           <Plus size={11} /> Thêm cột sản phẩm
                         </button>
                       )}
+                    </div>
+
+                    <div style={{ borderTop: '1px solid var(--neutral-border)', paddingTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                      <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Canh lề cột</label>
+                      <select
+                        disabled={isLocked}
+                        value={activeBlock.matrixConfig.columnAlign || 'center'}
+                        onChange={(e) => handleUpdateBlockMatrixConfig(activeBlockId!, { columnAlign: e.target.value as 'left' | 'center' })}
+                        style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', fontSize: '0.75rem', background: '#fff', cursor: 'pointer' }}
+                      >
+                        <option value="center">Canh giữa (Center)</option>
+                        <option value="left">Canh trái (Left)</option>
+                      </select>
                     </div>
 
                     <div style={{ borderTop: '1px solid var(--neutral-border)', paddingTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>

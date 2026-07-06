@@ -1333,7 +1333,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                                       </tr>
                                       <tr style={{ background: '#f8fafc', borderBottom: '2px solid var(--neutral-border)' }}>
                                         {config.columns.map((colName: string, cIdx: number) => (
-                                          <th key={cIdx} style={{ padding: '6px', borderRight: '1px solid var(--neutral-border)', textAlign: 'center', fontWeight: 600 }}>
+                                          <th key={cIdx} style={{ padding: '6px', borderRight: '1px solid var(--neutral-border)', textAlign: config.columnAlign || 'center', fontWeight: 600 }}>
                                             {colName || `Cột ${cIdx + 1}`}
                                           </th>
                                         ))}
@@ -1348,7 +1348,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                                           {config.columns.map((_: any, cIdx: number) => {
                                             const key = `${block.id}_row_${rIdx}_col_${cIdx}`;
                                             return (
-                                              <td key={cIdx} style={{ padding: '4px', borderRight: '1px solid var(--neutral-border)', textAlign: 'center' }}>
+                                              <td key={cIdx} style={{ padding: '4px', borderRight: '1px solid var(--neutral-border)', textAlign: config.columnAlign || 'center' }}>
                                                 <input
                                                   type="number"
                                                   min="0"
@@ -1360,7 +1360,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                                                     border: '1px solid var(--neutral-border)',
                                                     borderRadius: '4px',
                                                     padding: '0.25rem 0.35rem',
-                                                    textAlign: 'center',
+                                                    textAlign: config.columnAlign || 'center',
                                                     fontSize: '0.8rem'
                                                   }}
                                                 />

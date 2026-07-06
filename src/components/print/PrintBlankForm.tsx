@@ -381,7 +381,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                     </tr>
                     <tr>
                       {block.matrixConfig.columns.map((colName, cIdx) => (
-                        <th key={cIdx} style={{ border: '1.5px solid #000000', padding: '4px', background: '#f8fafc', fontWeight: 'bold', fontSize: '0.75rem', textAlign: 'center' }}>
+                        <th key={cIdx} style={{ border: '1.5px solid #000000', padding: '4px', background: '#f8fafc', fontWeight: 'bold', fontSize: '0.75rem', textAlign: block.matrixConfig!.columnAlign || 'center' }}>
                           {colName || `Cột ${cIdx + 1}`}
                         </th>
                       ))}

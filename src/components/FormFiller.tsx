@@ -632,7 +632,7 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
                       <tr style={{ background: '#f8fafc' }}>
                         <th style={{ border: '1.5px solid #000000', padding: '6px' }}></th>
                         {block.matrixConfig.columns.map((colName: string, cIdx: number) => (
-                          <th key={cIdx} style={{ border: '1.5px solid #000000', padding: '6px', textAlign: 'center', fontWeight: 600 }}>
+                          <th key={cIdx} style={{ border: '1.5px solid #000000', padding: '6px', textAlign: block.matrixConfig.columnAlign || 'center', fontWeight: 600 }}>
                             {colName}
                           </th>
                         ))}
@@ -666,7 +666,7 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
                                     type="number"
                                     value={formValues[key] || ''}
                                     onChange={(e) => setFormValues(prev => ({ ...prev, [key]: e.target.value }))}
-                                    style={{ width: '100%', border: 'none', outline: 'none', padding: '4px', textAlign: 'center', fontSize: '0.8rem' }}
+                                    style={{ width: '100%', border: 'none', outline: 'none', padding: '4px', textAlign: block.matrixConfig.columnAlign || 'center', fontSize: '0.8rem' }}
                                   />
                                 </td>
                               );

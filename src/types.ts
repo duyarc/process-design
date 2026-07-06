@@ -114,6 +114,7 @@ export interface MatrixConfigISO {
   totalColumnHeader: string; // Tiêu đề cột tổng (e.g. "Tổng mỗi lớp")
   showNotesColumn: boolean;  // Có hiện cột ghi chú không
   notesColumnHeader: string; // Tiêu đề cột ghi chú (e.g. "Ghi chú")
+  columnAlign?: 'left' | 'center'; // Canh lề cột (trái hoặc giữa)
 }
 
 export interface LayoutBlockISO {

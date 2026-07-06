@@ -127,6 +127,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
     totalColumnHeader: string;
     showNotesColumn: boolean;
     notesColumnHeader: string;
+    columnAlign?: 'left' | 'center';
     cells: { [rowIdx: number]: { [colIdx: number]: string } };
     notes: { [rowIdx: number]: string };
   }} = {};
@@ -159,6 +160,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
             totalColumnHeader: matchedBlock?.matrixConfig?.totalColumnHeader || 'Tổng mỗi lớp',
             showNotesColumn: matchedBlock?.matrixConfig?.showNotesColumn ?? false,
             notesColumnHeader: matchedBlock?.matrixConfig?.notesColumnHeader || 'Ghi chú',
+            columnAlign: matchedBlock?.matrixConfig?.columnAlign || 'center',
             cells: {},
             notes: {}
           };
@@ -200,6 +202,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
             totalColumnHeader: matchedBlock?.matrixConfig?.totalColumnHeader || 'Tổng mỗi lớp',
             showNotesColumn: true,
             notesColumnHeader: matchedBlock?.matrixConfig?.notesColumnHeader || 'Ghi chú',
+            columnAlign: matchedBlock?.matrixConfig?.columnAlign || 'center',
             cells: {},
             notes: {}
           };
@@ -564,7 +567,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                 </tr>
                 <tr>
                   {block.columns.map((colName: string, cIdx: number) => (
-                    <th key={cIdx} style={{ border: '1.5px solid #000000', padding: '4px', background: '#f8fafc', fontWeight: 'bold', fontSize: '0.75rem', textAlign: 'center' }}>
+                    <th key={cIdx} style={{ border: '1.5px solid #000000', padding: '4px', background: '#f8fafc', fontWeight: 'bold', fontSize: '0.75rem', textAlign: block.columnAlign || 'center' }}>
                       {colName}
                     </th>
                   ))}
@@ -577,7 +580,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                       {rIdx + 1}
                     </td>
                     {block.columns.map((_: any, cIdx: number) => (
-                      <td key={cIdx} style={{ border: '1.5px solid #000000', padding: '6px', textAlign: 'center', fontSize: '0.8rem' }}>
+                      <td key={cIdx} style={{ border: '1.5px solid #000000', padding: '6px', textAlign: block.columnAlign || 'center', fontSize: '0.8rem' }}>
                         {block.cells[rIdx]?.[cIdx] || '0'}
                       </td>
                     ))}
@@ -597,7 +600,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                 <tr style={{ background: '#f1f5f9', fontWeight: 'bold', pageBreakInside: 'avoid' }}>
                   <td style={{ border: '1.5px solid #000000', padding: '6px', textAlign: 'center', fontSize: '0.8rem' }}>TỔNG</td>
                   {colTotals.map((total: number, cIdx: number) => (
-                    <td key={cIdx} style={{ border: '1.5px solid #000000', padding: '6px', textAlign: 'center', fontSize: '0.8rem' }}>
+                    <td key={cIdx} style={{ border: '1.5px solid #000000', padding: '6px', textAlign: block.columnAlign || 'center', fontSize: '0.8rem' }}>
                       {total}
                     </td>
                   ))}
