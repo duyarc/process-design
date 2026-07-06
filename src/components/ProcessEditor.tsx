@@ -450,6 +450,18 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
   };
 
   // Version lifecycle handlers (centralised here, removed from ProcessReader)
+  const parseVersion = (vString: string) => {
+    const match = vString.match(/v(\d+)\.(\d+)/);
+    if (match) {
+      return { major: parseInt(match[1], 10), minor: parseInt(match[2], 10) };
+    }
+    const num = parseInt(vString, 10);
+    if (!isNaN(num)) {
+      return { major: num, minor: 0 };
+    }
+    return { major: 0, minor: 1 };
+  };
+
   const handleSubmitForReview = async () => {
     if (!processId) return;
     if (!window.confirm('Submit this Draft for review? Status will change to Pending Review.')) return;
@@ -965,6 +977,8 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
     }
   });
 
+  const { major, minor } = parseVersion(version);
+
   return (
     <div>
       {/* Editor Header */}
@@ -1183,14 +1197,31 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                     {/* Version input */}
                     {(status === 'Draft' || status === 'Pending Review') ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                        <span style={{ fontWeight: 600, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Version:</span>
+                        <span style={{ fontWeight: 600, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Version: v</span>
                         <input 
-                          type="text" 
-                          value={version} 
-                          onChange={(e) => setVersion(e.target.value)} 
+                          type="number" 
+                          min="0"
+                          value={major} 
+                          onChange={(e) => setVersion(`v${parseInt(e.target.value, 10) || 0}.${minor}`)} 
                           style={{ 
-                            width: '50px', 
-                            padding: '0.15rem 0.35rem', 
+                            width: '45px', 
+                            padding: '0.15rem 0.25rem', 
+                            fontSize: '0.8rem', 
+                            border: '1px solid var(--neutral-border)', 
+                            borderRadius: '4px',
+                            textAlign: 'center',
+                            fontWeight: 700
+                          }} 
+                        />
+                        <span style={{ fontWeight: 600, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>.</span>
+                        <input 
+                          type="number" 
+                          min="0"
+                          value={minor} 
+                          onChange={(e) => setVersion(`v${major}.${parseInt(e.target.value, 10) || 0}`)} 
+                          style={{ 
+                            width: '45px', 
+                            padding: '0.15rem 0.25rem', 
                             fontSize: '0.8rem', 
                             border: '1px solid var(--neutral-border)', 
                             borderRadius: '4px',
