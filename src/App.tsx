@@ -4,12 +4,11 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import { Dashboard } from './components/Dashboard';
 import { ProcessEditor } from './components/ProcessEditor';
 import { ProcessReader } from './components/ProcessReader';
-import { BPMNGuide } from './components/BPMNGuide';
 import FormManager from './components/FormManager';
 import FormFiller from './components/FormFiller';
 import UserManagement from './components/UserManagement';
 import LoginPage from './components/LoginPage';
-import { BookOpen, Users, LogOut } from 'lucide-react';
+import { BookOpen, Users, LogOut, ChevronDown } from 'lucide-react';
 
 // ─────────────────────────────────────────────────────────────
 // Page type union
@@ -31,9 +30,10 @@ const MainApp: React.FC = () => {
   const [selectedFormName, setSelectedFormName] = useState<string | null>(null);
   const [initialFormFilter, setInitialFormFilter] = useState<string | null>(null);
   const [initialPrintFormName, setInitialPrintFormName] = useState<string | null>(null);
-  const [dashboardViewMode, setDashboardViewMode] = useState<'processes' | 'forms' | 'submissions'>('processes');
+  const [dashboardViewMode, setDashboardViewMode] = useState<'processes' | 'forms' | 'submissions' | 'guide'>('processes');
   const [initialEditorTab, setInitialEditorTab] = useState<'description' | 'workflow' | 'form' | undefined>(undefined);
   const [initialFormToBuild, setInitialFormToBuild] = useState<string | null>(null);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   const { currentUser, logout, hasPermission } = useAuth();
 
@@ -127,55 +127,91 @@ const MainApp: React.FC = () => {
             <span className="logo-text">Process Design</span>
           </div>
 
-          <nav style={{ display: 'flex', gap: '0.5rem' }}>
-
-            <button
-              className={`btn btn-sm ${page === 'guide' ? 'btn-primary' : 'btn-secondary'}`}
-              onClick={() => setPage('guide')}
-              style={{ borderRadius: '20px', padding: '0.35rem 1rem' }}
-            >
-              Guide
-            </button>
-            {/* Only visible to users with manage_users permission */}
-            {hasPermission('manage_users') && (
-              <button
-                className={`btn btn-sm ${page === 'user-management' ? 'btn-primary' : 'btn-secondary'}`}
-                onClick={navigateToUserManagement}
-                style={{ borderRadius: '20px', padding: '0.35rem 1rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
-              >
-                <Users size={14} />
-                Nhân sự
-              </button>
-            )}
-          </nav>
         </div>
 
-        {/* Current user info & Logout */}
+        {/* Current user info & Dropdown Menu */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: '0.5rem',
-            background: '#f3f4f6', padding: '0.375rem 0.75rem',
-            borderRadius: '20px', border: '1px solid var(--neutral-border)',
-          }}>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-              {currentUser.full_name}
-            </span>
-            <span style={{
-              fontSize: '0.7rem', fontWeight: 700, color: 'var(--primary)',
-              background: 'var(--primary-light, #eff6ff)',
-              padding: '0.1rem 0.45rem', borderRadius: '10px',
-            }}>
-              {currentUser.role_id.toUpperCase()}
-            </span>
+          <div style={{ position: 'relative' }}>
+            <button
+              onClick={() => setUserMenuOpen(!userMenuOpen)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '0.5rem',
+                background: '#f3f4f6', padding: '0.375rem 0.75rem',
+                borderRadius: '20px', border: '1px solid var(--neutral-border)',
+                cursor: 'pointer', outline: 'none',
+              }}
+            >
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
+                {currentUser.full_name}
+              </span>
+              <span style={{
+                fontSize: '0.7rem', fontWeight: 700, color: 'var(--primary)',
+                background: 'var(--primary-light, #eff6ff)',
+                padding: '0.1rem 0.45rem', borderRadius: '10px',
+              }}>
+                {currentUser.role_id.toUpperCase()}
+              </span>
+              <ChevronDown size={12} style={{ color: 'var(--text-secondary)', transform: userMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+            </button>
+
+            {userMenuOpen && (
+              <>
+                <div 
+                  onClick={() => setUserMenuOpen(false)} 
+                  style={{ position: 'fixed', inset: 0, zIndex: 998 }} 
+                />
+                <div style={{
+                  position: 'absolute', right: 0, marginTop: '0.5rem',
+                  background: 'var(--surface, #fff)', borderRadius: '10px',
+                  border: '1px solid var(--neutral-border)',
+                  boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)',
+                  width: '160px', padding: '0.25rem 0', zIndex: 999,
+                  display: 'flex', flexDirection: 'column',
+                  overflow: 'hidden',
+                }}>
+                  {hasPermission('manage_users') && (
+                    <button
+                      onClick={() => {
+                        setUserMenuOpen(false);
+                        navigateToUserManagement();
+                      }}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '0.5rem',
+                        width: '100%', padding: '0.6rem 1rem', border: 'none',
+                        background: 'none', textAlign: 'left', cursor: 'pointer',
+                        fontSize: '0.85rem', color: 'var(--text-primary)',
+                        transition: 'background 0.15s',
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = '#f3f4f6')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+                    >
+                      <Users size={14} />
+                      <span>Users</span>
+                    </button>
+                  )}
+                  <button
+                    onClick={() => {
+                      setUserMenuOpen(false);
+                      logout();
+                    }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '0.5rem',
+                      width: '100%', padding: '0.6rem 1rem', border: 'none',
+                      background: 'none', textAlign: 'left', cursor: 'pointer',
+                      fontSize: '0.85rem', color: 'var(--danger, #ef4444)',
+                      transition: 'background 0.15s',
+                      borderTop: hasPermission('manage_users') ? '1px solid var(--neutral-border)' : 'none',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = '#fef2f2')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+                  >
+                    <LogOut size={14} />
+                    <span>Đăng xuất</span>
+                  </button>
+                </div>
+              </>
+            )}
           </div>
-          <button
-            className="btn btn-sm btn-secondary"
-            onClick={logout}
-            title="Đăng xuất"
-            style={{ borderRadius: '20px', padding: '0.35rem 0.65rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}
-          >
-            <LogOut size={14} />
-          </button>
         </div>
       </header>
 
@@ -235,7 +271,7 @@ const MainApp: React.FC = () => {
             onBack={() => setPage('form-manager')}
           />
         )}
-        {page === 'guide' && <BPMNGuide />}
+
 
         {/* Route Guard: only render UserManagement if user has manage_users permission */}
         {page === 'user-management' && (

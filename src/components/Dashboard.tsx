@@ -3,6 +3,7 @@ import type { Process } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { Plus, Search, FileText, Eye, Calendar, ChevronDown, ChevronUp, Printer, History, PenTool, Edit2 } from 'lucide-react';
 import SubmissionManager from './SubmissionManager';
+import { BPMNGuide } from './BPMNGuide';
 
 interface DashboardProps {
   onSelectProcess: (id: string) => void;
@@ -10,8 +11,8 @@ interface DashboardProps {
   onViewFormSubmissions?: (formName: string) => void;
   onPrintForm?: (processId: string, formName: string) => void;
   onOpenFormManager?: (processId: string, formName: string) => void;
-  viewMode?: 'processes' | 'forms' | 'submissions';
-  onViewModeChange?: (mode: 'processes' | 'forms' | 'submissions') => void;
+  viewMode?: 'processes' | 'forms' | 'submissions' | 'guide';
+  onViewModeChange?: (mode: 'processes' | 'forms' | 'submissions' | 'guide') => void;
   initialFormFilter?: string | null;
   onClearFormFilter?: () => void;
 }
@@ -203,9 +204,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
         >
           Submissions
         </button>
+        <button
+          className={`btn btn-sm ${viewMode === 'guide' ? 'btn-primary' : 'btn-secondary'}`}
+          onClick={() => { onViewModeChange && onViewModeChange('guide'); setSearchQuery(''); onClearFormFilter && onClearFormFilter(); }}
+          style={{ borderRadius: '20px', padding: '0.35rem 1.25rem' }}
+        >
+          Guide
+        </button>
       </div>
 
-      {viewMode !== 'submissions' && (
+      {viewMode !== 'submissions' && viewMode !== 'guide' && (
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '2rem' }}>
           <div className="search-wrapper" style={{ flex: 1, marginBottom: 0 }}>
             <Search className="search-icon" size={20} />
@@ -246,6 +254,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
           initialFormFilter={initialFormFilter} 
           onBack={onClearFormFilter} 
         />
+      ) : viewMode === 'guide' ? (
+        <BPMNGuide />
       ) : viewMode === 'forms' ? (() => {
         const hasAnyForm = Object.values(groupedForms).some(g => g.forms.length > 0);
         if (!hasAnyForm) {
