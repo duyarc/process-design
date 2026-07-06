@@ -97,7 +97,7 @@ const formTemplate = {
   formId: "3S-QC/F03",
   formTitle: "Phiếu kiểm tra container rỗng",
   version: "V1-25.08.2025",
-  status: "ACTIVE",
+  status: "DRAFT",
   layoutBlocks: layoutBlocks,
   revisionHistory: [
     {

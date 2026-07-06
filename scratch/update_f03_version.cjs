@@ -23,7 +23,7 @@ async function main() {
     if (formsData[formName]) {
       console.log('Existing form data found. Updating...');
       formsData[formName].version = "V1-25.08.2025";
-      formsData[formName].status = "ACTIVE";
+      formsData[formName].status = "DRAFT";
       
       // Update revision history if it exists
       if (formsData[formName].revisionHistory) {
