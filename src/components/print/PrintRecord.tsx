@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import type { Submission } from '../../types';
+import { formatFormVersion } from '../../types';
 
 interface PrintRecordProps {
   submission: Submission;
@@ -294,8 +295,8 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
 
       {/* Default footer forced at the bottom of printed page (Moved to top for Chromium print viewport rendering fix) */}
       <div className="print-footer">
-        <span>Mã tài liệu: {submission.formId || 'N/A'}</span>
-        <span>Phiên bản: {submission.formVersion || 'v1.0'}</span>
+        <span>{submission.formId || 'N/A'}</span>
+        <span>{formatFormVersion(submission.formVersion || 'v1.0')}</span>
       </div>
 
       {/* Close button (only visible on screen) */}

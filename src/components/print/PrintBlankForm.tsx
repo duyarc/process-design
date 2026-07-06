@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import type { FormTemplateISO } from '../../types';
+import { formatFormVersion } from '../../types';
 
 interface PrintBlankFormProps {
   template: FormTemplateISO;
@@ -127,8 +128,8 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
 
       {/* Default footer forced at the bottom of printed page (Moved to top for Chromium print viewport rendering fix) */}
       <div className="print-footer">
-        <span>Mã tài liệu: {template.formId || 'N/A'}</span>
-        <span>Phiên bản: {template.version || 'v1.0'}</span>
+        <span>{template.formId || 'N/A'}</span>
+        <span>{formatFormVersion(template.version || 'v1.0')}</span>
       </div>
 
       {/* Close button (only visible on screen) */}
