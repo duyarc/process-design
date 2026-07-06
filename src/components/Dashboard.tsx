@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import type { Process } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { Plus, Search, FileText, Eye, Calendar, ChevronDown, ChevronUp, Printer, History, PenTool, Edit2 } from 'lucide-react';
+import SubmissionManager from './SubmissionManager';
 
 interface DashboardProps {
   onSelectProcess: (id: string) => void;
@@ -9,8 +10,10 @@ interface DashboardProps {
   onViewFormSubmissions?: (formName: string) => void;
   onPrintForm?: (processId: string, formName: string) => void;
   onOpenFormManager?: (processId: string, formName: string) => void;
-  viewMode?: 'processes' | 'forms';
-  onViewModeChange?: (mode: 'processes' | 'forms') => void;
+  viewMode?: 'processes' | 'forms' | 'submissions';
+  onViewModeChange?: (mode: 'processes' | 'forms' | 'submissions') => void;
+  initialFormFilter?: string | null;
+  onClearFormFilter?: () => void;
 }
 
 const statusColors: { [key: string]: { bg: string, text: string, border: string } } = {
@@ -28,7 +31,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onPrintForm,
   onOpenFormManager,
   viewMode = 'processes',
-  onViewModeChange
+  onViewModeChange,
+  initialFormFilter = null,
+  onClearFormFilter
 }) => {
   const [processes, setProcesses] = useState<Process[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -179,42 +184,51 @@ export const Dashboard: React.FC<DashboardProps> = ({
       <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--neutral-border)', paddingBottom: '0.75rem' }}>
         <button
           className={`btn btn-sm ${viewMode === 'processes' ? 'btn-primary' : 'btn-secondary'}`}
-          onClick={() => { onViewModeChange && onViewModeChange('processes'); setSearchQuery(''); }}
+          onClick={() => { onViewModeChange && onViewModeChange('processes'); setSearchQuery(''); onClearFormFilter && onClearFormFilter(); }}
           style={{ borderRadius: '20px', padding: '0.35rem 1.25rem' }}
         >
           Processes
         </button>
         <button
           className={`btn btn-sm ${viewMode === 'forms' ? 'btn-primary' : 'btn-secondary'}`}
-          onClick={() => { onViewModeChange && onViewModeChange('forms'); setSearchQuery(''); }}
+          onClick={() => { onViewModeChange && onViewModeChange('forms'); setSearchQuery(''); onClearFormFilter && onClearFormFilter(); }}
           style={{ borderRadius: '20px', padding: '0.35rem 1.25rem' }}
         >
           Forms
         </button>
+        <button
+          className={`btn btn-sm ${viewMode === 'submissions' ? 'btn-primary' : 'btn-secondary'}`}
+          onClick={() => { onViewModeChange && onViewModeChange('submissions'); setSearchQuery(''); }}
+          style={{ borderRadius: '20px', padding: '0.35rem 1.25rem' }}
+        >
+          Submissions
+        </button>
       </div>
 
-      <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '2rem' }}>
-        <div className="search-wrapper" style={{ flex: 1, marginBottom: 0 }}>
-          <Search className="search-icon" size={20} />
-          <input
-            type="text"
-            className="search-input"
-            placeholder={viewMode === 'processes' ? "Search processes by title, description or checks..." : "Search forms by name, form ID, or linked process..."}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+      {viewMode !== 'submissions' && (
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '2rem' }}>
+          <div className="search-wrapper" style={{ flex: 1, marginBottom: 0 }}>
+            <Search className="search-icon" size={20} />
+            <input
+              type="text"
+              className="search-input"
+              placeholder={viewMode === 'processes' ? "Search processes by title, description or checks..." : "Search forms by name, form ID, or linked process..."}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          {hasPermission('design_document') && viewMode === 'processes' && (
+            <button 
+              className="btn btn-primary" 
+              onClick={() => onEditProcess(null)}
+              style={{ flexShrink: 0 }}
+            >
+              <Plus size={18} />
+              New Process
+            </button>
+          )}
         </div>
-        {hasPermission('design_document') && viewMode === 'processes' && (
-          <button 
-            className="btn btn-primary" 
-            onClick={() => onEditProcess(null)}
-            style={{ flexShrink: 0 }}
-          >
-            <Plus size={18} />
-            New Process
-          </button>
-        )}
-      </div>
+      )}
 
       {error && (
         <div className="paper-card" style={{ borderColor: 'var(--danger)', color: 'var(--danger)', background: '#fee2e2' }}>
@@ -226,6 +240,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
         <div style={{ textAlign: 'center', padding: '3rem' }}>
           <p>Loading processes database...</p>
         </div>
+      ) : viewMode === 'submissions' ? (
+        <SubmissionManager 
+          isEmbedded={true} 
+          initialFormFilter={initialFormFilter} 
+          onBack={onClearFormFilter} 
+        />
       ) : viewMode === 'forms' ? (() => {
         const hasAnyForm = Object.values(groupedForms).some(g => g.forms.length > 0);
         if (!hasAnyForm) {

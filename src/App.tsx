@@ -5,7 +5,6 @@ import { Dashboard } from './components/Dashboard';
 import { ProcessEditor } from './components/ProcessEditor';
 import { ProcessReader } from './components/ProcessReader';
 import { BPMNGuide } from './components/BPMNGuide';
-import SubmissionManager from './components/SubmissionManager';
 import FormManager from './components/FormManager';
 import FormFiller from './components/FormFiller';
 import UserManagement from './components/UserManagement';
@@ -32,7 +31,7 @@ const MainApp: React.FC = () => {
   const [selectedFormName, setSelectedFormName] = useState<string | null>(null);
   const [initialFormFilter, setInitialFormFilter] = useState<string | null>(null);
   const [initialPrintFormName, setInitialPrintFormName] = useState<string | null>(null);
-  const [dashboardViewMode, setDashboardViewMode] = useState<'processes' | 'forms'>('processes');
+  const [dashboardViewMode, setDashboardViewMode] = useState<'processes' | 'forms' | 'submissions'>('processes');
   const [initialEditorTab, setInitialEditorTab] = useState<'description' | 'workflow' | 'form' | undefined>(undefined);
   const [initialFormToBuild, setInitialFormToBuild] = useState<string | null>(null);
 
@@ -91,9 +90,9 @@ const MainApp: React.FC = () => {
   };
 
   const handleViewFormSubmissions = (formName: string) => {
-    setPrevPage(page);
     setInitialFormFilter(formName);
-    setPage('submissions');
+    setDashboardViewMode('submissions');
+    setPage('dashboard');
   };
 
   const handlePrintForm = (processId: string, formName: string) => {
@@ -129,13 +128,7 @@ const MainApp: React.FC = () => {
           </div>
 
           <nav style={{ display: 'flex', gap: '0.5rem' }}>
-            <button
-              className={`btn btn-sm ${page === 'submissions' ? 'btn-primary' : 'btn-secondary'}`}
-              onClick={() => { setInitialFormFilter(null); setPage('submissions'); }}
-              style={{ borderRadius: '20px', padding: '0.35rem 1rem' }}
-            >
-              Submissions
-            </button>
+
             <button
               className={`btn btn-sm ${page === 'guide' ? 'btn-primary' : 'btn-secondary'}`}
               onClick={() => setPage('guide')}
@@ -197,6 +190,8 @@ const MainApp: React.FC = () => {
             onOpenFormManager={handleOpenFormManager}
             viewMode={dashboardViewMode}
             onViewModeChange={setDashboardViewMode}
+            initialFormFilter={initialFormFilter}
+            onClearFormFilter={() => setInitialFormFilter(null)}
           />
         )}
         {page === 'editor' && (
@@ -241,9 +236,7 @@ const MainApp: React.FC = () => {
           />
         )}
         {page === 'guide' && <BPMNGuide />}
-        {page === 'submissions' && (
-          <SubmissionManager onBack={() => setPage(prevPage)} initialFormFilter={initialFormFilter} />
-        )}
+
         {/* Route Guard: only render UserManagement if user has manage_users permission */}
         {page === 'user-management' && (
           hasPermission('manage_users')

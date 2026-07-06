@@ -17,11 +17,12 @@ import {
 import PrintRecord from './print/PrintRecord';
 
 interface SubmissionManagerProps {
-  onBack: () => void;
+  onBack?: () => void;
   initialFormFilter?: string | null;
+  isEmbedded?: boolean;
 }
 
-export default function SubmissionManager({ onBack, initialFormFilter }: SubmissionManagerProps) {
+export default function SubmissionManager({ onBack, initialFormFilter, isEmbedded = false }: SubmissionManagerProps) {
   const { currentUser } = useAuth();
   
   // Data States
@@ -193,39 +194,47 @@ export default function SubmissionManager({ onBack, initialFormFilter }: Submiss
   }
 
   return (
-    <div style={{ padding: '1.5rem', background: '#f8fafc', minHeight: '88vh' }}>
+    <div style={{ 
+      padding: isEmbedded ? '0' : '1.5rem', 
+      background: isEmbedded ? 'transparent' : '#f8fafc', 
+      minHeight: isEmbedded ? 'auto' : '88vh' 
+    }}>
       
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+      {!isEmbedded && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            {onBack && (
+              <button 
+                type="button" 
+                className="btn btn-secondary" 
+                onClick={onBack}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.4rem 0.75rem' }}
+              >
+                <ArrowLeft size={16} />
+                <span>Back</span>
+              </button>
+            )}
+            <div>
+              <h1 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                ISO 2026 Submission Tracking Portal
+              </h1>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                Quality management system (QMS) audit trail and supervisor verification loop
+              </span>
+            </div>
+          </div>
+          
           <button 
             type="button" 
             className="btn btn-secondary" 
-            onClick={onBack}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.4rem 0.75rem' }}
+            onClick={fetchData}
+            style={{ fontSize: '0.85rem' }}
           >
-            <ArrowLeft size={16} />
-            <span>Back</span>
+            Refresh Logs
           </button>
-          <div>
-            <h1 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-              ISO 2026 Submission Tracking Portal
-            </h1>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-              Quality management system (QMS) audit trail and supervisor verification loop
-            </span>
-          </div>
         </div>
-        
-        <button 
-          type="button" 
-          className="btn btn-secondary" 
-          onClick={fetchData}
-          style={{ fontSize: '0.85rem' }}
-        >
-          Refresh Logs
-        </button>
-      </div>
+      )}
 
       <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
         
