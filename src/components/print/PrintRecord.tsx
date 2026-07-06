@@ -580,7 +580,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                       {rIdx + 1}
                     </td>
                     {block.columns.map((_: any, cIdx: number) => (
-                      <td key={cIdx} style={{ border: '1.5px solid #000000', padding: '6px', textAlign: block.columnAlign || 'center', fontSize: '0.8rem' }}>
+                      <td key={cIdx} style={{ border: '1.5px solid #000000', padding: '6px', textAlign: 'right', fontSize: '0.8rem' }}>
                         {block.cells[rIdx]?.[cIdx] || '0'}
                       </td>
                     ))}
@@ -600,7 +600,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                 <tr style={{ background: '#f1f5f9', fontWeight: 'bold', pageBreakInside: 'avoid' }}>
                   <td style={{ border: '1.5px solid #000000', padding: '6px', textAlign: 'center', fontSize: '0.8rem' }}>TỔNG</td>
                   {colTotals.map((total: number, cIdx: number) => (
-                    <td key={cIdx} style={{ border: '1.5px solid #000000', padding: '6px', textAlign: block.columnAlign || 'center', fontSize: '0.8rem' }}>
+                    <td key={cIdx} style={{ border: '1.5px solid #000000', padding: '6px', textAlign: 'right', fontSize: '0.8rem' }}>
                       {total}
                     </td>
                   ))}

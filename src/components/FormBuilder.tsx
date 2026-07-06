@@ -15,7 +15,9 @@ import {
   PenTool, 
   Camera, 
   Grid,
-  Copy
+  Copy,
+  AlignLeft,
+  AlignCenter
 } from 'lucide-react';
 import PrintBlankForm from './print/PrintBlankForm';
 
@@ -1240,7 +1242,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                                       {rowIdx}
                                     </td>
                                     {block.matrixConfig!.columns.map((_, cIdx) => (
-                                      <td key={cIdx} style={{ padding: '4px', borderRight: '1px solid #cbd5e1', textAlign: block.matrixConfig!.columnAlign || 'center' }}>
+                                      <td key={cIdx} style={{ padding: '4px', borderRight: '1px solid #cbd5e1', textAlign: 'right' }}>
                                         <div style={{ border: '1px dashed #cbd5e1', padding: '2px', background: '#f8fafc', color: '#94a3b8', fontSize: '0.65rem' }}>
                                           [0]
                                         </div>
@@ -1716,7 +1718,49 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', borderTop: '1px solid var(--neutral-border)', paddingTop: '0.5rem' }}>
-                      <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Column Items</label>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <label style={{ fontWeight: 600, color: 'var(--text-secondary)', margin: 0 }}>Column Items</label>
+                        <div style={{ display: 'flex', gap: '2px' }}>
+                          <button
+                            type="button"
+                            disabled={isLocked}
+                            onClick={() => handleUpdateBlockMatrixConfig(activeBlockId!, { columnAlign: 'left' })}
+                            style={{
+                              padding: '2px 4px',
+                              background: (activeBlock.matrixConfig.columnAlign || 'center') === 'left' ? '#eff6ff' : 'transparent',
+                              border: (activeBlock.matrixConfig.columnAlign || 'center') === 'left' ? '1px solid #bfdbfe' : '1px solid transparent',
+                              borderRadius: '3px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: (activeBlock.matrixConfig.columnAlign || 'center') === 'left' ? '#1e40af' : '#64748b'
+                            }}
+                            title="Canh trái tiêu đề"
+                          >
+                            <AlignLeft size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            disabled={isLocked}
+                            onClick={() => handleUpdateBlockMatrixConfig(activeBlockId!, { columnAlign: 'center' })}
+                            style={{
+                              padding: '2px 4px',
+                              background: (activeBlock.matrixConfig.columnAlign || 'center') === 'center' ? '#eff6ff' : 'transparent',
+                              border: (activeBlock.matrixConfig.columnAlign || 'center') === 'center' ? '1px solid #bfdbfe' : '1px solid transparent',
+                              borderRadius: '3px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: (activeBlock.matrixConfig.columnAlign || 'center') === 'center' ? '#1e40af' : '#64748b'
+                            }}
+                            title="Canh giữa tiêu đề"
+                          >
+                            <AlignCenter size={14} />
+                          </button>
+                        </div>
+                      </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
                         {activeBlock.matrixConfig.columns.map((colName, cIdx) => (
                           <div key={cIdx} style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
@@ -1756,19 +1800,6 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                           <Plus size={11} /> Thêm cột sản phẩm
                         </button>
                       )}
-                    </div>
-
-                    <div style={{ borderTop: '1px solid var(--neutral-border)', paddingTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                      <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Canh lề cột</label>
-                      <select
-                        disabled={isLocked}
-                        value={activeBlock.matrixConfig.columnAlign || 'center'}
-                        onChange={(e) => handleUpdateBlockMatrixConfig(activeBlockId!, { columnAlign: e.target.value as 'left' | 'center' })}
-                        style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', fontSize: '0.75rem', background: '#fff', cursor: 'pointer' }}
-                      >
-                        <option value="center">Canh giữa (Center)</option>
-                        <option value="left">Canh trái (Left)</option>
-                      </select>
                     </div>
 
                     <div style={{ borderTop: '1px solid var(--neutral-border)', paddingTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>

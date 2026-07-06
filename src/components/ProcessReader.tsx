@@ -1348,7 +1348,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                                           {config.columns.map((_: any, cIdx: number) => {
                                             const key = `${block.id}_row_${rIdx}_col_${cIdx}`;
                                             return (
-                                              <td key={cIdx} style={{ padding: '4px', borderRight: '1px solid var(--neutral-border)', textAlign: config.columnAlign || 'center' }}>
+                                              <td key={cIdx} style={{ padding: '4px', borderRight: '1px solid var(--neutral-border)', textAlign: 'right' }}>
                                                 <input
                                                   type="number"
                                                   min="0"
@@ -1360,7 +1360,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                                                     border: '1px solid var(--neutral-border)',
                                                     borderRadius: '4px',
                                                     padding: '0.25rem 0.35rem',
-                                                    textAlign: config.columnAlign || 'center',
+                                                    textAlign: 'right',
                                                     fontSize: '0.8rem'
                                                   }}
                                                 />
