@@ -96,13 +96,13 @@ const layoutBlocks = [
 const formTemplate = {
   formId: "3S-QC/F03",
   formTitle: "Phiếu kiểm tra container rỗng",
-  version: "v1.0 (" + new Date().toISOString().split('T')[0] + ")",
-  status: "DRAFT",
+  version: "V1-25.08.2025",
+  status: "ACTIVE",
   layoutBlocks: layoutBlocks,
   revisionHistory: [
     {
-      version: "v1.0",
-      date: new Date().toISOString().split('T')[0],
+      version: "V1",
+      date: "2025-08-25",
       author: "System Agent",
       change: "Initial release of Empty Container Inspection template (3S-QC/F03)"
     }

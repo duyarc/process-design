@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { FormFieldISO, FormRevisionEntry, FormTemplateISO, LayoutBlockISO, RadioOption, MatrixConfigISO } from '../types';
+import { formatFormVersion } from '../types';
 import { 
   Plus, 
   Trash2, 
@@ -1342,7 +1343,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
               fontFamily: 'monospace'
             }}>
               <span>Doc ID: {formId || 'PENDING'}</span>
-              <span>Version: {version || 'DRAFT'}</span>
+              <span>Version: {formatFormVersion(version) || 'DRAFT'}</span>
             </div>
           </div>
         </div>

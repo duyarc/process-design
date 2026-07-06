@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { Process, FormTemplateISO, SubmissionFieldSnapshot } from '../types';
+import { formatFormVersion } from '../types';
 import { 
   ArrowLeft, 
   CheckCircle2, 
@@ -355,7 +356,7 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
           </div>
           <h1 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 700 }}>{formTemplate.formTitle || formName}</h1>
           <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-            Process Standard: <strong>{process.title}</strong> | Version: <strong>{formTemplate.version || 'v1.0'}</strong>
+            Process Standard: <strong>{process.title}</strong> | Version: <strong>{formatFormVersion(formTemplate.version) || 'V1'}</strong>
           </p>
         </div>
 

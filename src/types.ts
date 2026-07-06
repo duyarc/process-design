@@ -168,3 +168,36 @@ export interface Submission {
   } | null;
 }
 
+export function formatFormVersion(versionStr: string): string {
+  if (!versionStr) return '';
+  
+  // Check if it already matches "V1-25.08.2025" or similar format
+  if (/^V\d+-\d{2}\.\d{2}\.\d{4}$/i.test(versionStr)) {
+    return versionStr;
+  }
+  
+  // Match "v1.0 (2026-07-04)" or "v1 (2026-07-04)"
+  const matchWithDate = versionStr.match(/v?(\d+)(?:\.\d+)?\s*\((\d{4})-(\d{2})-(\d{2})\)/i);
+  if (matchWithDate) {
+    const major = matchWithDate[1];
+    const year = matchWithDate[2];
+    const month = matchWithDate[3];
+    const day = matchWithDate[4];
+    return `V${major}-${day}.${month}.${year}`;
+  }
+  
+  // Match just "v1.0" or "v1.0 (draft)"
+  const matchDraft = versionStr.match(/v?(\d+)(?:\.\d+)?\s*\(draft\)/i);
+  if (matchDraft) {
+    const major = matchDraft[1];
+    return `V${major} (draft)`;
+  }
+
+  // Fallback for simple "v1.0" or "1.0" -> "V1.0"
+  if (versionStr.toLowerCase().startsWith('v')) {
+    return 'V' + versionStr.substring(1);
+  }
+
+  return versionStr;
+}
+

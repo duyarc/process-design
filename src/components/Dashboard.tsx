@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { Process } from '../types';
+import { formatFormVersion } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { Plus, Search, FileText, Eye, Calendar, ChevronDown, ChevronUp, Printer, History, PenTool, Edit2 } from 'lucide-react';
 import SubmissionManager from './SubmissionManager';
@@ -324,7 +325,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                             </h4>
                             
                             <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-                              <div>Version: {form.version}</div>
+                              <div>Version: {formatFormVersion(form.version)}</div>
                             </div>
                           </div>
 

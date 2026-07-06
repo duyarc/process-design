@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { Submission, Process, FormTemplateISO } from '../types';
+import { formatFormVersion } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { 
   ArrowLeft, 
@@ -263,7 +264,7 @@ export default function FormManager({ processId, formName, onOpenFormFiller, onB
           </div>
           
           <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', textAlign: 'right' }}>
-            <div>Form Version: <strong>{formTemplate.version || 'v1.0'}</strong></div>
+            <div>Form Version: <strong>{formatFormVersion(formTemplate.version) || 'V1'}</strong></div>
             <div>Revision Date: <strong>{formTemplate.revisionHistory?.[formTemplate.revisionHistory.length - 1]?.date || 'N/A'}</strong></div>
           </div>
         </div>

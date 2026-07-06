@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { Process, SubmissionFieldSnapshot } from '../types';
+import { formatFormVersion } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { ArrowLeft, Printer, Edit2, Calendar, Plus, Camera, AlertTriangle, X } from 'lucide-react';
 import { generateBPMNXML, getNumRows } from '../utils/bpmnXmlGenerator';
@@ -937,7 +938,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                         📝 Fill Form: {formTemplate.formTitle || activeFormToFill}
                       </h3>
                       <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
-                        Document ID: <strong>{formTemplate.formId}</strong> | Version: <strong>{formTemplate.version}</strong>
+                        Document ID: <strong>{formTemplate.formId}</strong> | Version: <strong>{formatFormVersion(formTemplate.version || '')}</strong>
                       </div>
                     </div>
                     <button
