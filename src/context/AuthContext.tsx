@@ -78,38 +78,6 @@ export interface User {
   status: 'active' | 'inactive';
 }
 
-// ─────────────────────────────────────────────────────────────
-// MOCK USER DATABASE (replace with real DB calls later)
-// ─────────────────────────────────────────────────────────────
-const MOCK_USERS: User[] = [
-  {
-    id: 'u1',
-    username: 'admin',
-    password: 'admin123',
-    full_name: 'Tran Duy Anh',
-    title: 'Admin CNTT',
-    role_id: 'admin',
-    status: 'active',
-  },
-  {
-    id: 'u2',
-    username: 'supervisor01',
-    password: 'sup123',
-    full_name: 'Nguyen Van Binh',
-    title: 'Truong ca san xuat',
-    role_id: 'supervisor',
-    status: 'active',
-  },
-  {
-    id: 'u3',
-    username: 'operator01',
-    password: 'op123',
-    full_name: 'Le Thi Cam',
-    title: 'Cong nhan van hanh',
-    role_id: 'operator',
-    status: 'active',
-  },
-];
 
 // ─────────────────────────────────────────────────────────────
 // AUTH CONTEXT TYPES
@@ -144,7 +112,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const saved = localStorage.getItem('currentUser');
     return saved ? JSON.parse(saved) : null;
   });
-  const [users, setUsers] = useState<User[]>(MOCK_USERS);
+  const [users, setUsers] = useState<User[]>([]);
   const [rolePermissions, setRolePermissions] = useState<RolePermissionsMatrix>(DEFAULT_ROLE_PERMISSIONS);
 
   // Fetch users when logged in as admin or supervisor
@@ -170,7 +138,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (currentUser && (currentUser.role_id === 'admin' || currentUser.role_id === 'supervisor')) {
       fetchUsers();
     } else {
-      setUsers(MOCK_USERS);
+      setUsers([]);
     }
   }, [currentUser]);
 
