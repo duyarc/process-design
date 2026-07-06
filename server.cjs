@@ -31,6 +31,9 @@ if (DATABASE_URL) {
       rejectUnauthorized: false
     }
   });
+  dbPool.on('error', (err) => {
+    console.error('Unexpected error on idle database client:', err.message || err);
+  });
 } else {
   console.log('No DATABASE_URL found. Operating in local CSV file-based mode.');
 }
@@ -76,19 +79,33 @@ const INITIALIZE_SCHEMA_QUERY = `
     status TEXT
   );
 
+  CREATE TABLE IF NOT EXISTS forms (
+    form_id TEXT PRIMARY KEY,
+    form_name TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'DRAFT',
+    version TEXT NOT NULL DEFAULT 'v0.1',
+    form_title TEXT,
+    layout_blocks JSONB NOT NULL DEFAULT '[]',
+    revision_history JSONB NOT NULL DEFAULT '[]',
+    pdf_name TEXT,
+    pdf_key TEXT,
+    pdf_size INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+  );
+
   CREATE TABLE IF NOT EXISTS process_forms (
     id SERIAL PRIMARY KEY,
     process_id TEXT NOT NULL REFERENCES processes(id) ON DELETE CASCADE,
     form_name TEXT NOT NULL,
-    pdf_name TEXT,
-    pdf_key TEXT,
-    pdf_size INTEGER DEFAULT 0,
+    form_id TEXT REFERENCES forms(form_id) ON DELETE SET NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT unique_process_form UNIQUE (process_id, form_name)
   );
 
   CREATE INDEX IF NOT EXISTS idx_process_forms_name ON process_forms(form_name);
+  CREATE INDEX IF NOT EXISTS idx_process_forms_form_id ON process_forms(form_id);
 
   CREATE TABLE IF NOT EXISTS submissions (
     id TEXT PRIMARY KEY,
@@ -119,22 +136,170 @@ const INITIALIZE_SCHEMA_QUERY = `
   );
 `;
 
+// ─── Sample Data for Fresh Seed ──────────────────────────────────────────────
+const F01_BLOCKS = [
+  { id: 'b_title', type: 'TITLE', title: 'PHIẾU KIỂM TRA CONTAINER RỖNG', columns: 1,
+    fields: [{ id: 'f_title_desc', type: 'text', checkItem: '(kiểm tra trước khi thực hiện)', locationCode: 'TITLE-DESC', frequency: 'Once/Shift', reactionProtocol: '' }] },
+  { id: 'b_info', type: 'INFO_GRID', title: 'Thông tin chung', columns: 2,
+    fields: [
+      { id: 'f_info_date', type: 'date', checkItem: 'Ngày', locationCode: 'INFO-DATE', frequency: 'Once/Shift', reactionProtocol: '' },
+      { id: 'f_info_cont', type: 'text', checkItem: 'Số Container', locationCode: 'INFO-CONT', frequency: 'Once/Shift', reactionProtocol: '' }
+    ]},
+  { id: 'b_checklist', type: 'CHECKLIST_TABLE', title: 'Chi tiết kiểm tra chất lượng', columns: 1, fields: [],
+    columnLabels: { stt: 'STT', item: 'Chi tiết kiểm tra', target: 'Đạt / Không', reaction: 'Mô tả cụ thể nếu Không đạt' } },
+  { id: 'b_sign', type: 'SIGN', title: 'Ký xác nhận', columns: 2,
+    fields: [
+      { id: 'f_sign_op', type: 'signature', checkItem: 'Người kiểm tra (ký và ghi rõ họ tên)', locationCode: 'SIGN-OP', frequency: 'Once/Shift', reactionProtocol: '' },
+      { id: 'f_sign_sup', type: 'signature', checkItem: 'Người thẩm tra (ký và ghi rõ họ tên)', locationCode: 'SIGN-SUP', frequency: 'Once/Shift', reactionProtocol: '' }
+    ]}
+];
+
+const F02_BLOCKS = [
+  { id: 'b_title', type: 'TITLE', title: 'PHIẾU KIỂM ĐẾM', columns: 1,
+    fields: [{ id: 'f_title_desc', type: 'text', checkItem: '(kiểm tra trước khi thực hiện)', locationCode: 'TITLE-DESC', frequency: 'Once/Shift', reactionProtocol: '' }] },
+  { id: 'b_info', type: 'INFO_GRID', title: 'Thông tin chung', columns: 2,
+    fields: [
+      { id: 'f_info_date', type: 'date', checkItem: 'Ngày', locationCode: 'INFO-DATE', frequency: 'Once/Shift', reactionProtocol: '' },
+      { id: 'f_info_cont', type: 'text', checkItem: 'Số Container', locationCode: 'INFO-CONT', frequency: 'Once/Shift', reactionProtocol: '' }
+    ]},
+  { id: 'b_checklist', type: 'CHECKLIST_TABLE', title: 'Chi tiết kiểm tra chất lượng', columns: 1, fields: [],
+    columnLabels: { stt: 'STT', item: 'Chi tiết kiểm tra', target: 'Đạt / Không Đạt', reaction: 'Mô tả cụ thể nếu Không đạt' } },
+  { id: 'b_sign', type: 'SIGN', title: 'Ký xác nhận', columns: 2,
+    fields: [
+      { id: 'f_sign_op', type: 'signature', checkItem: 'Người kiểm tra (ký và ghi rõ họ tên)', locationCode: 'SIGN-OP', frequency: 'Once/Shift', reactionProtocol: '' },
+      { id: 'f_sign_sup', type: 'signature', checkItem: 'Người thẩm tra (ký và ghi rõ họ tên)', locationCode: 'SIGN-SUP', frequency: 'Once/Shift', reactionProtocol: '' }
+    ]}
+];
+
+const SAMPLE_FORMS = [
+  {
+    form_id: 'FM-QC-F01',
+    form_name: 'Phiếu kiểm tra container rỗng',
+    form_title: 'PHIẾU KIỂM TRA CONTAINER RỖNG',
+    status: 'ACTIVE',
+    version: 'v0.2',
+    layout_blocks: JSON.stringify(F01_BLOCKS),
+    revision_history: JSON.stringify([
+      { version: 'v0.2', date: '2026-07-06', author: 'QA Administrator', change: 'Cập nhật tiêu đề cột kiểm tra', layoutBlocks: F01_BLOCKS },
+      { version: 'v0.1', date: '2026-06-01', author: 'QA Administrator', change: 'Phiên bản đầu tiên', layoutBlocks: F01_BLOCKS }
+    ])
+  },
+  {
+    form_id: 'FM-QC-F02',
+    form_name: 'Phiếu kiểm đếm',
+    form_title: 'PHIẾU KIỂM ĐẾM',
+    status: 'ACTIVE',
+    version: 'v0.1',
+    layout_blocks: JSON.stringify(F02_BLOCKS),
+    revision_history: JSON.stringify([
+      { version: 'v0.1', date: '2026-07-06', author: 'QA Administrator', change: 'Phiên bản đầu tiên', layoutBlocks: F02_BLOCKS }
+    ])
+  }
+];
+
+const SAMPLE_PROCESSES = [
+  {
+    id: 'proc_container_inspection',
+    title: 'Quy trình đóng hàng',
+    description: 'Quy trình chuẩn hóa hoạt động đóng hàng.',
+    version: 'v0.1',
+    lastUpdated: new Date().toISOString(),
+    parentProcessId: 'proc_container_inspection',
+    status: 'Active',
+    roles: JSON.stringify(['QC', 'Supervisor']),
+    steps: JSON.stringify([
+      { id: 'step_start', role: 'QC', action: 'Nhận yêu cầu kiểm tra vỏ Container từ bộ phận Logistics', bpmnShape: 'start-event', nextStepId: 'step_inspect' },
+      { id: 'step_inspect', role: 'QC', action: 'Thực hiện kiểm tra chất lượng vỏ container rỗng tại bãi', formName: 'Phiếu kiểm tra container rỗng', bpmnShape: 'task', nextStepId: 'step_tally', producesForm: true },
+      { id: 'step_tally', role: 'QC', action: 'Thực hiện kiểm đếm hàng hóa xếp lên container xuất khẩu', formName: 'Phiếu kiểm đếm', bpmnShape: 'task', nextStepId: 'step_signoff', producesForm: true },
+      { id: 'step_signoff', role: 'Supervisor', action: 'Giám sát chất lượng thẩm tra và ký xác nhận biên bản đóng gói', bpmnShape: 'task', nextStepId: 'step_end' },
+      { id: 'step_end', role: 'QC', action: 'Hoàn tất bàn giao container đủ tiêu chuẩn cho đóng hàng', bpmnShape: 'end-event' }
+    ]),
+    formFields: JSON.stringify([]),
+    sopSignoffs: JSON.stringify({
+      author: { name: 'Nguyễn Văn A', title: 'QC Manager' },
+      reviewers: [{ name: 'Trần Văn B', title: 'QA Leader' }],
+      authorisers: [{ name: 'Lê Văn C', title: 'Factory Director' }],
+      effectiveDate: '2026-07-03'
+    }),
+    workflowFormsData: JSON.stringify({
+      'Phiếu kiểm tra container rỗng': { formId: 'FM-QC-F01' },
+      'Phiếu kiểm đếm': { formId: 'FM-QC-F02' }
+    })
+  }
+];
+
+async function seedFreshData(client) {
+  console.log('Seeding fresh sample data...');
+  // Clear existing process & form data (keep users)
+  await client.query('DELETE FROM submissions');
+  await client.query('DELETE FROM process_forms');
+  await client.query('DELETE FROM processes');
+  await client.query('DELETE FROM forms');
+
+  // Insert sample forms
+  for (const form of SAMPLE_FORMS) {
+    await client.query(`
+      INSERT INTO forms (form_id, form_name, form_title, status, version, layout_blocks, revision_history)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      ON CONFLICT (form_id) DO UPDATE SET
+        form_name = EXCLUDED.form_name,
+        form_title = EXCLUDED.form_title,
+        status = EXCLUDED.status,
+        version = EXCLUDED.version,
+        layout_blocks = EXCLUDED.layout_blocks,
+        revision_history = EXCLUDED.revision_history,
+        updated_at = NOW()
+    `, [form.form_id, form.form_name, form.form_title, form.status, form.version, form.layout_blocks, form.revision_history]);
+  }
+
+  // Insert sample processes
+  for (const proc of SAMPLE_PROCESSES) {
+    await client.query(`
+      INSERT INTO processes (id, title, description, version, "lastUpdated", roles, steps, "formFields", "sopSignoffs", "workflowFormsData", "parentProcessId", status)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+    `, [proc.id, proc.title, proc.description, proc.version, proc.lastUpdated,
+        proc.roles, proc.steps, proc.formFields, proc.sopSignoffs, proc.workflowFormsData,
+        proc.parentProcessId, proc.status]);
+
+    // Insert process_forms links
+    const wfd = JSON.parse(proc.workflowFormsData);
+    for (const [formName, ref] of Object.entries(wfd)) {
+      if (ref.formId) {
+        await client.query(`
+          INSERT INTO process_forms (process_id, form_name, form_id)
+          VALUES ($1, $2, $3)
+          ON CONFLICT (process_id, form_name) DO UPDATE SET form_id = EXCLUDED.form_id, updated_at = NOW()
+        `, [proc.id, formName, ref.formId]);
+      }
+    }
+  }
+
+  console.log('Fresh sample data seeded successfully.');
+}
+
 async function initDatabase() {
   if (!dbPool) return;
   try {
     const client = await dbPool.connect();
     console.log('Connected to Supabase database successfully!');
     await client.query(INITIALIZE_SCHEMA_QUERY);
-    
-    // Add columns dynamically for existing databases, and drop old onlineUrl functionality
+
+    // Migrate process_forms: add form_id column if it doesn't exist yet
     await client.query(`
-      ALTER TABLE process_forms ADD COLUMN IF NOT EXISTS pdf_key TEXT;
-      ALTER TABLE process_forms ADD COLUMN IF NOT EXISTS pdf_size INTEGER DEFAULT 0;
+      ALTER TABLE process_forms ADD COLUMN IF NOT EXISTS form_id TEXT REFERENCES forms(form_id) ON DELETE SET NULL;
+    `).catch(() => {}); // ignore if constraint already exists
+
+    // Remove old PDF columns from process_forms if they exist (no longer needed there)
+    await client.query(`
+      ALTER TABLE process_forms DROP COLUMN IF EXISTS pdf_key;
+      ALTER TABLE process_forms DROP COLUMN IF EXISTS pdf_size;
+      ALTER TABLE process_forms DROP COLUMN IF EXISTS pdf_name;
       ALTER TABLE process_forms DROP COLUMN IF EXISTS online_url;
-    `);
+    `).catch(() => {});
     
     console.log('Database schema verified/created.');
 
+    // Seed default users if missing
     const usersCountRes = await client.query('SELECT COUNT(*) FROM users');
     const usersCount = parseInt(usersCountRes.rows[0].count, 10);
     if (usersCount === 0) {
@@ -149,66 +314,34 @@ async function initDatabase() {
       `);
       console.log('Seeding default users completed.');
     } else {
-      // Auto-update legacy seed user name to 'Tran Duc Duy'
       await client.query("UPDATE users SET full_name = 'Tran Duc Duy' WHERE full_name = 'Tran Duy Anh'");
     }
 
-    const res = await client.query('SELECT COUNT(*) FROM processes');
-    const dbCount = parseInt(res.rows[0].count, 10);
-    if (dbCount === 0) {
-      console.log('Database is empty. Checking for local CSV data to migrate...');
-      if (fs.existsSync(CSV_PATH)) {
-        const processes = await readProcessesFromCSV();
-        if (processes.length > 0) {
-          console.log(`Found ${processes.length} local processes in CSV. Starting migration...`);
-          for (const proc of processes) {
-            await client.query(`
-              INSERT INTO processes (
-                id, title, description, version, "lastUpdated", roles, steps, "formFields", "sopSignoffs", "workflowFormsData", "parentProcessId", status
-              ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-            `, [
-              proc.id,
-              proc.title,
-              proc.description || '',
-              proc.version || '1',
-              proc.lastUpdated,
-              JSON.stringify(proc.roles || []),
-              JSON.stringify(proc.steps || []),
-              JSON.stringify(proc.formFields || []),
-              JSON.stringify(proc.sopSignoffs || {}),
-              JSON.stringify(proc.workflowFormsData || {}),
-              proc.parentProcessId || proc.id,
-              proc.status || 'Active'
-            ]);
-          }
-          console.log('Migration completed successfully!');
+    // Reset and reseed if RESET_DB=true OR if processes table is empty
+    const procCountRes = await client.query('SELECT COUNT(*) FROM processes');
+    const procCount = parseInt(procCountRes.rows[0].count, 10);
+    const shouldReset = process.env.RESET_DB === 'true' || procCount === 0;
+
+    if (shouldReset) {
+      await seedFreshData(client);
+    } else {
+      // Check if forms table is empty but processes exist (existing DB before this change)
+      const formsCountRes = await client.query('SELECT COUNT(*) FROM forms');
+      const formsCount = parseInt(formsCountRes.rows[0].count, 10);
+      if (formsCount === 0) {
+        console.log('forms table is empty with existing processes — seeding forms only...');
+        for (const form of SAMPLE_FORMS) {
+          await client.query(`
+            INSERT INTO forms (form_id, form_name, form_title, status, version, layout_blocks, revision_history)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            ON CONFLICT (form_id) DO NOTHING
+          `, [form.form_id, form.form_name, form.form_title, form.status, form.version, form.layout_blocks, form.revision_history]);
         }
+        console.log('Forms seeded.');
       }
     }
 
-    // Auto-migration: check if there are records in processes with workflowFormsData, 
-    // and populate process_forms if it is empty.
-    const formCountRes = await client.query('SELECT COUNT(*) FROM process_forms');
-    const formCount = parseInt(formCountRes.rows[0].count, 10);
-    if (formCount === 0) {
-      console.log('process_forms table is empty. Attempting migration of existing forms from JSONB fields...');
-      const processesRes = await client.query('SELECT id, "workflowFormsData" FROM processes');
-      for (const row of processesRes.rows) {
-        const workflowFormsData = row.workflowFormsData || {};
-        for (const [formName, formData] of Object.entries(workflowFormsData)) {
-          if (formData && (formData.pdfName || formData.pdfKey)) {
-            await client.query(`
-              INSERT INTO process_forms (process_id, form_name, pdf_name, pdf_key, pdf_size)
-              VALUES ($1, $2, $3, $4, $5)
-              ON CONFLICT (process_id, form_name) DO NOTHING
-            `, [row.id, formName, formData.pdfName || null, formData.pdfKey || null, formData.pdfSize || 0]);
-          }
-        }
-      }
-      console.log('Relational forms migration completed.');
-    }
-
-    // Database Keep-Alive: Ping database every 1 hour to prevent sleep
+    // Database Keep-Alive: Ping every 1 hour
     setInterval(async () => {
       try {
         if (dbPool) {
@@ -226,7 +359,7 @@ async function initDatabase() {
   }
 }
 
-// Sync process forms to the relational table
+// Sync process forms to the relational table (mapping process_id + form_name to form_id)
 async function syncProcessForms(clientOrPool, processId, workflowFormsData) {
   const activeFormNames = Object.keys(workflowFormsData || {});
   
@@ -243,21 +376,17 @@ async function syncProcessForms(clientOrPool, processId, workflowFormsData) {
   }
   
   for (const [formName, formData] of Object.entries(workflowFormsData || {})) {
-    if (formData && (formData.pdfName || formData.pdfKey)) {
+    if (formData && formData.formId) {
       await clientOrPool.query(`
-        INSERT INTO process_forms (process_id, form_name, pdf_name, pdf_key, pdf_size, updated_at)
-        VALUES ($1, $2, $3, $4, $5, NOW())
+        INSERT INTO process_forms (process_id, form_name, form_id, updated_at)
+        VALUES ($1, $2, $3, NOW())
         ON CONFLICT (process_id, form_name) DO UPDATE SET
-          pdf_name = EXCLUDED.pdf_name,
-          pdf_key = EXCLUDED.pdf_key,
-          pdf_size = EXCLUDED.pdf_size,
+          form_id = EXCLUDED.form_id,
           updated_at = EXCLUDED.updated_at
       `, [
         processId,
         formName,
-        formData.pdfName || null,
-        formData.pdfKey || null,
-        formData.pdfSize || 0
+        formData.formId
       ]);
     }
   }
@@ -374,6 +503,189 @@ function writeProcessesToCSV(processes) {
     });
   });
 }
+
+// Helper path for offline form JSON
+const FORMS_JSON_PATH = path.join(__dirname, 'data', 'forms.json');
+
+function readFormsOffline() {
+  if (!fs.existsSync(FORMS_JSON_PATH)) return [];
+  try {
+    return JSON.parse(fs.readFileSync(FORMS_JSON_PATH, 'utf8'));
+  } catch (err) {
+    console.error('Error reading offline forms:', err);
+    return [];
+  }
+}
+
+function writeFormsOffline(forms) {
+  try {
+    fs.writeFileSync(FORMS_JSON_PATH, JSON.stringify(forms, null, 2), 'utf8');
+  } catch (err) {
+    console.error('Error writing offline forms:', err);
+  }
+}
+
+// ─── API FORMS (INDEPENDENT LIFE CYCLE) ──────────────────────────────────────
+
+// GET /api/forms - List all forms
+app.get('/api/forms', async (req, res) => {
+  try {
+    if (dbPool) {
+      const result = await dbPool.query('SELECT * FROM forms ORDER BY form_name ASC');
+      res.json(result.rows);
+    } else {
+      res.json(readFormsOffline());
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch forms' });
+  }
+});
+
+// GET /api/forms/:formId - Get details of a single form
+app.get('/api/forms/:formId', async (req, res) => {
+  try {
+    const { formId } = req.params;
+    if (dbPool) {
+      const result = await dbPool.query('SELECT * FROM forms WHERE form_id = $1', [formId]);
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: 'Form not found' });
+      }
+      res.json(result.rows[0]);
+    } else {
+      const forms = readFormsOffline();
+      const form = forms.find(f => f.form_id === formId);
+      if (!form) return res.status(404).json({ error: 'Form not found' });
+      res.json(form);
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch form details' });
+  }
+});
+
+// POST /api/forms - Save or Update form template (upsert)
+app.post('/api/forms', async (req, res) => {
+  try {
+    const { formId, formName, formTitle, status, version, layoutBlocks, revisionHistory, pdfName, pdfKey, pdfSize } = req.body;
+    
+    if (!formId || !formName) {
+      return res.status(400).json({ error: 'formId and formName are required' });
+    }
+
+    const blocks = Array.isArray(layoutBlocks) ? JSON.stringify(layoutBlocks) : (layoutBlocks || '[]');
+    const history = Array.isArray(revisionHistory) ? JSON.stringify(revisionHistory) : (revisionHistory || '[]');
+
+    if (dbPool) {
+      const query = `
+        INSERT INTO forms (
+          form_id, form_name, form_title, status, version, layout_blocks, revision_history, pdf_name, pdf_key, pdf_size, updated_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
+        ON CONFLICT (form_id) DO UPDATE SET
+          form_name = EXCLUDED.form_name,
+          form_title = EXCLUDED.form_title,
+          status = EXCLUDED.status,
+          version = EXCLUDED.version,
+          layout_blocks = EXCLUDED.layout_blocks,
+          revision_history = EXCLUDED.revision_history,
+          pdf_name = EXCLUDED.pdf_name,
+          pdf_key = EXCLUDED.pdf_key,
+          pdf_size = EXCLUDED.pdf_size,
+          updated_at = NOW()
+        RETURNING *
+      `;
+      const values = [formId, formName, formTitle || formName, status || 'DRAFT', version || 'v0.1', blocks, history, pdfName || null, pdfKey || null, pdfSize || 0];
+      const result = await dbPool.query(query, values);
+      res.status(200).json(result.rows[0]);
+    } else {
+      const forms = readFormsOffline();
+      const existingIdx = forms.findIndex(f => f.form_id === formId);
+      const newForm = {
+        form_id: formId,
+        form_name: formName,
+        form_title: formTitle || formName,
+        status: status || 'DRAFT',
+        version: version || 'v0.1',
+        layout_blocks: Array.isArray(layoutBlocks) ? layoutBlocks : JSON.parse(layoutBlocks || '[]'),
+        revision_history: Array.isArray(revisionHistory) ? revisionHistory : JSON.parse(revisionHistory || '[]'),
+        pdf_name: pdfName || null,
+        pdf_key: pdfKey || null,
+        pdf_size: pdfSize || 0,
+        updated_at: new Date().toISOString()
+      };
+      if (existingIdx >= 0) {
+        forms[existingIdx] = newForm;
+      } else {
+        forms.push(newForm);
+      }
+      writeFormsOffline(forms);
+      res.status(200).json(newForm);
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to save form template' });
+  }
+});
+
+// POST /api/forms/:formId/activate - Transition form to ACTIVE status
+app.post('/api/forms/:formId/activate', async (req, res) => {
+  try {
+    const { formId } = req.params;
+    const { version, revisionHistory } = req.body;
+    
+    const history = Array.isArray(revisionHistory) ? JSON.stringify(revisionHistory) : (revisionHistory || '[]');
+
+    if (dbPool) {
+      const result = await dbPool.query(
+        `UPDATE forms 
+         SET status = 'ACTIVE', version = $1, revision_history = $2, updated_at = NOW() 
+         WHERE form_id = $3 RETURNING *`,
+        [version, history, formId]
+      );
+      if (result.rows.length === 0) return res.status(404).json({ error: 'Form not found' });
+      res.json(result.rows[0]);
+    } else {
+      const forms = readFormsOffline();
+      const form = forms.find(f => f.form_id === formId);
+      if (!form) return res.status(404).json({ error: 'Form not found' });
+      form.status = 'ACTIVE';
+      form.version = version;
+      form.revision_history = Array.isArray(revisionHistory) ? revisionHistory : JSON.parse(revisionHistory || '[]');
+      form.updated_at = new Date().toISOString();
+      writeFormsOffline(forms);
+      res.json(form);
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to activate form' });
+  }
+});
+
+// POST /api/forms/:formId/archive - Archive form template
+app.post('/api/forms/:formId/archive', async (req, res) => {
+  try {
+    const { formId } = req.params;
+    if (dbPool) {
+      const result = await dbPool.query(
+        `UPDATE forms SET status = 'ARCHIVED', updated_at = NOW() WHERE form_id = $1 RETURNING *`,
+        [formId]
+      );
+      if (result.rows.length === 0) return res.status(404).json({ error: 'Form not found' });
+      res.json(result.rows[0]);
+    } else {
+      const forms = readFormsOffline();
+      const form = forms.find(f => f.form_id === formId);
+      if (!form) return res.status(404).json({ error: 'Form not found' });
+      form.status = 'ARCHIVED';
+      form.updated_at = new Date().toISOString();
+      writeFormsOffline(forms);
+      res.json(form);
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to archive form' });
+  }
+});
 
 // GET /api/processes - List all processes
 app.get('/api/processes', async (req, res) => {
@@ -661,6 +973,15 @@ app.post('/api/processes/:id/new-version', async (req, res) => {
       const now = new Date().toISOString();
       const newId = `proc_${parentId}_v${nextVer}`;
 
+      const cleanWorkflowFormsData = {};
+      if (source.workflowFormsData) {
+        for (const [formName, formData] of Object.entries(source.workflowFormsData)) {
+          if (formData && formData.formId) {
+            cleanWorkflowFormsData[formName] = { formId: formData.formId };
+          }
+        }
+      }
+
       const newProcess = {
         ...source,
         id: newId,
@@ -673,7 +994,8 @@ app.post('/api/processes/:id/new-version', async (req, res) => {
           reviewers: (source.sopSignoffs?.reviewers || []).map(r => ({ name: r.name, title: r.title })),
           authorisers: (source.sopSignoffs?.authorisers || []).map(a => ({ name: a.name, title: a.title })),
           effectiveDate: ''
-        }
+        },
+        workflowFormsData: cleanWorkflowFormsData
       };
 
       await dbPool.query(`
@@ -726,6 +1048,15 @@ app.post('/api/processes/:id/new-version', async (req, res) => {
       const now = new Date().toISOString();
       const newId = `proc_${parentId}_v${nextVer}`;
 
+      const cleanWorkflowFormsData = {};
+      if (source.workflowFormsData) {
+        for (const [formName, formData] of Object.entries(source.workflowFormsData)) {
+          if (formData && formData.formId) {
+            cleanWorkflowFormsData[formName] = { formId: formData.formId };
+          }
+        }
+      }
+
       const newProcess = {
         ...source,
         id: newId,
@@ -738,7 +1069,8 @@ app.post('/api/processes/:id/new-version', async (req, res) => {
           reviewers: (source.sopSignoffs?.reviewers || []).map(r => ({ name: r.name, title: r.title })),
           authorisers: (source.sopSignoffs?.authorisers || []).map(a => ({ name: a.name, title: a.title })),
           effectiveDate: ''
-        }
+        },
+        workflowFormsData: cleanWorkflowFormsData
       };
 
       processes.push(newProcess);
@@ -808,7 +1140,7 @@ const STORAGE_QUOTA_LIMIT = 2 * 1024 * 1024 * 1024; // 2,147,483,648 bytes
 // Helper to get total storage usage
 async function getTotalStorageUsage() {
   if (dbPool) {
-    const res = await dbPool.query('SELECT COALESCE(SUM(pdf_size), 0) AS total_size FROM process_forms');
+    const res = await dbPool.query('SELECT COALESCE(SUM(pdf_size), 0) AS total_size FROM forms');
     return parseInt(res.rows[0].total_size, 10) || 0;
   } else {
     const processes = await readProcessesFromCSV();
@@ -1483,5 +1815,7 @@ if (require.main === module) {
 }
 
 module.exports = app;
+
+// Trigger database re-seed on restart for independent versioning schema.
 
 

@@ -420,7 +420,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.35rem', flexWrap: 'wrap' }}>
                       {representative.title}
                       <span className="badge" style={{ backgroundColor: '#f3f4f6', color: 'var(--text-secondary)', border: '1px solid #e5e7eb', fontWeight: 600 }}>
-                        v{representative.version}
+                        {/^[vV]/.test(representative.version || '') ? 'V' + (representative.version || '').trim().slice(1) : 'V' + (representative.version || '').trim()}
                       </span>
                       <span className="badge" style={{ backgroundColor: colors.bg, color: colors.text, border: `1px solid ${colors.border}`, textTransform: 'uppercase', fontSize: '0.7rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '4px' }}>
                         {status}
@@ -519,7 +519,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
                             onClick={() => onSelectProcess(v.id)}
                           >
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flex: 1, minWidth: 0 }}>
-                              <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>v{v.version}</span>
+                              <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+                                {/^[vV]/.test(v.version || '') ? 'V' + (v.version || '').trim().slice(1) : 'V' + (v.version || '').trim()}
+                              </span>
                               <span className="badge" style={{ backgroundColor: vColors.bg, color: vColors.text, fontSize: '0.7rem', padding: '0.1rem 0.4rem', border: `1px solid ${vColors.border}`, textTransform: 'uppercase', fontWeight: 600 }}>
                                 {vStatus}
                               </span>

@@ -103,6 +103,7 @@ export interface FormRevisionEntry {
   date: string;
   author: string;
   change: string;
+  layoutBlocks?: LayoutBlockISO[];
 }
 
 export interface MatrixConfigISO {

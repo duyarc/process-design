@@ -97,6 +97,73 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
 
   const [layoutBlocks, setLayoutBlocks] = useState<LayoutBlockISO[]>(initialData?.layoutBlocks || defaultBlocks);
   const [revisionHistory, setRevisionHistory] = useState<FormRevisionEntry[]>(initialData?.revisionHistory || []);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchFormTemplate = async () => {
+      const targetId = initialData?.formId;
+      if (!targetId) return;
+      try {
+        setLoading(true);
+        const res = await fetch(`/api/forms/${targetId}`);
+        if (res.ok) {
+          const data = await res.json();
+          setFormId(data.form_id);
+          setFormTitle(data.form_title || data.form_name);
+          setVersion(data.version);
+          setStatus(data.status);
+          
+          if (data.layout_blocks) {
+            setLayoutBlocks(typeof data.layout_blocks === 'string' ? JSON.parse(data.layout_blocks) : data.layout_blocks);
+          }
+          if (data.revision_history) {
+            setRevisionHistory(typeof data.revision_history === 'string' ? JSON.parse(data.revision_history) : data.revision_history);
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching form template:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchFormTemplate();
+  }, [initialData?.formId]);
+
+  const saveFormToBackend = async (opts: { versionOverride?: string, statusOverride?: 'ACTIVE' | 'DRAFT' | 'ARCHIVED', historyOverride?: FormRevisionEntry[] } = {}) => {
+    const activeVersion = opts.versionOverride || version;
+    const activeStatus = opts.statusOverride || status;
+    const activeHistory = opts.historyOverride || revisionHistory;
+
+    try {
+      const payload = {
+        formId,
+        formName,
+        formTitle,
+        status: activeStatus,
+        version: activeVersion,
+        layoutBlocks,
+        revisionHistory: activeHistory
+      };
+      
+      const res = await fetch('/api/forms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      
+      if (!res.ok) {
+        throw new Error('Failed to save form template to database');
+      }
+      
+      const savedForm = await res.json();
+      return savedForm;
+    } catch (err) {
+      console.error(err);
+      alert(err instanceof Error ? err.message : 'Error saving form template.');
+      throw err;
+    }
+  };
   
   // Selection and editor states
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
@@ -104,7 +171,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
   const [changeSummary, setChangeSummary] = useState('');
   const [effectiveDate, setEffectiveDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [isLocked, setIsLocked] = useState(initialData?.status === 'ACTIVE');
-  const [printPreviewData, setPrintPreviewData] = useState<FormTemplateISO | null>(null);
+   const [printPreviewData, setPrintPreviewData] = useState<FormTemplateISO | null>(null);
+   const [currentDraftBackup, setCurrentDraftBackup] = useState<{ layoutBlocks: LayoutBlockISO[]; version: string; isLocked: boolean } | null>(null);
+   const [viewingRevisionVersion, setViewingRevisionVersion] = useState<string | null>(null);
 
   useEffect(() => {
     setIsLocked(status === 'ACTIVE');
@@ -486,7 +555,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
 
   // 4. Save and Publish
 
-  const handlePublish = () => {
+  const handlePublish = async () => {
     if (!changeSummary.trim()) {
       alert('Please enter a change summary before publishing a new active version.');
       return;
@@ -513,7 +582,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
       version: `v${major}.${minor}`,
       date: approveDate,
       author: 'QA Administrator',
-      change: changeSummary
+      change: changeSummary,
+      layoutBlocks: JSON.parse(JSON.stringify(layoutBlocks))
     };
 
     const updatedHistory = [newHistoryEntry, ...revisionHistory];
@@ -524,16 +594,87 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
     setIsLocked(true);
     setChangeSummary('');
 
-    onSave({
-      formId,
-      formTitle,
-      version: newActiveVersion,
-      status: 'ACTIVE',
-      layoutBlocks,
-      revisionHistory: updatedHistory
-    });
+    try {
+      setLoading(true);
+      await saveFormToBackend({
+        versionOverride: newActiveVersion,
+        statusOverride: 'ACTIVE',
+        historyOverride: updatedHistory
+      });
 
-    alert(`Successfully published active version: ${newActiveVersion}. This template is now locked for quality compliance.`);
+      onSave({
+        formId,
+        formTitle,
+        version: newActiveVersion,
+        status: 'ACTIVE'
+      });
+
+      alert(`Successfully published active version: ${newActiveVersion}. This template is now locked for quality compliance.`);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRestoreRevision = (entry: FormRevisionEntry) => {
+    if (!entry.layoutBlocks || entry.layoutBlocks.length === 0) {
+      alert(`This revision entry (${entry.version}) does not have layout blocks stored. It might be a log-only entry from an older version.`);
+      return;
+    }
+    
+    // Backup the current working draft if we haven't already
+    if (!currentDraftBackup) {
+      setCurrentDraftBackup({
+        layoutBlocks: JSON.parse(JSON.stringify(layoutBlocks)),
+        version: version,
+        isLocked: isLocked
+      });
+    }
+
+    // Load the revision blocks
+    const restoredBlocks = JSON.parse(JSON.stringify(entry.layoutBlocks));
+    setLayoutBlocks(restoredBlocks);
+
+    // Set version name, status as retired, and lock the view
+    const formattedVersion = `${entry.version} (${entry.date}) [RETIRED]`;
+    setVersion(formattedVersion);
+    setIsLocked(true);
+    setViewingRevisionVersion(entry.version);
+  };
+
+  const handleReturnToDraft = () => {
+    if (currentDraftBackup) {
+      setLayoutBlocks(currentDraftBackup.layoutBlocks);
+      setVersion(currentDraftBackup.version);
+      setIsLocked(currentDraftBackup.isLocked);
+      
+      setCurrentDraftBackup(null);
+      setViewingRevisionVersion(null);
+    }
+  };
+
+  const handleCommitRestore = () => {
+    if (!viewingRevisionVersion) return;
+    if (confirm(`Bạn có chắc chắn muốn khôi phục phiên bản ${viewingRevisionVersion} thành bản nháp hiện tại không? Bản nháp chưa lưu hiện tại sẽ bị ghi đè.`)) {
+      // Find the revision entry to get its clean version number (e.g. "v0.1")
+      const entry = revisionHistory.find(h => h.version === viewingRevisionVersion);
+      const baseVersion = entry ? entry.version : 'v0.1';
+      
+      // Parse major/minor of the restored version
+      const { major, minor } = parseVersion(baseVersion);
+      const draftVersion = `v${major}.${minor} (draft)`;
+      
+      setVersion(draftVersion);
+      setStatus('DRAFT');
+      setIsLocked(false);
+      
+      // Discard the backup draft and exit read-only preview mode
+      setCurrentDraftBackup(null);
+      setViewingRevisionVersion(null);
+      
+      alert(`Đã khôi phục phiên bản ${baseVersion} thành bản nháp hiện tại (${draftVersion}). Bạn có thể bắt đầu chỉnh sửa bản nháp này.`);
+    }
   };
 
   const handleCreateNewVersion = () => {
@@ -546,16 +687,22 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
     alert(`New draft version created: ${draftVersion}. You can now make edits. The previous version remains active in production until you publish this draft.`);
   };
 
-  const handleSaveDraftAndClose = () => {
-    onSave({
-      formId,
-      formTitle,
-      version,
-      status,
-      layoutBlocks,
-      revisionHistory
-    });
-    onClose();
+  const handleSaveDraftAndClose = async () => {
+    try {
+      setLoading(true);
+      await saveFormToBackend();
+      onSave({
+        formId,
+        formTitle,
+        version,
+        status
+      });
+      onClose();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDiscardChangesAndClose = () => {
@@ -567,6 +714,16 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
   // Find currently selected element details
   const activeBlock = layoutBlocks.find(b => b.id === activeBlockId);
   const activeField = activeBlock?.fields.find(f => f.id === activeFieldId);
+
+  // Render Loading spinner
+  if (loading) {
+    return (
+      <div style={{ textAlign: 'center', padding: '5rem', background: '#f8fafc', height: '80vh', display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column', gap: '1rem' }}>
+        <div className="spinner-border text-primary" role="status" style={{ width: '3rem', height: '3rem' }}></div>
+        <p style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Loading form template from database...</p>
+      </div>
+    );
+  }
 
   // Render Print Preview bypass
   if (printPreviewData) {
@@ -601,6 +758,58 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
       borderRadius: '8px',
       overflow: 'hidden'
     }}>
+      {/* Warning banner when viewing old revision in read-only mode */}
+      {viewingRevisionVersion && (
+        <div style={{
+          background: '#fffbeb',
+          borderBottom: '1px solid #fde68a',
+          padding: '0.5rem 1.25rem',
+          fontSize: '0.82rem',
+          color: '#b45309',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          fontWeight: 500
+        }}>
+          <span>
+            ⚠️ Bạn đang xem phiên bản cũ <strong>{viewingRevisionVersion}</strong> (Chế độ chỉ đọc - Read-only).
+          </span>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button
+              type="button"
+              onClick={handleCommitRestore}
+              style={{
+                background: '#059669',
+                border: 'none',
+                color: '#ffffff',
+                padding: '0.2rem 0.6rem',
+                borderRadius: '4px',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+            >
+              Khôi phục thành bản nháp hiện tại
+            </button>
+            <button
+              type="button"
+              onClick={handleReturnToDraft}
+              style={{
+                background: '#b45309',
+                border: 'none',
+                color: '#ffffff',
+                padding: '0.2rem 0.6rem',
+                borderRadius: '4px',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+            >
+              Quay lại bản nháp hiện tại
+            </button>
+          </div>
+        </div>
+      )}
       {/* Title bar */}
       <div style={{
         display: 'flex',
@@ -1923,6 +2132,35 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                   </div>
                 </div>
 
+                {isLocked && (
+                  <div style={{ marginTop: '0.15rem' }}>
+                    <button
+                      type="button"
+                      onClick={handleCreateNewVersion}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.35rem',
+                        width: '100%',
+                        padding: '0.4rem 0.75rem',
+                        background: '#0f172a',
+                        border: '1px solid #0f172a',
+                        color: '#ffffff',
+                        borderRadius: '6px',
+                        fontSize: '0.78rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        transition: 'background-color 0.15s ease'
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = '#1e293b'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = '#0f172a'; }}
+                    >
+                      <Plus size={12} /> NEW DRAFT
+                    </button>
+                  </div>
+                )}
+
                 {!isLocked && (
                   <>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
@@ -1969,16 +2207,37 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                       <span>Revision History</span>
                     </h4>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', maxHeight: '150px', overflowY: 'auto', paddingRight: '4px' }}>
-                      {revisionHistory.map((h, i) => (
-                        <div key={i} style={{ padding: '0.35rem', background: '#f8fafc', borderRadius: '4px', border: '1px solid var(--neutral-border)', fontSize: '0.7rem' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 600, marginBottom: '2px' }}>
-                            <span>{h.version}</span>
-                            <span style={{ color: 'var(--text-muted)' }}>{h.date}</span>
+                      {revisionHistory.map((h, i) => {
+                        const hasLayout = !!(h.layoutBlocks && h.layoutBlocks.length > 0);
+                        return (
+                          <div 
+                            key={i} 
+                            style={{ 
+                              padding: '0.45rem', 
+                              background: '#ffffff', 
+                              borderRadius: '6px', 
+                              border: '1px solid var(--neutral-border)', 
+                              fontSize: '0.75rem',
+                              cursor: hasLayout ? 'pointer' : 'default',
+                              transition: 'all 0.15s ease',
+                              opacity: hasLayout ? 1 : 0.7
+                            }}
+                            className={hasLayout ? "hover-card-bg" : ""}
+                            onClick={() => hasLayout && handleRestoreRevision(h)}
+                            title={hasLayout ? "Click to view this version in read-only mode" : "Version log details"}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 600, marginBottom: '2px', color: '#0f4c81' }}>
+                              <span style={{ display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                                {h.version}
+                                {hasLayout && <span style={{ fontSize: '0.6rem', color: '#0284c7', background: '#e0f2fe', padding: '0.02rem 0.2rem', borderRadius: '3px' }}>VIEW</span>}
+                              </span>
+                              <span style={{ color: 'var(--text-muted)', fontSize: '0.68rem' }}>{h.date}</span>
+                            </div>
+                            <div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>{h.change}</div>
+                            <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '4px', textAlign: 'right' }}>By: {h.author}</div>
                           </div>
-                          <div style={{ color: 'var(--text-secondary)', fontSize: '0.65rem' }}>{h.change}</div>
-                          <div style={{ fontSize: '0.6rem', color: 'var(--text-muted)', marginTop: '2px', textAlign: 'right' }}>By: {h.author}</div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}

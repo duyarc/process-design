@@ -239,6 +239,13 @@ const MainApp: React.FC = () => {
               setInitialFormToBuild(null);
             }}
             onSaveSuccess={handleSaveSuccess}
+            onOpenDraft={(id) => {
+              // After creating a new draft, open its editor directly
+              setSelectedProcessId(id);
+              setInitialEditorTab('versions');
+              setInitialFormToBuild(null);
+              // page stays 'editor', React re-renders with new processId
+            }}
             initialTab={initialEditorTab}
             initialFormToBuild={initialFormToBuild}
             onClearInitialEditOpts={() => {
@@ -254,6 +261,7 @@ const MainApp: React.FC = () => {
             onEdit={handleEditProcess}
             initialPrintFormName={initialPrintFormName}
             onClearPrintForm={() => setInitialPrintFormName(null)}
+            onSwitchVersion={(id) => setSelectedProcessId(id)}
           />
         )}
         {page === 'form-manager' && (

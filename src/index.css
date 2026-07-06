@@ -125,8 +125,6 @@ p {
 }
 
 .paper-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-lg);
   border-color: var(--primary);
 }
 
@@ -214,13 +212,12 @@ input[readonly] {
 }
 
 .btn-primary:hover {
-  transform: translateY(-2px);
   box-shadow: var(--shadow-md);
   filter: brightness(1.05);
 }
 
 .btn-primary:active {
-  transform: translateY(0);
+  background-color: var(--secondary);
 }
 
 .btn-secondary {
@@ -234,11 +231,10 @@ input[readonly] {
   background-color: #f9fafb;
   color: #111827;
   border-color: #d1d5db;
-  transform: translateY(-2px);
 }
 
 .btn-secondary:active {
-  transform: translateY(0);
+  background-color: #f3f4f6;
 }
 
 .btn-danger {
@@ -249,7 +245,6 @@ input[readonly] {
 
 .btn-danger:hover {
   background-color: #dc2626;
-  transform: translateY(-2px);
 }
 
 .btn-sm {

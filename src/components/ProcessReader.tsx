@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import type { Process, SubmissionFieldSnapshot } from '../types';
 import { formatFormVersion } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { ArrowLeft, Printer, Edit2, Camera, AlertTriangle, X, PenTool, GitBranch } from 'lucide-react';
+import { ArrowLeft, Printer, Edit2, Camera, AlertTriangle, X, PenTool, GitBranch, Eye } from 'lucide-react';
 import { generateBPMNXML, getNumRows } from '../utils/bpmnXmlGenerator';
 import { BpmnViewerComponent } from './BpmnViewerComponent';
 import PrintBlankForm from './print/PrintBlankForm';
@@ -13,6 +13,7 @@ interface ProcessReaderProps {
   onEdit: (id: string) => void;
   initialPrintFormName?: string | null;
   onClearPrintForm?: () => void;
+  onSwitchVersion?: (id: string) => void;
 }
 
 const statusColors: { [key: string]: { bg: string, text: string, border: string } } = {
@@ -28,9 +29,11 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
   onBack, 
   onEdit, 
   initialPrintFormName, 
-  onClearPrintForm 
+  onClearPrintForm,
+  onSwitchVersion
 }) => {
   const [process, setProcess] = useState<Process | null>(null);
+  const [allVersions, setAllVersions] = useState<Process[]>([]);
   const [loading, setLoading] = useState(true);
 
 
@@ -46,6 +49,19 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
   const [submitting, setSubmitting] = useState(false);
   const [printTemplateData, setPrintTemplateData] = useState<any | null>(null);
   const [isDirectPrint, setIsDirectPrint] = useState(false);
+  const [allForms, setAllForms] = useState<any[]>([]);
+
+  const fetchFormsList = async () => {
+    try {
+      const res = await fetch('/api/forms');
+      if (res.ok) {
+        const data = await res.json();
+        setAllForms(data);
+      }
+    } catch (err) {
+      console.error('Error fetching forms list:', err);
+    }
+  };
 
   const handleDownloadPdf = async (pdfKey: string) => {
     try {
@@ -260,6 +276,19 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
       const found = list.find(p => p.id === processId);
       if (found) {
         setProcess(found);
+        
+        // Find sibling versions
+        const pid = found.parentProcessId || found.id;
+        const siblings = list.filter(p => p.parentProcessId === pid || p.id === pid);
+        siblings.sort((a, b) => {
+          const aVer = parseFloat(a.version.replace(/[^0-9.]/g, '')) || 0;
+          const bVer = parseFloat(b.version.replace(/[^0-9.]/g, '')) || 0;
+          return bVer - aVer;
+        });
+        setAllVersions(siblings);
+      } else {
+        alert('Không tìm thấy quy trình. Bạn sẽ được chuyển hướng về Dashboard.');
+        onBack();
       }
     } catch (err) {
       console.error(err);
@@ -272,20 +301,43 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchProcess();
+    fetchFormsList();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [processId]);
 
   useEffect(() => {
-    if (initialPrintFormName && process && process.workflowFormsData) {
-      const formData = process.workflowFormsData[initialPrintFormName];
-      if (formData) {
-        setPrintTemplateData(formData as any);
-        setIsDirectPrint(true);
+    const loadPrintTemplate = async () => {
+      if (initialPrintFormName && process && process.workflowFormsData) {
+        const formData = process.workflowFormsData[initialPrintFormName];
+        if (formData && formData.formId) {
+          try {
+            setLoading(true);
+            const res = await fetch(`/api/forms/${formData.formId}`);
+            if (res.ok) {
+              const liveForm = await res.json();
+              const fullTemplate = {
+                ...formData,
+                formTitle: liveForm.form_title || liveForm.form_name,
+                layoutBlocks: typeof liveForm.layout_blocks === 'string' ? JSON.parse(liveForm.layout_blocks) : liveForm.layout_blocks,
+                revisionHistory: typeof liveForm.revision_history === 'string' ? JSON.parse(liveForm.revision_history) : liveForm.revision_history,
+                version: liveForm.version,
+                status: liveForm.status
+              };
+              setPrintTemplateData(fullTemplate as any);
+              setIsDirectPrint(true);
+            }
+          } catch (err) {
+            console.error('Error loading print template:', err);
+          } finally {
+            setLoading(false);
+          }
+        }
+        if (onClearPrintForm) {
+          onClearPrintForm();
+        }
       }
-      if (onClearPrintForm) {
-        onClearPrintForm();
-      }
-    }
+    };
+    loadPrintTemplate();
   }, [initialPrintFormName, process]);
 
   const handlePrint = () => {
@@ -311,6 +363,22 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
 
   const status = process.status || 'Active';
   const colors = statusColors[status] || { bg: '#e5e7eb', text: '#4b5563', border: '#cbd5e1' };
+
+  const getFormattedVersionString = (proc: Process) => {
+    const rawVersion = proc.version || '0.1';
+    const cleanVersion = /^[vV]/.test(rawVersion) ? rawVersion.trim().slice(1) : rawVersion.trim();
+    const dateSource = proc.sopSignoffs?.effectiveDate || proc.lastUpdated;
+    if (!dateSource) return `V${cleanVersion}`;
+    try {
+      const d = new Date(dateSource);
+      const day = String(d.getDate()).padStart(2, '0');
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const year = d.getFullYear();
+      return `V${cleanVersion}-${day}.${month}.${year}`;
+    } catch (e) {
+      return `V${cleanVersion}`;
+    }
+  };
 
   // Calculate workflow output forms
   const workflowFormsList: string[] = [];
@@ -494,26 +562,6 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
         }
       `}</style>
 
-      {/* Action Header Panel */}
-      <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <button className="btn btn-secondary" onClick={onBack}>
-          <ArrowLeft size={16} />
-          Back to Dashboard
-        </button>
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-          {status === 'Draft' && hasPermission('design_document') && (
-            <button className="btn btn-secondary" onClick={() => onEdit(process.id)}>
-              <Edit2 size={16} />
-              Edit
-            </button>
-          )}
-          <button className="btn btn-primary" onClick={handlePrint}>
-            <Printer size={16} />
-            Print
-          </button>
-        </div>
-      </div>
-
       {/* Document Cover / Header Block */}
       <div className="paper-card accent-teal avoid-page-break no-print" style={{ padding: '1.25rem', marginBottom: '1.5rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
@@ -523,22 +571,84 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
               {process.description || 'No description provided.'}
             </p>
           </div>
-          <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0, alignItems: 'center' }}>
-            <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>v{process.version}</span>
+          <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0, alignItems: 'center', flexWrap: 'wrap' }}>
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              padding: '0.25rem 0.6rem',
+              fontSize: '0.78rem',
+              borderRadius: '6px',
+              border: '1px solid var(--neutral-border)',
+              background: '#ffffff',
+              color: 'var(--text-primary)',
+              fontWeight: 600
+            }}>
+              <GitBranch size={13} style={{ marginRight: '0.3rem', color: 'var(--text-secondary)' }} />
+              <select
+                value={process.id}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (onSwitchVersion) {
+                    onSwitchVersion(val);
+                  }
+                }}
+                style={{
+                  border: 'none',
+                  background: 'transparent',
+                  padding: 0,
+                  margin: 0,
+                  width: 'auto',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  color: 'var(--text-primary)',
+                  cursor: 'pointer',
+                  outline: 'none',
+                  boxShadow: 'none'
+                }}
+              >
+                {(allVersions.length > 0 ? allVersions : [process]).map(v => {
+                  return (
+                    <option key={v.id} value={v.id}>
+                      {getFormattedVersionString(v)}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+
             <span className="badge" style={{ backgroundColor: colors.bg, color: colors.text, border: `1px solid ${colors.border}`, textTransform: 'uppercase', fontSize: '0.68rem', fontWeight: 700, padding: '0.15rem 0.45rem', borderRadius: '4px', margin: 0 }}>
               {status}
             </span>
-            {hasPermission('design_document') && (
+            
+            {status === 'Draft' && hasPermission('design_document') ? (
               <button
                 className="btn btn-secondary btn-sm"
                 style={{ margin: 0, display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', padding: '0.25rem 0.6rem' }}
                 onClick={() => onEdit(process.id)}
-                title="Manage versions, sign-off setup and lifecycle"
               >
-                <GitBranch size={13} />
-                Versions
+                <Edit2 size={13} />
+                Edit
+              </button>
+            ) : (
+              <button
+                className="btn btn-secondary btn-sm"
+                style={{ margin: 0, display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', padding: '0.25rem 0.6rem' }}
+                onClick={() => onEdit(process.id)}
+                title="Xem cấu hình quy trình"
+              >
+                <Eye size={13} />
+                View
               </button>
             )}
+
+            <button
+              className="btn btn-primary btn-sm"
+              style={{ margin: 0, display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', padding: '0.25rem 0.6rem' }}
+              onClick={handlePrint}
+            >
+              <Printer size={13} />
+              Print
+            </button>
           </div>
         </div>
       </div>
@@ -579,24 +689,16 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                     <span style={{ color: 'var(--text-primary)' }}>{process.description || 'No description provided.'}</span>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', fontSize: '0.85rem' }}>
-                    <span style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Version & Status:</span>
+                    <span style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Version:</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>v{process.version}</span>
+                      <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
+                        {getFormattedVersionString(process)}
+                      </span>
                       <span className="badge" style={{ backgroundColor: colors.bg, color: colors.text, border: `1px solid ${colors.border}`, textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 700, padding: '0.15rem 0.4rem', borderRadius: '4px', margin: 0 }}>
                         {status}
                       </span>
                     </div>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', fontSize: '0.85rem' }}>
-                    <span style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Last Updated:</span>
-                    <span style={{ color: 'var(--text-primary)' }}>{new Date(process.lastUpdated).toLocaleDateString()}</span>
-                  </div>
-                  {process.sopSignoffs?.effectiveDate && (
-                    <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', fontSize: '0.85rem' }}>
-                      <span style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Effective Date:</span>
-                      <span style={{ fontWeight: 600, color: 'var(--primary)' }}>{new Date(process.sopSignoffs.effectiveDate).toLocaleDateString()}</span>
-                    </div>
-                  )}
                 </div>
 
 
@@ -645,12 +747,17 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                     {workflowForms.map((formName) => {
                       const formData = (process.workflowFormsData || {})[formName] || {};
-                      let attachmentText = '';
+                      const liveForm = allForms.find(f => f.form_id === formData?.formId);
                       const hasDigitalForm = !!formData.formId;
-                                      if (formData.pdfName) {
+                      const liveVersion = liveForm ? liveForm.version : (formData.version || '');
+                      const liveLayoutBlocks = liveForm ? (typeof liveForm.layout_blocks === 'string' ? JSON.parse(liveForm.layout_blocks) : liveForm.layout_blocks) : null;
+                      const hasLayoutBlocks = liveLayoutBlocks && liveLayoutBlocks.length > 0;
+
+                      let attachmentText = '';
+                      if (formData.pdfName) {
                         attachmentText = formData.pdfName;
                       } else if (hasDigitalForm) {
-                        const rawVersion = (formData.version || '').trim();
+                        const rawVersion = (liveVersion || '').trim();
                         let normalizedVersion = rawVersion;
                         const dateRegex = /(\d{4})-(\d{2})-(\d{2})/;
                         const dateMatch = normalizedVersion.match(dateRegex);
@@ -665,9 +772,6 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                           normalizedVersion = 'V' + normalizedVersion.slice(1);
                         }
                         attachmentText = `${formData.formId}${normalizedVersion ? ` • ${normalizedVersion}` : ''}`;
-                      } else if (formData.layoutBlocks && formData.layoutBlocks.length > 0) {
-                        const totalFields = formData.layoutBlocks.flatMap((b: any) => b.fields).length;
-                        attachmentText = `Custom Form • ${totalFields} fields`;
                       }
 
                       const hasPdf = !!formData.pdfName;
@@ -690,7 +794,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                             )}
                           </div>
                           <div className="no-print" style={{ display: 'flex', gap: '0.4rem', flexShrink: 0 }}>
-                            {hasDigitalForm && formData.layoutBlocks && (
+                            {hasDigitalForm && hasLayoutBlocks && (
                               <>
                                 <button
                                   type="button"
@@ -717,7 +821,19 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                                 </button>
                                 <button
                                   type="button"
-                                  onClick={() => setPrintTemplateData(formData as any)}
+                                  onClick={() => {
+                                    if (formData && liveForm) {
+                                      const fullTemplate = {
+                                        ...formData,
+                                        formTitle: liveForm.form_title || liveForm.form_name,
+                                        layoutBlocks: typeof liveForm.layout_blocks === 'string' ? JSON.parse(liveForm.layout_blocks) : liveForm.layout_blocks,
+                                        revisionHistory: typeof liveForm.revision_history === 'string' ? JSON.parse(liveForm.revision_history) : liveForm.revision_history,
+                                        version: liveForm.version,
+                                        status: liveForm.status
+                                      };
+                                      setPrintTemplateData(fullTemplate as any);
+                                    }
+                                  }}
                                   style={{ 
                                     display: 'inline-flex',
                                     alignItems: 'center',
@@ -823,7 +939,18 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
           }}>
             {/* Header */}
             {(() => {
-              const formTemplate = (process.workflowFormsData || {})[activeFormToFill];
+              const formData = (process.workflowFormsData || {})[activeFormToFill];
+              const liveForm = allForms.find(f => f.form_id === formData?.formId);
+              
+              const formTemplate = formData && liveForm ? {
+                ...formData,
+                formTitle: liveForm.form_title || liveForm.form_name,
+                layoutBlocks: typeof liveForm.layout_blocks === 'string' ? JSON.parse(liveForm.layout_blocks) : liveForm.layout_blocks,
+                revisionHistory: typeof liveForm.revision_history === 'string' ? JSON.parse(liveForm.revision_history) : liveForm.revision_history,
+                version: liveForm.version,
+                status: liveForm.status
+              } : null;
+
               if (!formTemplate || !formTemplate.layoutBlocks) {
                 return (
                   <div style={{ padding: '2rem', textAlign: 'center' }}>

@@ -107,6 +107,7 @@ interface ProcessEditorProps {
   processId: string | null; // null means create new
   onCancel: () => void;
   onSaveSuccess: (id: string) => void;
+  onOpenDraft?: (id: string) => void;
   initialTab?: 'description' | 'workflow' | 'form';
   initialFormToBuild?: string | null;
   onClearInitialEditOpts?: () => void;
@@ -116,6 +117,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
   processId, 
   onCancel, 
   onSaveSuccess,
+  onOpenDraft,
   initialTab,
   initialFormToBuild,
   onClearInitialEditOpts
@@ -141,6 +143,10 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
     authorisers: [{ name: '', title: '' }],
     effectiveDate: new Date().toISOString().split('T')[0]
   });
+  // Flat editable sign-off rows (UI representation)
+  const [signoffRows, setSignoffRows] = useState<Array<{role: string; name: string; title: string}>>(
+    [{ role: 'Author', name: '', title: '' }, { role: 'Reviewer', name: '', title: '' }, { role: 'Authoriser', name: '', title: '' }]
+  );
   const [workflowFormsData, setWorkflowFormsData] = useState<{
     [formName: string]: {
       pdfName?: string;
@@ -164,6 +170,19 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
   const [quota, setQuota] = useState<{ totalSize: number; quotaLimit: number; percentage: string; isConfigured: boolean } | null>(null);
   const [isUploading, setIsUploading] = useState<{ [formName: string]: boolean }>({});
   const [debouncedXml, setDebouncedXml] = useState('');
+  const [allForms, setAllForms] = useState<any[]>([]);
+
+  const fetchFormsList = async () => {
+    try {
+      const res = await fetch('/api/forms');
+      if (res.ok) {
+        const data = await res.json();
+        setAllForms(data);
+      }
+    } catch (err) {
+      console.error('Error fetching forms list:', err);
+    }
+  };
 
   // Handle initial tab / form builder redirection
   useEffect(() => {
@@ -435,11 +454,32 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
         });
         setWorkflowFormsData(proc.workflowFormsData || {});
 
+        // Convert sopSignoffs to flat rows for UI
+        const loadedSop2 = (proc.sopSignoffs || {}) as SOPSignOffs & { reviewer?: SOPSignOff; authoriser?: SOPSignOff };
+        const flatRows: Array<{role: string; name: string; title: string}> = [];
+        if (loadedSop2.author?.name || loadedSop2.author?.title) {
+          flatRows.push({ role: 'Author', name: loadedSop2.author.name || '', title: loadedSop2.author.title || '' });
+        }
+        (loadedSop2.reviewers || (loadedSop2.reviewer ? [loadedSop2.reviewer] : [])).forEach(r => {
+          flatRows.push({ role: 'Reviewer', name: r.name || '', title: r.title || '' });
+        });
+        (loadedSop2.authorisers || (loadedSop2.authoriser ? [loadedSop2.authoriser] : [])).forEach(a => {
+          flatRows.push({ role: 'Authoriser', name: a.name || '', title: a.title || '' });
+        });
+        if (flatRows.length === 0) {
+          flatRows.push({ role: 'Author', name: '', title: '' }, { role: 'Reviewer', name: '', title: '' }, { role: 'Authoriser', name: '', title: '' });
+        }
+        setSignoffRows(flatRows);
+
         // Load sibling versions for the Versions tab
         const pid = proc.parentProcessId || proc.id;
         const siblings = list.filter(p => p.parentProcessId === pid || p.id === pid);
         siblings.sort((a, b) => (parseInt(b.version, 10) || 0) - (parseInt(a.version, 10) || 0));
         setAllVersions(siblings);
+      } else {
+        console.error(`Process with ID ${id} not found in the loaded list.`, list);
+        alert(`Không tìm thấy quy trình với ID: ${id}. Bạn sẽ được chuyển hướng về Dashboard.`);
+        onCancel();
       }
     } catch (err) {
       console.error(err);
@@ -504,13 +544,17 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
 
   const handleCreateNewDraftEditor = async () => {
     if (!processId) return;
-    if (!window.confirm(`Create a new Draft version based on Version ${version}?`)) return;
     try {
       setVersionActionLoading(true);
       const res = await fetch(`/api/processes/${processId}/new-version`, { method: 'POST' });
       if (!res.ok) throw new Error('Failed to create new draft version');
       const newDraft = await res.json();
-      onSaveSuccess(newDraft.id);
+      // Navigate directly into the new draft's editor (not back to prevPage)
+      if (onOpenDraft) {
+        onOpenDraft(newDraft.id);
+      } else {
+        onSaveSuccess(newDraft.id);
+      }
     } catch (err) {
       console.error(err);
       alert('Error creating new draft version.');
@@ -892,6 +936,20 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
       }
     });
 
+    // Convert flat signoffRows to legacy sopSignoffs structure for API compatibility
+    const authorRow = signoffRows.find(r => r.role.toLowerCase() === 'author');
+    const reviewerRowsList = signoffRows.filter(r => r.role.toLowerCase() === 'reviewer' || r.role.toLowerCase() === 'reviewers');
+    const authoriserRowsList = signoffRows.filter(r => r.role.toLowerCase() === 'authoriser' || r.role.toLowerCase() === 'authorisers');
+    const otherRows = signoffRows.filter(r => !['author','reviewer','reviewers','authoriser','authorisers'].includes(r.role.toLowerCase()));
+    // Other roles become extra reviewers
+    const allReviewers = [...reviewerRowsList, ...otherRows];
+    const sopSignoffsToSave: SOPSignOffs = {
+      author: authorRow ? { name: authorRow.name, title: authorRow.title } : { name: '', title: '' },
+      reviewers: allReviewers.map(r => ({ name: r.name, title: r.title })),
+      authorisers: authoriserRowsList.map(r => ({ name: r.name, title: r.title })),
+      effectiveDate: sopSignoffs.effectiveDate
+    };
+
     const processPayload = {
       id: processId || undefined,
       parentProcessId: parentProcessId || undefined,
@@ -902,7 +960,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
       roles,
       steps: stepsToSave,
       formFields: filteredFields,
-      sopSignoffs,
+      sopSignoffs: sopSignoffsToSave,
       workflowFormsData: cleanedFormsData
     };
 
@@ -930,6 +988,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
       // eslint-disable-next-line react-hooks/set-state-in-effect
       fetchProcess(processId);
       fetchQuotaStatus();
+      fetchFormsList();
     } else {
       // Initialize with default Start step and one form field
       setStatus('Draft');
@@ -944,6 +1003,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
       setSteps([step1]);
       handleAddFormField();
       fetchQuotaStatus();
+      fetchFormsList();
     }
   }, [processId]);
 
@@ -981,70 +1041,86 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
 
   return (
     <div>
-      {/* Editor Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <button className="btn btn-secondary" onClick={onCancel}>
-          <ArrowLeft size={16} />
-          Back to Dashboard
-        </button>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          {processId && hasPermission('version_document') && !isReadOnly && (
-            <button 
-              className="btn btn-outline-danger" 
-              onClick={handleDeleteProcess} 
-              disabled={saving}
-            >
-              <Trash2 size={16} />
-              Delete
-            </button>
-          )}
-          {!isReadOnly && (
-            <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
-              <Save size={16} />
-              {saving ? 'Saving...' : 'Save'}
-            </button>
-          )}
-        </div>
-      </div>
-
       <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
 
-        {/* Tab Selection */}
-        <div style={{ display: 'flex', borderBottom: '1px solid var(--neutral-border)', marginBottom: '1.5rem', gap: '0.25rem' }}>
-          {(['description', 'workflow', 'form', 'versions'] as const).map((tab) => {
-            const tabLabels: Record<string, string> = {
-              description: 'Description',
-              workflow: `Workflow (${steps.length})`,
-              form: `Form (${workflowForms.length})`,
-              versions: 'Versions'
-            };
-            return (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className="btn btn-secondary"
-                style={{
-                  borderBottom: activeTab === tab ? '2px solid var(--primary)' : '2px solid transparent',
-                  borderRadius: '4px 4px 0 0',
-                  background: activeTab === tab ? '#ffffff' : 'transparent',
-                  boxShadow: 'none',
-                  fontWeight: activeTab === tab ? 600 : 400,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.35rem'
-                }}
+        {/* Tab Selection Row containing Actions */}
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          borderBottom: '1px solid var(--neutral-border)', 
+          marginBottom: '1.5rem', 
+          flexWrap: 'wrap',
+          gap: '0.5rem'
+        }}>
+          <div style={{ display: 'flex', gap: '0.25rem', marginBottom: '-1px' }}>
+            {(['description', 'workflow', 'form', 'versions'] as const).map((tab) => {
+              const tabLabels: Record<string, string> = {
+                description: 'Description',
+                workflow: `Workflow (${steps.length})`,
+                form: `Form (${workflowForms.length})`,
+                versions: 'Versions'
+              };
+              return (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className="btn btn-secondary"
+                  style={{
+                    borderBottom: activeTab === tab ? '2px solid var(--primary)' : '2px solid transparent',
+                    borderRadius: '4px 4px 0 0',
+                    background: activeTab === tab ? '#ffffff' : 'transparent',
+                    boxShadow: 'none',
+                    fontWeight: activeTab === tab ? 600 : 400,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    padding: '0.4rem 0.75rem',
+                    fontSize: '0.82rem',
+                    borderLeft: 'none',
+                    borderRight: 'none',
+                    borderTop: 'none'
+                  }}
+                >
+                  {tab === 'versions' && <GitBranch size={13} />}
+                  {tabLabels[tab]}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Compact Action Buttons on the right side of the Tab Row */}
+          <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', paddingBottom: '0.3rem' }}>
+            {processId && hasPermission('version_document') && !isReadOnly && (
+              <button 
+                className="btn btn-outline-danger btn-sm" 
+                onClick={handleDeleteProcess} 
+                disabled={saving}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.25rem 0.5rem', fontSize: '0.75rem', margin: 0 }}
+                title="Delete this draft version"
               >
-                {tab === 'versions' && <GitBranch size={14} />}
-                {tabLabels[tab]}
+                <Trash2 size={13} />
+                Delete
               </button>
-            );
-          })}
+            )}
+            {!isReadOnly && (
+              <button 
+                className="btn btn-primary btn-sm" 
+                onClick={handleSave} 
+                disabled={saving}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.25rem 0.6rem', fontSize: '0.75rem', margin: 0 }}
+              >
+                <Save size={13} />
+                {saving ? 'Saving...' : 'Save'}
+              </button>
+            )}
+          </div>
         </div>
 
-        <fieldset style={{ border: 'none', padding: 0, margin: 0 }} disabled={isReadOnly}>
         {/* TAB 1: DESCRIPTION */}
         {activeTab === 'description' && (
-          <div className="paper-card accent-teal">
+          <fieldset style={{ border: 'none', padding: 0, margin: 0 }} disabled={isReadOnly}>
+            <div className="paper-card accent-teal">
             <h2 style={{ borderBottom: '1px solid var(--neutral-border)', paddingBottom: '0.75rem', marginBottom: '1.5rem' }}>Process Description &amp; Metadata</h2>
 
             <div className="form-group" style={{ marginBottom: '1.5rem' }}>
@@ -1157,331 +1233,404 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
             </div>
 
           </div>
+          </fieldset>
         )}
 
         {/* TAB 4: VERSIONS */}
         {activeTab === 'versions' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
-            {/* Section A: Version Card + Lifecycle Actions */}             <div className="paper-card accent-teal" style={{ padding: '1.5rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  <h2 style={{ margin: '0 0 0.35rem 0', fontSize: '1.2rem' }}>{title || 'Untitled Process'}</h2>
-                  
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-                    <span className="badge" style={{
-                      backgroundColor:
-                        status === 'Draft' ? '#f3f4f6' :
-                        status === 'Pending Review' ? '#fef3c7' :
-                        status === 'Active' ? '#d1fae5' :
-                        status === 'Retired' ? '#fee2e2' : '#f3f4f6',
-                      color:
-                        status === 'Draft' ? '#4b5563' :
-                        status === 'Pending Review' ? '#92400e' :
-                        status === 'Active' ? '#065f46' :
-                        status === 'Retired' ? '#991b1b' : '#4b5563',
-                      border:
-                        status === 'Draft' ? '1px solid #d1d5db' :
-                        status === 'Pending Review' ? '1px solid #fcd34d' :
-                        status === 'Active' ? '1px solid #6ee7b7' :
-                        status === 'Retired' ? '1px solid #fca5a5' : '1px solid #d1d5db',
-                      textTransform: 'uppercase', fontWeight: 700, fontSize: '0.7rem', padding: '0.15rem 0.5rem', borderRadius: '4px'
-                    }}>
-                      {status === 'Draft' && <><Clock size={11} style={{ marginRight: '3px', verticalAlign: 'middle' }} />Draft</>}
-                      {status === 'Pending Review' && <><AlertTriangle size={11} style={{ marginRight: '3px', verticalAlign: 'middle' }} />Pending Review</>}
-                      {status === 'Active' && <><CheckCircle size={11} style={{ marginRight: '3px', verticalAlign: 'middle' }} />Active</>}
-                      {status === 'Retired' && <><XCircle size={11} style={{ marginRight: '3px', verticalAlign: 'middle' }} />Retired</>}
-                      {status === 'Superseded' && <><XCircle size={11} style={{ marginRight: '3px', verticalAlign: 'middle' }} />Superseded</>}
+            {/* Section A: Version Card + Lifecycle Actions */}             {/* Gộp toàn bộ thành một Toolbar ngang duy nhất */}
+             <div style={{
+               display: 'flex',
+               justifyContent: 'space-between',
+               alignItems: 'center',
+               padding: '0.65rem 1rem',
+               background: '#f8fafc',
+               border: '1px solid var(--neutral-border)',
+               borderRadius: '8px',
+               gap: '1rem',
+               flexWrap: 'wrap'
+             }}>
+               {/* Bên trái: Các trường nhập liệu nhanh (Version & Effective Date) */}
+               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                 {/* Phiên bản */}
+                 {(status === 'Draft' || status === 'Pending Review') ? (
+                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                     <span style={{ fontWeight: 600, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>V</span>
+                     <input 
+                       type="number" 
+                       min="0"
+                       value={major} 
+                       onChange={(e) => setVersion(`v${parseInt(e.target.value, 10) || 0}.${minor}`)} 
+                       style={{ 
+                         width: '40px', 
+                         padding: '0.15rem 0.25rem', 
+                         fontSize: '0.8rem', 
+                         border: '1px solid var(--neutral-border)', 
+                         borderRadius: '4px',
+                         textAlign: 'center',
+                         fontWeight: 700
+                       }} 
+                     />
+                     <span style={{ fontWeight: 600, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>.</span>
+                     <input 
+                       type="number" 
+                       min="0"
+                       value={minor} 
+                       onChange={(e) => setVersion(`v${major}.${parseInt(e.target.value, 10) || 0}`)} 
+                       style={{ 
+                         width: '40px', 
+                         padding: '0.15rem 0.25rem', 
+                         fontSize: '0.8rem', 
+                         border: '1px solid var(--neutral-border)', 
+                         borderRadius: '4px',
+                         textAlign: 'center',
+                         fontWeight: 700
+                       }} 
+                     />
+                   </div>
+                 ) : (
+                    <span style={{ fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-primary)' }}>
+                      {/^[vV]/.test(version || '') ? 'V' + (version || '').trim().slice(1) : 'V' + (version || '').trim()}
                     </span>
+                 )}
 
-                    {/* Version input */}
-                    {(status === 'Draft' || status === 'Pending Review') ? (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                        <span style={{ fontWeight: 600, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>V</span>
-                        <input 
-                          type="number" 
-                          min="0"
-                          value={major} 
-                          onChange={(e) => setVersion(`v${parseInt(e.target.value, 10) || 0}.${minor}`)} 
-                          style={{ 
-                            width: '45px', 
-                            padding: '0.15rem 0.25rem', 
-                            fontSize: '0.8rem', 
-                            border: '1px solid var(--neutral-border)', 
-                            borderRadius: '4px',
-                            textAlign: 'center',
-                            fontWeight: 700
-                          }} 
-                        />
-                        <span style={{ fontWeight: 600, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>.</span>
-                        <input 
-                          type="number" 
-                          min="0"
-                          value={minor} 
-                          onChange={(e) => setVersion(`v${major}.${parseInt(e.target.value, 10) || 0}`)} 
-                          style={{ 
-                            width: '45px', 
-                            padding: '0.15rem 0.25rem', 
-                            fontSize: '0.8rem', 
-                            border: '1px solid var(--neutral-border)', 
-                            borderRadius: '4px',
-                            textAlign: 'center',
-                            fontWeight: 700
-                          }} 
-                        />
-                      </div>
-                    ) : (
-                      <span style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)' }}>Version {version}</span>
-                    )}
+                 {/* Ngày hiệu lực */}
+                 {(status === 'Draft' || status === 'Pending Review') ? (
+                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', borderLeft: '1px solid #e2e8f0', paddingLeft: '1rem' }}>
+                     <Calendar size={13} style={{ color: 'var(--text-muted)' }} />
+                     <input 
+                       type="date" 
+                       value={sopSignoffs.effectiveDate || ''} 
+                       onChange={(e) => setSopSignoffs(prev => ({ ...prev, effectiveDate: e.target.value }))} 
+                       style={{ 
+                         padding: '0.15rem 0.25rem', 
+                         fontSize: '0.8rem', 
+                         border: 'none',
+                         background: 'transparent',
+                         outline: 'none',
+                         color: 'var(--text-primary)',
+                         width: '115px'
+                       }} 
+                     />
+                   </div>
+                 ) : (
+                   sopSignoffs.effectiveDate && (
+                     <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', borderLeft: '1px solid #e2e8f0', paddingLeft: '1rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                       <Calendar size={12} />
+                       Effective: <strong style={{ color: 'var(--text-secondary)' }}>{new Date(sopSignoffs.effectiveDate).toLocaleDateString()}</strong>
+                     </span>
+                   )
+                 )}
+               </div>
 
-                    {/* Effective Date input */}
-                    {(status === 'Draft' || status === 'Pending Review') ? (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginLeft: '0.5rem' }}>
-                        <span style={{ fontWeight: 600, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Effective Date:</span>
-                        <input 
-                          type="date" 
-                          value={sopSignoffs.effectiveDate || ''} 
-                          onChange={(e) => setSopSignoffs(prev => ({ ...prev, effectiveDate: e.target.value }))} 
-                          style={{ 
-                            padding: '0.15rem 0.35rem', 
-                            fontSize: '0.8rem', 
-                            border: '1px solid var(--neutral-border)', 
-                            borderRadius: '4px',
-                            outline: 'none',
-                            color: 'var(--text-primary)'
-                          }} 
-                        />
-                      </div>
-                    ) : (
-                      sopSignoffs.effectiveDate && (
-                        <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginLeft: '0.5rem' }}>
-                          Effective Date: <strong style={{ color: 'var(--text-secondary)' }}>{sopSignoffs.effectiveDate}</strong>
-                        </span>
-                      )
-                    )}
-                  </div>
-                </div>
+               {/* Bên phải: Luồng trạng thái tích hợp các hành động nhỏ gọn */}
+               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                 {/* DRAFT */}
+                 <span style={{
+                   padding: '0.2rem 0.45rem',
+                   borderRadius: '4px',
+                   fontWeight: 700,
+                   fontSize: '0.68rem',
+                   textTransform: 'uppercase',
+                   background: status === 'Draft' ? '#fffbeb' : '#f1f5f9',
+                   color: status === 'Draft' ? '#b45309' : '#94a3b8',
+                   border: status === 'Draft' ? '1px solid #fde68a' : '1px solid #e2e8f0',
+                   letterSpacing: '0.5px'
+                 }}>
+                   Draft
+                 </span>
 
-                {/* Contextual lifecycle action buttons */}
-                {processId && (
-                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                    {status === 'Draft' && (
-                      <>
-                        <button
-                          className="btn btn-secondary"
-                          onClick={handleSubmitForReview}
-                          disabled={versionActionLoading}
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
-                        >
-                          <Clock size={15} />
-                          Submit for Review
-                        </button>
-                        <button
-                          className="btn btn-primary"
-                          onClick={handleActivateVersion}
-                          disabled={versionActionLoading}
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
-                        >
-                          <CheckCircle size={15} />
-                          Activate Version
-                        </button>
-                      </>
-                    )}
-                    {status === 'Pending Review' && (
-                      <button
-                        className="btn btn-primary"
-                        onClick={handleActivateVersion}
-                        disabled={versionActionLoading}
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
-                      >
-                        <CheckCircle size={15} />
-                        Activate / Sign-off
-                      </button>
-                    )}
-                    {(status === 'Active' || status === 'Pending Review') && (
-                      <button
-                        className="btn btn-secondary"
-                        onClick={handleCreateNewDraftEditor}
-                        disabled={versionActionLoading}
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
-                      >
-                        <Plus size={15} />
-                        New Version
-                      </button>
-                    )}
-                    {status === 'Active' && (
-                      <button
-                        className="btn btn-outline-danger"
-                        onClick={handleRetireVersion}
-                        disabled={versionActionLoading}
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
-                      >
-                        <XCircle size={15} />
-                        Retire
-                      </button>
-                    )}
-                  </div>
-                )}
+                 <span style={{ color: '#94a3b8', display: 'flex', alignItems: 'center' }}>
+                   {status === 'Draft' ? (
+                     <button
+                       className="btn btn-primary btn-sm hover-card-bg"
+                       onClick={handleSubmitForReview}
+                       disabled={versionActionLoading}
+                       style={{
+                         padding: '0.2rem 0.5rem',
+                         fontSize: '0.68rem',
+                         margin: '0 0.25rem',
+                         display: 'inline-flex',
+                         alignItems: 'center',
+                         gap: '0.2rem',
+                         background: 'var(--primary)',
+                         border: '1px solid var(--primary)',
+                         color: '#ffffff',
+                         borderRadius: '4px',
+                         boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                         fontWeight: 700,
+                         textTransform: 'uppercase',
+                         letterSpacing: '0.5px'
+                       }}
+                     >
+                       Submit →
+                     </button>
+                   ) : (
+                     '→'
+                   )}
+                 </span>
+
+                 {/* PENDING REVIEW */}
+                 <span style={{
+                   padding: '0.2rem 0.45rem',
+                   borderRadius: '4px',
+                   fontWeight: 700,
+                   fontSize: '0.68rem',
+                   textTransform: 'uppercase',
+                   background: status === 'Pending Review' ? '#eff6ff' : '#f1f5f9',
+                   color: status === 'Pending Review' ? '#1d4ed8' : '#94a3b8',
+                   border: status === 'Pending Review' ? '1px solid #bfdbfe' : '1px solid #e2e8f0',
+                   letterSpacing: '0.5px'
+                 }}>
+                   Review
+                 </span>
+
+                 <span style={{ color: '#94a3b8', display: 'flex', alignItems: 'center' }}>
+                   {(status === 'Draft' || status === 'Pending Review') ? (
+                     <button
+                       className="btn btn-primary btn-sm hover-card-bg"
+                       onClick={handleActivateVersion}
+                       disabled={versionActionLoading}
+                       style={{
+                         padding: '0.2rem 0.5rem',
+                         fontSize: '0.68rem',
+                         margin: '0 0.25rem',
+                         display: 'inline-flex',
+                         alignItems: 'center',
+                         gap: '0.2rem',
+                         background: 'var(--primary)',
+                         border: '1px solid var(--primary)',
+                         color: '#ffffff',
+                         borderRadius: '4px',
+                         boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                         fontWeight: 700,
+                         textTransform: 'uppercase',
+                         letterSpacing: '0.5px'
+                       }}
+                     >
+                       Activate →
+                     </button>
+                   ) : (
+                     '→'
+                   )}
+                 </span>
+
+                 {/* ACTIVE */}
+                 <span style={{
+                   padding: '0.2rem 0.45rem',
+                   borderRadius: '4px',
+                   fontWeight: 700,
+                   fontSize: '0.68rem',
+                   textTransform: 'uppercase',
+                   background: status === 'Active' ? '#ecfdf5' : '#f1f5f9',
+                   color: status === 'Active' ? '#047857' : '#94a3b8',
+                   border: status === 'Active' ? '1px solid #a7f3d0' : '1px solid #e2e8f0',
+                   letterSpacing: '0.5px'
+                 }}>
+                   Active
+                 </span>
+
+                 <span style={{ color: '#94a3b8' }}>→</span>
+
+                 {/* RETIRED */}
+                 <span style={{
+                   padding: '0.2rem 0.45rem',
+                   borderRadius: '4px',
+                   fontWeight: 700,
+                   fontSize: '0.68rem',
+                   textTransform: 'uppercase',
+                   background: status === 'Retired' ? '#fef2f2' : '#f1f5f9',
+                   color: status === 'Retired' ? '#b91c1c' : '#94a3b8',
+                   border: status === 'Retired' ? '1px solid #fecaca' : '1px solid #e2e8f0',
+                   letterSpacing: '0.5px'
+                 }}>
+                   Retired
+                 </span>
+
+                 {/* Các nút hành động đặc biệt ở cuối nếu cần (New Version/Retire) */}
+                 {processId && (
+                   <div style={{ display: 'flex', gap: '0.35rem', borderLeft: '1px solid #e2e8f0', paddingLeft: '0.5rem', marginLeft: '0.25rem' }}>
+                     {(status === 'Active' || status === 'Pending Review') && (
+                       <button
+                         className="btn btn-secondary btn-sm"
+                         onClick={handleCreateNewDraftEditor}
+                         disabled={versionActionLoading}
+                         style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', padding: '0.2rem 0.45rem', fontSize: '0.68rem', margin: 0, textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.5px' }}
+                       >
+                         <Plus size={11} /> New Draft
+                       </button>
+                     )}
+                     {status === 'Active' && (
+                       <button
+                         className="btn btn-outline-danger btn-sm"
+                         onClick={handleRetireVersion}
+                         disabled={versionActionLoading}
+                         style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', padding: '0.2rem 0.45rem', fontSize: '0.68rem', margin: 0, textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.5px' }}
+                       >
+                         <XCircle size={11} /> Retire
+                       </button>
+                     )}
+                   </div>
+                 )}
+               </div>
+             </div>
+
+            {/* Section B+C: Sign-off Setup + Version History (merged) */}
+            <div style={{
+              backgroundColor: 'var(--neutral-card)',
+              border: '1px solid var(--neutral-border)',
+              borderLeft: '4px solid var(--primary)',
+              borderRadius: 'var(--card-radius)',
+              padding: '1rem',
+              boxShadow: 'var(--shadow-sm)',
+              marginBottom: '1.5rem',
+              position: 'relative',
+              overflow: 'hidden'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.65rem' }}>
+                <Shield size={13} style={{ color: 'var(--primary)' }} />
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-secondary)' }}>Sign-off Setup</span>
               </div>
 
-              {/* Lifecycle flow diagram */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1rem', background: '#f8fafc', borderRadius: '6px', border: '1px solid var(--neutral-border)', fontSize: '0.78rem', flexWrap: 'wrap' }}>
-                {(['Draft', 'Pending Review', 'Active', 'Retired'] as const).map((s, i) => (
-                  <React.Fragment key={s}>
-                    <span style={{ padding: '0.2rem 0.55rem', borderRadius: '4px', fontWeight: status === s ? 700 : 500, background: status === s ? 'var(--primary)' : '#e2e8f0', color: status === s ? '#ffffff' : '#64748b', fontSize: '0.75rem' }}>
-                      {s}
-                    </span>
-                    {i < 3 && <span style={{ color: '#94a3b8' }}>→</span>}
-                  </React.Fragment>
-                ))}
-              </div>
-            </div>
-
-            {/* Section B: Sign-off Setup */}
-            <div className="paper-card" style={{ padding: '1.5rem', borderLeft: '4px solid var(--primary)' }}>
-              <h3 style={{ fontSize: '1rem', marginBottom: '1.25rem', color: 'var(--text-primary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Shield size={16} /> Sign-off Setup
-              </h3>
-
-              <div style={{ background: '#f9fafb', padding: '1.25rem', borderRadius: '8px', border: '1px solid var(--neutral-border)' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '1rem' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '0.5rem' }}>
                   <thead>
                     <tr>
-                      <th style={{ textAlign: 'left', paddingBottom: '0.75rem', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', width: '20%' }}>ROLE</th>
-                      <th style={{ textAlign: 'left', paddingBottom: '0.75rem', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', width: '37.5%', paddingLeft: '0.5rem' }}>NAME</th>
-                      <th style={{ textAlign: 'left', paddingBottom: '0.75rem', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', width: '37.5%', paddingLeft: '0.5rem' }}>WORK TITLE</th>
-                      <th style={{ textAlign: 'center', paddingBottom: '0.75rem', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', width: '5%' }}></th>
+                      <th style={{ textAlign: 'left', paddingBottom: '0.35rem', fontSize: '0.68rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', width: '22%' }}>Role</th>
+                      <th style={{ textAlign: 'left', paddingBottom: '0.35rem', fontSize: '0.68rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', width: '35%', paddingLeft: '0.4rem' }}>Name</th>
+                      <th style={{ textAlign: 'left', paddingBottom: '0.35rem', fontSize: '0.68rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', paddingLeft: '0.4rem' }}>Work Title</th>
+                      <th style={{ width: '30px' }}></th>
                     </tr>
                   </thead>
                   <tbody>
-                    {/* Author Row */}
-                    <tr>
-                      <td style={{ padding: '0.75rem 0', fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-primary)', verticalAlign: 'middle' }}>Author</td>
-                      <td style={{ padding: '0.75rem 0.5rem', verticalAlign: 'middle' }}>
-                        <input type="text" placeholder="Enter author name" value={sopSignoffs.author?.name || ''}
-                          onChange={(e) => setSopSignoffs(prev => ({ ...prev, author: { ...(prev.author || { name: '', title: '' }), name: e.target.value } }))}
-                          style={{ padding: '0.45rem 0.6rem', fontSize: '0.875rem', margin: 0, width: '100%', background: '#ffffff' }} />
+                  {signoffRows.map((row, idx) => (
+                    <tr key={idx} style={{ borderTop: idx === 0 ? 'none' : '1px solid rgba(0,0,0,0.05)' }}>
+                      <td style={{ padding: '0.25rem 0', verticalAlign: 'middle' }}>
+                        <input
+                          type="text"
+                          placeholder="e.g. Author"
+                          value={row.role}
+                          onChange={(e) => {
+                            const next = [...signoffRows];
+                            next[idx] = { ...next[idx], role: e.target.value };
+                            setSignoffRows(next);
+                          }}
+                          style={{ padding: '0.25rem 0.4rem', fontSize: '0.8rem', margin: 0, width: '100%', background: '#ffffff', fontWeight: 600 }}
+                        />
                       </td>
-                      <td style={{ padding: '0.75rem 0.5rem', verticalAlign: 'middle' }}>
-                        <input type="text" placeholder="Enter author work title" value={sopSignoffs.author?.title || ''}
-                          onChange={(e) => setSopSignoffs(prev => ({ ...prev, author: { ...(prev.author || { name: '', title: '' }), title: e.target.value } }))}
-                          style={{ padding: '0.45rem 0.6rem', fontSize: '0.875rem', margin: 0, width: '100%', background: '#ffffff' }} />
+                      <td style={{ padding: '0.25rem 0.35rem', verticalAlign: 'middle' }}>
+                        <input
+                          type="text"
+                          placeholder="Full name"
+                          value={row.name}
+                          onChange={(e) => {
+                            const next = [...signoffRows];
+                            next[idx] = { ...next[idx], name: e.target.value };
+                            setSignoffRows(next);
+                          }}
+                          style={{ padding: '0.25rem 0.4rem', fontSize: '0.8rem', margin: 0, width: '100%' }}
+                        />
                       </td>
-                      <td style={{ width: '40px' }}></td>
+                      <td style={{ padding: '0.25rem 0.35rem', verticalAlign: 'middle' }}>
+                        <input
+                          type="text"
+                          placeholder="Work title"
+                          value={row.title}
+                          onChange={(e) => {
+                            const next = [...signoffRows];
+                            next[idx] = { ...next[idx], title: e.target.value };
+                            setSignoffRows(next);
+                          }}
+                          style={{ padding: '0.25rem 0.4rem', fontSize: '0.8rem', margin: 0, width: '100%' }}
+                        />
+                      </td>
+                      <td style={{ width: '30px', padding: '0.25rem 0 0.25rem 0.3rem', textAlign: 'center', verticalAlign: 'middle' }}>
+                        {signoffRows.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => setSignoffRows(prev => prev.filter((_, i) => i !== idx))}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', padding: '0.15rem', display: 'flex', alignItems: 'center', borderRadius: '4px' }}
+                            title="Remove row"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        )}
+                      </td>
                     </tr>
-                    {/* Reviewers */}
-                    {(sopSignoffs.reviewers || []).map((rev, idx) => (
-                      <tr key={`reviewer-${idx}`} style={{ borderTop: '1px solid rgba(0,0,0,0.05)' }}>
-                        <td style={{ padding: '0.75rem 0', fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-primary)', verticalAlign: 'middle' }}>
-                          Reviewer {sopSignoffs.reviewers && sopSignoffs.reviewers.length > 1 ? `#${idx + 1}` : ''}
-                        </td>
-                        <td style={{ padding: '0.75rem 0.5rem', verticalAlign: 'middle' }}>
-                          <input type="text" placeholder="Enter reviewer name" value={rev.name || ''}
-                            onChange={(e) => { const list = [...(sopSignoffs.reviewers || [])]; list[idx] = { ...list[idx], name: e.target.value }; setSopSignoffs(prev => ({ ...prev, reviewers: list })); }}
-                            style={{ padding: '0.45rem 0.6rem', fontSize: '0.875rem', margin: 0, width: '100%', background: '#ffffff' }} />
-                        </td>
-                        <td style={{ padding: '0.75rem 0.5rem', verticalAlign: 'middle' }}>
-                          <input type="text" placeholder="Enter reviewer work title" value={rev.title || ''}
-                            onChange={(e) => { const list = [...(sopSignoffs.reviewers || [])]; list[idx] = { ...list[idx], title: e.target.value }; setSopSignoffs(prev => ({ ...prev, reviewers: list })); }}
-                            style={{ padding: '0.45rem 0.6rem', fontSize: '0.875rem', margin: 0, width: '100%', background: '#ffffff' }} />
-                        </td>
-                        <td style={{ width: '40px', padding: '0.75rem 0 0.75rem 0.5rem', textAlign: 'center', verticalAlign: 'middle' }}>
-                          <button type="button" className="btn btn-danger btn-sm"
-                            onClick={() => { const list = (sopSignoffs.reviewers || []).filter((_, i) => i !== idx); setSopSignoffs(prev => ({ ...prev, reviewers: list })); }}
-                            style={{ padding: '0.35rem', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: 0 }}>
-                            <Trash2 size={14} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                    {/* Authorisers */}
-                    {(sopSignoffs.authorisers || []).map((auth, idx) => (
-                      <tr key={`authoriser-${idx}`} style={{ borderTop: '1px solid rgba(0,0,0,0.05)' }}>
-                        <td style={{ padding: '0.75rem 0', fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-primary)', verticalAlign: 'middle' }}>
-                          Authoriser {sopSignoffs.authorisers && sopSignoffs.authorisers.length > 1 ? `#${idx + 1}` : ''}
-                        </td>
-                        <td style={{ padding: '0.75rem 0.5rem', verticalAlign: 'middle' }}>
-                          <input type="text" placeholder="Enter authoriser name" value={auth.name || ''}
-                            onChange={(e) => { const list = [...(sopSignoffs.authorisers || [])]; list[idx] = { ...list[idx], name: e.target.value }; setSopSignoffs(prev => ({ ...prev, authorisers: list })); }}
-                            style={{ padding: '0.45rem 0.6rem', fontSize: '0.875rem', margin: 0, width: '100%', background: '#ffffff' }} />
-                        </td>
-                        <td style={{ padding: '0.75rem 0.5rem', verticalAlign: 'middle' }}>
-                          <input type="text" placeholder="Enter authoriser work title" value={auth.title || ''}
-                            onChange={(e) => { const list = [...(sopSignoffs.authorisers || [])]; list[idx] = { ...list[idx], title: e.target.value }; setSopSignoffs(prev => ({ ...prev, authorisers: list })); }}
-                            style={{ padding: '0.45rem 0.6rem', fontSize: '0.875rem', margin: 0, width: '100%', background: '#ffffff' }} />
-                        </td>
-                        <td style={{ width: '40px', padding: '0.75rem 0 0.75rem 0.5rem', textAlign: 'center', verticalAlign: 'middle' }}>
-                          <button type="button" className="btn btn-danger btn-sm"
-                            onClick={() => { const list = (sopSignoffs.authorisers || []).filter((_, i) => i !== idx); setSopSignoffs(prev => ({ ...prev, authorisers: list })); }}
-                            style={{ padding: '0.35rem', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: 0 }}>
-                            <Trash2 size={14} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                  ))}
                   </tbody>
                 </table>
 
-                {/* Add controls */}
-                <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.25rem' }}>
-                  <button type="button" className="btn btn-secondary btn-sm"
-                    onClick={() => setSopSignoffs(prev => ({ ...prev, reviewers: [...(prev.reviewers || []), { name: '', title: '' }] }))}
-                    style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                    <Plus size={14} /> Add Reviewer
-                  </button>
-                  <button type="button" className="btn btn-secondary btn-sm"
-                    onClick={() => setSopSignoffs(prev => ({ ...prev, authorisers: [...(prev.authorisers || []), { name: '', title: '' }] }))}
-                    style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                    <Plus size={14} /> Add Authoriser
-                  </button>
-                </div>
-              </div>
-            </div>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => setSignoffRows(prev => [...prev, { role: '', name: '', title: '' }])}
+                style={{ padding: '0.2rem 0.6rem', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+              >
+                <Plus size={12} /> Add Row
+              </button>
 
-            {/* Section C: Version History */}
-            <div className="paper-card" style={{ padding: '1.5rem', borderLeft: '4px solid #94a3b8' }}>
-              <h3 style={{ fontSize: '1rem', marginBottom: '1.25rem', color: 'var(--text-primary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <GitBranch size={16} /> Version History
-              </h3>
+              {/* Divider */}
+              <div style={{ borderTop: '1px solid var(--neutral-border)', margin: '0.85rem 0 0.7rem' }} />
+
+              {/* Version History — inline */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.55rem' }}>
+                <GitBranch size={13} style={{ color: '#94a3b8' }} />
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-secondary)' }}>Version History</span>
+              </div>
+
+              {/* Version History list */}
               {allVersions.length === 0 ? (
-                <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem', border: '1px dashed var(--neutral-border)', borderRadius: '6px' }}>
+                <div style={{ padding: '0.65rem 1rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem', border: '1px dashed var(--neutral-border)', borderRadius: '5px' }}>
                   No version history available.
                 </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
                   {allVersions.map((v) => {
                     const vStatus = v.status || 'Active';
                     const isCurrent = v.id === processId;
                     const vColors = {
-                      'Draft': { bg: '#f3f4f6', text: '#4b5563', border: '#d1d5db' },
+                         'Draft': { bg: '#f3f4f6', text: '#4b5563', border: '#d1d5db' },
                       'Pending Review': { bg: '#fef3c7', text: '#92400e', border: '#fcd34d' },
                       'Active': { bg: '#d1fae5', text: '#065f46', border: '#6ee7b7' },
                       'Retired': { bg: '#fee2e2', text: '#991b1b', border: '#fca5a5' },
                       'Superseded': { bg: '#e5e7eb', text: '#374151', border: '#d1d5db' },
                     }[vStatus] || { bg: '#e5e7eb', text: '#4b5563', border: '#cbd5e1' };
                     return (
-                      <div key={v.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.65rem 1rem', background: isCurrent ? '#f0fdfa' : '#f9fafb', borderRadius: '6px', border: isCurrent ? '1px solid #99f6e4' : '1px solid var(--neutral-border)', fontSize: '0.82rem', transition: 'all 0.15s ease' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, minWidth: 0 }}>
-                          <span style={{ fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>v{v.version}</span>
-                          {isCurrent && <span style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--primary)', background: '#f0fdfa', border: '1px solid #99f6e4', padding: '0.05rem 0.35rem', borderRadius: '3px' }}>CURRENT</span>}
-                          <span className="badge" style={{ backgroundColor: vColors.bg, color: vColors.text, border: `1px solid ${vColors.border}`, fontSize: '0.68rem', padding: '0.1rem 0.4rem', textTransform: 'uppercase', fontWeight: 700 }}>{vStatus}</span>
+                      <div
+                        key={v.id}
+                        onClick={!isCurrent ? () => onOpenDraft ? onOpenDraft(v.id) : onSaveSuccess(v.id) : undefined}
+                        style={{
+                          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                          padding: '0.4rem 0.7rem',
+                          background: isCurrent ? '#f0fdfa' : '#f9fafb',
+                          borderRadius: '5px',
+                          border: isCurrent ? '1px solid #99f6e4' : '1px solid var(--neutral-border)',
+                          fontSize: '0.78rem',
+                          cursor: isCurrent ? 'default' : 'pointer',
+                          transition: 'background 0.15s, border-color 0.15s',
+                        }}
+                        onMouseEnter={e => { if (!isCurrent) { e.currentTarget.style.background = '#e0f2fe'; e.currentTarget.style.borderColor = '#7dd3fc'; } }}
+                        onMouseLeave={e => { if (!isCurrent) { e.currentTarget.style.background = '#f9fafb'; e.currentTarget.style.borderColor = 'var(--neutral-border)'; } }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', flex: 1, minWidth: 0 }}>
+                          <span style={{ fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
+                            {/^[vV]/.test(v.version || '') ? 'V' + (v.version || '').trim().slice(1) : 'V' + (v.version || '').trim()}
+                          </span>
+                          {isCurrent && <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--primary)', background: '#f0fdfa', border: '1px solid #99f6e4', padding: '0.05rem 0.3rem', borderRadius: '3px', textTransform: 'uppercase' }}>Current</span>}
+                          <span className="badge" style={{ backgroundColor: vColors.bg, color: vColors.text, border: `1px solid ${vColors.border}`, fontSize: '0.65rem', padding: '0.05rem 0.35rem', textTransform: 'uppercase', fontWeight: 700 }}>{vStatus}</span>
                           <span style={{ color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             Updated: {new Date(v.lastUpdated).toLocaleDateString()}
                           </span>
                           {v.sopSignoffs?.effectiveDate && (
-                            <span style={{ color: 'var(--text-secondary)', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                              <Calendar size={12} /> Effective: {new Date(v.sopSignoffs.effectiveDate).toLocaleDateString()}
+                            <span style={{ color: 'var(--text-secondary)', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                              <Calendar size={11} /> {new Date(v.sopSignoffs.effectiveDate).toLocaleDateString()}
                             </span>
                           )}
                         </div>
                         {!isCurrent && (
-                          <button
-                            className="btn btn-secondary btn-sm"
-                            style={{ padding: '0.2rem 0.5rem', fontSize: '0.7rem', margin: 0, whiteSpace: 'nowrap' }}
-                            onClick={() => onSaveSuccess(v.id)}
-                          >
-                            Open
-                          </button>
+                          <span style={{ color: '#94a3b8', fontSize: '0.75rem', marginLeft: '0.5rem', flexShrink: 0 }}>→</span>
                         )}
                       </div>
                     );
@@ -1494,7 +1643,8 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
 
         {/* TAB 2: WORKFLOW BUILDER */}
         {activeTab === 'workflow' && (
-          <div>
+          <fieldset style={{ border: 'none', padding: 0, margin: 0 }} disabled={isReadOnly}>
+            <div>
             <div style={{ marginBottom: '1.5rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.8rem' }}>
                 <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
@@ -1945,51 +2095,24 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
               </button>
             )}
           </div>
+          </fieldset>
         )}
 
         {/* TAB 3: FORM */}
         {activeTab === 'form' && (
-          <div className="paper-card accent-teal">
-
-            {quota && quota.isConfigured && (
-              <div className="quota-container" style={{
-                background: '#f8fafc',
-                border: '1px solid var(--neutral-border)',
-                borderRadius: '8px',
-                padding: '1rem',
-                marginBottom: '1.5rem',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                  <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                    ☁️ Cloud Storage Quota (2 GB Limit)
-                  </span>
-                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: parseFloat(quota.percentage) > 85 ? '#ef4444' : 'var(--primary)' }}>
-                    {formatBytes(quota.totalSize)} / {formatBytes(quota.quotaLimit)} ({quota.percentage}%)
-                  </span>
-                </div>
-                <div style={{
-                  background: '#e2e8f0',
-                  borderRadius: '9999px',
-                  height: '8px',
-                  overflow: 'hidden',
-                  width: '100%'
-                }}>
-                  <div style={{
-                    background: parseFloat(quota.percentage) > 85 ? '#ef4444' : 'linear-gradient(90deg, var(--primary) 0%, #10b981 100%)',
-                    height: '100%',
-                    width: `${Math.min(parseFloat(quota.percentage), 100)}%`,
-                    borderRadius: '9999px',
-                    transition: 'width 0.4s ease'
-                  }} />
-                </div>
-                {parseFloat(quota.percentage) > 85 && (
-                  <p style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.4rem', marginBottom: 0, fontWeight: 500 }}>
-                    ⚠️ Storage quota is running low. Please remove unused PDF attachments before uploading new ones.
-                  </p>
-                )}
-              </div>
-            )}
+          <div style={{
+            backgroundColor: 'var(--neutral-card)',
+            border: '1px solid var(--neutral-border)',
+            borderRadius: 'var(--card-radius)',
+            padding: '1.25rem 1.5rem',
+            boxShadow: 'var(--shadow-md)',
+            position: 'relative',
+            overflow: 'hidden',
+            borderTop: '3px solid var(--primary)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1rem'
+          }}>
 
             {workflowForms.length === 0 ? (
               <div style={{ padding: '2.5rem', border: '1px dashed var(--neutral-border)', borderRadius: '8px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.9rem', background: '#fafafa' }}>
@@ -1999,232 +2122,350 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                 </p>
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {workflowForms.map((formName) => (
-                  <div 
-                    key={formName} 
-                    style={{ 
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '0.5rem',
-                      padding: '1rem', 
-                      background: '#f8fafc', 
-                      border: '1px solid var(--neutral-border)', 
-                      borderRadius: '6px' 
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
-                      <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.95rem' }}>{formName}</span>
-                      
-                      {!isReadOnly && (
-                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                          {/* File input (hidden) */}
-                          <input 
-                            type="file" 
-                            accept=".pdf" 
-                            style={{ display: 'none' }} 
-                            id={`pdf-file-${formName}`}
-                            disabled={isUploading[formName]}
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                handlePdfUpload(formName, file);
-                              }
-                            }}
-                          />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                {workflowForms.map((formName) => {
+                  const formData = workflowFormsData[formName];
+                  const liveForm = allForms.find(f => f.form_id === formData?.formId);
+                  const activeVersion = liveForm ? liveForm.version : (formData?.version || '');
+                  const activeStatus = liveForm ? liveForm.status : (formData?.status || 'DRAFT');
 
-                          {/* PDF Upload / View / Replace / Remove Buttons */}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                            {!workflowFormsData[formName]?.pdfName ? (
+                  let normalizedVersion = '';
+                  if (formData?.formId) {
+                    const rawVersion = (activeVersion || '').trim();
+                    normalizedVersion = rawVersion;
+                    const dateRegex = /(\d{4})-(\d{2})-(\d{2})/;
+                    const dateMatch = normalizedVersion.match(dateRegex);
+                    if (dateMatch) {
+                      const [_, yyyy, mm, dd] = dateMatch;
+                      normalizedVersion = normalizedVersion.replace(/\s*\([^)]*\)/g, '').replace(dateRegex, '').trim();
+                      normalizedVersion = `${normalizedVersion}-${dd}.${mm}.${yyyy}`;
+                    }
+                    if (normalizedVersion.startsWith('v')) {
+                      normalizedVersion = 'V' + normalizedVersion.slice(1);
+                    }
+                  }
+
+                  return (
+                    <div 
+                      key={formName} 
+                      style={{ 
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '0.65rem 0.85rem', 
+                        background: '#f8fafc', 
+                        border: '1px solid var(--neutral-border)', 
+                        borderRadius: '6px',
+                        gap: '1rem',
+                        flexWrap: 'wrap'
+                      }}
+                    >
+                      {/* Left: Form Name and Digital status label */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, minWidth: '220px' }}>
+                        <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.88rem' }}>{formName}</span>
+                        {(() => {
+                          const isFormActive = formData?.formId && activeStatus === 'ACTIVE';
+                          // Clean up version string to remove redundant "(draft)" text since the badge color already indicates state
+                          const displayVersion = normalizedVersion.replace(/\s*\(draft\)/gi, '').trim();
+                          
+                          if (formData?.formId) {
+                            return (
+                              <span style={{ 
+                                fontSize: '0.72rem', 
+                                color: isFormActive ? '#047857' : '#b45309', 
+                                background: isFormActive ? '#ecfdf5' : '#fffbeb', 
+                                border: isFormActive ? '1px solid #a7f3d0' : '1px solid #fde68a', 
+                                padding: '0.05rem 0.35rem', 
+                                borderRadius: '3px', 
+                                fontWeight: 600,
+                                textTransform: 'uppercase'
+                              }}>
+                                {displayVersion || 'DIGITAL'} - {activeStatus}
+                              </span>
+                            );
+                          } else {
+                            return (
+                              <span style={{ 
+                                fontSize: '0.72rem', 
+                                color: '#b45309', 
+                                background: '#fffbeb', 
+                                border: '1px solid #fde68a', 
+                                padding: '0.05rem 0.35rem', 
+                                borderRadius: '3px', 
+                                fontWeight: 600, 
+                                textTransform: 'uppercase' 
+                              }}>
+                                V0.1 - DRAFT
+                              </span>
+                            );
+                          }
+                        })()}
+                      </div>
+                      
+                      {(() => {
+                        const canEditForm = !isReadOnly && hasPermission('design_document') && activeStatus === 'DRAFT';
+                        const hasPdf = !!formData?.pdfName;
+                        const hasDigitalForm = !!formData?.formId;
+
+                        if (!canEditForm && !hasPdf && !hasDigitalForm) {
+                          return null;
+                        }
+
+                        return (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}>
+                            
+                            {/* File input (hidden) - only if editable */}
+                            {canEditForm && (
+                              <input 
+                                type="file" 
+                                accept=".pdf" 
+                                style={{ display: 'none' }} 
+                                id={`pdf-file-${formName}`}
+                                disabled={isUploading[formName]}
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) {
+                                    handlePdfUpload(formName, file);
+                                  }
+                                }}
+                              />
+                            )}
+
+                            {/* PDF Upload / View group */}
+                            {(canEditForm || hasPdf) && (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                {!hasPdf ? (
+                                  canEditForm && (
+                                    <button
+                                      type="button"
+                                      className="btn btn-secondary btn-sm"
+                                      disabled={isUploading[formName] || !processId}
+                                      style={{ 
+                                        display: 'inline-flex', 
+                                        alignItems: 'center', 
+                                        gap: '0.3rem', 
+                                        padding: '0.25rem 0.6rem', 
+                                        fontSize: '0.78rem',
+                                        height: '28px',
+                                        background: '#ffffff',
+                                        border: '1px solid #e2e8f0',
+                                        color: '#0f4c81',
+                                        fontWeight: 500,
+                                        borderRadius: '6px',
+                                        boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                                        margin: 0
+                                      }}
+                                      onClick={() => {
+                                        if (!processId) {
+                                          alert('Please save the process document as a draft first before uploading files.');
+                                          return;
+                                        }
+                                        document.getElementById(`pdf-file-${formName}`)?.click();
+                                      }}
+                                    >
+                                      <Upload size={12} /> Upload PDF
+                                    </button>
+                                  )
+                                ) : (
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.15rem' }}>
+                                    <button
+                                      type="button"
+                                      className="btn btn-secondary btn-sm"
+                                      title={formData.pdfName}
+                                      disabled={isUploading[formName]}
+                                      style={{ 
+                                        display: 'inline-flex', 
+                                        alignItems: 'center', 
+                                        gap: '0.3rem', 
+                                        padding: '0.25rem 0.6rem', 
+                                        fontSize: '0.78rem',
+                                        height: '28px',
+                                        background: '#ffffff',
+                                        border: '1px solid #e2e8f0',
+                                        color: '#0f4c81',
+                                        fontWeight: 500,
+                                        borderRadius: '6px',
+                                        boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                                        margin: 0
+                                      }}
+                                      onClick={async () => {
+                                        const pdfKey = formData?.pdfKey;
+                                        if (pdfKey) {
+                                          try {
+                                            const res = await fetch(`/api/storage/download-url?key=${encodeURIComponent(pdfKey)}`);
+                                            if (!res.ok) throw new Error('Failed to get download URL');
+                                            const { downloadUrl } = await res.json();
+                                            window.open(downloadUrl, '_blank');
+                                          } catch (err) {
+                                            console.error(err);
+                                            alert('Failed to load PDF attachment.');
+                                          }
+                                        }
+                                      }}
+                                    >
+                                      <Printer size={12} /> Print
+                                    </button>
+
+                                    {/* Edit PDF actions - only if editable */}
+                                    {canEditForm && (
+                                      <>
+                                        <button
+                                          type="button"
+                                          className="btn btn-secondary btn-sm"
+                                          title="Replace PDF"
+                                          disabled={isUploading[formName]}
+                                          style={{ 
+                                            display: 'flex', 
+                                            alignItems: 'center', 
+                                            justifyContent: 'center',
+                                            height: '28px',
+                                            width: '28px',
+                                            padding: 0,
+                                            border: '1px solid #e2e8f0',
+                                            background: '#ffffff',
+                                            borderRadius: '6px',
+                                            boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                                            color: '#0f4c81',
+                                            margin: 0
+                                          }}
+                                          onClick={() => document.getElementById(`pdf-file-${formName}`)?.click()}
+                                        >
+                                          <Upload size={11} />
+                                        </button>
+
+                                        <button
+                                          type="button"
+                                          title="Remove PDF"
+                                          disabled={isUploading[formName]}
+                                          style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            height: '28px',
+                                            width: '28px',
+                                            padding: 0,
+                                            border: '1px solid #fca5a5',
+                                            background: '#fee2e2',
+                                            borderRadius: '6px',
+                                            color: '#ef4444',
+                                            cursor: 'pointer',
+                                            fontSize: '0.9rem',
+                                            fontWeight: 'bold',
+                                            margin: 0
+                                          }}
+                                          onClick={() => handlePdfDelete(formName, formData.pdfKey || '')}
+                                        >
+                                          &times;
+                                        </button>
+                                      </>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Digital Form Action Button (Edit or View) */}
+                            {canEditForm ? (
                               <button
                                 type="button"
-                                className="btn btn-secondary"
-                                disabled={isUploading[formName] || !processId}
-                                style={{ 
-                                  display: 'flex', 
-                                  alignItems: 'center', 
-                                  gap: '0.35rem', 
-                                  padding: '0.35rem 0.75rem', 
-                                  fontSize: '0.8rem',
-                                  height: '32px',
+                                className="btn btn-secondary btn-sm"
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.3rem',
+                                  padding: '0.25rem 0.6rem',
+                                  fontSize: '0.78rem',
+                                  height: '28px',
                                   background: '#ffffff',
-                                  border: '1px solid var(--neutral-border)',
-                                  color: 'inherit'
+                                  border: '1px solid #e2e8f0',
+                                  color: '#0f4c81',
+                                  fontWeight: 500,
+                                  borderRadius: '6px',
+                                  boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                                  margin: 0
                                 }}
                                 onClick={() => {
                                   if (!processId) {
-                                    alert('Please save the process document as a draft first before uploading files.');
+                                    alert('Please save the process document as a draft first to enable the form builder.');
                                     return;
                                   }
-                                  document.getElementById(`pdf-file-${formName}`)?.click();
+                                  if (!formData?.formId) {
+                                    const generatedId = `FM-${formName.toUpperCase().replace(/[^A-Z0-9]/g, '-')}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
+                                    setWorkflowFormsData(prev => ({
+                                      ...prev,
+                                      [formName]: {
+                                        ...prev[formName] || {},
+                                        formId: generatedId,
+                                        status: 'DRAFT',
+                                        version: 'v0.1'
+                                      }
+                                    }));
+                                  }
+                                  setActiveFormToBuild(formName);
                                 }}
                               >
-                                {isUploading[formName] ? 'Working...' : 'PDF'}
+                                <Edit2 size={12} /> Edit
                               </button>
                             ) : (
-                              <>
+                              hasDigitalForm && (
                                 <button
                                   type="button"
-                                  className="btn btn-secondary"
-                                  title={workflowFormsData[formName].pdfName}
-                                  disabled={isUploading[formName]}
-                                  style={{ 
-                                    display: 'flex', 
-                                    alignItems: 'center', 
-                                    gap: '0.35rem', 
-                                    padding: '0.35rem 0.75rem', 
-                                    fontSize: '0.8rem',
-                                    height: '32px',
-                                    background: '#eff6ff',
-                                    border: '1px solid #bfdbfe',
-                                    color: '#1e40af'
-                                  }}
-                                  onClick={async () => {
-                                    const pdfKey = workflowFormsData[formName]?.pdfKey;
-                                    if (pdfKey) {
-                                      try {
-                                        const res = await fetch(`/api/storage/download-url?key=${encodeURIComponent(pdfKey)}`);
-                                        if (!res.ok) throw new Error('Failed to get download URL');
-                                        const { downloadUrl } = await res.json();
-                                        window.open(downloadUrl, '_blank');
-                                      } catch (err) {
-                                        console.error(err);
-                                        alert('Failed to load PDF attachment.');
-                                      }
-                                    }
-                                  }}
-                                >
-                                  <Eye size={13} />
-                                  PDF
-                                </button>
-
-                                <button
-                                  type="button"
-                                  className="btn btn-secondary"
-                                  title="Replace PDF"
-                                  disabled={isUploading[formName]}
-                                  style={{ 
-                                    display: 'flex', 
-                                    alignItems: 'center', 
-                                    justifyContent: 'center',
-                                    height: '32px',
-                                    width: '32px',
-                                    minWidth: '32px',
-                                    padding: 0,
-                                    border: '1px solid var(--neutral-border)',
-                                    background: '#ffffff'
-                                  }}
-                                  onClick={() => document.getElementById(`pdf-file-${formName}`)?.click()}
-                                >
-                                  <Upload size={13} />
-                                </button>
-
-                                <button
-                                  type="button"
-                                  title="Remove PDF"
-                                  disabled={isUploading[formName]}
+                                  className="btn btn-secondary btn-sm"
                                   style={{
-                                    display: 'flex',
+                                    display: 'inline-flex',
                                     alignItems: 'center',
-                                    justifyContent: 'center',
-                                    height: '32px',
-                                    width: '32px',
-                                    minWidth: '32px',
-                                    padding: 0,
-                                    border: '1px solid #fca5a5',
-                                    background: '#fee2e2',
+                                    gap: '0.3rem',
+                                    padding: '0.25rem 0.6rem',
+                                    fontSize: '0.78rem',
+                                    height: '28px',
+                                    background: '#ffffff',
+                                    border: '1px solid #e2e8f0',
+                                    color: '#0f4c81',
+                                    fontWeight: 500,
                                     borderRadius: '6px',
-                                    color: '#ef4444',
-                                    cursor: 'pointer',
-                                    fontSize: '1rem',
-                                    fontWeight: 'bold'
+                                    boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                                    margin: 0
                                   }}
-                                  onClick={() => handlePdfDelete(formName, workflowFormsData[formName].pdfKey || '')}
+                                  onClick={() => setActiveFormToBuild(formName)}
                                 >
-                                  &times;
+                                  <Eye size={12} /> View
                                 </button>
-                              </>
+                              )
                             )}
 
-                            {!processId && (
-                              <span style={{ fontSize: '0.725rem', color: 'var(--text-muted)', fontStyle: 'italic', marginLeft: '0.25rem' }}>
-                                (Save draft first to upload)
-                              </span>
-                            )}
                           </div>
-                        </div>
-                      )}
+                        );
+                      })()}
                     </div>
-                    
-                    {/* ISO 2026 Digital Form builder row */}
-                    <div style={{ 
-                      display: 'flex', 
-                      justifyContent: 'space-between', 
-                      alignItems: 'center', 
-                      marginTop: '0.5rem',
-                      paddingTop: '0.5rem',
-                      borderTop: '1px dashed #e2e8f0',
-                      fontSize: '0.85rem'
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)' }}>
-                        <PenTool size={14} />
-                        {workflowFormsData[formName]?.formId ? (
-                           <span>
-                             <strong>{workflowFormsData[formName].formId}</strong>
-                             {(() => {
-                               const rawVersion = (workflowFormsData[formName].version || '').trim();
-                               let normalizedVersion = rawVersion;
-                               const dateRegex = /(\d{4})-(\d{2})-(\d{2})/;
-                               const dateMatch = normalizedVersion.match(dateRegex);
-                               if (dateMatch) {
-                                 const [_, yyyy, mm, dd] = dateMatch;
-                                 const formattedDate = `${dd}.${mm}.${yyyy}`;
-                                 normalizedVersion = normalizedVersion.replace(/\s*\([^)]*\)/g, '').replace(dateRegex, '').trim();
-                                 normalizedVersion = `${normalizedVersion}-${formattedDate}`;
-                               }
-                               if (normalizedVersion.startsWith('v')) {
-                                 normalizedVersion = 'V' + normalizedVersion.slice(1);
-                               }
-                               return normalizedVersion ? ` • ${normalizedVersion}` : '';
-                             })()} - {' '}
-                             <span className={`badge ${workflowFormsData[formName].status === 'ACTIVE' ? 'badge-success' : 'badge-warning'}`} style={{ fontSize: '0.65rem', padding: '0.1rem 0.3rem' }}>
-                               {workflowFormsData[formName].status}
-                             </span>
-                           </span>
-                         ) : (
-                          <span style={{ fontStyle: 'italic' }}>No digital form configured yet</span>
-                        )}
-                      </div>
-                      
-                      <button
-                        type="button"
-                        className="btn btn-secondary"
-                        style={{
-                          fontSize: '0.75rem',
-                          padding: '0.2rem 0.6rem',
-                          height: '28px',
-                          background: workflowFormsData[formName]?.formId ? '#f0fdf4' : '#f8fafc',
-                          borderColor: workflowFormsData[formName]?.formId ? '#bbf7d0' : '#cbd5e1',
-                          color: workflowFormsData[formName]?.formId ? '#15803d' : 'inherit'
-                        }}
-                        onClick={() => {
-                          if (!processId) {
-                            alert('Please save the process document as a draft first to enable the form builder.');
-                            return;
-                          }
-                          setActiveFormToBuild(formName);
-                        }}
-                      >
-                        {workflowFormsData[formName]?.formId ? 'Edit Digital Form' : 'Build Form Online'}
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Quota indicator moved to the bottom as a tiny footer note */}
+            {quota && quota.isConfigured && (
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                paddingTop: '0.75rem',
+                borderTop: '1px solid var(--neutral-border)',
+                fontSize: '0.72rem',
+                color: 'var(--text-muted)',
+                marginTop: '0.5rem'
+              }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                  ☁️ Cloud Storage Quota: <strong>{formatBytes(quota.totalSize)}</strong> used of {formatBytes(quota.quotaLimit)} ({quota.percentage}%)
+                </span>
+                {parseFloat(quota.percentage) > 85 && (
+                  <span style={{ color: '#ef4444', fontWeight: 600 }}>
+                    ⚠️ Storage running low. Remove unused PDFs.
+                  </span>
+                )}
               </div>
             )}
           </div>
         )}
-        </fieldset>
       </div>
 
       {activeFormToBuild && (
@@ -2255,7 +2496,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                 };
                 setWorkflowFormsData(nextFormsData);
                 setActiveFormToBuild(null);
-                handleSave(nextFormsData);
+                fetchFormsList();
               }}
               onClose={() => setActiveFormToBuild(null)}
             />
