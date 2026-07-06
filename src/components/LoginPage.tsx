@@ -220,17 +220,6 @@ const LoginPage: React.FC = () => {
           />
         </div>
 
-        {/* Dev hint (remove in production) */}
-        <div style={{
-          marginTop: '1.5rem', padding: '0.75rem',
-          background: 'rgba(255,255,255,0.04)', borderRadius: '8px',
-          border: '1px dashed rgba(255,255,255,0.1)',
-        }}>
-          <p style={{ margin: 0, fontSize: '0.72rem', color: 'rgba(255,255,255,0.3)', textAlign: 'center', lineHeight: 1.6 }}>
-            <strong style={{ color: 'rgba(255,255,255,0.45)' }}>Tài khoản thử nghiệm:</strong><br />
-            admin / admin123 &nbsp;|&nbsp; supervisor01 / sup123 &nbsp;|&nbsp; operator01 / op123
-          </p>
-        </div>
       </div>
     </div>
   );

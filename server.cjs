@@ -142,12 +142,15 @@ async function initDatabase() {
       await client.query(`
         INSERT INTO users (id, email, username, password, full_name, title, role_id, status)
         VALUES 
-          ('u1', 'admin@wolver.vn', 'admin', 'admin123', 'Tran Duy Anh', 'Admin CNTT', 'admin', 'active'),
+          ('u1', 'admin@wolver.vn', 'admin', 'admin123', 'Tran Duc Duy', 'Admin CNTT', 'admin', 'active'),
           ('u2', 'supervisor@wolver.vn', 'supervisor01', 'sup123', 'Nguyen Van Binh', 'Truong ca san xuat', 'supervisor', 'active'),
           ('u3', 'operator@wolver.vn', 'operator01', 'op123', 'Le Thi Cam', 'Cong nhan van hanh', 'operator', 'active'),
           ('google_admin_seed', 'tranducduy@gmail.com', 'tranducduy', 'dev123', 'Tran Duc Duy', 'Admin Google', 'admin', 'active')
       `);
       console.log('Seeding default users completed.');
+    } else {
+      // Auto-update legacy seed user name to 'Tran Duc Duy'
+      await client.query("UPDATE users SET full_name = 'Tran Duc Duy' WHERE full_name = 'Tran Duy Anh'");
     }
 
     const res = await client.query('SELECT COUNT(*) FROM processes');
