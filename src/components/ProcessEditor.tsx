@@ -1197,7 +1197,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                     {/* Version input */}
                     {(status === 'Draft' || status === 'Pending Review') ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                        <span style={{ fontWeight: 600, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Version: v</span>
+                        <span style={{ fontWeight: 600, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>V</span>
                         <input 
                           type="number" 
                           min="0"
