@@ -27,9 +27,9 @@ export interface Role {
 }
 
 export const ROLES: Role[] = [
-  { id: 'admin',      name: 'Admin (Quản trị)',          description: 'Toàn quyền hệ thống' },
-  { id: 'supervisor', name: 'Supervisor (Giám sát)',      description: 'Thiết kế tài liệu, duyệt form, cấp tài khoản Operator' },
-  { id: 'operator',   name: 'Operator (Người vận hành)', description: 'Xem tài liệu, điền form, xem bản ghi của mình' },
+  { id: 'admin',      name: 'Admin',          description: 'Toàn quyền hệ thống' },
+  { id: 'supervisor', name: 'Manager',        description: 'Thiết kế tài liệu, duyệt form, cấp tài khoản Operator' },
+  { id: 'operator',   name: 'Operator',       description: 'Xem tài liệu, điền form, xem bản ghi của mình' },
 ];
 
 // ─────────────────────────────────────────────────────────────

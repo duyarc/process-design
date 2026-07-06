@@ -359,7 +359,7 @@ const UserManagement: React.FC<Props> = ({ onBack }) => {
                         padding: '0.2rem 0.65rem', borderRadius: '20px', whiteSpace: 'nowrap',
                         fontSize: '0.78rem', fontWeight: 700,
                       }}>
-                        {role.id.charAt(0).toUpperCase() + role.id.slice(1)}
+                        {role.name}
                       </span>
                     </th>
                   ))}
@@ -500,7 +500,7 @@ const UserManagement: React.FC<Props> = ({ onBack }) => {
                 </select>
                 {!isAdmin && (
                   <p style={{ margin: '0.3rem 0 0', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                    Supervisor chỉ có thể tạo tài khoản Operator.
+                    Manager chỉ có thể tạo tài khoản Operator.
                   </p>
                 )}
               </div>
