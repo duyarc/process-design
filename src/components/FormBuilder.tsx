@@ -102,6 +102,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
   const [activeFieldId, setActiveFieldId] = useState<string | null>(null);
   const [changeSummary, setChangeSummary] = useState('');
+  const [effectiveDate, setEffectiveDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [isLocked, setIsLocked] = useState(initialData?.status === 'ACTIVE');
   const [printPreviewData, setPrintPreviewData] = useState<FormTemplateISO | null>(null);
 
@@ -505,7 +506,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
     }
 
     const { major, minor } = parseVersion(version);
-    const approveDate = new Date().toISOString().split('T')[0];
+    const approveDate = effectiveDate || new Date().toISOString().split('T')[0];
     const newActiveVersion = `v${major}.${minor} (${approveDate})`;
     
     const newHistoryEntry: FormRevisionEntry = {
@@ -1923,22 +1924,41 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                 </div>
 
                 {!isLocked && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                    <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Change Summary (For Release)</label>
-                    <textarea 
-                      value={changeSummary}
-                      onChange={(e) => setChangeSummary(e.target.value)}
-                      placeholder="Explain what was edited (e.g. Added safety guard check)..."
-                      rows={3}
-                      style={{
-                        padding: '0.35rem 0.5rem',
-                        fontSize: '0.8rem',
-                        border: '1px solid var(--neutral-border)',
-                        borderRadius: '4px',
-                        resize: 'none'
-                      }}
-                    />
-                  </div>
+                  <>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                      <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Change Summary (For Release)</label>
+                      <textarea 
+                        value={changeSummary}
+                        onChange={(e) => setChangeSummary(e.target.value)}
+                        placeholder="Explain what was edited (e.g. Added safety guard check)..."
+                        rows={3}
+                        style={{
+                          padding: '0.35rem 0.5rem',
+                          fontSize: '0.8rem',
+                          border: '1px solid var(--neutral-border)',
+                          borderRadius: '4px',
+                          resize: 'none'
+                        }}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', marginTop: '0.35rem' }}>
+                      <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Release Date (Ngày hiệu lực)</label>
+                      <input 
+                        type="date"
+                        value={effectiveDate}
+                        onChange={(e) => setEffectiveDate(e.target.value)}
+                        style={{
+                          padding: '0.25rem 0.5rem',
+                          fontSize: '0.8rem',
+                          border: '1px solid var(--neutral-border)',
+                          borderRadius: '4px',
+                          outline: 'none',
+                          width: '100%',
+                          boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
+                  </>
                 )}
 
                 {/* Revision history log */}

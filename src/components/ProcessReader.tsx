@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import type { Process, SubmissionFieldSnapshot } from '../types';
 import { formatFormVersion } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { ArrowLeft, Printer, Edit2, Calendar, Plus, Camera, AlertTriangle, X } from 'lucide-react';
+import { ArrowLeft, Printer, Edit2, Camera, AlertTriangle, X, PenTool, GitBranch } from 'lucide-react';
 import { generateBPMNXML, getNumRows } from '../utils/bpmnXmlGenerator';
 import { BpmnViewerComponent } from './BpmnViewerComponent';
 import PrintBlankForm from './print/PrintBlankForm';
@@ -32,7 +32,8 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
 }) => {
   const [process, setProcess] = useState<Process | null>(null);
   const [loading, setLoading] = useState(true);
-  const [allVersions, setAllVersions] = useState<Process[]>([]);
+
+
   const { hasPermission } = useAuth();
 
   // ISO Form execution states
@@ -259,16 +260,6 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
       const found = list.find(p => p.id === processId);
       if (found) {
         setProcess(found);
-
-        // Find sibling versions in the same process family
-        const parentId = found.parentProcessId || found.id;
-        const siblings = list.filter(p => p.parentProcessId === parentId || p.id === parentId);
-        siblings.sort((a, b) => {
-          const aVer = parseInt(a.version, 10) || 0;
-          const bVer = parseInt(b.version, 10) || 0;
-          return bVer - aVer;
-        });
-        setAllVersions(siblings);
       }
     } catch (err) {
       console.error(err);
@@ -299,65 +290,6 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
 
   const handlePrint = () => {
     window.print();
-  };
-
-  const handleCreateNewDraft = async () => {
-    if (!process) return;
-    if (!window.confirm(`Create a new Draft version based on Version ${process.version}?`)) return;
-    try {
-      setLoading(true);
-      const res = await fetch(`/api/processes/${process.id}/new-version`, {
-        method: 'POST'
-      });
-      if (!res.ok) throw new Error('Failed to create new draft version');
-      const newDraft = await res.json();
-      onEdit(newDraft.id);
-    } catch (err) {
-      console.error(err);
-      alert('Error creating new draft version.');
-      setLoading(false);
-    }
-  };
-
-  const handleStatusTransition = async (newStatus: 'Pending Review' | 'Active', effectiveDate?: string) => {
-    if (!process) return;
-    try {
-      setLoading(true);
-      const updatedSop = { ...process.sopSignoffs };
-      if (newStatus === 'Active') {
-        updatedSop.effectiveDate = effectiveDate || new Date().toISOString().split('T')[0];
-      }
-
-      const payload = {
-        ...process,
-        status: newStatus,
-        sopSignoffs: updatedSop
-      };
-
-      const res = await fetch('/api/processes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      if (!res.ok) throw new Error(`Failed to update status to ${newStatus}`);
-      await fetchProcess();
-    } catch (err) {
-      console.error(err);
-      alert(`Error updating process status: ${err instanceof Error ? err.message : 'Unknown error'}`);
-      setLoading(false);
-    }
-  };
-
-  const handleActivate = () => {
-    const today = new Date().toISOString().split('T')[0];
-    const dateInput = window.prompt("Enter the Effective Date (YYYY-MM-DD) for this active standard:", today);
-    if (dateInput === null) return; // cancelled
-    
-    if (!dateInput.match(/^\d{4}-\d{2}-\d{2}$/)) {
-      alert("Invalid date format. Please use YYYY-MM-DD.");
-      return;
-    }
-    handleStatusTransition('Active', dateInput);
   };
 
   if (loading) {
@@ -570,27 +502,9 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
         </button>
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
           {status === 'Draft' && hasPermission('design_document') && (
-            <>
-              <button className="btn btn-secondary" onClick={() => handleStatusTransition('Pending Review')}>
-                Submit for Review
-              </button>
-              <button className="btn btn-primary" onClick={handleActivate}>
-                Activate Version
-              </button>
-            </>
-          )}
-          {status === 'Pending Review' && hasPermission('design_document') && (
-            <button className="btn btn-primary" onClick={handleActivate}>
-              Activate / Sign-off
-            </button>
-          )}
-          {hasPermission('design_document') && (
-            <button 
-              className="btn btn-secondary" 
-              onClick={status === 'Draft' ? (() => onEdit(process.id)) : handleCreateNewDraft}
-            >
-              {status === 'Draft' ? <Edit2 size={16} /> : <Plus size={16} />}
-              {status === 'Draft' ? 'Edit' : 'New Version'}
+            <button className="btn btn-secondary" onClick={() => onEdit(process.id)}>
+              <Edit2 size={16} />
+              Edit
             </button>
           )}
           <button className="btn btn-primary" onClick={handlePrint}>
@@ -602,75 +516,28 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
 
       {/* Document Cover / Header Block */}
       <div className="paper-card accent-teal avoid-page-break no-print" style={{ padding: '1.25rem', marginBottom: '1.5rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '2rem' }}>
-          <div style={{ flex: '1 1 350px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', marginBottom: '0.35rem', flexWrap: 'wrap' }}>
-              <span className="badge" style={{ backgroundColor: 'var(--primary)', color: '#ffffff', margin: 0 }}>
-                Standard Operating Standard
-              </span>
-              <span className="badge" style={{ backgroundColor: colors.bg, color: colors.text, border: `1px solid ${colors.border}`, textTransform: 'uppercase', fontSize: '0.7rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '4px', margin: 0 }}>
-                {status}
-              </span>
-            </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+          <div style={{ flex: '1 1 300px' }}>
             <h1 style={{ marginTop: '0.25rem', marginBottom: '0.25rem', fontSize: '1.5rem' }}>{process.title}</h1>
             <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: 0 }}>
               {process.description || 'No description provided.'}
             </p>
           </div>
-
-          {/* Combined Horizontal Version History */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', flex: '0 1 auto', minWidth: '200px' }}>
-            <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.5px' }}>
-              Version History
+          <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0, alignItems: 'center' }}>
+            <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>v{process.version}</span>
+            <span className="badge" style={{ backgroundColor: colors.bg, color: colors.text, border: `1px solid ${colors.border}`, textTransform: 'uppercase', fontSize: '0.68rem', fontWeight: 700, padding: '0.15rem 0.45rem', borderRadius: '4px', margin: 0 }}>
+              {status}
             </span>
-            <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
-              {allVersions.map((v) => {
-                const vStatus = v.status || 'Active';
-                const vColors = statusColors[vStatus] || { bg: '#e5e7eb', text: '#4b5563', border: '#cbd5e1' };
-                const isActiveVersion = v.id === process.id;
-
-                return (
-                  <div
-                    key={v.id}
-                    style={{
-                      padding: '0.25rem 0.5rem',
-                      borderRadius: '4px',
-                      border: isActiveVersion ? '2px solid var(--primary)' : '1px solid var(--neutral-border)',
-                      background: isActiveVersion ? '#ffffff' : '#f9fafb',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.35rem',
-                      fontSize: '0.75rem',
-                      transition: 'all 0.15s ease'
-                    }}
-                    className="hover-card-bg"
-                    onClick={() => {
-                      if (!isActiveVersion) {
-                        setProcess(v);
-                      }
-                    }}
-                  >
-                    <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>v{v.version}</span>
-                    <span style={{ fontSize: '0.6rem', textTransform: 'uppercase', color: vColors.text, fontWeight: 700, background: vColors.bg, padding: '0.05rem 0.2rem', borderRadius: '3px', border: `1px solid ${vColors.border}` }}>
-                      {vStatus}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <div style={{ textAlign: 'right', fontSize: '0.85rem', color: 'var(--text-secondary)', flexShrink: 0, minWidth: '150px' }}>
-            <div><strong>Version:</strong> v{process.version}</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem', justifyContent: 'flex-end' }}>
-              <Calendar size={13} />
-              {new Date(process.lastUpdated).toLocaleDateString()}
-            </div>
-            {process.sopSignoffs?.effectiveDate && (
-              <div style={{ marginTop: '0.25rem', fontSize: '0.8rem', fontWeight: 500, color: 'var(--text-primary)' }}>
-                Effective: {new Date(process.sopSignoffs.effectiveDate).toLocaleDateString()}
-              </div>
+            {hasPermission('design_document') && (
+              <button
+                className="btn btn-secondary btn-sm"
+                style={{ margin: 0, display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', padding: '0.25rem 0.6rem' }}
+                onClick={() => onEdit(process.id)}
+                title="Manage versions, sign-off setup and lifecycle"
+              >
+                <GitBranch size={13} />
+                Versions
+              </button>
             )}
           </div>
         </div>
@@ -780,14 +647,27 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                       const formData = (process.workflowFormsData || {})[formName] || {};
                       let attachmentText = '';
                       const hasDigitalForm = !!formData.formId;
-                      
-                      if (formData.pdfName) {
+                                      if (formData.pdfName) {
                         attachmentText = formData.pdfName;
                       } else if (hasDigitalForm) {
-                        attachmentText = `Digital Template: ${formData.formId} (${formData.version})`;
+                        const rawVersion = (formData.version || '').trim();
+                        let normalizedVersion = rawVersion;
+                        const dateRegex = /(\d{4})-(\d{2})-(\d{2})/;
+                        const dateMatch = normalizedVersion.match(dateRegex);
+                        if (dateMatch) {
+                          const [_, yyyy, mm, dd] = dateMatch;
+                          const formattedDate = `${dd}.${mm}.${yyyy}`;
+                          // remove parenthesized date block or raw date matching YYYY-MM-DD
+                          normalizedVersion = normalizedVersion.replace(/\s*\([^)]*\)/g, '').replace(dateRegex, '').trim();
+                          normalizedVersion = `${normalizedVersion}-${formattedDate}`;
+                        }
+                        if (normalizedVersion.startsWith('v')) {
+                          normalizedVersion = 'V' + normalizedVersion.slice(1);
+                        }
+                        attachmentText = `${formData.formId}${normalizedVersion ? ` • ${normalizedVersion}` : ''}`;
                       } else if (formData.layoutBlocks && formData.layoutBlocks.length > 0) {
                         const totalFields = formData.layoutBlocks.flatMap((b: any) => b.fields).length;
-                        attachmentText = `Custom Form (${totalFields} fields)`;
+                        attachmentText = `Custom Form • ${totalFields} fields`;
                       }
 
                       const hasPdf = !!formData.pdfName;
@@ -806,7 +686,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                           <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', minWidth: 0, marginRight: '1rem', flexWrap: 'wrap' }}>
                             <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{formName}</span>
                             {attachmentText && (
-                              <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>({attachmentText})</span>
+                              <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>• {attachmentText}</span>
                             )}
                           </div>
                           <div className="no-print" style={{ display: 'flex', gap: '0.4rem', flexShrink: 0 }}>
@@ -814,19 +694,49 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                               <>
                                 <button
                                   type="button"
-                                  className="btn btn-secondary btn-sm"
                                   onClick={() => setActiveFormToFill(formName)}
-                                  style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', margin: 0, background: '#f0fdf4', color: '#166534', borderColor: '#bbf7d0' }}
+                                  style={{ 
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '0.35rem',
+                                    padding: '0.35rem 0.65rem', 
+                                    fontSize: '0.75rem', 
+                                    fontWeight: 500,
+                                    color: 'var(--text-primary)', 
+                                    background: '#ffffff',
+                                    border: '1px solid var(--neutral-border)', 
+                                    borderRadius: '6px',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.15s ease',
+                                    margin: 0 
+                                  }}
+                                  className="hover-card-bg"
                                 >
-                                  Fill Form
+                                  <PenTool size={13} style={{ color: 'var(--text-primary)' }} />
+                                  Fill
                                 </button>
                                 <button
                                   type="button"
-                                  className="btn btn-secondary btn-sm"
                                   onClick={() => setPrintTemplateData(formData as any)}
-                                  style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', margin: 0 }}
+                                  style={{ 
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '0.35rem',
+                                    padding: '0.35rem 0.65rem', 
+                                    fontSize: '0.75rem', 
+                                    fontWeight: 500,
+                                    color: 'var(--text-primary)', 
+                                    background: '#ffffff',
+                                    border: '1px solid var(--neutral-border)', 
+                                    borderRadius: '6px',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.15s ease',
+                                    margin: 0 
+                                  }}
+                                  className="hover-card-bg"
                                 >
-                                  Print Blank
+                                  <Printer size={13} style={{ color: 'var(--text-primary)' }} />
+                                  Print
                                 </button>
                               </>
                             )}

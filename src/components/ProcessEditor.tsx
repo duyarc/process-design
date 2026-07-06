@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { Process, ProcessStep, FormField, FormDesignerField, SOPSignOff, SOPSignOffs } from '../types';
-import { ArrowLeft, Save, Plus, Trash2, ArrowUp, ArrowDown, Upload, Edit2, Eye, PenTool } from 'lucide-react';
+import { ArrowLeft, Save, Plus, Trash2, ArrowUp, ArrowDown, Upload, Edit2, Eye, PenTool, CheckCircle, Clock, GitBranch, XCircle, Shield, Calendar, AlertTriangle } from 'lucide-react';
 import FormBuilder from './FormBuilder';
 import { generateBPMNXML } from '../utils/bpmnXmlGenerator';
 import { useAuth } from '../context/AuthContext';
@@ -122,13 +122,15 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
 }) => {
   const { hasPermission } = useAuth();
   const modelerRef = useRef<BpmnModelerRef | null>(null);
-  const [activeTab, setActiveTab] = useState<'description' | 'workflow' | 'form'>('description');
+  const [activeTab, setActiveTab] = useState<'description' | 'workflow' | 'form' | 'versions'>('description');
   const [activeFormToBuild, setActiveFormToBuild] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [version, setVersion] = useState('1');
   const [status, setStatus] = useState<'Draft' | 'Pending Review' | 'Active' | 'Superseded' | 'Retired'>('Draft');
   const [parentProcessId, setParentProcessId] = useState<string>('');
+  const [allVersions, setAllVersions] = useState<Process[]>([]);
+  const [versionActionLoading, setVersionActionLoading] = useState(false);
   const [roles, setRoles] = useState<string[]>(['Operator']);
   const [newRoleInput, setNewRoleInput] = useState('');
   const [steps, setSteps] = useState<ProcessStep[]>([]);
@@ -432,12 +434,94 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
           effectiveDate: loadedSop.effectiveDate || ''
         });
         setWorkflowFormsData(proc.workflowFormsData || {});
+
+        // Load sibling versions for the Versions tab
+        const pid = proc.parentProcessId || proc.id;
+        const siblings = list.filter(p => p.parentProcessId === pid || p.id === pid);
+        siblings.sort((a, b) => (parseInt(b.version, 10) || 0) - (parseInt(a.version, 10) || 0));
+        setAllVersions(siblings);
       }
     } catch (err) {
       console.error(err);
       alert('Failed to load process data.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Version lifecycle handlers (centralised here, removed from ProcessReader)
+  const handleSubmitForReview = async () => {
+    if (!processId) return;
+    if (!window.confirm('Submit this Draft for review? Status will change to Pending Review.')) return;
+    try {
+      setVersionActionLoading(true);
+      const payload = { id: processId, title, description, version, roles, steps, formFields: formFields.filter(f => f.checkItem.trim() !== ''), sopSignoffs, workflowFormsData, status: 'Pending Review', parentProcessId: parentProcessId || undefined };
+      const res = await fetch('/api/processes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      if (!res.ok) throw new Error('Failed to submit for review');
+      setStatus('Pending Review');
+      await fetchProcess(processId);
+    } catch (err) {
+      console.error(err);
+      alert('Error submitting for review.');
+    } finally {
+      setVersionActionLoading(false);
+    }
+  };
+
+  const handleActivateVersion = async () => {
+    if (!processId) return;
+    if (!sopSignoffs.effectiveDate) {
+      alert('Please set an Effective Date in the Sign-off Setup before activating.');
+      return;
+    }
+    if (!window.confirm('Activate this version? This will mark it as the active standard.')) return;
+    try {
+      setVersionActionLoading(true);
+      const payload = { id: processId, title, description, version, roles, steps, formFields: formFields.filter(f => f.checkItem.trim() !== ''), sopSignoffs, workflowFormsData, status: 'Active', parentProcessId: parentProcessId || undefined };
+      const res = await fetch('/api/processes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      if (!res.ok) throw new Error('Failed to activate');
+      setStatus('Active');
+      await fetchProcess(processId);
+    } catch (err) {
+      console.error(err);
+      alert('Error activating version.');
+    } finally {
+      setVersionActionLoading(false);
+    }
+  };
+
+  const handleCreateNewDraftEditor = async () => {
+    if (!processId) return;
+    if (!window.confirm(`Create a new Draft version based on Version ${version}?`)) return;
+    try {
+      setVersionActionLoading(true);
+      const res = await fetch(`/api/processes/${processId}/new-version`, { method: 'POST' });
+      if (!res.ok) throw new Error('Failed to create new draft version');
+      const newDraft = await res.json();
+      onSaveSuccess(newDraft.id);
+    } catch (err) {
+      console.error(err);
+      alert('Error creating new draft version.');
+    } finally {
+      setVersionActionLoading(false);
+    }
+  };
+
+  const handleRetireVersion = async () => {
+    if (!processId) return;
+    if (!window.confirm('Retire this version? It will be marked as Retired and no longer used.')) return;
+    try {
+      setVersionActionLoading(true);
+      const payload = { id: processId, title, description, version, roles, steps, formFields: formFields.filter(f => f.checkItem.trim() !== ''), sopSignoffs, workflowFormsData, status: 'Retired', parentProcessId: parentProcessId || undefined };
+      const res = await fetch('/api/processes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      if (!res.ok) throw new Error('Failed to retire');
+      setStatus('Retired');
+      await fetchProcess(processId);
+    } catch (err) {
+      console.error(err);
+      alert('Error retiring version.');
+    } finally {
+      setVersionActionLoading(false);
     }
   };
 
@@ -910,94 +994,53 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
       </div>
 
       <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-        {isReadOnly && (
-          <div style={{ background: '#fffbeb', border: '1px solid #fde68a', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', color: '#b45309' }}>
-            <span style={{ fontSize: '1.25rem' }}>⚠️</span>
-            <div>
-              <strong>Read-only Version:</strong> This version is currently <strong>{status}</strong>. Only <strong>Draft</strong> versions can be edited. To make changes, please return to the Dashboard/Reader and select <strong>"Create New Draft"</strong>.
-            </div>
-          </div>
-        )}
+
         {/* Tab Selection */}
-        <div style={{ display: 'flex', borderBottom: '1px solid var(--neutral-border)', marginBottom: '1.5rem', gap: '1rem' }}>
-          <button
-            onClick={() => setActiveTab('description')}
-            className="btn btn-secondary"
-            style={{
-              borderBottom: activeTab === 'description' ? '2px solid var(--primary)' : 'none',
-              borderRadius: '4px 4px 0 0',
-              background: activeTab === 'description' ? '#ffffff' : 'transparent',
-              boxShadow: 'none',
-              fontWeight: activeTab === 'description' ? 600 : 400
-            }}
-          >
-            Description
-          </button>
-          <button
-            onClick={() => setActiveTab('workflow')}
-            className="btn btn-secondary"
-            style={{
-              borderBottom: activeTab === 'workflow' ? '2px solid var(--primary)' : 'none',
-              borderRadius: '4px 4px 0 0',
-              background: activeTab === 'workflow' ? '#ffffff' : 'transparent',
-              boxShadow: 'none',
-              fontWeight: activeTab === 'workflow' ? 600 : 400
-            }}
-          >
-            Workflow ({steps.length})
-          </button>
-          <button
-            onClick={() => setActiveTab('form')}
-            className="btn btn-secondary"
-            style={{
-              borderBottom: activeTab === 'form' ? '2px solid var(--primary)' : 'none',
-              borderRadius: '4px 4px 0 0',
-              background: activeTab === 'form' ? '#ffffff' : 'transparent',
-              boxShadow: 'none',
-              fontWeight: activeTab === 'form' ? 600 : 400
-            }}
-          >
-            Form ({workflowForms.length})
-          </button>
+        <div style={{ display: 'flex', borderBottom: '1px solid var(--neutral-border)', marginBottom: '1.5rem', gap: '0.25rem' }}>
+          {(['description', 'workflow', 'form', 'versions'] as const).map((tab) => {
+            const tabLabels: Record<string, string> = {
+              description: 'Description',
+              workflow: `Workflow (${steps.length})`,
+              form: `Form (${workflowForms.length})`,
+              versions: 'Versions'
+            };
+            return (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className="btn btn-secondary"
+                style={{
+                  borderBottom: activeTab === tab ? '2px solid var(--primary)' : '2px solid transparent',
+                  borderRadius: '4px 4px 0 0',
+                  background: activeTab === tab ? '#ffffff' : 'transparent',
+                  boxShadow: 'none',
+                  fontWeight: activeTab === tab ? 600 : 400,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem'
+                }}
+              >
+                {tab === 'versions' && <GitBranch size={14} />}
+                {tabLabels[tab]}
+              </button>
+            );
+          })}
         </div>
 
         <fieldset style={{ border: 'none', padding: 0, margin: 0 }} disabled={isReadOnly}>
         {/* TAB 1: DESCRIPTION */}
         {activeTab === 'description' && (
           <div className="paper-card accent-teal">
-            <h2 style={{ borderBottom: '1px solid var(--neutral-border)', paddingBottom: '0.75rem', marginBottom: '1.5rem' }}>Process Description & Metadata</h2>
-            
-            <div className="grid-2" style={{ gap: '1.5rem', marginBottom: '1.5rem' }}>
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label">Process Title*</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Cleaning-in-Place (CIP) Fermentation Tank"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                />
-              </div>
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label">Version Code</label>
-                <input
-                  type="text"
-                  style={{ width: '150px', background: '#f3f4f6', cursor: 'not-allowed' }}
-                  value={version}
-                  disabled
-                />
-              </div>
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label">Lifecycle Status</label>
-                <select
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value as any)}
-                  disabled={isReadOnly}
-                  style={{ width: '200px', padding: '0.45rem 0.6rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', background: '#ffffff', fontSize: '0.875rem' }}
-                >
-                  <option value="Draft">Draft</option>
-                  <option value="Pending Review">Pending Review</option>
-                </select>
-              </div>
+            <h2 style={{ borderBottom: '1px solid var(--neutral-border)', paddingBottom: '0.75rem', marginBottom: '1.5rem' }}>Process Description &amp; Metadata</h2>
+
+            <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+              <label className="form-label">Process Title*</label>
+              <input
+                type="text"
+                placeholder="e.g. Cleaning-in-Place (CIP) Fermentation Tank"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+              />
             </div>
 
             <div className="form-group" style={{ marginBottom: '1.5rem' }}>
@@ -1099,10 +1142,128 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
               )}
             </div>
 
-            {/* AUTHORIZATION METADATA SECTION */}
-            <div style={{ borderTop: '1px dashed var(--neutral-border)', paddingTop: '1.5rem', marginTop: '1.5rem' }}>
-              <h3 style={{ fontSize: '1.1rem', marginBottom: '1.25rem', color: 'var(--text-primary)', fontWeight: 600 }}>Standardized SOP Sign-off Setup</h3>
-              
+          </div>
+        )}
+
+        {/* TAB 4: VERSIONS */}
+        {activeTab === 'versions' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+
+            {/* Section A: Version Card + Lifecycle Actions */}
+            <div className="paper-card accent-teal" style={{ padding: '1.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
+                <div>
+                  <h2 style={{ margin: '0 0 0.35rem 0', fontSize: '1.2rem' }}>{title || 'Untitled Process'}</h2>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                    <span style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)' }}>Version {version}</span>
+                    <span className="badge" style={{
+                      backgroundColor:
+                        status === 'Draft' ? '#f3f4f6' :
+                        status === 'Pending Review' ? '#fef3c7' :
+                        status === 'Active' ? '#d1fae5' :
+                        status === 'Retired' ? '#fee2e2' : '#f3f4f6',
+                      color:
+                        status === 'Draft' ? '#4b5563' :
+                        status === 'Pending Review' ? '#92400e' :
+                        status === 'Active' ? '#065f46' :
+                        status === 'Retired' ? '#991b1b' : '#4b5563',
+                      border:
+                        status === 'Draft' ? '1px solid #d1d5db' :
+                        status === 'Pending Review' ? '1px solid #fcd34d' :
+                        status === 'Active' ? '1px solid #6ee7b7' :
+                        status === 'Retired' ? '1px solid #fca5a5' : '1px solid #d1d5db',
+                      textTransform: 'uppercase', fontWeight: 700, fontSize: '0.7rem', padding: '0.15rem 0.5rem', borderRadius: '4px'
+                    }}>
+                      {status === 'Draft' && <><Clock size={11} style={{ marginRight: '3px', verticalAlign: 'middle' }} />Draft</>}
+                      {status === 'Pending Review' && <><AlertTriangle size={11} style={{ marginRight: '3px', verticalAlign: 'middle' }} />Pending Review</>}
+                      {status === 'Active' && <><CheckCircle size={11} style={{ marginRight: '3px', verticalAlign: 'middle' }} />Active</>}
+                      {status === 'Retired' && <><XCircle size={11} style={{ marginRight: '3px', verticalAlign: 'middle' }} />Retired</>}
+                      {status === 'Superseded' && <><XCircle size={11} style={{ marginRight: '3px', verticalAlign: 'middle' }} />Superseded</>}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Contextual lifecycle action buttons */}
+                {processId && (
+                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    {status === 'Draft' && (
+                      <>
+                        <button
+                          className="btn btn-secondary"
+                          onClick={handleSubmitForReview}
+                          disabled={versionActionLoading}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                        >
+                          <Clock size={15} />
+                          Submit for Review
+                        </button>
+                        <button
+                          className="btn btn-primary"
+                          onClick={handleActivateVersion}
+                          disabled={versionActionLoading}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                        >
+                          <CheckCircle size={15} />
+                          Activate Version
+                        </button>
+                      </>
+                    )}
+                    {status === 'Pending Review' && (
+                      <button
+                        className="btn btn-primary"
+                        onClick={handleActivateVersion}
+                        disabled={versionActionLoading}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                      >
+                        <CheckCircle size={15} />
+                        Activate / Sign-off
+                      </button>
+                    )}
+                    {(status === 'Active' || status === 'Pending Review') && (
+                      <button
+                        className="btn btn-secondary"
+                        onClick={handleCreateNewDraftEditor}
+                        disabled={versionActionLoading}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                      >
+                        <Plus size={15} />
+                        New Version
+                      </button>
+                    )}
+                    {status === 'Active' && (
+                      <button
+                        className="btn btn-outline-danger"
+                        onClick={handleRetireVersion}
+                        disabled={versionActionLoading}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                      >
+                        <XCircle size={15} />
+                        Retire
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Lifecycle flow diagram */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1rem', background: '#f8fafc', borderRadius: '6px', border: '1px solid var(--neutral-border)', fontSize: '0.78rem', flexWrap: 'wrap' }}>
+                {(['Draft', 'Pending Review', 'Active', 'Retired'] as const).map((s, i) => (
+                  <React.Fragment key={s}>
+                    <span style={{ padding: '0.2rem 0.55rem', borderRadius: '4px', fontWeight: status === s ? 700 : 500, background: status === s ? 'var(--primary)' : '#e2e8f0', color: status === s ? '#ffffff' : '#64748b', fontSize: '0.75rem' }}>
+                      {s}
+                    </span>
+                    {i < 3 && <span style={{ color: '#94a3b8' }}>→</span>}
+                  </React.Fragment>
+                ))}
+              </div>
+            </div>
+
+            {/* Section B: Sign-off Setup */}
+            <div className="paper-card" style={{ padding: '1.5rem', borderLeft: '4px solid var(--primary)' }}>
+              <h3 style={{ fontSize: '1rem', marginBottom: '1.25rem', color: 'var(--text-primary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Shield size={16} /> Sign-off Setup
+              </h3>
+
               <div style={{ background: '#f9fafb', padding: '1.25rem', borderRadius: '8px', border: '1px solid var(--neutral-border)' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '1rem' }}>
                   <thead>
@@ -1116,178 +1277,90 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                   <tbody>
                     {/* Author Row */}
                     <tr>
-                      <td style={{ padding: '0.75rem 0', fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-primary)', verticalAlign: 'middle' }}>
-                        Author
+                      <td style={{ padding: '0.75rem 0', fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-primary)', verticalAlign: 'middle' }}>Author</td>
+                      <td style={{ padding: '0.75rem 0.5rem', verticalAlign: 'middle' }}>
+                        <input type="text" placeholder="Enter author name" value={sopSignoffs.author?.name || ''}
+                          onChange={(e) => setSopSignoffs(prev => ({ ...prev, author: { ...(prev.author || { name: '', title: '' }), name: e.target.value } }))}
+                          style={{ padding: '0.45rem 0.6rem', fontSize: '0.875rem', margin: 0, width: '100%', background: '#ffffff' }} />
                       </td>
                       <td style={{ padding: '0.75rem 0.5rem', verticalAlign: 'middle' }}>
-                        <input
-                          type="text"
-                          placeholder="Enter author name"
-                          value={sopSignoffs.author?.name || ''}
-                          onChange={(e) => {
-                            setSopSignoffs(prev => ({
-                              ...prev,
-                              author: { ...(prev.author || { name: '', title: '' }), name: e.target.value }
-                            }));
-                          }}
-                          style={{ padding: '0.45rem 0.6rem', fontSize: '0.875rem', margin: 0, width: '100%', background: '#ffffff' }}
-                        />
-                      </td>
-                      <td style={{ padding: '0.75rem 0.5rem', verticalAlign: 'middle' }}>
-                        <input
-                          type="text"
-                          placeholder="Enter author work title"
-                          value={sopSignoffs.author?.title || ''}
-                          onChange={(e) => {
-                            setSopSignoffs(prev => ({
-                              ...prev,
-                              author: { ...(prev.author || { name: '', title: '' }), title: e.target.value }
-                            }));
-                          }}
-                          style={{ padding: '0.45rem 0.6rem', fontSize: '0.875rem', margin: 0, width: '100%', background: '#ffffff' }}
-                        />
+                        <input type="text" placeholder="Enter author work title" value={sopSignoffs.author?.title || ''}
+                          onChange={(e) => setSopSignoffs(prev => ({ ...prev, author: { ...(prev.author || { name: '', title: '' }), title: e.target.value } }))}
+                          style={{ padding: '0.45rem 0.6rem', fontSize: '0.875rem', margin: 0, width: '100%', background: '#ffffff' }} />
                       </td>
                       <td style={{ width: '40px' }}></td>
                     </tr>
-
-                    {/* Reviewers Rows */}
+                    {/* Reviewers */}
                     {(sopSignoffs.reviewers || []).map((rev, idx) => (
-                      <tr key={`reviewer-${idx}`} style={{ borderTop: '1px solid rgba(0, 0, 0, 0.05)' }}>
+                      <tr key={`reviewer-${idx}`} style={{ borderTop: '1px solid rgba(0,0,0,0.05)' }}>
                         <td style={{ padding: '0.75rem 0', fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-primary)', verticalAlign: 'middle' }}>
                           Reviewer {sopSignoffs.reviewers && sopSignoffs.reviewers.length > 1 ? `#${idx + 1}` : ''}
                         </td>
                         <td style={{ padding: '0.75rem 0.5rem', verticalAlign: 'middle' }}>
-                          <input
-                            type="text"
-                            placeholder="Enter reviewer name"
-                            value={rev.name || ''}
-                            onChange={(e) => {
-                              const list = [...(sopSignoffs.reviewers || [])];
-                              list[idx] = { ...list[idx], name: e.target.value };
-                              setSopSignoffs(prev => ({ ...prev, reviewers: list }));
-                            }}
-                            style={{ padding: '0.45rem 0.6rem', fontSize: '0.875rem', margin: 0, width: '100%', background: '#ffffff' }}
-                          />
+                          <input type="text" placeholder="Enter reviewer name" value={rev.name || ''}
+                            onChange={(e) => { const list = [...(sopSignoffs.reviewers || [])]; list[idx] = { ...list[idx], name: e.target.value }; setSopSignoffs(prev => ({ ...prev, reviewers: list })); }}
+                            style={{ padding: '0.45rem 0.6rem', fontSize: '0.875rem', margin: 0, width: '100%', background: '#ffffff' }} />
                         </td>
                         <td style={{ padding: '0.75rem 0.5rem', verticalAlign: 'middle' }}>
-                          <input
-                            type="text"
-                            placeholder="Enter reviewer work title"
-                            value={rev.title || ''}
-                            onChange={(e) => {
-                              const list = [...(sopSignoffs.reviewers || [])];
-                              list[idx] = { ...list[idx], title: e.target.value };
-                              setSopSignoffs(prev => ({ ...prev, reviewers: list }));
-                            }}
-                            style={{ padding: '0.45rem 0.6rem', fontSize: '0.875rem', margin: 0, width: '100%', background: '#ffffff' }}
-                          />
+                          <input type="text" placeholder="Enter reviewer work title" value={rev.title || ''}
+                            onChange={(e) => { const list = [...(sopSignoffs.reviewers || [])]; list[idx] = { ...list[idx], title: e.target.value }; setSopSignoffs(prev => ({ ...prev, reviewers: list })); }}
+                            style={{ padding: '0.45rem 0.6rem', fontSize: '0.875rem', margin: 0, width: '100%', background: '#ffffff' }} />
                         </td>
                         <td style={{ width: '40px', padding: '0.75rem 0 0.75rem 0.5rem', textAlign: 'center', verticalAlign: 'middle' }}>
-                          {!isReadOnly && (
-                            <button
-                              type="button"
-                              className="btn btn-danger btn-sm"
-                              onClick={() => {
-                                const list = (sopSignoffs.reviewers || []).filter((_, i) => i !== idx);
-                                setSopSignoffs(prev => ({ ...prev, reviewers: list }));
-                              }}
-                              style={{ padding: '0.35rem', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: 0 }}
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          )}
+                          <button type="button" className="btn btn-danger btn-sm"
+                            onClick={() => { const list = (sopSignoffs.reviewers || []).filter((_, i) => i !== idx); setSopSignoffs(prev => ({ ...prev, reviewers: list })); }}
+                            style={{ padding: '0.35rem', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: 0 }}>
+                            <Trash2 size={14} />
+                          </button>
                         </td>
                       </tr>
                     ))}
-
-                    {/* Authorisers Rows */}
+                    {/* Authorisers */}
                     {(sopSignoffs.authorisers || []).map((auth, idx) => (
-                      <tr key={`authoriser-${idx}`} style={{ borderTop: '1px solid rgba(0, 0, 0, 0.05)' }}>
+                      <tr key={`authoriser-${idx}`} style={{ borderTop: '1px solid rgba(0,0,0,0.05)' }}>
                         <td style={{ padding: '0.75rem 0', fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-primary)', verticalAlign: 'middle' }}>
                           Authoriser {sopSignoffs.authorisers && sopSignoffs.authorisers.length > 1 ? `#${idx + 1}` : ''}
                         </td>
                         <td style={{ padding: '0.75rem 0.5rem', verticalAlign: 'middle' }}>
-                          <input
-                            type="text"
-                            placeholder="Enter authoriser name"
-                            value={auth.name || ''}
-                            onChange={(e) => {
-                              const list = [...(sopSignoffs.authorisers || [])];
-                              list[idx] = { ...list[idx], name: e.target.value };
-                              setSopSignoffs(prev => ({ ...prev, authorisers: list }));
-                            }}
-                            style={{ padding: '0.45rem 0.6rem', fontSize: '0.875rem', margin: 0, width: '100%', background: '#ffffff' }}
-                          />
+                          <input type="text" placeholder="Enter authoriser name" value={auth.name || ''}
+                            onChange={(e) => { const list = [...(sopSignoffs.authorisers || [])]; list[idx] = { ...list[idx], name: e.target.value }; setSopSignoffs(prev => ({ ...prev, authorisers: list })); }}
+                            style={{ padding: '0.45rem 0.6rem', fontSize: '0.875rem', margin: 0, width: '100%', background: '#ffffff' }} />
                         </td>
                         <td style={{ padding: '0.75rem 0.5rem', verticalAlign: 'middle' }}>
-                          <input
-                            type="text"
-                            placeholder="Enter authoriser work title"
-                            value={auth.title || ''}
-                            onChange={(e) => {
-                              const list = [...(sopSignoffs.authorisers || [])];
-                              list[idx] = { ...list[idx], title: e.target.value };
-                              setSopSignoffs(prev => ({ ...prev, authorisers: list }));
-                            }}
-                            style={{ padding: '0.45rem 0.6rem', fontSize: '0.875rem', margin: 0, width: '100%', background: '#ffffff' }}
-                          />
+                          <input type="text" placeholder="Enter authoriser work title" value={auth.title || ''}
+                            onChange={(e) => { const list = [...(sopSignoffs.authorisers || [])]; list[idx] = { ...list[idx], title: e.target.value }; setSopSignoffs(prev => ({ ...prev, authorisers: list })); }}
+                            style={{ padding: '0.45rem 0.6rem', fontSize: '0.875rem', margin: 0, width: '100%', background: '#ffffff' }} />
                         </td>
                         <td style={{ width: '40px', padding: '0.75rem 0 0.75rem 0.5rem', textAlign: 'center', verticalAlign: 'middle' }}>
-                          {!isReadOnly && (
-                            <button
-                              type="button"
-                              className="btn btn-danger btn-sm"
-                              onClick={() => {
-                                const list = (sopSignoffs.authorisers || []).filter((_, i) => i !== idx);
-                                setSopSignoffs(prev => ({ ...prev, authorisers: list }));
-                              }}
-                              style={{ padding: '0.35rem', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: 0 }}
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          )}
+                          <button type="button" className="btn btn-danger btn-sm"
+                            onClick={() => { const list = (sopSignoffs.authorisers || []).filter((_, i) => i !== idx); setSopSignoffs(prev => ({ ...prev, authorisers: list })); }}
+                            style={{ padding: '0.35rem', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: 0 }}>
+                            <Trash2 size={14} />
+                          </button>
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
 
-                {/* Addition controls */}
-                {!isReadOnly && (
-                  <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem', borderBottom: '1px solid rgba(0, 0, 0, 0.05)', paddingBottom: '1rem' }}>
-                    <button
-                      type="button"
-                      className="btn btn-secondary btn-sm"
-                      onClick={() => {
-                        setSopSignoffs(prev => ({
-                          ...prev,
-                          reviewers: [...(prev.reviewers || []), { name: '', title: '' }]
-                        }));
-                      }}
-                      style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
-                    >
-                      <Plus size={14} /> Add Reviewer
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-secondary btn-sm"
-                      onClick={() => {
-                        setSopSignoffs(prev => ({
-                          ...prev,
-                          authorisers: [...(prev.authorisers || []), { name: '', title: '' }]
-                        }));
-                      }}
-                      style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
-                    >
-                      <Plus size={14} /> Add Authoriser
-                    </button>
-                  </div>
-                )}
+                {/* Add controls */}
+                <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem', borderBottom: '1px solid rgba(0,0,0,0.05)', paddingBottom: '1rem' }}>
+                  <button type="button" className="btn btn-secondary btn-sm"
+                    onClick={() => setSopSignoffs(prev => ({ ...prev, reviewers: [...(prev.reviewers || []), { name: '', title: '' }] }))}
+                    style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <Plus size={14} /> Add Reviewer
+                  </button>
+                  <button type="button" className="btn btn-secondary btn-sm"
+                    onClick={() => setSopSignoffs(prev => ({ ...prev, authorisers: [...(prev.authorisers || []), { name: '', title: '' }] }))}
+                    style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <Plus size={14} /> Add Authoriser
+                  </button>
+                </div>
 
                 {/* Effective Date */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <label className="form-label" style={{ fontWeight: 600, fontSize: '0.8rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', margin: 0 }}>
-                    Effective Date:
+                  <label className="form-label" style={{ fontWeight: 600, fontSize: '0.8rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', margin: 0, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    <Calendar size={14} /> Effective Date:
                   </label>
                   <input
                     type="date"
@@ -1297,6 +1370,58 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                   />
                 </div>
               </div>
+            </div>
+
+            {/* Section C: Version History */}
+            <div className="paper-card" style={{ padding: '1.5rem', borderLeft: '4px solid #94a3b8' }}>
+              <h3 style={{ fontSize: '1rem', marginBottom: '1.25rem', color: 'var(--text-primary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <GitBranch size={16} /> Version History
+              </h3>
+              {allVersions.length === 0 ? (
+                <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem', border: '1px dashed var(--neutral-border)', borderRadius: '6px' }}>
+                  No version history available.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {allVersions.map((v) => {
+                    const vStatus = v.status || 'Active';
+                    const isCurrent = v.id === processId;
+                    const vColors = {
+                      'Draft': { bg: '#f3f4f6', text: '#4b5563', border: '#d1d5db' },
+                      'Pending Review': { bg: '#fef3c7', text: '#92400e', border: '#fcd34d' },
+                      'Active': { bg: '#d1fae5', text: '#065f46', border: '#6ee7b7' },
+                      'Retired': { bg: '#fee2e2', text: '#991b1b', border: '#fca5a5' },
+                      'Superseded': { bg: '#e5e7eb', text: '#374151', border: '#d1d5db' },
+                    }[vStatus] || { bg: '#e5e7eb', text: '#4b5563', border: '#cbd5e1' };
+                    return (
+                      <div key={v.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.65rem 1rem', background: isCurrent ? '#f0fdfa' : '#f9fafb', borderRadius: '6px', border: isCurrent ? '1px solid #99f6e4' : '1px solid var(--neutral-border)', fontSize: '0.82rem', transition: 'all 0.15s ease' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, minWidth: 0 }}>
+                          <span style={{ fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>v{v.version}</span>
+                          {isCurrent && <span style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--primary)', background: '#f0fdfa', border: '1px solid #99f6e4', padding: '0.05rem 0.35rem', borderRadius: '3px' }}>CURRENT</span>}
+                          <span className="badge" style={{ backgroundColor: vColors.bg, color: vColors.text, border: `1px solid ${vColors.border}`, fontSize: '0.68rem', padding: '0.1rem 0.4rem', textTransform: 'uppercase', fontWeight: 700 }}>{vStatus}</span>
+                          <span style={{ color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            Updated: {new Date(v.lastUpdated).toLocaleDateString()}
+                          </span>
+                          {v.sopSignoffs?.effectiveDate && (
+                            <span style={{ color: 'var(--text-secondary)', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                              <Calendar size={12} /> Effective: {new Date(v.sopSignoffs.effectiveDate).toLocaleDateString()}
+                            </span>
+                          )}
+                        </div>
+                        {!isCurrent && (
+                          <button
+                            className="btn btn-secondary btn-sm"
+                            style={{ padding: '0.2rem 0.5rem', fontSize: '0.7rem', margin: 0, whiteSpace: 'nowrap' }}
+                            onClick={() => onSaveSuccess(v.id)}
+                          >
+                            Open
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -1978,14 +2103,29 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)' }}>
                         <PenTool size={14} />
                         {workflowFormsData[formName]?.formId ? (
-                          <span>
-                            Digital Template: <strong>{workflowFormsData[formName].formId}</strong> (
-                            {workflowFormsData[formName].version}) - {' '}
-                            <span className={`badge ${workflowFormsData[formName].status === 'ACTIVE' ? 'badge-success' : 'badge-warning'}`} style={{ fontSize: '0.65rem', padding: '0.1rem 0.3rem' }}>
-                              {workflowFormsData[formName].status}
-                            </span>
-                          </span>
-                        ) : (
+                           <span>
+                             <strong>{workflowFormsData[formName].formId}</strong>
+                             {(() => {
+                               const rawVersion = (workflowFormsData[formName].version || '').trim();
+                               let normalizedVersion = rawVersion;
+                               const dateRegex = /(\d{4})-(\d{2})-(\d{2})/;
+                               const dateMatch = normalizedVersion.match(dateRegex);
+                               if (dateMatch) {
+                                 const [_, yyyy, mm, dd] = dateMatch;
+                                 const formattedDate = `${dd}.${mm}.${yyyy}`;
+                                 normalizedVersion = normalizedVersion.replace(/\s*\([^)]*\)/g, '').replace(dateRegex, '').trim();
+                                 normalizedVersion = `${normalizedVersion}-${formattedDate}`;
+                               }
+                               if (normalizedVersion.startsWith('v')) {
+                                 normalizedVersion = 'V' + normalizedVersion.slice(1);
+                               }
+                               return normalizedVersion ? ` • ${normalizedVersion}` : '';
+                             })()} - {' '}
+                             <span className={`badge ${workflowFormsData[formName].status === 'ACTIVE' ? 'badge-success' : 'badge-warning'}`} style={{ fontSize: '0.65rem', padding: '0.1rem 0.3rem' }}>
+                               {workflowFormsData[formName].status}
+                             </span>
+                           </span>
+                         ) : (
                           <span style={{ fontStyle: 'italic' }}>No digital form configured yet</span>
                         )}
                       </div>
