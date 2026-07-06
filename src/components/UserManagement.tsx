@@ -104,14 +104,14 @@ const UserManagement: React.FC<Props> = ({ onBack }) => {
 
   // ── Save user (add or edit) ───────────────────────────────
   const handleSave = async () => {
-    if (!formData.full_name.trim()) { setFormError('Vui lòng nhập Họ tên.'); return; }
+    if (!formData.full_name?.trim()) { setFormError('Vui lòng nhập Họ tên.'); return; }
     if (!formData.email?.trim()) { setFormError('Vui lòng nhập Email.'); return; }
-    if (!formData.username.trim()) { setFormError('Vui lòng nhập Tên đăng nhập.'); return; }
-    if (!formData.password.trim()) { setFormError('Vui lòng nhập Mật khẩu.'); return; }
+    if (!formData.username?.trim()) { setFormError('Vui lòng nhập Tên đăng nhập.'); return; }
+    if (!editingUser && !formData.password?.trim()) { setFormError('Vui lòng nhập Mật khẩu.'); return; }
 
     // Duplicate username check (excluding self when editing)
     const dupCheck = users.find(
-      (u) => u.username === formData.username.trim() && u.id !== editingUser?.id
+      (u) => u.username === formData.username?.trim() && u.id !== editingUser?.id
     );
     if (dupCheck) { setFormError('Tên đăng nhập này đã tồn tại.'); return; }
 
@@ -133,9 +133,9 @@ const UserManagement: React.FC<Props> = ({ onBack }) => {
           id: editingUser?.id,
           email: formData.email.trim(),
           username: formData.username.trim(),
-          password: formData.password,
+          password: formData.password?.trim() || null,
           full_name: formData.full_name.trim(),
-          title: formData.title.trim(),
+          title: formData.title?.trim() || null,
           role_id: formData.role_id,
           status: formData.status
         })
@@ -452,7 +452,7 @@ const UserManagement: React.FC<Props> = ({ onBack }) => {
                 { label: 'Chức vụ', field: 'title', type: 'text', placeholder: 'Công nhân vận hành' },
                 { label: 'Email *', field: 'email', type: 'text', placeholder: 'email@gmail.com' },
                 { label: 'Tên đăng nhập *', field: 'username', type: 'text', placeholder: 'username' },
-                { label: 'Mật khẩu *', field: 'password', type: 'password', placeholder: '••••••••' },
+                { label: editingUser ? 'Mật khẩu' : 'Mật khẩu *', field: 'password', type: 'password', placeholder: '••••••••' },
               ].map(({ label, field, type, placeholder }) => (
                 <div key={field} style={{ marginBottom: '1.1rem' }}>
                   <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
