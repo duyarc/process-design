@@ -139,7 +139,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
     author: { name: '', title: '' },
     reviewers: [{ name: '', title: '' }],
     authorisers: [{ name: '', title: '' }],
-    effectiveDate: ''
+    effectiveDate: new Date().toISOString().split('T')[0]
   });
   const [workflowFormsData, setWorkflowFormsData] = useState<{
     [formName: string]: {
@@ -431,7 +431,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
           author: loadedSop.author || { name: '', title: '' },
           reviewers: loadedSop.reviewers || (loadedSop.reviewer ? [loadedSop.reviewer] : [{ name: '', title: '' }]),
           authorisers: loadedSop.authorisers || (loadedSop.authoriser ? [loadedSop.authoriser] : [{ name: '', title: '' }]),
-          effectiveDate: loadedSop.effectiveDate || ''
+          effectiveDate: loadedSop.effectiveDate || new Date().toISOString().split('T')[0]
         });
         setWorkflowFormsData(proc.workflowFormsData || {});
 
@@ -1149,13 +1149,12 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
         {activeTab === 'versions' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
-            {/* Section A: Version Card + Lifecycle Actions */}
-            <div className="paper-card accent-teal" style={{ padding: '1.5rem' }}>
+            {/* Section A: Version Card + Lifecycle Actions */}             <div className="paper-card accent-teal" style={{ padding: '1.5rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
-                <div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                   <h2 style={{ margin: '0 0 0.35rem 0', fontSize: '1.2rem' }}>{title || 'Untitled Process'}</h2>
+                  
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-                    <span style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)' }}>Version {version}</span>
                     <span className="badge" style={{
                       backgroundColor:
                         status === 'Draft' ? '#f3f4f6' :
@@ -1180,6 +1179,55 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                       {status === 'Retired' && <><XCircle size={11} style={{ marginRight: '3px', verticalAlign: 'middle' }} />Retired</>}
                       {status === 'Superseded' && <><XCircle size={11} style={{ marginRight: '3px', verticalAlign: 'middle' }} />Superseded</>}
                     </span>
+
+                    {/* Version input */}
+                    {(status === 'Draft' || status === 'Pending Review') ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <span style={{ fontWeight: 600, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Version:</span>
+                        <input 
+                          type="text" 
+                          value={version} 
+                          onChange={(e) => setVersion(e.target.value)} 
+                          style={{ 
+                            width: '50px', 
+                            padding: '0.15rem 0.35rem', 
+                            fontSize: '0.8rem', 
+                            border: '1px solid var(--neutral-border)', 
+                            borderRadius: '4px',
+                            textAlign: 'center',
+                            fontWeight: 700
+                          }} 
+                        />
+                      </div>
+                    ) : (
+                      <span style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)' }}>Version {version}</span>
+                    )}
+
+                    {/* Effective Date input */}
+                    {(status === 'Draft' || status === 'Pending Review') ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginLeft: '0.5rem' }}>
+                        <span style={{ fontWeight: 600, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Effective Date:</span>
+                        <input 
+                          type="date" 
+                          value={sopSignoffs.effectiveDate || ''} 
+                          onChange={(e) => setSopSignoffs(prev => ({ ...prev, effectiveDate: e.target.value }))} 
+                          style={{ 
+                            padding: '0.15rem 0.35rem', 
+                            fontSize: '0.8rem', 
+                            border: '1px solid var(--neutral-border)', 
+                            borderRadius: '4px',
+                            outline: 'none',
+                            color: 'var(--text-primary)'
+                          }} 
+                        />
+                      </div>
+                    ) : (
+                      sopSignoffs.effectiveDate && (
+                        <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginLeft: '0.5rem' }}>
+                          Effective Date: <strong style={{ color: 'var(--text-secondary)' }}>{sopSignoffs.effectiveDate}</strong>
+                        </span>
+                      )
+                    )}
                   </div>
                 </div>
 
