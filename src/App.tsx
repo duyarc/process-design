@@ -31,7 +31,7 @@ const MainApp: React.FC = () => {
   const [initialFormFilter, setInitialFormFilter] = useState<string | null>(null);
   const [initialPrintFormName, setInitialPrintFormName] = useState<string | null>(null);
   const [dashboardViewMode, setDashboardViewMode] = useState<'processes' | 'forms' | 'submissions' | 'guide'>('processes');
-  const [initialEditorTab, setInitialEditorTab] = useState<'description' | 'workflow' | 'form' | undefined>(undefined);
+  const [initialEditorTab, setInitialEditorTab] = useState<'description' | 'workflow' | 'form' | 'versions' | undefined>(undefined);
   const [initialFormToBuild, setInitialFormToBuild] = useState<string | null>(null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 

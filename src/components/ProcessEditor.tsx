@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { Process, ProcessStep, FormField, FormDesignerField, SOPSignOff, SOPSignOffs } from '../types';
-import { ArrowLeft, Save, Plus, Trash2, ArrowUp, ArrowDown, Upload, Edit2, Eye, PenTool, CheckCircle, Clock, GitBranch, XCircle, Shield, Calendar, AlertTriangle } from 'lucide-react';
+import { Save, Plus, Trash2, ArrowUp, ArrowDown, Upload, Edit2, Eye, Printer, GitBranch, XCircle, Shield, Calendar } from 'lucide-react';
 import FormBuilder from './FormBuilder';
 import { generateBPMNXML } from '../utils/bpmnXmlGenerator';
 import { useAuth } from '../context/AuthContext';
@@ -108,7 +108,7 @@ interface ProcessEditorProps {
   onCancel: () => void;
   onSaveSuccess: (id: string) => void;
   onOpenDraft?: (id: string) => void;
-  initialTab?: 'description' | 'workflow' | 'form';
+  initialTab?: 'description' | 'workflow' | 'form' | 'versions';
   initialFormToBuild?: string | null;
   onClearInitialEditOpts?: () => void;
 }

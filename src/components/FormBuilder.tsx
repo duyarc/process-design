@@ -1813,17 +1813,15 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                             {isLogoUploading ? 'Uploading Logo...' : '+ Upload Logo'}
                           </label>
 
-                          {existingLogos.length > 0 && (
-                            <button
-                              type="button"
-                              disabled={isLocked}
-                              onClick={() => setShowLogoGallery(true)}
-                              className="btn btn-secondary btn-sm"
-                              style={{ fontSize: '0.75rem', width: '100%', justifyContent: 'center', display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}
-                            >
-                              <span>Or Choose from Gallery</span>
-                            </button>
-                          )}
+                          <button
+                            type="button"
+                            disabled={isLocked}
+                            onClick={() => setShowLogoGallery(true)}
+                            className="btn btn-secondary btn-sm"
+                            style={{ fontSize: '0.75rem', width: '100%', justifyContent: 'center', display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}
+                          >
+                            <span>Or Choose from Gallery</span>
+                          </button>
                         </div>
                       )}
                     </div>

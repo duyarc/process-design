@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import type { Process, SubmissionFieldSnapshot } from '../types';
 import { formatFormVersion } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { ArrowLeft, Printer, Edit2, Camera, AlertTriangle, X, PenTool, GitBranch, Eye } from 'lucide-react';
+import { Printer, Edit2, Camera, AlertTriangle, X, PenTool, GitBranch, Eye } from 'lucide-react';
 import { generateBPMNXML, getNumRows } from '../utils/bpmnXmlGenerator';
 import { BpmnViewerComponent } from './BpmnViewerComponent';
 import PrintBlankForm from './print/PrintBlankForm';
