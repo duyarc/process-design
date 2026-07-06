@@ -585,7 +585,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                       </td>
                     ))}
                     {block.showTotalColumn && (
-                      <td style={{ border: '1.5px solid #000000', padding: '6px', textAlign: 'center', fontSize: '0.8rem', fontWeight: 'bold', background: '#f8fafc' }}>
+                      <td style={{ border: '1.5px solid #000000', padding: '6px', textAlign: 'right', fontSize: '0.8rem', fontWeight: 'bold', background: '#f8fafc' }}>
                         {rowTotals[rIdx]}
                       </td>
                     )}
@@ -605,7 +605,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                     </td>
                   ))}
                   {block.showTotalColumn && (
-                    <td style={{ border: '1.5px solid #000000', padding: '6px', textAlign: 'center', fontSize: '0.8rem', background: '#e2e8f0' }}>
+                    <td style={{ border: '1.5px solid #000000', padding: '6px', textAlign: 'right', fontSize: '0.8rem', background: '#e2e8f0' }}>
                       {grandTotal}
                     </td>
                   )}

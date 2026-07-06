@@ -1249,7 +1249,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                                       </td>
                                     ))}
                                     {block.matrixConfig!.showTotalColumn && (
-                                      <td style={{ padding: '4px', borderRight: '1px solid #cbd5e1', textAlign: 'center', background: '#f1f5f9', fontWeight: 'bold' }}>
+                                      <td style={{ padding: '4px', borderRight: '1px solid #cbd5e1', textAlign: 'right', background: '#f1f5f9', fontWeight: 'bold' }}>
                                         0
                                       </td>
                                     )}
@@ -1263,10 +1263,10 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                                 <tr style={{ background: '#f8fafc', fontWeight: 'bold', borderTop: '1.5px solid #cbd5e1' }}>
                                   <td style={{ padding: '6px', borderRight: '1px solid #cbd5e1', textAlign: 'center' }}>TỔNG</td>
                                   {block.matrixConfig.columns.map((_, cIdx) => (
-                                    <td key={cIdx} style={{ padding: '4px', borderRight: '1px solid #cbd5e1', textAlign: 'center' }}>0</td>
+                                    <td key={cIdx} style={{ padding: '4px', borderRight: '1px solid #cbd5e1', textAlign: 'right' }}>0</td>
                                   ))}
                                   {block.matrixConfig.showTotalColumn && (
-                                    <td style={{ padding: '4px', borderRight: '1px solid #cbd5e1', textAlign: 'center', background: '#e2e8f0' }}>0</td>
+                                    <td style={{ padding: '4px', borderRight: '1px solid #cbd5e1', textAlign: 'right', background: '#e2e8f0' }}>0</td>
                                   )}
                                   {block.matrixConfig.showNotesColumn && (
                                     <td style={{ padding: '4px' }}></td>

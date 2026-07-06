@@ -672,7 +672,7 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
                               );
                             })}
                             {block.matrixConfig.showTotalColumn && (
-                              <td style={{ border: '1.5px solid #000000', padding: '6px', textAlign: 'center', fontWeight: 'bold', background: '#f8fafc' }}>
+                              <td style={{ border: '1.5px solid #000000', padding: '6px', textAlign: 'right', fontWeight: 'bold', background: '#f8fafc' }}>
                                 {rowTotal}
                               </td>
                             )}

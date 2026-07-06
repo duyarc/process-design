@@ -1368,7 +1368,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                                             );
                                           })}
                                           {config.showTotalColumn && (
-                                            <td style={{ padding: '8px', borderRight: '1px solid var(--neutral-border)', textAlign: 'center', background: '#f8fafc', fontWeight: 'bold', color: 'var(--primary)' }}>
+                                            <td style={{ padding: '8px', borderRight: '1px solid var(--neutral-border)', textAlign: 'right', background: '#f8fafc', fontWeight: 'bold', color: 'var(--primary)' }}>
                                               {rowTotals[rIdx]}
                                             </td>
                                           )}
@@ -1400,12 +1400,12 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                                           TỔNG
                                         </td>
                                         {colTotals.map((total: number, cIdx: number) => (
-                                          <td key={cIdx} style={{ padding: '8px', borderRight: '1px solid var(--neutral-border)', textAlign: 'center', color: 'var(--text-primary)' }}>
+                                          <td key={cIdx} style={{ padding: '8px', borderRight: '1px solid var(--neutral-border)', textAlign: 'right', color: 'var(--text-primary)' }}>
                                             {total}
                                           </td>
                                         ))}
                                         {config.showTotalColumn && (
-                                          <td style={{ padding: '8px', borderRight: '1px solid var(--neutral-border)', textAlign: 'center', background: '#e2e8f0', color: 'var(--primary)' }}>
+                                          <td style={{ padding: '8px', borderRight: '1px solid var(--neutral-border)', textAlign: 'right', background: '#e2e8f0', color: 'var(--primary)' }}>
                                             {grandTotal}
                                           </td>
                                         )}
