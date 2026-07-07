@@ -2656,26 +2656,38 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
             <FormBuilder
               formName={activeFormToBuild}
               initialData={(() => {
-                const fd = workflowFormsData[activeFormToBuild];
-                if (!fd?.formId) return fd;
-                // Always open the latest version of this form (independent versioning model)
-                // Use allForms (already fetched) to get the correct snapshot data upfront,
-                // so FormBuilder shows the right content without waiting for its own API fetch
+                // Primary: look up the latest version of this form_id directly from allForms (DB)
                 const live = allForms
-                  .filter(f => f.form_id === fd.formId)
+                  .filter(f => f.form_id === activeFormToBuild)
                   .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())[0];
-                if (!live) return fd;
+                
+                if (live) {
+                  return {
+                    formId: live.form_id,
+                    formTitle: live.form_title || live.form_name,
+                    version: live.version,
+                    status: live.status as 'DRAFT' | 'ACTIVE' | 'ARCHIVED',
+                    layoutBlocks: typeof live.layout_blocks === 'string'
+                      ? JSON.parse(live.layout_blocks)
+                      : (live.layout_blocks || []),
+                    revisionHistory: typeof live.revision_history === 'string'
+                      ? JSON.parse(live.revision_history)
+                      : (live.revision_history || []),
+                  };
+                }
+
+                // Fallback: try workflowFormsData[activeFormToBuild] if form is not yet saved to DB
+                const fd = workflowFormsData[activeFormToBuild];
+                if (fd) return { ...fd };
+
+                // Last resort: new blank form with the declared form_id
                 return {
-                  formId: fd.formId,
-                  formTitle: live.form_title || live.form_name,
-                  version: live.version,
-                  status: live.status as 'DRAFT' | 'ACTIVE' | 'ARCHIVED',
-                  layoutBlocks: typeof live.layout_blocks === 'string'
-                    ? JSON.parse(live.layout_blocks)
-                    : (live.layout_blocks || []),
-                  revisionHistory: typeof live.revision_history === 'string'
-                    ? JSON.parse(live.revision_history)
-                    : (live.revision_history || []),
+                  formId: activeFormToBuild,
+                  formTitle: activeFormToBuild,
+                  status: 'DRAFT' as const,
+                  version: 'v0.1',
+                  layoutBlocks: [],
+                  revisionHistory: [],
                 };
               })()}
               onSave={async (savedFormData) => {
