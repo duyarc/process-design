@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { Process } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { Plus, Search, FileText, Eye, Calendar, ChevronDown, ChevronUp, Printer, History, PenTool, Edit2, GitBranch } from 'lucide-react';
+import { Plus, Search, FileText, Eye, Calendar, Printer, History, PenTool, Edit2, GitBranch } from 'lucide-react';
 import SubmissionManager from './SubmissionManager';
 import { BPMNGuide } from './BPMNGuide';
 import PrintBlankForm from './print/PrintBlankForm';
@@ -43,13 +43,23 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const formatDMY = (dateInput: any) => {
-    if (!dateInput) return '';
-    const d = new Date(dateInput);
-    if (isNaN(d.getTime())) return '';
-    return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
+  const [selectedProcessVersions, setSelectedProcessVersions] = useState<Record<string, string>>({});
+  
+  const getFormattedVersionString = (proc: Process) => {
+    const rawVersion = proc.version || '0.1';
+    const cleanVersion = /^[vV]/.test(rawVersion) ? rawVersion.trim().slice(1) : rawVersion.trim();
+    const dateSource = proc.sopSignoffs?.effectiveDate || proc.lastUpdated;
+    if (!dateSource) return `V${cleanVersion}`;
+    try {
+      const d = new Date(dateSource);
+      const day = String(d.getDate()).padStart(2, '0');
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const year = d.getFullYear();
+      return `V${cleanVersion}-${day}.${month}.${year}`;
+    } catch (e) {
+      return `V${cleanVersion}`;
+    }
   };
-  const [expandedVersions, setExpandedVersions] = useState<{ [parentId: string]: boolean }>({});
   const { hasPermission } = useAuth();
 
   const fetchProcesses = async () => {
@@ -82,13 +92,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     fetchProcesses();
   }, []);
 
-  const toggleExpanded = (parentId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setExpandedVersions(prev => ({
-      ...prev,
-      [parentId]: !prev[parentId]
-    }));
-  };
+
 
 
 
@@ -568,155 +572,117 @@ export const Dashboard: React.FC<DashboardProps> = ({
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           {filteredFamilies.map(({ parentId, representative, allVersions }) => {
-            const status = representative.status || 'Active';
+            const selectedId = selectedProcessVersions[parentId];
+            const currentRep = selectedId ? allVersions.find(v => v.id === selectedId) || representative : representative;
+            const status = currentRep.status || 'Active';
             const colors = statusColors[status] || { bg: '#e5e7eb', text: '#4b5563', border: '#cbd5e1' };
-            const isExpanded = !!expandedVersions[parentId];
 
             return (
               <div 
                 key={parentId} 
                 className="paper-card accent-teal" 
                 style={{ cursor: 'pointer', transition: 'all 0.2s ease' }}
-                onClick={() => onSelectProcess(representative.id)}
+                onClick={() => onSelectProcess(currentRep.id)}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div style={{ flex: 1, paddingRight: '2rem' }}>
-                    <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.35rem', flexWrap: 'wrap' }}>
-                      {representative.title}
-                      <span className="badge" style={{ backgroundColor: '#f3f4f6', color: 'var(--text-secondary)', border: '1px solid #e5e7eb', fontWeight: 600 }}>
-                        {/^[vV]/.test(representative.version || '') ? 'V' + (representative.version || '').trim().slice(1) : 'V' + (representative.version || '').trim()}
-                      </span>
-                      <span className="badge" style={{ backgroundColor: colors.bg, color: colors.text, border: `1px solid ${colors.border}`, textTransform: 'uppercase', fontSize: '0.7rem', fontWeight: 700, padding: '0.15rem 0.5rem', borderRadius: '4px' }}>
-                        {status}
-                      </span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+                  <div style={{ flex: 1, minWidth: '300px' }}>
+                    <h3 style={{ margin: '0 0 0.35rem 0' }}>
+                      {currentRep.title}
                     </h3>
                     <p style={{ fontSize: '0.9rem', marginBottom: '1rem', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                      {representative.description || 'No description provided.'}
+                      {currentRep.description || 'No description provided.'}
                     </p>
                     <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.8rem', color: 'var(--text-secondary)', flexWrap: 'wrap', alignItems: 'center' }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                         <Calendar size={14} />
-                        Updated: {new Date(representative.lastUpdated).toLocaleDateString()}
+                        Updated: {new Date(currentRep.lastUpdated).toLocaleDateString()}
                       </span>
                       <span>•</span>
-                      <span>{representative.steps?.length || 0} Workflow Steps</span>
+                      <span>{currentRep.steps?.length || 0} Workflow Steps</span>
                       <span>•</span>
-                      <span>{representative.formFields?.length || 0} Checksheet Parameters</span>
-                      {allVersions.length > 1 && (
-                        <>
-                          <span>•</span>
-                          <button
-                            onClick={(e) => toggleExpanded(parentId, e)}
-                            style={{
-                              background: 'transparent',
-                              border: 'none',
-                              color: 'var(--primary)',
-                              fontWeight: 600,
-                              cursor: 'pointer',
-                              padding: 0,
-                              fontSize: '0.8rem',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '2px'
-                            }}
-                          >
-                            {isExpanded ? (
-                              <>Hide Versions <ChevronUp size={14} /></>
-                            ) : (
-                              <>Show Versions ({allVersions.length}) <ChevronDown size={14} /></>
-                            )}
-                          </button>
-                        </>
-                      )}
+                      <span>{currentRep.formFields?.length || 0} Checksheet Parameters</span>
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', gap: '0.5rem' }} className="no-print">
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexShrink: 0 }} className="no-print" onClick={(e) => e.stopPropagation()}>
+                    {/* Version Selector Dropdown */}
+                    <div style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      padding: '0.25rem 0.6rem',
+                      fontSize: '0.78rem',
+                      borderRadius: '6px',
+                      border: '1px solid var(--neutral-border)',
+                      background: '#ffffff',
+                      color: 'var(--text-primary)',
+                      fontWeight: 600,
+                      height: '32px'
+                    }}>
+                      <GitBranch size={13} style={{ marginRight: '0.3rem', color: 'var(--text-secondary)' }} />
+                      <select
+                        value={currentRep.id}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setSelectedProcessVersions(prev => ({ ...prev, [parentId]: val }));
+                        }}
+                        style={{
+                          border: 'none',
+                          background: 'transparent',
+                          padding: 0,
+                          margin: 0,
+                          width: 'auto',
+                          fontSize: '0.78rem',
+                          fontWeight: 600,
+                          color: 'var(--text-primary)',
+                          cursor: 'pointer',
+                          outline: 'none',
+                          boxShadow: 'none'
+                        }}
+                      >
+                        {allVersions.map(v => (
+                          <option key={v.id} value={v.id}>
+                            {getFormattedVersionString(v)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Status Badge */}
+                    <span className="badge" style={{
+                      backgroundColor: colors.bg,
+                      color: colors.text,
+                      border: `1px solid ${colors.border}`,
+                      textTransform: 'uppercase',
+                      fontSize: '0.7rem',
+                      fontWeight: 700,
+                      padding: '0.15rem 0.5rem',
+                      borderRadius: '4px',
+                      height: '32px',
+                      display: 'inline-flex',
+                      alignItems: 'center'
+                    }}>
+                      {status}
+                    </span>
+
+                    {/* View Button */}
                     <button 
                       className="btn btn-secondary btn-sm"
                       title="View Process"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onSelectProcess(representative.id);
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.3rem',
+                        padding: '0.25rem 0.6rem',
+                        fontSize: '0.78rem',
+                        height: '32px',
+                        margin: 0
                       }}
+                      onClick={() => onSelectProcess(currentRep.id)}
                     >
-                      <Eye size={15} />
+                      <Eye size={13} /> View
                     </button>
                   </div>
                 </div>
-
-                {/* Collapsible Version History */}
-                {isExpanded && allVersions.length > 1 && (
-                  <div 
-                    style={{ 
-                      marginTop: '1.25rem', 
-                      paddingTop: '1rem', 
-                      borderTop: '1px dashed var(--neutral-border)' 
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <h5 style={{ margin: '0 0 0.65rem 0', fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                      Version History & Sign-off Audit
-                    </h5>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                      {allVersions.map((v) => {
-                        const vStatus = v.status || 'Active';
-                        const vColors = statusColors[vStatus] || { bg: '#e5e7eb', text: '#4b5563', border: '#cbd5e1' };
-                        const isRep = v.id === representative.id;
-
-                        return (
-                          <div 
-                            key={v.id} 
-                            style={{ 
-                              display: 'flex', 
-                              justifyContent: 'space-between', 
-                              alignItems: 'center', 
-                              padding: '0.5rem 0.75rem', 
-                              background: isRep ? '#f0fdfa' : '#f9fafb', 
-                              borderRadius: '4px',
-                              border: isRep ? '1px solid #99f6e4' : '1px solid var(--neutral-border)',
-                              fontSize: '0.8rem',
-                              cursor: 'pointer',
-                              transition: 'all 0.15s ease'
-                            }}
-                            className="hover-card-bg"
-                            onClick={() => onSelectProcess(v.id)}
-                          >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flex: 1, minWidth: 0 }}>
-                              <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
-                                {/^[vV]/.test(v.version || '') ? 'V' + (v.version || '').trim().slice(1) : 'V' + (v.version || '').trim()}
-                              </span>
-                              <span className="badge" style={{ backgroundColor: vColors.bg, color: vColors.text, fontSize: '0.7rem', padding: '0.1rem 0.4rem', border: `1px solid ${vColors.border}`, textTransform: 'uppercase', fontWeight: 600 }}>
-                                {vStatus}
-                              </span>
-                              {v.sopSignoffs?.effectiveDate ? (
-                                <span style={{ color: 'var(--text-secondary)', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '0.2rem' }} title="Effective Date">
-                                  <Calendar size={11} /> {formatDMY(v.sopSignoffs.effectiveDate)}
-                                </span>
-                              ) : (
-                                <span style={{ color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                  Updated: {formatDMY(v.lastUpdated)}
-                                </span>
-                              )}
-                            </div>
-                            <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
-                              <button
-                                className="btn btn-secondary btn-sm"
-                                style={{ padding: '0.2rem 0.5rem', fontSize: '0.7rem', margin: 0 }}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onSelectProcess(v.id);
-                                }}
-                              >
-                                View
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
               </div>
             );
           })}
