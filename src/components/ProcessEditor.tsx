@@ -1064,6 +1064,43 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
       handleAddFormField();
       fetchQuotaStatus();
       fetchFormsList();
+
+      if (initialFormToBuild) {
+        (async () => {
+          try {
+            const res = await fetch(`/api/forms/${encodeURIComponent(initialFormToBuild)}`);
+            if (res.ok) {
+              const formRecord = await res.json();
+              const layoutBlocks = typeof formRecord.layout_blocks === 'string'
+                ? JSON.parse(formRecord.layout_blocks)
+                : (formRecord.layout_blocks || []);
+              
+              setWorkflowFormsData({
+                [initialFormToBuild]: {
+                  formId: initialFormToBuild,
+                  formTitle: formRecord.form_title || formRecord.form_name || initialFormToBuild,
+                  version: formRecord.version || 'v0.1',
+                  status: formRecord.status || 'DRAFT',
+                  layoutBlocks
+                }
+              });
+
+              // Add a Task step that produces this form
+              const step2: ProcessStep = {
+                id: 'step_task_' + Math.random().toString(36).substr(2, 5),
+                role: 'Operator',
+                action: 'Điền biểu mẫu ' + (formRecord.form_title || formRecord.form_name || initialFormToBuild),
+                bpmnShape: 'task',
+                producesForm: true,
+                formNames: [initialFormToBuild]
+              };
+              setSteps([step1, step2]);
+            }
+          } catch (err) {
+            console.error('Error preloading unlinked form template:', err);
+          }
+        })();
+      }
     }
   }, [processId]);
 

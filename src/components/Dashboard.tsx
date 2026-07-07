@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { Process } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { Plus, Search, FileText, Eye, Calendar, ChevronDown, ChevronUp, Printer, History, PenTool, Edit2, AlertCircle, GitBranch } from 'lucide-react';
+import { Plus, Search, FileText, Eye, Calendar, ChevronDown, ChevronUp, Printer, History, PenTool, Edit2, GitBranch } from 'lucide-react';
 import SubmissionManager from './SubmissionManager';
 import { BPMNGuide } from './BPMNGuide';
 import PrintBlankForm from './print/PrintBlankForm';
@@ -356,13 +356,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
                     {forms.map((form) => {
                       const status = form.status || 'DRAFT';
-                      const isLinked = form.isLinked !== false;
-                      const colors = !isLinked
-                        ? { bg: '#f3f4f6', text: '#4b5563', border: '#cbd5e1' }
-                        : status === 'ACTIVE' 
-                          ? { bg: '#f0fdf4', text: '#15803d', border: '#bbf7d0' } 
-                          : { bg: '#fffbeb', text: '#b45309', border: '#fde68a' };
-                      const displayStatus = !isLinked ? 'UNLINKED' : status;
+                      const colors = status === 'ACTIVE' 
+                        ? { bg: '#f0fdf4', text: '#15803d', border: '#bbf7d0' } 
+                        : { bg: '#fffbeb', text: '#b45309', border: '#fde68a' };
+                      const displayStatus = status;
 
                       return (
                         <div 
@@ -463,17 +460,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
                           <div>
                             <div style={{ display: 'flex', gap: '0.35rem', borderTop: '1px solid var(--neutral-border)', paddingTop: '0.75rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
-                              {isLinked && (
-                                <button 
-                                  className="btn btn-secondary btn-sm"
-                                  style={{ flex: 1, padding: '0.3rem 0.4rem', fontSize: '0.75rem', margin: 0, gap: '0.2rem', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                                  title="Fill Form"
-                                  onClick={() => onOpenFormManager ? onOpenFormManager(form.processId, form.formName) : onSelectProcess(form.processId)}
-                                >
-                                  <PenTool size={13} style={{ flexShrink: 0 }} />
-                                  Fill
-                                </button>
-                              )}
+                              <button 
+                                className="btn btn-secondary btn-sm"
+                                style={{ flex: 1, padding: '0.3rem 0.4rem', fontSize: '0.75rem', margin: 0, gap: '0.2rem', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                                title="Fill Form"
+                                onClick={() => onOpenFormManager ? onOpenFormManager(form.processId || 'unlinked', form.formName) : onSelectProcess(form.processId || 'unlinked')}
+                              >
+                                <PenTool size={13} style={{ flexShrink: 0 }} />
+                                Fill
+                              </button>
                               
                               <button 
                                 className="btn btn-secondary btn-sm"
@@ -496,7 +491,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                 Print
                               </button>
                               
-                              {isLinked && hasPermission('design_document') && (
+                              {hasPermission('design_document') && (
                                 <button 
                                   className="btn btn-secondary btn-sm"
                                   style={{ flex: 1, padding: '0.3rem 0.4rem', fontSize: '0.75rem', margin: 0, gap: '0.2rem', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
@@ -513,7 +508,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                 style={{ flex: 1, padding: '0.3rem 0.4rem', fontSize: '0.75rem', margin: 0, gap: '0.2rem', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
                                 title="View Submissions"
                                 onClick={() => {
-                                  if (isLinked && onOpenFormManager) {
+                                  if (form.processId && onOpenFormManager) {
                                     onOpenFormManager(form.processId, form.formName);
                                   } else if (onViewFormSubmissions) {
                                     onViewFormSubmissions(form.formName);
@@ -524,13 +519,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                 Audit
                               </button>
                             </div>
-                            
-                            {!isLinked && (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.65rem', fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
-                                <AlertCircle size={12} style={{ flexShrink: 0, color: '#6b7280' }} />
-                                <span>Biểu mẫu tự do. Hãy liên kết vào quy trình để điền/sửa.</span>
-                              </div>
-                            )}
                           </div>
                         </div>
                       );

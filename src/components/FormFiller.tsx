@@ -33,12 +33,45 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
   const fetchProcess = async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/processes');
-      if (!res.ok) throw new Error('Failed to fetch processes');
-      const procList: Process[] = await res.json();
-      const foundProc = procList.find(p => p.id === processId);
-      if (foundProc) {
-        setProcess(foundProc);
+      if (!processId || processId === 'unlinked') {
+        const res = await fetch(`/api/forms/${encodeURIComponent(formName)}`);
+        if (!res.ok) throw new Error('Failed to fetch unlinked form');
+        const formRecord = await res.json();
+        
+        const layoutBlocks = typeof formRecord.layout_blocks === 'string'
+          ? JSON.parse(formRecord.layout_blocks)
+          : (formRecord.layout_blocks || []);
+        
+        const virtualProc: Process = {
+          id: 'unlinked',
+          title: 'Biểu mẫu tự do',
+          description: 'Biểu mẫu chưa liên kết quy trình',
+          version: 'V1.0',
+          status: 'Active',
+          steps: [],
+          parentProcessId: 'unlinked',
+          roles: [],
+          formFields: [],
+          lastUpdated: formRecord.updated_at || new Date().toISOString(),
+          workflowFormsData: {
+            [formName]: {
+              formId: formName,
+              formTitle: formRecord.form_title || formRecord.form_name || formName,
+              version: formRecord.version || 'v0.1',
+              status: formRecord.status || 'DRAFT',
+              layoutBlocks
+            }
+          }
+        };
+        setProcess(virtualProc);
+      } else {
+        const res = await fetch('/api/processes');
+        if (!res.ok) throw new Error('Failed to fetch processes');
+        const procList: Process[] = await res.json();
+        const foundProc = procList.find(p => p.id === processId);
+        if (foundProc) {
+          setProcess(foundProc);
+        }
       }
     } catch (err) {
       console.error(err);

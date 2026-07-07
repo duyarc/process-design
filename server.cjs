@@ -320,6 +320,13 @@ async function initDatabase() {
     
     console.log('Database schema verified/created.');
 
+    // Ensure system default process for unlinked forms exists in Supabase DB
+    await client.query(`
+      INSERT INTO processes (id, title, description, version, status)
+      VALUES ('unlinked', 'Biểu mẫu tự do', 'Quy trình chứa các biểu mẫu chưa liên kết', '1', 'Active')
+      ON CONFLICT (id) DO NOTHING
+    `);
+
     // Seed default users if missing
     const usersCountRes = await client.query('SELECT COUNT(*) FROM users');
     const usersCount = parseInt(usersCountRes.rows[0].count, 10);
