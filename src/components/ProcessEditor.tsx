@@ -111,6 +111,7 @@ interface ProcessEditorProps {
   initialTab?: 'description' | 'workflow' | 'form' | 'versions';
   initialFormToBuild?: string | null;
   onClearInitialEditOpts?: () => void;
+  exitOnCloseForm?: boolean;
 }
 
 export const ProcessEditor: React.FC<ProcessEditorProps> = ({ 
@@ -120,7 +121,8 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
   onOpenDraft,
   initialTab,
   initialFormToBuild,
-  onClearInitialEditOpts
+  onClearInitialEditOpts,
+  exitOnCloseForm
 }) => {
   const { hasPermission } = useAuth();
   const modelerRef = useRef<BpmnModelerRef | null>(null);
@@ -2671,12 +2673,22 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                   }
                 };
                 setWorkflowFormsData(nextFormsData);
-                setActiveFormToBuild(null);
                 // Auto-save the process data silently in the background
                 await handleSave(nextFormsData, true);
                 fetchFormsList();
+                if (exitOnCloseForm) {
+                  onCancel();
+                } else {
+                  setActiveFormToBuild(null);
+                }
               }}
-              onClose={() => setActiveFormToBuild(null)}
+              onClose={() => {
+                if (exitOnCloseForm) {
+                  onCancel();
+                } else {
+                  setActiveFormToBuild(null);
+                }
+              }}
             />
           </div>
         </div>

@@ -260,6 +260,7 @@ const MainApp: React.FC = () => {
               setInitialEditorTab(undefined);
               setInitialFormToBuild(null);
             }}
+            exitOnCloseForm={prevPage === 'dashboard'}
           />
         )}
         {page === 'reader' && (
