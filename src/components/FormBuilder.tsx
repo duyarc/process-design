@@ -1677,42 +1677,45 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                                 ) : (
                                   (block.tableRows || []).map((row) => (
                                     <tr key={row.id} style={{ borderBottom: '1px solid #cbd5e1' }}>
-                                      {(block.tableColumns || []).map((col) => (
-                                        <td key={col.id} style={{ padding: '4px', borderRight: '1px solid #cbd5e1', verticalAlign: 'middle' }}>
-                                          {col.type === 'static_text' ? (
-                                            <input
-                                              type="text"
-                                              disabled={isLocked}
-                                              value={block.tableData?.[row.id]?.[col.id] || ''}
-                                              onChange={(e) => {
-                                                const val = e.target.value;
-                                                setLayoutBlocks(prev => prev.map(b => {
-                                                  if (b.id === block.id) {
-                                                    const updatedData = { ...b.tableData || {} };
-                                                    updatedData[row.id] = { ...updatedData[row.id] || {}, [col.id]: val };
-                                                    return { ...b, tableData: updatedData };
-                                                  }
-                                                  return b;
-                                                }));
-                                              }}
-                                              placeholder="Sửa nhãn..."
-                                              style={{ width: '100%', border: 'none', background: 'transparent', outline: 'none', padding: '2px', fontSize: '0.75rem' }}
-                                            />
-                                          ) : col.type === 'checkbox' ? (
-                                            <div style={{ textAlign: 'center' }}><input type="checkbox" disabled /></div>
-                                          ) : col.type === 'radio' ? (
-                                            <div style={{ textAlign: 'center' }}><input type="radio" disabled /></div>
-                                          ) : col.type === 'date' ? (
-                                            <span style={{ color: '#cbd5e1', fontSize: '0.7rem' }}>[Ngày]</span>
-                                          ) : col.type === 'time' ? (
-                                            <span style={{ color: '#cbd5e1', fontSize: '0.7rem' }}>[Giờ]</span>
-                                          ) : col.type === 'number' ? (
-                                            <span style={{ color: '#cbd5e1', fontSize: '0.7rem' }}>[Nhập số]</span>
-                                          ) : (
-                                            <span style={{ color: '#cbd5e1', fontSize: '0.7rem' }}>[Nhập chữ]</span>
-                                          )}
-                                        </td>
-                                      ))}
+                                       {(block.tableColumns || []).map((col) => {
+                                         const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? 'center' : 'left'));
+                                         return (
+                                           <td key={col.id} style={{ padding: '4px', borderRight: '1px solid #cbd5e1', verticalAlign: 'middle', textAlign: cellAlign }}>
+                                             {col.type === 'static_text' ? (
+                                               <input
+                                                 type="text"
+                                                 disabled={isLocked}
+                                                 value={block.tableData?.[row.id]?.[col.id] || ''}
+                                                 onChange={(e) => {
+                                                   const val = e.target.value;
+                                                   setLayoutBlocks(prev => prev.map(b => {
+                                                     if (b.id === block.id) {
+                                                       const updatedData = { ...b.tableData || {} };
+                                                       updatedData[row.id] = { ...updatedData[row.id] || {}, [col.id]: val };
+                                                       return { ...b, tableData: updatedData };
+                                                     }
+                                                     return b;
+                                                   }));
+                                                 }}
+                                                 placeholder="Sửa nhãn..."
+                                                 style={{ width: '100%', border: 'none', background: 'transparent', outline: 'none', padding: '2px', fontSize: '0.75rem', textAlign: cellAlign }}
+                                               />
+                                             ) : col.type === 'checkbox' ? (
+                                               <div style={{ textAlign: 'center' }}><input type="checkbox" disabled /></div>
+                                             ) : col.type === 'radio' ? (
+                                               <div style={{ textAlign: 'center' }}><input type="radio" disabled /></div>
+                                             ) : col.type === 'date' ? (
+                                               <span style={{ color: '#cbd5e1', fontSize: '0.7rem' }}>[Ngày]</span>
+                                             ) : col.type === 'time' ? (
+                                               <span style={{ color: '#cbd5e1', fontSize: '0.7rem' }}>[Giờ]</span>
+                                             ) : col.type === 'number' ? (
+                                               <span style={{ color: '#cbd5e1', fontSize: '0.7rem' }}>[Nhập số]</span>
+                                             ) : (
+                                               <span style={{ color: '#cbd5e1', fontSize: '0.7rem' }}>[Nhập chữ]</span>
+                                             )}
+                                           </td>
+                                         );
+                                       })}
                                       {!isLocked && (
                                         <td style={{ padding: '4px', textAlign: 'center' }}>
                                           <button
@@ -2270,7 +2273,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                                   disabled={isLocked}
                                   value={col.type}
                                   onChange={(e) => handleUpdateTableColumn(activeBlock.id, col.id, { type: e.target.value as any })}
-                                  style={{ flex: 1.2, padding: '0.2rem 0.3rem', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
+                                  style={{ flex: 1.0, padding: '0.2rem 0.3rem', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
                                 >
                                   <option value="static_text">Nhãn tĩnh</option>
                                   <option value="text">Chữ nhập</option>
@@ -2279,6 +2282,17 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                                   <option value="radio">Radio</option>
                                   <option value="date">Ngày</option>
                                   <option value="time">Giờ</option>
+                                </select>
+                                <select
+                                  disabled={isLocked}
+                                  value={col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? 'center' : 'left'))}
+                                  onChange={(e) => handleUpdateTableColumn(activeBlock.id, col.id, { align: e.target.value as any })}
+                                  style={{ flex: 0.6, padding: '0.2rem 0.3rem', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
+                                  title="Canh lề"
+                                >
+                                  <option value="left">Trái</option>
+                                  <option value="center">Giữa</option>
+                                  <option value="right">Phải</option>
                                 </select>
                                 <input
                                   type="text"
@@ -2291,7 +2305,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                                     handleUpdateTableColumn(activeBlock.id, col.id, { width: finalVal });
                                   }}
                                   placeholder="Width % or px"
-                                  style={{ flex: 0.8, padding: '0.2rem 0.3rem', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', backgroundColor: isLast ? '#f1f5f9' : '#ffffff', color: isLast ? '#64748b' : 'inherit', cursor: isLast ? 'not-allowed' : 'text' }}
+                                  style={{ flex: 0.6, padding: '0.2rem 0.3rem', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', backgroundColor: isLast ? '#f1f5f9' : '#ffffff', color: isLast ? '#64748b' : 'inherit', cursor: isLast ? 'not-allowed' : 'text' }}
                                 />
                               </div>
                             </div>

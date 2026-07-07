@@ -768,10 +768,11 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
                               {(block.tableColumns || []).map((col: any) => {
                                 const cellKey = `${block.id}_${row.id}_${col.id}`;
                                 const cellValue = formValues[cellKey] || '';
+                                const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? 'center' : 'left'));
                                 return (
-                                  <td key={col.id} style={{ padding: '6px', borderRight: '1px solid var(--neutral-border)', verticalAlign: 'middle' }}>
+                                  <td key={col.id} style={{ padding: '6px', borderRight: '1px solid var(--neutral-border)', verticalAlign: 'middle', textAlign: cellAlign }}>
                                     {col.type === 'static_text' ? (
-                                      <span style={{ fontWeight: 500 }}>{block.tableData?.[row.id]?.[col.id] || ''}</span>
+                                      <span style={{ fontWeight: 500, display: 'block', textAlign: cellAlign }}>{block.tableData?.[row.id]?.[col.id] || ''}</span>
                                     ) : col.type === 'checkbox' ? (
                                       <div style={{ textAlign: 'center' }}>
                                         <input 
@@ -795,14 +796,14 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
                                         type="date" 
                                         value={cellValue} 
                                         onChange={(e) => setFormValues(prev => ({ ...prev, [cellKey]: e.target.value }))} 
-                                        style={{ width: '100%', padding: '0.35rem 0.45rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px' }}
+                                        style={{ width: '100%', padding: '0.35rem 0.45rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', textAlign: cellAlign }}
                                       />
                                     ) : col.type === 'time' ? (
                                       <input 
                                         type="time" 
                                         value={cellValue} 
                                         onChange={(e) => setFormValues(prev => ({ ...prev, [cellKey]: e.target.value }))} 
-                                        style={{ width: '100%', padding: '0.35rem 0.45rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px' }}
+                                        style={{ width: '100%', padding: '0.35rem 0.45rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', textAlign: cellAlign }}
                                       />
                                     ) : col.type === 'number' ? (
                                       <input 
@@ -810,7 +811,7 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
                                         value={cellValue} 
                                         onChange={(e) => setFormValues(prev => ({ ...prev, [cellKey]: e.target.value }))} 
                                         placeholder="Nhập số..."
-                                        style={{ width: '100%', padding: '0.35rem 0.45rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px' }}
+                                        style={{ width: '100%', padding: '0.35rem 0.45rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', textAlign: cellAlign }}
                                       />
                                     ) : (
                                       <input 
@@ -818,7 +819,7 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
                                         value={cellValue} 
                                         onChange={(e) => setFormValues(prev => ({ ...prev, [cellKey]: e.target.value }))} 
                                         placeholder="Nhập chữ..."
-                                        style={{ width: '100%', padding: '0.35rem 0.45rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px' }}
+                                        style={{ width: '100%', padding: '0.35rem 0.45rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', textAlign: cellAlign }}
                                       />
                                     )}
                                   </td>

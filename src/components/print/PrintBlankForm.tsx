@@ -403,24 +403,27 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                     ) : (
                       (block.tableRows || []).map((row) => (
                         <tr key={row.id} style={{ pageBreakInside: 'avoid' }}>
-                          {(block.tableColumns || []).map((col) => (
-                            <td key={col.id} style={{ border: '1.5px solid #000000', padding: '6px 8px', fontSize: '0.8rem', verticalAlign: 'middle', height: '35px' }}>
-                              {col.type === 'static_text' ? (
-                                <span style={{ fontWeight: 500 }}>{block.tableData?.[row.id]?.[col.id] || ''}</span>
-                              ) : col.type === 'checkbox' || col.type === 'radio' ? (
-                                <div style={{ display: 'flex', justifyContent: 'center' }}>
-                                  <span style={{
-                                    display: 'inline-block',
-                                    width: '14px',
-                                    height: '14px',
-                                    border: '1.5px solid #000000',
-                                    background: '#ffffff',
-                                    borderRadius: col.type === 'radio' ? '50%' : '2px'
-                                  }} />
-                                </div>
-                              ) : null}
-                            </td>
-                          ))}
+                          {(block.tableColumns || []).map((col) => {
+                            const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? 'center' : 'left'));
+                            return (
+                              <td key={col.id} style={{ border: '1.5px solid #000000', padding: '6px 8px', fontSize: '0.8rem', verticalAlign: 'middle', height: '35px', textAlign: cellAlign }}>
+                                {col.type === 'static_text' ? (
+                                  <span style={{ fontWeight: 500, display: 'block', textAlign: cellAlign }}>{block.tableData?.[row.id]?.[col.id] || ''}</span>
+                                ) : col.type === 'checkbox' || col.type === 'radio' ? (
+                                  <div style={{ display: 'flex', justifyContent: 'center' }}>
+                                    <span style={{
+                                      display: 'inline-block',
+                                      width: '14px',
+                                      height: '14px',
+                                      border: '1.5px solid #000000',
+                                      background: '#ffffff',
+                                      borderRadius: col.type === 'radio' ? '50%' : '2px'
+                                    }} />
+                                  </div>
+                                ) : null}
+                              </td>
+                            );
+                          })}
                         </tr>
                       ))
                     )}

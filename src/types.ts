@@ -125,6 +125,7 @@ export interface TableColumnConfig {
   width: string; // e.g. "20%" or "150px"
   type: 'static_text' | 'text' | 'number' | 'checkbox' | 'radio' | 'date' | 'time';
   options?: RadioOption[];
+  align?: 'left' | 'center' | 'right';
 }
 
 export interface TableRowConfig {
