@@ -2811,9 +2811,6 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
           ) : (
             /* GENERAL FORM PROPERTIES */
             <div>
-              <h3 style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-primary)', marginBottom: '0.75rem' }}>
-                Form Settings
-              </h3>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.8rem' }}>
                 
