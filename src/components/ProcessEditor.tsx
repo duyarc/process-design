@@ -1263,30 +1263,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
             <div className="paper-card accent-teal">
             <h2 style={{ borderBottom: '1px solid var(--neutral-border)', paddingBottom: '0.75rem', marginBottom: '1.5rem' }}>Process Description &amp; Metadata</h2>
 
-            <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-              <label className="form-label">
-                Process Code / ID* 
-                {status !== 'Draft' && (
-                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 'normal', marginLeft: '0.5rem' }}>
-                    (Locked - Only editable in Draft status)
-                  </span>
-                )}
-              </label>
-              <input
-                type="text"
-                placeholder="e.g. shipping_process"
-                value={processCode}
-                onChange={(e) => setProcessCode(e.target.value)}
-                disabled={status !== 'Draft' || isReadOnly}
-                style={{
-                  fontFamily: 'monospace',
-                  backgroundColor: (status !== 'Draft' || isReadOnly) ? '#f1f5f9' : 'transparent'
-                }}
-              />
-              <small style={{ display: 'block', marginTop: '0.25rem', color: 'var(--text-secondary)', fontSize: '0.75rem' }}>
-                Only alphanumeric characters, underscores (_), and hyphens (-) are allowed.
-              </small>
-            </div>
+
 
             <div className="form-group" style={{ marginBottom: '1.5rem' }}>
               <label className="form-label">Process Title*</label>
@@ -1738,6 +1715,39 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
 
               {/* Divider */}
               <div style={{ borderTop: '1px solid var(--neutral-border)', margin: '0.85rem 0 0.7rem' }} />
+
+              {/* Process Code / ID input field */}
+              <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', fontWeight: 600 }}>
+                  <GitBranch size={13} style={{ color: 'var(--text-secondary)' }} />
+                  Process Code / ID* 
+                  {status !== 'Draft' && (
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 'normal' }}>
+                      (Locked - Only editable in Draft status)
+                    </span>
+                  )}
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. shipping_process"
+                  value={processCode}
+                  onChange={(e) => setProcessCode(e.target.value)}
+                  disabled={status !== 'Draft' || isReadOnly}
+                  style={{
+                    fontFamily: 'monospace',
+                    fontSize: '0.85rem',
+                    padding: '0.35rem 0.5rem',
+                    borderRadius: '4px',
+                    border: '1px solid var(--neutral-border)',
+                    width: '100%',
+                    boxSizing: 'border-box',
+                    backgroundColor: (status !== 'Draft' || isReadOnly) ? '#f1f5f9' : '#ffffff'
+                  }}
+                />
+                <small style={{ display: 'block', marginTop: '0.2rem', color: 'var(--text-secondary)', fontSize: '0.7rem' }}>
+                  Only alphanumeric characters, underscores (_), and hyphens (-) are allowed.
+                </small>
+              </div>
 
               {/* Version History — inline */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.55rem' }}>
