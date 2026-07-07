@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { Process, SubmissionFieldSnapshot } from '../types';
-import { formatFormVersion } from '../types';
+import { formatFormVersion, getColStyleWidth } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { Printer, Edit2, Camera, AlertTriangle, X, PenTool, GitBranch, Eye } from 'lucide-react';
 import { generateBPMNXML, getNumRows } from '../utils/bpmnXmlGenerator';
@@ -193,6 +193,34 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
           value: val + (fieldStatus === 'FAIL' ? ` (Action: ${fieldReactions[field.id]})` : ''),
           status: fieldStatus
         };
+      });
+
+      // Collect regular table values dynamically
+      formTemplate.layoutBlocks?.forEach((block: any) => {
+        if (block.type === 'TABLE' && block.tableColumns && block.tableRows) {
+          block.tableRows.forEach((row: any, rIdx: number) => {
+            const staticCols = block.tableColumns.filter((c: any) => c.type === 'static_text');
+            const rowLabel = staticCols.length > 0 
+              ? staticCols.map((c: any) => block.tableData?.[row.id]?.[c.id] || '').join(' ') 
+              : `Dòng ${rIdx + 1}`;
+
+            block.tableColumns.forEach((col: any) => {
+              if (col.type !== 'static_text') {
+                const key = `${block.id}_${row.id}_${col.id}`;
+                const val = formValues[key] || '';
+                snapshots.push({
+                  id: key,
+                  checkItem: `${rowLabel} - ${col.label}`,
+                  locationCode: 'N/A',
+                  targetRange: 'Nhập liệu',
+                  reactionProtocol: '',
+                  value: val,
+                  status: 'PASS'
+                });
+              }
+            });
+          });
+        }
       });
 
       // Collect matrix table values dynamically
@@ -1411,6 +1439,104 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                               })}
                             </div>
                           )}
+
+                           {/* 3.2 DYNAMIC TABLE BLOCK */}
+                           {block.type === 'TABLE' && (
+                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem', marginTop: '1rem' }}>
+                               <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                                 {block.title}
+                               </div>
+                               <div style={{ overflowX: 'auto', border: '1px solid var(--neutral-border)', borderRadius: '6px' }}>
+                                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', background: '#ffffff', tableLayout: 'fixed' }}>
+                                   <thead>
+                                     <tr style={{ background: '#f1f5f9', borderBottom: '2px solid var(--neutral-border)' }}>
+                                       {(block.tableColumns || []).map((col: any) => {
+                                         const colWidth = getColStyleWidth(col.width, block.tableColumns || []);
+                                         return (
+                                           <th key={col.id} style={{ padding: '8px', borderRight: '1px solid var(--neutral-border)', textAlign: 'left', width: colWidth, fontWeight: 'bold' }}>
+                                             {col.label}
+                                           </th>
+                                         );
+                                       })}
+                                     </tr>
+                                   </thead>
+                                   <tbody>
+                                     {(block.tableRows || []).length === 0 ? (
+                                       <tr>
+                                         <td colSpan={(block.tableColumns || []).length} style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                                           Không có dòng nào.
+                                         </td>
+                                       </tr>
+                                     ) : (
+                                       (block.tableRows || []).map((row: any) => (
+                                         <tr key={row.id} style={{ borderBottom: '1px solid var(--neutral-border)' }}>
+                                           {(block.tableColumns || []).map((col: any) => {
+                                             const cellKey = `${block.id}_${row.id}_${col.id}`;
+                                             const cellValue = formValues[cellKey] || '';
+                                             return (
+                                               <td key={col.id} style={{ padding: '6px', borderRight: '1px solid var(--neutral-border)', verticalAlign: 'middle' }}>
+                                                 {col.type === 'static_text' ? (
+                                                   <span style={{ fontWeight: 500 }}>{block.tableData?.[row.id]?.[col.id] || ''}</span>
+                                                 ) : col.type === 'checkbox' ? (
+                                                   <div style={{ textAlign: 'center' }}>
+                                                     <input 
+                                                       type="checkbox" 
+                                                       checked={cellValue === 'true'} 
+                                                       onChange={(e) => setFormValues(prev => ({ ...prev, [cellKey]: e.target.checked ? 'true' : 'false' }))} 
+                                                       style={{ transform: 'scale(1.1)', cursor: 'pointer' }}
+                                                     />
+                                                   </div>
+                                                 ) : col.type === 'radio' ? (
+                                                   <div style={{ textAlign: 'center' }}>
+                                                     <input 
+                                                       type="radio" 
+                                                       checked={cellValue === 'true'} 
+                                                       onChange={() => setFormValues(prev => ({ ...prev, [cellKey]: 'true' }))} 
+                                                       style={{ transform: 'scale(1.1)', cursor: 'pointer' }}
+                                                     />
+                                                   </div>
+                                                 ) : col.type === 'date' ? (
+                                                   <input 
+                                                     type="date" 
+                                                     value={cellValue} 
+                                                     onChange={(e) => setFormValues(prev => ({ ...prev, [cellKey]: e.target.value }))} 
+                                                     style={{ width: '100%', padding: '0.35rem 0.45rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px' }}
+                                                   />
+                                                 ) : col.type === 'time' ? (
+                                                   <input 
+                                                     type="time" 
+                                                     value={cellValue} 
+                                                     onChange={(e) => setFormValues(prev => ({ ...prev, [cellKey]: e.target.value }))} 
+                                                     style={{ width: '100%', padding: '0.35rem 0.45rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px' }}
+                                                   />
+                                                 ) : col.type === 'number' ? (
+                                                   <input 
+                                                     type="number" 
+                                                     value={cellValue} 
+                                                     onChange={(e) => setFormValues(prev => ({ ...prev, [cellKey]: e.target.value }))} 
+                                                     placeholder="Nhập số..."
+                                                     style={{ width: '100%', padding: '0.35rem 0.45rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px' }}
+                                                   />
+                                                 ) : (
+                                                   <input 
+                                                     type="text" 
+                                                     value={cellValue} 
+                                                     onChange={(e) => setFormValues(prev => ({ ...prev, [cellKey]: e.target.value }))} 
+                                                     placeholder="Nhập chữ..."
+                                                     style={{ width: '100%', padding: '0.35rem 0.45rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px' }}
+                                                   />
+                                                 )}
+                                               </td>
+                                             );
+                                           })}
+                                         </tr>
+                                       ))
+                                     )}
+                                   </tbody>
+                                 </table>
+                               </div>
+                             </div>
+                           )}
 
                           {/* 3.1 MATRIX TABLE BLOCK */}
                           {block.type === 'MATRIX_TABLE' && block.matrixConfig && (() => {

@@ -483,4 +483,16 @@ tr:last-child td {
   display: none !important;
 }
 
+/* Toast animation */
+@keyframes toast-slide-in {
+  from {
+    transform: translateY(1.5rem);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
 

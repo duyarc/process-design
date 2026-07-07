@@ -119,9 +119,21 @@ export interface MatrixConfigISO {
   columnAlign?: 'left' | 'center'; // Canh lề cột (trái hoặc giữa)
 }
 
+export interface TableColumnConfig {
+  id: string;
+  label: string;
+  width: string; // e.g. "20%" or "150px"
+  type: 'static_text' | 'text' | 'number' | 'checkbox' | 'radio' | 'date' | 'time';
+  options?: RadioOption[];
+}
+
+export interface TableRowConfig {
+  id: string;
+}
+
 export interface LayoutBlockISO {
   id: string;
-  type: 'TITLE' | 'INFO_GRID' | 'CHECKLIST_TABLE' | 'MATRIX_TABLE' | 'SIGN';
+  type: 'TITLE' | 'INFO_GRID' | 'CHECKLIST_TABLE' | 'MATRIX_TABLE' | 'SIGN' | 'TABLE';
   columns: 1 | 2 | 3;
   title: string;
   fields: FormFieldISO[];
@@ -133,6 +145,9 @@ export interface LayoutBlockISO {
     reaction: string;
   };
   matrixConfig?: MatrixConfigISO;
+  tableColumns?: TableColumnConfig[];
+  tableRows?: TableRowConfig[];
+  tableData?: { [rowId: string]: { [colId: string]: string } };
 }
 
 export interface FormTemplateISO {
@@ -202,5 +217,20 @@ export function formatFormVersion(versionStr: string): string {
   }
 
   return versionStr;
+}
+
+export function getColStyleWidth(colWidth: string, tableColumns: any[]): string {
+  const cleanWidth = (colWidth || '').trim();
+  const isPercent = cleanWidth.endsWith('%') || !isNaN(parseFloat(cleanWidth));
+  if (!isPercent) return cleanWidth; // e.g. "120px"
+  
+  // Calculate sum of all columns configured with percentages or raw numbers
+  const sumPercent = tableColumns
+    .filter(c => c.width && (c.width.endsWith('%') || !isNaN(parseFloat(c.width))))
+    .reduce((sum, c) => sum + parseFloat(c.width), 0);
+  
+  if (sumPercent === 0) return cleanWidth.endsWith('%') ? cleanWidth : `${cleanWidth}%`;
+  const normalized = (parseFloat(cleanWidth) / sumPercent) * 100;
+  return `${normalized}%`;
 }
 

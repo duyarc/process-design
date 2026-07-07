@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import type { FormTemplateISO } from '../../types';
-import { formatFormVersion } from '../../types';
+import { formatFormVersion, getColStyleWidth } from '../../types';
 
 interface PrintBlankFormProps {
   template: FormTemplateISO;
@@ -368,6 +368,64 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
 
                       return renderRows;
                     })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* 3.2 DYNAMIC TABLE BLOCK */}
+            {block.type === 'TABLE' && (
+              <div style={{ marginTop: '15px' }}>
+                <table className="print-table" style={{
+                  width: '100%',
+                  borderCollapse: 'collapse',
+                  tableLayout: 'fixed'
+                }}>
+                  <thead>
+                    <tr>
+                      {(block.tableColumns || []).map((col) => {
+                        const colWidth = getColStyleWidth(col.width, block.tableColumns || []);
+                        return (
+                          <th key={col.id} style={{ border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'bold', fontSize: '0.8rem', textAlign: 'left', width: colWidth }}>
+                            {col.label}
+                          </th>
+                        );
+                      })}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(block.tableRows || []).length === 0 ? (
+                      <tr>
+                        <td colSpan={(block.tableColumns || []).length} style={{ border: '1.5px solid #000000', padding: '8px', textAlign: 'center', color: '#64748b', fontStyle: 'italic', fontSize: '0.8rem' }}>
+                          Không có dòng nào.
+                        </td>
+                      </tr>
+                    ) : (
+                      (block.tableRows || []).map((row) => (
+                        <tr key={row.id} style={{ pageBreakInside: 'avoid' }}>
+                          {(block.tableColumns || []).map((col) => (
+                            <td key={col.id} style={{ border: '1.5px solid #000000', padding: '8px 6px', fontSize: '0.8rem', verticalAlign: 'middle' }}>
+                              {col.type === 'static_text' ? (
+                                <span style={{ fontWeight: 500 }}>{block.tableData?.[row.id]?.[col.id] || ''}</span>
+                              ) : col.type === 'checkbox' || col.type === 'radio' ? (
+                                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                                  <span style={{
+                                    display: 'inline-block',
+                                    width: '14px',
+                                    height: '14px',
+                                    border: '1.5px solid #000000',
+                                    background: '#ffffff',
+                                    borderRadius: col.type === 'radio' ? '50%' : '2px'
+                                  }} />
+                                </div>
+                              ) : col.type === 'date' || col.type === 'time' || col.type === 'number' || col.type === 'text' ? (
+                                <div style={{ borderBottom: '1px solid #cbd5e1', height: '18px', width: '90%', margin: '0 auto' }} />
+                              ) : null}
+                            </td>
+                          ))}
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>

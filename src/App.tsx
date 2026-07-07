@@ -34,6 +34,16 @@ const MainApp: React.FC = () => {
   const [initialEditorTab, setInitialEditorTab] = useState<'description' | 'workflow' | 'form' | 'versions' | undefined>(undefined);
   const [initialFormToBuild, setInitialFormToBuild] = useState<string | null>(null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (toastMessage) {
+      const timer = setTimeout(() => {
+        setToastMessage(null);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [toastMessage]);
 
   const { currentUser, logout, hasPermission } = useAuth();
 
@@ -84,9 +94,7 @@ const MainApp: React.FC = () => {
 
   const handleSaveSuccess = (id: string) => {
     setSelectedProcessId(id);
-    setPage(prevPage);
-    setInitialEditorTab(undefined);
-    setInitialFormToBuild(null);
+    setToastMessage('Process saved successfully!');
   };
 
   const handleViewFormSubmissions = (formName: string) => {
@@ -290,6 +298,29 @@ const MainApp: React.FC = () => {
               </div>
         )}
       </main>
+
+      {/* Floating Toast Notification Banner */}
+      {toastMessage && (
+        <div style={{
+          position: 'fixed',
+          bottom: '24px',
+          right: '24px',
+          backgroundColor: '#0f4c81',
+          color: '#ffffff',
+          padding: '0.85rem 1.5rem',
+          borderRadius: '8px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          zIndex: 10000,
+          fontSize: '0.9rem',
+          fontWeight: 500,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          animation: 'toast-slide-in 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards'
+        }}>
+          <span style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>✓</span> {toastMessage}
+        </div>
+      )}
     </div>
   );
 };

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import type { FormFieldISO, FormRevisionEntry, FormTemplateISO, LayoutBlockISO, RadioOption, MatrixConfigISO } from '../types';
-import { formatFormVersion } from '../types';
+import type { FormFieldISO, FormRevisionEntry, FormTemplateISO, LayoutBlockISO, RadioOption, MatrixConfigISO, TableColumnConfig } from '../types';
+import { formatFormVersion, getColStyleWidth } from '../types';
 import { 
   Plus, 
   Trash2, 
@@ -360,13 +360,13 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
   };
 
   // 2. Block Handlers
-  const handleAddBlock = (type: 'TITLE' | 'INFO_GRID' | 'CHECKLIST_TABLE' | 'MATRIX_TABLE' | 'SIGN', columns: 1 | 2 | 3 = 1) => {
+  const handleAddBlock = (type: 'TITLE' | 'INFO_GRID' | 'CHECKLIST_TABLE' | 'MATRIX_TABLE' | 'SIGN' | 'TABLE', columns: 1 | 2 | 3 = 1) => {
     if (isLocked) return;
     const newBlock: LayoutBlockISO = {
       id: `b_${type.toLowerCase()}_${Date.now()}`,
       type,
       columns,
-      title: type === 'INFO_GRID' ? 'Thông tin chung' : type === 'CHECKLIST_TABLE' ? 'Bảng kiểm tra' : type === 'MATRIX_TABLE' ? 'Bảng kiểm đếm số lượng' : 'Ký nhận',
+      title: type === 'INFO_GRID' ? 'Thông tin chung' : type === 'CHECKLIST_TABLE' ? 'Bảng kiểm tra' : type === 'MATRIX_TABLE' ? 'Bảng kiểm đếm số lượng' : type === 'TABLE' ? 'Bảng biểu mẫu động' : 'Ký nhận',
       fields: [],
       columnLabels: type === 'CHECKLIST_TABLE' ? {
         stt: 'STT',
@@ -384,6 +384,20 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
         showNotesColumn: true,
         notesColumnHeader: 'Ghi chú',
         columnAlign: 'center'
+      } : undefined,
+      tableColumns: type === 'TABLE' ? [
+        { id: 'col_1', label: 'STT', width: '10%', type: 'static_text' },
+        { id: 'col_2', label: 'Tên hạng mục', width: '50%', type: 'static_text' },
+        { id: 'col_3', label: 'Trị số', width: '20%', type: 'number' },
+        { id: 'col_4', label: 'Đạt', width: '20%', type: 'checkbox' }
+      ] : undefined,
+      tableRows: type === 'TABLE' ? [
+        { id: 'row_1' },
+        { id: 'row_2' }
+      ] : undefined,
+      tableData: type === 'TABLE' ? {
+        row_1: { col_1: '1', col_2: 'Hạng mục kiểm tra A' },
+        row_2: { col_1: '2', col_2: 'Hạng mục kiểm tra B' }
       } : undefined
     };
     setLayoutBlocks(prev => [...prev, newBlock]);
@@ -461,6 +475,67 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
           ...b,
           matrixConfig: b.matrixConfig ? { ...b.matrixConfig, ...updates } : undefined
         };
+      }
+      return b;
+    }));
+  };
+
+  const handleUpdateTableColumn = (blockId: string, colId: string, updates: Partial<TableColumnConfig>) => {
+    setLayoutBlocks(prev => prev.map(b => {
+      if (b.id === blockId) {
+        const updatedCols = (b.tableColumns || []).map(c => c.id === colId ? { ...c, ...updates } : c);
+        return { ...b, tableColumns: updatedCols };
+      }
+      return b;
+    }));
+  };
+
+  const handleMoveColumn = (blockId: string, colId: string, direction: 'left' | 'right') => {
+    setLayoutBlocks(prev => prev.map(b => {
+      if (b.id === blockId) {
+        const cols = [...(b.tableColumns || [])];
+        const idx = cols.findIndex(c => c.id === colId);
+        if (idx === -1) return b;
+        const targetIdx = direction === 'left' ? idx - 1 : idx + 1;
+        if (targetIdx < 0 || targetIdx >= cols.length) return b;
+        const temp = cols[idx];
+        cols[idx] = cols[targetIdx];
+        cols[targetIdx] = temp;
+        return { ...b, tableColumns: cols };
+      }
+      return b;
+    }));
+  };
+
+  const handleDeleteColumn = (blockId: string, colId: string) => {
+    setLayoutBlocks(prev => prev.map(b => {
+      if (b.id === blockId) {
+        const updatedCols = (b.tableColumns || []).filter(c => c.id !== colId);
+        const updatedData = { ...b.tableData || {} };
+        Object.keys(updatedData).forEach(rowId => {
+          if (updatedData[rowId]) {
+            const rowData = { ...updatedData[rowId] };
+            delete rowData[colId];
+            updatedData[rowId] = rowData;
+          }
+        });
+        return { ...b, tableColumns: updatedCols, tableData: updatedData };
+      }
+      return b;
+    }));
+  };
+
+  const handleAddColumn = (blockId: string) => {
+    setLayoutBlocks(prev => prev.map(b => {
+      if (b.id === blockId) {
+        const nextColId = `col_${Date.now()}`;
+        const updatedCols = [...(b.tableColumns || []), {
+          id: nextColId,
+          label: 'Cột mới',
+          width: '20%',
+          type: 'text' as const
+        }];
+        return { ...b, tableColumns: updatedCols };
       }
       return b;
     }));
@@ -1039,6 +1114,16 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                 style={{ justifyContent: 'start', padding: '0.45rem 0.65rem', fontSize: '0.8rem', opacity: isLocked ? 0.6 : 1 }}
               >
                 <Grid size={14} style={{ marginRight: '0.35rem' }} />
+                + Checklist Table
+              </button>
+              <button 
+                type="button" 
+                onClick={() => handleAddBlock('TABLE')}
+                disabled={isLocked}
+                className="btn btn-secondary" 
+                style={{ justifyContent: 'start', padding: '0.45rem 0.65rem', fontSize: '0.8rem', opacity: isLocked ? 0.6 : 1 }}
+              >
+                <Grid size={14} style={{ marginRight: '0.35rem' }} />
                 + Table
               </button>
               <button 
@@ -1555,6 +1640,138 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                           </div>
                         </div>
                       )}
+                      
+                      {/* 3.2 DYNAMIC TABLE BLOCK */}
+                      {block.type === 'TABLE' && (
+                        <div>
+                          <div style={{ fontSize: '0.8rem', fontWeight: 700, borderBottom: '1px solid #cbd5e1', paddingBottom: '2px', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>
+                            {block.title}
+                          </div>
+                          
+                          <div style={{ overflowX: 'auto', border: '1px solid #cbd5e1', borderRadius: '4px' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem', tableLayout: 'fixed' }}>
+                              <thead>
+                                <tr style={{ background: '#f1f5f9', borderBottom: '1.5px solid #cbd5e1' }}>
+                                  {(block.tableColumns || []).map((col) => {
+                                    const colWidth = getColStyleWidth(col.width, block.tableColumns || []);
+                                    return (
+                                      <th key={col.id} style={{ padding: '6px', borderRight: '1px solid #cbd5e1', textAlign: 'left', width: colWidth, fontWeight: 'bold' }}>
+                                        {col.label || '(Không có nhãn)'}
+                                      </th>
+                                    );
+                                  })}
+                                  {!isLocked && (
+                                    <th style={{ width: '50px', padding: '6px', textAlign: 'center', fontWeight: 'bold' }}>
+                                      Xóa
+                                    </th>
+                                  )}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {(block.tableRows || []).length === 0 ? (
+                                  <tr>
+                                    <td colSpan={(block.tableColumns || []).length + (isLocked ? 0 : 1)} style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                                      Không có dòng nào. Bấm nút Thêm dòng dưới đây.
+                                    </td>
+                                  </tr>
+                                ) : (
+                                  (block.tableRows || []).map((row) => (
+                                    <tr key={row.id} style={{ borderBottom: '1px solid #cbd5e1' }}>
+                                      {(block.tableColumns || []).map((col) => (
+                                        <td key={col.id} style={{ padding: '4px', borderRight: '1px solid #cbd5e1', verticalAlign: 'middle' }}>
+                                          {col.type === 'static_text' ? (
+                                            <input
+                                              type="text"
+                                              disabled={isLocked}
+                                              value={block.tableData?.[row.id]?.[col.id] || ''}
+                                              onChange={(e) => {
+                                                const val = e.target.value;
+                                                setLayoutBlocks(prev => prev.map(b => {
+                                                  if (b.id === block.id) {
+                                                    const updatedData = { ...b.tableData || {} };
+                                                    updatedData[row.id] = { ...updatedData[row.id] || {}, [col.id]: val };
+                                                    return { ...b, tableData: updatedData };
+                                                  }
+                                                  return b;
+                                                }));
+                                              }}
+                                              placeholder="Sửa nhãn..."
+                                              style={{ width: '100%', border: 'none', background: 'transparent', outline: 'none', padding: '2px', fontSize: '0.75rem' }}
+                                            />
+                                          ) : col.type === 'checkbox' ? (
+                                            <div style={{ textAlign: 'center' }}><input type="checkbox" disabled /></div>
+                                          ) : col.type === 'radio' ? (
+                                            <div style={{ textAlign: 'center' }}><input type="radio" disabled /></div>
+                                          ) : col.type === 'date' ? (
+                                            <span style={{ color: '#cbd5e1', fontSize: '0.7rem' }}>[Ngày]</span>
+                                          ) : col.type === 'time' ? (
+                                            <span style={{ color: '#cbd5e1', fontSize: '0.7rem' }}>[Giờ]</span>
+                                          ) : col.type === 'number' ? (
+                                            <span style={{ color: '#cbd5e1', fontSize: '0.7rem' }}>[Nhập số]</span>
+                                          ) : (
+                                            <span style={{ color: '#cbd5e1', fontSize: '0.7rem' }}>[Nhập chữ]</span>
+                                          )}
+                                        </td>
+                                      ))}
+                                      {!isLocked && (
+                                        <td style={{ padding: '4px', textAlign: 'center' }}>
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              setLayoutBlocks(prev => prev.map(b => {
+                                                if (b.id === block.id) {
+                                                  const updatedRows = (b.tableRows || []).filter(r => r.id !== row.id);
+                                                  const updatedData = { ...b.tableData || {} };
+                                                  delete updatedData[row.id];
+                                                  return { ...b, tableRows: updatedRows, tableData: updatedData };
+                                                }
+                                                return b;
+                                              }));
+                                            }}
+                                            style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '2px' }}
+                                            title="Xóa dòng"
+                                          >
+                                            <Trash2 size={12} />
+                                          </button>
+                                        </td>
+                                      )}
+                                    </tr>
+                                  ))
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
+                          {!isLocked && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setLayoutBlocks(prev => prev.map(b => {
+                                  if (b.id === block.id) {
+                                    const nextRowId = `row_${Date.now()}`;
+                                    const updatedRows = [...(b.tableRows || []), { id: nextRowId }];
+                                    
+                                    // Prepopulate STT if first column is static_text
+                                    const updatedData = { ...b.tableData || {} };
+                                    const firstCol = b.tableColumns?.[0];
+                                    if (firstCol && firstCol.type === 'static_text') {
+                                      updatedData[nextRowId] = {
+                                        ...updatedData[nextRowId] || {},
+                                        [firstCol.id]: String(updatedRows.length)
+                                      };
+                                    }
+                                    return { ...b, tableRows: updatedRows, tableData: updatedData };
+                                  }
+                                  return b;
+                                }));
+                              }}
+                              className="btn btn-secondary btn-sm"
+                              style={{ marginTop: '0.5rem', padding: '0.25rem 0.5rem', fontSize: '0.7rem' }}
+                            >
+                              + Thêm dòng
+                            </button>
+                          )}
+                        </div>
+                      )}
 
                       {/* 4. SIGN BLOCK */}
                       {block.type === 'SIGN' && (
@@ -1988,6 +2205,120 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                         />
                       </div>
                     </div>
+                  </div>
+                )}
+
+                {activeBlock.type === 'TABLE' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', borderTop: '1px solid var(--neutral-border)', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
+                    <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Cấu hình Cột</label>
+                    
+                    {/* Width percentage sum indicator */}
+                    {(() => {
+                      const cols = activeBlock.tableColumns || [];
+                      const sumPercent = cols
+                        .filter(c => c.width && (c.width.endsWith('%') || !isNaN(parseFloat(c.width))))
+                        .reduce((sum, c) => sum + parseFloat(c.width), 0);
+                      const isExactly100 = sumPercent === 100;
+                      return (
+                        <div style={{
+                          fontSize: '0.72rem',
+                          background: isExactly100 ? '#ecfdf5' : '#fffbeb',
+                          border: isExactly100 ? '1px solid #a7f3d0' : '1px solid #fde68a',
+                          color: isExactly100 ? '#047857' : '#b45309',
+                          padding: '5px 8px',
+                          borderRadius: '4px',
+                          fontWeight: 500,
+                          lineHeight: '1.25'
+                        }}>
+                          Tổng độ rộng %: <strong>{sumPercent}%</strong> {isExactly100 ? ' (Đã khít 100%)' : ' (Tự động scale khít 100%)'}
+                        </div>
+                      );
+                    })()}
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '320px', overflowY: 'auto', paddingRight: '4px' }}>
+                      {(activeBlock.tableColumns || []).map((col, cIdx, arr) => (
+                        <div key={col.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', border: '1px solid var(--neutral-border)', padding: '6px', borderRadius: '4px', background: '#f8fafc' }}>
+                          <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
+                            <input
+                              type="text"
+                              disabled={isLocked}
+                              value={col.label}
+                              onChange={(e) => handleUpdateTableColumn(activeBlock.id, col.id, { label: e.target.value })}
+                              placeholder="Tên cột"
+                              style={{ flex: 1, padding: '0.2rem 0.3rem', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
+                            />
+                            
+                            <button
+                              type="button"
+                              disabled={isLocked || cIdx === 0}
+                              onClick={() => handleMoveColumn(activeBlock.id, col.id, 'left')}
+                              style={{ padding: '2px 4px', fontSize: '0.7rem', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '3px', cursor: 'pointer' }}
+                              title="Di chuyển sang trái"
+                            >
+                              ←
+                            </button>
+                            <button
+                              type="button"
+                              disabled={isLocked || cIdx === arr.length - 1}
+                              onClick={() => handleMoveColumn(activeBlock.id, col.id, 'right')}
+                              style={{ padding: '2px 4px', fontSize: '0.7rem', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '3px', cursor: 'pointer' }}
+                              title="Di chuyển sang phải"
+                            >
+                              →
+                            </button>
+                            <button
+                              type="button"
+                              disabled={isLocked || arr.length <= 1}
+                              onClick={() => handleDeleteColumn(activeBlock.id, col.id)}
+                              style={{ padding: '2px 4px', fontSize: '0.7rem', background: '#fee2e2', color: '#ef4444', border: '1px solid #fca5a5', borderRadius: '3px', cursor: 'pointer' }}
+                              title="Xóa cột"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                          <div style={{ display: 'flex', gap: '0.25rem' }}>
+                            <select
+                              disabled={isLocked}
+                              value={col.type}
+                              onChange={(e) => handleUpdateTableColumn(activeBlock.id, col.id, { type: e.target.value as any })}
+                              style={{ flex: 1.2, padding: '0.2rem 0.3rem', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
+                            >
+                              <option value="static_text">Nhãn tĩnh</option>
+                              <option value="text">Chữ nhập</option>
+                              <option value="number">Số nhập</option>
+                              <option value="checkbox">Checkbox</option>
+                              <option value="radio">Radio</option>
+                              <option value="date">Ngày</option>
+                              <option value="time">Giờ</option>
+                            </select>
+                            <input
+                              type="text"
+                              disabled={isLocked}
+                              value={col.width}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                // Auto-append % if only digits are typed
+                                const finalVal = /^\d+$/.test(val) ? `${val}%` : val;
+                                handleUpdateTableColumn(activeBlock.id, col.id, { width: finalVal });
+                              }}
+                              placeholder="Width % or px"
+                              style={{ flex: 0.8, padding: '0.2rem 0.3rem', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled={isLocked}
+                      onClick={() => handleAddColumn(activeBlock.id)}
+                      className="btn btn-secondary btn-sm"
+                      style={{ padding: '0.35rem', fontSize: '0.75rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.25rem' }}
+                    >
+                      <Plus size={12} />
+                      <span>Thêm Cột Mới</span>
+                    </button>
                   </div>
                 )}
 
