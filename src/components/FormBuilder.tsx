@@ -2976,13 +2976,6 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                 flexDirection: 'column',
                 gap: '0.65rem'
               }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <PenTool size={13} style={{ color: '#10b981' }} />
-                  <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-secondary)' }}>
-                    Publish Settings
-                  </span>
-                </div>
-
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
                   <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Change Summary</label>
                   <textarea 
@@ -3041,7 +3034,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                   onMouseEnter={(e) => { e.currentTarget.style.background = '#059669'; }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = '#10b981'; }}
                 >
-                  PUBLISH VERSION
+                  PUBLISH
                 </button>
               </div>
             )}
