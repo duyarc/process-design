@@ -404,7 +404,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                       (block.tableRows || []).map((row) => (
                         <tr key={row.id} style={{ pageBreakInside: 'avoid' }}>
                           {(block.tableColumns || []).map((col) => (
-                            <td key={col.id} style={{ border: '1.5px solid #000000', padding: '8px 6px', fontSize: '0.8rem', verticalAlign: 'middle' }}>
+                            <td key={col.id} style={{ border: '1.5px solid #000000', padding: '6px 8px', fontSize: '0.8rem', verticalAlign: 'middle', height: '35px' }}>
                               {col.type === 'static_text' ? (
                                 <span style={{ fontWeight: 500 }}>{block.tableData?.[row.id]?.[col.id] || ''}</span>
                               ) : col.type === 'checkbox' || col.type === 'radio' ? (
@@ -418,8 +418,6 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                                     borderRadius: col.type === 'radio' ? '50%' : '2px'
                                   }} />
                                 </div>
-                              ) : col.type === 'date' || col.type === 'time' || col.type === 'number' || col.type === 'text' ? (
-                                <div style={{ borderBottom: '1px solid #cbd5e1', height: '18px', width: '90%', margin: '0 auto' }} />
                               ) : null}
                             </td>
                           ))}
