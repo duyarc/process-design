@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import type { Process } from '../types';
 import { formatFormVersion } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { Plus, Search, FileText, Eye, Calendar, ChevronDown, ChevronUp, Printer, History, PenTool, Edit2 } from 'lucide-react';
+import { Plus, Search, FileText, Eye, Calendar, ChevronDown, ChevronUp, Printer, History, PenTool, Edit2, AlertCircle } from 'lucide-react';
 import SubmissionManager from './SubmissionManager';
 import { BPMNGuide } from './BPMNGuide';
+import PrintBlankForm from './print/PrintBlankForm';
 
 interface DashboardProps {
   onSelectProcess: (id: string) => void;
@@ -30,7 +31,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onSelectProcess, 
   onEditProcess, 
   onViewFormSubmissions, 
-  onPrintForm,
   onOpenFormManager,
   viewMode = 'processes',
   onViewModeChange,
@@ -38,6 +38,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onClearFormFilter
 }) => {
   const [processes, setProcesses] = useState<Process[]>([]);
+  const [allForms, setAllForms] = useState<any[]>([]);
+  const [printTemplateData, setPrintTemplateData] = useState<any | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -47,10 +49,19 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const fetchProcesses = async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/processes');
-      if (!res.ok) throw new Error('Failed to fetch processes');
-      const data = await res.json();
+      const [procRes, formsRes] = await Promise.all([
+        fetch('/api/processes'),
+        fetch('/api/forms')
+      ]);
+
+      if (!procRes.ok) throw new Error('Failed to fetch processes');
+      const data = await procRes.json();
       setProcesses(data);
+
+      if (formsRes.ok) {
+        const formsData = await formsRes.json();
+        setAllForms(formsData);
+      }
       setError(null);
     } catch (err) {
       console.error(err);
@@ -122,55 +133,96 @@ export const Dashboard: React.FC<DashboardProps> = ({
     return repMatches || stepMatches || fieldMatches;
   });
 
-  // Extract all forms from processes and group them by Process Family
+  // Group allForms by form_id and get unique list of forms with their latest version records
+  const latestFormsMap = new Map();
+  allForms.forEach(f => {
+    const existing = latestFormsMap.get(f.form_id);
+    if (!existing || new Date(f.updated_at).getTime() > new Date(existing.updated_at).getTime()) {
+      latestFormsMap.set(f.form_id, f);
+    }
+  });
+
   const groupedForms: { [processId: string]: { processTitle: string, forms: any[] } } = {};
 
-  processes.forEach(proc => {
-    const parentId = proc.parentProcessId || proc.id;
-    const allVersions = groups[parentId] || [];
-    const rep = getRepresentative(allVersions);
-    
-    if (proc.id === rep.id && proc.workflowFormsData) {
-      Object.entries(proc.workflowFormsData).forEach(([formKey, formData]: [string, any]) => {
-        const formId = formData.formId || formKey;
-        const formTitle = formData.formTitle || formData.formName || formKey;
-        
-        const q = searchQuery.toLowerCase();
-        const match = formTitle.toLowerCase().includes(q) || 
-                      formId.toLowerCase().includes(q) || 
-                      proc.title.toLowerCase().includes(q);
-        
-        if (searchQuery && !match) return;
+  latestFormsMap.forEach((formRecord, formId) => {
+    let linkedProc = processes.find(proc => {
+      const parentId = proc.parentProcessId || proc.id;
+      const allVersions = groups[parentId] || [];
+      const rep = getRepresentative(allVersions);
+      
+      if (proc.id === rep.id && proc.workflowFormsData) {
+        return Object.values(proc.workflowFormsData).some((fdata: any) => fdata.formId === formId) ||
+               proc.steps?.some((s: any) => s.producesForm && (s.formNames || []).includes(formId));
+      }
+      return false;
+    });
 
-        if (!groupedForms[proc.id]) {
-          groupedForms[proc.id] = {
-            processTitle: proc.title,
-            forms: []
-          };
-        }
-        
-        const blocksCount = formData.layoutBlocks?.length || 0;
-        const blockTypesList = formData.layoutBlocks?.map((b: any) => {
-          if (b.type === 'TITLE') return 'Title';
-          if (b.type === 'INFO_GRID') return 'Info Grid';
-          if (b.type === 'CHECKLIST_TABLE') return 'Table';
-          if (b.type === 'MATRIX_TABLE') return 'Matrix Table';
-          if (b.type === 'SIGN') return 'Sign';
-          return b.type;
-        }) || [];
-        const blockTypes = Array.from(new Set(blockTypesList)).join(', ');
+    const formTitle = formRecord.form_title || formRecord.form_name || formId;
+    const blocksCount = typeof formRecord.layout_blocks === 'string'
+      ? JSON.parse(formRecord.layout_blocks).length
+      : (formRecord.layout_blocks?.length || 0);
 
-        groupedForms[proc.id].forms.push({
-          formName: formId, // Keep prop mapping consistent (holds Form ID)
-          formTitle: formTitle,
-          formId: formId,
-          version: formData.version || 'v1.0',
-          status: formData.status || 'DRAFT',
-          blocksCount,
-          blockTypes,
-          processId: proc.id
-        });
-      });
+    const blockTypesList = (typeof formRecord.layout_blocks === 'string'
+      ? JSON.parse(formRecord.layout_blocks)
+      : (formRecord.layout_blocks || [])).map((b: any) => {
+        if (b.type === 'TITLE') return 'Title';
+        if (b.type === 'INFO_GRID') return 'Info Grid';
+        if (b.type === 'CHECKLIST_TABLE') return 'Table';
+        if (b.type === 'MATRIX_TABLE') return 'Matrix Table';
+        if (b.type === 'SIGN') return 'Sign';
+        return b.type;
+      }) || [];
+    const blockTypes = Array.from(new Set(blockTypesList)).join(', ');
+
+    const formItem = {
+      formName: formId, // Holds Form ID to keep prop interfaces intact
+      formTitle: formTitle,
+      formId: formId,
+      version: formRecord.version || 'v1.0',
+      status: formRecord.status || 'DRAFT',
+      blocksCount,
+      blockTypes,
+      processId: linkedProc ? linkedProc.id : null,
+      isLinked: !!linkedProc,
+      rawRecord: formRecord // Store database record for print template
+    };
+
+    if (linkedProc) {
+      if (!groupedForms[linkedProc.id]) {
+        groupedForms[linkedProc.id] = {
+          processTitle: linkedProc.title,
+          forms: []
+        };
+      }
+      groupedForms[linkedProc.id].forms.push(formItem);
+    } else {
+      const unlinkedKey = 'unlinked';
+      if (!groupedForms[unlinkedKey]) {
+        groupedForms[unlinkedKey] = {
+          processTitle: 'Biểu mẫu tự do (Không liên kết quy trình)',
+          forms: []
+        };
+      }
+      groupedForms[unlinkedKey].forms.push(formItem);
+    }
+  });
+
+  // Apply search query filter
+  const q = searchQuery.toLowerCase();
+  const filteredGroupedForms: { [processId: string]: { processTitle: string, forms: any[] } } = {};
+
+  Object.entries(groupedForms).forEach(([procId, group]) => {
+    const matchedForms = group.forms.filter(form => {
+      return form.formTitle.toLowerCase().includes(q) || 
+             form.formId.toLowerCase().includes(q) || 
+             group.processTitle.toLowerCase().includes(q);
+    });
+
+    if (matchedForms.length > 0) {
+      filteredGroupedForms[procId] = {
+        processTitle: group.processTitle,
+        forms: matchedForms
+      };
     }
   });
 
@@ -261,7 +313,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       ) : viewMode === 'guide' ? (
         <BPMNGuide />
       ) : viewMode === 'forms' ? (() => {
-        const hasAnyForm = Object.values(groupedForms).some(g => g.forms.length > 0);
+        const hasAnyForm = Object.values(filteredGroupedForms).some(g => g.forms.length > 0);
         if (!hasAnyForm) {
           return (
             <div className="paper-card" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
@@ -281,7 +333,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-            {Object.entries(groupedForms).map(([procId, { processTitle, forms }]) => {
+            {Object.entries(filteredGroupedForms).map(([procId, { processTitle, forms }]) => {
               if (forms.length === 0) return null;
               return (
                 <div key={procId} className="paper-card accent-teal" style={{ padding: '1.5rem' }}>
@@ -293,9 +345,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
                     {forms.map((form) => {
                       const status = form.status || 'DRAFT';
-                      const colors = status === 'ACTIVE' 
-                        ? { bg: '#f0fdf4', text: '#15803d', border: '#bbf7d0' } 
-                        : { bg: '#fffbeb', text: '#b45309', border: '#fde68a' };
+                      const isLinked = form.isLinked !== false;
+                      const colors = !isLinked
+                        ? { bg: '#f3f4f6', text: '#4b5563', border: '#cbd5e1' }
+                        : status === 'ACTIVE' 
+                          ? { bg: '#f0fdf4', text: '#15803d', border: '#bbf7d0' } 
+                          : { bg: '#fffbeb', text: '#b45309', border: '#fde68a' };
+                      const displayStatus = !isLinked ? 'UNLINKED' : status;
 
                       return (
                         <div 
@@ -319,7 +375,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                 {form.formId}
                               </span>
                               <span className="badge" style={{ backgroundColor: colors.bg, color: colors.text, border: `1px solid ${colors.border}`, textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 700, padding: '0.1rem 0.4rem', borderRadius: '4px' }}>
-                                {status}
+                                {displayStatus}
                               </span>
                             </div>
                             
@@ -332,48 +388,76 @@ export const Dashboard: React.FC<DashboardProps> = ({
                             </div>
                           </div>
 
-                          <div style={{ display: 'flex', gap: '0.35rem', borderTop: '1px solid var(--neutral-border)', paddingTop: '0.75rem', marginTop: '0.5rem' }}>
-                            <button 
-                              className="btn btn-secondary btn-sm"
-                              style={{ flex: 1, padding: '0.3rem 0.4rem', fontSize: '0.75rem', margin: 0, gap: '0.2rem', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                              title="Fill Form"
-                              onClick={() => onOpenFormManager ? onOpenFormManager(form.processId, form.formName) : onSelectProcess(form.processId)}
-                            >
-                              <PenTool size={13} style={{ flexShrink: 0 }} />
-                              Fill
-                            </button>
-                            
-                            <button 
-                              className="btn btn-secondary btn-sm"
-                              style={{ flex: 1, padding: '0.3rem 0.4rem', fontSize: '0.75rem', margin: 0, gap: '0.2rem', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                              title="Print Blank Form"
-                              onClick={() => onPrintForm ? onPrintForm(form.processId, form.formName) : onSelectProcess(form.processId)}
-                            >
-                              <Printer size={13} style={{ flexShrink: 0 }} />
-                              Print
-                            </button>
-                            
-                            {hasPermission('design_document') && (
+                          <div>
+                            <div style={{ display: 'flex', gap: '0.35rem', borderTop: '1px solid var(--neutral-border)', paddingTop: '0.75rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
+                              {isLinked && (
+                                <button 
+                                  className="btn btn-secondary btn-sm"
+                                  style={{ flex: 1, padding: '0.3rem 0.4rem', fontSize: '0.75rem', margin: 0, gap: '0.2rem', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                                  title="Fill Form"
+                                  onClick={() => onOpenFormManager ? onOpenFormManager(form.processId, form.formName) : onSelectProcess(form.processId)}
+                                >
+                                  <PenTool size={13} style={{ flexShrink: 0 }} />
+                                  Fill
+                                </button>
+                              )}
+                              
                               <button 
                                 className="btn btn-secondary btn-sm"
                                 style={{ flex: 1, padding: '0.3rem 0.4rem', fontSize: '0.75rem', margin: 0, gap: '0.2rem', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                                title="Edit Template"
-                                onClick={() => onEditProcess(form.processId, 'form', form.formName)}
+                                title="Print Blank Form"
+                                onClick={() => {
+                                  const raw = form.rawRecord;
+                                  const fullTemplate = {
+                                    ...raw,
+                                    formTitle: form.formTitle,
+                                    layoutBlocks: typeof raw.layout_blocks === 'string' ? JSON.parse(raw.layout_blocks) : (raw.layout_blocks || []),
+                                    revisionHistory: typeof raw.revision_history === 'string' ? JSON.parse(raw.revision_history) : (raw.revision_history || []),
+                                    version: form.version,
+                                    status: form.status
+                                  };
+                                  setPrintTemplateData(fullTemplate);
+                                }}
                               >
-                                <Edit2 size={13} style={{ flexShrink: 0 }} />
-                                Edit
+                                <Printer size={13} style={{ flexShrink: 0 }} />
+                                Print
                               </button>
-                            )}
+                              
+                              {isLinked && hasPermission('design_document') && (
+                                <button 
+                                  className="btn btn-secondary btn-sm"
+                                  style={{ flex: 1, padding: '0.3rem 0.4rem', fontSize: '0.75rem', margin: 0, gap: '0.2rem', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                                  title="Edit Template"
+                                  onClick={() => onEditProcess(form.processId, 'form', form.formName)}
+                                >
+                                  <Edit2 size={13} style={{ flexShrink: 0 }} />
+                                  Edit
+                                </button>
+                              )}
+                              
+                              <button 
+                                className="btn btn-secondary btn-sm"
+                                style={{ flex: 1, padding: '0.3rem 0.4rem', fontSize: '0.75rem', margin: 0, gap: '0.2rem', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                                title="View Submissions"
+                                onClick={() => {
+                                  if (isLinked && onOpenFormManager) {
+                                    onOpenFormManager(form.processId, form.formName);
+                                  } else if (onViewFormSubmissions) {
+                                    onViewFormSubmissions(form.formName);
+                                  }
+                                }}
+                              >
+                                <History size={13} style={{ flexShrink: 0 }} />
+                                Audit
+                              </button>
+                            </div>
                             
-                            <button 
-                              className="btn btn-secondary btn-sm"
-                              style={{ flex: 1, padding: '0.3rem 0.4rem', fontSize: '0.75rem', margin: 0, gap: '0.2rem', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                              title="View Submissions"
-                              onClick={() => onOpenFormManager ? onOpenFormManager(form.processId, form.formName) : (onViewFormSubmissions && onViewFormSubmissions(form.formName))}
-                            >
-                              <History size={13} style={{ flexShrink: 0 }} />
-                              Audit
-                            </button>
+                            {!isLinked && (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.65rem', fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
+                                <AlertCircle size={12} style={{ flexShrink: 0, color: '#6b7280' }} />
+                                <span>Biểu mẫu tự do. Hãy liên kết vào quy trình để điền/sửa.</span>
+                              </div>
+                            )}
                           </div>
                         </div>
                       );
@@ -559,6 +643,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
             );
           })}
         </div>
+      )}
+      {printTemplateData && (
+        <PrintBlankForm
+          template={printTemplateData}
+          onClose={() => setPrintTemplateData(null)}
+        />
       )}
     </div>
   );
