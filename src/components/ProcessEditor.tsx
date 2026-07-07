@@ -2673,8 +2673,10 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                   }
                 };
                 setWorkflowFormsData(nextFormsData);
-                // Auto-save the process data silently in the background
-                await handleSave(nextFormsData, true);
+                // Only auto-save the process data silently if it is a real process (not unlinked)
+                if (processId && processId !== 'unlinked') {
+                  await handleSave(nextFormsData, true);
+                }
                 fetchFormsList();
                 if (exitOnCloseForm) {
                   onCancel();
