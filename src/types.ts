@@ -134,11 +134,12 @@ export interface TableRowConfig {
 
 export interface LayoutBlockISO {
   id: string;
-  type: 'TITLE' | 'INFO_GRID' | 'CHECKLIST_TABLE' | 'MATRIX_TABLE' | 'SIGN' | 'TABLE';
+  type: 'TITLE' | 'INFO_GRID' | 'CHECKLIST_TABLE' | 'MATRIX_TABLE' | 'SIGN' | 'TABLE' | 'SECTION_LABEL';
   columns: 1 | 2 | 3;
   title: string;
   fields: FormFieldISO[];
   logo?: string;
+  description?: string;
   columnLabels?: {
     stt: string;
     item: string;

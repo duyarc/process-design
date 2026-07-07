@@ -311,13 +311,14 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
   };
 
   // 2. Block Handlers
-  const handleAddBlock = (type: 'TITLE' | 'INFO_GRID' | 'CHECKLIST_TABLE' | 'MATRIX_TABLE' | 'SIGN' | 'TABLE', columns: 1 | 2 | 3 = 1) => {
+  const handleAddBlock = (type: 'TITLE' | 'INFO_GRID' | 'CHECKLIST_TABLE' | 'MATRIX_TABLE' | 'SIGN' | 'TABLE' | 'SECTION_LABEL', columns: 1 | 2 | 3 = 1) => {
     if (isLocked) return;
     const newBlock: LayoutBlockISO = {
       id: `b_${type.toLowerCase()}_${Date.now()}`,
       type,
       columns,
-      title: type === 'INFO_GRID' ? 'Thông tin chung' : type === 'CHECKLIST_TABLE' ? 'Bảng kiểm tra' : type === 'MATRIX_TABLE' ? 'Bảng kiểm đếm số lượng' : type === 'TABLE' ? 'Bảng biểu mẫu động' : 'Ký nhận',
+      title: type === 'INFO_GRID' ? 'Thông tin chung' : type === 'CHECKLIST_TABLE' ? 'Bảng kiểm tra' : type === 'MATRIX_TABLE' ? 'Bảng kiểm đếm số lượng' : type === 'TABLE' ? 'Bảng biểu mẫu động' : type === 'SECTION_LABEL' ? 'Tiêu đề danh mục' : 'Ký nhận',
+      description: type === 'SECTION_LABEL' ? 'Mô tả chi tiết cho danh mục này...' : undefined,
       fields: [],
       columnLabels: type === 'CHECKLIST_TABLE' ? {
         stt: 'STT',
@@ -400,7 +401,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
     setLayoutBlocks(prev => prev.map(b => {
       if (b.id !== blockId) return b;
       const updatedFields = b.fields.map((f, idx) => idx === 0 ? { ...f, checkItem: newDesc } : f);
-      return { ...b, fields: updatedFields };
+      return { ...b, description: newDesc, fields: updatedFields };
     }));
   };
   const handleUpdateBlockColumnLabels = (blockId: string, updates: Partial<NonNullable<LayoutBlockISO['columnLabels']>>) => {
@@ -1049,6 +1050,16 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
               </button>
               <button 
                 type="button" 
+                onClick={() => handleAddBlock('SECTION_LABEL')}
+                disabled={isLocked}
+                className="btn btn-secondary" 
+                style={{ justifyContent: 'start', padding: '0.45rem 0.65rem', fontSize: '0.8rem', opacity: isLocked ? 0.6 : 1 }}
+              >
+                <Grid size={14} style={{ marginRight: '0.35rem' }} />
+                + Section Label
+              </button>
+              <button 
+                type="button" 
                 onClick={() => handleAddBlock('INFO_GRID', 2)}
                 disabled={isLocked}
                 className="btn btn-secondary" 
@@ -1131,82 +1142,90 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
             <h3 style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '0.35rem', letterSpacing: '0.05em' }}>
               2. Field Elements
             </h3>
-            {activeBlockId ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-                <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', margin: '0 0 0.25rem 0' }}>
-                  Adding to block: <strong>{activeBlock?.title}</strong>
-                </p>
-                <button 
-                  type="button" 
-                  onClick={() => handleAddField(activeBlockId, 'radio')}
-                  disabled={isLocked || activeBlock?.type === 'SIGN'}
-                  className="btn btn-secondary" 
-                  style={{ justifyContent: 'start', padding: '0.4rem 0.5rem', fontSize: '0.75rem' }}
-                >
-                  <ListChecks size={13} style={{ marginRight: '0.35rem' }} />
-                  Radio Group
-                </button>
-                <button 
-                  type="button" 
-                  onClick={() => handleAddField(activeBlockId, 'number')}
-                  disabled={isLocked || activeBlock?.type === 'SIGN' || activeBlock?.type === 'TITLE'}
-                  className="btn btn-secondary" 
-                  style={{ justifyContent: 'start', padding: '0.4rem 0.5rem', fontSize: '0.75rem' }}
-                >
-                  <Hash size={13} style={{ marginRight: '0.35rem' }} />
-                  Numeric Spec Check
-                </button>
-                <button 
-                  type="button" 
-                  onClick={() => handleAddField(activeBlockId, 'text')}
-                  disabled={isLocked || activeBlock?.type === 'SIGN'}
-                  className="btn btn-secondary" 
-                  style={{ justifyContent: 'start', padding: '0.4rem 0.5rem', fontSize: '0.75rem' }}
-                >
-                  <FileText size={13} style={{ marginRight: '0.35rem' }} />
-                  Text Note Field
-                </button>
-                <button 
-                  type="button" 
-                  onClick={() => handleAddField(activeBlockId, 'date')}
-                  disabled={isLocked || activeBlock?.type === 'SIGN' || activeBlock?.type === 'TITLE'}
-                  className="btn btn-secondary" 
-                  style={{ justifyContent: 'start', padding: '0.4rem 0.5rem', fontSize: '0.75rem' }}
-                >
-                  <Calendar size={13} style={{ marginRight: '0.35rem' }} />
-                  Date Picker
-                </button>
-                <button 
-                  type="button" 
-                  onClick={() => handleAddField(activeBlockId, 'time')}
-                  disabled={isLocked || activeBlock?.type === 'SIGN' || activeBlock?.type === 'TITLE'}
-                  className="btn btn-secondary" 
-                  style={{ justifyContent: 'start', padding: '0.4rem 0.5rem', fontSize: '0.75rem' }}
-                >
-                  <Clock size={13} style={{ marginRight: '0.35rem' }} />
-                  Time Picker
-                </button>
-                <button 
-                  type="button" 
-                  onClick={() => handleAddField(activeBlockId, 'signature')}
-                  disabled={isLocked || activeBlock?.type !== 'SIGN'}
-                  className="btn btn-secondary" 
-                  style={{ justifyContent: 'start', padding: '0.4rem 0.5rem', fontSize: '0.75rem' }}
-                >
-                  <PenTool size={13} style={{ marginRight: '0.35rem' }} />
-                  Sign-off
-                </button>
-                <button 
-                  type="button" 
-                  onClick={() => handleAddField(activeBlockId, 'photo')}
-                  disabled={isLocked || activeBlock?.type !== 'CHECKLIST_TABLE'}
-                  className="btn btn-secondary" 
-                  style={{ justifyContent: 'start', padding: '0.4rem 0.5rem', fontSize: '0.75rem' }}
-                >
-                  <Camera size={13} style={{ marginRight: '0.35rem' }} />
-                  Camera/Photo Log
-                </button>
-              </div>
+             {activeBlockId ? (
+              activeBlock?.type === 'SECTION_LABEL' || activeBlock?.type === 'TITLE' || activeBlock?.type === 'TABLE' || activeBlock?.type === 'MATRIX_TABLE' ? (
+                <div style={{ padding: '0.75rem', border: '1px dashed #cbd5e1', borderRadius: '4px', textAlign: 'center' }}>
+                  <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', margin: 0 }}>
+                    Khối <strong>{activeBlock?.title}</strong> không hỗ trợ thêm trường nhập liệu.
+                  </p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                  <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', margin: '0 0 0.25rem 0' }}>
+                    Adding to block: <strong>{activeBlock?.title}</strong>
+                  </p>
+                  <button 
+                    type="button" 
+                    onClick={() => handleAddField(activeBlockId, 'radio')}
+                    disabled={isLocked || activeBlock?.type === 'SIGN'}
+                    className="btn btn-secondary" 
+                    style={{ justifyContent: 'start', padding: '0.4rem 0.5rem', fontSize: '0.75rem' }}
+                  >
+                    <ListChecks size={13} style={{ marginRight: '0.35rem' }} />
+                    Radio Group
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => handleAddField(activeBlockId, 'number')}
+                    disabled={isLocked || activeBlock?.type === 'SIGN'}
+                    className="btn btn-secondary" 
+                    style={{ justifyContent: 'start', padding: '0.4rem 0.5rem', fontSize: '0.75rem' }}
+                  >
+                    <Hash size={13} style={{ marginRight: '0.35rem' }} />
+                    Numeric Spec Check
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => handleAddField(activeBlockId, 'text')}
+                    disabled={isLocked || activeBlock?.type === 'SIGN'}
+                    className="btn btn-secondary" 
+                    style={{ justifyContent: 'start', padding: '0.4rem 0.5rem', fontSize: '0.75rem' }}
+                  >
+                    <FileText size={13} style={{ marginRight: '0.35rem' }} />
+                    Text Note Field
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => handleAddField(activeBlockId, 'date')}
+                    disabled={isLocked || activeBlock?.type === 'SIGN'}
+                    className="btn btn-secondary" 
+                    style={{ justifyContent: 'start', padding: '0.4rem 0.5rem', fontSize: '0.75rem' }}
+                  >
+                    <Calendar size={13} style={{ marginRight: '0.35rem' }} />
+                    Date Picker
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => handleAddField(activeBlockId, 'time')}
+                    disabled={isLocked || activeBlock?.type === 'SIGN'}
+                    className="btn btn-secondary" 
+                    style={{ justifyContent: 'start', padding: '0.4rem 0.5rem', fontSize: '0.75rem' }}
+                  >
+                    <Clock size={13} style={{ marginRight: '0.35rem' }} />
+                    Time Picker
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => handleAddField(activeBlockId, 'signature')}
+                    disabled={isLocked || activeBlock?.type !== 'SIGN'}
+                    className="btn btn-secondary" 
+                    style={{ justifyContent: 'start', padding: '0.4rem 0.5rem', fontSize: '0.75rem' }}
+                  >
+                    <PenTool size={13} style={{ marginRight: '0.35rem' }} />
+                    Sign-off
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => handleAddField(activeBlockId, 'photo')}
+                    disabled={isLocked || activeBlock?.type !== 'CHECKLIST_TABLE'}
+                    className="btn btn-secondary" 
+                    style={{ justifyContent: 'start', padding: '0.4rem 0.5rem', fontSize: '0.75rem' }}
+                  >
+                    <Camera size={13} style={{ marginRight: '0.35rem' }} />
+                    Camera/Photo Log
+                  </button>
+                </div>
+              )
             ) : (
               <div style={{ padding: '0.75rem', border: '1px dashed #cbd5e1', borderRadius: '4px', textAlign: 'center' }}>
                 <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', margin: 0 }}>
@@ -1309,6 +1328,26 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                     {/* Block Content Render */}
                     <div style={{ marginTop: '0.25rem' }}>
                       
+                      {/* 1.1 SECTION LABEL BLOCK */}
+                      {block.type === 'SECTION_LABEL' && (
+                        <div style={{
+                          padding: '0.5rem 0.75rem',
+                          background: '#f1f5f9',
+                          borderLeft: '4px solid #3b82f6',
+                          borderRadius: '4px',
+                          marginBottom: '0.5rem'
+                        }}>
+                          <h3 style={{ margin: '0 0 4px 0', fontSize: '0.95rem', fontWeight: 700, color: '#1e293b' }}>
+                            {block.title || 'Tiêu đề phân đoạn (Section Title)'}
+                          </h3>
+                          {block.description && (
+                            <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b', whiteSpace: 'pre-line' }}>
+                              {block.description}
+                            </p>
+                          )}
+                        </div>
+                      )}
+
                       {/* 1. TITLE BLOCK */}
                       {block.type === 'TITLE' && (
                         block.logo ? (
@@ -2030,6 +2069,20 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                     style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
                   />
                 </div>
+
+                {activeBlock.type === 'SECTION_LABEL' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', borderTop: '1px solid var(--neutral-border)', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
+                    <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Mô tả danh mục (Description)</label>
+                    <textarea
+                      disabled={isLocked}
+                      value={activeBlock.description || ''}
+                      onChange={(e) => handleUpdateBlockDescription(activeBlockId!, e.target.value)}
+                      placeholder="Nhập mô tả cho danh mục này..."
+                      rows={3}
+                      style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', fontSize: '0.85rem', resize: 'vertical' }}
+                    />
+                  </div>
+                )}
 
                 {activeBlock.type === 'TITLE' && (
                   <>

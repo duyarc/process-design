@@ -690,6 +690,30 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
         );
       })}
 
+      {/* SECTION LABEL RECORD BLOCK */}
+      {layoutBlocks.filter(b => b.type === 'SECTION_LABEL').map((block: any) => {
+        return (
+          <div key={block.id} className="print-block print-block-avoid" style={{ marginTop: '15px' }}>
+            <div style={{
+              padding: '8px 12px',
+              background: '#f1f5f9',
+              borderLeft: '4px solid #000000',
+              borderRadius: '4px',
+              marginBottom: '5px'
+            }}>
+              <h3 style={{ margin: '0 0 4px 0', fontSize: '0.95rem', fontWeight: 700, color: '#1e293b' }}>
+                {block.title}
+              </h3>
+              {block.description && (
+                <p style={{ margin: 0, fontSize: '0.8rem', color: '#475569', whiteSpace: 'pre-line' }}>
+                  {block.description}
+                </p>
+              )}
+            </div>
+          </div>
+        );
+      })}
+
       {/* PHOTO EVIDENCE LOG */}
       {imageUrls.length > 0 && (
         <div className="print-block" style={{ marginTop: '20px', pageBreakInside: 'avoid' }}>

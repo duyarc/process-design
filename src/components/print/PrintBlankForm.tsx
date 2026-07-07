@@ -170,6 +170,26 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
         return (
           <div key={block.id} className={`print-block ${block.type !== 'CHECKLIST_TABLE' ? 'print-block-avoid' : ''}`}>
             
+            {/* 1.1 SECTION LABEL BLOCK */}
+            {block.type === 'SECTION_LABEL' && (
+              <div style={{
+                padding: '8px 12px',
+                background: '#f1f5f9',
+                borderLeft: '4px solid #000000',
+                borderRadius: '4px',
+                marginBottom: '5px'
+              }}>
+                <h3 style={{ margin: '0 0 4px 0', fontSize: '0.95rem', fontWeight: 700, color: '#1e293b' }}>
+                  {block.title}
+                </h3>
+                {block.description && (
+                  <p style={{ margin: 0, fontSize: '0.8rem', color: '#475569', whiteSpace: 'pre-line' }}>
+                    {block.description}
+                  </p>
+                )}
+              </div>
+            )}
+
             {/* 1. TITLE BLOCK */}
             {block.type === 'TITLE' && (
               block.logo ? (

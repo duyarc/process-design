@@ -1042,7 +1042,29 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
 
                     {/* Field checklist grouped by Layout Blocks */}
                     {formTemplate.layoutBlocks && formTemplate.layoutBlocks.map((block: any) => {
-                      if (block.fields.length === 0 && block.type !== 'TITLE') return null;
+                      if (block.fields.length === 0 && block.type !== 'TITLE' && block.type !== 'SECTION_LABEL' && block.type !== 'TABLE') return null;
+
+                      if (block.type === 'SECTION_LABEL') {
+                        return (
+                          <div key={block.id} style={{
+                            padding: '0.75rem 1rem',
+                            background: '#f1f5f9',
+                            borderLeft: '4px solid var(--primary)',
+                            borderRadius: '6px',
+                            marginTop: '1.25rem',
+                            marginBottom: '0.5rem'
+                          }}>
+                            <h3 style={{ margin: '0 0 4px 0', fontSize: '1.0rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                              {block.title}
+                            </h3>
+                            {block.description && (
+                              <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)', whiteSpace: 'pre-line' }}>
+                                {block.description}
+                              </p>
+                            )}
+                          </div>
+                        );
+                      }
 
                       return (
                         <div key={block.id} style={{
