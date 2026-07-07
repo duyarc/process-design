@@ -852,7 +852,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
     }
   };
 
-  const handleSave = async (customFormsData?: Record<string, any>) => {
+  const handleSave = async (customFormsData?: Record<string, any>, isSilent: boolean = false) => {
     if (!title.trim()) {
       alert('Please enter a process title.');
       return;
@@ -974,7 +974,9 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
 
       if (!res.ok) throw new Error('Failed to save');
       const saved = await res.json();
-      onSaveSuccess(saved.id);
+      if (!isSilent) {
+        onSaveSuccess(saved.id);
+      }
     } catch (err) {
       console.error(err);
       alert('Failed to save process. Please try again.');
@@ -2486,7 +2488,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
             <FormBuilder
               formName={activeFormToBuild}
               initialData={workflowFormsData[activeFormToBuild]}
-              onSave={(savedFormData) => {
+              onSave={async (savedFormData) => {
                 const nextFormsData = {
                   ...workflowFormsData,
                   [activeFormToBuild]: {
@@ -2496,6 +2498,8 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                 };
                 setWorkflowFormsData(nextFormsData);
                 setActiveFormToBuild(null);
+                // Auto-save the process data silently in the background
+                await handleSave(nextFormsData, true);
                 fetchFormsList();
               }}
               onClose={() => setActiveFormToBuild(null)}
