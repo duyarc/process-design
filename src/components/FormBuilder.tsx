@@ -2210,36 +2210,17 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
 
                 {activeBlock.type === 'TABLE' && (() => {
                   const cols = activeBlock.tableColumns || [];
-                  const sumPercent = cols
-                    .filter(c => c.width && (c.width.endsWith('%') || !isNaN(parseFloat(c.width))))
-                    .reduce((sum, c) => sum + parseFloat(c.width), 0);
-                  const isExactly100 = sumPercent === 100;
-                  
                   const sumOtherPercent = cols.length > 1
                     ? cols.slice(0, cols.length - 1)
                         .filter(c => c.width && (c.width.endsWith('%') || !isNaN(parseFloat(c.width))))
                         .reduce((sum, c) => sum + parseFloat(c.width), 0)
                     : 0;
                   const lastColAdjusted = Math.max(0, 100 - sumOtherPercent);
-                  const lastCol = cols[cols.length - 1];
-                  const lastColName = lastCol ? lastCol.label : 'Cột cuối';
 
                   return (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', borderTop: '1px solid var(--neutral-border)', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
                       <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Cấu hình Cột</label>
                       
-                      <div style={{
-                        fontSize: '0.72rem',
-                        color: 'var(--text-muted)',
-                        marginTop: '-0.25rem',
-                        lineHeight: '1.3'
-                      }}>
-                        {isExactly100 ? (
-                          <span>✓ Tổng độ rộng các cột: <strong>100%</strong></span>
-                        ) : (
-                          <span>i Cột cuối <strong>"{lastColName}"</strong> được tự động chỉnh thành <strong>{lastColAdjusted}%</strong> để bảng luôn vừa khít 100% chiều rộng.</span>
-                        )}
-                      </div>
 
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '320px', overflowY: 'auto', paddingRight: '4px' }}>
                         {cols.map((col, cIdx, arr) => {
