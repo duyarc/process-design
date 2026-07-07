@@ -635,14 +635,75 @@ app.delete('/api/forms/:formId', async (req, res) => {
     }
     
     if (dbPool) {
+      // 1. Delete the specific version
       await dbPool.query(
         'DELETE FROM forms WHERE form_id = $1 AND version = $2',
         [formId, version]
       );
+      
+      // 2. Check if there are any versions of this form remaining in database
+      const remainingCheck = await dbPool.query(
+        'SELECT COUNT(*) FROM forms WHERE form_id = $1',
+        [formId]
+      );
+      const remainingCount = parseInt(remainingCheck.rows[0].count, 10);
+      
+      // 3. If no versions remain, unlink this form from all processes!
+      if (remainingCount === 0) {
+        // Delete from process_forms table
+        await dbPool.query(
+          'DELETE FROM process_forms WHERE form_id = $1',
+          [formId]
+        );
+        
+        // Also clean up workflowFormsData in processes table
+        const processesRes = await dbPool.query('SELECT id, "workflowFormsData" FROM processes');
+        for (const row of processesRes.rows) {
+          if (row.workflowFormsData) {
+            const wfd = typeof row.workflowFormsData === 'string' ? JSON.parse(row.workflowFormsData) : row.workflowFormsData;
+            let changed = false;
+            for (const [formName, ref] of Object.entries(wfd)) {
+              if (ref && ref.formId === formId) {
+                delete wfd[formName];
+                changed = true;
+              }
+            }
+            if (changed) {
+              await dbPool.query(
+                'UPDATE processes SET "workflowFormsData" = $1 WHERE id = $2',
+                [JSON.stringify(wfd), row.id]
+              );
+            }
+          }
+        }
+      }
     } else {
       const forms = readFormsOffline();
       const filtered = forms.filter(f => !(f.form_id === formId && f.version === version));
       writeFormsOffline(filtered);
+      
+      // Check remaining
+      const remaining = filtered.filter(f => f.form_id === formId);
+      if (remaining.length === 0) {
+        // Unlink offline processes
+        const processes = readProcessesOffline();
+        let changedAny = false;
+        processes.forEach(proc => {
+          if (proc.workflowFormsData) {
+            let changed = false;
+            for (const [formName, ref] of Object.entries(proc.workflowFormsData)) {
+              if (ref && ref.formId === formId) {
+                delete proc.workflowFormsData[formName];
+                changed = true;
+                changedAny = true;
+              }
+            }
+          }
+        });
+        if (changedAny) {
+          writeProcessesOffline(processes);
+        }
+      }
     }
     
     res.json({ success: true, message: `Version ${version} of form ${formId} deleted successfully.` });
