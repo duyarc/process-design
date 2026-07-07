@@ -1129,30 +1129,14 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
         ? s.formNames.map((n: string) => n.trim()).filter(Boolean)
         : (s.formName ? [s.formName.trim()] : []);
       names.forEach((name: string) => {
-        // Resolve legacy display names to actual form_id:
-        // Check if the name is already a known form_id in allForms or workflowFormsData
-        let resolvedId = name;
-        const foundInDb = allForms.find(f => f.form_id === name);
-        if (!foundInDb) {
-          // Try to find by form_name (legacy) in allForms
-          const byName = allForms.find(f =>
-            (f.form_title || f.form_name || '').toLowerCase() === name.toLowerCase()
-          );
-          if (byName) resolvedId = byName.form_id;
-          else {
-            // Try to find by formTitle in workflowFormsData values
-            const wfdEntry = Object.entries(workflowFormsData).find(([, v]: [string, any]) =>
-              (v?.formTitle || v?.formName || '').toLowerCase() === name.toLowerCase()
-            );
-            if (wfdEntry) resolvedId = wfdEntry[0];
-          }
-        }
-        if (!workflowForms.includes(resolvedId)) {
-          workflowForms.push(resolvedId);
+        // Only match by form_id — no legacy name matching
+        if (name && !workflowForms.includes(name)) {
+          workflowForms.push(name);
         }
       });
     }
   });
+
 
   const { major, minor } = parseVersion(version);
 
@@ -2347,8 +2331,20 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                         flexWrap: 'wrap'
                       }}
                     >
-                      {/* Left: Form Name and Digital status label */}
+                      {/* Left: Form ID badge + Form Name + Version status */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, minWidth: '220px' }}>
+                        <span style={{
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          color: '#0369a1',
+                          background: '#e0f2fe',
+                          border: '1px solid #bae6fd',
+                          padding: '0.1rem 0.4rem',
+                          borderRadius: '3px',
+                          fontFamily: 'monospace',
+                          whiteSpace: 'nowrap',
+                          flexShrink: 0
+                        }}>{formId}</span>
                         <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.88rem' }}>{displayName}</span>
                         {(() => {
                           const isFormActive = formId && activeStatus === 'ACTIVE';
