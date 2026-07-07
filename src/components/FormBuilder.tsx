@@ -781,8 +781,15 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
         });
         
         if (!res.ok) {
-          const errData = await res.json();
-          throw new Error(errData.error || 'Server error');
+          const text = await res.text();
+          let errMsg = 'Server error';
+          try {
+            const errData = JSON.parse(text);
+            errMsg = errData.error || errMsg;
+          } catch (_) {
+            errMsg = `Yêu cầu không hợp lệ (${res.status}). Vui lòng đảm bảo backend server đã được khởi động lại để kích hoạt các API mới.`;
+          }
+          throw new Error(errMsg);
         }
         
         // Update local history list
@@ -817,8 +824,15 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
         });
         
         if (!res.ok) {
-          const errData = await res.json();
-          throw new Error(errData.error || 'Server error');
+          const text = await res.text();
+          let errMsg = 'Server error';
+          try {
+            const errData = JSON.parse(text);
+            errMsg = errData.error || errMsg;
+          } catch (_) {
+            errMsg = `Yêu cầu không hợp lệ (${res.status}). Vui lòng đảm bảo backend server đã được khởi động lại để kích hoạt các API mới.`;
+          }
+          throw new Error(errMsg);
         }
         
         alert(`Đã xóa thành công bản nháp.`);
