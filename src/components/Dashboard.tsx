@@ -570,7 +570,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           )}
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
           {filteredFamilies.map(({ parentId, representative, allVersions }) => {
             const selectedId = selectedProcessVersions[parentId];
             const currentRep = selectedId ? allVersions.find(v => v.id === selectedId) || representative : representative;
@@ -580,108 +580,114 @@ export const Dashboard: React.FC<DashboardProps> = ({
             return (
               <div 
                 key={parentId} 
-                className="paper-card accent-teal" 
-                style={{ cursor: 'pointer', transition: 'all 0.2s ease' }}
+                style={{ 
+                  background: '#ffffff', 
+                  border: '1px solid var(--neutral-border)', 
+                  borderRadius: '8px', 
+                  padding: '1.25rem 1rem 1rem 1rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                  transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+                  cursor: 'pointer'
+                }}
+                className="hover-card-bg"
                 onClick={() => onSelectProcess(currentRep.id)}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
-                  <div style={{ flex: 1, minWidth: '300px' }}>
-                    <h3 style={{ margin: '0 0 0.35rem 0' }}>
-                      {currentRep.title}
-                    </h3>
-                    <p style={{ fontSize: '0.9rem', marginBottom: '1rem', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                      {currentRep.description || 'No description provided.'}
-                    </p>
-                    <div style={{ display: 'flex', gap: '1.5rem', fontSize: '0.8rem', color: 'var(--text-secondary)', flexWrap: 'wrap', alignItems: 'center' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                        <Calendar size={14} />
-                        Updated: {new Date(currentRep.lastUpdated).toLocaleDateString()}
-                      </span>
-                      <span>•</span>
-                      <span>{currentRep.steps?.length || 0} Workflow Steps</span>
-                      <span>•</span>
-                      <span>{currentRep.formFields?.length || 0} Checksheet Parameters</span>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexShrink: 0 }} className="no-print" onClick={(e) => e.stopPropagation()}>
-                    {/* Version Selector Dropdown */}
-                    <div style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      padding: '0.25rem 0.6rem',
-                      fontSize: '0.78rem',
-                      borderRadius: '6px',
-                      border: '1px solid var(--neutral-border)',
-                      background: '#ffffff',
-                      color: 'var(--text-primary)',
-                      fontWeight: 600,
-                      height: '32px'
-                    }}>
-                      <GitBranch size={13} style={{ marginRight: '0.3rem', color: 'var(--text-secondary)' }} />
-                      <select
-                        value={currentRep.id}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setSelectedProcessVersions(prev => ({ ...prev, [parentId]: val }));
-                        }}
-                        style={{
-                          border: 'none',
-                          background: 'transparent',
-                          padding: 0,
-                          margin: 0,
-                          width: 'auto',
-                          fontSize: '0.78rem',
-                          fontWeight: 600,
-                          color: 'var(--text-primary)',
-                          cursor: 'pointer',
-                          outline: 'none',
-                          boxShadow: 'none'
-                        }}
-                      >
-                        {allVersions.map(v => (
-                          <option key={v.id} value={v.id}>
-                            {getFormattedVersionString(v)}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Status Badge */}
-                    <span className="badge" style={{
-                      backgroundColor: colors.bg,
-                      color: colors.text,
-                      border: `1px solid ${colors.border}`,
-                      textTransform: 'uppercase',
-                      fontSize: '0.7rem',
-                      fontWeight: 700,
-                      padding: '0.15rem 0.5rem',
-                      borderRadius: '4px',
-                      height: '32px',
-                      display: 'inline-flex',
-                      alignItems: 'center'
-                    }}>
-                      {status}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', gap: '0.5rem' }} onClick={(e) => e.stopPropagation()}>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', background: '#f1f5f9', padding: '0.1rem 0.4rem', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
+                      {parentId}
                     </span>
-
-                    {/* View Button */}
-                    <button 
-                      className="btn btn-secondary btn-sm"
-                      title="View Process"
-                      style={{
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <div style={{
                         display: 'inline-flex',
                         alignItems: 'center',
-                        gap: '0.3rem',
-                        padding: '0.25rem 0.6rem',
-                        fontSize: '0.78rem',
-                        height: '32px',
-                        margin: 0
-                      }}
-                      onClick={() => onSelectProcess(currentRep.id)}
-                    >
-                      <Eye size={13} /> View
-                    </button>
+                        padding: '0.15rem 0.4rem',
+                        fontSize: '0.72rem',
+                        borderRadius: '4px',
+                        border: '1px solid var(--neutral-border)',
+                        background: '#ffffff',
+                        color: 'var(--text-primary)',
+                        fontWeight: 600,
+                        height: '22px'
+                      }}>
+                        <GitBranch size={11} style={{ marginRight: '0.2rem', color: 'var(--text-secondary)' }} />
+                        {allVersions.length > 1 ? (
+                          <select
+                            value={currentRep.id}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setSelectedProcessVersions(prev => ({ ...prev, [parentId]: val }));
+                            }}
+                            style={{
+                              border: 'none',
+                              background: 'transparent',
+                              padding: 0,
+                              margin: 0,
+                              width: 'auto',
+                              fontSize: '0.72rem',
+                              fontWeight: 600,
+                              color: 'var(--text-primary)',
+                              cursor: 'pointer',
+                              outline: 'none'
+                            }}
+                          >
+                            {allVersions.map(v => (
+                              <option key={v.id} value={v.id}>
+                                {getFormattedVersionString(v)}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <span style={{ color: 'var(--text-primary)' }}>{getFormattedVersionString(currentRep)}</span>
+                        )}
+                      </div>
+
+                      <span className="badge" style={{ backgroundColor: colors.bg, color: colors.text, border: `1px solid ${colors.border}`, textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 700, padding: '0.1rem 0.4rem', borderRadius: '4px', height: '22px', display: 'inline-flex', alignItems: 'center', margin: 0 }}>
+                        {status}
+                      </span>
+                    </div>
                   </div>
+
+                  <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.3 }}>
+                    {currentRep.title}
+                  </h4>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1rem', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', height: '2.55rem', lineHeight: 1.5 }}>
+                    {currentRep.description || 'No description provided.'}
+                  </p>
+                </div>
+
+                <div>
+                  <div style={{ display: 'flex', gap: '0.5rem', fontSize: '0.72rem', color: 'var(--text-secondary)', flexWrap: 'wrap', alignItems: 'center', marginBottom: '0.75rem', borderTop: '1px solid var(--neutral-border)', paddingTop: '0.75rem' }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                      <Calendar size={11} /> {new Date(currentRep.lastUpdated).toLocaleDateString('vi-VN')}
+                    </span>
+                    <span>•</span>
+                    <span>{currentRep.steps?.length || 0} Steps</span>
+                    <span>•</span>
+                    <span>{currentRep.formFields?.length || 0} Params</span>
+                  </div>
+
+                  <button 
+                    className="btn btn-secondary btn-sm"
+                    title="View Process"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.3rem',
+                      padding: '0.3rem 0.6rem',
+                      fontSize: '0.75rem',
+                      height: '28px',
+                      width: '100%',
+                      margin: 0
+                    }}
+                    onClick={() => onSelectProcess(currentRep.id)}
+                  >
+                    <Eye size={12} /> View
+                  </button>
                 </div>
               </div>
             );
