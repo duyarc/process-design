@@ -373,7 +373,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     {processTitle}
                   </h4>
                   
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(420px, 1fr))', gap: '1rem' }}>
                     {forms.map((form) => {
                       const status = form.status || 'DRAFT';
                       const colors = status === 'ACTIVE' 
@@ -570,7 +570,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           )}
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(420px, 1fr))', gap: '1rem' }}>
           {filteredFamilies.map(({ parentId, representative, allVersions }) => {
             const selectedId = selectedProcessVersions[parentId];
             const currentRep = selectedId ? allVersions.find(v => v.id === selectedId) || representative : representative;
