@@ -2988,11 +2988,11 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                  <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Change Summary (Mô tả thay đổi)</label>
+                  <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Change Summary</label>
                   <textarea 
                     value={changeSummary}
                     onChange={(e) => setChangeSummary(e.target.value)}
-                    placeholder="Explain what was edited (e.g. Added safety guard check)..."
+                    placeholder=""
                     rows={3}
                     style={{
                       padding: '0.35rem 0.5rem',
@@ -3005,7 +3005,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                  <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Release Date (Ngày hiệu lực)</label>
+                  <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Release Date</label>
                   <input 
                     type="date"
                     value={effectiveDate}
