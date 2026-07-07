@@ -2490,7 +2490,29 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
           <div style={{ width: '95%', maxWidth: '1200px', background: '#ffffff', borderRadius: '8px', overflow: 'hidden' }}>
             <FormBuilder
               formName={activeFormToBuild}
-              initialData={workflowFormsData[activeFormToBuild]}
+              initialData={(() => {
+                const fd = workflowFormsData[activeFormToBuild];
+                if (!fd?.formId) return fd;
+                // Always open the latest version of this form (independent versioning model)
+                // Use allForms (already fetched) to get the correct snapshot data upfront,
+                // so FormBuilder shows the right content without waiting for its own API fetch
+                const live = allForms
+                  .filter(f => f.form_id === fd.formId)
+                  .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())[0];
+                if (!live) return fd;
+                return {
+                  formId: fd.formId,
+                  formTitle: live.form_title || live.form_name,
+                  version: live.version,
+                  status: live.status as 'DRAFT' | 'ACTIVE' | 'ARCHIVED',
+                  layoutBlocks: typeof live.layout_blocks === 'string'
+                    ? JSON.parse(live.layout_blocks)
+                    : (live.layout_blocks || []),
+                  revisionHistory: typeof live.revision_history === 'string'
+                    ? JSON.parse(live.revision_history)
+                    : (live.revision_history || []),
+                };
+              })()}
               onSave={async (savedFormData) => {
                 const nextFormsData = {
                   ...workflowFormsData,
