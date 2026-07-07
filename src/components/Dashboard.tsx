@@ -161,9 +161,19 @@ export const Dashboard: React.FC<DashboardProps> = ({
       const allVersions = groups[parentId] || [];
       const rep = getRepresentative(allVersions);
       
-      if (proc.id === rep.id && proc.workflowFormsData) {
-        return Object.values(proc.workflowFormsData).some((fdata: any) => fdata.formId === formId) ||
-               proc.steps?.some((s: any) => s.producesForm && (s.formNames || []).includes(formId));
+      if (proc.id === rep.id) {
+        return allVersions.some(p => {
+          const wfd = p.workflowFormsData
+            ? (typeof p.workflowFormsData === 'string' ? JSON.parse(p.workflowFormsData) : p.workflowFormsData)
+            : null;
+          const steps = p.steps
+            ? (typeof p.steps === 'string' ? JSON.parse(p.steps) : p.steps)
+            : null;
+          
+          const hasInWfd = wfd && Object.values(wfd).some((fdata: any) => fdata.formId === formId);
+          const hasInSteps = steps && steps.some((s: any) => s.producesForm && (s.formNames || []).includes(formId));
+          return hasInWfd || hasInSteps;
+        });
       }
       return false;
     });
