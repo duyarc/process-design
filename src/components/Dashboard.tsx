@@ -43,6 +43,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const formatDMY = (dateInput: any) => {
+    if (!dateInput) return '';
+    const d = new Date(dateInput);
+    if (isNaN(d.getTime())) return '';
+    return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
+  };
   const [expandedVersions, setExpandedVersions] = useState<{ [parentId: string]: boolean }>({});
   const { hasPermission } = useAuth();
 
@@ -683,12 +689,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
                               <span className="badge" style={{ backgroundColor: vColors.bg, color: vColors.text, fontSize: '0.7rem', padding: '0.1rem 0.4rem', border: `1px solid ${vColors.border}`, textTransform: 'uppercase', fontWeight: 600 }}>
                                 {vStatus}
                               </span>
-                              <span style={{ color: 'var(--text-secondary)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-                                Updated: {new Date(v.lastUpdated).toLocaleDateString()}
-                              </span>
-                              {v.sopSignoffs?.effectiveDate && (
-                                <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
-                                  (Effective: {new Date(v.sopSignoffs.effectiveDate).toLocaleDateString()})
+                              {v.sopSignoffs?.effectiveDate ? (
+                                <span style={{ color: 'var(--text-secondary)', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '0.2rem' }} title="Effective Date">
+                                  <Calendar size={11} /> {formatDMY(v.sopSignoffs.effectiveDate)}
+                                </span>
+                              ) : (
+                                <span style={{ color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  Updated: {formatDMY(v.lastUpdated)}
                                 </span>
                               )}
                             </div>
