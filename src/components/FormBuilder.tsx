@@ -808,6 +808,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
         alert(`Đã xóa thành công phiên bản ${viewingRevisionVersion}.`);
       } catch (err) {
         console.error(err);
+        setLoading(false);
         alert(`Không thể xóa phiên bản: ${err instanceof Error ? err.message : 'Lỗi máy chủ'}`);
       } finally {
         setLoading(false);
@@ -839,6 +840,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
         onClose();
       } catch (err) {
         console.error(err);
+        setLoading(false);
         alert(`Không thể xóa bản nháp: ${err instanceof Error ? err.message : 'Lỗi máy chủ'}`);
       } finally {
         setLoading(false);
