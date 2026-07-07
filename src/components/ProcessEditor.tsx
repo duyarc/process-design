@@ -1725,8 +1725,8 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                             Updated: {new Date(v.lastUpdated).toLocaleDateString()}
                           </span>
                           {v.sopSignoffs?.effectiveDate && (
-                            <span style={{ color: 'var(--text-secondary)', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-                              <Calendar size={11} /> {new Date(v.sopSignoffs.effectiveDate).toLocaleDateString()}
+                            <span style={{ color: 'var(--text-secondary)', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '0.2rem' }} title="Effective Date">
+                              <Calendar size={11} /> Effective: {new Date(v.sopSignoffs.effectiveDate).toLocaleDateString()}
                             </span>
                           )}
                         </div>
