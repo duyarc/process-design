@@ -2245,28 +2245,64 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                                   type="button"
                                   disabled={isLocked || cIdx === 0}
                                   onClick={() => handleMoveColumn(activeBlock.id, col.id, 'left')}
-                                  style={{ padding: '2px 4px', fontSize: '0.75rem', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '3px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                  style={{
+                                    width: '24px',
+                                    height: '24px',
+                                    background: '#ffffff',
+                                    border: '1px solid #cbd5e1',
+                                    borderRadius: '4px',
+                                    cursor: isLocked || cIdx === 0 ? 'not-allowed' : 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    opacity: isLocked || cIdx === 0 ? 0.4 : 1,
+                                    padding: 0
+                                  }}
                                   title="Di chuyển lên"
                                 >
-                                  ↑
+                                  <ArrowUp size={13} style={{ color: '#0f172a' }} />
                                 </button>
                                 <button
                                   type="button"
                                   disabled={isLocked || cIdx === arr.length - 1}
                                   onClick={() => handleMoveColumn(activeBlock.id, col.id, 'right')}
-                                  style={{ padding: '2px 4px', fontSize: '0.75rem', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '3px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                  style={{
+                                    width: '24px',
+                                    height: '24px',
+                                    background: '#ffffff',
+                                    border: '1px solid #cbd5e1',
+                                    borderRadius: '4px',
+                                    cursor: isLocked || cIdx === arr.length - 1 ? 'not-allowed' : 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    opacity: isLocked || cIdx === arr.length - 1 ? 0.4 : 1,
+                                    padding: 0
+                                  }}
                                   title="Di chuyển xuống"
                                 >
-                                  ↓
+                                  <ArrowDown size={13} style={{ color: '#0f172a' }} />
                                 </button>
                                 <button
                                   type="button"
                                   disabled={isLocked || arr.length <= 1}
                                   onClick={() => handleDeleteColumn(activeBlock.id, col.id)}
-                                  style={{ padding: '2px 4px', fontSize: '0.7rem', background: '#fee2e2', color: '#ef4444', border: '1px solid #fca5a5', borderRadius: '3px', cursor: 'pointer' }}
+                                  style={{
+                                    width: '24px',
+                                    height: '24px',
+                                    background: '#ffffff',
+                                    border: '1px solid #cbd5e1',
+                                    borderRadius: '4px',
+                                    cursor: isLocked || arr.length <= 1 ? 'not-allowed' : 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    opacity: isLocked || arr.length <= 1 ? 0.4 : 1,
+                                    padding: 0
+                                  }}
                                   title="Xóa cột"
                                 >
-                                  ✕
+                                  <Trash2 size={13} style={{ color: '#ef4444' }} />
                                 </button>
                               </div>
                               <div style={{ display: 'flex', gap: '0.25rem' }}>
