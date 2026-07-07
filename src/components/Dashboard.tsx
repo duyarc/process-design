@@ -131,11 +131,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
     const rep = getRepresentative(allVersions);
     
     if (proc.id === rep.id && proc.workflowFormsData) {
-      Object.entries(proc.workflowFormsData).forEach(([formName, formData]: [string, any]) => {
-        // Filter by search query if viewMode is forms
+      Object.entries(proc.workflowFormsData).forEach(([formKey, formData]: [string, any]) => {
+        const formId = formData.formId || formKey;
+        const formTitle = formData.formTitle || formData.formName || formKey;
+        
         const q = searchQuery.toLowerCase();
-        const match = formName.toLowerCase().includes(q) || 
-                      (formData.formId || '').toLowerCase().includes(q) || 
+        const match = formTitle.toLowerCase().includes(q) || 
+                      formId.toLowerCase().includes(q) || 
                       proc.title.toLowerCase().includes(q);
         
         if (searchQuery && !match) return;
@@ -159,8 +161,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
         const blockTypes = Array.from(new Set(blockTypesList)).join(', ');
 
         groupedForms[proc.id].forms.push({
-          formName,
-          formId: formData.formId || 'N/A',
+          formName: formId, // Keep prop mapping consistent (holds Form ID)
+          formTitle: formTitle,
+          formId: formId,
           version: formData.version || 'v1.0',
           status: formData.status || 'DRAFT',
           blocksCount,
@@ -321,7 +324,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                             </div>
                             
                             <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.3 }}>
-                              {form.formName}
+                              {form.formTitle}
                             </h4>
                             
                             <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>

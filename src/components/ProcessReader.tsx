@@ -346,7 +346,8 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
   useEffect(() => {
     const loadPrintTemplate = async () => {
       if (initialPrintFormName && process && process.workflowFormsData) {
-        const formData = process.workflowFormsData[initialPrintFormName];
+        const formData = process.workflowFormsData[initialPrintFormName] || 
+          Object.values(process.workflowFormsData).find((f: any) => f.formId === initialPrintFormName || f.formName === initialPrintFormName);
         if (formData && formData.formId) {
           try {
             setLoading(true);
@@ -767,13 +768,16 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                    {workflowForms.map((formName) => {
-                      const formData = (process.workflowFormsData || {})[formName] || {};
-                      const liveForm = allForms.find(f => f.form_id === formData?.formId);
-                      const hasDigitalForm = !!formData.formId;
+                    {workflowForms.map((formId) => {
+                      const formData = (process.workflowFormsData || {})[formId] || {};
+                      const liveForm = allForms
+                        .filter(f => f.form_id === formId)
+                        .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())[0];
+                      const hasDigitalForm = !!formId;
                       const liveVersion = liveForm ? liveForm.version : (formData.version || '');
                       const liveLayoutBlocks = liveForm ? (typeof liveForm.layout_blocks === 'string' ? JSON.parse(liveForm.layout_blocks) : liveForm.layout_blocks) : null;
                       const hasLayoutBlocks = liveLayoutBlocks && liveLayoutBlocks.length > 0;
+                      const displayName = formData.formTitle || (liveForm?.form_title || liveForm?.form_name) || formId;
 
                       let attachmentText = '';
                       if (formData.pdfName) {
@@ -786,20 +790,19 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                         if (dateMatch) {
                           const [_, yyyy, mm, dd] = dateMatch;
                           const formattedDate = `${dd}.${mm}.${yyyy}`;
-                          // remove parenthesized date block or raw date matching YYYY-MM-DD
                           normalizedVersion = normalizedVersion.replace(/\s*\([^)]*\)/g, '').replace(dateRegex, '').trim();
                           normalizedVersion = `${normalizedVersion}-${formattedDate}`;
                         }
                         if (normalizedVersion.startsWith('v')) {
                           normalizedVersion = 'V' + normalizedVersion.slice(1);
                         }
-                        attachmentText = `${formData.formId}${normalizedVersion ? ` • ${normalizedVersion}` : ''}`;
+                        attachmentText = `${formId}${normalizedVersion ? ` • ${normalizedVersion}` : ''}`;
                       }
 
                       const hasPdf = !!formData.pdfName;
 
                       return (
-                        <div key={formName} style={{
+                        <div key={formId} style={{
                           display: 'flex',
                           justifyContent: 'space-between',
                           alignItems: 'center',
@@ -810,7 +813,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                           fontSize: '0.8rem'
                         }}>
                           <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', minWidth: 0, marginRight: '1rem', flexWrap: 'wrap' }}>
-                            <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{formName}</span>
+                            <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{displayName}</span>
                             {attachmentText && (
                               <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>• {attachmentText}</span>
                             )}
@@ -820,7 +823,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                               <>
                                 <button
                                   type="button"
-                                  onClick={() => setActiveFormToFill(formName)}
+                                  onClick={() => setActiveFormToFill(formId)}
                                   style={{ 
                                     display: 'inline-flex',
                                     alignItems: 'center',
@@ -962,7 +965,9 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
             {/* Header */}
             {(() => {
               const formData = (process.workflowFormsData || {})[activeFormToFill];
-              const liveForm = allForms.find(f => f.form_id === formData?.formId);
+              const liveForm = allForms
+                .filter(f => f.form_id === activeFormToFill)
+                .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())[0];
               
               const formTemplate = formData && liveForm ? {
                 ...formData,

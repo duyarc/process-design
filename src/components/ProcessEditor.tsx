@@ -424,9 +424,63 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
     setSteps(prev => prev.map(s => s.role === oldRoleName ? { ...s, role: trimmed } : s));
   };
 
+  // Helper to migrate legacy form-name keys to strictly formId keys
+  const normalizeProcessFormsData = (proc: any, allFormsList: any[]) => {
+    if (!proc || !proc.workflowFormsData) return { formsData: {}, steps: proc?.steps || [] };
+    
+    const formsData: Record<string, any> = {};
+    const nameToIdMap: Record<string, string> = {};
+
+    // Step 1: Normalize keys of workflowFormsData to be formId
+    Object.entries(proc.workflowFormsData).forEach(([key, val]: [string, any]) => {
+      if (val && typeof val === 'object') {
+        const formId = val.formId || key;
+        nameToIdMap[key] = formId;
+        formsData[formId] = {
+          ...val,
+          formId,
+          formTitle: val.formTitle || val.formName || key
+        };
+      }
+    });
+
+    // Step 2: Normalize steps to store formId instead of formName
+    const steps = (proc.steps || []).map((step: any) => {
+      if (step.producesForm) {
+        const names = step.formNames && step.formNames.length > 0 
+          ? step.formNames 
+          : (step.formName ? [step.formName] : []);
+          
+        const normalizedNames = names.map((name: string) => {
+          if (!name) return '';
+          const isId = allFormsList.some(f => f.form_id === name) || name.includes('/') || name.startsWith('FM-');
+          if (isId) return name;
+          return nameToIdMap[name] || name;
+        });
+
+        return {
+          ...step,
+          formName: normalizedNames[0] || '',
+          formNames: normalizedNames
+        };
+      }
+      return step;
+    });
+
+    return { formsData, steps };
+  };
+
   const fetchProcess = async (id: string) => {
     try {
       setLoading(true);
+      // Fetch latest forms list first for normalization
+      let formsList: any[] = [];
+      const formsRes = await fetch('/api/forms');
+      if (formsRes.ok) {
+        formsList = await formsRes.json();
+        setAllForms(formsList);
+      }
+
       const res = await fetch('/api/processes');
       if (!res.ok) throw new Error('Failed to fetch');
       const list: Process[] = await res.json();
@@ -439,7 +493,11 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
         setParentProcessId(proc.parentProcessId || proc.id);
         const loadedRoles = proc.roles && proc.roles.length > 0 ? proc.roles : ['Operator'];
         setRoles(loadedRoles);
-        const loadedSteps = enforceStepShapes(proc.steps || []);
+
+        // Normalize legacy form names to formId linkage
+        const { formsData: normalizedFormsData, steps: normalizedStepsList } = normalizeProcessFormsData(proc, formsList);
+
+        const loadedSteps = enforceStepShapes(normalizedStepsList);
         setSteps(loadedSteps);
         const hasCustomLayout = loadedSteps.some(s => s.layoutX !== undefined);
         setBpmnViewMode(hasCustomLayout ? 'custom' : 'auto');
@@ -452,7 +510,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
           authorisers: loadedSop.authorisers || (loadedSop.authoriser ? [loadedSop.authoriser] : [{ name: '', title: '' }]),
           effectiveDate: loadedSop.effectiveDate || new Date().toISOString().split('T')[0]
         });
-        setWorkflowFormsData(proc.workflowFormsData || {});
+        setWorkflowFormsData(normalizedFormsData);
 
         // Convert sopSignoffs to flat rows for UI
         const loadedSop2 = (proc.sopSignoffs || {}) as SOPSignOffs & { reviewer?: SOPSignOff; authoriser?: SOPSignOff };
@@ -1808,22 +1866,62 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                                     <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
                                       Form{currentFormNames.length > 1 ? ` #${fIdx + 1}` : ''}:
                                     </span>
-                                    <input
-                                      type="text"
-                                      placeholder="e.g. Tank CIP Checklist"
+                                    <select
                                       value={formName || ''}
                                       onChange={(e) => {
-                                        const updatedNames = [...currentFormNames];
-                                        updatedNames[fIdx] = e.target.value;
-                                        setSteps(prev => {
-                                          const updated = [...prev];
-                                          updated[index] = {
-                                            ...updated[index],
-                                            formName: updatedNames[0],
-                                            formNames: updatedNames
-                                          };
-                                          return enforceStepShapes(updated);
-                                        });
+                                        const selectedValue = e.target.value;
+                                        if (selectedValue === 'NEW_FORM') {
+                                          const newId = prompt("Nhập mã Form ID mới (ví dụ: 3S-QC/F05):");
+                                          if (!newId) return;
+                                          const trimmedId = newId.trim();
+                                          if (!trimmedId) return;
+                                          
+                                          const idExists = allForms.some(f => f.form_id === trimmedId) || !!workflowFormsData[trimmedId];
+                                          if (idExists) {
+                                            alert("Mã Form ID này đã tồn tại trong hệ thống!");
+                                            return;
+                                          }
+
+                                          const newTitle = prompt("Nhập tên biểu mẫu mới:");
+                                          if (!newTitle) return;
+                                          const trimmedTitle = newTitle.trim();
+                                          if (!trimmedTitle) return;
+
+                                          setWorkflowFormsData(prev => ({
+                                            ...prev,
+                                            [trimmedId]: {
+                                              formId: trimmedId,
+                                              formTitle: trimmedTitle,
+                                              status: 'DRAFT',
+                                              version: 'v0.1',
+                                              layoutBlocks: []
+                                            }
+                                          }));
+
+                                          const updatedNames = [...currentFormNames];
+                                          updatedNames[fIdx] = trimmedId;
+                                          setSteps(prev => {
+                                            const updated = [...prev];
+                                            updated[index] = {
+                                              ...updated[index],
+                                              formName: updatedNames[0],
+                                              formNames: updatedNames
+                                            };
+                                            return enforceStepShapes(updated);
+                                          });
+                                        } else {
+                                          const updatedNames = [...currentFormNames];
+                                          updatedNames[fIdx] = selectedValue;
+                                          setSteps(prev => {
+                                            const updated = [...prev];
+                                            updated[index] = {
+                                              ...updated[index],
+                                              formName: updatedNames[0],
+                                              formNames: updatedNames
+                                            };
+                                            return enforceStepShapes(updated);
+                                          });
+                                        }
                                       }}
                                       style={{ 
                                         flex: 1, 
@@ -1832,7 +1930,35 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                                         margin: 0,
                                         height: '24px'
                                       }}
-                                    />
+                                    >
+                                      <option value="">-- Chọn biểu mẫu liên kết --</option>
+                                      {(() => {
+                                        const uniqueFormsMap = new Map();
+                                        allForms.forEach(f => {
+                                          const existing = uniqueFormsMap.get(f.form_id);
+                                          if (!existing || new Date(f.updated_at).getTime() > new Date(existing.updated_at).getTime()) {
+                                            uniqueFormsMap.set(f.form_id, f);
+                                          }
+                                        });
+                                        Object.entries(workflowFormsData).forEach(([fid, fdata]: [string, any]) => {
+                                          if (!uniqueFormsMap.has(fid)) {
+                                            uniqueFormsMap.set(fid, {
+                                              form_id: fid,
+                                              form_title: fdata.formTitle || fdata.formName || fid,
+                                              form_name: fdata.formName || fid
+                                            });
+                                          }
+                                        });
+                                        return Array.from(uniqueFormsMap.values()).map((f: any) => (
+                                          <option key={f.form_id} value={f.form_id}>
+                                            {f.form_id} - {f.form_title || f.form_name}
+                                          </option>
+                                        ));
+                                      })()}
+                                      <option value="NEW_FORM" style={{ fontWeight: 'bold', color: 'var(--primary-color)' }}>
+                                        + Tạo mới
+                                      </option>
+                                    </select>
                                     <button
                                       type="button"
                                       className="step-delete-btn"
@@ -2125,17 +2251,19 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                {workflowForms.map((formName) => {
-                  const formData = workflowFormsData[formName];
+                {workflowForms.map((formId) => {
+                  const formData = workflowFormsData[formId];
                   // Form versioning is independent: always show the latest version of the linked form_id
                   const liveForm = allForms
-                    .filter(f => f.form_id === formData?.formId)
+                    .filter(f => f.form_id === formId)
                     .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())[0];
                   const activeVersion = liveForm ? liveForm.version : (formData?.version || '');
                   const activeStatus = liveForm ? liveForm.status : (formData?.status || 'DRAFT');
+                  
+                  const displayName = formData?.formTitle || (liveForm?.form_title || liveForm?.form_name) || formId;
 
                   let normalizedVersion = '';
-                  if (formData?.formId) {
+                  if (formId) {
                     const rawVersion = (activeVersion || '').trim();
                     normalizedVersion = rawVersion;
                     const dateRegex = /(\d{4})-(\d{2})-(\d{2})/;
@@ -2152,7 +2280,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
 
                   return (
                     <div 
-                      key={formName} 
+                      key={formId} 
                       style={{ 
                         display: 'flex',
                         justifyContent: 'space-between',
@@ -2167,13 +2295,12 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                     >
                       {/* Left: Form Name and Digital status label */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, minWidth: '220px' }}>
-                        <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.88rem' }}>{formName}</span>
+                        <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.88rem' }}>{displayName}</span>
                         {(() => {
-                          const isFormActive = formData?.formId && activeStatus === 'ACTIVE';
-                          // Clean up version string to remove redundant "(draft)" text since the badge color already indicates state
+                          const isFormActive = formId && activeStatus === 'ACTIVE';
                           const displayVersion = normalizedVersion.replace(/\s*\(draft\)/gi, '').trim();
                           
-                          if (formData?.formId) {
+                          if (formId) {
                             return (
                               <span style={{ 
                                 fontSize: '0.72rem', 
@@ -2210,7 +2337,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                       {(() => {
                         const canEditForm = !isReadOnly && hasPermission('design_document') && activeStatus === 'DRAFT';
                         const hasPdf = !!formData?.pdfName;
-                        const hasDigitalForm = !!formData?.formId;
+                        const hasDigitalForm = !!formId;
 
                         if (!canEditForm && !hasPdf && !hasDigitalForm) {
                           return null;
@@ -2225,12 +2352,12 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                                 type="file" 
                                 accept=".pdf" 
                                 style={{ display: 'none' }} 
-                                id={`pdf-file-${formName}`}
-                                disabled={isUploading[formName]}
+                                id={`pdf-file-${formId}`}
+                                disabled={isUploading[formId]}
                                 onChange={(e) => {
                                   const file = e.target.files?.[0];
                                   if (file) {
-                                    handlePdfUpload(formName, file);
+                                    handlePdfUpload(formId, file);
                                   }
                                 }}
                               />
@@ -2244,7 +2371,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                                     <button
                                       type="button"
                                       className="btn btn-secondary btn-sm"
-                                      disabled={isUploading[formName] || !processId}
+                                      disabled={isUploading[formId] || !processId}
                                       style={{ 
                                         display: 'inline-flex', 
                                         alignItems: 'center', 
@@ -2265,7 +2392,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                                           alert('Please save the process document as a draft first before uploading files.');
                                           return;
                                         }
-                                        document.getElementById(`pdf-file-${formName}`)?.click();
+                                        document.getElementById(`pdf-file-${formId}`)?.click();
                                       }}
                                     >
                                       <Upload size={12} /> Upload PDF
@@ -2277,7 +2404,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                                       type="button"
                                       className="btn btn-secondary btn-sm"
                                       title={formData.pdfName}
-                                      disabled={isUploading[formName]}
+                                      disabled={isUploading[formId]}
                                       style={{ 
                                         display: 'inline-flex', 
                                         alignItems: 'center', 
@@ -2318,7 +2445,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                                           type="button"
                                           className="btn btn-secondary btn-sm"
                                           title="Replace PDF"
-                                          disabled={isUploading[formName]}
+                                          disabled={isUploading[formId]}
                                           style={{ 
                                             display: 'flex', 
                                             alignItems: 'center', 
@@ -2333,7 +2460,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                                             color: '#0f4c81',
                                             margin: 0
                                           }}
-                                          onClick={() => document.getElementById(`pdf-file-${formName}`)?.click()}
+                                          onClick={() => document.getElementById(`pdf-file-${formId}`)?.click()}
                                         >
                                           <Upload size={11} />
                                         </button>
@@ -2341,7 +2468,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                                         <button
                                           type="button"
                                           title="Remove PDF"
-                                          disabled={isUploading[formName]}
+                                          disabled={isUploading[formId]}
                                           style={{
                                             display: 'flex',
                                             alignItems: 'center',
@@ -2358,7 +2485,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                                             fontWeight: 'bold',
                                             margin: 0
                                           }}
-                                          onClick={() => handlePdfDelete(formName, formData.pdfKey || '')}
+                                          onClick={() => handlePdfDelete(formId, formData.pdfKey || '')}
                                         >
                                           &times;
                                         </button>
@@ -2394,19 +2521,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                                     alert('Please save the process document as a draft first to enable the form builder.');
                                     return;
                                   }
-                                  if (!formData?.formId) {
-                                    const generatedId = `FM-${formName.toUpperCase().replace(/[^A-Z0-9]/g, '-')}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
-                                    setWorkflowFormsData(prev => ({
-                                      ...prev,
-                                      [formName]: {
-                                        ...prev[formName] || {},
-                                        formId: generatedId,
-                                        status: 'DRAFT',
-                                        version: 'v0.1'
-                                      }
-                                    }));
-                                  }
-                                  setActiveFormToBuild(formName);
+                                  setActiveFormToBuild(formId);
                                 }}
                               >
                                 <Edit2 size={12} /> Edit
@@ -2431,7 +2546,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                                     boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
                                     margin: 0
                                   }}
-                                  onClick={() => setActiveFormToBuild(formName)}
+                                  onClick={() => setActiveFormToBuild(formId)}
                                 >
                                   <Eye size={12} /> View
                                 </button>
