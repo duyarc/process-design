@@ -260,11 +260,13 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                               </div>
                             ) : f.type === 'time' ? (
                               f.timeMode === 'dual' ? (
-                                <div style={{ fontSize: '0.8rem', color: '#000000', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                                  Từ <span style={{ color: '#94a3b8' }}>...... : ......</span> đến <span style={{ color: '#94a3b8' }}>...... : ......</span>
+                                <div style={{ fontSize: '0.85rem', color: '#000000', display: 'flex', alignItems: 'center', gap: '4px', flex: 1 }}>
+                                  Từ <span style={{ borderBottom: '1px solid #000000', flex: 1, minWidth: '40px', display: 'inline-block', height: '14px', textAlign: 'center' }} /> : <span style={{ borderBottom: '1px solid #000000', flex: 1, minWidth: '40px', display: 'inline-block', height: '14px', textAlign: 'center' }} /> đến <span style={{ borderBottom: '1px solid #000000', flex: 1, minWidth: '40px', display: 'inline-block', height: '14px', textAlign: 'center' }} /> : <span style={{ borderBottom: '1px solid #000000', flex: 1, minWidth: '40px', display: 'inline-block', height: '14px', textAlign: 'center' }} />
                                 </div>
                               ) : (
-                                <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>...... : ......</span>
+                                <div style={{ fontSize: '0.85rem', color: '#000000', display: 'flex', alignItems: 'center', gap: '4px', flex: 1 }}>
+                                  <span style={{ borderBottom: '1px solid #000000', flex: 1, minWidth: '60px', display: 'inline-block', height: '14px', textAlign: 'center' }} /> : <span style={{ borderBottom: '1px solid #000000', flex: 1, minWidth: '60px', display: 'inline-block', height: '14px', textAlign: 'center' }} />
+                                </div>
                               )
                             ) : (
                               <div style={{ flex: 1, borderBottom: '1px solid #000000', minHeight: '16px' }} />
@@ -342,11 +344,13 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                               </div>
                             ) : field.type === 'time' ? (
                               field.timeMode === 'dual' ? (
-                                <div style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', justifyContent: 'center', gap: '3px' }}>
-                                  Từ <span style={{ color: '#94a3b8' }}>...... : ......</span> đến <span style={{ color: '#94a3b8' }}>...... : ......</span>
+                                <div style={{ fontSize: '0.75rem', color: '#000000', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '2px' }}>
+                                  Từ <span style={{ borderBottom: '1px solid #000000', width: '22px', display: 'inline-block', height: '12px' }} />:<span style={{ borderBottom: '1px solid #000000', width: '22px', display: 'inline-block', height: '12px' }} /> đến <span style={{ borderBottom: '1px solid #000000', width: '22px', display: 'inline-block', height: '12px' }} />:<span style={{ borderBottom: '1px solid #000000', width: '22px', display: 'inline-block', height: '12px' }} />
                                 </div>
                               ) : (
-                                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>...... : ......</span>
+                                <div style={{ fontSize: '0.75rem', color: '#000000', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '2px' }}>
+                                  <span style={{ borderBottom: '1px solid #000000', width: '30px', display: 'inline-block', height: '12px' }} /> : <span style={{ borderBottom: '1px solid #000000', width: '30px', display: 'inline-block', height: '12px' }} />
+                                </div>
                               )
                             ) : field.type === 'number' ? (
                               <span style={{ fontSize: '0.75rem', color: '#64748b' }}>.............. {field.unit || 'oC'}</span>
