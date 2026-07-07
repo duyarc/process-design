@@ -1070,6 +1070,48 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                                         onChange={(e) => setFormValues(prev => ({ ...prev, [field.id]: e.target.value }))}
                                         style={{ padding: '0.4rem 0.5rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', width: '100%', height: '34px' }}
                                       />
+                                    ) : field.type === 'time' ? (
+                                      field.timeMode === 'dual' ? (() => {
+                                        const parts = (value || '').split(' - ');
+                                        const sTime = parts[0] || '';
+                                        const eTime = parts[1] || '';
+                                        return (
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', width: '100%' }}>
+                                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                              <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginBottom: '1px' }}>Từ</span>
+                                              <input 
+                                                type="time" 
+                                                value={sTime} 
+                                                onChange={(e) => {
+                                                  const val = e.target.value;
+                                                  setFormValues(prev => ({ ...prev, [field.id]: `${val} - ${eTime}` }));
+                                                }}
+                                                style={{ padding: '0.4rem 0.5rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', width: '100%', height: '34px' }}
+                                              />
+                                            </div>
+                                            <span style={{ marginTop: '10px', color: '#cbd5e1' }}>~</span>
+                                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                              <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginBottom: '1px' }}>Đến</span>
+                                              <input 
+                                                type="time" 
+                                                value={eTime} 
+                                                onChange={(e) => {
+                                                  const val = e.target.value;
+                                                  setFormValues(prev => ({ ...prev, [field.id]: `${sTime} - ${val}` }));
+                                                }}
+                                                style={{ padding: '0.4rem 0.5rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', width: '100%', height: '34px' }}
+                                              />
+                                            </div>
+                                          </div>
+                                        );
+                                      })() : (
+                                        <input 
+                                          type="time"
+                                          value={value}
+                                          onChange={(e) => setFormValues(prev => ({ ...prev, [field.id]: e.target.value }))}
+                                          style={{ padding: '0.4rem 0.5rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', width: '100%', height: '34px' }}
+                                        />
+                                      )
                                     ) : (field.type === 'radio' || field.type === 'checkbox') ? (
                                       <select
                                         value={value}
@@ -1205,6 +1247,50 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                                              );
                                            })}
                                          </div>
+                                       )}
+
+                                       {field.type === 'time' && (
+                                         field.timeMode === 'dual' ? (() => {
+                                           const parts = (value || '').split(' - ');
+                                           const sTime = parts[0] || '';
+                                           const eTime = parts[1] || '';
+                                           return (
+                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', width: '100%' }}>
+                                               <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                                 <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginBottom: '1px' }}>Từ</span>
+                                                 <input 
+                                                   type="time" 
+                                                   value={sTime} 
+                                                   onChange={(e) => {
+                                                     const val = e.target.value;
+                                                     setFormValues(prev => ({ ...prev, [field.id]: `${val} - ${eTime}` }));
+                                                   }}
+                                                   style={{ padding: '0.4rem 0.5rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', width: '100%', height: '34px' }}
+                                                 />
+                                               </div>
+                                               <span style={{ marginTop: '10px', color: '#cbd5e1' }}>~</span>
+                                               <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                                 <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginBottom: '1px' }}>Đến</span>
+                                                 <input 
+                                                   type="time" 
+                                                   value={eTime} 
+                                                   onChange={(e) => {
+                                                     const val = e.target.value;
+                                                     setFormValues(prev => ({ ...prev, [field.id]: `${sTime} - ${val}` }));
+                                                   }}
+                                                   style={{ padding: '0.4rem 0.5rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', width: '100%', height: '34px' }}
+                                                 />
+                                               </div>
+                                             </div>
+                                           );
+                                         })() : (
+                                           <input 
+                                             type="time"
+                                             value={value}
+                                             onChange={(e) => setFormValues(prev => ({ ...prev, [field.id]: e.target.value }))}
+                                             style={{ padding: '0.4rem 0.5rem', fontSize: '0.85rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', width: '120px' }}
+                                           />
+                                         )
                                        )}
 
                                       {field.type === 'text' && (

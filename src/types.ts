@@ -39,7 +39,7 @@ export interface RadioOption {
 export interface FormDesignerField {
   id: string;
   label: string;
-  type: 'text' | 'number' | 'date' | 'checkbox' | 'radio' | 'signature';
+  type: 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature';
   options?: string[];
 }
 
@@ -86,7 +86,7 @@ export interface Process {
 
 export interface FormFieldISO {
   id: string;
-  type: 'text' | 'number' | 'date' | 'checkbox' | 'radio' | 'signature' | 'photo';
+  type: 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo';
   checkItem: string;
   locationCode: string;
   minSpec?: number;
@@ -96,6 +96,7 @@ export interface FormFieldISO {
   options?: RadioOption[]; // For radio type: list of selectable options
   frequency: string;
   reactionProtocol: string;
+  timeMode?: 'single' | 'dual';
 }
 
 export interface FormRevisionEntry {

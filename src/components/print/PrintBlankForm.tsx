@@ -258,6 +258,14 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                                   </span>
                                 ))}
                               </div>
+                            ) : f.type === 'time' ? (
+                              f.timeMode === 'dual' ? (
+                                <div style={{ fontSize: '0.8rem', color: '#000000', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                  Từ <span style={{ color: '#94a3b8' }}>...... : ......</span> đến <span style={{ color: '#94a3b8' }}>...... : ......</span>
+                                </div>
+                              ) : (
+                                <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>...... : ......</span>
+                              )
                             ) : (
                               <div style={{ flex: 1, borderBottom: '1px solid #000000', minHeight: '16px' }} />
                             )}
@@ -332,6 +340,14 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                                   </span>
                                 ))}
                               </div>
+                            ) : field.type === 'time' ? (
+                              field.timeMode === 'dual' ? (
+                                <div style={{ fontSize: '0.75rem', color: '#64748b', display: 'flex', justifyContent: 'center', gap: '3px' }}>
+                                  Từ <span style={{ color: '#94a3b8' }}>...... : ......</span> đến <span style={{ color: '#94a3b8' }}>...... : ......</span>
+                                </div>
+                              ) : (
+                                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>...... : ......</span>
+                              )
                             ) : field.type === 'number' ? (
                               <span style={{ fontSize: '0.75rem', color: '#64748b' }}>.............. {field.unit || 'oC'}</span>
                             ) : (

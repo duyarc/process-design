@@ -457,6 +457,48 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
                             onChange={(e) => setFormValues(prev => ({ ...prev, [field.id]: e.target.value }))}
                             style={{ padding: '0.45rem 0.6rem', fontSize: '0.82rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', width: '100%', height: '36px' }}
                           />
+                        ) : field.type === 'time' ? (
+                          field.timeMode === 'dual' ? (() => {
+                            const parts = (value || '').split(' - ');
+                            const sTime = parts[0] || '';
+                            const eTime = parts[1] || '';
+                            return (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', width: '100%' }}>
+                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                  <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginBottom: '1px' }}>Từ</span>
+                                  <input 
+                                    type="time" 
+                                    value={sTime} 
+                                    onChange={(e) => {
+                                      const val = e.target.value;
+                                      setFormValues(prev => ({ ...prev, [field.id]: `${val} - ${eTime}` }));
+                                    }}
+                                    style={{ padding: '0.45rem 0.6rem', fontSize: '0.82rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', width: '100%', height: '36px' }}
+                                  />
+                                </div>
+                                <span style={{ marginTop: '12px', color: '#cbd5e1' }}>~</span>
+                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                  <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginBottom: '1px' }}>Đến</span>
+                                  <input 
+                                    type="time" 
+                                    value={eTime} 
+                                    onChange={(e) => {
+                                      const val = e.target.value;
+                                      setFormValues(prev => ({ ...prev, [field.id]: `${sTime} - ${val}` }));
+                                    }}
+                                    style={{ padding: '0.45rem 0.6rem', fontSize: '0.82rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', width: '100%', height: '36px' }}
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })() : (
+                            <input 
+                              type="time"
+                              value={value}
+                              onChange={(e) => setFormValues(prev => ({ ...prev, [field.id]: e.target.value }))}
+                              style={{ padding: '0.45rem 0.6rem', fontSize: '0.82rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', width: '100%', height: '36px' }}
+                            />
+                          )
                         ) : (field.type === 'radio' || field.type === 'checkbox') ? (
                           <select
                             value={value}
@@ -549,6 +591,48 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
                                 placeholder={`Nhập số (${field.unit || ''})...`}
                                 style={{ width: '100%', padding: '0.45rem 0.5rem', fontSize: '0.82rem', border: '1px solid var(--neutral-border)', borderRadius: '4px' }}
                               />
+                            ) : field.type === 'time' ? (
+                              field.timeMode === 'dual' ? (() => {
+                                const parts = (value || '').split(' - ');
+                                const sTime = parts[0] || '';
+                                const eTime = parts[1] || '';
+                                return (
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', width: '100%' }}>
+                                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                      <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginBottom: '1px' }}>Từ</span>
+                                      <input 
+                                        type="time" 
+                                        value={sTime} 
+                                        onChange={(e) => {
+                                          const val = e.target.value;
+                                          setFormValues(prev => ({ ...prev, [field.id]: `${val} - ${eTime}` }));
+                                        }}
+                                        style={{ padding: '0.4rem 0.5rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', width: '100%', height: '34px' }}
+                                      />
+                                    </div>
+                                    <span style={{ marginTop: '10px', color: '#cbd5e1' }}>~</span>
+                                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                      <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginBottom: '1px' }}>Đến</span>
+                                      <input 
+                                        type="time" 
+                                        value={eTime} 
+                                        onChange={(e) => {
+                                          const val = e.target.value;
+                                          setFormValues(prev => ({ ...prev, [field.id]: `${sTime} - ${val}` }));
+                                        }}
+                                        style={{ padding: '0.4rem 0.5rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', width: '100%', height: '34px' }}
+                                      />
+                                    </div>
+                                  </div>
+                                );
+                              })() : (
+                                <input 
+                                  type="time"
+                                  value={value}
+                                  onChange={(e) => setFormValues(prev => ({ ...prev, [field.id]: e.target.value }))}
+                                  style={{ width: '100%', padding: '0.45rem 0.5rem', fontSize: '0.82rem', border: '1px solid var(--neutral-border)', borderRadius: '4px' }}
+                                />
+                              )
                             ) : (field.type === 'radio' || field.type === 'checkbox') ? (
                               <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                                 {(field.options ?? [{ label: 'Đạt', value: 'PASS', isPass: true }, { label: 'Không Đạt', value: 'FAIL', isPass: false }]).map((opt: any) => (

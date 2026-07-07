@@ -497,10 +497,10 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
     { label: 'Không', value: 'FAIL', isPass: false }
   ];
 
-  const handleAddField = (blockId: string, type: 'text' | 'number' | 'date' | 'radio' | 'signature' | 'photo') => {
+  const handleAddField = (blockId: string, type: 'text' | 'number' | 'date' | 'time' | 'radio' | 'signature' | 'photo') => {
     if (isLocked) return;
     
-    const labelPrefix = type === 'radio' ? 'Kiểm tra ' : type === 'number' ? 'Đo thông số ' : 'Thông tin ';
+    const labelPrefix = type === 'radio' ? 'Kiểm tra ' : type === 'number' ? 'Đo thông số ' : type === 'time' ? 'Thời gian ' : 'Thông tin ';
     const newField: FormFieldISO = {
       id: `f_${type}_${Date.now()}`,
       type,
@@ -514,6 +514,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
       newField.minSpec = undefined;
       newField.maxSpec = undefined;
       newField.unit = '';
+    } else if (type === 'time') {
+      newField.timeMode = 'single';
     } else if (type === 'radio') {
       newField.options = [...DEFAULT_RADIO_OPTIONS];
     }
@@ -540,7 +542,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
     }));
   };
 
-  const handleChangeFieldType = (blockId: string, fieldId: string, newType: 'text' | 'number' | 'date' | 'radio' | 'signature' | 'photo') => {
+  const handleChangeFieldType = (blockId: string, fieldId: string, newType: 'text' | 'number' | 'date' | 'time' | 'radio' | 'signature' | 'photo') => {
     if (isLocked) return;
     const updates: Partial<FormFieldISO> = { type: newType };
     
@@ -549,6 +551,12 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
       updates.maxSpec = undefined;
       updates.unit = '';
       updates.options = undefined;
+    } else if (newType === 'time') {
+      updates.timeMode = 'single';
+      updates.options = undefined;
+      updates.minSpec = undefined;
+      updates.maxSpec = undefined;
+      updates.unit = undefined;
     } else if (newType === 'radio') {
       updates.options = [...DEFAULT_RADIO_OPTIONS];
       updates.minSpec = undefined;
@@ -1133,6 +1141,16 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                 </button>
                 <button 
                   type="button" 
+                  onClick={() => handleAddField(activeBlockId, 'time')}
+                  disabled={isLocked || activeBlock?.type === 'SIGN' || activeBlock?.type === 'TITLE'}
+                  className="btn btn-secondary" 
+                  style={{ justifyContent: 'start', padding: '0.4rem 0.5rem', fontSize: '0.75rem' }}
+                >
+                  <Clock size={13} style={{ marginRight: '0.35rem' }} />
+                  Time Picker
+                </button>
+                <button 
+                  type="button" 
                   onClick={() => handleAddField(activeBlockId, 'signature')}
                   disabled={isLocked || activeBlock?.type !== 'SIGN'}
                   className="btn btn-secondary" 
@@ -1405,6 +1423,12 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                                               }}>{opt.label}</span>
                                             ))}
                                           </div>
+                                        ) : f.type === 'time' ? (
+                                          f.timeMode === 'dual' ? (
+                                            <span style={{ color: 'var(--text-muted)', fontSize: '0.65rem' }}>([Từ] ~ [Đến])</span>
+                                          ) : (
+                                            <span style={{ color: 'var(--text-muted)', fontSize: '0.65rem' }}>([Giờ])</span>
+                                          )
                                         ) : f.type === 'number' ? (
                                           (f.minSpec !== undefined && f.minSpec !== null && f.maxSpec !== undefined && f.maxSpec !== null) ? (
                                             <span style={{ color: 'var(--text-muted)', fontSize: '0.65rem' }}>({f.minSpec}-{f.maxSpec} {f.unit})</span>
@@ -1644,11 +1668,27 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                     <option value="text">Text Note Field</option>
                     <option value="number">Numeric Spec Check</option>
                     <option value="date">Date Picker</option>
+                    <option value="time">Time Picker</option>
                     <option value="radio">Radio Group</option>
                     <option value="signature">Sign-off</option>
                     <option value="photo">Camera/Photo Log</option>
                   </select>
                 </div>
+
+                {activeField.type === 'time' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                    <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Chế độ chọn giờ</label>
+                    <select
+                      disabled={isLocked}
+                      value={activeField.timeMode || 'single'}
+                      onChange={(e) => handleUpdateField(activeBlockId!, activeFieldId!, { timeMode: e.target.value as any })}
+                      style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', background: '#fff' }}
+                    >
+                      <option value="single">Một mốc giờ (Single)</option>
+                      <option value="dual">Khoảng Từ - Đến (Dual)</option>
+                    </select>
+                  </div>
+                )}
 
                 {activeField.type === 'signature' ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
