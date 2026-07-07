@@ -894,9 +894,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
   };
 
   const handleDiscardChangesAndClose = () => {
-    if (confirm('Discard all unsaved changes? Any edits made in this session will be lost.')) {
-      onClose();
-    }
+    onClose();
   };
 
   // Find currently selected element details
