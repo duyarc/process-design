@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import type { Submission } from '../../types';
-import { formatFormVersion } from '../../types';
+import { formatFormVersion, getColStyleWidth } from '../../types';
 
 interface PrintRecordProps {
   submission: Submission;
@@ -107,13 +107,16 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
     f => f.id.startsWith('f_info_') || f.locationCode.startsWith('INFO')
   );
   
+  const tableBlockIds = layoutBlocks.filter(b => b.type === 'TABLE').map(b => b.id);
+  
   const checklistFields = submission.formData.filter(
     f => !f.id.startsWith('f_info_') && 
          !f.locationCode.startsWith('INFO') && 
          !f.id.startsWith('f_sign_') && 
          !f.locationCode.startsWith('SIGN') &&
          f.targetRange !== 'Tally Count' &&
-         f.targetRange !== 'Ghi chú'
+         f.targetRange !== 'Ghi chú' &&
+         !tableBlockIds.some(id => f.id.startsWith(id + '_'))
   );
 
   // Group and reconstruct matrix blocks dynamically
@@ -615,6 +618,74 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                 </tr>
               </tbody>
             </table>
+          </div>
+        );
+      })}
+
+      {/* REGULAR TABLE RECORD BLOCK */}
+      {layoutBlocks.filter(b => b.type === 'TABLE').map((block: any) => {
+        return (
+          <div key={block.id} className="print-block" style={{ marginTop: '15px' }}>
+            <div style={{ fontSize: '0.85rem', fontWeight: 'bold', marginBottom: '8px', textTransform: 'uppercase', color: '#1e293b' }}>
+              {block.title || 'BẢNG THÔNG TIN'}
+            </div>
+            <div style={{ overflowX: 'auto' }}>
+              <table className="print-table" style={{
+                width: '100%',
+                borderCollapse: 'collapse',
+                tableLayout: 'fixed'
+              }}>
+                <thead>
+                  <tr>
+                    {(block.tableColumns || []).map((col: any) => {
+                      const colWidth = getColStyleWidth(col.id, col.width, block.tableColumns || []);
+                      const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? 'center' : 'left'));
+                      return (
+                        <th key={col.id} style={{ border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'bold', fontSize: '0.8rem', textAlign: cellAlign, width: colWidth }}>
+                          {col.label}
+                        </th>
+                      );
+                    })}
+                  </tr>
+                </thead>
+                <tbody>
+                  {(block.tableRows || []).length === 0 ? (
+                    <tr>
+                      <td colSpan={(block.tableColumns || []).length} style={{ border: '1.5px solid #000000', padding: '8px', textAlign: 'center', color: '#64748b', fontStyle: 'italic', fontSize: '0.8rem' }}>
+                        Không có dữ liệu.
+                      </td>
+                    </tr>
+                  ) : (
+                    (block.tableRows || []).map((row: any) => (
+                      <tr key={row.id} style={{ pageBreakInside: 'avoid' }}>
+                        {(block.tableColumns || []).map((col: any) => {
+                          const cellKey = `${block.id}_${row.id}_${col.id}`;
+                          const cellValue = submission.formData.find(f => f.id === cellKey)?.value || '';
+                          const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? 'center' : 'left'));
+                          return (
+                            <td key={col.id} style={{ border: '1.5px solid #000000', padding: '6px 8px', fontSize: '0.8rem', verticalAlign: 'middle', textAlign: cellAlign }}>
+                              {col.type === 'static_text' ? (
+                                <span style={{ fontWeight: 500, display: 'block', textAlign: cellAlign }}>{block.tableData?.[row.id]?.[col.id] || ''}</span>
+                              ) : col.type === 'checkbox' ? (
+                                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                                  <input type="checkbox" checked={cellValue === 'true'} readOnly style={{ transform: 'scale(1.1)' }} />
+                                </div>
+                              ) : col.type === 'radio' ? (
+                                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                                  <input type="radio" checked={cellValue === 'true'} readOnly style={{ transform: 'scale(1.1)' }} />
+                                </div>
+                              ) : (
+                                <span style={{ display: 'block', textAlign: cellAlign }}>{cellValue}</span>
+                              )}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         );
       })}

@@ -385,8 +385,9 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                     <tr>
                       {(block.tableColumns || []).map((col) => {
                         const colWidth = getColStyleWidth(col.id, col.width, block.tableColumns || []);
+                        const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? 'center' : 'left'));
                         return (
-                          <th key={col.id} style={{ border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'bold', fontSize: '0.8rem', textAlign: 'left', width: colWidth }}>
+                          <th key={col.id} style={{ border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'bold', fontSize: '0.8rem', textAlign: cellAlign, width: colWidth }}>
                             {col.label}
                           </th>
                         );
