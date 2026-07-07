@@ -747,7 +747,7 @@ app.get('/api/forms/:formId/history', async (req, res) => {
 // POST /api/forms - Save or Update form template (upsert by form_id + version composite key)
 app.post('/api/forms', async (req, res) => {
   try {
-    const { formId, formName, formTitle, status, version, layoutBlocks, revisionHistory, pdfName, pdfKey, pdfSize } = req.body;
+    const { formId, formName, formTitle, status, version, layoutBlocks, revisionHistory, pdfName, pdfKey, pdfSize, oldFormId } = req.body;
     
     if (!formId || !formName) {
       return res.status(400).json({ error: 'formId and formName are required' });
@@ -758,6 +758,14 @@ app.post('/api/forms', async (req, res) => {
     const ver = version || 'v0.1';
 
     if (dbPool) {
+      // If Form ID changed and it was a draft, delete the old draft record
+      if (oldFormId && oldFormId !== formId) {
+        await dbPool.query(
+          "DELETE FROM forms WHERE form_id = $1 AND version = $2 AND status = 'DRAFT'",
+          [oldFormId, ver]
+        );
+      }
+
       // Check safety: Ensure we are not overwriting an existing ACTIVE version in database
       const safetyCheck = await dbPool.query(
         'SELECT status FROM forms WHERE form_id = $1 AND version = $2',
@@ -788,7 +796,10 @@ app.post('/api/forms', async (req, res) => {
       const result = await dbPool.query(query, values);
       res.status(200).json(result.rows[0]);
     } else {
-      const forms = readFormsOffline();
+      let forms = readFormsOffline();
+      if (oldFormId && oldFormId !== formId) {
+        forms = forms.filter(f => !(f.form_id === oldFormId && f.version === ver && f.status === 'DRAFT'));
+      }
       const existingIdx = forms.findIndex(f => f.form_id === formId && f.version === ver);
       const newForm = {
         form_id: formId,

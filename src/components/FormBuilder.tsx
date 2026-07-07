@@ -100,7 +100,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
         status: activeStatus,
         version: activeVersion,
         layoutBlocks,
-        revisionHistory: activeHistory
+        revisionHistory: activeHistory,
+        oldFormId: initialData?.formId && initialData.formId !== formId ? initialData.formId : undefined
       };
       
       const res = await fetch('/api/forms', {
