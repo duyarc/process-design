@@ -2915,14 +2915,14 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                   </div>
                 </>
               ) : (
-                <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center', flexWrap: 'nowrap', width: '100%' }}>
                   <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>v</span>
                   <input
                     type="number"
                     min="0"
                     value={major}
                     onChange={(e) => handleMajorChange(parseInt(e.target.value, 10) || 0)}
-                    style={{ width: '45px', padding: '0.2rem 0.3rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', textAlign: 'center', fontSize: '0.8rem' }}
+                    style={{ width: '38px', padding: '0.2rem 0.15rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', textAlign: 'center', fontSize: '0.8rem' }}
                   />
                   <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>.</span>
                   <input
@@ -2930,10 +2930,10 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                     min="0"
                     value={minor}
                     onChange={(e) => handleMinorChange(parseInt(e.target.value, 10) || 0)}
-                    style={{ width: '45px', padding: '0.2rem 0.3rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', textAlign: 'center', fontSize: '0.8rem' }}
+                    style={{ width: '38px', padding: '0.2rem 0.15rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', textAlign: 'center', fontSize: '0.8rem' }}
                   />
 
-                  <span className="badge badge-warning" style={{ fontSize: '0.65rem', padding: '0.05rem 0.35rem', backgroundColor: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d', textTransform: 'uppercase', fontWeight: 700, marginLeft: '0.25rem' }}>
+                  <span className="badge badge-warning" style={{ fontSize: '0.65rem', padding: '0.05rem 0.35rem', backgroundColor: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d', textTransform: 'uppercase', fontWeight: 700, marginLeft: '0.15rem' }}>
                     Draft
                   </span>
 
