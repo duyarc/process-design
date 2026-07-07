@@ -1712,107 +1712,101 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
               >
                 <Plus size={12} /> Add Row
               </button>
-
-              {/* Divider */}
               <div style={{ borderTop: '1px solid var(--neutral-border)', margin: '0.85rem 0 0.7rem' }} />
 
-              {/* Process Code / ID input field */}
-              <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', fontWeight: 600 }}>
-                  <GitBranch size={13} style={{ color: 'var(--text-secondary)' }} />
-                  Process Code / ID* 
-                  {status !== 'Draft' && (
-                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 'normal' }}>
-                      (Locked - Only editable in Draft status)
-                    </span>
+              {/* Side-by-side Grid Layout */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '1.5rem', alignItems: 'start', marginTop: '0.5rem' }}>
+                {/* Left Column: Process ID */}
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.4rem' }}>
+                    <GitBranch size={13} style={{ color: 'var(--text-secondary)' }} />
+                    Process ID
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. shipping_process"
+                    value={processCode}
+                    onChange={(e) => setProcessCode(e.target.value)}
+                    disabled={status !== 'Draft' || isReadOnly}
+                    style={{
+                      fontFamily: 'monospace',
+                      fontSize: '0.85rem',
+                      padding: '0.35rem 0.5rem',
+                      borderRadius: '4px',
+                      border: '1px solid var(--neutral-border)',
+                      width: '100%',
+                      boxSizing: 'border-box',
+                      backgroundColor: (status !== 'Draft' || isReadOnly) ? '#f1f5f9' : '#ffffff'
+                    }}
+                  />
+                </div>
+
+                {/* Right Column: Version History */}
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.45rem' }}>
+                    <GitBranch size={13} style={{ color: '#94a3b8' }} />
+                    <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-secondary)' }}>Version History</span>
+                  </div>
+
+                  {allVersions.length === 0 ? (
+                    <div style={{ padding: '0.65rem 1rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem', border: '1px dashed var(--neutral-border)', borderRadius: '5px' }}>
+                      No version history available.
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                      {allVersions.map((v) => {
+                        const vStatus = v.status || 'Active';
+                        const isCurrent = v.id === processId;
+                        const vColors = {
+                          'Draft': { bg: '#f3f4f6', text: '#4b5563', border: '#d1d5db' },
+                          'Pending Review': { bg: '#fef3c7', text: '#92400e', border: '#fcd34d' },
+                          'Active': { bg: '#d1fae5', text: '#065f46', border: '#6ee7b7' },
+                          'Retired': { bg: '#fee2e2', text: '#991b1b', border: '#fca5a5' },
+                          'Superseded': { bg: '#e5e7eb', text: '#374151', border: '#d1d5db' },
+                        }[vStatus] || { bg: '#e5e7eb', text: '#4b5563', border: '#cbd5e1' };
+                        return (
+                          <div
+                            key={v.id}
+                            onClick={!isCurrent ? () => onOpenDraft ? onOpenDraft(v.id) : onSaveSuccess(v.id) : undefined}
+                            style={{
+                              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                              padding: '0.4rem 0.7rem',
+                              background: isCurrent ? '#f0fdfa' : '#f9fafb',
+                              borderRadius: '5px',
+                              border: isCurrent ? '1px solid #99f6e4' : '1px solid var(--neutral-border)',
+                              fontSize: '0.78rem',
+                              cursor: isCurrent ? 'default' : 'pointer',
+                              transition: 'background 0.15s, border-color 0.15s',
+                            }}
+                            onMouseEnter={e => { if (!isCurrent) { e.currentTarget.style.background = '#e0f2fe'; e.currentTarget.style.borderColor = '#7dd3fc'; } }}
+                            onMouseLeave={e => { if (!isCurrent) { e.currentTarget.style.background = '#f9fafb'; e.currentTarget.style.borderColor = 'var(--neutral-border)'; } }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', flex: 1, minWidth: 0 }}>
+                              <span style={{ fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
+                                {/^[vV]/.test(v.version || '') ? 'V' + (v.version || '').trim().slice(1) : 'V' + (v.version || '').trim()}
+                              </span>
+                              {isCurrent && <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--primary)', background: '#f0fdfa', border: '1px solid #99f6e4', padding: '0.05rem 0.3rem', borderRadius: '3px', textTransform: 'uppercase' }}>Current</span>}
+                              <span className="badge" style={{ backgroundColor: vColors.bg, color: vColors.text, border: `1px solid ${vColors.border}`, fontSize: '0.65rem', padding: '0.05rem 0.35rem', textTransform: 'uppercase', fontWeight: 700 }}>{vStatus}</span>
+                               {v.sopSignoffs?.effectiveDate ? (
+                                <span style={{ color: 'var(--text-secondary)', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '0.2rem' }} title="Effective Date">
+                                  <Calendar size={11} /> {formatDMY(v.sopSignoffs.effectiveDate)}
+                                </span>
+                              ) : (
+                                <span style={{ color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                  Updated: {formatDMY(v.lastUpdated)}
+                                </span>
+                              )}
+                            </div>
+                            {!isCurrent && (
+                              <span style={{ color: '#94a3b8', fontSize: '0.75rem', marginLeft: '0.5rem', flexShrink: 0 }}>→</span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                   )}
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. shipping_process"
-                  value={processCode}
-                  onChange={(e) => setProcessCode(e.target.value)}
-                  disabled={status !== 'Draft' || isReadOnly}
-                  style={{
-                    fontFamily: 'monospace',
-                    fontSize: '0.85rem',
-                    padding: '0.35rem 0.5rem',
-                    borderRadius: '4px',
-                    border: '1px solid var(--neutral-border)',
-                    width: '100%',
-                    boxSizing: 'border-box',
-                    backgroundColor: (status !== 'Draft' || isReadOnly) ? '#f1f5f9' : '#ffffff'
-                  }}
-                />
-                <small style={{ display: 'block', marginTop: '0.2rem', color: 'var(--text-secondary)', fontSize: '0.7rem' }}>
-                  Only alphanumeric characters, underscores (_), and hyphens (-) are allowed.
-                </small>
-              </div>
-
-              {/* Version History — inline */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.55rem' }}>
-                <GitBranch size={13} style={{ color: '#94a3b8' }} />
-                <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-secondary)' }}>Version History</span>
-              </div>
-
-              {/* Version History list */}
-              {allVersions.length === 0 ? (
-                <div style={{ padding: '0.65rem 1rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8rem', border: '1px dashed var(--neutral-border)', borderRadius: '5px' }}>
-                  No version history available.
                 </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                  {allVersions.map((v) => {
-                    const vStatus = v.status || 'Active';
-                    const isCurrent = v.id === processId;
-                    const vColors = {
-                         'Draft': { bg: '#f3f4f6', text: '#4b5563', border: '#d1d5db' },
-                      'Pending Review': { bg: '#fef3c7', text: '#92400e', border: '#fcd34d' },
-                      'Active': { bg: '#d1fae5', text: '#065f46', border: '#6ee7b7' },
-                      'Retired': { bg: '#fee2e2', text: '#991b1b', border: '#fca5a5' },
-                      'Superseded': { bg: '#e5e7eb', text: '#374151', border: '#d1d5db' },
-                    }[vStatus] || { bg: '#e5e7eb', text: '#4b5563', border: '#cbd5e1' };
-                    return (
-                      <div
-                        key={v.id}
-                        onClick={!isCurrent ? () => onOpenDraft ? onOpenDraft(v.id) : onSaveSuccess(v.id) : undefined}
-                        style={{
-                          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                          padding: '0.4rem 0.7rem',
-                          background: isCurrent ? '#f0fdfa' : '#f9fafb',
-                          borderRadius: '5px',
-                          border: isCurrent ? '1px solid #99f6e4' : '1px solid var(--neutral-border)',
-                          fontSize: '0.78rem',
-                          cursor: isCurrent ? 'default' : 'pointer',
-                          transition: 'background 0.15s, border-color 0.15s',
-                        }}
-                        onMouseEnter={e => { if (!isCurrent) { e.currentTarget.style.background = '#e0f2fe'; e.currentTarget.style.borderColor = '#7dd3fc'; } }}
-                        onMouseLeave={e => { if (!isCurrent) { e.currentTarget.style.background = '#f9fafb'; e.currentTarget.style.borderColor = 'var(--neutral-border)'; } }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', flex: 1, minWidth: 0 }}>
-                          <span style={{ fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
-                            {/^[vV]/.test(v.version || '') ? 'V' + (v.version || '').trim().slice(1) : 'V' + (v.version || '').trim()}
-                          </span>
-                          {isCurrent && <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--primary)', background: '#f0fdfa', border: '1px solid #99f6e4', padding: '0.05rem 0.3rem', borderRadius: '3px', textTransform: 'uppercase' }}>Current</span>}
-                          <span className="badge" style={{ backgroundColor: vColors.bg, color: vColors.text, border: `1px solid ${vColors.border}`, fontSize: '0.65rem', padding: '0.05rem 0.35rem', textTransform: 'uppercase', fontWeight: 700 }}>{vStatus}</span>
-                           {v.sopSignoffs?.effectiveDate ? (
-                            <span style={{ color: 'var(--text-secondary)', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '0.2rem' }} title="Effective Date">
-                              <Calendar size={11} /> {formatDMY(v.sopSignoffs.effectiveDate)}
-                            </span>
-                          ) : (
-                            <span style={{ color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              Updated: {formatDMY(v.lastUpdated)}
-                            </span>
-                          )}
-                        </div>
-                        {!isCurrent && (
-                          <span style={{ color: '#94a3b8', fontSize: '0.75rem', marginLeft: '0.5rem', flexShrink: 0 }}>→</span>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+              </div>
             </div>
           </div>
         )}
