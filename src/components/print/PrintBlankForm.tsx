@@ -339,7 +339,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                             )}
                           </td>
                           <td style={{ border: '1.5px solid #000000', padding: '8px 6px', textAlign: 'left', fontSize: '0.75rem', color: '#64748b' }}>
-                            {field.type === 'number' && field.minSpec !== undefined ? (
+                            {field.type === 'number' && field.minSpec !== undefined && field.minSpec !== null && field.maxSpec !== undefined && field.maxSpec !== null ? (
                               <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Spec: {field.minSpec} ~ {field.maxSpec} {field.unit}</span>
                             ) : ''}
                           </td>

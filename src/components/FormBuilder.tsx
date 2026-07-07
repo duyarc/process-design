@@ -1406,7 +1406,11 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                                             ))}
                                           </div>
                                         ) : f.type === 'number' ? (
-                                          <span style={{ color: 'var(--text-muted)', fontSize: '0.65rem' }}>({f.minSpec}-{f.maxSpec} {f.unit})</span>
+                                          (f.minSpec !== undefined && f.minSpec !== null && f.maxSpec !== undefined && f.maxSpec !== null) ? (
+                                            <span style={{ color: 'var(--text-muted)', fontSize: '0.65rem' }}>({f.minSpec}-{f.maxSpec} {f.unit})</span>
+                                          ) : f.unit ? (
+                                            <span style={{ color: 'var(--text-muted)', fontSize: '0.65rem' }}>({f.unit})</span>
+                                          ) : null
                                         ) : (
                                           <span style={{ color: 'var(--text-muted)', fontSize: '0.65rem' }}>{f.type}</span>
                                         )}
@@ -1679,8 +1683,11 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                         <input
                           type="number"
                           disabled={isLocked}
-                          value={activeField.minSpec ?? ''}
-                          onChange={(e) => handleUpdateField(activeBlockId!, activeFieldId!, { minSpec: parseFloat(e.target.value) || 0 })}
+                          value={activeField.minSpec !== undefined && activeField.minSpec !== null ? activeField.minSpec : ''}
+                          onChange={(e) => {
+                            const val = e.target.value.trim();
+                            handleUpdateField(activeBlockId!, activeFieldId!, { minSpec: val === '' ? undefined : (parseFloat(val) ?? undefined) });
+                          }}
                           style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
                         />
                       </div>
@@ -1689,8 +1696,11 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                         <input
                           type="number"
                           disabled={isLocked}
-                          value={activeField.maxSpec ?? ''}
-                          onChange={(e) => handleUpdateField(activeBlockId!, activeFieldId!, { maxSpec: parseFloat(e.target.value) || 0 })}
+                          value={activeField.maxSpec !== undefined && activeField.maxSpec !== null ? activeField.maxSpec : ''}
+                          onChange={(e) => {
+                            const val = e.target.value.trim();
+                            handleUpdateField(activeBlockId!, activeFieldId!, { maxSpec: val === '' ? undefined : (parseFloat(val) ?? undefined) });
+                          }}
                           style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
                         />
                       </div>

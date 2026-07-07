@@ -154,7 +154,17 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
           const numVal = parseFloat(val);
           const minVal = field.minSpec ?? -Infinity;
           const maxVal = field.maxSpec ?? Infinity;
-          targetRange = `${minVal} - ${maxVal} ${field.unit || ''}`;
+          const hasMin = field.minSpec !== undefined && field.minSpec !== null;
+          const hasMax = field.maxSpec !== undefined && field.maxSpec !== null;
+          if (hasMin && hasMax) {
+            targetRange = `${field.minSpec} - ${field.maxSpec} ${field.unit || ''}`;
+          } else if (hasMin) {
+            targetRange = `>= ${field.minSpec} ${field.unit || ''}`;
+          } else if (hasMax) {
+            targetRange = `<= ${field.maxSpec} ${field.unit || ''}`;
+          } else {
+            targetRange = field.unit ? `Unit: ${field.unit}` : '';
+          }
           if (isNaN(numVal) || numVal < minVal || numVal > maxVal) {
             fieldStatus = 'FAIL';
             isOverallPass = false;
@@ -1097,9 +1107,19 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
 
                                 if (field.type === 'number' && value !== '') {
                                   const num = parseFloat(value);
+                                  const hasMin = field.minSpec !== undefined && field.minSpec !== null;
+                                  const hasMax = field.maxSpec !== undefined && field.maxSpec !== null;
                                   const min = field.minSpec ?? -Infinity;
                                   const max = field.maxSpec ?? Infinity;
-                                  specHint = `Target: ${min} - ${max} ${field.unit || ''}`;
+                                  if (hasMin && hasMax) {
+                                    specHint = `Target: ${field.minSpec} - ${field.maxSpec} ${field.unit || ''}`;
+                                  } else if (hasMin) {
+                                    specHint = `Target: >= ${field.minSpec} ${field.unit || ''}`;
+                                  } else if (hasMax) {
+                                    specHint = `Target: <= ${field.maxSpec} ${field.unit || ''}`;
+                                  } else {
+                                    specHint = field.unit ? `Unit: ${field.unit}` : '';
+                                  }
                                   if (isNaN(num) || num < min || num > max) {
                                     isOutOfSpec = true;
                                   }
