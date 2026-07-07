@@ -221,7 +221,7 @@ export const BpmnViewerComponent: React.FC<BpmnViewerComponentProps> = ({ xml })
       style={{ 
         position: 'relative',
         width: '100%', 
-        border: '1px solid var(--neutral-border)', 
+        border: 'none', 
         borderRadius: '8px', 
         overflow: 'hidden', 
         background: '#ffffff',

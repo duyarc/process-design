@@ -540,6 +540,37 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
     }));
   };
 
+  const handleChangeFieldType = (blockId: string, fieldId: string, newType: 'text' | 'number' | 'date' | 'radio' | 'signature' | 'photo') => {
+    if (isLocked) return;
+    const updates: Partial<FormFieldISO> = { type: newType };
+    
+    if (newType === 'number') {
+      updates.minSpec = 0;
+      updates.maxSpec = 100;
+      updates.unit = 'units';
+      updates.options = undefined;
+    } else if (newType === 'radio') {
+      updates.options = [...DEFAULT_RADIO_OPTIONS];
+      updates.minSpec = undefined;
+      updates.maxSpec = undefined;
+      updates.unit = undefined;
+    } else if (newType === 'signature') {
+      updates.reactionProtocol = 'Ký và ghi rõ họ tên';
+      updates.options = undefined;
+      updates.minSpec = undefined;
+      updates.maxSpec = undefined;
+      updates.unit = undefined;
+    } else {
+      updates.options = undefined;
+      updates.minSpec = undefined;
+      updates.maxSpec = undefined;
+      updates.unit = undefined;
+    }
+    
+    handleUpdateField(blockId, fieldId, updates);
+  };
+
+
   const handleDeleteField = (blockId: string, fieldId: string) => {
     if (isLocked) return;
     setLayoutBlocks(prev => prev.map(b => {
@@ -821,7 +852,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <FileText size={18} style={{ color: 'var(--primary)' }} />
-          <h2 style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>Advanced Form Layout Designer</h2>
+          <h2 style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>Form Designer</h2>
           <span className={`badge ${status === 'ACTIVE' ? 'badge-success' : 'badge-warning'}`} style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem' }}>
             {status}
           </span>
@@ -1592,6 +1623,23 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                     onChange={(e) => handleUpdateField(activeBlockId!, activeFieldId!, { checkItem: e.target.value })}
                     style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
                   />
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                  <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Field Type</label>
+                  <select
+                    disabled={isLocked}
+                    value={activeField.type}
+                    onChange={(e) => handleChangeFieldType(activeBlockId!, activeFieldId!, e.target.value as any)}
+                    style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', background: '#fff' }}
+                  >
+                    <option value="text">Text Note Field</option>
+                    <option value="number">Numeric Spec Check</option>
+                    <option value="date">Date Picker</option>
+                    <option value="radio">Radio Group</option>
+                    <option value="signature">Sign-off</option>
+                    <option value="photo">Camera/Photo Log</option>
+                  </select>
                 </div>
 
                 {activeField.type === 'signature' ? (

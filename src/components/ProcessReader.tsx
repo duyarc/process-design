@@ -507,8 +507,8 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
         .sop-details-columns-grid {
           display: grid;
           grid-template-columns: 1fr;
-          gap: 1.5rem;
-          margin-top: 2rem;
+          gap: 0.5rem;
+          margin-top: 0;
         }
         @media (min-width: 1024px) {
           .sop-details-columns-grid {
@@ -516,7 +516,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
           }
         }
         .sop-print-card {
-          margin-bottom: 1.5rem;
+          margin-bottom: 0;
         }
         @media print {
           .sop-details-columns-grid {
@@ -529,7 +529,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
           .sop-print-card {
             page-break-inside: avoid !important;
             break-inside: avoid !important;
-            border: 1px solid #cccccc !important;
+            border: none !important;
             border-radius: 6px !important;
             padding: 1rem !important;
             background: #ffffff !important;
@@ -563,7 +563,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
       `}</style>
 
       {/* Document Cover / Header Block */}
-      <div className="paper-card accent-teal avoid-page-break no-print" style={{ padding: '1.25rem', marginBottom: '1.5rem' }}>
+      <div className="paper-card accent-teal avoid-page-break" style={{ padding: '1.25rem', marginBottom: '0.5rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
           <div style={{ flex: '1 1 300px' }}>
             <h1 style={{ marginTop: '0.25rem', marginBottom: '0.25rem', fontSize: '1.5rem' }}>{process.title}</h1>
@@ -585,6 +585,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
             }}>
               <GitBranch size={13} style={{ marginRight: '0.3rem', color: 'var(--text-secondary)' }} />
               <select
+                className="no-print"
                 value={process.id}
                 onChange={(e) => {
                   const val = e.target.value;
@@ -614,6 +615,9 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                   );
                 })}
               </select>
+              <span className="print-only" style={{ fontSize: '0.78rem', fontWeight: 600 }}>
+                {getFormattedVersionString(process)}
+              </span>
             </div>
 
             <span className="badge" style={{ backgroundColor: colors.bg, color: colors.text, border: `1px solid ${colors.border}`, textTransform: 'uppercase', fontSize: '0.68rem', fontWeight: 700, padding: '0.15rem 0.45rem', borderRadius: '4px', margin: 0 }}>
@@ -622,7 +626,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
             
             {status === 'Draft' && hasPermission('design_document') ? (
               <button
-                className="btn btn-secondary btn-sm"
+                className="btn btn-secondary btn-sm no-print"
                 style={{ margin: 0, display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', padding: '0.25rem 0.6rem' }}
                 onClick={() => onEdit(process.id)}
               >
@@ -631,7 +635,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
               </button>
             ) : (
               <button
-                className="btn btn-secondary btn-sm"
+                className="btn btn-secondary btn-sm no-print"
                 style={{ margin: 0, display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', padding: '0.25rem 0.6rem' }}
                 onClick={() => onEdit(process.id)}
                 title="Xem cấu hình quy trình"
@@ -642,7 +646,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
             )}
 
             <button
-              className="btn btn-primary btn-sm"
+              className="btn btn-primary btn-sm no-print"
               style={{ margin: 0, display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', padding: '0.25rem 0.6rem' }}
               onClick={handlePrint}
             >
@@ -660,7 +664,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
           <div 
             key={r} 
             className="avoid-page-break flowchart-print-card" 
-            style={{ marginBottom: '1.5rem' }}
+            style={{ marginBottom: '0.25rem' }}
           >
             <div className="mermaid-print-wrapper" style={{ margin: 0 }}>
               <BpmnViewerComponent xml={rowXml} />
@@ -671,58 +675,38 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
 
       <div className="reader-layout-grid">
         {/* Main Document Content */}
-        <div className="reader-main-content" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', minWidth: 0 }}>
+        <div className="reader-main-content" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', minWidth: 0 }}>
           
           {/* Document Details & Quality Controls (Printed after Flowchart) */}
-          <div className="sop-details-container" style={{ marginTop: '1rem' }}>
+          <div className="sop-details-container" style={{ marginTop: 0 }}>
             <div className="sop-details-columns-grid">
-              
               {/* Card 1: Document Control & Approvals */}
-              <div className="paper-card sop-print-card" style={{ borderLeft: '4px solid var(--primary)' }}>
-                <h3 style={{ margin: '0 0 1rem 0', fontSize: '1rem', color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 700, borderBottom: '1px solid var(--neutral-border)', paddingBottom: '0.5rem' }}>
-                  {process.title}
+              <div className="paper-card sop-print-card" style={{ borderLeft: '4px solid var(--primary)', padding: '0.85rem 1rem' }}>
+                <h3 style={{ margin: '0 0 0.6rem 0', fontSize: '0.9rem', color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 700, borderBottom: '1px solid var(--neutral-border)', paddingBottom: '0.4rem' }}>
+                  APPROVALS
                 </h3>
                 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', fontSize: '0.85rem' }}>
-                    <span style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Description:</span>
-                    <span style={{ color: 'var(--text-primary)' }}>{process.description || 'No description provided.'}</span>
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', fontSize: '0.85rem' }}>
-                    <span style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Version:</span>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
-                        {getFormattedVersionString(process)}
-                      </span>
-                      <span className="badge" style={{ backgroundColor: colors.bg, color: colors.text, border: `1px solid ${colors.border}`, textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 700, padding: '0.15rem 0.4rem', borderRadius: '4px', margin: 0 }}>
-                        {status}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-
                 <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '0.5rem' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '0.25rem' }}>
                     <thead>
                       <tr style={{ background: '#f9fafb' }}>
-                        <th style={{ padding: '0.4rem 0.5rem', textAlign: 'left', fontWeight: 600, fontSize: '0.75rem', borderBottom: '1px solid var(--neutral-border)' }}>Role</th>
-                        <th style={{ padding: '0.4rem 0.5rem', textAlign: 'left', fontWeight: 600, fontSize: '0.75rem', borderBottom: '1px solid var(--neutral-border)' }}>Name</th>
-                        <th style={{ padding: '0.4rem 0.5rem', textAlign: 'left', fontWeight: 600, fontSize: '0.75rem', borderBottom: '1px solid var(--neutral-border)' }}>Title</th>
-                        <th style={{ padding: '0.4rem 0.5rem', textAlign: 'left', fontWeight: 600, fontSize: '0.75rem', borderBottom: '1px solid var(--neutral-border)' }}>Signature / Date</th>
+                        <th style={{ padding: '0.3rem 0.4rem', textAlign: 'left', fontWeight: 600, fontSize: '0.72rem', borderBottom: '1px solid var(--neutral-border)' }}>Role</th>
+                        <th style={{ padding: '0.3rem 0.4rem', textAlign: 'left', fontWeight: 600, fontSize: '0.72rem', borderBottom: '1px solid var(--neutral-border)' }}>Name</th>
+                        <th style={{ padding: '0.3rem 0.4rem', textAlign: 'left', fontWeight: 600, fontSize: '0.72rem', borderBottom: '1px solid var(--neutral-border)' }}>Title</th>
+                        <th style={{ padding: '0.3rem 0.4rem', textAlign: 'left', fontWeight: 600, fontSize: '0.72rem', borderBottom: '1px solid var(--neutral-border)' }}>Signature / Date</th>
                       </tr>
                     </thead>
                     <tbody>
                       {approvalRows.map((row, idx) => (
                         <tr key={idx} style={{ borderBottom: '1px solid var(--neutral-border)' }}>
-                          <td style={{ padding: '0.45rem 0.5rem', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-primary)' }}>{row.role}</td>
-                          <td style={{ padding: '0.45rem 0.5rem', fontSize: '0.75rem', color: row.name ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+                          <td style={{ padding: '0.3rem 0.4rem', fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-primary)' }}>{row.role}</td>
+                          <td style={{ padding: '0.3rem 0.4rem', fontSize: '0.72rem', color: row.name ? 'var(--text-primary)' : 'var(--text-muted)' }}>
                             {row.name}
                           </td>
-                          <td style={{ padding: '0.45rem 0.5rem', fontSize: '0.75rem', color: row.title ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+                          <td style={{ padding: '0.3rem 0.4rem', fontSize: '0.72rem', color: row.title ? 'var(--text-primary)' : 'var(--text-muted)' }}>
                             {row.title}
                           </td>
-                          <td style={{ padding: '0.45rem 0.5rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                          <td style={{ padding: '0.3rem 0.4rem', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
                             <span className="print-only" style={{ color: '#888' }}>Sign: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Date: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
                             <span className="no-print" style={{ fontStyle: 'italic', fontSize: '0.7rem' }}>Pending sign-off</span>
                           </td>
@@ -734,8 +718,8 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
               </div>
 
               {/* Card 2: Attached Forms */}
-              <div className="paper-card sop-print-card" style={{ borderLeft: '4px solid var(--primary)' }}>
-                <h3 style={{ margin: '0 0 1rem 0', fontSize: '1rem', color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 700, borderBottom: '1px solid var(--neutral-border)', paddingBottom: '0.5rem' }}>
+              <div className="paper-card sop-print-card" style={{ borderLeft: '4px solid var(--primary)', padding: '0.85rem 1rem' }}>
+                <h3 style={{ margin: '0 0 0.6rem 0', fontSize: '0.9rem', color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 700, borderBottom: '1px solid var(--neutral-border)', paddingBottom: '0.4rem' }}>
                   FORMS
                 </h3>
 

@@ -114,7 +114,7 @@ p {
 
 .paper-card {
   background-color: var(--neutral-card);
-  border: 1px solid var(--neutral-border);
+  border: none;
   border-radius: var(--card-radius);
   padding: 1.5rem;
   box-shadow: var(--shadow-md);

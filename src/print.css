@@ -155,9 +155,9 @@
     height: 100% !important;
   }
 
-  /* Cards styling for paper - remove shadows, use thin border */
+  /* Cards styling for paper - remove shadows and borders */
   .card, .paper-card {
-    border: 1px solid #cccccc !important;
+    border: none !important;
     box-shadow: none !important;
     background: transparent !important;
     margin-bottom: 15px !important;
