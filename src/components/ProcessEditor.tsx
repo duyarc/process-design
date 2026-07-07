@@ -134,6 +134,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
   const modelerRef = useRef<BpmnModelerRef | null>(null);
   const [activeTab, setActiveTab] = useState<'description' | 'workflow' | 'form' | 'versions'>('description');
   const [activeFormToBuild, setActiveFormToBuild] = useState<string | null>(null);
+  const [processCode, setProcessCode] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [version, setVersion] = useState('1');
@@ -499,6 +500,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
         setVersion(proc.version);
         setStatus(proc.status || 'Active');
         setParentProcessId(proc.parentProcessId || proc.id);
+        setProcessCode(proc.id);
         const loadedRoles = proc.roles && proc.roles.length > 0 ? proc.roles : ['Operator'];
         setRoles(loadedRoles);
 
@@ -924,6 +926,31 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
       return;
     }
 
+    const cleanCode = processCode.trim();
+    if (!cleanCode) {
+      alert('Please enter a process ID.');
+      return;
+    }
+    const idRegex = /^[a-zA-Z0-9_-]+$/;
+    if (!idRegex.test(cleanCode)) {
+      alert('Process ID can only contain alphanumeric characters, underscores, and hyphens (no spaces, slashes, or special characters).');
+      return;
+    }
+
+    // Uniqueness validation (check-id)
+    try {
+      const checkRes = await fetch(`/api/processes/check-id?id=${encodeURIComponent(cleanCode)}${processId ? '&exclude=' + encodeURIComponent(processId) : ''}`);
+      if (checkRes.ok) {
+        const checkData = await checkRes.json();
+        if (!checkData.available) {
+          alert('Process ID already in use. Please choose a different one.');
+          return;
+        }
+      }
+    } catch (err) {
+      console.error('Error checking ID uniqueness:', err);
+    }
+
     // Filter out steps with empty actions
     const filteredSteps = steps.filter(s => s.action.trim() !== '');
     if (filteredSteps.length === 0) {
@@ -1017,8 +1044,9 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
     };
 
     const processPayload = {
-      id: processId || undefined,
-      parentProcessId: parentProcessId || undefined,
+      id: cleanCode,
+      oldId: processId || undefined,
+      parentProcessId: parentProcessId || cleanCode,
       status,
       title,
       description,
@@ -1061,6 +1089,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
       // Initialize with default Start step and one form field
       setStatus('Draft');
       setParentProcessId('');
+      setProcessCode('proc_' + Date.now());
       setVersion('1');
       const step1: ProcessStep = {
         id: 'step_start_' + Math.random().toString(36).substr(2, 5),
@@ -1229,6 +1258,31 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
           <fieldset style={{ border: 'none', padding: 0, margin: 0 }} disabled={isReadOnly}>
             <div className="paper-card accent-teal">
             <h2 style={{ borderBottom: '1px solid var(--neutral-border)', paddingBottom: '0.75rem', marginBottom: '1.5rem' }}>Process Description &amp; Metadata</h2>
+
+            <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+              <label className="form-label">
+                Process Code / ID* 
+                {status !== 'Draft' && (
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 'normal', marginLeft: '0.5rem' }}>
+                    (Locked - Only editable in Draft status)
+                  </span>
+                )}
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. shipping_process"
+                value={processCode}
+                onChange={(e) => setProcessCode(e.target.value)}
+                disabled={status !== 'Draft' || isReadOnly}
+                style={{
+                  fontFamily: 'monospace',
+                  backgroundColor: (status !== 'Draft' || isReadOnly) ? '#f1f5f9' : 'transparent'
+                }}
+              />
+              <small style={{ display: 'block', marginTop: '0.25rem', color: 'var(--text-secondary)', fontSize: '0.75rem' }}>
+                Only alphanumeric characters, underscores (_), and hyphens (-) are allowed.
+              </small>
+            </div>
 
             <div className="form-group" style={{ marginBottom: '1.5rem' }}>
               <label className="form-label">Process Title*</label>

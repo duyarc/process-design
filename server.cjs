@@ -97,7 +97,7 @@ const INITIALIZE_SCHEMA_QUERY = `
 
   CREATE TABLE IF NOT EXISTS process_forms (
     id SERIAL PRIMARY KEY,
-    process_id TEXT NOT NULL REFERENCES processes(id) ON DELETE CASCADE,
+    process_id TEXT NOT NULL REFERENCES processes(id) ON UPDATE CASCADE ON DELETE CASCADE,
     form_name TEXT NOT NULL,
     form_id TEXT,
     form_version TEXT NOT NULL DEFAULT 'v0.1',
@@ -111,7 +111,7 @@ const INITIALIZE_SCHEMA_QUERY = `
 
   CREATE TABLE IF NOT EXISTS submissions (
     id TEXT PRIMARY KEY,
-    process_id TEXT NOT NULL REFERENCES processes(id) ON DELETE CASCADE,
+    process_id TEXT NOT NULL REFERENCES processes(id) ON UPDATE CASCADE ON DELETE CASCADE,
     form_id TEXT NOT NULL,
     form_version TEXT NOT NULL,
     operator_id TEXT NOT NULL,
@@ -898,6 +898,30 @@ app.post('/api/forms/:formId/archive', async (req, res) => {
   }
 });
 
+// GET /api/processes/check-id - Check process ID uniqueness
+app.get('/api/processes/check-id', async (req, res) => {
+  try {
+    const { id, exclude } = req.query;
+    if (!id) {
+      return res.status(400).json({ error: 'ID parameter is required' });
+    }
+    if (dbPool) {
+      let queryStr = 'SELECT id FROM processes WHERE id = $1';
+      const params = [id];
+      if (exclude) {
+        queryStr += ' AND id <> $2';
+        params.push(exclude);
+      }
+      const result = await dbPool.query(queryStr, params);
+      return res.json({ available: result.rows.length === 0 });
+    }
+    return res.json({ available: true });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Server error check process ID' });
+  }
+});
+
 // GET /api/processes - List all processes
 app.get('/api/processes', async (req, res) => {
   try {
@@ -959,6 +983,34 @@ app.post('/api/processes', async (req, res) => {
 
     if (dbPool) {
       if (processData.id) {
+        // Handle process ID rename first
+        if (processData.oldId && processData.oldId !== processData.id) {
+          const client = await dbPool.connect();
+          try {
+            await client.query('BEGIN');
+            
+            // Verify if new ID is already in use by another process
+            const conflictCheck = await client.query('SELECT id FROM processes WHERE id = $1', [processData.id]);
+            if (conflictCheck.rows.length > 0) {
+              await client.query('ROLLBACK');
+              return res.status(400).json({ error: 'Process ID already in use.' });
+            }
+
+            // 1. Update the process id first (will cascade update process_forms and submissions)
+            await client.query('UPDATE processes SET id = $1 WHERE id = $2', [processData.id, processData.oldId]);
+            
+            // 2. Update parentProcessId of all versions in the family
+            await client.query('UPDATE processes SET "parentProcessId" = $1 WHERE "parentProcessId" = $2', [processData.id, processData.oldId]);
+            
+            await client.query('COMMIT');
+          } catch (err) {
+            await client.query('ROLLBACK');
+            throw err;
+          } finally {
+            client.release();
+          }
+        }
+
         // Update existing
         const checkRes = await dbPool.query('SELECT * FROM processes WHERE id = $1', [processData.id]);
         if (checkRes.rows.length > 0) {
@@ -1026,7 +1078,12 @@ app.post('/api/processes', async (req, res) => {
       }
 
       // Create new
-      const newId = 'proc_' + Date.now();
+      const newId = processData.id || ('proc_' + Date.now());
+      // Check if newId already exists (just to be safe)
+      const conflictCheck = await dbPool.query('SELECT id FROM processes WHERE id = $1', [newId]);
+      if (conflictCheck.rows.length > 0) {
+        return res.status(400).json({ error: 'Process ID already in use.' });
+      }
       const newProcess = {
         id: newId,
         parentProcessId: processData.parentProcessId || newId,
