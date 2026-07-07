@@ -2872,9 +2872,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                   Version Control
                 </span>
               </div>
-              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', background: '#f1f5f9', padding: '0.15rem 0.45rem', borderRadius: '4px', border: '1px solid #e2e8f0', width: 'fit-content', fontFamily: 'monospace' }}>
-                {formId}
-              </div>
+
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
