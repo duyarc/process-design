@@ -18,7 +18,8 @@ import {
   Copy,
   AlignLeft,
   AlignCenter,
-  AlignRight
+  AlignRight,
+  GitBranch
 } from 'lucide-react';
 import PrintBlankForm from './print/PrintBlankForm';
 
@@ -123,9 +124,16 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
   const [changeSummary, setChangeSummary] = useState('');
   const [effectiveDate, setEffectiveDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [isLocked, setIsLocked] = useState(initialData?.status === 'ACTIVE');
-   const [printPreviewData, setPrintPreviewData] = useState<FormTemplateISO | null>(null);
-   const [currentDraftBackup, setCurrentDraftBackup] = useState<{ layoutBlocks: LayoutBlockISO[]; version: string; isLocked: boolean } | null>(null);
-   const [viewingRevisionVersion, setViewingRevisionVersion] = useState<string | null>(null);
+  const [printPreviewData, setPrintPreviewData] = useState<FormTemplateISO | null>(null);
+  const [currentDraftBackup, setCurrentDraftBackup] = useState<{ layoutBlocks: LayoutBlockISO[]; version: string; isLocked: boolean } | null>(null);
+  const [viewingRevisionVersion, setViewingRevisionVersion] = useState<string | null>(null);
+  const [rightTab, setRightTab] = useState<'properties' | 'versions'>('properties');
+
+  useEffect(() => {
+    if (activeBlockId) {
+      setRightTab('properties');
+    }
+  }, [activeBlockId]);
 
   useEffect(() => {
     setIsLocked(status === 'ACTIVE');
@@ -1838,7 +1846,56 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
         {/* RIGHT PANEL: Properties Configuration Panel */}
         <div style={{ background: '#ffffff', borderLeft: '1px solid var(--neutral-border)', padding: '1rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           
-          {activeField ? (
+          {/* Tab Switcher */}
+          <div style={{
+            display: 'flex',
+            borderBottom: '1px solid var(--neutral-border)',
+            marginBottom: '0.25rem',
+            paddingBottom: '2px',
+            gap: '0.5rem'
+          }}>
+            <button
+              type="button"
+              onClick={() => setRightTab('properties')}
+              style={{
+                flex: 1,
+                padding: '0.45rem 0.25rem',
+                fontSize: '0.78rem',
+                fontWeight: rightTab === 'properties' ? 700 : 500,
+                color: rightTab === 'properties' ? 'var(--primary)' : 'var(--text-secondary)',
+                border: 'none',
+                background: 'none',
+                borderBottom: rightTab === 'properties' ? '2px solid var(--primary)' : '2px solid transparent',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                textAlign: 'center'
+              }}
+            >
+              Properties
+            </button>
+            <button
+              type="button"
+              onClick={() => setRightTab('versions')}
+              style={{
+                flex: 1,
+                padding: '0.45rem 0.25rem',
+                fontSize: '0.78rem',
+                fontWeight: rightTab === 'versions' ? 700 : 500,
+                color: rightTab === 'versions' ? 'var(--primary)' : 'var(--text-secondary)',
+                border: 'none',
+                background: 'none',
+                borderBottom: rightTab === 'versions' ? '2px solid var(--primary)' : '2px solid transparent',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                textAlign: 'center'
+              }}
+            >
+              Versions
+            </button>
+          </div>
+
+          {rightTab === 'properties' ? (
+            activeField ? (
             /* FIELD PROPERTIES */
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
@@ -2563,9 +2620,6 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                           style={{ padding: '0.25rem 0.35rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', fontSize: '0.75rem' }}
                         />
                       )}
-                    </div>
-
-                    <div style={{ borderTop: '1px solid var(--neutral-border)', paddingTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                       <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontWeight: 600 }}>
                         <input
                           type="checkbox"
@@ -2636,146 +2690,268 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                     style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
                   />
                 </div>
+              </div>
+            </div>
+          )
+        ) : (
+          /* VERSIONS TAB CONTENT */
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', fontSize: '0.8rem' }}>
+            
+            {/* Card 1: Current Version Info */}
+            <div style={{
+              backgroundColor: 'var(--neutral-card, #f8fafc)',
+              border: '1px solid var(--neutral-border, #cbd5e1)',
+              borderLeft: '4px solid var(--primary, #3b82f6)',
+              borderRadius: '6px',
+              padding: '0.85rem 1rem',
+              boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.65rem'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <GitBranch size={13} style={{ color: 'var(--primary)' }} />
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-secondary)' }}>
+                  Version Control
+                </span>
+              </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                  <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Version Control</label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                  <span style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                    v{major}.{minor}
+                  </span>
+                  {status === 'ACTIVE' ? (
+                    <span className="badge badge-success" style={{ fontSize: '0.65rem', padding: '0.05rem 0.35rem', backgroundColor: '#d1fae5', color: '#065f46', border: '1px solid #6ee7b7', textTransform: 'uppercase', fontWeight: 700 }}>
+                      Active
+                    </span>
+                  ) : (
+                    <span className="badge badge-warning" style={{ fontSize: '0.65rem', padding: '0.05rem 0.35rem', backgroundColor: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d', textTransform: 'uppercase', fontWeight: 700 }}>
+                      Draft
+                    </span>
+                  )}
+                </div>
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                  ({datePart})
+                </span>
+              </div>
+
+              {isLocked ? (
+                <div style={{ marginTop: '0.15rem' }}>
+                  <button
+                    type="button"
+                    onClick={handleCreateNewVersion}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.35rem',
+                      width: '100%',
+                      padding: '0.45rem 0.75rem',
+                      background: '#0f172a',
+                      border: '1px solid #0f172a',
+                      color: '#ffffff',
+                      borderRadius: '6px',
+                      fontSize: '0.78rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      transition: 'background-color 0.15s ease'
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = '#1e293b'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = '#0f172a'; }}
+                  >
+                    <Plus size={12} /> NEW DRAFT
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', borderTop: '1px solid var(--neutral-border)', paddingTop: '0.65rem', marginTop: '0.2rem' }}>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Edit Version Number</label>
                   <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>v</span>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>v</span>
                     <input
                       type="number"
                       min="0"
                       disabled={isLocked}
                       value={major}
                       onChange={(e) => handleMajorChange(parseInt(e.target.value, 10) || 0)}
-                      style={{ width: '55px', padding: '0.25rem 0.35rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', textAlign: 'center', fontSize: '0.8rem' }}
+                      style={{ width: '60px', padding: '0.25rem 0.35rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', textAlign: 'center', fontSize: '0.8rem' }}
                     />
-                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>.</span>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>.</span>
                     <input
                       type="number"
                       min="0"
                       disabled={isLocked}
                       value={minor}
                       onChange={(e) => handleMinorChange(parseInt(e.target.value, 10) || 0)}
-                      style={{ width: '55px', padding: '0.25rem 0.35rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', textAlign: 'center', fontSize: '0.8rem' }}
+                      style={{ width: '60px', padding: '0.25rem 0.35rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', textAlign: 'center', fontSize: '0.8rem' }}
                     />
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: '0.25rem', fontStyle: 'italic' }}>
-                      ({datePart})
-                    </span>
                   </div>
                 </div>
-
-                {isLocked && (
-                  <div style={{ marginTop: '0.15rem' }}>
-                    <button
-                      type="button"
-                      onClick={handleCreateNewVersion}
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '0.35rem',
-                        width: '100%',
-                        padding: '0.4rem 0.75rem',
-                        background: '#0f172a',
-                        border: '1px solid #0f172a',
-                        color: '#ffffff',
-                        borderRadius: '6px',
-                        fontSize: '0.78rem',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        transition: 'background-color 0.15s ease'
-                      }}
-                      onMouseEnter={(e) => { e.currentTarget.style.background = '#1e293b'; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.background = '#0f172a'; }}
-                    >
-                      <Plus size={12} /> NEW DRAFT
-                    </button>
-                  </div>
-                )}
-
-                {!isLocked && (
-                  <>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                      <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Change Summary (For Release)</label>
-                      <textarea 
-                        value={changeSummary}
-                        onChange={(e) => setChangeSummary(e.target.value)}
-                        placeholder="Explain what was edited (e.g. Added safety guard check)..."
-                        rows={3}
-                        style={{
-                          padding: '0.35rem 0.5rem',
-                          fontSize: '0.8rem',
-                          border: '1px solid var(--neutral-border)',
-                          borderRadius: '4px',
-                          resize: 'none'
-                        }}
-                      />
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', marginTop: '0.35rem' }}>
-                      <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Release Date (Ngày hiệu lực)</label>
-                      <input 
-                        type="date"
-                        value={effectiveDate}
-                        onChange={(e) => setEffectiveDate(e.target.value)}
-                        style={{
-                          padding: '0.25rem 0.5rem',
-                          fontSize: '0.8rem',
-                          border: '1px solid var(--neutral-border)',
-                          borderRadius: '4px',
-                          outline: 'none',
-                          width: '100%',
-                          boxSizing: 'border-box'
-                        }}
-                      />
-                    </div>
-                  </>
-                )}
-
-                {/* Revision history log */}
-                {revisionHistory.length > 0 && (
-                  <div>
-                    <h4 style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '0.35rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                      <Clock size={12} />
-                      <span>Revision History</span>
-                    </h4>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', maxHeight: '150px', overflowY: 'auto', paddingRight: '4px' }}>
-                      {revisionHistory.map((h, i) => {
-                        const hasLayout = !!(h.layoutBlocks && h.layoutBlocks.length > 0);
-                        return (
-                          <div 
-                            key={i} 
-                            style={{ 
-                              padding: '0.45rem', 
-                              background: '#ffffff', 
-                              borderRadius: '6px', 
-                              border: '1px solid var(--neutral-border)', 
-                              fontSize: '0.75rem',
-                              cursor: hasLayout ? 'pointer' : 'default',
-                              transition: 'all 0.15s ease',
-                              opacity: hasLayout ? 1 : 0.7
-                            }}
-                            className={hasLayout ? "hover-card-bg" : ""}
-                            onClick={() => hasLayout && handleRestoreRevision(h)}
-                            title={hasLayout ? "Click to view this version in read-only mode" : "Version log details"}
-                          >
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 600, marginBottom: '2px', color: '#0f4c81' }}>
-                              <span style={{ display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-                                {h.version}
-                                {hasLayout && <span style={{ fontSize: '0.6rem', color: '#0284c7', background: '#e0f2fe', padding: '0.02rem 0.2rem', borderRadius: '3px' }}>VIEW</span>}
-                              </span>
-                              <span style={{ color: 'var(--text-muted)', fontSize: '0.68rem' }}>{h.date}</span>
-                            </div>
-                            <div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>{h.change}</div>
-                            <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '4px', textAlign: 'right' }}>By: {h.author}</div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
+              )}
             </div>
-          )}
+
+            {/* Card 2: Publish / Change Summary (Only in Draft & not in view revision mode) */}
+            {!isLocked && !viewingRevisionVersion && (
+              <div style={{
+                backgroundColor: '#ffffff',
+                border: '1px solid var(--neutral-border, #cbd5e1)',
+                borderRadius: '6px',
+                padding: '0.85rem 1rem',
+                boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.65rem'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <PenTool size={13} style={{ color: '#10b981' }} />
+                  <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-secondary)' }}>
+                    Publish Settings
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                  <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Change Summary (Mô tả thay đổi)</label>
+                  <textarea 
+                    value={changeSummary}
+                    onChange={(e) => setChangeSummary(e.target.value)}
+                    placeholder="Explain what was edited (e.g. Added safety guard check)..."
+                    rows={3}
+                    style={{
+                      padding: '0.35rem 0.5rem',
+                      fontSize: '0.8rem',
+                      border: '1px solid var(--neutral-border)',
+                      borderRadius: '4px',
+                      resize: 'none'
+                    }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                  <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Release Date (Ngày hiệu lực)</label>
+                  <input 
+                    type="date"
+                    value={effectiveDate}
+                    onChange={(e) => setEffectiveDate(e.target.value)}
+                    style={{
+                      padding: '0.25rem 0.5rem',
+                      fontSize: '0.8rem',
+                      border: '1px solid var(--neutral-border)',
+                      borderRadius: '4px',
+                      outline: 'none',
+                      width: '100%',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+
+                <button 
+                  type="button"
+                  onClick={handlePublish} 
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.35rem',
+                    width: '100%',
+                    padding: '0.45rem 0.75rem',
+                    background: '#10b981',
+                    border: '1px solid #10b981',
+                    color: '#ffffff',
+                    borderRadius: '6px',
+                    fontSize: '0.78rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'background-color 0.15s ease',
+                    marginTop: '0.25rem'
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = '#059669'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = '#10b981'; }}
+                >
+                  PUBLISH VERSION
+                </button>
+              </div>
+            )}
+
+            {/* Card 3: Revision History & Audit Log */}
+            <div style={{
+              backgroundColor: '#ffffff',
+              border: '1px solid var(--neutral-border, #cbd5e1)',
+              borderRadius: '6px',
+              padding: '0.85rem 1rem',
+              boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.65rem'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <Clock size={13} style={{ color: '#94a3b8' }} />
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-secondary)' }}>
+                  Revision History
+                </span>
+              </div>
+
+              {revisionHistory.length === 0 ? (
+                <div style={{ padding: '0.75rem 1rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.75rem', border: '1px dashed var(--neutral-border)', borderRadius: '5px' }}>
+                  No version history available.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', maxHeight: '350px', overflowY: 'auto', paddingRight: '4px' }}>
+                  {revisionHistory.map((h, i) => {
+                    const hasLayout = !!(h.layoutBlocks && h.layoutBlocks.length > 0);
+                    const isCurrentActive = h.version === `v${major}.${minor}` && status === 'ACTIVE';
+                    
+                    // Status colors matching ProcessEditor
+                    const statusColor = isCurrentActive 
+                      ? { bg: '#d1fae5', text: '#065f46', border: '#6ee7b7', label: 'Active' }
+                      : { bg: '#fee2e2', text: '#991b1b', border: '#fca5a5', label: 'Retired' };
+
+                    return (
+                      <div 
+                        key={i} 
+                        onClick={() => hasLayout && handleRestoreRevision(h)}
+                        style={{ 
+                          padding: '0.5rem 0.65rem', 
+                          background: viewingRevisionVersion === h.version ? '#f0fdfa' : '#f9fafb', 
+                          borderRadius: '6px', 
+                          border: viewingRevisionVersion === h.version ? '1px solid #99f6e4' : '1px solid var(--neutral-border)', 
+                          fontSize: '0.75rem',
+                          cursor: hasLayout ? 'pointer' : 'default',
+                          transition: 'all 0.15s ease',
+                        }}
+                        onMouseEnter={e => { if (hasLayout && viewingRevisionVersion !== h.version) { e.currentTarget.style.background = '#e0f2fe'; e.currentTarget.style.borderColor = '#7dd3fc'; } }}
+                        onMouseLeave={e => { if (hasLayout && viewingRevisionVersion !== h.version) { e.currentTarget.style.background = '#f9fafb'; e.currentTarget.style.borderColor = 'var(--neutral-border)'; } }}
+                        title={hasLayout ? "Click to view this version in read-only mode" : "Version log details"}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 700, marginBottom: '4px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                            <span style={{ color: 'var(--text-primary)' }}>{h.version}</span>
+                            {viewingRevisionVersion === h.version && (
+                              <span style={{ fontSize: '0.6rem', fontWeight: 700, color: 'var(--primary)', background: '#f0fdfa', border: '1px solid #99f6e4', padding: '0.01rem 0.2rem', borderRadius: '3px', textTransform: 'uppercase' }}>
+                                VIEWING
+                              </span>
+                            )}
+                            <span className="badge" style={{ backgroundColor: statusColor.bg, color: statusColor.text, border: `1px solid ${statusColor.border}`, fontSize: '0.62rem', padding: '0.02rem 0.25rem', borderRadius: '3px', textTransform: 'uppercase', fontWeight: 700 }}>
+                              {statusColor.label}
+                            </span>
+                          </div>
+                          <span style={{ color: 'var(--text-muted)', fontSize: '0.68rem', fontWeight: 500 }}>{h.date}</span>
+                        </div>
+                        
+                        <div style={{ color: 'var(--text-secondary)', fontSize: '0.72rem', wordBreak: 'break-word', whiteSpace: 'pre-line', lineHeight: '1.25' }}>
+                          {h.change}
+                        </div>
+                        
+                        <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '4px', textAlign: 'right' }}>
+                          By: {h.author}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       {/* 5. LOGO GALLERY MODAL */}
       {showCopyModal && (() => {
         const availableForms: { processId: string; processTitle: string; formName: string; blocks: LayoutBlockISO[] }[] = [];
