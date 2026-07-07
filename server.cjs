@@ -1039,54 +1039,18 @@ app.post('/api/processes/:id/new-version', async (req, res) => {
       const now = new Date().toISOString();
       const newId = `proc_${parentId}_v${nextVer}`;
 
-      // Clone each linked form into a new draft snapshot with bumped version
+      // New process version simply inherits the same form references.
+      // Form versioning is independent — each form manages its own lifecycle.
+      // The process links to form_id only; ProcessEditor will always show the latest ACTIVE version.
       const cleanWorkflowFormsData = {};
       if (source.workflowFormsData) {
         for (const [formName, formData] of Object.entries(source.workflowFormsData)) {
           if (formData && formData.formId) {
-            const srcVersion = formData.formVersion || formData.version || 'v0.1';
-            // Fetch the specific source snapshot
-            const srcRes = await dbPool.query(
-              'SELECT * FROM forms WHERE form_id = $1 AND version = $2',
-              [formData.formId, srcVersion]
-            );
-            // Fallback: fetch latest snapshot if specific version not found
-            const srcFormRes = srcRes.rows.length > 0 ? srcRes : await dbPool.query(
-              'SELECT * FROM forms WHERE form_id = $1 ORDER BY updated_at DESC LIMIT 1',
-              [formData.formId]
-            );
-
-            if (srcFormRes.rows.length > 0) {
-              const srcForm = srcFormRes.rows[0];
-              const newFormVersion = bumpVersion(srcForm.version);
-
-              // Insert new draft snapshot (skip if already exists)
-              await dbPool.query(`
-                INSERT INTO forms (form_id, form_name, form_title, status, version, layout_blocks, revision_history, updated_at)
-                VALUES ($1, $2, $3, 'DRAFT', $4, $5, $6, NOW())
-                ON CONFLICT (form_id, version) DO NOTHING
-              `, [
-                srcForm.form_id,
-                srcForm.form_name,
-                srcForm.form_title || srcForm.form_name,
-                newFormVersion,
-                JSON.stringify(srcForm.layout_blocks || []),
-                JSON.stringify(srcForm.revision_history || [])
-              ]);
-
-              cleanWorkflowFormsData[formName] = {
-                formId: formData.formId,
-                formVersion: newFormVersion,
-                status: 'DRAFT',
-                version: newFormVersion
-              };
-            } else {
-              // Form not in DB yet — carry forward the reference only
-              cleanWorkflowFormsData[formName] = { formId: formData.formId, formVersion: 'v0.1', status: 'DRAFT', version: 'v0.1' };
-            }
+            cleanWorkflowFormsData[formName] = { formId: formData.formId };
           }
         }
       }
+
 
       const newProcess = {
         ...source,

@@ -25,7 +25,6 @@ interface FormBuilderProps {
   formName: string;
   initialData?: {
     formId?: string;
-    formVersion?: string;  // linked snapshot version (from process_forms.form_version)
     formTitle?: string;
     version?: string;
     status?: 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
@@ -106,13 +105,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
       if (!targetId) return;
       try {
         setLoading(true);
-        // If a specific snapshot version is linked (formVersion), fetch that exact version
-        // Otherwise, fetch the latest snapshot for this form_id
-        const targetVersion = initialData?.formVersion;
-        const url = targetVersion
-          ? `/api/forms/${encodeURIComponent(targetId)}?version=${encodeURIComponent(targetVersion)}`
-          : `/api/forms/${encodeURIComponent(targetId)}`;
-        const res = await fetch(url);
+        // Always fetch the latest version of this form (form manages its own versioning independently)
+        const res = await fetch(`/api/forms/${encodeURIComponent(targetId)}`);
         if (res.ok) {
           const data = await res.json();
           setFormId(data.form_id);
@@ -135,8 +129,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
     };
     
     fetchFormTemplate();
-  // Re-fetch when either the form_id or the linked snapshot version changes
-  }, [initialData?.formId, initialData?.formVersion]);
+  }, [initialData?.formId]);
 
   const saveFormToBackend = async (opts: { versionOverride?: string, statusOverride?: 'ACTIVE' | 'DRAFT' | 'ARCHIVED', historyOverride?: FormRevisionEntry[] } = {}) => {
     const activeVersion = opts.versionOverride || version;

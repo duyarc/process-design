@@ -155,7 +155,6 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
       pdfSize?: number;
       fields?: FormDesignerField[];
       formId?: string;
-      formVersion?: string;  // version of the specific form snapshot linked to this process version
       formTitle?: string;
       version?: string;
       status?: 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
@@ -2128,12 +2127,11 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                 {workflowForms.map((formName) => {
                   const formData = workflowFormsData[formName];
-                  // Use formVersion (the linked snapshot version) to find the exact form row
-                  const linkedVersion = formData?.formVersion || formData?.version;
-                  const liveForm = linkedVersion
-                    ? allForms.find(f => f.form_id === formData?.formId && f.version === linkedVersion)
-                    : allForms.find(f => f.form_id === formData?.formId);  // fallback: any version with matching id
-                  const activeVersion = liveForm ? liveForm.version : (formData?.formVersion || formData?.version || '');
+                  // Form versioning is independent: always show the latest version of the linked form_id
+                  const liveForm = allForms
+                    .filter(f => f.form_id === formData?.formId)
+                    .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())[0];
+                  const activeVersion = liveForm ? liveForm.version : (formData?.version || '');
                   const activeStatus = liveForm ? liveForm.status : (formData?.status || 'DRAFT');
 
                   let normalizedVersion = '';
@@ -2403,7 +2401,6 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                                       [formName]: {
                                         ...prev[formName] || {},
                                         formId: generatedId,
-                                        formVersion: 'v0.1',
                                         status: 'DRAFT',
                                         version: 'v0.1'
                                       }
@@ -2499,10 +2496,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                   ...workflowFormsData,
                   [activeFormToBuild]: {
                     ...workflowFormsData[activeFormToBuild],
-                    ...savedFormData,
-                    // Map the form's own 'version' field back to 'formVersion' so the process
-                    // knows which exact snapshot it's linked to
-                    formVersion: savedFormData.version || workflowFormsData[activeFormToBuild]?.formVersion || 'v0.1'
+                    ...savedFormData
                   }
                 };
                 setWorkflowFormsData(nextFormsData);
