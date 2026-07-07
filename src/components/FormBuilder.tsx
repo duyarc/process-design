@@ -1653,7 +1653,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                               <thead>
                                 <tr style={{ background: '#f1f5f9', borderBottom: '1.5px solid #cbd5e1' }}>
                                   {(block.tableColumns || []).map((col) => {
-                                    const colWidth = getColStyleWidth(col.width, block.tableColumns || []);
+                                    const colWidth = getColStyleWidth(col.id, col.width, block.tableColumns || []);
                                     return (
                                       <th key={col.id} style={{ padding: '6px', borderRight: '1px solid #cbd5e1', textAlign: 'left', width: colWidth, fontWeight: 'bold' }}>
                                         {col.label || '(Không có nhãn)'}
@@ -2212,13 +2212,22 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', borderTop: '1px solid var(--neutral-border)', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
                     <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Cấu hình Cột</label>
                     
-                    {/* Width percentage sum indicator */}
                     {(() => {
                       const cols = activeBlock.tableColumns || [];
                       const sumPercent = cols
                         .filter(c => c.width && (c.width.endsWith('%') || !isNaN(parseFloat(c.width))))
                         .reduce((sum, c) => sum + parseFloat(c.width), 0);
                       const isExactly100 = sumPercent === 100;
+                      
+                      const sumOtherPercent = cols.length > 1
+                        ? cols.slice(0, cols.length - 1)
+                            .filter(c => c.width && (c.width.endsWith('%') || !isNaN(parseFloat(c.width))))
+                            .reduce((sum, c) => sum + parseFloat(c.width), 0)
+                        : 0;
+                      const lastColAdjusted = Math.max(0, 100 - sumOtherPercent);
+                      const lastCol = cols[cols.length - 1];
+                      const lastColName = lastCol ? lastCol.label : 'Cột cuối';
+
                       return (
                         <div style={{
                           fontSize: '0.72rem',
@@ -2230,7 +2239,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                           fontWeight: 500,
                           lineHeight: '1.25'
                         }}>
-                          Tổng độ rộng %: <strong>{sumPercent}%</strong> {isExactly100 ? ' (Đã khít 100%)' : ' (Tự động scale khít 100%)'}
+                          Tổng độ rộng %: <strong>{sumPercent}%</strong> {isExactly100 ? ' (Đã khít 100%)' : ` (Cột cuối "${lastColName}" tự động điều chỉnh thành ${lastColAdjusted}% để khít 100%)`}
                         </div>
                       );
                     })()}

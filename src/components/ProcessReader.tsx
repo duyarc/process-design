@@ -1451,7 +1451,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                                    <thead>
                                      <tr style={{ background: '#f1f5f9', borderBottom: '2px solid var(--neutral-border)' }}>
                                        {(block.tableColumns || []).map((col: any) => {
-                                         const colWidth = getColStyleWidth(col.width, block.tableColumns || []);
+                                         const colWidth = getColStyleWidth(col.id, col.width, block.tableColumns || []);
                                          return (
                                            <th key={col.id} style={{ padding: '8px', borderRight: '1px solid var(--neutral-border)', textAlign: 'left', width: colWidth, fontWeight: 'bold' }}>
                                              {col.label}

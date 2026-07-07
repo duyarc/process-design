@@ -219,18 +219,26 @@ export function formatFormVersion(versionStr: string): string {
   return versionStr;
 }
 
-export function getColStyleWidth(colWidth: string, tableColumns: any[]): string {
+export function getColStyleWidth(colId: string, colWidth: string, tableColumns: any[]): string {
   const cleanWidth = (colWidth || '').trim();
   const isPercent = cleanWidth.endsWith('%') || !isNaN(parseFloat(cleanWidth));
   if (!isPercent) return cleanWidth; // e.g. "120px"
   
-  // Calculate sum of all columns configured with percentages or raw numbers
-  const sumPercent = tableColumns
-    .filter(c => c.width && (c.width.endsWith('%') || !isNaN(parseFloat(c.width))))
-    .reduce((sum, c) => sum + parseFloat(c.width), 0);
+  const index = (tableColumns || []).findIndex(c => c.id === colId);
+  const isLast = index !== -1 && index === tableColumns.length - 1;
   
-  if (sumPercent === 0) return cleanWidth.endsWith('%') ? cleanWidth : `${cleanWidth}%`;
-  const normalized = (parseFloat(cleanWidth) / sumPercent) * 100;
-  return `${normalized}%`;
+  if (isLast && tableColumns.length > 1) {
+    // Calculate the sum of all columns BEFORE the last one
+    const sumOtherPercent = tableColumns
+      .slice(0, tableColumns.length - 1)
+      .filter(c => c.width && (c.width.endsWith('%') || !isNaN(parseFloat(c.width))))
+      .reduce((sum, c) => sum + parseFloat(c.width), 0);
+    
+    const remainder = 100 - sumOtherPercent;
+    return `${remainder > 0 ? remainder : 10}%`;
+  }
+  
+  const val = parseFloat(cleanWidth);
+  return `${isNaN(val) ? 10 : val}%`;
 }
 

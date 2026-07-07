@@ -384,7 +384,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                   <thead>
                     <tr>
                       {(block.tableColumns || []).map((col) => {
-                        const colWidth = getColStyleWidth(col.width, block.tableColumns || []);
+                        const colWidth = getColStyleWidth(col.id, col.width, block.tableColumns || []);
                         return (
                           <th key={col.id} style={{ border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'bold', fontSize: '0.8rem', textAlign: 'left', width: colWidth }}>
                             {col.label}
