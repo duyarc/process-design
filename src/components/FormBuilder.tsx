@@ -17,7 +17,8 @@ import {
   Grid,
   Copy,
   AlignLeft,
-  AlignCenter
+  AlignCenter,
+  AlignRight
 } from 'lucide-react';
 import PrintBlankForm from './print/PrintBlankForm';
 
@@ -2225,7 +2226,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                       <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Cấu hình Cột</label>
                       
 
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '320px', overflowY: 'auto', paddingRight: '4px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingRight: '4px' }}>
                         {cols.map((col, cIdx, arr) => {
                           const isLast = cIdx === arr.length - 1;
                           return (
@@ -2244,19 +2245,19 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                                   type="button"
                                   disabled={isLocked || cIdx === 0}
                                   onClick={() => handleMoveColumn(activeBlock.id, col.id, 'left')}
-                                  style={{ padding: '2px 4px', fontSize: '0.7rem', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '3px', cursor: 'pointer' }}
-                                  title="Di chuyển sang trái"
+                                  style={{ padding: '2px 4px', fontSize: '0.75rem', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '3px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                  title="Di chuyển lên"
                                 >
-                                  ←
+                                  ↑
                                 </button>
                                 <button
                                   type="button"
                                   disabled={isLocked || cIdx === arr.length - 1}
                                   onClick={() => handleMoveColumn(activeBlock.id, col.id, 'right')}
-                                  style={{ padding: '2px 4px', fontSize: '0.7rem', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '3px', cursor: 'pointer' }}
-                                  title="Di chuyển sang phải"
+                                  style={{ padding: '2px 4px', fontSize: '0.75rem', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '3px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                  title="Di chuyển xuống"
                                 >
-                                  →
+                                  ↓
                                 </button>
                                 <button
                                   type="button"
@@ -2283,17 +2284,72 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                                   <option value="date">Ngày</option>
                                   <option value="time">Giờ</option>
                                 </select>
-                                <select
-                                  disabled={isLocked}
-                                  value={col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? 'center' : 'left'))}
-                                  onChange={(e) => handleUpdateTableColumn(activeBlock.id, col.id, { align: e.target.value as any })}
-                                  style={{ flex: 0.6, padding: '0.2rem 0.3rem', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
-                                  title="Canh lề"
-                                >
-                                  <option value="left">Trái</option>
-                                  <option value="center">Giữa</option>
-                                  <option value="right">Phải</option>
-                                </select>
+                                
+                                {(() => {
+                                  const currentAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? 'center' : 'left'));
+                                  return (
+                                    <div style={{ display: 'flex', border: '1px solid var(--neutral-border)', borderRadius: '4px', overflow: 'hidden', flex: 0.6 }}>
+                                      <button
+                                        type="button"
+                                        disabled={isLocked}
+                                        onClick={() => handleUpdateTableColumn(activeBlock.id, col.id, { align: 'left' })}
+                                        style={{
+                                          flex: 1,
+                                          padding: '2px',
+                                          background: currentAlign === 'left' ? '#cbd5e1' : '#ffffff',
+                                          border: 'none',
+                                          cursor: 'pointer',
+                                          display: 'flex',
+                                          justifyContent: 'center',
+                                          alignItems: 'center'
+                                        }}
+                                        title="Canh trái"
+                                      >
+                                        <AlignLeft size={12} style={{ color: currentAlign === 'left' ? 'var(--text-primary)' : 'var(--text-muted)' }} />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        disabled={isLocked}
+                                        onClick={() => handleUpdateTableColumn(activeBlock.id, col.id, { align: 'center' })}
+                                        style={{
+                                          flex: 1,
+                                          padding: '2px',
+                                          background: currentAlign === 'center' ? '#cbd5e1' : '#ffffff',
+                                          borderLeft: '1px solid var(--neutral-border)',
+                                          borderRight: '1px solid var(--neutral-border)',
+                                          borderTop: 'none',
+                                          borderBottom: 'none',
+                                          cursor: 'pointer',
+                                          display: 'flex',
+                                          justifyContent: 'center',
+                                          alignItems: 'center'
+                                        }}
+                                        title="Canh giữa"
+                                      >
+                                        <AlignCenter size={12} style={{ color: currentAlign === 'center' ? 'var(--text-primary)' : 'var(--text-muted)' }} />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        disabled={isLocked}
+                                        onClick={() => handleUpdateTableColumn(activeBlock.id, col.id, { align: 'right' })}
+                                        style={{
+                                          flex: 1,
+                                          padding: '2px',
+                                          background: currentAlign === 'right' ? '#cbd5e1' : '#ffffff',
+                                          border: 'none',
+                                          cursor: 'pointer',
+                                          display: 'flex',
+                                          justifyContent: 'center',
+                                          alignItems: 'center'
+                                        }}
+                                        title="Canh phải"
+                                      >
+                                        <AlignRight size={12} style={{ color: currentAlign === 'right' ? 'var(--text-primary)' : 'var(--text-muted)' }} />
+                                      </button>
+                                    </div>
+                                  );
+                                })()}
+
                                 <input
                                   type="text"
                                   disabled={isLocked || isLast}
