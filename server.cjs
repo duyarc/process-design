@@ -618,6 +618,98 @@ app.get('/api/forms/:formId', async (req, res) => {
   }
 });
 
+// GET /api/forms/:formId/history - Get the merged, de-duplicated revision timeline of a specific form_id
+app.get('/api/forms/:formId/history', async (req, res) => {
+  try {
+    const { formId } = req.params;
+    let allFormRows = [];
+
+    if (dbPool) {
+      // Query all versions matching this form_id from database
+      const result = await dbPool.query(
+        'SELECT * FROM forms WHERE form_id = $1 ORDER BY updated_at DESC',
+        [formId]
+      );
+      allFormRows = result.rows;
+    } else {
+      const forms = readFormsOffline();
+      allFormRows = forms.filter(f => f.form_id === formId).sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+    }
+
+    // Map to hold de-duplicated timeline by clean version (e.g. "v0.1", "v0.2")
+    const mergedHistoryMap = new Map();
+
+    // 1. Process active/draft database rows first
+    allFormRows.forEach(row => {
+      const cleanVer = row.version ? row.version.replace(/\s*\([^)]*\)/g, '').trim() : 'v0.1';
+      
+      mergedHistoryMap.set(cleanVer, {
+        version: cleanVer,
+        date: row.updated_at ? new Date(row.updated_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        author: 'System Generated',
+        change: row.status === 'ACTIVE' ? 'Published version' : `Draft snapshot (Status: ${row.status})`,
+        layoutBlocks: typeof row.layout_blocks === 'string' ? JSON.parse(row.layout_blocks) : (row.layout_blocks || []),
+        status: row.status,
+        rawVersion: row.version
+      });
+    });
+
+    // 2. Extract nested revision history arrays from all those database rows
+    allFormRows.forEach(row => {
+      if (row.revision_history) {
+        let historyArray = [];
+        try {
+          historyArray = typeof row.revision_history === 'string' ? JSON.parse(row.revision_history) : row.revision_history;
+        } catch (e) {
+          console.error('Error parsing revision_history column:', e);
+        }
+
+        if (Array.isArray(historyArray)) {
+          historyArray.forEach(entry => {
+            if (entry && entry.version) {
+              const cleanVer = entry.version.replace(/\s*\([^)]*\)/g, '').trim();
+              const existing = mergedHistoryMap.get(cleanVer);
+
+              const hasLayout = entry.layoutBlocks && entry.layoutBlocks.length > 0;
+              const existingHasLayout = existing && existing.layoutBlocks && existing.layoutBlocks.length > 0;
+
+              if (!existing || (hasLayout && !existingHasLayout)) {
+                mergedHistoryMap.set(cleanVer, {
+                  version: cleanVer,
+                  date: entry.date || new Date().toISOString().split('T')[0],
+                  author: entry.author || 'QA Administrator',
+                  change: entry.change || 'Published version',
+                  layoutBlocks: entry.layoutBlocks || [],
+                  status: 'ACTIVE',
+                  rawVersion: entry.version
+                });
+              }
+            }
+          });
+        }
+      }
+    });
+
+    // Convert map to array and sort descending by version number
+    const sortedHistory = Array.from(mergedHistoryMap.values()).sort((a, b) => {
+      const parseVer = (v) => {
+        const match = v.match(/v(\d+)\.(\d+)/);
+        if (match) return { major: parseInt(match[1], 10), minor: parseInt(match[2], 10) };
+        return { major: 0, minor: 0 };
+      };
+      const va = parseVer(a.version);
+      const vb = parseVer(b.version);
+      if (va.major !== vb.major) return vb.major - va.major;
+      return vb.minor - va.minor;
+    });
+
+    res.json(sortedHistory);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch unified form history' });
+  }
+});
+
 // POST /api/forms - Save or Update form template (upsert by form_id + version composite key)
 app.post('/api/forms', async (req, res) => {
   try {
@@ -632,6 +724,15 @@ app.post('/api/forms', async (req, res) => {
     const ver = version || 'v0.1';
 
     if (dbPool) {
+      // Check safety: Ensure we are not overwriting an existing ACTIVE version in database
+      const safetyCheck = await dbPool.query(
+        'SELECT status FROM forms WHERE form_id = $1 AND version = $2',
+        [formId, ver]
+      );
+      if (safetyCheck.rows.length > 0 && safetyCheck.rows[0].status === 'ACTIVE') {
+        return res.status(400).json({ error: `Version ${ver} is already ACTIVE and locked. You must increment the version number to save your changes.` });
+      }
+
       // Upsert using composite PK (form_id, version) — each version is an independent snapshot
       const query = `
         INSERT INTO forms (

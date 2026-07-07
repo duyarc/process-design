@@ -57,7 +57,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
       if (!targetId) return;
       try {
         setLoading(true);
-        // Always fetch the latest version of this form (form manages its own versioning independently)
+        // 1. Fetch current form details
         const res = await fetch(`/api/forms/${encodeURIComponent(targetId)}`);
         if (res.ok) {
           const data = await res.json();
@@ -69,12 +69,16 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
           if (data.layout_blocks) {
             setLayoutBlocks(typeof data.layout_blocks === 'string' ? JSON.parse(data.layout_blocks) : data.layout_blocks);
           }
-          if (data.revision_history) {
-            setRevisionHistory(typeof data.revision_history === 'string' ? JSON.parse(data.revision_history) : data.revision_history);
-          }
+        }
+
+        // 2. Fetch unified form revision history (including historical and bug duplicates)
+        const historyRes = await fetch(`/api/forms/${encodeURIComponent(targetId)}/history`);
+        if (historyRes.ok) {
+          const historyData = await historyRes.json();
+          setRevisionHistory(historyData);
         }
       } catch (err) {
-        console.error("Error fetching form template:", err);
+        console.error("Error fetching form template and history:", err);
       } finally {
         setLoading(false);
       }
@@ -650,6 +654,19 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
     }
 
     const { major, minor } = parseVersion(version);
+    const targetVersion = `v${major}.${minor}`;
+    
+    // Check if targetVersion already exists in history list
+    const versionExists = revisionHistory.some(h => {
+      const hVer = h.version ? h.version.replace(/\s*\([^)]*\)/g, '').trim() : '';
+      return hVer === targetVersion;
+    });
+
+    if (versionExists) {
+      alert(`Phiên bản ${targetVersion} đã tồn tại`);
+      return;
+    }
+
     const approveDate = effectiveDate || new Date().toISOString().split('T')[0];
     const newActiveVersion = `v${major}.${minor} (${approveDate})`;
     
@@ -765,6 +782,21 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
   };
 
   const handleSaveDraftAndClose = async () => {
+    // Validation: Ensure the draft version doesn't conflict with any published version in history
+    const { major, minor } = parseVersion(version);
+    const targetVersion = `v${major}.${minor}`;
+    
+    // Check if targetVersion already exists in history list
+    const versionExists = revisionHistory.some(h => {
+      const hVer = h.version ? h.version.replace(/\s*\([^)]*\)/g, '').trim() : '';
+      return hVer === targetVersion;
+    });
+
+    if (versionExists) {
+      alert(`Phiên bản ${targetVersion} đã tồn tại`);
+      return;
+    }
+
     try {
       setLoading(true);
       await saveFormToBackend();
