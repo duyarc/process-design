@@ -2231,15 +2231,15 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                       return (
                         <div style={{
                           fontSize: '0.72rem',
-                          background: isExactly100 ? '#ecfdf5' : '#fffbeb',
-                          border: isExactly100 ? '1px solid #a7f3d0' : '1px solid #fde68a',
-                          color: isExactly100 ? '#047857' : '#b45309',
-                          padding: '5px 8px',
-                          borderRadius: '4px',
-                          fontWeight: 500,
-                          lineHeight: '1.25'
+                          color: 'var(--text-muted)',
+                          marginTop: '-0.25rem',
+                          lineHeight: '1.3'
                         }}>
-                          Tổng độ rộng %: <strong>{sumPercent}%</strong> {isExactly100 ? ' (Đã khít 100%)' : ` (Cột cuối "${lastColName}" tự động điều chỉnh thành ${lastColAdjusted}% để khít 100%)`}
+                          {isExactly100 ? (
+                            <span>✓ Tổng độ rộng các cột: <strong>100%</strong></span>
+                          ) : (
+                            <span>i Cột cuối <strong>"{lastColName}"</strong> được tự động chỉnh thành <strong>{lastColAdjusted}%</strong> để bảng luôn vừa khít 100% chiều rộng.</span>
+                          )}
                         </div>
                       );
                     })()}
