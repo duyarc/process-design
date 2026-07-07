@@ -201,12 +201,12 @@ const SAMPLE_FORMS = [
 
 const SAMPLE_PROCESSES = [
   {
-    id: 'proc_container_inspection',
+    id: 'container_inspection',
     title: 'Quy trình đóng hàng',
     description: 'Quy trình chuẩn hóa hoạt động đóng hàng.',
     version: 'v0.1',
     lastUpdated: new Date().toISOString(),
-    parentProcessId: 'proc_container_inspection',
+    parentProcessId: 'container_inspection',
     status: 'Active',
     roles: JSON.stringify(['QC', 'Supervisor']),
     steps: JSON.stringify([
@@ -1239,7 +1239,7 @@ app.post('/api/processes/:id/new-version', async (req, res) => {
 
       const nextVer = maxVer + 1;
       const now = new Date().toISOString();
-      const newId = `proc_${parentId}_v${nextVer}`;
+      const newId = `${parentId}_v${nextVer}`;
 
       // New process version simply inherits the same form references.
       // Form versioning is independent — each form manages its own lifecycle.
@@ -1318,7 +1318,7 @@ app.post('/api/processes/:id/new-version', async (req, res) => {
 
       const nextVer = maxVer + 1;
       const now = new Date().toISOString();
-      const newId = `proc_${parentId}_v${nextVer}`;
+      const newId = `${parentId}_v${nextVer}`;
 
       const cleanWorkflowFormsData = {};
       if (source.workflowFormsData) {
