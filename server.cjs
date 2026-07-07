@@ -80,7 +80,7 @@ const INITIALIZE_SCHEMA_QUERY = `
   );
 
   CREATE TABLE IF NOT EXISTS forms (
-    form_id TEXT PRIMARY KEY,
+    form_id TEXT NOT NULL,
     form_name TEXT NOT NULL,
     status TEXT NOT NULL DEFAULT 'DRAFT',
     version TEXT NOT NULL DEFAULT 'v0.1',
@@ -91,14 +91,16 @@ const INITIALIZE_SCHEMA_QUERY = `
     pdf_key TEXT,
     pdf_size INTEGER DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (form_id, version)
   );
 
   CREATE TABLE IF NOT EXISTS process_forms (
     id SERIAL PRIMARY KEY,
     process_id TEXT NOT NULL REFERENCES processes(id) ON DELETE CASCADE,
     form_name TEXT NOT NULL,
-    form_id TEXT REFERENCES forms(form_id) ON DELETE SET NULL,
+    form_id TEXT,
+    form_version TEXT NOT NULL DEFAULT 'v0.1',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT unique_process_form UNIQUE (process_id, form_name)
@@ -284,10 +286,29 @@ async function initDatabase() {
     console.log('Connected to Supabase database successfully!');
     await client.query(INITIALIZE_SCHEMA_QUERY);
 
-    // Migrate process_forms: add form_id column if it doesn't exist yet
+    // Migrate process_forms: add form_id column if it doesn't exist yet (legacy)
     await client.query(`
-      ALTER TABLE process_forms ADD COLUMN IF NOT EXISTS form_id TEXT REFERENCES forms(form_id) ON DELETE SET NULL;
-    `).catch(() => {}); // ignore if constraint already exists
+      ALTER TABLE process_forms ADD COLUMN IF NOT EXISTS form_id TEXT;
+    `).catch(() => {});
+
+    // Migrate process_forms: add form_version column for multi-version support
+    await client.query(`
+      ALTER TABLE process_forms ADD COLUMN IF NOT EXISTS form_version TEXT NOT NULL DEFAULT 'v0.1';
+    `).catch(() => {});
+
+    // Migrate forms table: drop old single-column PK and add composite PK (form_id, version)
+    // This runs safely — if composite PK already exists, the catch suppresses the error
+    await client.query(`
+      ALTER TABLE forms DROP CONSTRAINT IF EXISTS forms_pkey;
+    `).catch(() => {});
+    await client.query(`
+      ALTER TABLE forms ADD PRIMARY KEY (form_id, version);
+    `).catch(() => {});
+
+    // Drop old FK constraint on form_id in process_forms (no longer valid with composite PK)
+    await client.query(`
+      ALTER TABLE process_forms DROP CONSTRAINT IF EXISTS process_forms_form_id_fkey;
+    `).catch(() => {});
 
     // Remove old PDF columns from process_forms if they exist (no longer needed there)
     await client.query(`
@@ -359,7 +380,20 @@ async function initDatabase() {
   }
 }
 
-// Sync process forms to the relational table (mapping process_id + form_name to form_id)
+// Helper: bump a version string — e.g. 'v0.3' → 'v0.4', 'v1' → 'v1.1'
+function bumpVersion(versionStr) {
+  if (!versionStr) return 'v0.2';
+  const clean = versionStr.replace(/^v/i, '').split('(')[0].trim(); // strip prefix and any suffix like "(draft)"
+  const parts = clean.split('.');
+  if (parts.length === 1) {
+    return `v${clean}.1`;
+  }
+  const major = parts.slice(0, -1).join('.');
+  const minor = parseInt(parts[parts.length - 1], 10);
+  return `v${major}.${isNaN(minor) ? 1 : minor + 1}`;
+}
+
+// Sync process forms to the relational table (mapping process_id + form_name to form_id + form_version)
 async function syncProcessForms(clientOrPool, processId, workflowFormsData) {
   const activeFormNames = Object.keys(workflowFormsData || {});
   
@@ -377,16 +411,19 @@ async function syncProcessForms(clientOrPool, processId, workflowFormsData) {
   
   for (const [formName, formData] of Object.entries(workflowFormsData || {})) {
     if (formData && formData.formId) {
+      const formVersion = formData.formVersion || formData.version || 'v0.1';
       await clientOrPool.query(`
-        INSERT INTO process_forms (process_id, form_name, form_id, updated_at)
-        VALUES ($1, $2, $3, NOW())
+        INSERT INTO process_forms (process_id, form_name, form_id, form_version, updated_at)
+        VALUES ($1, $2, $3, $4, NOW())
         ON CONFLICT (process_id, form_name) DO UPDATE SET
           form_id = EXCLUDED.form_id,
+          form_version = EXCLUDED.form_version,
           updated_at = EXCLUDED.updated_at
       `, [
         processId,
         formName,
-        formData.formId
+        formData.formId,
+        formVersion
       ]);
     }
   }
@@ -527,11 +564,12 @@ function writeFormsOffline(forms) {
 
 // ─── API FORMS (INDEPENDENT LIFE CYCLE) ──────────────────────────────────────
 
-// GET /api/forms - List all forms
+// GET /api/forms - List all form versions (each row is a distinct (form_id, version) snapshot)
 app.get('/api/forms', async (req, res) => {
   try {
     if (dbPool) {
-      const result = await dbPool.query('SELECT * FROM forms ORDER BY form_name ASC');
+      // Returns all rows — frontend groups by form_id and picks the latest version as needed
+      const result = await dbPool.query('SELECT * FROM forms ORDER BY form_id ASC, version ASC');
       res.json(result.rows);
     } else {
       res.json(readFormsOffline());
@@ -542,19 +580,35 @@ app.get('/api/forms', async (req, res) => {
   }
 });
 
-// GET /api/forms/:formId - Get details of a single form
+// GET /api/forms/:formId - Get a specific form version (pass ?version=v0.3 or omit for latest)
 app.get('/api/forms/:formId', async (req, res) => {
   try {
     const { formId } = req.params;
+    const { version } = req.query;
     if (dbPool) {
-      const result = await dbPool.query('SELECT * FROM forms WHERE form_id = $1', [formId]);
+      let result;
+      if (version) {
+        // Fetch exact version snapshot
+        result = await dbPool.query(
+          'SELECT * FROM forms WHERE form_id = $1 AND version = $2',
+          [formId, version]
+        );
+      } else {
+        // Fetch the most recently updated version (latest snapshot)
+        result = await dbPool.query(
+          'SELECT * FROM forms WHERE form_id = $1 ORDER BY updated_at DESC LIMIT 1',
+          [formId]
+        );
+      }
       if (result.rows.length === 0) {
         return res.status(404).json({ error: 'Form not found' });
       }
       res.json(result.rows[0]);
     } else {
       const forms = readFormsOffline();
-      const form = forms.find(f => f.form_id === formId);
+      const form = version
+        ? forms.find(f => f.form_id === formId && f.version === version)
+        : forms.filter(f => f.form_id === formId).sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))[0];
       if (!form) return res.status(404).json({ error: 'Form not found' });
       res.json(form);
     }
@@ -564,7 +618,7 @@ app.get('/api/forms/:formId', async (req, res) => {
   }
 });
 
-// POST /api/forms - Save or Update form template (upsert)
+// POST /api/forms - Save or Update form template (upsert by form_id + version composite key)
 app.post('/api/forms', async (req, res) => {
   try {
     const { formId, formName, formTitle, status, version, layoutBlocks, revisionHistory, pdfName, pdfKey, pdfSize } = req.body;
@@ -575,17 +629,18 @@ app.post('/api/forms', async (req, res) => {
 
     const blocks = Array.isArray(layoutBlocks) ? JSON.stringify(layoutBlocks) : (layoutBlocks || '[]');
     const history = Array.isArray(revisionHistory) ? JSON.stringify(revisionHistory) : (revisionHistory || '[]');
+    const ver = version || 'v0.1';
 
     if (dbPool) {
+      // Upsert using composite PK (form_id, version) — each version is an independent snapshot
       const query = `
         INSERT INTO forms (
           form_id, form_name, form_title, status, version, layout_blocks, revision_history, pdf_name, pdf_key, pdf_size, updated_at
         ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
-        ON CONFLICT (form_id) DO UPDATE SET
+        ON CONFLICT (form_id, version) DO UPDATE SET
           form_name = EXCLUDED.form_name,
           form_title = EXCLUDED.form_title,
           status = EXCLUDED.status,
-          version = EXCLUDED.version,
           layout_blocks = EXCLUDED.layout_blocks,
           revision_history = EXCLUDED.revision_history,
           pdf_name = EXCLUDED.pdf_name,
@@ -594,18 +649,18 @@ app.post('/api/forms', async (req, res) => {
           updated_at = NOW()
         RETURNING *
       `;
-      const values = [formId, formName, formTitle || formName, status || 'DRAFT', version || 'v0.1', blocks, history, pdfName || null, pdfKey || null, pdfSize || 0];
+      const values = [formId, formName, formTitle || formName, status || 'DRAFT', ver, blocks, history, pdfName || null, pdfKey || null, pdfSize || 0];
       const result = await dbPool.query(query, values);
       res.status(200).json(result.rows[0]);
     } else {
       const forms = readFormsOffline();
-      const existingIdx = forms.findIndex(f => f.form_id === formId);
+      const existingIdx = forms.findIndex(f => f.form_id === formId && f.version === ver);
       const newForm = {
         form_id: formId,
         form_name: formName,
         form_title: formTitle || formName,
         status: status || 'DRAFT',
-        version: version || 'v0.1',
+        version: ver,
         layout_blocks: Array.isArray(layoutBlocks) ? layoutBlocks : JSON.parse(layoutBlocks || '[]'),
         revision_history: Array.isArray(revisionHistory) ? revisionHistory : JSON.parse(revisionHistory || '[]'),
         pdf_name: pdfName || null,
@@ -627,7 +682,7 @@ app.post('/api/forms', async (req, res) => {
   }
 });
 
-// POST /api/forms/:formId/activate - Transition form to ACTIVE status
+// POST /api/forms/:formId/activate - Transition a specific form version to ACTIVE status
 app.post('/api/forms/:formId/activate', async (req, res) => {
   try {
     const { formId } = req.params;
@@ -636,20 +691,20 @@ app.post('/api/forms/:formId/activate', async (req, res) => {
     const history = Array.isArray(revisionHistory) ? JSON.stringify(revisionHistory) : (revisionHistory || '[]');
 
     if (dbPool) {
+      // Update the specific (form_id, version) row
       const result = await dbPool.query(
         `UPDATE forms 
-         SET status = 'ACTIVE', version = $1, revision_history = $2, updated_at = NOW() 
-         WHERE form_id = $3 RETURNING *`,
-        [version, history, formId]
+         SET status = 'ACTIVE', revision_history = $1, updated_at = NOW() 
+         WHERE form_id = $2 AND version = $3 RETURNING *`,
+        [history, formId, version]
       );
       if (result.rows.length === 0) return res.status(404).json({ error: 'Form not found' });
       res.json(result.rows[0]);
     } else {
       const forms = readFormsOffline();
-      const form = forms.find(f => f.form_id === formId);
+      const form = forms.find(f => f.form_id === formId && f.version === version);
       if (!form) return res.status(404).json({ error: 'Form not found' });
       form.status = 'ACTIVE';
-      form.version = version;
       form.revision_history = Array.isArray(revisionHistory) ? revisionHistory : JSON.parse(revisionHistory || '[]');
       form.updated_at = new Date().toISOString();
       writeFormsOffline(forms);
@@ -661,25 +716,36 @@ app.post('/api/forms/:formId/activate', async (req, res) => {
   }
 });
 
-// POST /api/forms/:formId/archive - Archive form template
+// POST /api/forms/:formId/archive - Archive a specific form version
 app.post('/api/forms/:formId/archive', async (req, res) => {
   try {
     const { formId } = req.params;
+    const { version } = req.body;
     if (dbPool) {
-      const result = await dbPool.query(
-        `UPDATE forms SET status = 'ARCHIVED', updated_at = NOW() WHERE form_id = $1 RETURNING *`,
-        [formId]
-      );
+      let result;
+      if (version) {
+        result = await dbPool.query(
+          `UPDATE forms SET status = 'ARCHIVED', updated_at = NOW() WHERE form_id = $1 AND version = $2 RETURNING *`,
+          [formId, version]
+        );
+      } else {
+        // Fallback: archive all versions of this form_id
+        result = await dbPool.query(
+          `UPDATE forms SET status = 'ARCHIVED', updated_at = NOW() WHERE form_id = $1 RETURNING *`,
+          [formId]
+        );
+      }
       if (result.rows.length === 0) return res.status(404).json({ error: 'Form not found' });
-      res.json(result.rows[0]);
+      res.json(result.rows);
     } else {
       const forms = readFormsOffline();
-      const form = forms.find(f => f.form_id === formId);
-      if (!form) return res.status(404).json({ error: 'Form not found' });
-      form.status = 'ARCHIVED';
-      form.updated_at = new Date().toISOString();
+      const targets = version
+        ? forms.filter(f => f.form_id === formId && f.version === version)
+        : forms.filter(f => f.form_id === formId);
+      if (!targets.length) return res.status(404).json({ error: 'Form not found' });
+      targets.forEach(f => { f.status = 'ARCHIVED'; f.updated_at = new Date().toISOString(); });
       writeFormsOffline(forms);
-      res.json(form);
+      res.json(targets);
     }
   } catch (err) {
     console.error(err);
@@ -694,15 +760,15 @@ app.get('/api/processes', async (req, res) => {
       const result = await dbPool.query('SELECT * FROM processes');
       const formsRes = await dbPool.query('SELECT * FROM process_forms');
       
+      // Build a map: process_id → { formName → { formId, formVersion } }
       const formsByProcess = {};
       for (const formRow of formsRes.rows) {
         if (!formsByProcess[formRow.process_id]) {
           formsByProcess[formRow.process_id] = {};
         }
         formsByProcess[formRow.process_id][formRow.form_name] = {
-          pdfName: formRow.pdf_name || '',
-          pdfKey: formRow.pdf_key || '',
-          pdfSize: formRow.pdf_size || 0
+          formId: formRow.form_id || undefined,
+          formVersion: formRow.form_version || 'v0.1'
         };
       }
       
@@ -710,7 +776,7 @@ app.get('/api/processes', async (req, res) => {
         const dbFormsData = proc.workflowFormsData || {};
         const relFormsData = formsByProcess[proc.id] || {};
         
-        // Merge the relational PDF metadata with the digital templates stored in processes table
+        // Merge: relational table wins for formId/formVersion (authoritative link)
         const mergedFormsData = { ...dbFormsData };
         for (const [formName, relData] of Object.entries(relFormsData)) {
           mergedFormsData[formName] = {
@@ -973,11 +1039,51 @@ app.post('/api/processes/:id/new-version', async (req, res) => {
       const now = new Date().toISOString();
       const newId = `proc_${parentId}_v${nextVer}`;
 
+      // Clone each linked form into a new draft snapshot with bumped version
       const cleanWorkflowFormsData = {};
       if (source.workflowFormsData) {
         for (const [formName, formData] of Object.entries(source.workflowFormsData)) {
           if (formData && formData.formId) {
-            cleanWorkflowFormsData[formName] = { formId: formData.formId };
+            const srcVersion = formData.formVersion || formData.version || 'v0.1';
+            // Fetch the specific source snapshot
+            const srcRes = await dbPool.query(
+              'SELECT * FROM forms WHERE form_id = $1 AND version = $2',
+              [formData.formId, srcVersion]
+            );
+            // Fallback: fetch latest snapshot if specific version not found
+            const srcFormRes = srcRes.rows.length > 0 ? srcRes : await dbPool.query(
+              'SELECT * FROM forms WHERE form_id = $1 ORDER BY updated_at DESC LIMIT 1',
+              [formData.formId]
+            );
+
+            if (srcFormRes.rows.length > 0) {
+              const srcForm = srcFormRes.rows[0];
+              const newFormVersion = bumpVersion(srcForm.version);
+
+              // Insert new draft snapshot (skip if already exists)
+              await dbPool.query(`
+                INSERT INTO forms (form_id, form_name, form_title, status, version, layout_blocks, revision_history, updated_at)
+                VALUES ($1, $2, $3, 'DRAFT', $4, $5, $6, NOW())
+                ON CONFLICT (form_id, version) DO NOTHING
+              `, [
+                srcForm.form_id,
+                srcForm.form_name,
+                srcForm.form_title || srcForm.form_name,
+                newFormVersion,
+                JSON.stringify(srcForm.layout_blocks || []),
+                JSON.stringify(srcForm.revision_history || [])
+              ]);
+
+              cleanWorkflowFormsData[formName] = {
+                formId: formData.formId,
+                formVersion: newFormVersion,
+                status: 'DRAFT',
+                version: newFormVersion
+              };
+            } else {
+              // Form not in DB yet — carry forward the reference only
+              cleanWorkflowFormsData[formName] = { formId: formData.formId, formVersion: 'v0.1', status: 'DRAFT', version: 'v0.1' };
+            }
           }
         }
       }
