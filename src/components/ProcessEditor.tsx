@@ -1863,9 +1863,6 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', width: '100%', marginTop: '2px' }}>
                                 {step.producesForm && currentFormNames.map((formName, fIdx) => (
                                   <div key={fIdx} style={{ display: 'flex', gap: '0.25rem', alignItems: 'center', width: '100%' }}>
-                                    <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-                                      Form{currentFormNames.length > 1 ? ` #${fIdx + 1}` : ''}:
-                                    </span>
                                     <select
                                       value={formName || ''}
                                       onChange={(e) => {
