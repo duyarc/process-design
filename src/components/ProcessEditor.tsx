@@ -1126,11 +1126,29 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
   steps.forEach(s => {
     if (s.bpmnShape === 'task' && s.producesForm) {
       const names = s.formNames && s.formNames.length > 0
-        ? s.formNames.map(n => n.trim()).filter(Boolean)
+        ? s.formNames.map((n: string) => n.trim()).filter(Boolean)
         : (s.formName ? [s.formName.trim()] : []);
-      names.forEach(name => {
-        if (!workflowForms.includes(name)) {
-          workflowForms.push(name);
+      names.forEach((name: string) => {
+        // Resolve legacy display names to actual form_id:
+        // Check if the name is already a known form_id in allForms or workflowFormsData
+        let resolvedId = name;
+        const foundInDb = allForms.find(f => f.form_id === name);
+        if (!foundInDb) {
+          // Try to find by form_name (legacy) in allForms
+          const byName = allForms.find(f =>
+            (f.form_title || f.form_name || '').toLowerCase() === name.toLowerCase()
+          );
+          if (byName) resolvedId = byName.form_id;
+          else {
+            // Try to find by formTitle in workflowFormsData values
+            const wfdEntry = Object.entries(workflowFormsData).find(([, v]: [string, any]) =>
+              (v?.formTitle || v?.formName || '').toLowerCase() === name.toLowerCase()
+            );
+            if (wfdEntry) resolvedId = wfdEntry[0];
+          }
+        }
+        if (!workflowForms.includes(resolvedId)) {
+          workflowForms.push(resolvedId);
         }
       });
     }
