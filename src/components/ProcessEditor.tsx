@@ -1727,14 +1727,12 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                 <label style={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '0.4rem',
                   fontSize: '0.8rem',
                   fontWeight: 600,
                   color: 'var(--text-primary)',
                   whiteSpace: 'nowrap',
                   margin: 0
                 }}>
-                  <GitBranch size={13} style={{ color: '#94a3b8' }} />
                   Process ID:
                 </label>
                 <input
