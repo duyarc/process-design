@@ -493,8 +493,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
 
   // 3. Field Handlers inside Blocks
   const DEFAULT_RADIO_OPTIONS: RadioOption[] = [
-    { label: 'Đạt',       value: 'PASS', isPass: true  },
-    { label: 'Không Đạt', value: 'FAIL', isPass: false }
+    { label: 'Đạt',   value: 'PASS', isPass: true  },
+    { label: 'Không', value: 'FAIL', isPass: false }
   ];
 
   const handleAddField = (blockId: string, type: 'text' | 'number' | 'date' | 'radio' | 'signature' | 'photo') => {
