@@ -906,10 +906,10 @@ app.get('/api/processes/check-id', async (req, res) => {
       return res.status(400).json({ error: 'ID parameter is required' });
     }
     if (dbPool) {
-      let queryStr = 'SELECT id FROM processes WHERE id = $1';
+      let queryStr = 'SELECT id FROM processes WHERE (id = $1 OR "parentProcessId" = $1)';
       const params = [id];
       if (exclude) {
-        queryStr += ' AND id <> $2';
+        queryStr += ' AND ("parentProcessId" <> $2 AND id <> $2)';
         params.push(exclude);
       }
       const result = await dbPool.query(queryStr, params);
@@ -983,24 +983,53 @@ app.post('/api/processes', async (req, res) => {
 
     if (dbPool) {
       if (processData.id) {
-        // Handle process ID rename first
-        if (processData.oldId && processData.oldId !== processData.id) {
+        // Handle process family ID rename first
+        if (processData.oldParentProcessId && processData.newParentProcessId && processData.oldParentProcessId !== processData.newParentProcessId) {
           const client = await dbPool.connect();
           try {
             await client.query('BEGIN');
             
             // Verify if new ID is already in use by another process
-            const conflictCheck = await client.query('SELECT id FROM processes WHERE id = $1', [processData.id]);
+            const conflictCheck = await client.query(
+              'SELECT id FROM processes WHERE (id = $1 OR "parentProcessId" = $1) AND "parentProcessId" <> $2 AND id <> $2',
+              [processData.newParentProcessId, processData.oldParentProcessId]
+            );
             if (conflictCheck.rows.length > 0) {
               await client.query('ROLLBACK');
               return res.status(400).json({ error: 'Process ID already in use.' });
             }
 
-            // 1. Update the process id first (will cascade update process_forms and submissions)
-            await client.query('UPDATE processes SET id = $1 WHERE id = $2', [processData.id, processData.oldId]);
-            
-            // 2. Update parentProcessId of all versions in the family
-            await client.query('UPDATE processes SET "parentProcessId" = $1 WHERE "parentProcessId" = $2', [processData.id, processData.oldId]);
+            // Fetch all versions belonging to the old family
+            const versionsRes = await client.query(
+              'SELECT id, "parentProcessId" FROM processes WHERE "parentProcessId" = $1 OR id = $1',
+              [processData.oldParentProcessId]
+            );
+
+            // Update each version ID and parent ID (this will cascade update process_forms and submissions)
+            for (const procRow of versionsRes.rows) {
+              let newVersionId;
+              if (procRow.id === processData.oldParentProcessId) {
+                newVersionId = processData.newParentProcessId;
+              } else if (procRow.id.startsWith(processData.oldParentProcessId)) {
+                const suffix = procRow.id.substring(processData.oldParentProcessId.length);
+                newVersionId = processData.newParentProcessId + suffix;
+              } else {
+                newVersionId = procRow.id;
+              }
+
+              await client.query(
+                'UPDATE processes SET id = $1, "parentProcessId" = $2 WHERE id = $3',
+                [newVersionId, processData.newParentProcessId, procRow.id]
+              );
+
+              // If this is the version we are currently saving/updating, update its ID in memory
+              if (procRow.id === processData.id) {
+                processData.id = newVersionId;
+              }
+            }
+
+            // Update parentProcessId of the payload in memory
+            processData.parentProcessId = processData.newParentProcessId;
             
             await client.query('COMMIT');
           } catch (err) {

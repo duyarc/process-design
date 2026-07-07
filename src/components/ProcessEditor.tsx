@@ -500,7 +500,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
         setVersion(proc.version);
         setStatus(proc.status || 'Active');
         setParentProcessId(proc.parentProcessId || proc.id);
-        setProcessCode(proc.id);
+        setProcessCode(proc.parentProcessId || proc.id);
         const loadedRoles = proc.roles && proc.roles.length > 0 ? proc.roles : ['Operator'];
         setRoles(loadedRoles);
 
@@ -938,8 +938,9 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
     }
 
     // Uniqueness validation (check-id)
+    const currentFamilyId = parentProcessId || processId;
     try {
-      const checkRes = await fetch(`/api/processes/check-id?id=${encodeURIComponent(cleanCode)}${processId ? '&exclude=' + encodeURIComponent(processId) : ''}`);
+      const checkRes = await fetch(`/api/processes/check-id?id=${encodeURIComponent(cleanCode)}${currentFamilyId ? '&exclude=' + encodeURIComponent(currentFamilyId) : ''}`);
       if (checkRes.ok) {
         const checkData = await checkRes.json();
         if (!checkData.available) {
@@ -1043,10 +1044,13 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
       effectiveDate: sopSignoffs.effectiveDate
     };
 
+    const isFamilyRename = processId && cleanCode !== currentFamilyId;
+
     const processPayload = {
-      id: cleanCode,
-      oldId: processId || undefined,
+      id: processId || cleanCode,
       parentProcessId: parentProcessId || cleanCode,
+      oldParentProcessId: isFamilyRename ? currentFamilyId : undefined,
+      newParentProcessId: isFamilyRename ? cleanCode : undefined,
       status,
       title,
       description,
