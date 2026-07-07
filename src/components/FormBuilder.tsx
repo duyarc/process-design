@@ -44,57 +44,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
   const [status, setStatus] = useState<'DRAFT' | 'ACTIVE' | 'ARCHIVED'>(initialData?.status || 'DRAFT');
   
   // Default blocks if none provided
-  const defaultBlocks: LayoutBlockISO[] = [
-    {
-      id: "b_title",
-      type: "TITLE",
-      columns: 1,
-      title: formName.toUpperCase(),
-      fields: [
-        {
-          id: "f_title_desc",
-          type: "text",
-          checkItem: "(kiểm tra trước khi thực hiện)",
-          locationCode: "TITLE-DESC",
-          frequency: "Once/Shift",
-          reactionProtocol: ""
-        }
-      ]
-    },
-    {
-      id: "b_info",
-      type: "INFO_GRID",
-      columns: 2,
-      title: "Thông tin chung",
-      fields: [
-        { id: "f_info_date", type: "date", checkItem: "Ngày", locationCode: "INFO-DATE", frequency: "Once/Shift", reactionProtocol: "" },
-        { id: "f_info_cont", type: "text", checkItem: "Số Container", locationCode: "INFO-CONT", frequency: "Once/Shift", reactionProtocol: "" }
-      ]
-    },
-    {
-      id: "b_checklist",
-      type: "CHECKLIST_TABLE",
-      columns: 1,
-      title: "Chi tiết kiểm tra chất lượng",
-      fields: [],
-      columnLabels: {
-        stt: "STT",
-        item: "Chi tiết kiểm tra",
-        target: "Đạt / Không Đạt",
-        reaction: "Mô tả cụ thể nếu Không đạt"
-      }
-    },
-    {
-      id: "b_sign",
-      type: "SIGN",
-      columns: 2,
-      title: "Ký xác nhận",
-      fields: [
-        { id: "f_sign_op", type: "signature", checkItem: "Người kiểm tra (ký và ghi rõ họ tên)", locationCode: "SIGN-OP", frequency: "Once/Shift", reactionProtocol: "" },
-        { id: "f_sign_sup", type: "signature", checkItem: "Người thẩm tra (ký và ghi rõ họ tên)", locationCode: "SIGN-SUP", frequency: "Once/Shift", reactionProtocol: "" }
-      ]
-    }
-  ];
+  const defaultBlocks: LayoutBlockISO[] = [];
 
   const [layoutBlocks, setLayoutBlocks] = useState<LayoutBlockISO[]>(initialData?.layoutBlocks || defaultBlocks);
   const [revisionHistory, setRevisionHistory] = useState<FormRevisionEntry[]>(initialData?.revisionHistory || []);
