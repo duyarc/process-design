@@ -1108,16 +1108,6 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
               </button>
               <button 
                 type="button" 
-                onClick={() => handleAddBlock('CHECKLIST_TABLE')}
-                disabled={isLocked}
-                className="btn btn-secondary" 
-                style={{ justifyContent: 'start', padding: '0.45rem 0.65rem', fontSize: '0.8rem', opacity: isLocked ? 0.6 : 1 }}
-              >
-                <Grid size={14} style={{ marginRight: '0.35rem' }} />
-                + Checklist Table
-              </button>
-              <button 
-                type="button" 
                 onClick={() => handleAddBlock('TABLE')}
                 disabled={isLocked}
                 className="btn btn-secondary" 
@@ -1125,6 +1115,16 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
               >
                 <Grid size={14} style={{ marginRight: '0.35rem' }} />
                 + Table
+              </button>
+              <button 
+                type="button" 
+                onClick={() => handleAddBlock('CHECKLIST_TABLE')}
+                disabled={isLocked}
+                className="btn btn-secondary" 
+                style={{ justifyContent: 'start', padding: '0.45rem 0.65rem', fontSize: '0.8rem', opacity: isLocked ? 0.6 : 1 }}
+              >
+                <Grid size={14} style={{ marginRight: '0.35rem' }} />
+                + Checklist Table
               </button>
               <button 
                 type="button" 
