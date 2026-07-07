@@ -1261,10 +1261,6 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
         {activeTab === 'description' && (
           <fieldset style={{ border: 'none', padding: 0, margin: 0 }} disabled={isReadOnly}>
             <div className="paper-card accent-teal">
-            <h2 style={{ borderBottom: '1px solid var(--neutral-border)', paddingBottom: '0.75rem', marginBottom: '1.5rem' }}>Process Description &amp; Metadata</h2>
-
-
-
             <div className="form-group" style={{ marginBottom: '1.5rem' }}>
               <label className="form-label">Process Title*</label>
               <input
