@@ -625,6 +625,33 @@ app.get('/api/forms/:formId', async (req, res) => {
   }
 });
 
+// DELETE /api/forms/:formId - Delete a specific form version (requires ?version=v0.2)
+app.delete('/api/forms/:formId', async (req, res) => {
+  try {
+    const { formId } = req.params;
+    const { version } = req.query;
+    if (!version) {
+      return res.status(400).json({ error: 'Missing required version parameter.' });
+    }
+    
+    if (dbPool) {
+      await dbPool.query(
+        'DELETE FROM forms WHERE form_id = $1 AND version = $2',
+        [formId, version]
+      );
+    } else {
+      const forms = readFormsOffline();
+      const filtered = forms.filter(f => !(f.form_id === formId && f.version === version));
+      writeFormsOffline(filtered);
+    }
+    
+    res.json({ success: true, message: `Version ${version} of form ${formId} deleted successfully.` });
+  } catch (err) {
+    console.error('Error deleting form version:', err);
+    res.status(500).json({ error: 'Failed to delete form version.' });
+  }
+});
+
 // GET /api/forms/:formId/history - Get the merged, de-duplicated revision timeline of a specific form_id
 app.get('/api/forms/:formId/history', async (req, res) => {
   try {

@@ -771,6 +771,43 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
     }
   };
 
+  const handleDeleteVersion = async () => {
+    if (!viewingRevisionVersion) return;
+    if (confirm(`Bạn có chắc chắn muốn xóa vĩnh viễn phiên bản ${viewingRevisionVersion} khỏi hệ thống không? Hành động này sẽ không thể khôi phục.`)) {
+      try {
+        setLoading(true);
+        const res = await fetch(`/api/forms/${encodeURIComponent(formId)}?version=${encodeURIComponent(viewingRevisionVersion)}`, {
+          method: 'DELETE'
+        });
+        
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.error || 'Server error');
+        }
+        
+        // Update local history list
+        const updatedHistory = revisionHistory.filter(h => h.version !== viewingRevisionVersion);
+        setRevisionHistory(updatedHistory);
+        
+        // Return to draft state
+        if (currentDraftBackup) {
+          setLayoutBlocks(currentDraftBackup.layoutBlocks);
+          setVersion(currentDraftBackup.version);
+          setIsLocked(currentDraftBackup.isLocked);
+          setCurrentDraftBackup(null);
+        }
+        setViewingRevisionVersion(null);
+        
+        alert(`Đã xóa thành công phiên bản ${viewingRevisionVersion}.`);
+      } catch (err) {
+        console.error(err);
+        alert(`Không thể xóa phiên bản: ${err instanceof Error ? err.message : 'Lỗi máy chủ'}`);
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
   const handleCreateNewVersion = () => {
     const { major, minor } = parseVersion(version);
     const draftVersion = `v${major}.${minor + 1} (draft)`;
@@ -917,6 +954,22 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
               }}
             >
               Quay lại bản nháp hiện tại
+            </button>
+            <button
+              type="button"
+              onClick={handleDeleteVersion}
+              style={{
+                background: '#dc2626',
+                border: 'none',
+                color: '#ffffff',
+                padding: '0.2rem 0.6rem',
+                borderRadius: '4px',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+            >
+              Xóa phiên bản này
             </button>
           </div>
         </div>
@@ -2746,6 +2799,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                 <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-secondary)' }}>
                   Version Control
                 </span>
+              </div>
+              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', background: '#f1f5f9', padding: '0.15rem 0.45rem', borderRadius: '4px', border: '1px solid #e2e8f0', width: 'fit-content', fontFamily: 'monospace' }}>
+                {formId}
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
