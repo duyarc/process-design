@@ -2817,17 +2817,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.8rem' }}>
                 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                  <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Document Form ID</label>
-                  <input
-                    type="text"
-                    disabled={isLocked}
-                    value={formId}
-                    onChange={(e) => setFormId(e.target.value)}
-                    placeholder="e.g. 3S-QC/F03"
-                    style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
-                  />
-                </div>
+
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
                   <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Form Title</label>
@@ -2845,6 +2835,24 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
         ) : (
           /* VERSIONS TAB CONTENT */
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', fontSize: '0.8rem' }}>
+            
+            {/* Form ID Input */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+              <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Form ID</label>
+              <input
+                type="text"
+                disabled={isLocked}
+                value={formId}
+                onChange={(e) => setFormId(e.target.value)}
+                placeholder="e.g. 3S-QC/F03"
+                style={{
+                  padding: '0.35rem 0.5rem',
+                  borderRadius: '4px',
+                  border: '1px solid var(--neutral-border)',
+                  backgroundColor: isLocked ? '#f1f5f9' : '#ffffff'
+                }}
+              />
+            </div>
             
             {/* Card 1: Current Version Info */}
             <div style={{
