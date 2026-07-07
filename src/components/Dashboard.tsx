@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import type { Process } from '../types';
-import { formatFormVersion } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { Plus, Search, FileText, Eye, Calendar, ChevronDown, ChevronUp, Printer, History, PenTool, Edit2, AlertCircle, GitBranch } from 'lucide-react';
 import SubmissionManager from './SubmissionManager';
@@ -387,7 +386,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                 {form.formId}
                               </span>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                                {formsGroupedById[form.formId] && formsGroupedById[form.formId].length > 1 && (
+                                {formsGroupedById[form.formId] && (
                                   <div style={{
                                     display: 'inline-flex',
                                     alignItems: 'center',
@@ -401,44 +400,54 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                     height: '22px'
                                   }}>
                                     <GitBranch size={11} style={{ marginRight: '0.2rem', color: 'var(--text-secondary)' }} />
-                                    <select
-                                      value={form.version}
-                                      onChange={(e) => {
-                                        const selectedVal = e.target.value;
-                                        setSelectedFormVersions(prev => ({
-                                          ...prev,
-                                          [form.formId]: selectedVal
-                                        }));
-                                      }}
-                                      style={{
-                                        border: 'none',
-                                        background: 'transparent',
-                                        padding: 0,
-                                        margin: 0,
-                                        width: 'auto',
-                                        fontSize: '0.72rem',
-                                        fontWeight: 600,
-                                        color: 'var(--text-primary)',
-                                        cursor: 'pointer',
-                                        outline: 'none'
-                                      }}
-                                    >
-                                      {formsGroupedById[form.formId]
-                                        .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
-                                        .map((vOpt: any) => {
-                                          let displayOptVersion = vOpt.version;
-                                          try {
-                                            const updateDate = new Date(vOpt.updated_at).toLocaleDateString('vi-VN');
-                                            displayOptVersion = `${vOpt.version} (${updateDate})`;
-                                          } catch (_) {}
-                                          return (
-                                            <option key={vOpt.id || vOpt.version} value={vOpt.version}>
-                                              {displayOptVersion}
-                                            </option>
-                                          );
-                                        })
-                                      }
-                                    </select>
+                                    {formsGroupedById[form.formId].length > 1 ? (
+                                      <select
+                                        value={form.version}
+                                        onChange={(e) => {
+                                          const selectedVal = e.target.value;
+                                          setSelectedFormVersions(prev => ({
+                                            ...prev,
+                                            [form.formId]: selectedVal
+                                          }));
+                                        }}
+                                        style={{
+                                          border: 'none',
+                                          background: 'transparent',
+                                          padding: 0,
+                                          margin: 0,
+                                          width: 'auto',
+                                          fontSize: '0.72rem',
+                                          fontWeight: 600,
+                                          color: 'var(--text-primary)',
+                                          cursor: 'pointer',
+                                          outline: 'none'
+                                        }}
+                                      >
+                                        {formsGroupedById[form.formId]
+                                          .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+                                          .map((vOpt: any) => {
+                                            let displayOptVersion = vOpt.version;
+                                            try {
+                                              const updateDate = new Date(vOpt.updated_at).toLocaleDateString('vi-VN');
+                                              displayOptVersion = `${vOpt.version} (${updateDate})`;
+                                            } catch (_) {}
+                                            return (
+                                              <option key={vOpt.id || vOpt.version} value={vOpt.version}>
+                                                {displayOptVersion}
+                                              </option>
+                                            );
+                                          })
+                                        }
+                                      </select>
+                                    ) : (() => {
+                                      const singleForm = formsGroupedById[form.formId][0];
+                                      let displaySingleVersion = singleForm.version;
+                                      try {
+                                        const updateDate = new Date(singleForm.updated_at).toLocaleDateString('vi-VN');
+                                        displaySingleVersion = `${singleForm.version} (${updateDate})`;
+                                      } catch (_) {}
+                                      return <span style={{ color: 'var(--text-primary)' }}>{displaySingleVersion}</span>;
+                                    })()}
                                   </div>
                                 )}
                                 <span className="badge" style={{ backgroundColor: colors.bg, color: colors.text, border: `1px solid ${colors.border}`, textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 700, padding: '0.1rem 0.4rem', borderRadius: '4px', height: '22px', display: 'inline-flex', alignItems: 'center', margin: 0 }}>
@@ -450,10 +459,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
                             <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.3 }}>
                               {form.formTitle}
                             </h4>
-                            
-                            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
-                              <div>Version: {formatFormVersion(form.version)}</div>
-                            </div>
                           </div>
 
                           <div>
