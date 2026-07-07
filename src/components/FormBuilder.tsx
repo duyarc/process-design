@@ -656,14 +656,26 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
     const { major, minor } = parseVersion(version);
     const targetVersion = `v${major}.${minor}`;
     
-    // Check if targetVersion already exists in history list
-    const versionExists = revisionHistory.some(h => {
-      const hVer = h.version ? h.version.replace(/\s*\([^)]*\)/g, '').trim() : '';
-      return hVer === targetVersion;
-    });
+    const initialCleanVersion = initialData?.version ? initialData.version.replace(/\s*\([^)]*\)/g, '').trim() : '';
+    const isSameFormAndVersion = formId === initialData?.formId && targetVersion === initialCleanVersion;
+    
+    let versionExists = false;
+    if (!isSameFormAndVersion) {
+      try {
+        setLoading(true);
+        const checkRes = await fetch(`/api/forms/${encodeURIComponent(formId)}?version=${encodeURIComponent(targetVersion)}`);
+        if (checkRes.ok) {
+          versionExists = true;
+        }
+      } catch (err) {
+        console.error('Error verifying version existence:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
 
     if (versionExists) {
-      alert(`Phiên bản ${targetVersion} đã tồn tại`);
+      alert(`Phiên bản ${targetVersion} của mã biểu mẫu ${formId} đã tồn tại`);
       return;
     }
 
@@ -863,14 +875,27 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
     const { major, minor } = parseVersion(version);
     const targetVersion = `v${major}.${minor}`;
     
-    // Check if targetVersion already exists in history list
-    const versionExists = revisionHistory.some(h => {
-      const hVer = h.version ? h.version.replace(/\s*\([^)]*\)/g, '').trim() : '';
-      return hVer === targetVersion;
-    });
+    // Check if the combination of formId and targetVersion already exists in the database
+    const initialCleanVersion = initialData?.version ? initialData.version.replace(/\s*\([^)]*\)/g, '').trim() : '';
+    const isSameFormAndVersion = formId === initialData?.formId && targetVersion === initialCleanVersion;
+    
+    let versionExists = false;
+    if (!isSameFormAndVersion) {
+      try {
+        setLoading(true);
+        const checkRes = await fetch(`/api/forms/${encodeURIComponent(formId)}?version=${encodeURIComponent(targetVersion)}`);
+        if (checkRes.ok) {
+          versionExists = true;
+        }
+      } catch (err) {
+        console.error('Error verifying version existence:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
 
     if (versionExists) {
-      alert(`Phiên bản ${targetVersion} đã tồn tại`);
+      alert(`Phiên bản ${targetVersion} của mã biểu mẫu ${formId} đã tồn tại`);
       return;
     }
 
