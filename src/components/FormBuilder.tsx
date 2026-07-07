@@ -637,7 +637,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
         formId,
         formTitle,
         version: newActiveVersion,
-        status: 'ACTIVE'
+        status: 'ACTIVE',
+        layoutBlocks,
+        revisionHistory: updatedHistory
       });
 
       alert(`Successfully published active version: ${newActiveVersion}. This template is now locked for quality compliance.`);
@@ -726,7 +728,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
         formId,
         formTitle,
         version,
-        status
+        status,
+        layoutBlocks,
+        revisionHistory
       });
       onClose();
     } catch (err) {
