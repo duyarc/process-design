@@ -1333,7 +1333,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                                 </div>
                               );
                             })}
-                            {block.fields.length < 6 && !isLocked && (
+                            {!isLocked && (
                               <div 
                                 onClick={(e) => { e.stopPropagation(); handleAddField(block.id, 'text'); }}
                                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px dashed #cbd5e1', borderRadius: '4px', padding: '4px', fontSize: '0.7rem', color: 'var(--text-muted)', cursor: 'pointer' }}
