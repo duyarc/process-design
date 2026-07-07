@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import type { Process } from '../types';
 import { formatFormVersion } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { Plus, Search, FileText, Eye, Calendar, ChevronDown, ChevronUp, Printer, History, PenTool, Edit2, AlertCircle } from 'lucide-react';
+import { Plus, Search, FileText, Eye, Calendar, ChevronDown, ChevronUp, Printer, History, PenTool, Edit2, AlertCircle, GitBranch } from 'lucide-react';
 import SubmissionManager from './SubmissionManager';
 import { BPMNGuide } from './BPMNGuide';
 import PrintBlankForm from './print/PrintBlankForm';
@@ -39,6 +39,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 }) => {
   const [processes, setProcesses] = useState<Process[]>([]);
   const [allForms, setAllForms] = useState<any[]>([]);
+  const [selectedFormVersions, setSelectedFormVersions] = useState<Record<string, string>>({});
   const [printTemplateData, setPrintTemplateData] = useState<any | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
@@ -133,13 +134,24 @@ export const Dashboard: React.FC<DashboardProps> = ({
     return repMatches || stepMatches || fieldMatches;
   });
 
-  // Group allForms by form_id and get unique list of forms with their latest version records
-  const latestFormsMap = new Map();
+  // Group allForms by form_id
+  const formsGroupedById: Record<string, any[]> = {};
   allForms.forEach(f => {
-    const existing = latestFormsMap.get(f.form_id);
-    if (!existing || new Date(f.updated_at).getTime() > new Date(existing.updated_at).getTime()) {
-      latestFormsMap.set(f.form_id, f);
+    if (!formsGroupedById[f.form_id]) {
+      formsGroupedById[f.form_id] = [];
     }
+    formsGroupedById[f.form_id].push(f);
+  });
+
+  // Group allForms by form_id and get unique list of forms with selected or latest version records
+  const latestFormsMap = new Map();
+  Object.entries(formsGroupedById).forEach(([formId, versionsList]) => {
+    const sorted = [...versionsList].sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+    const chosenVersion = selectedFormVersions[formId];
+    const matched = chosenVersion 
+      ? sorted.find(f => f.version === chosenVersion) 
+      : sorted[0];
+    latestFormsMap.set(formId, matched || sorted[0]);
   });
 
   const groupedForms: { [processId: string]: { processTitle: string, forms: any[] } } = {};
@@ -370,13 +382,69 @@ export const Dashboard: React.FC<DashboardProps> = ({
                           className="hover-card-bg"
                         >
                           <div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', gap: '0.5rem' }}>
                               <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', background: '#f1f5f9', padding: '0.1rem 0.4rem', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
                                 {form.formId}
                               </span>
-                              <span className="badge" style={{ backgroundColor: colors.bg, color: colors.text, border: `1px solid ${colors.border}`, textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 700, padding: '0.1rem 0.4rem', borderRadius: '4px' }}>
-                                {displayStatus}
-                              </span>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                {formsGroupedById[form.formId] && formsGroupedById[form.formId].length > 1 && (
+                                  <div style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    padding: '0.15rem 0.4rem',
+                                    fontSize: '0.72rem',
+                                    borderRadius: '4px',
+                                    border: '1px solid var(--neutral-border)',
+                                    background: '#ffffff',
+                                    color: 'var(--text-primary)',
+                                    fontWeight: 600,
+                                    height: '22px'
+                                  }}>
+                                    <GitBranch size={11} style={{ marginRight: '0.2rem', color: 'var(--text-secondary)' }} />
+                                    <select
+                                      value={form.version}
+                                      onChange={(e) => {
+                                        const selectedVal = e.target.value;
+                                        setSelectedFormVersions(prev => ({
+                                          ...prev,
+                                          [form.formId]: selectedVal
+                                        }));
+                                      }}
+                                      style={{
+                                        border: 'none',
+                                        background: 'transparent',
+                                        padding: 0,
+                                        margin: 0,
+                                        width: 'auto',
+                                        fontSize: '0.72rem',
+                                        fontWeight: 600,
+                                        color: 'var(--text-primary)',
+                                        cursor: 'pointer',
+                                        outline: 'none'
+                                      }}
+                                    >
+                                      {formsGroupedById[form.formId]
+                                        .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+                                        .map((vOpt: any) => {
+                                          let displayOptVersion = vOpt.version;
+                                          try {
+                                            const updateDate = new Date(vOpt.updated_at).toLocaleDateString('vi-VN');
+                                            displayOptVersion = `${vOpt.version} (${updateDate})`;
+                                          } catch (_) {}
+                                          return (
+                                            <option key={vOpt.id || vOpt.version} value={vOpt.version}>
+                                              {displayOptVersion}
+                                            </option>
+                                          );
+                                        })
+                                      }
+                                    </select>
+                                  </div>
+                                )}
+                                <span className="badge" style={{ backgroundColor: colors.bg, color: colors.text, border: `1px solid ${colors.border}`, textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 700, padding: '0.1rem 0.4rem', borderRadius: '4px', height: '22px', display: 'inline-flex', alignItems: 'center', margin: 0 }}>
+                                  {displayStatus}
+                                </span>
+                              </div>
                             </div>
                             
                             <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.3 }}>
