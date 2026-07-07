@@ -511,9 +511,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
     };
 
     if (type === 'number') {
-      newField.minSpec = 0;
-      newField.maxSpec = 100;
-      newField.unit = 'units';
+      newField.minSpec = undefined;
+      newField.maxSpec = undefined;
+      newField.unit = '';
     } else if (type === 'radio') {
       newField.options = [...DEFAULT_RADIO_OPTIONS];
     }
@@ -545,9 +545,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
     const updates: Partial<FormFieldISO> = { type: newType };
     
     if (newType === 'number') {
-      updates.minSpec = 0;
-      updates.maxSpec = 100;
-      updates.unit = 'units';
+      updates.minSpec = undefined;
+      updates.maxSpec = undefined;
+      updates.unit = '';
       updates.options = undefined;
     } else if (newType === 'radio') {
       updates.options = [...DEFAULT_RADIO_OPTIONS];
