@@ -773,7 +773,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
 
   const handleDeleteVersion = async () => {
     if (!viewingRevisionVersion) return;
-    if (confirm(`Bạn có chắc chắn muốn xóa vĩnh viễn phiên bản ${viewingRevisionVersion} khỏi hệ thống không? Hành động này sẽ không thể khôi phục.`)) {
+    if (confirm(`Bạn có chắc chắn muốn xóa phiên bản ${viewingRevisionVersion}?`)) {
       try {
         setLoading(true);
         const res = await fetch(`/api/forms/${encodeURIComponent(formId)}?version=${encodeURIComponent(viewingRevisionVersion)}`, {
@@ -809,7 +809,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
   };
 
   const handleDeleteActiveDraft = async () => {
-    if (confirm(`Bạn có chắc chắn muốn xóa vĩnh viễn bản nháp (draft) hiện tại "${version}" của biểu mẫu này khỏi hệ thống không? Hành động này sẽ đóng Trình thiết kế và không thể khôi phục.`)) {
+    if (confirm('Bạn có chắc chắn muốn xóa bản nháp này?')) {
       try {
         setLoading(true);
         const res = await fetch(`/api/forms/${encodeURIComponent(formId)}?version=${encodeURIComponent(version)}`, {
@@ -2897,33 +2897,30 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                       onChange={(e) => handleMinorChange(parseInt(e.target.value, 10) || 0)}
                       style={{ width: '60px', padding: '0.25rem 0.35rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', textAlign: 'center', fontSize: '0.8rem' }}
                     />
+                    <button
+                      type="button"
+                      title="Xóa bản nháp này"
+                      onClick={handleDeleteActiveDraft}
+                      style={{
+                        marginLeft: 'auto',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '0.25rem 0.5rem',
+                        background: '#fee2e2',
+                        border: '1px solid #fca5a5',
+                        color: '#b91c1c',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                        height: '28px'
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = '#fca5a5'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = '#fee2e2'; }}
+                    >
+                      <Trash2 size={13} />
+                    </button>
                   </div>
-                  
-                  <button
-                    type="button"
-                    onClick={handleDeleteActiveDraft}
-                    style={{
-                      marginTop: '0.75rem',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '0.35rem',
-                      width: '100%',
-                      padding: '0.45rem 0.75rem',
-                      background: '#fee2e2',
-                      border: '1px solid #fca5a5',
-                      color: '#b91c1c',
-                      borderRadius: '6px',
-                      fontSize: '0.78rem',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease'
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = '#fca5a5'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = '#fee2e2'; }}
-                  >
-                    XÓA BẢN NHÁP NÀY
-                  </button>
                 </div>
               )}
             </div>
