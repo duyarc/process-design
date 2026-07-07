@@ -833,9 +833,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
     if (confirm('Bạn có chắc chắn muốn xóa bản nháp này?')) {
       try {
         setLoading(true);
-        const { major, minor } = parseVersion(version);
-        const cleanVersion = `v${major}.${minor}`;
-        const res = await fetch(`/api/forms/${encodeURIComponent(formId)}?version=${encodeURIComponent(cleanVersion)}`, {
+        const res = await fetch(`/api/forms/${encodeURIComponent(formId)}?version=${encodeURIComponent(version)}`, {
           method: 'DELETE'
         });
         

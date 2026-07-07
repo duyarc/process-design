@@ -587,10 +587,88 @@ app.get('/api/forms', async (req, res) => {
   }
 });
 
-// GET /api/forms/:formId - Get a specific form version (pass ?version=v0.3 or omit for latest)
-app.get('/api/forms/:formId', async (req, res) => {
+// GET /api/forms/:formId/history - Get the merged, de-duplicated revision timeline of a specific form_id
+// NOTE: This route MUST be defined BEFORE the wildcard GET /api/forms/*formId route
+app.get('/api/forms/*formId/history', async (req, res) => {
   try {
-    const { formId } = req.params;
+    const formId = Array.isArray(req.params.formId) ? req.params.formId[0] : req.params.formId;
+    let allFormRows = [];
+
+    if (dbPool) {
+      const result = await dbPool.query(
+        'SELECT * FROM forms WHERE form_id = $1 ORDER BY updated_at DESC',
+        [formId]
+      );
+      allFormRows = result.rows;
+    } else {
+      const forms = readFormsOffline();
+      allFormRows = forms.filter(f => f.form_id === formId).sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+    }
+
+    const mergedHistoryMap = new Map();
+    allFormRows.forEach(row => {
+      const cleanVer = row.version ? row.version.replace(/\s*\([^)]*\)/g, '').trim() : 'v0.1';
+      mergedHistoryMap.set(cleanVer, {
+        version: cleanVer,
+        date: row.updated_at ? new Date(row.updated_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        author: 'System Generated',
+        change: row.status === 'ACTIVE' ? 'Published version' : `Draft snapshot (Status: ${row.status})`,
+        layoutBlocks: typeof row.layout_blocks === 'string' ? JSON.parse(row.layout_blocks) : (row.layout_blocks || []),
+        status: row.status,
+        rawVersion: row.version
+      });
+    });
+    allFormRows.forEach(row => {
+      if (row.revision_history) {
+        let historyArray = [];
+        try {
+          historyArray = typeof row.revision_history === 'string' ? JSON.parse(row.revision_history) : row.revision_history;
+        } catch (e) { console.error('Error parsing revision_history column:', e); }
+        if (Array.isArray(historyArray)) {
+          historyArray.forEach(entry => {
+            if (entry && entry.version) {
+              const cleanVer = entry.version.replace(/\s*\([^)]*\)/g, '').trim();
+              const existing = mergedHistoryMap.get(cleanVer);
+              const hasLayout = entry.layoutBlocks && entry.layoutBlocks.length > 0;
+              const existingHasLayout = existing && existing.layoutBlocks && existing.layoutBlocks.length > 0;
+              if (!existing || (hasLayout && !existingHasLayout)) {
+                mergedHistoryMap.set(cleanVer, {
+                  version: cleanVer,
+                  date: entry.date || new Date().toISOString().split('T')[0],
+                  author: entry.author || 'QA Administrator',
+                  change: entry.change || 'Published version',
+                  layoutBlocks: entry.layoutBlocks || [],
+                  status: 'ACTIVE',
+                  rawVersion: entry.version
+                });
+              }
+            }
+          });
+        }
+      }
+    });
+    const sortedHistory = Array.from(mergedHistoryMap.values()).sort((a, b) => {
+      const parseVer = (v) => {
+        const match = v.match(/v(\d+)\.(\d+)/);
+        if (match) return { major: parseInt(match[1], 10), minor: parseInt(match[2], 10) };
+        return { major: 0, minor: 0 };
+      };
+      const va = parseVer(a.version);
+      const vb = parseVer(b.version);
+      if (va.major !== vb.major) return vb.major - va.major;
+      return vb.minor - va.minor;
+    });
+    res.json(sortedHistory);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch unified form history' });
+  }
+});
+
+// GET /api/forms/:formId - Get a specific form version (pass ?version=v0.3 or omit for latest)
+app.get('/api/forms/*formId', async (req, res) => {
+  try {
+    const formId = Array.isArray(req.params.formId) ? req.params.formId[0] : req.params.formId;
     const { version } = req.query;
     if (dbPool) {
       let result;
@@ -625,85 +703,35 @@ app.get('/api/forms/:formId', async (req, res) => {
   }
 });
 
+
 // DELETE /api/forms/:formId - Delete a specific form version (requires ?version=v0.2)
-app.delete('/api/forms/:formId', async (req, res) => {
+app.delete('/api/forms/*formId', async (req, res) => {
   try {
-    const { formId } = req.params;
+    const formId = Array.isArray(req.params.formId) ? req.params.formId[0] : req.params.formId;
     const { version } = req.query;
     if (!version) {
       return res.status(400).json({ error: 'Missing required version parameter.' });
     }
     
     if (dbPool) {
-      // 1. Delete the specific version
-      await dbPool.query(
+      const result = await dbPool.query(
         'DELETE FROM forms WHERE form_id = $1 AND version = $2',
         [formId, version]
       );
-      
-      // 2. Check if there are any versions of this form remaining in database
-      const remainingCheck = await dbPool.query(
-        'SELECT COUNT(*) FROM forms WHERE form_id = $1',
-        [formId]
-      );
-      const remainingCount = parseInt(remainingCheck.rows[0].count, 10);
-      
-      // 3. If no versions remain, unlink this form from all processes!
-      if (remainingCount === 0) {
-        // Delete from process_forms table
-        await dbPool.query(
-          'DELETE FROM process_forms WHERE form_id = $1',
-          [formId]
-        );
-        
-        // Also clean up workflowFormsData in processes table
-        const processesRes = await dbPool.query('SELECT id, "workflowFormsData" FROM processes');
-        for (const row of processesRes.rows) {
-          if (row.workflowFormsData) {
-            const wfd = typeof row.workflowFormsData === 'string' ? JSON.parse(row.workflowFormsData) : row.workflowFormsData;
-            let changed = false;
-            for (const [formName, ref] of Object.entries(wfd)) {
-              if (ref && ref.formId === formId) {
-                delete wfd[formName];
-                changed = true;
-              }
-            }
-            if (changed) {
-              await dbPool.query(
-                'UPDATE processes SET "workflowFormsData" = $1 WHERE id = $2',
-                [JSON.stringify(wfd), row.id]
-              );
-            }
-          }
-        }
+      if (result.rowCount === 0) {
+        return res.status(404).json({ 
+          error: `Không tìm thấy bản ghi. Form ID: "${formId}", Version: "${version}". Phiên bản trong database có thể khác với phiên bản đang xem.`
+        });
       }
     } else {
       const forms = readFormsOffline();
       const filtered = forms.filter(f => !(f.form_id === formId && f.version === version));
-      writeFormsOffline(filtered);
-      
-      // Check remaining
-      const remaining = filtered.filter(f => f.form_id === formId);
-      if (remaining.length === 0) {
-        // Unlink offline processes
-        const processes = readProcessesOffline();
-        let changedAny = false;
-        processes.forEach(proc => {
-          if (proc.workflowFormsData) {
-            let changed = false;
-            for (const [formName, ref] of Object.entries(proc.workflowFormsData)) {
-              if (ref && ref.formId === formId) {
-                delete proc.workflowFormsData[formName];
-                changed = true;
-                changedAny = true;
-              }
-            }
-          }
+      if (filtered.length === forms.length) {
+        return res.status(404).json({
+          error: `Không tìm thấy bản ghi. Form ID: "${formId}", Version: "${version}".`
         });
-        if (changedAny) {
-          writeProcessesOffline(processes);
-        }
       }
+      writeFormsOffline(filtered);
     }
     
     res.json({ success: true, message: `Version ${version} of form ${formId} deleted successfully.` });
@@ -713,97 +741,7 @@ app.delete('/api/forms/:formId', async (req, res) => {
   }
 });
 
-// GET /api/forms/:formId/history - Get the merged, de-duplicated revision timeline of a specific form_id
-app.get('/api/forms/:formId/history', async (req, res) => {
-  try {
-    const { formId } = req.params;
-    let allFormRows = [];
 
-    if (dbPool) {
-      // Query all versions matching this form_id from database
-      const result = await dbPool.query(
-        'SELECT * FROM forms WHERE form_id = $1 ORDER BY updated_at DESC',
-        [formId]
-      );
-      allFormRows = result.rows;
-    } else {
-      const forms = readFormsOffline();
-      allFormRows = forms.filter(f => f.form_id === formId).sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
-    }
-
-    // Map to hold de-duplicated timeline by clean version (e.g. "v0.1", "v0.2")
-    const mergedHistoryMap = new Map();
-
-    // 1. Process active/draft database rows first
-    allFormRows.forEach(row => {
-      const cleanVer = row.version ? row.version.replace(/\s*\([^)]*\)/g, '').trim() : 'v0.1';
-      
-      mergedHistoryMap.set(cleanVer, {
-        version: cleanVer,
-        date: row.updated_at ? new Date(row.updated_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-        author: 'System Generated',
-        change: row.status === 'ACTIVE' ? 'Published version' : `Draft snapshot (Status: ${row.status})`,
-        layoutBlocks: typeof row.layout_blocks === 'string' ? JSON.parse(row.layout_blocks) : (row.layout_blocks || []),
-        status: row.status,
-        rawVersion: row.version
-      });
-    });
-
-    // 2. Extract nested revision history arrays from all those database rows
-    allFormRows.forEach(row => {
-      if (row.revision_history) {
-        let historyArray = [];
-        try {
-          historyArray = typeof row.revision_history === 'string' ? JSON.parse(row.revision_history) : row.revision_history;
-        } catch (e) {
-          console.error('Error parsing revision_history column:', e);
-        }
-
-        if (Array.isArray(historyArray)) {
-          historyArray.forEach(entry => {
-            if (entry && entry.version) {
-              const cleanVer = entry.version.replace(/\s*\([^)]*\)/g, '').trim();
-              const existing = mergedHistoryMap.get(cleanVer);
-
-              const hasLayout = entry.layoutBlocks && entry.layoutBlocks.length > 0;
-              const existingHasLayout = existing && existing.layoutBlocks && existing.layoutBlocks.length > 0;
-
-              if (!existing || (hasLayout && !existingHasLayout)) {
-                mergedHistoryMap.set(cleanVer, {
-                  version: cleanVer,
-                  date: entry.date || new Date().toISOString().split('T')[0],
-                  author: entry.author || 'QA Administrator',
-                  change: entry.change || 'Published version',
-                  layoutBlocks: entry.layoutBlocks || [],
-                  status: 'ACTIVE',
-                  rawVersion: entry.version
-                });
-              }
-            }
-          });
-        }
-      }
-    });
-
-    // Convert map to array and sort descending by version number
-    const sortedHistory = Array.from(mergedHistoryMap.values()).sort((a, b) => {
-      const parseVer = (v) => {
-        const match = v.match(/v(\d+)\.(\d+)/);
-        if (match) return { major: parseInt(match[1], 10), minor: parseInt(match[2], 10) };
-        return { major: 0, minor: 0 };
-      };
-      const va = parseVer(a.version);
-      const vb = parseVer(b.version);
-      if (va.major !== vb.major) return vb.major - va.major;
-      return vb.minor - va.minor;
-    });
-
-    res.json(sortedHistory);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to fetch unified form history' });
-  }
-});
 
 // POST /api/forms - Save or Update form template (upsert by form_id + version composite key)
 app.post('/api/forms', async (req, res) => {
