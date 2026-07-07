@@ -2915,129 +2915,123 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                   </div>
                 </>
               ) : (
-                <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center', flexWrap: 'nowrap', width: '100%' }}>
-                  <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>v</span>
-                  <input
-                    type="number"
-                    min="0"
-                    value={major}
-                    onChange={(e) => handleMajorChange(parseInt(e.target.value, 10) || 0)}
-                    style={{ width: '38px', padding: '0.2rem 0.15rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', textAlign: 'center', fontSize: '0.8rem' }}
-                  />
-                  <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>.</span>
-                  <input
-                    type="number"
-                    min="0"
-                    value={minor}
-                    onChange={(e) => handleMinorChange(parseInt(e.target.value, 10) || 0)}
-                    style={{ width: '38px', padding: '0.2rem 0.15rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', textAlign: 'center', fontSize: '0.8rem' }}
-                  />
+                <>
+                  <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center', flexWrap: 'nowrap', width: '100%' }}>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>v</span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={major}
+                      onChange={(e) => handleMajorChange(parseInt(e.target.value, 10) || 0)}
+                      style={{ width: '38px', padding: '0.2rem 0.15rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', textAlign: 'center', fontSize: '0.8rem' }}
+                    />
+                    <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>.</span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={minor}
+                      onChange={(e) => handleMinorChange(parseInt(e.target.value, 10) || 0)}
+                      style={{ width: '38px', padding: '0.2rem 0.15rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', textAlign: 'center', fontSize: '0.8rem' }}
+                    />
 
-                  <span className="badge badge-warning" style={{ fontSize: '0.65rem', padding: '0.05rem 0.35rem', backgroundColor: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d', textTransform: 'uppercase', fontWeight: 700, marginLeft: '0.15rem' }}>
-                    Draft
-                  </span>
+                    <span className="badge badge-warning" style={{ fontSize: '0.65rem', padding: '0.05rem 0.35rem', backgroundColor: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d', textTransform: 'uppercase', fontWeight: 700, marginLeft: '0.15rem' }}>
+                      Draft
+                    </span>
 
-                  <button
-                    type="button"
-                    title="Xóa bản nháp này"
-                    onClick={handleDeleteActiveDraft}
-                    style={{
-                      marginLeft: 'auto',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      padding: '0.2rem 0.4rem',
-                      background: '#fee2e2',
-                      border: '1px solid #fca5a5',
-                      color: '#b91c1c',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease',
-                      height: '24px'
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = '#fca5a5'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = '#fee2e2'; }}
-                  >
-                    <Trash2 size={12} />
-                  </button>
-                </div>
+                    <button
+                      type="button"
+                      title="Xóa bản nháp này"
+                      onClick={handleDeleteActiveDraft}
+                      style={{
+                        marginLeft: 'auto',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '0.2rem 0.4rem',
+                        background: '#fee2e2',
+                        border: '1px solid #fca5a5',
+                        color: '#b91c1c',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                        height: '24px'
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = '#fca5a5'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = '#fee2e2'; }}
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
+
+                  {!viewingRevisionVersion && (
+                    <>
+                      <div style={{ borderTop: '1px solid var(--neutral-border)', margin: '0.4rem 0' }} />
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                        <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Change Summary</label>
+                        <textarea 
+                          value={changeSummary}
+                          onChange={(e) => setChangeSummary(e.target.value)}
+                          placeholder=""
+                          rows={3}
+                          style={{
+                            padding: '0.35rem 0.5rem',
+                            fontSize: '0.8rem',
+                            border: '1px solid var(--neutral-border)',
+                            borderRadius: '4px',
+                            resize: 'none'
+                          }}
+                        />
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                        <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Release Date</label>
+                        <input 
+                          type="date"
+                          value={effectiveDate}
+                          onChange={(e) => setEffectiveDate(e.target.value)}
+                          style={{
+                            padding: '0.25rem 0.5rem',
+                            fontSize: '0.8rem',
+                            border: '1px solid var(--neutral-border)',
+                            borderRadius: '4px',
+                            outline: 'none',
+                            width: '100%',
+                            boxSizing: 'border-box'
+                          }}
+                        />
+                      </div>
+
+                      <button 
+                        type="button"
+                        onClick={handlePublish} 
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '0.35rem',
+                          width: '100%',
+                          padding: '0.45rem 0.75rem',
+                          background: '#10b981',
+                          border: '1px solid #10b981',
+                          color: '#ffffff',
+                          borderRadius: '6px',
+                          fontSize: '0.78rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          transition: 'background-color 0.15s ease',
+                          marginTop: '0.25rem'
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = '#059669'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = '#10b981'; }}
+                      >
+                        PUBLISH
+                      </button>
+                    </>
+                  )}
+                </>
               )}
             </div>
-
-            {/* Card 2: Publish / Change Summary (Only in Draft & not in view revision mode) */}
-            {!isLocked && !viewingRevisionVersion && (
-              <div style={{
-                backgroundColor: '#ffffff',
-                border: '1px solid var(--neutral-border, #cbd5e1)',
-                borderRadius: '6px',
-                padding: '0.85rem 1rem',
-                boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.65rem'
-              }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                  <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Change Summary</label>
-                  <textarea 
-                    value={changeSummary}
-                    onChange={(e) => setChangeSummary(e.target.value)}
-                    placeholder=""
-                    rows={3}
-                    style={{
-                      padding: '0.35rem 0.5rem',
-                      fontSize: '0.8rem',
-                      border: '1px solid var(--neutral-border)',
-                      borderRadius: '4px',
-                      resize: 'none'
-                    }}
-                  />
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                  <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Release Date</label>
-                  <input 
-                    type="date"
-                    value={effectiveDate}
-                    onChange={(e) => setEffectiveDate(e.target.value)}
-                    style={{
-                      padding: '0.25rem 0.5rem',
-                      fontSize: '0.8rem',
-                      border: '1px solid var(--neutral-border)',
-                      borderRadius: '4px',
-                      outline: 'none',
-                      width: '100%',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-
-                <button 
-                  type="button"
-                  onClick={handlePublish} 
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '0.35rem',
-                    width: '100%',
-                    padding: '0.45rem 0.75rem',
-                    background: '#10b981',
-                    border: '1px solid #10b981',
-                    color: '#ffffff',
-                    borderRadius: '6px',
-                    fontSize: '0.78rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    transition: 'background-color 0.15s ease',
-                    marginTop: '0.25rem'
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = '#059669'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = '#10b981'; }}
-                >
-                  PUBLISH
-                </button>
-              </div>
-            )}
 
             {/* Card 3: Revision History & Audit Log */}
             <div style={{
