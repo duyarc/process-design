@@ -808,6 +808,30 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
     }
   };
 
+  const handleDeleteActiveDraft = async () => {
+    if (confirm(`Bạn có chắc chắn muốn xóa vĩnh viễn bản nháp (draft) hiện tại "${version}" của biểu mẫu này khỏi hệ thống không? Hành động này sẽ đóng Trình thiết kế và không thể khôi phục.`)) {
+      try {
+        setLoading(true);
+        const res = await fetch(`/api/forms/${encodeURIComponent(formId)}?version=${encodeURIComponent(version)}`, {
+          method: 'DELETE'
+        });
+        
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.error || 'Server error');
+        }
+        
+        alert(`Đã xóa thành công bản nháp.`);
+        onClose();
+      } catch (err) {
+        console.error(err);
+        alert(`Không thể xóa bản nháp: ${err instanceof Error ? err.message : 'Lỗi máy chủ'}`);
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
   const handleCreateNewVersion = () => {
     const { major, minor } = parseVersion(version);
     const draftVersion = `v${major}.${minor + 1} (draft)`;
@@ -2874,6 +2898,32 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                       style={{ width: '60px', padding: '0.25rem 0.35rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', textAlign: 'center', fontSize: '0.8rem' }}
                     />
                   </div>
+                  
+                  <button
+                    type="button"
+                    onClick={handleDeleteActiveDraft}
+                    style={{
+                      marginTop: '0.75rem',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.35rem',
+                      width: '100%',
+                      padding: '0.45rem 0.75rem',
+                      background: '#fee2e2',
+                      border: '1px solid #fca5a5',
+                      color: '#b91c1c',
+                      borderRadius: '6px',
+                      fontSize: '0.78rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = '#fca5a5'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = '#fee2e2'; }}
+                  >
+                    XÓA BẢN NHÁP NÀY
+                  </button>
                 </div>
               )}
             </div>
