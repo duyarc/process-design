@@ -125,6 +125,12 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
   exitOnCloseForm
 }) => {
   const { hasPermission } = useAuth();
+  const formatDMY = (dateInput: any) => {
+    if (!dateInput) return '';
+    const d = new Date(dateInput);
+    if (isNaN(d.getTime())) return '';
+    return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
+  };
   const modelerRef = useRef<BpmnModelerRef | null>(null);
   const [activeTab, setActiveTab] = useState<'description' | 'workflow' | 'form' | 'versions'>('description');
   const [activeFormToBuild, setActiveFormToBuild] = useState<string | null>(null);
@@ -1721,12 +1727,13 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                           </span>
                           {isCurrent && <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--primary)', background: '#f0fdfa', border: '1px solid #99f6e4', padding: '0.05rem 0.3rem', borderRadius: '3px', textTransform: 'uppercase' }}>Current</span>}
                           <span className="badge" style={{ backgroundColor: vColors.bg, color: vColors.text, border: `1px solid ${vColors.border}`, fontSize: '0.65rem', padding: '0.05rem 0.35rem', textTransform: 'uppercase', fontWeight: 700 }}>{vStatus}</span>
-                          <span style={{ color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            Updated: {new Date(v.lastUpdated).toLocaleDateString()}
-                          </span>
-                          {v.sopSignoffs?.effectiveDate && (
+                           {v.sopSignoffs?.effectiveDate ? (
                             <span style={{ color: 'var(--text-secondary)', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '0.2rem' }} title="Effective Date">
-                              <Calendar size={11} /> Effective: {new Date(v.sopSignoffs.effectiveDate).toLocaleDateString()}
+                              <Calendar size={11} /> {formatDMY(v.sopSignoffs.effectiveDate)}
+                            </span>
+                          ) : (
+                            <span style={{ color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              Updated: {formatDMY(v.lastUpdated)}
                             </span>
                           )}
                         </div>
