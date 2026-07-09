@@ -404,12 +404,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const renderProcessListTable = (familiesList: typeof filteredFamilies, isRetired = false) => {
     return (
       <div className={`paper-card ${isRetired ? '' : 'accent-teal'}`} style={{ padding: '1.5rem', background: isRetired ? '#fafafa' : '#ffffff', border: isRetired ? '1px dashed var(--neutral-border)' : 'none', boxShadow: isRetired ? 'none' : undefined }}>
-        {isRetired && (
-          <h4 style={{ margin: '0 0 1.25rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-primary)', fontSize: '1.05rem', fontWeight: 700 }}>
-            <FileText size={18} style={{ color: 'var(--text-secondary)' }} />
-            Quy trình đã lưu kho
-          </h4>
-        )}
+
         <div style={{ overflowX: 'auto', border: '1px solid var(--neutral-border)', borderRadius: '6px' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
             <thead>
