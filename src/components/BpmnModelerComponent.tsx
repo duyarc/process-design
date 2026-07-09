@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback, useImperativeHandle, forwardRef } from 'react';
 import BpmnModeler from 'bpmn-js/lib/Modeler';
-import { ZoomIn, ZoomOut, Maximize2, Save, RotateCcw } from 'lucide-react';
+import { ZoomIn, ZoomOut, Maximize2, Save } from 'lucide-react';
 import 'bpmn-js/dist/assets/diagram-js.css';
 import 'bpmn-js/dist/assets/bpmn-font/css/bpmn-embedded.css';
 import 'bpmn-js/dist/assets/bpmn-js.css';
@@ -20,6 +20,7 @@ interface DirectEditingService {
 
 interface ElementRegistryService {
   forEach: (callback: (element: { id: string; type: string; x: number; y: number }) => void) => void;
+  filter: (callback: (element: any) => boolean) => any[];
 }
 
 interface BpmnModelerComponentProps {
@@ -42,7 +43,6 @@ export interface BpmnModelerRef {
 export const BpmnModelerComponent = forwardRef<BpmnModelerRef, BpmnModelerComponentProps>(({ 
   xml, 
   onSavePositions, 
-  onReset,
   isSaving 
 }, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);

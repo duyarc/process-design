@@ -818,26 +818,6 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                       const hasLayoutBlocks = liveLayoutBlocks && liveLayoutBlocks.length > 0;
                       const displayName = formData.formTitle || (liveForm?.form_title || liveForm?.form_name) || formId;
 
-                      let attachmentText = '';
-                      if (formData.pdfName) {
-                        attachmentText = formData.pdfName;
-                      } else if (hasDigitalForm) {
-                        const rawVersion = (liveVersion || '').trim();
-                        let normalizedVersion = rawVersion;
-                        const dateRegex = /(\d{4})-(\d{2})-(\d{2})/;
-                        const dateMatch = normalizedVersion.match(dateRegex);
-                        if (dateMatch) {
-                          const [_, yyyy, mm, dd] = dateMatch;
-                          const formattedDate = `${dd}.${mm}.${yyyy}`;
-                          normalizedVersion = normalizedVersion.replace(/\s*\([^)]*\)/g, '').replace(dateRegex, '').trim();
-                          normalizedVersion = `${normalizedVersion}-${formattedDate}`;
-                        }
-                        if (normalizedVersion.startsWith('v')) {
-                          normalizedVersion = 'V' + normalizedVersion.slice(1);
-                        }
-                        attachmentText = `${formId}${normalizedVersion ? ` • ${normalizedVersion}` : ''}`;
-                      }
-
                       const hasPdf = !!formData.pdfName;
 
                       return (
