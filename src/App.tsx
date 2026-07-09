@@ -30,6 +30,7 @@ const MainApp: React.FC = () => {
   const [selectedFormName, setSelectedFormName] = useState<string | null>(null);
   const [initialFormFilter, setInitialFormFilter] = useState<string | null>(null);
   const [initialPrintFormName, setInitialPrintFormName] = useState<string | null>(null);
+  const [triggerProcessPrint, setTriggerProcessPrint] = useState(false);
   const [dashboardViewMode, setDashboardViewMode] = useState<'processes' | 'forms' | 'submissions' | 'guide'>('processes');
   const [initialEditorTab, setInitialEditorTab] = useState<'description' | 'workflow' | 'form' | 'versions' | undefined>(undefined);
   const [initialFormToBuild, setInitialFormToBuild] = useState<string | null>(null);
@@ -84,7 +85,7 @@ const MainApp: React.FC = () => {
     setPage('fill-form');
   };
 
-  const handleEditProcess = (id: string | null, tab?: 'description' | 'workflow' | 'form', formName?: string) => {
+  const handleEditProcess = (id: string | null, tab?: 'description' | 'workflow' | 'form', formName?: string | null) => {
     setPrevPage(page);
     setSelectedProcessId(id);
     setInitialEditorTab(tab);
@@ -107,6 +108,13 @@ const MainApp: React.FC = () => {
     setPrevPage(page);
     setSelectedProcessId(processId);
     setInitialPrintFormName(formName);
+    setPage('reader');
+  };
+
+  const handlePrintProcess = (id: string) => {
+    setPrevPage(page);
+    setSelectedProcessId(id);
+    setTriggerProcessPrint(true);
     setPage('reader');
   };
 
@@ -177,6 +185,25 @@ const MainApp: React.FC = () => {
                   display: 'flex', flexDirection: 'column',
                   overflow: 'hidden',
                 }}>
+                  <button
+                    onClick={() => {
+                      setUserMenuOpen(false);
+                      setPage('dashboard');
+                      setDashboardViewMode('guide');
+                    }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '0.5rem',
+                      width: '100%', padding: '0.6rem 1rem', border: 'none',
+                      background: 'none', textAlign: 'left', cursor: 'pointer',
+                      fontSize: '0.85rem', color: 'var(--text-primary)',
+                      transition: 'background 0.15s',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = '#f3f4f6')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+                  >
+                    <BookOpen size={14} />
+                    <span>Guide</span>
+                  </button>
                   {hasPermission('manage_users') && (
                     <button
                       onClick={() => {
@@ -189,6 +216,7 @@ const MainApp: React.FC = () => {
                         background: 'none', textAlign: 'left', cursor: 'pointer',
                         fontSize: '0.85rem', color: 'var(--text-primary)',
                         transition: 'background 0.15s',
+                        borderTop: '1px solid var(--neutral-border)',
                       }}
                       onMouseEnter={(e) => (e.currentTarget.style.background = '#f3f4f6')}
                       onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
@@ -208,7 +236,7 @@ const MainApp: React.FC = () => {
                       background: 'none', textAlign: 'left', cursor: 'pointer',
                       fontSize: '0.85rem', color: 'var(--danger, #ef4444)',
                       transition: 'background 0.15s',
-                      borderTop: hasPermission('manage_users') ? '1px solid var(--neutral-border)' : 'none',
+                      borderTop: '1px solid var(--neutral-border)',
                     }}
                     onMouseEnter={(e) => (e.currentTarget.style.background = '#fef2f2')}
                     onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
@@ -231,6 +259,7 @@ const MainApp: React.FC = () => {
             onEditProcess={handleEditProcess}
             onViewFormSubmissions={handleViewFormSubmissions}
             onPrintForm={handlePrintForm}
+            onPrintProcess={handlePrintProcess}
             onOpenFormManager={handleOpenFormManager}
             viewMode={dashboardViewMode}
             onViewModeChange={setDashboardViewMode}
@@ -266,11 +295,12 @@ const MainApp: React.FC = () => {
         {page === 'reader' && (
           <ProcessReader
             processId={selectedProcessId!}
-            onBack={() => { setPage(prevPage); setInitialPrintFormName(null); }}
+            onBack={() => { setPage(prevPage); setInitialPrintFormName(null); setTriggerProcessPrint(false); }}
             onEdit={handleEditProcess}
             initialPrintFormName={initialPrintFormName}
-            onClearPrintForm={() => setInitialPrintFormName(null)}
+            onClearPrintForm={() => { setInitialPrintFormName(null); setTriggerProcessPrint(false); }}
             onSwitchVersion={(id) => setSelectedProcessId(id)}
+            initialTriggerPrint={triggerProcessPrint}
           />
         )}
         {page === 'form-manager' && (

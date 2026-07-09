@@ -15,6 +15,7 @@ export interface ProcessStep {
   layoutY?: number;
   layoutWaypointsMap?: { [targetId: string]: { x: number; y: number }[] };
   layoutCatchWaypoints?: { x: number; y: number }[];
+  formLayouts?: Record<string, { x: number; y: number; waypoints?: { x: number; y: number }[]; labelX?: number; labelY?: number; labelW?: number; labelH?: number }>;
   labelX?: number;
   labelY?: number;
   labelW?: number;

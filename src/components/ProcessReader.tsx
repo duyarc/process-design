@@ -10,10 +10,11 @@ import PrintBlankForm from './print/PrintBlankForm';
 interface ProcessReaderProps {
   processId: string;
   onBack: () => void;
-  onEdit: (id: string) => void;
+  onEdit: (id: string, tab?: 'description' | 'workflow' | 'form', formName?: string | null) => void;
   initialPrintFormName?: string | null;
   onClearPrintForm?: () => void;
   onSwitchVersion?: (id: string) => void;
+  initialTriggerPrint?: boolean;
 }
 
 const statusColors: { [key: string]: { bg: string, text: string, border: string } } = {
@@ -30,7 +31,8 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
   onEdit, 
   initialPrintFormName, 
   onClearPrintForm,
-  onSwitchVersion
+  onSwitchVersion,
+  initialTriggerPrint
 }) => {
   const [process, setProcess] = useState<Process | null>(null);
   const [allVersions, setAllVersions] = useState<Process[]>([]);
@@ -378,7 +380,18 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
     };
     loadPrintTemplate();
   }, [initialPrintFormName, process]);
-
+  useEffect(() => {
+    if (!loading && process && initialTriggerPrint) {
+      const timer = setTimeout(() => {
+        window.print();
+        if (onClearPrintForm) {
+          onClearPrintForm();
+        }
+        onBack();
+      }, 600);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, process, initialTriggerPrint, onClearPrintForm, onBack]);
   const handlePrint = () => {
     window.print();
   };
@@ -605,10 +618,35 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
       <div className="paper-card accent-teal avoid-page-break" style={{ padding: '1.25rem', marginBottom: '0.5rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
           <div style={{ flex: '1 1 300px' }}>
-            <h1 style={{ marginTop: '0.25rem', marginBottom: '0.25rem', fontSize: '1.5rem' }}>{process.title}</h1>
-            <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: 0 }}>
-              {process.description || 'No description provided.'}
-            </p>
+            <h1 style={{ 
+              marginTop: '0.25rem', 
+              marginBottom: '0.25rem', 
+              fontSize: '1.5rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              flexWrap: 'wrap'
+            }}>
+              <span style={{
+                fontSize: '0.85rem',
+                fontWeight: 700,
+                color: '#475569',
+                background: '#f1f5f9',
+                border: '1px solid #e2e8f0',
+                padding: '0.15rem 0.45rem',
+                borderRadius: '5px',
+                fontFamily: 'monospace',
+                verticalAlign: 'middle',
+                lineHeight: '1',
+                flexShrink: 0
+              }}>{process.id}</span>
+              <span>{process.title}</span>
+            </h1>
+            {process.description && process.description.trim() && (
+              <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: 0 }}>
+                {process.description}
+              </p>
+            )}
           </div>
           <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0, alignItems: 'center', flexWrap: 'wrap' }}>
             <div style={{
@@ -719,43 +757,6 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
           {/* Document Details & Quality Controls (Printed after Flowchart) */}
           <div className="sop-details-container" style={{ marginTop: 0 }}>
             <div className="sop-details-columns-grid">
-              {/* Card 1: Document Control & Approvals */}
-              <div className="paper-card sop-print-card" style={{ borderLeft: '4px solid var(--primary)', padding: '0.85rem 1rem' }}>
-                <h3 style={{ margin: '0 0 0.6rem 0', fontSize: '0.9rem', color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 700, borderBottom: '1px solid var(--neutral-border)', paddingBottom: '0.4rem' }}>
-                  APPROVALS
-                </h3>
-                
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '0.25rem' }}>
-                    <thead>
-                      <tr style={{ background: '#f9fafb' }}>
-                        <th style={{ padding: '0.3rem 0.4rem', textAlign: 'left', fontWeight: 600, fontSize: '0.72rem', borderBottom: '1px solid var(--neutral-border)' }}>Role</th>
-                        <th style={{ padding: '0.3rem 0.4rem', textAlign: 'left', fontWeight: 600, fontSize: '0.72rem', borderBottom: '1px solid var(--neutral-border)' }}>Name</th>
-                        <th style={{ padding: '0.3rem 0.4rem', textAlign: 'left', fontWeight: 600, fontSize: '0.72rem', borderBottom: '1px solid var(--neutral-border)' }}>Title</th>
-                        <th style={{ padding: '0.3rem 0.4rem', textAlign: 'left', fontWeight: 600, fontSize: '0.72rem', borderBottom: '1px solid var(--neutral-border)' }}>Signature / Date</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {approvalRows.map((row, idx) => (
-                        <tr key={idx} style={{ borderBottom: '1px solid var(--neutral-border)' }}>
-                          <td style={{ padding: '0.3rem 0.4rem', fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-primary)' }}>{row.role}</td>
-                          <td style={{ padding: '0.3rem 0.4rem', fontSize: '0.72rem', color: row.name ? 'var(--text-primary)' : 'var(--text-muted)' }}>
-                            {row.name}
-                          </td>
-                          <td style={{ padding: '0.3rem 0.4rem', fontSize: '0.72rem', color: row.title ? 'var(--text-primary)' : 'var(--text-muted)' }}>
-                            {row.title}
-                          </td>
-                          <td style={{ padding: '0.3rem 0.4rem', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                            <span className="print-only" style={{ color: '#888' }}>Sign: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Date: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
-                            <span className="no-print" style={{ fontStyle: 'italic', fontSize: '0.7rem' }}>Pending sign-off</span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
               {/* Card 2: Attached Forms */}
               <div className="paper-card sop-print-card" style={{ borderLeft: '4px solid var(--primary)', padding: '0.85rem 1rem' }}>
                 <h3 style={{ margin: '0 0 0.6rem 0', fontSize: '0.9rem', color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 700, borderBottom: '1px solid var(--neutral-border)', paddingBottom: '0.4rem' }}>
@@ -767,8 +768,15 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                     No output forms are produced by this workflow.
                   </div>
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                    {workflowForms.map((formId) => {
+                  <div style={{ 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    border: '1px solid var(--neutral-border)', 
+                    borderRadius: '6px', 
+                    overflow: 'hidden',
+                    background: '#ffffff'
+                  }}>
+                    {workflowForms.map((formId, idx) => {
                       const formData = (process.workflowFormsData || {})[formId] || {};
                       const liveForm = allForms
                         .filter(f => f.form_id === formId)
@@ -806,79 +814,194 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                           display: 'flex',
                           justifyContent: 'space-between',
                           alignItems: 'center',
-                          padding: '0.6rem 0.8rem',
-                          background: '#f9fafb',
-                          border: '1px solid var(--neutral-border)',
-                          borderRadius: '4px',
-                          fontSize: '0.8rem'
+                          padding: '0.45rem 0.65rem',
+                          background: '#ffffff',
+                          borderBottom: idx < workflowForms.length - 1 ? '1px solid var(--neutral-border)' : 'none',
+                          fontSize: '0.78rem'
                         }}>
-                          <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem', minWidth: 0, marginRight: '1rem', flexWrap: 'wrap' }}>
-                            <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{displayName}</span>
-                            {attachmentText && (
-                              <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>• {attachmentText}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0, marginRight: '1rem', flexWrap: 'nowrap' }}>
+                            {/* Form ID Badge */}
+                            <span style={{
+                              fontSize: '0.7rem',
+                              fontWeight: 700,
+                              color: '#475569',
+                              background: '#f1f5f9',
+                              border: '1px solid #e2e8f0',
+                              padding: '0.1rem 0.4rem',
+                              borderRadius: '4px',
+                              fontFamily: 'monospace',
+                              whiteSpace: 'nowrap',
+                              flexShrink: 0
+                            }}>{formId}</span>
+
+                            {/* Version Badge (only for digital forms) */}
+                            {!formData.pdfName && (() => {
+                              const rawVersion = (liveVersion || '').trim();
+                              let cleanVersion = rawVersion.replace(/\s*\(draft\)/gi, '').trim();
+                              const dateRegex = /(\d{4})-(\d{2})-(\d{2})/;
+                              const dateMatch = cleanVersion.match(dateRegex);
+                              if (dateMatch) {
+                                const [_, yyyy, mm, dd] = dateMatch;
+                                const formattedDate = `${dd}.${mm}.${yyyy}`;
+                                cleanVersion = cleanVersion.replace(/\s*\([^)]*\)/g, '').replace(dateRegex, '').trim();
+                                cleanVersion = `${cleanVersion}-${formattedDate}`;
+                              }
+                              if (cleanVersion.startsWith('v')) {
+                                cleanVersion = 'V' + cleanVersion.slice(1);
+                              }
+                              if (!cleanVersion) return null;
+                              return (
+                                <span style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.25rem',
+                                  fontSize: '0.7rem',
+                                  fontWeight: 600,
+                                  color: 'var(--text-primary)',
+                                  background: '#ffffff',
+                                  border: '1px solid var(--neutral-border)',
+                                  padding: '0.1rem 0.4rem',
+                                  borderRadius: '4px',
+                                  whiteSpace: 'nowrap',
+                                  flexShrink: 0
+                                }}>
+                                  <GitBranch size={11} style={{ color: 'var(--text-secondary)' }} />
+                                  {cleanVersion}
+                                </span>
+                              );
+                            })()}
+
+                            {/* Status Badge (only for digital forms) */}
+                            {!formData.pdfName && (() => {
+                              const formStatus = (liveForm?.status || formData.status || 'DRAFT').toUpperCase();
+                              const getStatusStyles = (status: string) => {
+                                switch (status) {
+                                  case 'ACTIVE':
+                                    return { color: '#047857', bg: '#ecfdf5', border: '#a7f3d0' };
+                                  case 'PENDING REVIEW':
+                                  case 'PENDING_REVIEW':
+                                    return { color: '#1d4ed8', bg: '#eff6ff', border: '#bfdbfe' };
+                                  case 'DRAFT':
+                                  default:
+                                    return { color: '#b45309', bg: '#fffbeb', border: '#fde68a' };
+                                }
+                              };
+                              const statusStyle = getStatusStyles(formStatus);
+                              return (
+                                <span style={{
+                                  fontSize: '0.62rem',
+                                  fontWeight: 700,
+                                  letterSpacing: '0.5px',
+                                  color: statusStyle.color,
+                                  background: statusStyle.bg,
+                                  border: `1px solid ${statusStyle.border}`,
+                                  padding: '0.05rem 0.3rem',
+                                  borderRadius: '4px',
+                                  whiteSpace: 'nowrap',
+                                  textTransform: 'uppercase',
+                                  flexShrink: 0
+                                }}>
+                                  {formStatus}
+                                </span>
+                              );
+                            })()}
+
+                            <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.8rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{displayName}</span>
+                            {formData.pdfName && (
+                              <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>• {formData.pdfName}</span>
                             )}
                           </div>
                           <div className="no-print" style={{ display: 'flex', gap: '0.4rem', flexShrink: 0 }}>
-                            {hasDigitalForm && hasLayoutBlocks && (
+                            {hasDigitalForm && (
                               <>
-                                <button
-                                  type="button"
-                                  onClick={() => setActiveFormToFill(formId)}
-                                  style={{ 
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '0.35rem',
-                                    padding: '0.35rem 0.65rem', 
-                                    fontSize: '0.75rem', 
-                                    fontWeight: 500,
-                                    color: 'var(--text-primary)', 
-                                    background: '#ffffff',
-                                    border: '1px solid var(--neutral-border)', 
-                                    borderRadius: '6px',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.15s ease',
-                                    margin: 0 
-                                  }}
-                                  className="hover-card-bg"
-                                >
-                                  <PenTool size={13} style={{ color: 'var(--text-primary)' }} />
-                                  Fill
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    if (formData && liveForm) {
-                                      const fullTemplate = {
-                                        ...formData,
-                                        formTitle: liveForm.form_title || liveForm.form_name,
-                                        layoutBlocks: typeof liveForm.layout_blocks === 'string' ? JSON.parse(liveForm.layout_blocks) : liveForm.layout_blocks,
-                                        revisionHistory: typeof liveForm.revision_history === 'string' ? JSON.parse(liveForm.revision_history) : liveForm.revision_history,
-                                        version: liveForm.version,
-                                        status: liveForm.status
-                                      };
-                                      setPrintTemplateData(fullTemplate as any);
-                                    }
-                                  }}
-                                  style={{ 
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '0.35rem',
-                                    padding: '0.35rem 0.65rem', 
-                                    fontSize: '0.75rem', 
-                                    fontWeight: 500,
-                                    color: 'var(--text-primary)', 
-                                    background: '#ffffff',
-                                    border: '1px solid var(--neutral-border)', 
-                                    borderRadius: '6px',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.15s ease',
-                                    margin: 0 
-                                  }}
-                                  className="hover-card-bg"
-                                >
-                                  <Printer size={13} style={{ color: 'var(--text-primary)' }} />
-                                  Print
-                                </button>
+                                {hasPermission('design_document') && (
+                                  <button
+                                    type="button"
+                                    title="Design"
+                                    onClick={() => onEdit(processId, 'form', formId)}
+                                    style={{ 
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      height: '28px',
+                                      width: '28px',
+                                      padding: 0,
+                                      color: 'var(--text-primary)', 
+                                      background: '#ffffff',
+                                      border: '1px solid var(--neutral-border)', 
+                                      borderRadius: '6px',
+                                      cursor: 'pointer',
+                                      transition: 'all 0.15s ease',
+                                      margin: 0 
+                                    }}
+                                    className="hover-card-bg"
+                                  >
+                                    <Edit2 size={13} style={{ color: 'var(--text-primary)' }} />
+                                  </button>
+                                )}
+
+                                {hasLayoutBlocks && (
+                                  <>
+                                    <button
+                                      type="button"
+                                      title="Fill"
+                                      onClick={() => setActiveFormToFill(formId)}
+                                      style={{ 
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        height: '28px',
+                                        width: '28px',
+                                        padding: 0,
+                                        color: 'var(--text-primary)', 
+                                        background: '#ffffff',
+                                        border: '1px solid var(--neutral-border)', 
+                                        borderRadius: '6px',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.15s ease',
+                                        margin: 0 
+                                      }}
+                                      className="hover-card-bg"
+                                    >
+                                      <PenTool size={13} style={{ color: 'var(--text-primary)' }} />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      title="Print"
+                                      onClick={() => {
+                                        if (formData && liveForm) {
+                                          const fullTemplate = {
+                                            ...formData,
+                                            formTitle: liveForm.form_title || liveForm.form_name,
+                                            layoutBlocks: typeof liveForm.layout_blocks === 'string' ? JSON.parse(liveForm.layout_blocks) : liveForm.layout_blocks,
+                                            revisionHistory: typeof liveForm.revision_history === 'string' ? JSON.parse(liveForm.revision_history) : liveForm.revision_history,
+                                            version: liveForm.version,
+                                            status: liveForm.status
+                                          };
+                                          setPrintTemplateData(fullTemplate as any);
+                                        }
+                                      }}
+                                      style={{ 
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        height: '28px',
+                                        width: '28px',
+                                        padding: 0,
+                                        color: 'var(--text-primary)', 
+                                        background: '#ffffff',
+                                        border: '1px solid var(--neutral-border)', 
+                                        borderRadius: '6px',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.15s ease',
+                                        margin: 0 
+                                      }}
+                                      className="hover-card-bg"
+                                    >
+                                      <Printer size={13} style={{ color: 'var(--text-primary)' }} />
+                                    </button>
+                                  </>
+                                )}
                               </>
                             )}
 
@@ -899,6 +1022,43 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                     })}
                   </div>
                 )}
+              </div>
+
+              {/* Card 1: Document Control & Approvals */}
+              <div className="paper-card sop-print-card" style={{ borderLeft: '4px solid var(--primary)', padding: '0.85rem 1rem' }}>
+                <h3 style={{ margin: '0 0 0.6rem 0', fontSize: '0.9rem', color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 700, borderBottom: '1px solid var(--neutral-border)', paddingBottom: '0.4rem' }}>
+                  APPROVALS
+                </h3>
+                
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '0.25rem' }}>
+                    <thead>
+                      <tr style={{ background: '#f9fafb' }}>
+                        <th style={{ padding: '0.3rem 0.4rem', textAlign: 'left', fontWeight: 600, fontSize: '0.72rem', borderBottom: '1px solid var(--neutral-border)' }}>Role</th>
+                        <th style={{ padding: '0.3rem 0.4rem', textAlign: 'left', fontWeight: 600, fontSize: '0.72rem', borderBottom: '1px solid var(--neutral-border)' }}>Name</th>
+                        <th style={{ padding: '0.3rem 0.4rem', textAlign: 'left', fontWeight: 600, fontSize: '0.72rem', borderBottom: '1px solid var(--neutral-border)' }}>Title</th>
+                        <th style={{ padding: '0.3rem 0.4rem', textAlign: 'left', fontWeight: 600, fontSize: '0.72rem', borderBottom: '1px solid var(--neutral-border)' }}>Signature / Date</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {approvalRows.map((row, idx) => (
+                        <tr key={idx} style={{ borderBottom: '1px solid var(--neutral-border)' }}>
+                          <td style={{ padding: '0.3rem 0.4rem', fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-primary)' }}>{row.role}</td>
+                          <td style={{ padding: '0.3rem 0.4rem', fontSize: '0.72rem', color: row.name ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+                            {row.name}
+                          </td>
+                          <td style={{ padding: '0.3rem 0.4rem', fontSize: '0.72rem', color: row.title ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+                            {row.title}
+                          </td>
+                          <td style={{ padding: '0.3rem 0.4rem', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                            <span className="print-only" style={{ color: '#888' }}>Sign: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Date: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                            <span className="no-print" style={{ fontStyle: 'italic', fontSize: '0.7rem' }}>Pending sign-off</span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
 
             </div>

@@ -1,73 +1,79 @@
-# React + TypeScript + Vite
+# Quality Management System (Process Optimization Platform)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A digital platform designed to digitize, author, and track operational workflows and quality checklists on the shop floor. It replaces physical paper trails with digital processes, offering dynamic form builders, visual process mapping (BPMN), and secure cross-role sign-offs.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 🏗️ System Architecture
 
-## React Compiler
+The project is divided into four distinct functional modules, each governed by its own architectural design document.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 1. [Platform Shell](./DESIGN_PLATFORM_SHELL.md)
+The foundational layer and main entry point of the application.
+- **Responsibilities:** Authentication, Global Routing & Dashboard, Role-Based Access Control (RBAC), and User Administration.
+- **Key Components:** `App.tsx`, `Dashboard.tsx`, `AuthContext.tsx`.
 
-## Expanding the ESLint configuration
+### 2. [Process Designer](./DESIGN_PROCESS_DESIGNER.md)
+The authoring tool for mapping visual business workflows.
+- **Responsibilities:** Creating and editing BPMN diagrams (bpmn.io), linking operational steps to forms, versioning workflows, and displaying an interactive read-only viewer for operators.
+- **Key Components:** `ProcessEditor.tsx`, `ProcessReader.tsx`, `BpmnModelerComponent.tsx`.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### 3. [Form Designer](./DESIGN_FORM_DESIGNER.md)
+The authoring tool for creating dynamic templates (checklists, parameter sheets, matrices).
+- **Responsibilities:** Drag-and-drop block layout configuration, configuring field validation (min/max spec, reactions), and locking form versions for compliance.
+- **Key Components:** `FormBuilder.tsx`, `PrintBlankForm.tsx`.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### 4. [Form Operations](./DESIGN_FORM_OPERATIONS.md)
+The execution and tracking layer for running processes on the floor.
+- **Responsibilities:** Digital fill-out of forms, capturing photo evidence (QMS protocol), real-time pass/fail evaluation, logging submissions, and supervisor verification sign-off.
+- **Key Components:** `FormFiller.tsx`, `FormManager.tsx`, `SubmissionManager.tsx`.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+---
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## 🎨 Design & UI Guidelines
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+All visual decisions, typography, theming, and layout constraints are documented in:
+👉 **[DESIGN_UI_UX.md](./DESIGN_UI_UX.md)**
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+---
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## 🛠️ Technology Stack
+
+- **Core:** React 18, TypeScript, Vite
+- **Styling:** Vanilla CSS (CSS Variables for theming, Glassmorphism design)
+- **Icons:** `lucide-react`
+- **Workflow Modeler:** `bpmn-js`
+- **Authentication:** Custom JWT-based + Google OAuth (`@react-oauth/google`)
+- **Backend/API:** Node.js Express server (`server.cjs`)
+- **Storage:** Supabase (Database), Cloudflare R2 (Media/Logos)
+
+---
+
+## 🚀 Setup & Local Development
+
+### Prerequisites
+- Node.js (v18+)
+- Local `.env` file containing Supabase and Cloudflare R2 secrets.
+
+### Installation
+
+1. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+2. **Start the local development environment:**
+   The project uses `concurrently` to run both the Vite frontend and Node Express backend simultaneously.
+   ```bash
+   npm run dev
+   ```
+
+3. **Access the application:**
+   - Frontend: `http://localhost:5173` (or port specified by Vite)
+   - Backend API: `http://localhost:3000`
+
+### Production Build
+To create an optimized production bundle:
+```bash
+npm run build
 ```

@@ -80,6 +80,8 @@ CREATE TABLE IF NOT EXISTS process_forms (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT unique_process_form UNIQUE (process_id, form_name)
 );
+
+ALTER TABLE process_forms ENABLE ROW LEVEL SECURITY;
 ```
 
 ### Step C: Express Server Code (`server.js`)

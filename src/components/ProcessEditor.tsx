@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { Process, ProcessStep, FormField, FormDesignerField, SOPSignOff, SOPSignOffs } from '../types';
-import { Save, Plus, Trash2, ArrowUp, ArrowDown, Upload, Edit2, Eye, Printer, GitBranch, XCircle, Shield, Calendar } from 'lucide-react';
+import { Save, Plus, Trash2, ArrowUp, ArrowDown, Upload, Edit2, Eye, Printer, GitBranch, XCircle, Shield, Calendar, RotateCcw } from 'lucide-react';
 import FormBuilder from './FormBuilder';
 import { generateBPMNXML } from '../utils/bpmnXmlGenerator';
 import { useAuth } from '../context/AuthContext';
@@ -133,6 +133,89 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
   };
   const modelerRef = useRef<BpmnModelerRef | null>(null);
   const [activeTab, setActiveTab] = useState<'description' | 'workflow' | 'form' | 'versions'>('description');
+
+  const handleTabChange = (newTab: 'description' | 'workflow' | 'form' | 'versions') => {
+    if (activeTab === 'workflow' && bpmnViewMode === 'custom' && modelerRef.current) {
+      try {
+        const { positions, waypoints } = modelerRef.current.getPositions();
+        if (positions.length > 0) {
+          const updatedSteps = steps.map(step => {
+            const match = positions.find(pos => pos.id === step.id);
+            const stepWaypoints = waypoints.filter(wp => wp.sourceId === step.id);
+            const layoutWaypointsMap: { [targetId: string]: { x: number; y: number }[] } = {};
+            stepWaypoints.forEach(wp => {
+              layoutWaypointsMap[wp.targetId] = wp.waypoints;
+            });
+            const incomingCatchFlow = waypoints.find(wp => wp.targetId === step.id && wp.sourceId.startsWith('LinkCatch_'));
+
+            const updatedStep = { ...step };
+            if (match) {
+              updatedStep.layoutX = Math.round(match.x);
+              updatedStep.layoutY = Math.round(match.y);
+              if (match.labelX !== undefined && match.labelY !== undefined) {
+                updatedStep.labelX = match.labelX;
+                updatedStep.labelY = match.labelY;
+                updatedStep.labelW = match.labelW;
+                updatedStep.labelH = match.labelH;
+              } else {
+                delete updatedStep.labelX;
+                delete updatedStep.labelY;
+                delete updatedStep.labelW;
+                delete updatedStep.labelH;
+              }
+            }
+            if (Object.keys(layoutWaypointsMap).length > 0) {
+              updatedStep.layoutWaypointsMap = layoutWaypointsMap;
+            } else {
+              delete updatedStep.layoutWaypointsMap;
+            }
+            if (incomingCatchFlow) {
+              updatedStep.layoutCatchWaypoints = incomingCatchFlow.waypoints;
+            } else {
+              delete updatedStep.layoutCatchWaypoints;
+            }
+
+            const formLayouts: Record<string, { x: number; y: number; waypoints?: { x: number; y: number }[]; labelX?: number; labelY?: number; labelW?: number; labelH?: number }> = {};
+            const forms = updatedStep.formNames && updatedStep.formNames.length > 0 
+              ? updatedStep.formNames 
+              : (updatedStep.formName ? [updatedStep.formName] : []);
+            
+            forms.forEach((formName, idx) => {
+              const doRefId = `DataObjectRef_${updatedStep.id}_${idx}`;
+              const doMatch = positions.find(pos => pos.id === doRefId);
+              if (doMatch) {
+                const assocId = `DataOutputAssoc_${updatedStep.id}_${idx}`;
+                const assocFlow = waypoints.find(wp => wp.id === assocId);
+                const layoutItem: any = { 
+                  x: Math.round(doMatch.x), 
+                  y: Math.round(doMatch.y),
+                  waypoints: assocFlow ? assocFlow.waypoints : undefined
+                };
+                if (doMatch.labelX !== undefined && doMatch.labelY !== undefined) {
+                  layoutItem.labelX = doMatch.labelX;
+                  layoutItem.labelY = doMatch.labelY;
+                  layoutItem.labelW = doMatch.labelW;
+                  layoutItem.labelH = doMatch.labelH;
+                }
+                formLayouts[formName] = layoutItem;
+              }
+            });
+            if (Object.keys(formLayouts).length > 0) {
+              updatedStep.formLayouts = formLayouts;
+            } else {
+              delete updatedStep.formLayouts;
+            }
+
+            return updatedStep;
+          });
+          setSteps(updatedSteps);
+        }
+      } catch (err) {
+        console.error('Error auto-syncing BPMN positions on tab switch:', err);
+      }
+    }
+    setActiveTab(newTab);
+  };
   const [activeFormToBuild, setActiveFormToBuild] = useState<string | null>(null);
   const [processCode, setProcessCode] = useState('');
   const [title, setTitle] = useState('');
@@ -542,7 +625,11 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
         // Load sibling versions for the Versions tab
         const pid = proc.parentProcessId || proc.id;
         const siblings = list.filter(p => p.parentProcessId === pid || p.id === pid);
-        siblings.sort((a, b) => (parseInt(b.version, 10) || 0) - (parseInt(a.version, 10) || 0));
+        siblings.sort((a, b) => {
+          const timeA = a.lastUpdated ? new Date(a.lastUpdated).getTime() : 0;
+          const timeB = b.lastUpdated ? new Date(b.lastUpdated).getTime() : 0;
+          return timeB - timeA;
+        });
         setAllVersions(siblings);
       } else {
         console.error(`Process with ID ${id} not found in the loaded list.`, list);
@@ -644,6 +731,24 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
     } catch (err) {
       console.error(err);
       alert('Error retiring version.');
+    } finally {
+      setVersionActionLoading(false);
+    }
+  };
+
+  const handleReactivateVersion = async () => {
+    if (!processId) return;
+    if (!window.confirm('Reactivate this version? It will be marked as Active and set as the active standard.')) return;
+    try {
+      setVersionActionLoading(true);
+      const payload = { id: processId, title, description, version, roles, steps, formFields: formFields.filter(f => f.checkItem.trim() !== ''), sopSignoffs, workflowFormsData, status: 'Active', parentProcessId: parentProcessId || undefined };
+      const res = await fetch('/api/processes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      if (!res.ok) throw new Error('Failed to reactivate');
+      setStatus('Active');
+      await fetchProcess(processId);
+    } catch (err) {
+      console.error(err);
+      alert('Error reactivating version.');
     } finally {
       setVersionActionLoading(false);
     }
@@ -838,6 +943,38 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
         } else {
           delete updatedStep.layoutCatchWaypoints;
         }
+
+        const formLayouts: Record<string, { x: number; y: number; waypoints?: { x: number; y: number }[]; labelX?: number; labelY?: number; labelW?: number; labelH?: number }> = {};
+        const forms = updatedStep.formNames && updatedStep.formNames.length > 0 
+          ? updatedStep.formNames 
+          : (updatedStep.formName ? [updatedStep.formName] : []);
+        
+        forms.forEach((formName, idx) => {
+          const doRefId = `DataObjectRef_${updatedStep.id}_${idx}`;
+          const doMatch = positions.find(pos => pos.id === doRefId);
+          if (doMatch) {
+            const assocId = `DataOutputAssoc_${updatedStep.id}_${idx}`;
+            const assocFlow = waypoints.find(wp => wp.id === assocId);
+            const layoutItem: any = { 
+              x: Math.round(doMatch.x), 
+              y: Math.round(doMatch.y),
+              waypoints: assocFlow ? assocFlow.waypoints : undefined
+            };
+            if (doMatch.labelX !== undefined && doMatch.labelY !== undefined) {
+              layoutItem.labelX = doMatch.labelX;
+              layoutItem.labelY = doMatch.labelY;
+              layoutItem.labelW = doMatch.labelW;
+              layoutItem.labelH = doMatch.labelH;
+            }
+            formLayouts[formName] = layoutItem;
+          }
+        });
+        if (Object.keys(formLayouts).length > 0) {
+          updatedStep.formLayouts = formLayouts;
+        } else {
+          delete updatedStep.formLayouts;
+        }
+
         return updatedStep;
       });
       setSteps(updatedSteps);
@@ -883,6 +1020,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
         delete copy.layoutY;
         delete copy.layoutWaypointsMap;
         delete copy.layoutCatchWaypoints;
+        delete copy.formLayouts;
         delete copy.labelX;
         delete copy.labelY;
         delete copy.labelW;
@@ -1001,6 +1139,38 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
         } else {
           delete updatedStep.layoutCatchWaypoints;
         }
+
+        const formLayouts: Record<string, { x: number; y: number; waypoints?: { x: number; y: number }[]; labelX?: number; labelY?: number; labelW?: number; labelH?: number }> = {};
+        const forms = updatedStep.formNames && updatedStep.formNames.length > 0 
+          ? updatedStep.formNames 
+          : (updatedStep.formName ? [updatedStep.formName] : []);
+        
+        forms.forEach((formName, idx) => {
+          const doRefId = `DataObjectRef_${updatedStep.id}_${idx}`;
+          const doMatch = positions.find(pos => pos.id === doRefId);
+          if (doMatch) {
+            const assocId = `DataOutputAssoc_${updatedStep.id}_${idx}`;
+            const assocFlow = waypoints.find(wp => wp.id === assocId);
+            const layoutItem: any = { 
+              x: Math.round(doMatch.x), 
+              y: Math.round(doMatch.y),
+              waypoints: assocFlow ? assocFlow.waypoints : undefined
+            };
+            if (doMatch.labelX !== undefined && doMatch.labelY !== undefined) {
+              layoutItem.labelX = doMatch.labelX;
+              layoutItem.labelY = doMatch.labelY;
+              layoutItem.labelW = doMatch.labelW;
+              layoutItem.labelH = doMatch.labelH;
+            }
+            formLayouts[formName] = layoutItem;
+          }
+        });
+        if (Object.keys(formLayouts).length > 0) {
+          updatedStep.formLayouts = formLayouts;
+        } else {
+          delete updatedStep.formLayouts;
+        }
+
         return updatedStep;
       });
       // Update steps state to match what we are saving
@@ -1204,7 +1374,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
               return (
                 <button
                   key={tab}
-                  onClick={() => setActiveTab(tab)}
+                  onClick={() => handleTabChange(tab)}
                   className="btn btn-secondary"
                   style={{
                     borderBottom: activeTab === tab ? '2px solid var(--primary)' : '2px solid transparent',
@@ -1595,9 +1765,33 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                          className="btn btn-secondary btn-sm"
                          onClick={handleCreateNewDraftEditor}
                          disabled={versionActionLoading}
-                         style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', padding: '0.2rem 0.45rem', fontSize: '0.68rem', margin: 0, textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.5px' }}
+                       style={{ display: 'inline-flex', alignItems: 'center', gap: '0.2rem', padding: '0.2rem 0.45rem', fontSize: '0.68rem', margin: 0, textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.5px' }}
                        >
                          <Plus size={11} /> New Draft
+                       </button>
+                     )}
+                     {status === 'Retired' && (
+                       <button
+                         type="button"
+                         className="btn btn-outline-success btn-sm"
+                         onClick={handleReactivateVersion}
+                         disabled={versionActionLoading}
+                         style={{ 
+                           display: 'inline-flex', 
+                           alignItems: 'center', 
+                           gap: '0.25rem', 
+                           padding: '0.2rem 0.45rem', 
+                           fontSize: '0.68rem', 
+                           margin: 0, 
+                           textTransform: 'uppercase', 
+                           fontWeight: 700, 
+                           letterSpacing: '0.5px',
+                           color: '#16a34a',
+                           borderColor: '#bbf7d0',
+                           background: '#f0fdf4'
+                         }}
+                       >
+                         <RotateCcw size={11} /> Reactivate
                        </button>
                      )}
                      {status === 'Active' && (
@@ -1795,7 +1989,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                           <span style={{ fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
                             {/^[vV]/.test(v.version || '') ? 'V' + (v.version || '').trim().slice(1) : 'V' + (v.version || '').trim()}
                           </span>
-                          {isCurrent && <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--primary)', background: '#f0fdfa', border: '1px solid #99f6e4', padding: '0.05rem 0.3rem', borderRadius: '3px', textTransform: 'uppercase' }}>Current</span>}
+
                           <span className="badge" style={{ backgroundColor: vColors.bg, color: vColors.text, border: `1px solid ${vColors.border}`, fontSize: '0.65rem', padding: '0.05rem 0.35rem', textTransform: 'uppercase', fontWeight: 700 }}>{vStatus}</span>
                            {v.sopSignoffs?.effectiveDate ? (
                             <span style={{ color: 'var(--text-secondary)', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '0.2rem' }} title="Effective Date">
@@ -1832,7 +2026,13 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                   <div style={{ display: 'flex', gap: '0.25rem', background: '#f1f5f9', padding: '2px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
                     <button
                       type="button"
-                      onClick={() => setBpmnViewMode('auto')}
+                      onClick={() => {
+                        if (bpmnViewMode === 'custom') {
+                          handleResetBpmnPositions();
+                        } else {
+                          setBpmnViewMode('auto');
+                        }
+                      }}
                       className={`btn btn-sm ${bpmnViewMode === 'auto' ? 'btn-primary' : 'btn-secondary'}`}
                       style={{ margin: 0, padding: '4px 8px', fontSize: '0.75rem', border: 'none', boxShadow: bpmnViewMode === 'auto' ? undefined : 'none', background: bpmnViewMode === 'auto' ? undefined : 'transparent' }}
                     >
@@ -1863,12 +2063,6 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                     onReset={handleResetBpmnPositions}
                     isSaving={savingBpmn}
                   />
-                  <div className="no-print" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#fef3c7', border: '1px solid #fcd34d', padding: '0.5rem 0.75rem', borderRadius: '6px', marginBottom: '1rem', fontSize: '0.8rem', color: '#92400e' }}>
-                    <span>⚠️</span>
-                    <span>
-                      <strong>Custom layout active.</strong> Changes to the steps checklist/roles below will not automatically update this custom diagram. To sync again, you can edit the diagram manually or click <strong>Reset to Auto-Layout</strong> to re-align dynamically.
-                    </span>
-                  </div>
                 </div>
               ) : (
                 <div>

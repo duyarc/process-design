@@ -182,21 +182,25 @@ export const BpmnModelerComponent = forwardRef<BpmnModelerRef, BpmnModelerCompon
           element.type === 'bpmn:StartEvent' ||
           element.type === 'bpmn:EndEvent' ||
           element.type === 'bpmn:ExclusiveGateway' ||
-          element.type === 'bpmn:ParallelGateway'
+          element.type === 'bpmn:ParallelGateway' ||
+          element.type === 'bpmn:DataObjectReference'
         ) {
           const pos: { id: string; x: number; y: number; labelX?: number; labelY?: number; labelW?: number; labelH?: number } = {
             id: element.id,
             x: element.x,
             y: element.y
           };
-          if (element.label && typeof element.label.x === 'number' && typeof element.label.y === 'number') {
-            pos.labelX = Math.round(element.label.x);
-            pos.labelY = Math.round(element.label.y);
-            pos.labelW = Math.round(element.label.width || 0);
-            pos.labelH = Math.round(element.label.height || 0);
+          const labelShape = element.label || 
+                             (element.labels && element.labels.length > 0 ? element.labels[0] : null) ||
+                             elementRegistry.filter((e: any) => e.labelTarget && e.labelTarget.id === element.id)[0];
+          if (labelShape && typeof labelShape.x === 'number' && typeof labelShape.y === 'number') {
+            pos.labelX = Math.round(labelShape.x);
+            pos.labelY = Math.round(labelShape.y);
+            pos.labelW = Math.round(labelShape.width || 0);
+            pos.labelH = Math.round(labelShape.height || 0);
           }
           positions.push(pos);
-        } else if (element.type === 'bpmn:SequenceFlow') {
+        } else if (element.type === 'bpmn:SequenceFlow' || element.type === 'bpmn:Association') {
           if (element.source && element.target && element.waypoints) {
             waypoints.push({
               id: element.id,
@@ -269,27 +273,6 @@ export const BpmnModelerComponent = forwardRef<BpmnModelerRef, BpmnModelerCompon
       >
         <span>🎨 Adjust Diagram Layout (Drag to reposition shapes/connectors)</span>
         <div style={{ display: 'flex', gap: '8px' }}>
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            onClick={onReset}
-            disabled={isSaving}
-            title="Reset to default grid layout"
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '4px', 
-              padding: '4px 8px', 
-              fontSize: '0.75rem', 
-              background: 'rgba(255,255,255,0.2)',
-              color: '#ffffff',
-              border: '1px solid rgba(255,255,255,0.3)',
-              margin: 0,
-              boxShadow: 'none'
-            }}
-          >
-            <RotateCcw size={12} /> Reset to Auto-Layout
-          </button>
           <button
             type="button"
             className="btn btn-primary btn-sm"

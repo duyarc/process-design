@@ -7,7 +7,6 @@ import {
   AlertTriangle, 
   Clock, 
   Printer, 
-  FileText, 
   Search, 
   Eye,
   CheckCircle2,
@@ -20,9 +19,10 @@ interface SubmissionManagerProps {
   onBack?: () => void;
   initialFormFilter?: string | null;
   isEmbedded?: boolean;
+  layoutMode?: 'grid' | 'list';
 }
 
-export default function SubmissionManager({ onBack, initialFormFilter, isEmbedded = false }: SubmissionManagerProps) {
+export default function SubmissionManager({ onBack, initialFormFilter, isEmbedded = false, layoutMode = 'list' }: SubmissionManagerProps) {
   const { currentUser } = useAuth();
   
   // Data States
@@ -83,6 +83,16 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
 
   useEffect(() => {
     fetchData();
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setSelectedSubmission(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   // Map process ID to title
@@ -236,53 +246,140 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         
-        {/* Left Side: Filter and Submission Table List */}
-        <div style={{ flex: 2, minWidth: '600px', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        {/* Filters Bar */}
+        <div className="paper-card" style={{ padding: '0.75rem 1rem', display: 'flex', gap: '1.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
+            <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+            <input 
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search by Process, Operator, ID..."
+              style={{ padding: '0.45rem 0.6rem 0.45rem 2.25rem', fontSize: '0.85rem', border: '1px solid var(--neutral-border)', borderRadius: '6px', width: '100%', outline: 'none' }}
+            />
+          </div>
           
-          {/* Filters Bar */}
-          <div className="paper-card" style={{ padding: '1rem', display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
-            <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
-              <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-              <input 
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search by Process, Operator, ID..."
-                style={{ padding: '0.45rem 0.6rem 0.45rem 2.25rem', fontSize: '0.85rem', border: '1px solid var(--neutral-border)', borderRadius: '6px', width: '100%', outline: 'none' }}
-              />
-            </div>
-            
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Status:</span>
-              <select 
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as any)}
-                style={{ padding: '0.4rem 0.6rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '6px', background: '#fff' }}
-              >
-                <option value="ALL">All Checks</option>
-                <option value="PASS">Pass Only</option>
-                <option value="ABNORMALITY">Abnormalities Only</option>
-              </select>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Verification:</span>
-              <select 
-                value={signoffFilter}
-                onChange={(e) => setSignoffFilter(e.target.value as any)}
-                style={{ padding: '0.4rem 0.6rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '6px', background: '#fff' }}
-              >
-                <option value="ALL">All Reviews</option>
-                <option value="PENDING">Pending Approval</option>
-                <option value="VERIFIED">Verified</option>
-              </select>
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Status:</span>
+            <select 
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as any)}
+              style={{ padding: '0.4rem 0.6rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '6px', background: '#fff' }}
+            >
+              <option value="ALL">All Checks</option>
+              <option value="PASS">Pass Only</option>
+              <option value="ABNORMALITY">Abnormalities Only</option>
+            </select>
           </div>
 
-          {/* Table Container */}
-          <div className="paper-card" style={{ padding: '1rem', overflowX: 'auto' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Verification:</span>
+            <select 
+              value={signoffFilter}
+              onChange={(e) => setSignoffFilter(e.target.value as any)}
+              style={{ padding: '0.4rem 0.6rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '6px', background: '#fff' }}
+            >
+              <option value="ALL">All Reviews</option>
+              <option value="PENDING">Pending Approval</option>
+              <option value="VERIFIED">Verified</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Table/Grid Container */}
+        {layoutMode === 'grid' && !loading && filteredSubmissions.length > 0 ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
+            {filteredSubmissions.map((sub) => {
+              const hasFail = sub.status === 'FAIL' || sub.status === 'ABNORMALITY';
+              const isSelected = selectedSubmission?.id === sub.id;
+
+              return (
+                <div
+                  key={sub.id}
+                  onClick={() => setSelectedSubmission(sub)}
+                  className="hover-card-bg"
+                  style={{
+                    background: isSelected ? '#eff6ff' : '#ffffff',
+                    border: isSelected ? '1px solid var(--primary)' : '1px solid var(--neutral-border)',
+                    borderRadius: '8px',
+                    padding: '1rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    cursor: 'pointer',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', background: '#f1f5f9', padding: '0.1rem 0.35rem', borderRadius: '4px', border: '1px solid #e2e8f0', fontFamily: 'monospace' }}>
+                        {sub.id}
+                      </span>
+                      <span className={`badge ${hasFail ? 'badge-danger' : 'badge-success'}`} style={{ fontSize: '0.65rem', padding: '0.1rem 0.35rem', textTransform: 'uppercase' }}>
+                        {sub.status}
+                      </span>
+                    </div>
+
+                    <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                      {getProcessTitle(sub.processId)}
+                    </h4>
+                    {sub.formId && (
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
+                        Template: {sub.formId}
+                      </div>
+                    )}
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.78rem', color: 'var(--text-secondary)', borderTop: '1px solid var(--neutral-border)', paddingTop: '0.5rem', marginBottom: '0.75rem' }}>
+                      <div><strong>Operator:</strong> {sub.operatorId}</div>
+                      <div><strong>Submitted:</strong> {new Date(sub.submittedAt).toLocaleDateString()} {new Date(sub.submittedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      {sub.supervisorSignoff ? (
+                        <span style={{ color: '#10b981', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.2rem', fontSize: '0.75rem' }}>
+                          <CheckCircle2 size={12} />
+                          <span>Verified</span>
+                        </span>
+                      ) : (
+                        <span style={{ color: '#f59e0b', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.2rem', fontSize: '0.75rem' }}>
+                          <Clock size={12} />
+                          <span>Pending</span>
+                        </span>
+                      )}
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '0.35rem' }} onClick={(e) => e.stopPropagation()}>
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        title="View Details"
+                        onClick={() => setSelectedSubmission(sub)}
+                        style={{ padding: '0.25rem', height: '26px', width: '26px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: 0 }}
+                      >
+                        <Eye size={13} />
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        title="Print A4 Record"
+                        onClick={() => setPrintSubmission(sub)}
+                        style={{ padding: '0.25rem', height: '26px', width: '26px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: 0 }}
+                      >
+                        <Printer size={13} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="paper-card" style={{ padding: '0.5rem 0', overflowX: 'auto' }}>
             {loading ? (
               <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem 0' }}>Loading audit trails...</p>
             ) : filteredSubmissions.length === 0 ? (
@@ -290,42 +387,48 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
             ) : (
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                 <thead>
-                  <tr style={{ borderBottom: '2px solid var(--neutral-border)', background: '#f8fafc' }}>
-                    <th style={{ padding: '0.6rem', textAlign: 'left', fontWeight: 600 }}>Record ID</th>
-                    <th style={{ padding: '0.6rem', textAlign: 'left', fontWeight: 600 }}>Process Name</th>
-                    <th style={{ padding: '0.6rem', textAlign: 'center', fontWeight: 600 }}>Operator</th>
-                    <th style={{ padding: '0.6rem', textAlign: 'center', fontWeight: 600 }}>Date/Time</th>
-                    <th style={{ padding: '0.6rem', textAlign: 'center', fontWeight: 600 }}>QMS Status</th>
-                    <th style={{ padding: '0.6rem', textAlign: 'center', fontWeight: 600 }}>Verification</th>
-                    <th style={{ padding: '0.6rem', textAlign: 'center', fontWeight: 600 }}>Actions</th>
+                  <tr style={{ borderBottom: '2px solid var(--neutral-border)', background: '#f8fafc', color: 'var(--text-secondary)' }}>
+                    <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '12%' }}>Record ID</th>
+                    <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '38%' }}>Process Name</th>
+                    <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '12%' }}>Operator</th>
+                    <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '18%' }}>Date/Time</th>
+                    <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '10%' }}>QMS Status</th>
+                    <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '10%' }}>Verification</th>
+                    <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '8%' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredSubmissions.map((sub) => {
                     const hasFail = sub.status === 'FAIL' || sub.status === 'ABNORMALITY';
+                    const isSelected = selectedSubmission?.id === sub.id;
+
                     return (
                       <tr 
                         key={sub.id} 
                         style={{ 
                           borderBottom: '1px solid var(--neutral-border)',
-                          background: selectedSubmission?.id === sub.id ? '#eff6ff' : 'transparent',
-                          transition: 'background 0.2s'
+                          background: isSelected ? '#eff6ff' : 'transparent',
+                          transition: 'background 0.15s',
+                          cursor: 'pointer'
                         }}
+                        onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = '#f8fafc'; }}
+                        onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent'; }}
+                        onClick={() => setSelectedSubmission(sub)}
                       >
-                        <td style={{ padding: '0.6rem', fontWeight: 500, fontFamily: 'monospace' }}>{sub.id}</td>
-                        <td style={{ padding: '0.6rem', fontWeight: 600 }}>
-                          {getProcessTitle(sub.processId)}
+                        <td style={{ padding: '0.6rem 0.75rem', fontWeight: 500, fontFamily: 'monospace', verticalAlign: 'middle' }}>{sub.id}</td>
+                        <td style={{ padding: '0.6rem 0.75rem', fontWeight: 600, verticalAlign: 'middle' }}>
+                          <div>{getProcessTitle(sub.processId)}</div>
                           {sub.formId && (
                             <div style={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--text-secondary)', marginTop: '2px' }}>
                               Template: {sub.formId}
                             </div>
                           )}
                         </td>
-                        <td style={{ padding: '0.6rem', textAlign: 'center' }}>{sub.operatorId}</td>
-                        <td style={{ padding: '0.6rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                        <td style={{ padding: '0.6rem 0.75rem', textAlign: 'center', verticalAlign: 'middle' }}>{sub.operatorId}</td>
+                        <td style={{ padding: '0.6rem 0.75rem', textAlign: 'center', color: 'var(--text-secondary)', verticalAlign: 'middle' }}>
                           {new Date(sub.submittedAt).toLocaleDateString()} {new Date(sub.submittedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </td>
-                        <td style={{ padding: '0.6rem', textAlign: 'center' }}>
+                        <td style={{ padding: '0.6rem 0.75rem', textAlign: 'center', verticalAlign: 'middle' }}>
                           <span 
                             className={`badge ${hasFail ? 'badge-danger' : 'badge-success'}`}
                             style={{ fontSize: '0.7rem', padding: '0.15rem 0.4rem' }}
@@ -333,7 +436,7 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
                             {sub.status}
                           </span>
                         </td>
-                        <td style={{ padding: '0.6rem', textAlign: 'center' }}>
+                        <td style={{ padding: '0.6rem 0.75rem', textAlign: 'center', verticalAlign: 'middle' }}>
                           {sub.supervisorSignoff ? (
                             <span style={{ color: '#10b981', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.2rem', fontSize: '0.78rem' }}>
                               <CheckCircle2 size={13} />
@@ -346,25 +449,25 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
                             </span>
                           )}
                         </td>
-                        <td style={{ padding: '0.6rem', textAlign: 'center' }}>
+                        <td style={{ padding: '0.6rem 0.75rem', textAlign: 'center', verticalAlign: 'middle' }} onClick={e => e.stopPropagation()}>
                           <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'center' }}>
                             <button
                               type="button"
                               className="btn btn-secondary btn-sm"
                               title="View Details"
                               onClick={() => setSelectedSubmission(sub)}
-                              style={{ padding: '0.25rem', height: '28px', width: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                              style={{ padding: '0.25rem', height: '26px', width: '26px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: 0 }}
                             >
-                              <Eye size={14} />
+                              <Eye size={13} />
                             </button>
                             <button
                               type="button"
                               className="btn btn-secondary btn-sm"
                               title="Print A4 Record"
                               onClick={() => setPrintSubmission(sub)}
-                              style={{ padding: '0.25rem', height: '28px', width: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                              style={{ padding: '0.25rem', height: '26px', width: '26px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: 0 }}
                             >
-                              <Printer size={14} />
+                              <Printer size={13} />
                             </button>
                           </div>
                         </td>
@@ -375,190 +478,219 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
               </table>
             )}
           </div>
-        </div>
+        )}
+      </div>
 
-        {/* Right Side: Detailed Submission view & Verification Sign-off Drawer */}
-        <div style={{ flex: 1, minWidth: '320px' }}>
-          {!selectedSubmission ? (
-            <div className="paper-card" style={{ padding: '3rem 1.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-              <FileText size={32} style={{ margin: '0 auto 0.5rem auto', color: 'var(--text-muted)' }} />
-              <p style={{ margin: 0, fontWeight: 500 }}>Select a record from the list to display details and verification audit parameters.</p>
-            </div>
-          ) : (
-            <div className="paper-card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', position: 'sticky', top: '1rem' }}>
-              
-              {/* Detail Header */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid var(--neutral-border)', paddingBottom: '0.75rem' }}>
-                <div>
-                  <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Snapshot Detail</span>
-                  <h3 style={{ margin: '0.15rem 0 0 0', fontSize: '1rem', color: 'var(--text-primary)' }}>{getProcessTitle(selectedSubmission.processId)}</h3>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontFamily: 'monospace', marginTop: '0.1rem' }}>ID: {selectedSubmission.id}</div>
-                </div>
-                <button 
-                  type="button" 
-                  onClick={() => setSelectedSubmission(null)}
-                  style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
-                >
-                  <XCircle size={18} />
-                </button>
-              </div>
-
-              {/* Stats Grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', fontSize: '0.78rem' }}>
-                <div style={{ background: '#f8fafc', padding: '0.4rem 0.6rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}>
-                  <div style={{ color: 'var(--text-secondary)', fontSize: '0.65rem', textTransform: 'uppercase' }}>Operator ID</div>
-                  <strong style={{ color: 'var(--text-primary)' }}>{selectedSubmission.operatorId}</strong>
-                </div>
-                <div style={{ background: '#f8fafc', padding: '0.4rem 0.6rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}>
-                  <div style={{ color: 'var(--text-secondary)', fontSize: '0.65rem', textTransform: 'uppercase' }}>Form ID/Version</div>
-                  <strong style={{ color: 'var(--text-primary)' }}>{selectedSubmission.formId} ({selectedSubmission.formVersion})</strong>
-                </div>
-              </div>
-
-              {/* Checklist Snapshot list */}
+      {/* Slide-over Drawer Overlay */}
+      {selectedSubmission && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.4)',
+            backdropFilter: 'blur(3px)',
+            zIndex: 9999,
+            display: 'flex',
+            justifyContent: 'flex-end',
+            transition: 'opacity 0.2s ease-in-out'
+          }}
+          onClick={() => setSelectedSubmission(null)}
+        >
+          <style>{`
+            @keyframes slideIn {
+              from { transform: translateX(100%); }
+              to { transform: translateX(0); }
+            }
+          `}</style>
+          <div 
+            style={{
+              width: '100%',
+              maxWidth: '480px',
+              height: '100%',
+              background: '#ffffff',
+              boxShadow: '-4px 0 15px rgba(0, 0, 0, 0.1)',
+              display: 'flex',
+              flexDirection: 'column',
+              padding: '1.5rem',
+              overflowY: 'auto',
+              position: 'relative',
+              animation: 'slideIn 0.2s ease-out'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Detail Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid var(--neutral-border)', paddingBottom: '0.75rem' }}>
               <div>
-                <h4 style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 0.5rem 0' }}>
-                  Recorded Checklist Values
-                </h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '250px', overflowY: 'auto' }}>
-                  {selectedSubmission.formData && selectedSubmission.formData.map((row, idx) => {
-                    const rowFailed = row.status === 'FAIL';
-                    return (
-                      <div 
-                        key={row.id || idx}
-                        style={{
-                          padding: '0.5rem 0.75rem',
-                          background: rowFailed ? '#fff5f5' : '#f8fafc',
-                          border: `1px solid ${rowFailed ? '#fca5a5' : 'var(--neutral-border)'}`,
-                          borderRadius: '6px',
-                          fontSize: '0.8rem'
-                        }}
-                      >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 600, marginBottom: '0.2rem' }}>
-                          <span style={{ color: 'var(--text-primary)' }}>{idx + 1}. {row.checkItem}</span>
-                          <span style={{ color: rowFailed ? '#ef4444' : '#10b981' }}>{row.status}</span>
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                          <span>Target: {row.targetRange}</span>
-                          <span>Value: <strong>{row.value}</strong></span>
-                        </div>
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Snapshot Detail</span>
+                <h3 style={{ margin: '0.15rem 0 0 0', fontSize: '1rem', color: 'var(--text-primary)' }}>{getProcessTitle(selectedSubmission.processId)}</h3>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontFamily: 'monospace', marginTop: '0.1rem' }}>ID: {selectedSubmission.id}</div>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => setSelectedSubmission(null)}
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', outline: 'none' }}
+              >
+                <XCircle size={18} />
+              </button>
+            </div>
+
+            {/* Stats Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', fontSize: '0.78rem', marginTop: '1rem' }}>
+              <div style={{ background: '#f8fafc', padding: '0.4rem 0.6rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}>
+                <div style={{ color: 'var(--text-secondary)', fontSize: '0.65rem', textTransform: 'uppercase' }}>Operator ID</div>
+                <strong style={{ color: 'var(--text-primary)' }}>{selectedSubmission.operatorId}</strong>
+              </div>
+              <div style={{ background: '#f8fafc', padding: '0.4rem 0.6rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}>
+                <div style={{ color: 'var(--text-secondary)', fontSize: '0.65rem', textTransform: 'uppercase' }}>Form ID/Version</div>
+                <strong style={{ color: 'var(--text-primary)' }}>{selectedSubmission.formId} ({selectedSubmission.formVersion})</strong>
+              </div>
+            </div>
+
+            {/* Checklist Snapshot list */}
+            <div style={{ marginTop: '1.25rem' }}>
+              <h4 style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 0.5rem 0' }}>
+                Recorded Checklist Values
+              </h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '250px', overflowY: 'auto' }}>
+                {selectedSubmission.formData && selectedSubmission.formData.map((row, idx) => {
+                  const rowFailed = row.status === 'FAIL';
+                  return (
+                    <div 
+                      key={row.id || idx}
+                      style={{
+                        padding: '0.5rem 0.75rem',
+                        background: rowFailed ? '#fff5f5' : '#f8fafc',
+                        border: `1px solid ${rowFailed ? '#fca5a5' : 'var(--neutral-border)'}`,
+                        borderRadius: '6px',
+                        fontSize: '0.8rem'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 600, marginBottom: '0.2rem' }}>
+                        <span style={{ color: 'var(--text-primary)' }}>{idx + 1}. {row.checkItem}</span>
+                        <span style={{ color: rowFailed ? '#ef4444' : '#10b981' }}>{row.status}</span>
                       </div>
-                    );
-                  })}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                        <span>Target: {row.targetRange}</span>
+                        <span>Value: <strong>{row.value}</strong></span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Photo Evidence attachments thumbnail */}
+            {selectedSubmission.mediaUrls && selectedSubmission.mediaUrls.length > 0 && (
+              <div style={{ marginTop: '1.25rem' }}>
+                <h4 style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 0.5rem 0' }}>
+                  Photo Attachments ({selectedSubmission.mediaUrls.length})
+                </h4>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  {selectedSubmission.mediaUrls.map((key, index) => (
+                    <div 
+                      key={index} 
+                      style={{
+                        width: '60px',
+                        height: '60px',
+                        border: '1px solid var(--neutral-border)',
+                        borderRadius: '4px',
+                        overflow: 'hidden',
+                        background: '#f1f5f9',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                      onClick={async () => {
+                        const res = await fetch(`/api/storage/download-url?key=${encodeURIComponent(key)}`);
+                        if (res.ok) {
+                          const { downloadUrl } = await res.json();
+                          window.open(downloadUrl, '_blank');
+                        }
+                      }}
+                      title="Click to view image"
+                    >
+                      <span style={{ fontSize: '0.65rem', fontWeight: 'bold', color: 'var(--text-muted)' }}>Photo {index + 1}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
+            )}
 
-              {/* Photo Evidence attachments thumbnail */}
-              {selectedSubmission.mediaUrls && selectedSubmission.mediaUrls.length > 0 && (
-                <div>
-                  <h4 style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 0.5rem 0' }}>
-                    Photo Attachments ({selectedSubmission.mediaUrls.length})
-                  </h4>
-                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                    {selectedSubmission.mediaUrls.map((key, index) => (
-                      <div 
-                        key={index} 
-                        style={{
-                          width: '60px',
-                          height: '60px',
-                          border: '1px solid var(--neutral-border)',
-                          borderRadius: '4px',
-                          overflow: 'hidden',
-                          background: '#f1f5f9',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}
-                        onClick={async () => {
-                          const res = await fetch(`/api/storage/download-url?key=${encodeURIComponent(key)}`);
-                          if (res.ok) {
-                            const { downloadUrl } = await res.json();
-                            window.open(downloadUrl, '_blank');
-                          }
-                        }}
-                        title="Click to view image"
-                      >
-                        <span style={{ fontSize: '0.65rem', fontWeight: 'bold', color: 'var(--text-muted)' }}>Photo {index + 1}</span>
-                      </div>
-                    ))}
+            {/* Supervisor sign-off loop */}
+            <div style={{ borderTop: '1px solid var(--neutral-border)', paddingTop: '1rem', marginTop: '1.5rem' }}>
+              <h4 style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 0.75rem 0', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                <UserCheck size={14} style={{ color: 'var(--primary)' }} />
+                <span>Supervisor QMS Verification</span>
+              </h4>
+
+              {selectedSubmission.supervisorSignoff ? (
+                <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', padding: '0.75rem', borderRadius: '6px', fontSize: '0.8rem', color: '#065f46' }}>
+                  <div style={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <CheckCircle2 size={15} />
+                    <span>Verified & Sealed</span>
                   </div>
+                  <div style={{ marginTop: '0.25rem' }}>
+                    Verified by: <strong>{selectedSubmission.supervisorSignoff.signedBy}</strong>
+                  </div>
+                  <div>
+                    Date: {new Date(selectedSubmission.supervisorSignoff.signedAt).toLocaleString()}
+                  </div>
+                  {selectedSubmission.supervisorSignoff.notes && (
+                    <div style={{ marginTop: '0.5rem', fontStyle: 'italic', background: '#ffffff', padding: '0.25rem 0.5rem', borderRadius: '4px', border: '1px solid #d1fae5' }}>
+                      Notes: {selectedSubmission.supervisorSignoff.notes}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#b45309', background: '#fffbeb', border: '1px solid #fde68a', padding: '0.5rem', borderRadius: '4px', display: 'flex', gap: '0.25rem' }}>
+                    <AlertTriangle size={14} style={{ flexShrink: 0 }} />
+                    <span>Pending daily verification review. Confirm values align with process control standards.</span>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', marginTop: '0.25rem' }}>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Supervisor Signature Name *</label>
+                    <input 
+                      type="text" 
+                      value={supervisorName}
+                      onChange={(e) => setSupervisorName(e.target.value)}
+                      placeholder="Enter supervisor signature name"
+                      style={{ padding: '0.35rem 0.5rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px' }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                    <label style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Review Notes / Verification Comments</label>
+                    <textarea 
+                      value={verificationNotes}
+                      onChange={(e) => setVerificationNotes(e.target.value)}
+                      placeholder="Optional review observations (e.g. All checks within range, containment verified)..."
+                      rows={2}
+                      style={{ padding: '0.35rem 0.5rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', resize: 'none' }}
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled={signingOff}
+                    onClick={() => handleSignOffSubmit(selectedSubmission.id)}
+                    className="btn btn-primary"
+                    style={{ width: '100%', fontSize: '0.8rem', background: 'var(--primary)', borderColor: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', marginTop: '0.25rem' }}
+                  >
+                    <CheckCircle size={15} />
+                    <span>{signingOff ? 'Signing off...' : 'Approve & Sign Off Record'}</span>
+                  </button>
                 </div>
               )}
-
-              {/* Supervisor sign-off loop */}
-              <div style={{ borderTop: '1px solid var(--neutral-border)', paddingTop: '1rem' }}>
-                <h4 style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 0.75rem 0', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                  <UserCheck size={14} style={{ color: 'var(--primary)' }} />
-                  <span>Supervisor QMS Verification</span>
-                </h4>
-
-                {selectedSubmission.supervisorSignoff ? (
-                  <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', padding: '0.75rem', borderRadius: '6px', fontSize: '0.8rem', color: '#065f46' }}>
-                    <div style={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                      <CheckCircle2 size={15} />
-                      <span>Verified & Sealed</span>
-                    </div>
-                    <div style={{ marginTop: '0.25rem' }}>
-                      Verified by: <strong>{selectedSubmission.supervisorSignoff.signedBy}</strong>
-                    </div>
-                    <div>
-                      Date: {new Date(selectedSubmission.supervisorSignoff.signedAt).toLocaleString()}
-                    </div>
-                    {selectedSubmission.supervisorSignoff.notes && (
-                      <div style={{ marginTop: '0.5rem', fontStyle: 'italic', background: '#ffffff', padding: '0.25rem 0.5rem', borderRadius: '4px', border: '1px solid #d1fae5' }}>
-                        Notes: {selectedSubmission.supervisorSignoff.notes}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    <div style={{ fontSize: '0.75rem', color: '#b45309', background: '#fffbeb', border: '1px solid #fde68a', padding: '0.5rem', borderRadius: '4px', display: 'flex', gap: '0.25rem' }}>
-                      <AlertTriangle size={14} style={{ flexShrink: 0 }} />
-                      <span>Pending daily verification review. Confirm values align with process control standards.</span>
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem', marginTop: '0.25rem' }}>
-                      <label style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Supervisor Signature Name *</label>
-                      <input 
-                        type="text" 
-                        value={supervisorName}
-                        onChange={(e) => setSupervisorName(e.target.value)}
-                        placeholder="Enter supervisor signature name"
-                        style={{ padding: '0.35rem 0.5rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px' }}
-                      />
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
-                      <label style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Review Notes / Verification Comments</label>
-                      <textarea 
-                        value={verificationNotes}
-                        onChange={(e) => setVerificationNotes(e.target.value)}
-                        placeholder="Optional review observations (e.g. All checks within range, containment verified)..."
-                        rows={2}
-                        style={{ padding: '0.35rem 0.5rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', resize: 'none' }}
-                      />
-                    </div>
-
-                    <button
-                      type="button"
-                      disabled={signingOff}
-                      onClick={() => handleSignOffSubmit(selectedSubmission.id)}
-                      className="btn btn-primary"
-                      style={{ width: '100%', fontSize: '0.8rem', background: 'var(--primary)', borderColor: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', marginTop: '0.25rem' }}
-                    >
-                      <CheckCircle size={15} />
-                      <span>{signingOff ? 'Signing off...' : 'Approve & Sign Off Record'}</span>
-                    </button>
-                  </div>
-                )}
-              </div>
-
             </div>
-          )}
-        </div>
 
-      </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

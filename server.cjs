@@ -136,6 +136,12 @@ const INITIALIZE_SCHEMA_QUERY = `
     status TEXT NOT NULL DEFAULT 'active',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
   );
+
+  ALTER TABLE processes ENABLE ROW LEVEL SECURITY;
+  ALTER TABLE forms ENABLE ROW LEVEL SECURITY;
+  ALTER TABLE process_forms ENABLE ROW LEVEL SECURITY;
+  ALTER TABLE submissions ENABLE ROW LEVEL SECURITY;
+  ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 `;
 
 // ─── Sample Data for Fresh Seed ──────────────────────────────────────────────

@@ -420,12 +420,6 @@ export function generateBPMNXML(
       });
 
       let associationStr = '';
-      if (node.type === 'step' && node.stepRef?.producesForm && shape === 'task') {
-        associationStr = `
-      <bpmn:dataOutputAssociation id="DataOutputAssoc_${node.id}">
-        <bpmn:targetRef>DataObjectRef_${node.id}</bpmn:targetRef>
-      </bpmn:dataOutputAssociation>`;
-      }
 
       if (node.type === 'link-throw') {
         xml += `
@@ -477,14 +471,20 @@ export function generateBPMNXML(
       }
     });
 
-    // 2.5 Generate Data Objects
+    // 2.5 Generate Data Objects and Associations
     layoutNodes.forEach(node => {
       if (node.type === 'step' && node.stepRef?.producesForm && node.bpmnShape === 'task') {
-        const formName = node.stepRef.formName || 'Completed Form';
-        const escapedFormName = escapeXml(formName);
-        xml += `
-    <bpmn:dataObjectReference id="DataObjectRef_${node.id}" name="${escapedFormName}" dataObjectRef="DataObject_${node.id}" />
-    <bpmn:dataObject id="DataObject_${node.id}" />`;
+        const forms = (node.stepRef.formNames && node.stepRef.formNames.length > 0)
+          ? node.stepRef.formNames
+          : (node.stepRef.formName ? [node.stepRef.formName] : ['Completed Form']);
+
+        forms.forEach((formName, idx) => {
+          const escapedFormName = escapeXml(formName);
+          xml += `
+    <bpmn:dataObjectReference id="DataObjectRef_${node.id}_${idx}" name="${escapedFormName}" dataObjectRef="DataObject_${node.id}_${idx}" />
+    <bpmn:dataObject id="DataObject_${node.id}_${idx}" />
+    <bpmn:association id="DataOutputAssoc_${node.id}_${idx}" sourceRef="${node.id}" targetRef="DataObjectRef_${node.id}_${idx}" />`;
+        });
       }
     });
 
@@ -630,15 +630,85 @@ export function generateBPMNXML(
       </bpmndi:BPMNShape>`;
 
       if (node.type === 'step' && node.stepRef?.producesForm && shape === 'task') {
-        const doX = x + w - 18;
-        const doY = y - 60;
-        xml += `
-      <bpmndi:BPMNShape id="DataObjectRef_${node.id}_di" bpmnElement="DataObjectRef_${node.id}">
+        const forms = (node.stepRef.formNames && node.stepRef.formNames.length > 0)
+          ? node.stepRef.formNames
+          : (node.stepRef.formName ? [node.stepRef.formName] : ['Completed Form']);
+
+        const labelBoxes: { x: number; y: number; w: number }[] = [];
+
+        forms.forEach((formName, idx) => {
+          let doX = x + (w / 2) - 18 + ((idx - (forms.length - 1) / 2) * 60);
+          let doY = y - 60;
+          
+          let customLabelX: number | undefined;
+          let customLabelY: number | undefined;
+          let customLabelW: number | undefined;
+          let customLabelH: number | undefined;
+
+          if (node.stepRef?.formLayouts && node.stepRef.formLayouts[formName]) {
+            const fl = node.stepRef.formLayouts[formName];
+            doX = fl.x;
+            doY = fl.y;
+            if (fl.labelX !== undefined && fl.labelY !== undefined) {
+              customLabelX = fl.labelX;
+              customLabelY = fl.labelY;
+              customLabelW = fl.labelW;
+              customLabelH = fl.labelH;
+            }
+          }
+
+          let labelX = doX - 32;
+          let labelW = 100;
+          let labelH = 24;
+          let labelY = doY - 18;
+
+          if (customLabelX !== undefined && customLabelY !== undefined) {
+            labelX = customLabelX;
+            labelY = customLabelY;
+            labelW = customLabelW || 100;
+            labelH = customLabelH || 24;
+            labelBoxes.push({ x: labelX, y: labelY, w: labelW });
+          } else {
+            const textW = Math.min(100, Math.max(50, formName.length * 7));
+            const currentLeft = (doX + 18) - textW / 2;
+            const currentRight = (doX + 18) + textW / 2;
+
+            if (idx === 1) {
+              const prev1 = labelBoxes[0];
+              const overlap1 = (currentLeft < prev1.x + prev1.w) && (currentRight > prev1.x);
+              if (!overlap1) {
+                labelY = prev1.y;
+              } else {
+                labelY = prev1.y - 15;
+              }
+            } else if (idx >= 2) {
+              const prev1 = labelBoxes[idx - 1]; // n-1
+              const prev2 = labelBoxes[idx - 2]; // n-2
+              const overlap1 = (currentLeft < prev1.x + prev1.w) && (currentRight > prev1.x);
+              const overlap2 = (currentLeft < prev2.x + prev2.w) && (currentRight > prev2.x);
+              if (!overlap1) {
+                labelY = prev1.y;
+              } else if (overlap1 && !overlap2) {
+                if (prev2.y !== prev1.y) {
+                  labelY = prev2.y;
+                } else {
+                  labelY = prev1.y - 15;
+                }
+              } else {
+                labelY = prev1.y - 15;
+              }
+            }
+            labelBoxes.push({ x: (doX + 18) - textW / 2, y: labelY, w: textW });
+          }
+
+          xml += `
+      <bpmndi:BPMNShape id="DataObjectRef_${node.id}_${idx}_di" bpmnElement="DataObjectRef_${node.id}_${idx}">
         <dc:Bounds x="${doX}" y="${doY}" width="36" height="50" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="${doX - 32}" y="${doY - 28}" width="100" height="24" />
+          <dc:Bounds x="${labelX}" y="${labelY}" width="${labelW}" height="${labelH}" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>`;
+        });
       }
     });
 
@@ -885,16 +955,37 @@ export function generateBPMNXML(
       if (node.type === 'step' && node.stepRef?.producesForm && node.bpmnShape === 'task') {
         const fromPos = nodePositions.get(node.id);
         if (fromPos) {
-          const fromX = fromPos.x + 85;
-          const fromY = fromPos.y;
-          const doCenterX = fromPos.x + 110;
-          const doYBottom = fromPos.y - 10;
+          const forms = (node.stepRef.formNames && node.stepRef.formNames.length > 0)
+            ? node.stepRef.formNames
+            : (node.stepRef.formName ? [node.stepRef.formName] : ['Completed Form']);
 
-          xml += `
-      <bpmndi:BPMNEdge id="DataOutputAssoc_${node.id}_di" bpmnElement="DataOutputAssoc_${node.id}">
+          forms.forEach((formName, idx) => {
+            const doX = fromPos.x + (fromPos.width / 2) - 18 + ((idx - (forms.length - 1) / 2) * 60);
+            const fromX = fromPos.x + (fromPos.width / 2);
+            const fromY = fromPos.y;
+            let doCenterX = doX + 18;
+            let doYBottom = fromPos.y - 10;
+            let waypointsXml = `
         <di:waypoint x="${fromX}" y="${fromY}" />
-        <di:waypoint x="${doCenterX}" y="${doYBottom}" />
+        <di:waypoint x="${doCenterX}" y="${doYBottom}" />`;
+
+            if (node.stepRef?.formLayouts && node.stepRef.formLayouts[formName]) {
+              const fl = node.stepRef.formLayouts[formName];
+              if (fl.waypoints && fl.waypoints.length > 0) {
+                waypointsXml = fl.waypoints.map(wp => `\n        <di:waypoint x="${wp.x}" y="${wp.y}" />`).join('');
+              } else {
+                doCenterX = fl.x + 18;
+                doYBottom = fl.y + 50;
+                waypointsXml = `
+        <di:waypoint x="${fromX}" y="${fromY}" />
+        <di:waypoint x="${doCenterX}" y="${doYBottom}" />`;
+              }
+            }
+
+            xml += `
+      <bpmndi:BPMNEdge id="DataOutputAssoc_${node.id}_${idx}_di" bpmnElement="DataOutputAssoc_${node.id}_${idx}">` + waypointsXml + `
       </bpmndi:BPMNEdge>`;
+          });
         }
       }
     });

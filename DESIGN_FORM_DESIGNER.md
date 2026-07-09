@@ -1,0 +1,429 @@
+# Form Designer — Module Design Document
+
+---
+
+## Header Block
+
+| Field | Value |
+|---|---|
+| **Module Name** | Form Designer |
+| **Status** | Active Development |
+| **Document Version** | 1.0 |
+| **Last Verified Against Codebase** | 2026-07-09 |
+| **Verified By Session** | [9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) |
+
+### Quick File Index
+
+| File | Role | Size |
+|---|---|---|
+| [`src/components/FormBuilder.tsx`](src/components/FormBuilder.tsx) | Primary authoring UI — block canvas + field editor + version management | 3,443 lines |
+| [`src/components/print/PrintBlankForm.tsx`](src/components/print/PrintBlankForm.tsx) | Blank form print renderer (React Portal) | 561 lines |
+| [`src/types.ts`](src/types.ts) | Shared types: `FormTemplateISO`, `LayoutBlockISO`, `FormFieldISO`, `FormRevisionEntry`, `MatrixConfigISO`, `TableColumnConfig` | lines 87–162 |
+
+> **Update rule:** Whenever any of the above files is modified in a session, update
+> the "Last Verified" date and add an entry to the [Change Log](#9-change-log) at the
+> bottom of this document.
+
+---
+
+## 1. Purpose & Scope
+
+### What This Module Does
+The Form Designer is the **authoring and publishing system for reusable operational form templates** (checklists, inspection sheets, sign-off tables, matrix count sheets).
+
+It lets authorized users:
+- Create and edit a form template by assembling **layout blocks** — each block is a self-contained section with a type (checklist table, info grid, matrix, sign-off, etc.).
+- Configure **fields** within each block (type, label, acceptance spec, unit, reaction protocol, options).
+- Manage a company logo on the form header.
+- **Version** form templates: Draft → Active (published) — with a full revision history that stores a layout snapshot per version.
+- **Restore** any past version's layout back into the current draft.
+- **Print** a blank form for physical shop-floor use.
+
+### What This Module Does NOT Do
+- **Does not have its own page route** — FormBuilder is always launched as a modal overlay from inside ProcessEditor (Process Designer module). There is no `page='form-builder'` in `App.tsx`.
+- **Does not collect or store form submissions** — that is the Form Operations module (`FormFiller.tsx`, `FormManager.tsx`).
+- **Does not manage which steps in a process use which form** — that linkage is owned by ProcessEditor via `workflowFormsData`.
+- **Does not manage user permissions** — the launch context (ProcessEditor) decides whether to show Edit or View mode.
+
+---
+
+## 2. User-Facing Features
+
+FormBuilder renders as a three-panel layout inside a fixed fullscreen modal:
+
+### Left Panel — Block Palette & Form Metadata
+| Control | Purpose |
+|---|---|
+| **Form ID** | Editable identifier (e.g. `FM-QC-F01`) — primary key in the database |
+| **Form Title** | Human-readable name |
+| **Block type buttons** | Add TITLE, INFO_GRID, CHECKLIST_TABLE, MATRIX_TABLE, TABLE, SIGN, SECTION_LABEL blocks |
+| **Copy Block from another form** | Opens a modal to browse all processes and copy an existing block as a template |
+
+### Center Panel — Block Canvas
+| Control | Purpose |
+|---|---|
+| **Block list** | Ordered list of blocks; click to select and activate a block |
+| **Move Up / Move Down** | Reorder blocks within the form |
+| **Delete Block** | Remove a block and all its fields |
+| **Add Field button** | Add a field to the selected block (type: text / number / date / time / radio / signature / photo) |
+| **Field row controls** | Reorder, delete fields within a block |
+| **Logo upload** | On TITLE blocks: upload a new logo file, or open a gallery of previously uploaded logos |
+
+### Right Panel — Two Tabs
+| Tab | Purpose |
+|---|---|
+| **Properties** | Edit the selected block's title, column count, column header labels; edit the selected field's label, type, min/max spec, unit, target range, reaction protocol, frequency, radio options |
+| **Versions** | View full revision history; restore a past layout; create a new draft version; delete a specific version; set effective date and change summary before publishing |
+
+### Top Action Bar
+| Button | Purpose |
+|---|---|
+| **Print Preview** | Renders `PrintBlankForm` (React Portal) for browser print |
+| **Save Draft & Close** | Saves current layout to DB as DRAFT, calls `onSave` callback, closes modal |
+| **Publish** | Validates, bumps status to ACTIVE, creates a revision history entry, locks the canvas |
+| **Discard & Close** | Closes modal without saving |
+
+---
+
+## 3. Component Map
+
+```
+Form Designer Module
+│
+├── FormBuilder.tsx          Shell: header bar + left panel (palette) + center canvas + right panel (properties/versions)
+│   └── PrintBlankForm       Rendered conditionally as a React Portal (replaces FormBuilder in DOM when print is triggered)
+│
+└── print/PrintBlankForm.tsx  A4 print layout renderer; accepts a FormTemplateISO and renders all block types to print-safe HTML
+```
+
+### Component Responsibilities
+
+- **FormBuilder** — Owns all mutable form state (formId, formTitle, version, status, layoutBlocks, revisionHistory). Coordinates save, publish, version management, logo upload, and block/field editing. Communicates back to ProcessEditor via `onSave` and `onClose` callbacks.
+- **PrintBlankForm** — A pure renderer. Takes a `FormTemplateISO` snapshot and renders a full printable A4 document. Mounted via `ReactDOM.createPortal` into `document.body`, replacing the FormBuilder view temporarily. Handles logo URL resolution from Cloudflare R2 via a `GET /api/storage/download-url` call.
+
+---
+
+## 4. Data Model
+
+All types are defined in [`src/types.ts`](src/types.ts).
+
+### Top-level: `FormTemplateISO` (lines 155–162)
+
+```typescript
+interface FormTemplateISO {
+  formId: string;               // Primary key, e.g. "FM-QC-F01"
+  formTitle: string;            // Display name
+  version: string;              // e.g. "v1.2 (2026-07-01)" or "v1.3 (draft)"
+  status: 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
+  layoutBlocks: LayoutBlockISO[];
+  revisionHistory: FormRevisionEntry[];
+}
+```
+
+### Layout Block: `LayoutBlockISO` (lines 135–153)
+
+```typescript
+interface LayoutBlockISO {
+  id: string;
+  type: 'TITLE' | 'INFO_GRID' | 'CHECKLIST_TABLE' | 'MATRIX_TABLE' | 'SIGN' | 'TABLE' | 'SECTION_LABEL';
+  columns: 1 | 2 | 3;          // Number of field columns rendered in this block
+  title: string;
+  fields: FormFieldISO[];
+  logo?: string;                // R2 storage key (e.g. "uploads/logo.png") or inline URL — TITLE blocks only
+  description?: string;         // SECTION_LABEL block description text
+  columnLabels?: {              // CHECKLIST_TABLE: custom header text
+    stt: string; item: string; target: string; reaction: string;
+  };
+  matrixConfig?: MatrixConfigISO;    // MATRIX_TABLE configuration
+  tableColumns?: TableColumnConfig[]; // TABLE block column definitions
+  tableRows?: TableRowConfig[];       // TABLE block row definitions
+  tableData?: { [rowId: string]: { [colId: string]: string } }; // TABLE static cell values
+}
+```
+
+### Block Type Taxonomy
+
+| Type | Purpose | Has Fields |
+|---|---|---|
+| `TITLE` | Form header: title, form ID, date, operator, logo | Optional INFO fields |
+| `INFO_GRID` | General info fields laid out in a grid | Yes (text/date/time) |
+| `CHECKLIST_TABLE` | Columnar check items with target and reaction | Yes (all types) |
+| `MATRIX_TABLE` | Tally count matrix (rows × product columns) | No — matrix config only |
+| `TABLE` | Freeform dynamic table (configurable columns + rows) | No — table config only |
+| `SIGN` | Signature/approval block | Yes (signature type) |
+| `SECTION_LABEL` | Visual separator with heading and description text | No |
+
+### Field: `FormFieldISO` (lines 87–100)
+
+```typescript
+interface FormFieldISO {
+  id: string;
+  type: 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo';
+  checkItem: string;             // Label / description of what is being checked
+  locationCode: string;          // Physical location code (e.g. "PG-02")
+  minSpec?: number;              // For number type: lower bound
+  maxSpec?: number;              // For number type: upper bound
+  unit?: string;                 // For number type: display unit (e.g. "°C", "bar")
+  targetRange?: string;          // For text/boolean: target description text
+  options?: RadioOption[];        // For radio type: selectable options with isPass flag
+  frequency: string;             // How often checked (e.g. "Once/Shift", "Every batch")
+  reactionProtocol: string;      // What to do if the check fails
+  timeMode?: 'single' | 'dual';  // For time type: single timestamp or from/to range
+}
+```
+
+### Revision History: `FormRevisionEntry` (lines 102–108)
+
+```typescript
+interface FormRevisionEntry {
+  version: string;               // Clean version string, e.g. "v1.2"
+  date: string;                  // Effective date, e.g. "2026-07-01"
+  author: string;                // Currently hardcoded as "QA Administrator"
+  change: string;                // Change summary entered by the user
+  layoutBlocks?: LayoutBlockISO[]; // Full layout snapshot — required to enable Restore
+}
+```
+
+### Form Lifecycle
+
+```
+DRAFT ──[handlePublish]──→ ACTIVE  (canvas locked; revision entry created with layout snapshot)
+ACTIVE ──[handleCreateNewVersion]──→ new DRAFT  (increments minor version; e.g. v1.2 → v1.3 draft)
+DRAFT ──[handleDeleteActiveDraft]──→ deleted from DB
+[any revision] ──[handleDeleteVersion]──→ deleted from revision history + DB
+```
+
+### Version String Format
+
+| Phase | Format Example | Notes |
+|---|---|---|
+| Draft | `v0.1 (draft)` | Created by `handleCreateNewVersion` or default init |
+| Active | `v0.1 (2026-07-01)` | Set by `handlePublish` using the effective date |
+| Viewing old revision | `v0.1 (2026-07-01) [RETIRED]` | Temporary display-only string while browsing history |
+
+### `isLocked` Flag
+
+- Derived from `status === 'ACTIVE'` — updated by a `useEffect` whenever `status` changes.
+- When `true`: all block and field mutation handlers (`handleAddBlock`, `handleDeleteBlock`, `handleMoveBlock`, `handleAddField`, etc.) return early without modifying state.
+- This is a **UI-layer guard only** — no server-side enforcement.
+
+---
+
+## 5. Key Flows
+
+### Flow A: Open FormBuilder (from ProcessEditor)
+
+```
+ProcessEditor: user clicks Edit / View button on a form row
+  └─ activeFormToBuild = formId (e.g. "FM-QC-F01")
+       └─ <FormBuilder /> modal overlay mounts
+            ├─ Props resolved (priority order):
+            │    1. Live record from allForms[] (fetched from DB by ProcessEditor)
+            │    2. workflowFormsData[formId] (ProcessEditor local state fallback)
+            │    3. Blank new form with that formId
+            └─ On mount: useEffect [initialData?.formId] fires
+                 ├─ GET /api/forms/:formId          → overrides state with DB record
+                 └─ GET /api/forms/:formId/history  → loads full revision history
+```
+
+### Flow B: Add a Block and Configure a Field
+
+```
+User clicks a block type button in the left panel
+  └─ handleAddBlock(type) runs (no-op if isLocked)
+       ├─ Creates new LayoutBlockISO with default config for the type
+       └─ Appends to layoutBlocks[], sets activeBlockId → right panel auto-switches to Properties
+
+User clicks on a field row in the canvas
+  └─ setActiveFieldId(fieldId) → right Properties panel shows field editor
+
+User edits a field property in the right panel
+  └─ handleUpdateField(blockId, fieldId, { ...updates }) → immutably updates layoutBlocks[]
+```
+
+### Flow C: Save Draft
+
+```
+User clicks "Save Draft & Close"
+  └─ handleSaveDraftAndClose() runs
+       ├─ Parses version string to extract clean version (e.g. "v0.1")
+       ├─ Checks DB for version uniqueness: GET /api/forms/:formId?version=v0.1
+       │    → if already exists AND different from the initialData version: shows alert, aborts
+       ├─ saveFormToBackend() runs
+       │    └─ POST /api/forms  { formId, formName, formTitle, status, version, layoutBlocks, revisionHistory }
+       ├─ onSave({ formId, formTitle, version, status, layoutBlocks, revisionHistory })
+       │    └─ ProcessEditor: updates workflowFormsData[formId], silently re-saves process
+       └─ onClose() → modal unmounts
+```
+
+### Flow D: Publish (Activate) a Form Version
+
+```
+User fills in Change Summary + Effective Date in the Versions tab
+User clicks "Publish"
+  └─ handlePublish() runs
+       ├─ Validates: changeSummary not empty, all fields have labels
+       ├─ Parses version → target clean version string (e.g. "v0.1")
+       ├─ Checks DB for version uniqueness: GET /api/forms/:formId?version=v0.1
+       │    → if conflict: shows alert, aborts
+       ├─ Builds newActiveVersion string: "v0.1 (2026-07-01)"
+       ├─ Creates newHistoryEntry with full layoutBlocks snapshot
+       ├─ Updates state: version, status='ACTIVE', revisionHistory, isLocked=true
+       ├─ saveFormToBackend({ versionOverride, statusOverride='ACTIVE', historyOverride })
+       │    └─ POST /api/forms  (upsert with new active version)
+       └─ onSave({ formId, formTitle, version: newActiveVersion, status:'ACTIVE', ... })
+            └─ ProcessEditor: updates workflowFormsData, silently re-saves process
+```
+
+### Flow E: Create a New Version Draft from Active
+
+```
+User clicks "+ NEW DRAFT" (in Form Settings panel or Version tab)
+  └─ handleCreateNewVersion() runs
+       ├─ Parses current version major.minor (e.g. v0.1 → major=0, minor=1)
+       ├─ Sets version = "v0.2 (draft)"
+       ├─ Sets status = 'DRAFT', isLocked = false
+       └─ Canvas becomes editable (isLocked=false unblocks all mutation handlers)
+            Note: this does NOT save to DB — user must Save Draft or Publish
+```
+
+### Flow F: Restore a Past Revision
+
+```
+User opens Versions tab → clicks "Restore" on a revision history entry
+  └─ handleRestoreRevision(entry) runs
+       ├─ Guards: entry must have layoutBlocks stored (some older entries may be log-only)
+       ├─ Saves a backup of the current draft: currentDraftBackup = { layoutBlocks, version, isLocked }
+       ├─ Loads entry.layoutBlocks into canvas
+       ├─ Sets version = "v0.1 (2026-07-01) [RETIRED]", isLocked = true
+       └─ viewingRevisionVersion = entry.version (enables banner + commit/cancel buttons)
+
+User clicks "Return to Draft" (cancel)
+  └─ handleReturnToDraft() → restores currentDraftBackup, clears viewingRevisionVersion
+
+User clicks "Commit Restore to Draft" (confirm)
+  └─ handleCommitRestore() runs
+       ├─ Parses version number of the restored entry (e.g. v0.1 → draftVersion = "v0.1 (draft)")
+       ├─ Sets version = draftVersion, status = 'DRAFT', isLocked = false
+       └─ Clears currentDraftBackup and viewingRevisionVersion
+            Note: this also does NOT auto-save to DB
+```
+
+### Flow G: Delete a Version
+
+```
+While viewing a past revision (viewingRevisionVersion is set):
+User clicks "Delete Version"
+  └─ handleDeleteVersion() runs
+       ├─ DELETE /api/forms/:formId?version=v0.1
+       ├─ Removes entry from local revisionHistory[]
+       └─ Restores currentDraftBackup if available
+
+While on the active Draft:
+User clicks "Delete Draft"
+  └─ handleDeleteActiveDraft() runs
+       ├─ DELETE /api/forms/:formId?version=currentVersion
+       └─ Calls onClose() → modal unmounts
+```
+
+### Flow H: Print Blank Form
+
+```
+User clicks "Print Preview" in the top action bar
+  └─ setPrintPreviewData({ formId, formTitle, version, status, layoutBlocks, revisionHistory })
+       └─ FormBuilder render returns <PrintBlankForm template={...} onClose={...} />
+            ├─ Mounted via ReactDOM.createPortal into document.body
+            ├─ If TITLE block has a logo stored as "uploads/..." key:
+            │    GET /api/storage/download-url?key=...  → resolves to pre-signed R2 URL
+            └─ User triggers browser print dialog (window.print())
+                 onClose → setPrintPreviewData(null) → FormBuilder canvas re-renders
+```
+
+---
+
+## 6. Module Interface (Boundary Contracts)
+
+### 6.1 Props Accepted from ProcessEditor
+
+**FormBuilder** (`src/components/FormBuilder.tsx`, line 26–38)
+
+| Prop | Type | Description |
+|---|---|---|
+| `formName` | `string` | The `formId` of the form to edit (e.g. `"FM-QC-F01"`). Used as fallback to initialize `formId` state if `initialData.formId` is absent. |
+| `initialData` | `object` (optional) | Seed data — overridden immediately on mount by a live DB fetch if `initialData.formId` is set. See note below. |
+| `initialData.formId` | `string` | Triggers the DB fetch on mount |
+| `initialData.formTitle` | `string` | Initial display name |
+| `initialData.version` | `string` | Initial version string |
+| `initialData.status` | `'DRAFT' \| 'ACTIVE' \| 'ARCHIVED'` | Determines initial `isLocked` state |
+| `initialData.layoutBlocks` | `LayoutBlockISO[]` | Initial block layout (overridden by DB fetch) |
+| `initialData.revisionHistory` | `FormRevisionEntry[]` | Initial history (overridden by DB fetch) |
+| `onSave` | `(data: any) => void` | Called after Save Draft or Publish. Receives `{ formId, formTitle, version, status, layoutBlocks, revisionHistory }`. ProcessEditor uses this to update `workflowFormsData` and silently re-save the process. |
+| `onClose` | `() => void` | Called to unmount the modal. Called by Discard, Delete Draft, and after Save Draft completes. |
+
+> **Note on `initialData` vs DB fetch:** `initialData` is used only as the initial React state seed. On mount, a `useEffect` fires and immediately overwrites state from `GET /api/forms/:formId` and `GET /api/forms/:formId/history`. This means `initialData` only matters for the brief loading window before the DB response arrives.
+
+### 6.2 What `onSave` Returns to ProcessEditor
+
+```typescript
+{
+  formId: string;
+  formTitle: string;
+  version: string;         // e.g. "v1.2 (2026-07-01)" or "v1.3 (draft)"
+  status: 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
+  layoutBlocks: LayoutBlockISO[];
+  revisionHistory: FormRevisionEntry[];
+}
+```
+
+ProcessEditor stores only `{ formId, formTitle, version, status }` in `workflowFormsData` (the layout and history live in the `forms` DB table, not inside the process record).
+
+### 6.3 Props Accepted by PrintBlankForm
+
+**PrintBlankForm** (`src/components/print/PrintBlankForm.tsx`, line 6–9)
+
+| Prop | Type | Description |
+|---|---|---|
+| `template` | `FormTemplateISO` | The complete form snapshot to render |
+| `onClose` | `() => void` | Called when user dismisses the print view; triggers `setPrintPreviewData(null)` in FormBuilder |
+
+### 6.4 API Endpoints Consumed
+
+All calls are inline `fetch()` within `FormBuilder.tsx` and `PrintBlankForm.tsx`.
+
+| Method | Endpoint | Used By | Purpose |
+|---|---|---|---|
+| `GET` | `/api/forms/:formId` | FormBuilder (mount) | Load the current form record from DB |
+| `GET` | `/api/forms/:formId?version=v0.1` | FormBuilder | Check if a specific version already exists before save/publish |
+| `GET` | `/api/forms/:formId/history` | FormBuilder (mount) | Load the full merged revision timeline |
+| `POST` | `/api/forms` | FormBuilder (`saveFormToBackend`) | Upsert a form template (save draft or publish) |
+| `DELETE` | `/api/forms/:formId?version=v0.1` | FormBuilder | Delete a specific version record |
+| `GET` | `/api/storage/logos` | FormBuilder (on mount + after logo change) | Fetch the list of previously uploaded logos from R2 |
+| `DELETE` | `/api/storage/logos` | FormBuilder | Delete an unused logo from R2 |
+| `POST` | `/api/storage/presign-upload` | FormBuilder | Get a pre-signed R2 URL for logo upload |
+| `PUT` | `(presigned R2 URL)` | FormBuilder | Direct upload of logo image to Cloudflare R2 |
+| `GET` | `/api/storage/download-url?key=...` | FormBuilder, PrintBlankForm | Resolve an R2 object key to a temporary pre-signed download URL (for logo display and print) |
+| `GET` | `/api/processes` | FormBuilder (lazy, on Copy Modal open) | Fetch all processes to populate the "Copy Block from another form" picker |
+
+---
+
+## 7. Known Design Constraints & Technical Debt
+
+| Issue | Impact | Notes |
+|---|---|---|
+| **FormBuilder is a monolith** | 3,443-line single file with no sub-component isolation | Left panel, center canvas, right panel, all block renderers, all field renderers, all handlers are co-located |
+| **No independent page route** | FormBuilder cannot be accessed standalone | Always launched via `activeFormToBuild` state in ProcessEditor; no deep-linking |
+| **`initialData` is a red herring** | Causes a visual flash (prop state → DB fetch override) | Props are used only as the initial seed; DB response overwrites them immediately on mount. A future improvement would be to load directly from DB and skip the `initialData` prop entirely |
+| **`isLocked` is UI-only** | Server does not enforce lock | ACTIVE forms can technically be mutated via direct API calls; only the UI guards prevent editing |
+| **Author hardcoded** | Revision history `author` field is always `"QA Administrator"` | Should read from `currentUser.full_name` via `AuthContext` |
+| **Logo management mixed in** | Logo upload/gallery/delete is embedded in FormBuilder | Should be a separate `AssetManager` component |
+| **`handleCreateNewVersion` doesn't save to DB** | User must manually Save Draft after creating a new version | This is an invisible action; if the user closes without saving, the new version is lost |
+| **`window.alert()` and `window.confirm()` used throughout** | Blocking browser dialogs disrupt UX | FormBuilder uses native dialogs extensively for error feedback and confirmations |
+| **Copy Block fetches all processes** | `GET /api/processes` loads the entire process list every time the copy modal opens | Should be paginated or lazy-loaded |
+
+---
+
+## 8. Change Log
+
+| Date | Session / Conversation | Change |
+|---|---|---|
+| 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Document created. Initial full write based on codebase review. |
