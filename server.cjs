@@ -287,8 +287,9 @@ async function seedFreshData(client) {
 
 async function initDatabase() {
   if (!dbPool) return;
+  let client;
   try {
-    const client = await dbPool.connect();
+    client = await dbPool.connect();
     console.log('Connected to Supabase database successfully!');
     await client.query(INITIALIZE_SCHEMA_QUERY);
 
@@ -375,21 +376,26 @@ async function initDatabase() {
       }
     }
 
-    // Database Keep-Alive: Ping every 1 hour
-    setInterval(async () => {
-      try {
-        if (dbPool) {
-          await dbPool.query('SELECT 1');
-          console.log('Database keep-alive ping sent.');
+    // Database Keep-Alive: Ping every 1 hour (Skip in Vercel Serverless)
+    if (!process.env.VERCEL) {
+      setInterval(async () => {
+        try {
+          if (dbPool) {
+            await dbPool.query('SELECT 1');
+            console.log('Database keep-alive ping sent.');
+          }
+        } catch (err) {
+          console.error('Database keep-alive ping failed:', err);
         }
-      } catch (err) {
-        console.error('Database keep-alive ping failed:', err);
-      }
-    }, 1000 * 60 * 60);
+      }, 1000 * 60 * 60);
+    }
 
-    client.release();
   } catch (err) {
     console.error('Failed to initialize Supabase database:', err);
+  } finally {
+    if (client) {
+      client.release();
+    }
   }
 }
 
@@ -2118,7 +2124,9 @@ if (require.main === module) {
   });
 } else {
   // In serverless environments, initialize database but export the app
-  initDatabase();
+  if (!process.env.VERCEL) {
+    initDatabase();
+  }
 }
 
 module.exports = app;
