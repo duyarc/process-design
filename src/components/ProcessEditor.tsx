@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { Process, ProcessStep, FormField, FormDesignerField, SOPSignOff, SOPSignOffs } from '../types';
-import { Save, Plus, Trash2, ArrowUp, ArrowDown, Upload, Edit2, Eye, Printer, GitBranch, XCircle, Shield, Calendar, RotateCcw } from 'lucide-react';
+import { Save, Plus, Trash2, ArrowUp, ArrowDown, Upload, Edit2, Eye, Printer, GitBranch, XCircle, Shield, Calendar, RotateCcw, ArrowLeft } from 'lucide-react';
 import FormBuilder from './FormBuilder';
 import { generateBPMNXML } from '../utils/bpmnXmlGenerator';
 import { useAuth } from '../context/AuthContext';
@@ -1363,7 +1363,41 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
           flexWrap: 'wrap',
           gap: '0.5rem'
         }}>
-          <div style={{ display: 'flex', gap: '0.25rem', marginBottom: '-1px' }}>
+          <div style={{ display: 'flex', gap: '0.25rem', marginBottom: '-1px', alignItems: 'center' }}>
+            <button
+              onClick={onCancel}
+              className="btn btn-secondary"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '0.25rem',
+                borderRadius: '50%',
+                width: '28px',
+                height: '28px',
+                minWidth: '28px',
+                background: 'transparent',
+                border: '1px solid transparent',
+                color: 'var(--text-secondary)',
+                cursor: 'pointer',
+                marginRight: '0.5rem',
+                marginBottom: '4px',
+                transition: 'background 0.15s, color 0.15s'
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = '#f1f5f9';
+                e.currentTarget.style.color = 'var(--text-primary)';
+                e.currentTarget.style.borderColor = '#e2e8f0';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = 'var(--text-secondary)';
+                e.currentTarget.style.borderColor = 'transparent';
+              }}
+              title="Cancel and Go Back"
+            >
+              <ArrowLeft size={14} />
+            </button>
             {(['description', 'workflow', 'form', 'versions'] as const).map((tab) => {
               const tabLabels: Record<string, string> = {
                 description: 'Description',

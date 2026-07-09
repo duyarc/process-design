@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import type { Process, SubmissionFieldSnapshot } from '../types';
 import { formatFormVersion, getColStyleWidth } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { Printer, Edit2, Camera, AlertTriangle, X, PenTool, GitBranch, Eye } from 'lucide-react';
+import { Printer, Edit2, Camera, AlertTriangle, X, PenTool, GitBranch, Eye, ArrowLeft } from 'lucide-react';
 import { generateBPMNXML, getNumRows } from '../utils/bpmnXmlGenerator';
 import { BpmnViewerComponent } from './BpmnViewerComponent';
 import PrintBlankForm from './print/PrintBlankForm';
@@ -627,6 +627,37 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
               gap: '0.5rem',
               flexWrap: 'wrap'
             }}>
+              <button
+                className="btn btn-secondary no-print"
+                onClick={onBack}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '0.3rem',
+                  borderRadius: '50%',
+                  width: '32px',
+                  height: '32px',
+                  minWidth: '32px',
+                  background: '#f1f5f9',
+                  border: '1px solid #e2e8f0',
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  margin: '0 0.25rem 0 0',
+                  transition: 'background 0.15s, color 0.15s'
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = '#e2e8f0';
+                  e.currentTarget.style.color = 'var(--text-primary)';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = '#f1f5f9';
+                  e.currentTarget.style.color = 'var(--text-secondary)';
+                }}
+                title="Back to Dashboard"
+              >
+                <ArrowLeft size={16} />
+              </button>
               <span style={{
                 fontSize: '0.85rem',
                 fontWeight: 700,

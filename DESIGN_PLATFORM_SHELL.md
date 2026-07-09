@@ -211,3 +211,4 @@ Self-contained component. Relies entirely on `useAuth()` to get the current list
 | 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Simplify the processes list table layout by replacing the complex 'Metadata' column with a clean, single-value 'Last update' column. |
 | 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Hide the virtual fallback process family 'unlinked' (Biểu mẫu tự do) from the Processes listing tab. |
 | 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Add direct Print action buttons to the Processes tab list and grid card layouts. |
+| 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Fix Process Reader back navigation routing bug by explicitly calling setPage('dashboard'). |

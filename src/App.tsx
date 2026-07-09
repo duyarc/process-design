@@ -295,7 +295,7 @@ const MainApp: React.FC = () => {
         {page === 'reader' && (
           <ProcessReader
             processId={selectedProcessId!}
-            onBack={() => { setPage(prevPage); setInitialPrintFormName(null); setTriggerProcessPrint(false); }}
+            onBack={() => { setPage('dashboard'); setInitialPrintFormName(null); setTriggerProcessPrint(false); }}
             onEdit={handleEditProcess}
             initialPrintFormName={initialPrintFormName}
             onClearPrintForm={() => { setInitialPrintFormName(null); setTriggerProcessPrint(false); }}

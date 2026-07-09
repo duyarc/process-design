@@ -389,3 +389,5 @@ Base URL: relative path (proxied via Vite dev server to `http://localhost:3001`)
 | 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Sort process versions in the Version History sidebar by latest updated timestamp in descending order. |
 | 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Accept initialTriggerPrint prop in ProcessReader to trigger immediate browser printing on mount. |
 | 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Automatically navigate back to the previous page (Dashboard) once the browser print dialog is exited/closed in direct print mode. |
+| 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Add a minimal back arrow button (ArrowLeft icon) in ProcessReader header next to the title to return back to the Dashboard. |
+| 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Add a circular back arrow button (ArrowLeft icon) before the tabs in ProcessEditor.tsx to cancel editing and return to the Process Reader screen. |
