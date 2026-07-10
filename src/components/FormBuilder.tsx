@@ -1991,8 +1991,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
               color: 'var(--text-muted)',
               fontFamily: 'monospace'
             }}>
-              <span>Doc ID: {formId || 'PENDING'}</span>
-              <span>Version: {formatFormVersion(version) || 'DRAFT'}</span>
+              <span>{formId || 'PENDING'}</span>
+              <span>{formatFormVersion(version, status, status === 'ACTIVE' ? effectiveDate : undefined, initialData?.updatedAt || (initialData as any)?.updated_at || new Date().toISOString())}</span>
             </div>
           </div>
         </div>
