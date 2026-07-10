@@ -9,7 +9,7 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Last Verified Against Codebase** | 2026-07-09 |
+| **Last Verified Against Codebase** | 2026-07-10 |
 | **Verified By Session** | [9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) |
 
 ### Quick File Index
@@ -427,3 +427,4 @@ All calls are inline `fetch()` within `FormBuilder.tsx` and `PrintBlankForm.tsx`
 | Date | Session / Conversation | Change |
 |---|---|---|
 | 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Document created. Initial full write based on codebase review. |
+| 2026-07-10 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Standardize form version strings in FormBuilder, server.cjs, and types.ts. Extract version date into a separate effectiveDate field and clean up legacy formatting regexes. |

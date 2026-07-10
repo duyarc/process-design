@@ -847,19 +847,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
 
                             {/* Version Badge (only for digital forms) */}
                             {!formData.pdfName && (() => {
-                              const rawVersion = (liveVersion || '').trim();
-                              let cleanVersion = rawVersion.replace(/\s*\(draft\)/gi, '').trim();
-                              const dateRegex = /(\d{4})-(\d{2})-(\d{2})/;
-                              const dateMatch = cleanVersion.match(dateRegex);
-                              if (dateMatch) {
-                                const [_, yyyy, mm, dd] = dateMatch;
-                                const formattedDate = `${dd}.${mm}.${yyyy}`;
-                                cleanVersion = cleanVersion.replace(/\s*\([^)]*\)/g, '').replace(dateRegex, '').trim();
-                                cleanVersion = `${cleanVersion}-${formattedDate}`;
-                              }
-                              if (cleanVersion.startsWith('v')) {
-                                cleanVersion = 'V' + cleanVersion.slice(1);
-                              }
+                              const cleanVersion = formatFormVersion(liveVersion, liveForm?.status, liveForm?.effective_date);
                               if (!cleanVersion) return null;
                               return (
                                 <span style={{
@@ -1146,7 +1134,8 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                 layoutBlocks: typeof liveForm.layout_blocks === 'string' ? JSON.parse(liveForm.layout_blocks) : liveForm.layout_blocks,
                 revisionHistory: typeof liveForm.revision_history === 'string' ? JSON.parse(liveForm.revision_history) : liveForm.revision_history,
                 version: liveForm.version,
-                status: liveForm.status
+                status: liveForm.status,
+                effectiveDate: liveForm.effective_date
               } : null;
 
               if (!formTemplate || !formTemplate.layoutBlocks) {
@@ -1173,7 +1162,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                         📝 Fill Form: {formTemplate.formTitle || activeFormToFill}
                       </h3>
                       <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
-                        Document ID: <strong>{formTemplate.formId}</strong> | Version: <strong>{formatFormVersion(formTemplate.version || '')}</strong>
+                        Document ID: <strong>{formTemplate.formId}</strong> | Version: <strong>{formatFormVersion(formTemplate.version || '', formTemplate.status, formTemplate.effectiveDate || (formTemplate as any).effective_date)}</strong>
                       </div>
                     </div>
                     <button

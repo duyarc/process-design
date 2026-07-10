@@ -84,6 +84,7 @@ const INITIALIZE_SCHEMA_QUERY = `
     form_name TEXT NOT NULL,
     status TEXT NOT NULL DEFAULT 'DRAFT',
     version TEXT NOT NULL DEFAULT 'v0.1',
+    effective_date DATE,
     form_title TEXT,
     layout_blocks JSONB NOT NULL DEFAULT '[]',
     revision_history JSONB NOT NULL DEFAULT '[]',
@@ -326,6 +327,21 @@ async function initDatabase() {
     `).catch(() => {});
     
     console.log('Database schema verified/created.');
+
+    // MIGRATION: Add effective_date column if it doesn't exist
+    await client.query(`
+      ALTER TABLE forms ADD COLUMN IF NOT EXISTS effective_date DATE;
+    `).catch(() => {});
+
+    // MIGRATION: Backfill effective_date from embedded date in version string
+    // Handles rows like: "v0.1 (2026-07-04)" -> version="v0.1", effective_date="2026-07-04"
+    await client.query(`
+      UPDATE forms
+      SET
+        effective_date = (regexp_match(version, '\\((\\d{4}-\\d{2}-\\d{2})'))[1]::DATE,
+        version = regexp_replace(version, '\\s*\\([^)]*\\)', '', 'g')
+      WHERE version ~ '\\(';
+    `).catch((err) => { console.error('Version migration warning:', err.message); });
 
     // Ensure system default process for unlinked forms exists in Supabase DB
     await client.query(`
@@ -758,7 +774,7 @@ app.delete('/api/forms/*formId', async (req, res) => {
 // POST /api/forms - Save or Update form template (upsert by form_id + version composite key)
 app.post('/api/forms', async (req, res) => {
   try {
-    const { formId, formName, formTitle, status, version, layoutBlocks, revisionHistory, pdfName, pdfKey, pdfSize, oldFormId } = req.body;
+    const { formId, formName, formTitle, status, version, effectiveDate, layoutBlocks, revisionHistory, pdfName, pdfKey, pdfSize, oldFormId } = req.body;
     
     if (!formId || !formName) {
       return res.status(400).json({ error: 'formId and formName are required' });
@@ -789,12 +805,13 @@ app.post('/api/forms', async (req, res) => {
       // Upsert using composite PK (form_id, version) — each version is an independent snapshot
       const query = `
         INSERT INTO forms (
-          form_id, form_name, form_title, status, version, layout_blocks, revision_history, pdf_name, pdf_key, pdf_size, updated_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
+          form_id, form_name, form_title, status, version, effective_date, layout_blocks, revision_history, pdf_name, pdf_key, pdf_size, updated_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
         ON CONFLICT (form_id, version) DO UPDATE SET
           form_name = EXCLUDED.form_name,
           form_title = EXCLUDED.form_title,
           status = EXCLUDED.status,
+          effective_date = EXCLUDED.effective_date,
           layout_blocks = EXCLUDED.layout_blocks,
           revision_history = EXCLUDED.revision_history,
           pdf_name = EXCLUDED.pdf_name,
@@ -803,7 +820,7 @@ app.post('/api/forms', async (req, res) => {
           updated_at = NOW()
         RETURNING *
       `;
-      const values = [formId, formName, formTitle || formName, status || 'DRAFT', ver, blocks, history, pdfName || null, pdfKey || null, pdfSize || 0];
+      const values = [formId, formName, formTitle || formName, status || 'DRAFT', ver, effectiveDate || null, blocks, history, pdfName || null, pdfKey || null, pdfSize || 0];
       const result = await dbPool.query(query, values);
       res.status(200).json(result.rows[0]);
     } else {

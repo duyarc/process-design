@@ -41,7 +41,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
   // 1. Core Layout State
   const [formId, setFormId] = useState(initialData?.formId || `FM-${formName.toUpperCase().replace(/[^A-Z0-9]/g, '-')}-001`);
   const [formTitle, setFormTitle] = useState(initialData?.formTitle || formName);
-  const [version, setVersion] = useState(initialData?.version || 'v0.1 (' + new Date().toISOString().split('T')[0] + ')');
+  const [version, setVersion] = useState(
+    initialData?.version ? initialData.version.replace(/\s*\([^)]*\)/g, '').trim() : 'v0.1'
+  );
   const [status, setStatus] = useState<'DRAFT' | 'ACTIVE' | 'ARCHIVED'>(initialData?.status || 'DRAFT');
   
   // Default blocks if none provided
@@ -63,7 +65,10 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
           const data = await res.json();
           setFormId(data.form_id);
           setFormTitle(data.form_title || data.form_name);
-          setVersion(data.version);
+          setVersion((data.version || 'v0.1').replace(/\s*\([^)]*\)/g, '').trim());
+          if (data.effective_date) {
+            setEffectiveDate(data.effective_date.split('T')[0]);
+          }
           setStatus(data.status);
           
           if (data.layout_blocks) {
@@ -87,7 +92,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
     fetchFormTemplate();
   }, [initialData?.formId]);
 
-  const saveFormToBackend = async (opts: { versionOverride?: string, statusOverride?: 'ACTIVE' | 'DRAFT' | 'ARCHIVED', historyOverride?: FormRevisionEntry[] } = {}) => {
+  const saveFormToBackend = async (opts: { versionOverride?: string, statusOverride?: 'ACTIVE' | 'DRAFT' | 'ARCHIVED', historyOverride?: FormRevisionEntry[], effectiveDateOverride?: string } = {}) => {
     const activeVersion = opts.versionOverride || version;
     const activeStatus = opts.statusOverride || status;
     const activeHistory = opts.historyOverride || revisionHistory;
@@ -99,6 +104,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
         formTitle,
         status: activeStatus,
         version: activeVersion,
+        effectiveDate: activeStatus === 'ACTIVE' ? (opts.effectiveDateOverride || effectiveDate) : null,
         layoutBlocks,
         revisionHistory: activeHistory,
         oldFormId: initialData?.formId && initialData.formId !== formId ? initialData.formId : undefined
@@ -681,7 +687,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
     }
 
     const approveDate = effectiveDate || new Date().toISOString().split('T')[0];
-    const newActiveVersion = `v${major}.${minor} (${approveDate})`;
+    const newActiveVersion = `v${major}.${minor}`;
     
     const newHistoryEntry: FormRevisionEntry = {
       version: `v${major}.${minor}`,
@@ -704,7 +710,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
       await saveFormToBackend({
         versionOverride: newActiveVersion,
         statusOverride: 'ACTIVE',
-        historyOverride: updatedHistory
+        historyOverride: updatedHistory,
+        effectiveDateOverride: approveDate
       });
 
       onSave({
@@ -744,8 +751,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
     setLayoutBlocks(restoredBlocks);
 
     // Set version name, status as retired, and lock the view
-    const formattedVersion = `${entry.version} (${entry.date}) [RETIRED]`;
-    setVersion(formattedVersion);
+    setVersion(entry.version);
     setIsLocked(true);
     setViewingRevisionVersion(entry.version);
   };
@@ -770,7 +776,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
       
       // Parse major/minor of the restored version
       const { major, minor } = parseVersion(baseVersion);
-      const draftVersion = `v${major}.${minor} (draft)`;
+      const draftVersion = `v${major}.${minor}`;
       
       setVersion(draftVersion);
       setStatus('DRAFT');
@@ -780,7 +786,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
       setCurrentDraftBackup(null);
       setViewingRevisionVersion(null);
       
-      alert(`Đã khôi phục phiên bản ${baseVersion} thành bản nháp hiện tại (${draftVersion}). Bạn có thể bắt đầu chỉnh sửa bản nháp này.`);
+      alert(`Đã khôi phục phiên bản ${baseVersion} thành bản nháp hiện tại.`);
     }
   };
 
@@ -863,12 +869,12 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
 
   const handleCreateNewVersion = () => {
     const { major, minor } = parseVersion(version);
-    const draftVersion = `v${major}.${minor + 1} (draft)`;
+    const draftVersion = `v${major}.${minor + 1}`;
     setVersion(draftVersion);
     setStatus('DRAFT');
     setIsLocked(false);
     setChangeSummary('');
-    alert(`New draft version created: ${draftVersion}. You can now make edits. The previous version remains active in production until you publish this draft.`);
+    alert(`New draft version created: ${draftVersion} (draft). You can now make edits. The previous version remains active in production until you publish this draft.`);
   };
 
   const handleSaveDraftAndClose = async () => {
@@ -948,16 +954,13 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
   }
 
   const { major, minor } = parseVersion(version);
-  const datePart = status === 'ACTIVE'
-    ? (version.includes('(') ? version.split('(')[1].replace(')', '') : new Date().toISOString().split('T')[0])
-    : 'draft';
 
   const handleMajorChange = (newMajor: number) => {
-    setVersion(`v${newMajor}.${minor} (${datePart})`);
+    setVersion(`v${newMajor}.${minor}`);
   };
 
   const handleMinorChange = (newMinor: number) => {
-    setVersion(`v${major}.${newMinor} (${datePart})`);
+    setVersion(`v${major}.${newMinor}`);
   };
 
   return (
@@ -2882,9 +2885,11 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                         Active
                       </span>
                     </div>
-                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                      ({datePart})
-                    </span>
+                    {status === 'ACTIVE' && effectiveDate && (
+                      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                        ({effectiveDate})
+                      </span>
+                    )}
                   </div>
 
                   <div style={{ marginTop: '0.15rem' }}>

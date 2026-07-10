@@ -156,8 +156,9 @@ export interface LayoutBlockISO {
 export interface FormTemplateISO {
   formId: string;
   formTitle: string;
-  version: string; // vX.Y (YYYY-MM-DD)
+  version: string; // clean semver: "v0.1", "v1.2"
   status: 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
+  effectiveDate?: string; // ISO date string "YYYY-MM-DD", set on publish
   layoutBlocks: LayoutBlockISO[];
   revisionHistory: FormRevisionEntry[];
 }
@@ -189,37 +190,34 @@ export interface Submission {
   } | null;
 }
 
-export function formatFormVersion(versionStr: string): string {
-  if (!versionStr) return '';
-  
-  // Check if it already matches "V1-25.08.2025" or similar format
-  if (/^V\d+-\d{2}\.\d{2}\.\d{4}$/i.test(versionStr)) {
-    return versionStr;
+/**
+ * Formats a clean version string for display.
+ * @param version - clean semver string, e.g. "v0.1"
+ * @param status  - form status: 'DRAFT' | 'ACTIVE' | 'ARCHIVED'
+ * @param effectiveDate - ISO date string "YYYY-MM-DD", set on publish
+ */
+export function formatFormVersion(version: string, status?: string, effectiveDate?: string): string {
+  if (!version) return '';
+  // Normalize: strip any legacy suffix still in DB during transition
+  const clean = version.replace(/\s*\([^)]*\)/g, '').trim();
+  const display = clean.startsWith('v') ? 'V' + clean.slice(1) : clean; // "v0.1" -> "V0.1"
+
+  if (status === 'DRAFT') return `${display} (draft)`;
+  if (status === 'ACTIVE' && effectiveDate) {
+    const [yyyy, mm, dd] = effectiveDate.split('-');
+    return `${display}-${dd}.${mm}.${yyyy}`; // "V0.1-04.07.2026"
   }
-  
-  // Match "v1.0 (2026-07-04)" or "v1 (2026-07-04)"
-  const matchWithDate = versionStr.match(/v?(\d+)(?:\.\d+)?\s*\((\d{4})-(\d{2})-(\d{2})\)/i);
+
+  // Fallback for legacy embedded dates (e.g. in older submissions)
+  const matchWithDate = version.match(/v?(\d+)(?:\.\d+)?\s*\((\d{4})-(\d{2})-(\d{2})\)/i);
   if (matchWithDate) {
-    const major = matchWithDate[1];
     const year = matchWithDate[2];
     const month = matchWithDate[3];
     const day = matchWithDate[4];
-    return `V${major}-${day}.${month}.${year}`;
-  }
-  
-  // Match just "v1.0" or "v1.0 (draft)"
-  const matchDraft = versionStr.match(/v?(\d+)(?:\.\d+)?\s*\(draft\)/i);
-  if (matchDraft) {
-    const major = matchDraft[1];
-    return `V${major} (draft)`;
+    return `${display}-${day}.${month}.${year}`;
   }
 
-  // Fallback for simple "v1.0" or "1.0" -> "V1.0"
-  if (versionStr.toLowerCase().startsWith('v')) {
-    return 'V' + versionStr.substring(1);
-  }
-
-  return versionStr;
+  return display; // ARCHIVED or unknown: "V0.1"
 }
 
 export function getColStyleWidth(colId: string, colWidth: string, tableColumns: any[]): string {
