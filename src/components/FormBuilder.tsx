@@ -30,6 +30,7 @@ interface FormBuilderProps {
     formTitle?: string;
     version?: string;
     status?: 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
+    updatedAt?: string;
     layoutBlocks?: LayoutBlockISO[];
     revisionHistory?: FormRevisionEntry[];
   };
@@ -1158,6 +1159,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
               formTitle,
               version,
               status,
+              updatedAt: initialData?.updatedAt || (initialData as any)?.updated_at || new Date().toISOString(),
               layoutBlocks,
               revisionHistory
             })}

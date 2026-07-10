@@ -847,7 +847,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
 
                             {/* Version Badge (only for digital forms) */}
                             {!formData.pdfName && (() => {
-                              const cleanVersion = formatFormVersion(liveVersion, liveForm?.status, liveForm?.effective_date);
+                              const cleanVersion = formatFormVersion(liveVersion, liveForm?.status, liveForm?.effective_date, liveForm?.updated_at);
                               if (!cleanVersion) return null;
                               return (
                                 <span style={{
@@ -1135,7 +1135,8 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                 revisionHistory: typeof liveForm.revision_history === 'string' ? JSON.parse(liveForm.revision_history) : liveForm.revision_history,
                 version: liveForm.version,
                 status: liveForm.status,
-                effectiveDate: liveForm.effective_date
+                effectiveDate: liveForm.effective_date,
+                updatedAt: liveForm.updated_at
               } : null;
 
               if (!formTemplate || !formTemplate.layoutBlocks) {
@@ -1162,7 +1163,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                         📝 Fill Form: {formTemplate.formTitle || activeFormToFill}
                       </h3>
                       <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.15rem' }}>
-                        Document ID: <strong>{formTemplate.formId}</strong> | Version: <strong>{formatFormVersion(formTemplate.version || '', formTemplate.status, formTemplate.effectiveDate || (formTemplate as any).effective_date)}</strong>
+                        Document ID: <strong>{formTemplate.formId}</strong> | Version: <strong>{formatFormVersion(formTemplate.version || '', formTemplate.status, formTemplate.effectiveDate || (formTemplate as any).effective_date, formTemplate.updatedAt)}</strong>
                       </div>
                     </div>
                     <button

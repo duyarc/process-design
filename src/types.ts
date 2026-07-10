@@ -159,6 +159,7 @@ export interface FormTemplateISO {
   version: string; // clean semver: "v0.1", "v1.2"
   status: 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
   effectiveDate?: string; // ISO date string "YYYY-MM-DD", set on publish
+  updatedAt?: string; // ISO timestamp or simple date, set on save
   layoutBlocks: LayoutBlockISO[];
   revisionHistory: FormRevisionEntry[];
 }
@@ -195,14 +196,25 @@ export interface Submission {
  * @param version - clean semver string, e.g. "v0.1"
  * @param status  - form status: 'DRAFT' | 'ACTIVE' | 'ARCHIVED'
  * @param effectiveDate - ISO date string "YYYY-MM-DD", set on publish
+ * @param updatedAt - ISO timestamp or simple date, set on save (used as date for DRAFT)
  */
-export function formatFormVersion(version: string, status?: string, effectiveDate?: string): string {
+export function formatFormVersion(version: string, status?: string, effectiveDate?: string, updatedAt?: string): string {
   if (!version) return '';
   // Normalize: strip any legacy suffix still in DB during transition
   const clean = version.replace(/\s*\([^)]*\)/g, '').trim();
   const display = clean.startsWith('v') ? 'V' + clean.slice(1) : clean; // "v0.1" -> "V0.1"
 
-  if (status === 'DRAFT') return `${display} (draft)`;
+  if (status === 'DRAFT') {
+    if (updatedAt) {
+      const datePart = updatedAt.split('T')[0];
+      const parts = datePart.split('-');
+      if (parts.length === 3) {
+        const [yyyy, mm, dd] = parts;
+        return `${display}-${dd}.${mm}.${yyyy} (draft)`; // "V0.1-10.07.2026 (draft)"
+      }
+    }
+    return `${display} (draft)`;
+  }
   if (status === 'ACTIVE' && effectiveDate) {
     const [yyyy, mm, dd] = effectiveDate.split('-');
     return `${display}-${dd}.${mm}.${yyyy}`; // "V0.1-04.07.2026"
