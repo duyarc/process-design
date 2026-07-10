@@ -1054,9 +1054,11 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <FileText size={18} style={{ color: 'var(--primary)' }} />
           <h2 style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>Form Designer</h2>
-          <span className={`badge ${status === 'ACTIVE' ? 'badge-success' : 'badge-warning'}`} style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem' }}>
-            {status}
-          </span>
+          {status !== 'DRAFT' && (
+            <span className={`badge ${status === 'ACTIVE' ? 'badge-success' : 'badge-warning'}`} style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem' }}>
+              {status}
+            </span>
+          )}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
           {!isLocked ? (
