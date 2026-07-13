@@ -261,7 +261,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                       }}>
                         {colFields.map(f => (
                           <div key={f.id} style={{ display: 'flex', alignItems: 'baseline', gap: '8px', fontSize: '0.85rem' }}>
-                            <span style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{f.checkItem}:</span>
+                            <span style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{f.checkItem ? `${f.checkItem}:` : ''}</span>
                             {(f.type === 'checkbox' || f.type === 'radio') ? (
                               <div style={{ display: 'inline-flex', gap: '15px', alignItems: 'center' }}>
                                 {(f.options ?? [{ label: 'Có', value: 'YES' }, { label: 'Không', value: 'NO' }]).map((opt: any) => (

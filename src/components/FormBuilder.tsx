@@ -1587,7 +1587,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                                     background: isFieldSelected ? 'rgba(16, 163, 163, 0.05)' : 'none'
                                   }}
                                 >
-                                  <span style={{ fontWeight: 600 }}>{f.checkItem}:</span>
+                                  <span style={{ fontWeight: 600 }}>{f.checkItem ? `${f.checkItem}:` : ''}</span>
                                   <span style={{ color: 'var(--text-muted)' }}>[{f.type}]</span>
                                 </div>
                               );

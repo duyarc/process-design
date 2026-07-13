@@ -407,7 +407,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                 }}>
                   {colFields.map(f => (
                     <div key={f.id} style={{ display: 'flex', alignItems: 'baseline', gap: '8px', fontSize: '0.85rem' }}>
-                      <span style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{f.checkItem}:</span>
+                      <span style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{f.checkItem ? `${f.checkItem}:` : ''}</span>
                       <span style={{ borderBottom: '1px solid #e2e8f0', flex: 1, paddingBottom: '2px', fontWeight: 700 }}>
                         {f.value}
                       </span>
