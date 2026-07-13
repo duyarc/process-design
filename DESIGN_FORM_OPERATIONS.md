@@ -376,3 +376,4 @@ FormFiller supports direct URL access for operator distribution:
 | 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Document created. Initial full write based on codebase review. |
 | 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Re-layout SubmissionManager to full-width and replace the 2-column split with a slide-over details drawer overlay. |
 | 2026-07-13 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Remove trailing colon (":") from field labels in INFO_GRID blocks if the label is blank. Affects PrintRecord.tsx. |
+| 2026-07-13 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Fix logo race condition in PrintRecord.tsx by adding logoReady state guard to print dialog initialization. |

@@ -21,10 +21,12 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [loadingImages, setLoadingImages] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string>('');
+  const [logoReady, setLogoReady] = useState<boolean>(false);
 
   useEffect(() => {
     if (!logoText) {
       setLogoUrl('');
+      setLogoReady(true);
       return;
     }
     if (logoText.startsWith('uploads/')) {
@@ -38,9 +40,13 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
         .catch(err => {
           console.error('Error fetching logo URL for record print:', err);
           setLogoUrl('');
+        })
+        .finally(() => {
+          setLogoReady(true);
         });
     } else {
       setLogoUrl(logoText);
+      setLogoReady(true);
     }
   }, [logoText]);
 
@@ -69,24 +75,24 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
     fetchImages();
   }, [submission]);
 
-  // 2. Trigger print dialog after images loaded and close when done
+  // 2. Trigger print dialog after images AND logo are loaded
   useEffect(() => {
-    if (!loadingImages) {
-      const handleAfterPrint = () => {
-        onClose();
-      };
-      window.addEventListener('afterprint', handleAfterPrint);
+    if (loadingImages || !logoReady) return;
 
-      const timer = setTimeout(() => {
-        window.print();
-      }, 800);
+    const handleAfterPrint = () => {
+      onClose();
+    };
+    window.addEventListener('afterprint', handleAfterPrint);
 
-      return () => {
-        window.removeEventListener('afterprint', handleAfterPrint);
-        clearTimeout(timer);
-      };
-    }
-  }, [loadingImages, onClose]);
+    const timer = setTimeout(() => {
+      window.print();
+    }, 500);
+
+    return () => {
+      window.removeEventListener('afterprint', handleAfterPrint);
+      clearTimeout(timer);
+    };
+  }, [loadingImages, logoReady, onClose]);
 
   const [layoutBlocks, setLayoutBlocks] = useState<any[]>([]);
 
