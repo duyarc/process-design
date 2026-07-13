@@ -28,9 +28,11 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
         .then(res => res.json())
         .then(data => {
           if (data.dataUrl) {
-            setLogoUrl(data.dataUrl); // Embedded data URL — no extra network request needed
+            setLogoUrl(data.dataUrl);
+            // imgLoaded will be set by <img> onLoad/onError after browser fully decodes the image
+          } else {
+            setImgLoaded(true); // No image returned — proceed without logo
           }
-          setImgLoaded(true); // Data URL loads synchronously — proceed to print
         })
         .catch(err => {
           console.error('Error fetching inline logo for print:', err);
