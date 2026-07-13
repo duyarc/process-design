@@ -140,6 +140,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
   const [currentDraftBackup, setCurrentDraftBackup] = useState<{ layoutBlocks: LayoutBlockISO[]; version: string; isLocked: boolean } | null>(null);
   const [viewingRevisionVersion, setViewingRevisionVersion] = useState<string | null>(null);
   const [rightTab, setRightTab] = useState<'properties' | 'versions'>('properties');
+  const [hoveredTableRowId, setHoveredTableRowId] = useState<string | null>(null);
 
   useEffect(() => {
     if (activeBlockId) {
@@ -1815,9 +1816,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                                     );
                                   })}
                                   {!isLocked && (
-                                    <th style={{ width: '50px', padding: '6px', textAlign: 'center', fontWeight: 'bold' }}>
-                                      Xóa
-                                    </th>
+                                    <th style={{ width: '32px', padding: '0', border: 'none', background: 'transparent' }} />
                                   )}
                                 </tr>
                               </thead>
@@ -1830,7 +1829,12 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                                   </tr>
                                 ) : (
                                   (block.tableRows || []).map((row) => (
-                                    <tr key={row.id} style={{ borderBottom: '1px solid #cbd5e1' }}>
+                                    <tr
+                                      key={row.id}
+                                      style={{ borderBottom: '1px solid #cbd5e1' }}
+                                      onMouseEnter={() => !isLocked && setHoveredTableRowId(row.id)}
+                                      onMouseLeave={() => setHoveredTableRowId(null)}
+                                    >
                                        {(block.tableColumns || []).map((col) => {
                                          const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? 'center' : 'left'));
                                          return (
@@ -1871,7 +1875,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                                          );
                                        })}
                                       {!isLocked && (
-                                        <td style={{ padding: '4px', textAlign: 'center' }}>
+                                         <td style={{ width: '32px', padding: '0 4px', border: 'none', textAlign: 'center' }}>
                                           <button
                                             type="button"
                                             onClick={() => {
@@ -1884,11 +1888,12 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                                                 }
                                                 return b;
                                               }));
+                                               setHoveredTableRowId(null);
                                             }}
-                                            style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '2px' }}
+                                             style={{ background: 'none', border: '1px solid transparent', color: '#ef4444', cursor: 'pointer', padding: '2px', borderRadius: '4px', opacity: hoveredTableRowId === row.id ? 1 : 0, transition: 'opacity 0.15s ease', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '22px', height: '22px', margin: '0 auto' }}
                                             title="Xóa dòng"
                                           >
-                                            <Trash2 size={12} />
+                                             <Trash2 size={11} />
                                           </button>
                                         </td>
                                       )}
