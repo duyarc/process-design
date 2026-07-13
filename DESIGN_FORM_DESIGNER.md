@@ -430,3 +430,4 @@ All calls are inline `fetch()` within `FormBuilder.tsx` and `PrintBlankForm.tsx`
 | 2026-07-10 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Standardize form version strings in FormBuilder, server.cjs, and types.ts. Extract version date into a separate effectiveDate field and clean up legacy formatting regexes. |
 | 2026-07-13 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Remove trailing colon (":") from field labels in INFO_GRID blocks if the label is blank. Affects FormBuilder.tsx and PrintBlankForm.tsx. |
 | 2026-07-13 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Fix logo race condition in PrintBlankForm.tsx by adding logoReady state guard to print dialog initialization. |
+| 2026-07-13 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Fix logo print blank on slow machines by using img onLoad/onError listeners to ensure image bytes are loaded before printing. |

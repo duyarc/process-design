@@ -10,7 +10,7 @@ interface PrintBlankFormProps {
 
 export default function PrintBlankForm({ template, onClose }: PrintBlankFormProps) {
   const [logoUrl, setLogoUrl] = React.useState<string>('');
-  const [logoReady, setLogoReady] = React.useState<boolean>(false);
+  const [imgLoaded, setImgLoaded] = React.useState<boolean>(false);
 
   const titleBlock = template.layoutBlocks.find(b => b.type === 'TITLE');
   const titleBlockLogo = titleBlock?.logo;
@@ -18,7 +18,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
   React.useEffect(() => {
     if (!titleBlockLogo) {
       setLogoUrl('');
-      setLogoReady(true);
+      setImgLoaded(true); // No logo to wait for — proceed to print immediately
       return;
     }
     if (titleBlockLogo.startsWith('uploads/')) {
@@ -27,24 +27,24 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
         .then(data => {
           if (data.downloadUrl) {
             setLogoUrl(data.downloadUrl);
+            // imgLoaded will be set by the <img> onLoad/onError handlers
+          } else {
+            setImgLoaded(true); // No URL returned — proceed without logo
           }
         })
         .catch(err => {
           console.error('Error fetching logo URL for print:', err);
-          setLogoUrl('');
-        })
-        .finally(() => {
-          setLogoReady(true);
+          setImgLoaded(true); // Fetch failed — proceed without logo
         });
     } else {
       setLogoUrl(titleBlockLogo);
-      setLogoReady(true);
+      // imgLoaded will be set by the <img> onLoad/onError handlers
     }
   }, [titleBlockLogo]);
 
-  // Trigger print dialog only after logo is ready to avoid blank logo in print
+  // Trigger print dialog only after logo image is fully loaded in DOM
   React.useEffect(() => {
-    if (!logoReady) return;
+    if (!imgLoaded) return;
 
     const handleAfterPrint = () => {
       onClose();
@@ -53,13 +53,13 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
 
     const timer = setTimeout(() => {
       window.print();
-    }, 300);
+    }, 100);
 
     return () => {
       window.removeEventListener('afterprint', handleAfterPrint);
       clearTimeout(timer);
     };
-  }, [logoReady, onClose]);
+  }, [imgLoaded, onClose]);
 
   return ReactDOM.createPortal(
     <div className="print-container" style={{
@@ -214,7 +214,13 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                       alignItems: 'center',
                       height: '65px'
                     }}>
-                      <img src={logoUrl} alt="Logo" style={{ maxHeight: '65px', maxWidth: '260px', objectFit: 'contain' }} />
+                      <img
+                        src={logoUrl}
+                        alt="Logo"
+                        style={{ maxHeight: '65px', maxWidth: '260px', objectFit: 'contain' }}
+                        onLoad={() => setImgLoaded(true)}
+                        onError={() => setImgLoaded(true)}
+                      />
                     </div>
                   )}
                   <div style={{ textAlign: 'center', flex: 1 }}>

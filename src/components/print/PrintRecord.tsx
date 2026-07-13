@@ -21,12 +21,12 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [loadingImages, setLoadingImages] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string>('');
-  const [logoReady, setLogoReady] = useState<boolean>(false);
+  const [imgLoaded, setImgLoaded] = useState<boolean>(false);
 
   useEffect(() => {
     if (!logoText) {
       setLogoUrl('');
-      setLogoReady(true);
+      setImgLoaded(true); // No logo to wait for — proceed to print
       return;
     }
     if (logoText.startsWith('uploads/')) {
@@ -35,18 +35,18 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
         .then(data => {
           if (data.downloadUrl) {
             setLogoUrl(data.downloadUrl);
+            // imgLoaded will be set by the <img> onLoad/onError handlers
+          } else {
+            setImgLoaded(true); // No URL returned — proceed without logo
           }
         })
         .catch(err => {
           console.error('Error fetching logo URL for record print:', err);
-          setLogoUrl('');
-        })
-        .finally(() => {
-          setLogoReady(true);
+          setImgLoaded(true); // Fetch failed — proceed without logo
         });
     } else {
       setLogoUrl(logoText);
-      setLogoReady(true);
+      // imgLoaded will be set by the <img> onLoad/onError handlers
     }
   }, [logoText]);
 
@@ -75,9 +75,9 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
     fetchImages();
   }, [submission]);
 
-  // 2. Trigger print dialog after images AND logo are loaded
+  // 2. Trigger print dialog only after logo image bytes are fully loaded in DOM
   useEffect(() => {
-    if (loadingImages || !logoReady) return;
+    if (loadingImages || !imgLoaded) return;
 
     const handleAfterPrint = () => {
       onClose();
@@ -86,13 +86,13 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
 
     const timer = setTimeout(() => {
       window.print();
-    }, 500);
+    }, 200);
 
     return () => {
       window.removeEventListener('afterprint', handleAfterPrint);
       clearTimeout(timer);
     };
-  }, [loadingImages, logoReady, onClose]);
+  }, [loadingImages, imgLoaded, onClose]);
 
   const [layoutBlocks, setLayoutBlocks] = useState<any[]>([]);
 
@@ -359,7 +359,13 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
               alignItems: 'center',
               height: '65px'
             }}>
-              <img src={logoUrl} alt="Logo" style={{ maxHeight: '65px', maxWidth: '260px', objectFit: 'contain' }} />
+              <img
+                src={logoUrl}
+                alt="Logo"
+                style={{ maxHeight: '65px', maxWidth: '260px', objectFit: 'contain' }}
+                onLoad={() => setImgLoaded(true)}
+                onError={() => setImgLoaded(true)}
+              />
             </div>
           )}
           <div style={{ textAlign: 'center', flex: 1 }}>
