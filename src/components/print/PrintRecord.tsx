@@ -30,18 +30,18 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
       return;
     }
     if (logoText.startsWith('uploads/')) {
-      fetch(`/api/storage/download-url?key=${encodeURIComponent(logoText)}`)
+      // Use download-inline: server fetches from R2 and returns base64 data URL
+      // This avoids cross-origin image loading in the print context
+      fetch(`/api/storage/download-inline?key=${encodeURIComponent(logoText)}`)
         .then(res => res.json())
         .then(data => {
-          if (data.downloadUrl) {
-            setLogoUrl(data.downloadUrl);
-            // imgLoaded will be set by the <img> onLoad/onError handlers
-          } else {
-            setImgLoaded(true); // No URL returned — proceed without logo
+          if (data.dataUrl) {
+            setLogoUrl(data.dataUrl); // Embedded data URL — no extra network request needed
           }
+          setImgLoaded(true); // Data URL loads synchronously — proceed to print
         })
         .catch(err => {
-          console.error('Error fetching logo URL for record print:', err);
+          console.error('Error fetching inline logo for record print:', err);
           setImgLoaded(true); // Fetch failed — proceed without logo
         });
     } else {

@@ -1838,6 +1838,43 @@ app.get('/api/storage/download-url', async (req, res) => {
   }
 });
 
+// GET /api/storage/download-inline - Download image from R2 and return as base64 data URL
+// Used by print components to embed logo inline, avoiding cross-origin image loading in print context
+app.get('/api/storage/download-inline', async (req, res) => {
+  try {
+    if (!r2Client) {
+      return res.status(503).json({ error: 'Cloudflare R2 is not configured on this server.' });
+    }
+
+    const { key } = req.query;
+    if (!key) {
+      return res.status(400).json({ error: 'Missing required query parameter "key".' });
+    }
+
+    const command = new GetObjectCommand({
+      Bucket: R2_BUCKET_NAME,
+      Key: key,
+    });
+
+    const s3Response = await r2Client.send(command);
+    const contentType = s3Response.ContentType || 'image/png';
+
+    // Collect stream chunks into a buffer
+    const chunks = [];
+    for await (const chunk of s3Response.Body) {
+      chunks.push(chunk);
+    }
+    const buffer = Buffer.concat(chunks);
+    const base64 = buffer.toString('base64');
+    const dataUrl = `data:${contentType};base64,${base64}`;
+
+    res.json({ dataUrl });
+  } catch (err) {
+    console.error('Error downloading inline image from R2:', err);
+    res.status(500).json({ error: 'Failed to download inline image' });
+  }
+});
+
 
 // GET /api/submissions - Retrieve all submissions from Supabase
 app.get('/api/submissions', async (req, res) => {
