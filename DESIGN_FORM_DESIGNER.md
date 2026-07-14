@@ -12,6 +12,8 @@
 | **Last Verified Against Codebase** | 2026-07-14 |
 | **Verified By Session** | [9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) |
 
+> **⚠️ Session Note (2026-07-14):** Deep codebase research confirmed FormBuilder has no awareness of which process it belongs to. `formName` prop is always identical to `formId`. New `linkedProcessId` and `onUnlinkFromProcess` props added — see Section 6.1 and Technical Debt table.
+
 ### Quick File Index
 
 | File | Role | Size |
@@ -44,6 +46,7 @@ It lets authorized users:
 - **Does not collect or store form submissions** — that is the Form Operations module (`FormFiller.tsx`, `FormManager.tsx`).
 - **Does not manage which steps in a process use which form** — that linkage is owned by ProcessEditor via `workflowFormsData`.
 - **Does not manage user permissions** — the launch context (ProcessEditor) decides whether to show Edit or View mode.
+- **Has no intrinsic knowledge of which process it belongs to** — as of 2026-07-14, `linkedProcessId` is passed as a prop from ProcessEditor. Without this prop, FormBuilder cannot determine if the form is linked to any process (no DB query or context exists inside FormBuilder for this).
 
 ---
 
@@ -345,11 +348,13 @@ User clicks "Print Preview" in the top action bar
 
 ### 6.1 Props Accepted from ProcessEditor
 
-**FormBuilder** (`src/components/FormBuilder.tsx`, line 26–38)
+**FormBuilder** (`src/components/FormBuilder.tsx`, line 28–41)
+
+> **⚠️ Key architectural fact:** The `formName` prop is always identical to the `formId` string (e.g. `"3S-QC/F1.1"`). The prop is named `formName` for historical reasons but its value is always a `formId`. Do NOT assume `formName` is a human-readable label.
 
 | Prop | Type | Description |
 |---|---|---|
-| `formName` | `string` | The `formId` of the form to edit (e.g. `"FM-QC-F01"`). Used as fallback to initialize `formId` state if `initialData.formId` is absent. |
+| `formName` | `string` | The `formId` of the form to edit (e.g. `"FM-QC-F01"`). **Always equals `formId`.** Used as fallback to initialize `formId` state if `initialData.formId` is absent. |
 | `initialData` | `object` (optional) | Seed data — overridden immediately on mount by a live DB fetch if `initialData.formId` is set. See note below. |
 | `initialData.formId` | `string` | Triggers the DB fetch on mount |
 | `initialData.formTitle` | `string` | Initial display name |
@@ -359,6 +364,8 @@ User clicks "Print Preview" in the top action bar
 | `initialData.revisionHistory` | `FormRevisionEntry[]` | Initial history (overridden by DB fetch) |
 | `onSave` | `(data: any) => void` | Called after Save Draft or Publish. Receives `{ formId, formTitle, version, status, layoutBlocks, revisionHistory }`. ProcessEditor uses this to update `workflowFormsData` and silently re-save the process. |
 | `onClose` | `() => void` | Called to unmount the modal. Called by Discard, Delete Draft, and after Save Draft completes. |
+| `linkedProcessId` | `string \| undefined` | *(Added 2026-07-14)* If provided, the Form ID input is locked. Displays a link icon; user must click to unlink before editing Form ID. |
+| `onUnlinkFromProcess` | `() => Promise<boolean>` | *(Added 2026-07-14)* When user confirms unlink dialog: ProcessEditor removes the form from steps + workflowFormsData + auto-saves process. Returns `true` on success. FormBuilder **stays open** in standalone mode after successful unlink. |
 
 > **Note on `initialData` vs DB fetch:** `initialData` is used only as the initial React state seed. On mount, a `useEffect` fires and immediately overwrites state from `GET /api/forms/:formId` and `GET /api/forms/:formId/history`. This means `initialData` only matters for the brief loading window before the DB response arrives.
 
@@ -419,6 +426,8 @@ All calls are inline `fetch()` within `FormBuilder.tsx` and `PrintBlankForm.tsx`
 | **`handleCreateNewVersion` doesn't save to DB** | User must manually Save Draft after creating a new version | This is an invisible action; if the user closes without saving, the new version is lost |
 | **`window.alert()` and `window.confirm()` used throughout** | Blocking browser dialogs disrupt UX | FormBuilder uses native dialogs extensively for error feedback and confirmations |
 | **Copy Block fetches all processes** | `GET /api/processes` loads the entire process list every time the copy modal opens | Should be paginated or lazy-loaded |
+| **`formName` prop = `formId` value** | Misleading naming causes confusion | `formName` prop passed from ProcessEditor is always the `formId` string, not a display name. Legacy naming artifact. |
+| **No intrinsic process context** | FormBuilder has no way to know on its own if a form is linked to a process | Relies on `linkedProcessId` prop being passed from ProcessEditor. Without it (e.g. standalone launch), no lock is shown. |
 
 ---
 
@@ -435,3 +444,5 @@ All calls are inline `fetch()` within `FormBuilder.tsx` and `PrintBlankForm.tsx`
 | 2026-07-14 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Implement multi-option checkbox table columns in FormBuilder and PrintBlankForm.tsx with options editor and stacked layout preview/print. |
 | 2026-07-14 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Add support for 1-column vs 2-column checkbox layout (icon button group) and customizable footer summary rows on number columns (Auto Sum, Manual, Percentage, Sum Rows) in FormBuilder.tsx and PrintBlankForm.tsx. |
 | 2026-07-14 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Fix tfoot border rendering (precise borderTop/borderBottom styling) and remove whiteSpace: 'nowrap' to prevent checkbox label clipping in PrintBlankForm.tsx. |
+| 2026-07-14 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Deep codebase research: Document that `formName` prop always equals `formId`. Clarify FormBuilder has no intrinsic process context. Add new props `linkedProcessId` and `onUnlinkFromProcess`. Update Section 6.1 interface contract and Technical Debt table. |
+

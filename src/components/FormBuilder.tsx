@@ -21,7 +21,9 @@ import {
   AlignRight,
   GitBranch,
   Rows2,
-  Columns2
+  Columns2,
+  Link,
+  Link2Off
 } from 'lucide-react';
 import PrintBlankForm from './print/PrintBlankForm';
 
@@ -38,6 +40,14 @@ interface FormBuilderProps {
   };
   onSave: (data: any) => void;
   onClose: () => void;
+  /** Nếu có → Form ID đang được quản lý bởi process này → khoá trường Form ID */
+  linkedProcessId?: string;
+  /**
+   * Callback khi user xác nhận phá liên kết.
+   * ProcessEditor xử lý việc xoá form khỏi steps + auto-save.
+   * Trả về Promise<boolean>: true = thành công, false = thất bại.
+   */
+  onUnlinkFromProcess?: () => Promise<boolean>;
 }
 
 const getCheckboxGridTemplate = (options: any[]) => {
@@ -60,7 +70,7 @@ const getCheckboxGridTemplate = (options: any[]) => {
   return `${pct1}% ${pct2}%`;
 };
 
-export default function FormBuilder({ formName, initialData, onSave, onClose }: FormBuilderProps) {
+export default function FormBuilder({ formName, initialData, onSave, onClose, linkedProcessId, onUnlinkFromProcess }: FormBuilderProps) {
   // 1. Core Layout State
   const [formId, setFormId] = useState(initialData?.formId || `FM-${formName.toUpperCase().replace(/[^A-Z0-9]/g, '-')}-001`);
   const [formTitle, setFormTitle] = useState(initialData?.formTitle || formName);
@@ -158,6 +168,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
   const [changeSummary, setChangeSummary] = useState('');
   const [effectiveDate, setEffectiveDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [isLocked, setIsLocked] = useState(initialData?.status === 'ACTIVE');
+  /** true = Form ID bị khoá vì đang liên kết với process (có thể đổi sang false sau khi unlink) */
+  const [formIdLinked, setFormIdLinked] = useState(!!linkedProcessId);
   const [printPreviewData, setPrintPreviewData] = useState<FormTemplateISO | null>(null);
   const [currentDraftBackup, setCurrentDraftBackup] = useState<{ layoutBlocks: LayoutBlockISO[]; version: string; isLocked: boolean } | null>(null);
   const [viewingRevisionVersion, setViewingRevisionVersion] = useState<string | null>(null);
@@ -3174,20 +3186,79 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
             
             {/* Form ID Input */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-              <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Form ID</label>
+              {/* Label row với Link/Unlink icon */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Form ID</label>
+                {linkedProcessId && (
+                  <button
+                    type="button"
+                    title={formIdLinked
+                      ? `Form ID đang được quản lý bởi quy trình "${linkedProcessId}". Click để phá liên kết.`
+                      : 'Form đã phá liên kết khỏi quy trình. Bạn có thể chỉnh sửa Form ID tự do.'}
+                    onClick={async () => {
+                      if (!formIdLinked) return; // đã unlinked, không làm gì thêm
+                      const confirmed = window.confirm(
+                        `⚠️ Phá liên kết Form khỏi Quy trình\n\n` +
+                        `Form "${formId}" đang được gắn với quy trình "${linkedProcessId}".\n\n` +
+                        `Sau khi phá liên kết:\n` +
+                        `• Form bị XOÁ khỏi danh sách biểu mẫu trong quy trình\n` +
+                        `• Bước workflow tham chiếu form này sẽ không còn form liên kết\n` +
+                        `• Form vẫn tồn tại độc lập — bạn có thể chỉnh sửa và gắn lại vào quy trình sau\n\n` +
+                        `Thao tác này sẽ TỰ ĐỘNG LƯU quy trình.\n\nBạn có chắc chắn?`
+                      );
+                      if (confirmed && onUnlinkFromProcess) {
+                        const success = await onUnlinkFromProcess();
+                        if (success) {
+                          setFormIdLinked(false); // mở khoá Form ID input
+                        }
+                      }
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: formIdLinked ? 'pointer' : 'default',
+                      padding: '2px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      color: formIdLinked ? 'var(--primary, #3b82f6)' : '#94a3b8',
+                      flexShrink: 0,
+                      borderRadius: '3px'
+                    }}
+                  >
+                    {formIdLinked ? <Link size={13} /> : <Link2Off size={13} />}
+                  </button>
+                )}
+              </div>
+
+              {/* Input field */}
               <input
                 type="text"
-                disabled={isLocked}
+                disabled={isLocked || formIdLinked}
                 value={formId}
                 onChange={(e) => setFormId(e.target.value)}
                 placeholder="e.g. 3S-QC/F03"
                 style={{
                   padding: '0.35rem 0.5rem',
                   borderRadius: '4px',
-                  border: '1px solid var(--neutral-border)',
-                  backgroundColor: isLocked ? '#f1f5f9' : '#ffffff'
+                  border: `1px solid ${formIdLinked ? 'var(--primary, #3b82f6)' : 'var(--neutral-border)'}`,
+                  backgroundColor: (isLocked || formIdLinked) ? '#f1f5f9' : '#ffffff',
+                  cursor: (isLocked || formIdLinked) ? 'not-allowed' : 'text'
                 }}
               />
+
+              {/* Hint text: trạng thái linked / unlinked */}
+              {linkedProcessId && formIdLinked && (
+                <span style={{ fontSize: '0.69rem', color: 'var(--primary, #3b82f6)', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                  <Link size={10} />
+                  Đang liên kết với quy trình <strong style={{ marginLeft: '0.15rem' }}>{linkedProcessId}</strong>
+                </span>
+              )}
+              {linkedProcessId && !formIdLinked && (
+                <span style={{ fontSize: '0.69rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                  <Link2Off size={10} />
+                  Form đã phá liên kết. Đang hoạt động độc lập.
+                </span>
+              )}
             </div>
             
             {/* Card 1: Current Version Info */}

@@ -12,6 +12,8 @@
 | **Last Verified Against Codebase** | 2026-07-14 |
 | **Verified By Session** | [9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) |
 
+> **⚠️ Session Note (2026-07-14):** Deep codebase research revealed several undocumented architectural facts — see Sections 4.5, 6.2, and 7 for critical notes added.
+
 ### Quick File Index
 
 | File | Role | Lines / Size |
@@ -185,6 +187,73 @@ Siblings are fetched by filtering: `list.filter(p => p.parentProcessId === pid |
 
 The current mode is detected on load: `const hasCustomLayout = loadedSteps.some(s => s.layoutX !== undefined)`.
 
+### 4.5 Form–Process Linkage Architecture ⚠️ Critical Notes
+
+> These facts were confirmed by deep codebase research on 2026-07-14 and are essential for future sessions.
+
+#### How linkage is stored
+
+Forms are linked to a process via **two places** — both derived from the same source of truth:
+
+1. **`processes` table JSONB column `workflowFormsData`** — a dictionary keyed by `formId`:
+   ```json
+   { "3S-QC/F1.1": { "formId": "3S-QC/F1.1", "formTitle": "...", "version": "v1.0", "status": "ACTIVE" } }
+   ```
+2. **`ProcessStep.formNames[]`** — each task step lists the formIds it produces.
+3. **`process_forms` junction table** (DB) — synced automatically by `syncProcessForms()` during every `POST /api/processes` call. This is a relational shadow copy, NOT the source of truth.
+4. **`forms` table** — stores the form template itself. **No `linked_process_id` column exists** — the `forms` table has no back-reference to any process.
+
+#### How linkage is computed (client-side)
+
+**`workflowForms[]`** — the active form list used in the Forms tab — is derived at **render time** from `steps` state, NOT stored:
+```ts
+const workflowForms: string[] = [];
+steps.forEach(s => {
+  if (s.bpmnShape === 'task' && s.producesForm) {
+    const names = s.formNames?.length > 0 ? s.formNames : (s.formName ? [s.formName] : []);
+    names.forEach(name => { if (!workflowForms.includes(name)) workflowForms.push(name); });
+  }
+});
+```
+
+**Dashboard `linkedProcesses[]`** — computed client-side by scanning ALL process records:
+```ts
+const linkedProcs = processes.filter(proc =>
+  allVersions.some(p => {
+    const hasInWfd = wfd && Object.values(wfd).some(fdata => fdata.formId === formId);
+    const hasInSteps = steps && steps.some(s => s.producesForm && s.formNames.includes(formId));
+    return hasInWfd || hasInSteps;
+  })
+);
+```
+
+#### ⚠️ `handleSave` cleanup — only path that removes orphaned forms
+
+`handleSave` is the **ONLY** save path that cleans up `workflowFormsData` (lines 1141–1162). It:
+1. Collects `activeFormNames` from current `steps` (only forms still referenced by a step).
+2. Builds `cleanedFormsData` — keeps only forms in `activeFormNames`.
+3. Saves `workflowFormsData: cleanedFormsData` to DB.
+
+**All other save paths** (`handleSubmitForReview`, `handleActivateVersion`, `handleRetireVersion`, `handleReactivateVersion`, `handleSaveBpmnLayout`, `handleResetBpmnPositions`) send the **raw `workflowFormsData` state** without cleanup. If a form is unlinked from steps but one of these is triggered before `handleSave`, the orphaned entry survives in DB.
+
+#### ⚠️ `handleSave` race condition with steps state
+
+`handleSave` reads `steps` from React closure (line 1055):
+```ts
+const filteredSteps = steps.filter(s => s.action.trim() !== '');
+```
+If `setSteps(updatedSteps)` is called right before `await handleSave(...)`, React may not have flushed the update yet → `handleSave` reads stale steps.
+
+**Fix pattern** (added 2026-07-14): Use `pendingStepsRef = useRef<ProcessStep[] | null>(null)`.
+- Caller sets `pendingStepsRef.current = updatedSteps` before calling `handleSave`.
+- `handleSave` reads `stepsSource = pendingStepsRef.current ?? steps; pendingStepsRef.current = null;`.
+
+#### `normalizeProcessFormsData` migration function
+
+Legacy process records used human-readable form names (e.g. `"Inspection Sheet"`) as `workflowFormsData` keys instead of `formId`s. `normalizeProcessFormsData()` (lines 480–524) migrates these on load:
+- Maps old name-keys → formId-keys using `val.formId || key`.
+- Also normalizes `step.formName`/`step.formNames` from old names to IDs.
+
 ---
 
 ## 5. Key Flows
@@ -313,14 +382,18 @@ User selects a different version from the dropdown in ProcessReader
 
 ### 6.2 Props Passed to FormBuilder (Form Designer Bridge)
 
-FormBuilder is rendered as a modal overlay inside ProcessEditor at line 2733.
+FormBuilder is rendered as a modal overlay inside ProcessEditor at line 2824.
+
+> **Note:** `formName` prop is always the `formId` string — these are the same value. The legacy prop name `formName` is a historical artifact.
 
 | Prop | Type | Value Provided |
 |---|---|---|
-| `formName` | `string` | The active `formId` (e.g. `"FM-QC-F01"`) |
-| `initialData` | `FormTemplateISO \| object` | Resolved from allForms DB → workflowFormsData local state → blank fallback |
+| `formName` | `string` | The active `formId` (e.g. `"FM-QC-F01"`). Always equals `formId`. |
+| `initialData` | `object` | Resolved from allForms DB → workflowFormsData local state → blank fallback |
 | `onSave` | `(savedFormData) => void` | Updates workflowFormsData, silently saves process, re-fetches forms list, closes modal |
 | `onClose` | `() => void` | Closes modal without saving |
+| `linkedProcessId` | `string \| undefined` | *(Added 2026-07-14)* Passed when `processId !== null && !== 'unlinked'`. FormBuilder uses this to lock the Form ID input field. |
+| `onUnlinkFromProcess` | `() => Promise<boolean>` | *(Added 2026-07-14)* Callback to trigger unlink: removes form from all steps + workflowFormsData + auto-saves process. Returns `true` on success. FormBuilder stays open (user continues editing as standalone). |
 
 ### 6.3 API Endpoints Consumed
 
@@ -359,6 +432,9 @@ Base URL: relative path (proxied via Vite dev server to `http://localhost:3001`)
 | **`fetch('/api/processes')` loads ALL processes** | N+1 scalability risk as the dataset grows | The editor finds the target process by scanning the full list client-side, not by fetching a single record |
 | **Legacy `formName` / `formNames` normalization** | Code complexity | `normalizeProcessFormsData()` exists to migrate older data where form names (strings) were used instead of `formId` references |
 | **`isReadOnly` tied only to `status !== 'Draft'`** | Permission check is incomplete | `isReadOnly` uses only the status field; `hasPermission('design_document')` is checked separately in the JSX, which is inconsistent |
+| **Only `handleSave` cleans orphaned `workflowFormsData`** | Stale form entries can persist if user triggers non-Save actions after unlinking | `handleSubmitForReview`, `handleActivateVersion`, BPMN save, etc. send raw state. See Section 4.5. |
+| **`workflowForms[]` is render-time derived** | Easy to forget this is NOT a stored state variable | Derived from `steps` on every render; changing `steps` automatically changes the Forms tab list. |
+| **No `linked_process_id` on `forms` table** | Cannot query "which process uses this form" at DB level | Linkage is resolved client-side by scanning all process records (Dashboard) or from ProcessEditor context (FormBuilder). |
 
 ---
 
@@ -393,3 +469,5 @@ Base URL: relative path (proxied via Vite dev server to `http://localhost:3001`)
 | 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Add a circular back arrow button (ArrowLeft icon) before the tabs in ProcessEditor.tsx to cancel editing and return to the Process Reader screen. |
 | 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Fix TypeScript Vercel deployment errors in BpmnModelerComponent (unused RotateCcw, onReset, missing filter type) and ProcessReader (unused attachmentText). |
 | 2026-07-14 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Replace PDF upload buttons block with Print button and PrintBlankForm integration in ProcessEditor.tsx. |
+| 2026-07-14 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Deep codebase research: Document critical architectural facts — workflowFormsData cleanup only in handleSave, process_forms junction table, workflowForms derived list, normalizeProcessFormsData migration, handleSave race condition fix via pendingStepsRef. See Section 4.5. |
+| 2026-07-14 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Add linkedProcessId + onUnlinkFromProcess props to FormBuilder bridge (Section 6.2). Implement Form ID lock and unlink flow. |

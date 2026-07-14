@@ -230,6 +230,8 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
   const [roles, setRoles] = useState<string[]>(['Operator']);
   const [newRoleInput, setNewRoleInput] = useState('');
   const [steps, setSteps] = useState<ProcessStep[]>([]);
+  /** Bypass race condition: handleSave đọc ref này thay vì state nếu có giá trị */
+  const pendingStepsRef = useRef<ProcessStep[] | null>(null);
   const [formFields, setFormFields] = useState<FormField[]>([]);
   const [sopSignoffs, setSopSignoffs] = useState<SOPSignOffs>({
     author: { name: '', title: '' },
@@ -1052,7 +1054,10 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
     }
 
     // Filter out steps with empty actions
-    const filteredSteps = steps.filter(s => s.action.trim() !== '');
+    // pendingStepsRef được set bởi handleUnlinkFormFromProcess để bypass race condition với state
+    const stepsSource = pendingStepsRef.current ?? steps;
+    pendingStepsRef.current = null; // clear sau mỗi lần đọc
+    const filteredSteps = stepsSource.filter((s: ProcessStep) => s.action.trim() !== '');
     if (filteredSteps.length === 0) {
       alert('Please add at least one workflow step with an action.');
       return;
@@ -1309,6 +1314,52 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
 
 
   const { major, minor } = parseVersion(version);
+
+  /**
+   * Phá liên kết một form khỏi process hiện tại.
+   * Xoá formId khỏi tất cả step.formNames, auto-save process.
+   * KHÔNG đóng FormBuilder — user tiếp tục edit form dưới dạng standalone.
+   * @returns true nếu thành công
+   */
+  const handleUnlinkFormFromProcess = async (formIdToUnlink: string): Promise<boolean> => {
+    try {
+      // 1. Tính toán steps mới (loại formId này khỏi tất cả steps)
+      const updatedSteps = steps.map(step => {
+        if (!step.producesForm) return step;
+        const currentNames = (step.formNames && step.formNames.length > 0)
+          ? step.formNames
+          : (step.formName ? [step.formName] : []);
+        const filteredNames = currentNames.filter(n => n !== formIdToUnlink);
+        return {
+          ...step,
+          formName: filteredNames[0] || '',
+          formNames: filteredNames,
+          producesForm: filteredNames.length > 0
+        };
+      });
+
+      // 2. Tính toán workflowFormsData mới (xoá key formId này)
+      const updatedFormsData = { ...workflowFormsData };
+      delete updatedFormsData[formIdToUnlink];
+
+      // 3. Set ref TRƯỚC khi gọi handleSave (bypass race condition)
+      pendingStepsRef.current = updatedSteps;
+
+      // 4. Cập nhật state (cho UI re-render đúng)
+      setSteps(updatedSteps);
+      setWorkflowFormsData(updatedFormsData);
+
+      // 5. Auto-save với dữ liệu fresh (ref cho steps, param cho formsData)
+      if (processId && processId !== 'unlinked') {
+        await handleSave(updatedFormsData, true);
+      }
+
+      return true;
+    } catch (err) {
+      console.error('Failed to unlink form from process:', err);
+      return false;
+    }
+  };
 
   return (
     <div>
@@ -2823,6 +2874,8 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
           <div style={{ width: '95%', maxWidth: '1200px', background: '#ffffff', borderRadius: '8px', overflow: 'hidden' }}>
             <FormBuilder
               formName={activeFormToBuild}
+              linkedProcessId={processId && processId !== 'unlinked' ? processId : undefined}
+              onUnlinkFromProcess={() => handleUnlinkFormFromProcess(activeFormToBuild)}
               initialData={(() => {
                 // Primary: look up the latest version of this form_id directly from allForms (DB)
                 const live = allForms
