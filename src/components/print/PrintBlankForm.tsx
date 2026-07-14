@@ -117,9 +117,6 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
             break-inside: avoid;
           }
           .print-table tfoot td {
-            border-bottom: none !important;
-            border-left: none !important;
-            border-right: none !important;
             background: transparent !important;
           }
           .print-footer {
@@ -460,7 +457,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                                       width: '100%'
                                     }}>
                                       {(col.options || []).map((opt, oIdx) => (
-                                        <div key={oIdx} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#000000', whiteSpace: 'nowrap' }}>
+                                        <div key={oIdx} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#000000' }}>
                                           <span style={{
                                             display: 'inline-block',
                                             width: '12px',
@@ -506,33 +503,64 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                     )}
                   </tbody>
                   {(() => {
-                    const footerRows: React.ReactNode[] = [];
-                    (block.tableColumns || []).forEach((col: any, colIdx: number) => {
+                    const allFooterRows: { col: any; row: any; colIdx: number }[] = [];
+                    (block.tableColumns || []).forEach((col, colIdx) => {
                       if (col.type === 'number' && col.summaryRows && col.summaryRows.length > 0) {
-                        col.summaryRows.forEach((row: any) => {
-                          footerRows.push(
-                            <tr key={`${col.id}_${row.id}`} style={{ background: '#ffffff', fontWeight: 'bold' }}>
-                              {colIdx > 0 && (
-                                <td colSpan={colIdx} style={{ border: '1.5px solid #000000', padding: '6px 8px', textAlign: 'right', fontSize: '0.8rem', color: '#000000' }}>
-                                  {row.label}
-                                </td>
-                              )}
-                              <td style={{ border: '1.5px solid #000000', padding: '6px 8px', textAlign: 'right', fontSize: '0.8rem', color: '#94a3b8' }}>
-                                ...........................
-                              </td>
-                              {(block.tableColumns || []).length - 1 - colIdx > 0 && (
-                                <td colSpan={(block.tableColumns || []).length - 1 - colIdx} style={{ border: '1.5px solid #000000', padding: '6px 8px' }} />
-                              )}
-                            </tr>
-                          );
+                        col.summaryRows.forEach((row) => {
+                          allFooterRows.push({ col, row, colIdx });
                         });
                       }
                     });
-                    return footerRows.length > 0 ? (
-                      <tfoot style={{ borderTop: '2px solid #000000' }}>
-                        {footerRows}
+                    if (allFooterRows.length === 0) return null;
+                    const totalCols = (block.tableColumns || []).length;
+                    return (
+                      <tfoot>
+                        {allFooterRows.map(({ col, row, colIdx }, idx) => {
+                          const isFirst = idx === 0;
+                          const topBorder = isFirst ? '2px solid #000000' : '1px solid #e2e8f0';
+                          return (
+                            <tr key={`${col.id}_${row.id}`} style={{ background: '#ffffff', fontWeight: 'bold' }}>
+                              {colIdx > 0 && (
+                                <td colSpan={colIdx} style={{
+                                  borderTop: topBorder,
+                                  borderBottom: 'none',
+                                  borderLeft: 'none',
+                                  borderRight: 'none',
+                                  padding: '5px 8px',
+                                  textAlign: 'right',
+                                  fontSize: '0.82rem',
+                                  color: '#000000'
+                                }}>
+                                  {row.label}
+                                </td>
+                              )}
+                              <td style={{
+                                borderTop: topBorder,
+                                borderBottom: '1.5px solid #000000',
+                                borderLeft: 'none',
+                                borderRight: 'none',
+                                padding: '5px 8px',
+                                textAlign: 'right',
+                                fontSize: '0.82rem',
+                                color: '#000000',
+                                letterSpacing: '1px'
+                              }}>
+                                ...........................
+                              </td>
+                              {totalCols - 1 - colIdx > 0 && (
+                                <td colSpan={totalCols - 1 - colIdx} style={{
+                                  borderTop: topBorder,
+                                  borderBottom: 'none',
+                                  borderLeft: 'none',
+                                  borderRight: 'none',
+                                  padding: '5px 8px'
+                                }} />
+                              )}
+                            </tr>
+                          );
+                        })}
                       </tfoot>
-                    ) : null;
+                    );
                   })()}
                 </table>
               </div>

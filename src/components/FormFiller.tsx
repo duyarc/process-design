@@ -904,7 +904,7 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
                                             const currentValues = cellValue ? cellValue.split(',').filter(Boolean) : [];
                                             const isChecked = currentValues.includes(opt.value || opt.label);
                                             return (
-                                              <label key={oIdx} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: 'var(--text-primary)', cursor: 'pointer', margin: 0, whiteSpace: 'nowrap' }}>
+                                              <label key={oIdx} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: 'var(--text-primary)', cursor: 'pointer', margin: 0 }}>
                                                 <input 
                                                   type="checkbox" 
                                                   checked={isChecked} 

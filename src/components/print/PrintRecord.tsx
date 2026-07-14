@@ -288,9 +288,6 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
             break-inside: avoid;
           }
           .print-table tfoot td {
-            border-bottom: none !important;
-            border-left: none !important;
-            border-right: none !important;
             background: transparent !important;
           }
           .print-footer {
@@ -739,37 +736,66 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                   )}
                 </tbody>
                 {(() => {
-                  const footerRows: React.ReactNode[] = [];
+                  const allFooterRows: { col: any; row: any; colIdx: number }[] = [];
                   (block.tableColumns || []).forEach((col: any, colIdx: number) => {
                     if (col.type === 'number' && col.summaryRows && col.summaryRows.length > 0) {
                       col.summaryRows.forEach((row: any) => {
-                        const cellKey = `${block.id}_summary_${col.id}_${row.id}`;
-                        const snapshotVal = submission.formData.find(f => f.id === cellKey)?.value || '0';
-                        const numVal = parseFloat(snapshotVal) || 0;
-                        
-                        footerRows.push(
-                          <tr key={`${col.id}_${row.id}`} style={{ background: '#ffffff', fontWeight: 'bold' }}>
-                            {colIdx > 0 && (
-                              <td colSpan={colIdx} style={{ border: '1.5px solid #000000', padding: '6px 8px', textAlign: 'right', fontSize: '0.8rem', color: '#000000' }}>
-                                {row.label}
-                              </td>
-                            )}
-                            <td style={{ border: '1.5px solid #000000', padding: '6px 8px', textAlign: 'right', fontSize: '0.8rem', color: '#000000' }}>
-                              {numVal.toLocaleString('vi-VN')} VND
-                            </td>
-                            {(block.tableColumns || []).length - 1 - colIdx > 0 && (
-                              <td colSpan={(block.tableColumns || []).length - 1 - colIdx} style={{ border: '1.5px solid #000000', padding: '6px 8px' }} />
-                            )}
-                          </tr>
-                        );
+                        allFooterRows.push({ col, row, colIdx });
                       });
                     }
                   });
-                  return footerRows.length > 0 ? (
-                    <tfoot style={{ borderTop: '2px solid #000000' }}>
-                      {footerRows}
+                  if (allFooterRows.length === 0) return null;
+                  const totalCols = (block.tableColumns || []).length;
+                  return (
+                    <tfoot>
+                      {allFooterRows.map(({ col, row, colIdx }, idx) => {
+                        const cellKey = `${block.id}_summary_${col.id}_${row.id}`;
+                        const snapshotVal = submission.formData.find(f => f.id === cellKey)?.value || '0';
+                        const numVal = parseFloat(snapshotVal) || 0;
+                        const isFirst = idx === 0;
+                        const topBorder = isFirst ? '2px solid #000000' : '1px solid #e2e8f0';
+                        return (
+                          <tr key={`${col.id}_${row.id}`} style={{ background: '#ffffff', fontWeight: 'bold' }}>
+                            {colIdx > 0 && (
+                              <td colSpan={colIdx} style={{
+                                borderTop: topBorder,
+                                borderBottom: 'none',
+                                borderLeft: 'none',
+                                borderRight: 'none',
+                                padding: '5px 8px',
+                                textAlign: 'right',
+                                fontSize: '0.82rem',
+                                color: '#000000'
+                              }}>
+                                {row.label}
+                              </td>
+                            )}
+                            <td style={{
+                              borderTop: topBorder,
+                              borderBottom: '1.5px solid #000000',
+                              borderLeft: 'none',
+                              borderRight: 'none',
+                              padding: '5px 8px',
+                              textAlign: 'right',
+                              fontSize: '0.82rem',
+                              color: '#000000'
+                            }}>
+                              {numVal.toLocaleString('vi-VN')} VND
+                            </td>
+                            {totalCols - 1 - colIdx > 0 && (
+                              <td colSpan={totalCols - 1 - colIdx} style={{
+                                borderTop: topBorder,
+                                borderBottom: 'none',
+                                borderLeft: 'none',
+                                borderRight: 'none',
+                                padding: '5px 8px'
+                              }} />
+                            )}
+                          </tr>
+                        );
+                      })}
                     </tfoot>
-                  ) : null;
+                  );
                 })()}
               </table>
             </div>
