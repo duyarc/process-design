@@ -545,7 +545,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                                 color: '#000000',
                                 letterSpacing: '1px'
                               }}>
-                                ...........................
+                                 
                               </td>
                               {totalCols - 1 - colIdx > 0 && (
                                 <td colSpan={totalCols - 1 - colIdx} style={{
