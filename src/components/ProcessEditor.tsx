@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { Process, ProcessStep, FormField, FormDesignerField, SOPSignOff, SOPSignOffs } from '../types';
-import { Save, Plus, Trash2, ArrowUp, ArrowDown, Upload, Edit2, Eye, Printer, GitBranch, XCircle, Shield, Calendar, RotateCcw, ArrowLeft } from 'lucide-react';
+import { Save, Plus, Trash2, ArrowUp, ArrowDown, Edit2, Eye, Printer, GitBranch, XCircle, Shield, Calendar, RotateCcw, ArrowLeft } from 'lucide-react';
 import FormBuilder from './FormBuilder';
+import PrintBlankForm from './print/PrintBlankForm';
 import { generateBPMNXML } from '../utils/bpmnXmlGenerator';
 import { useAuth } from '../context/AuthContext';
 import { BpmnViewerComponent } from './BpmnViewerComponent';
@@ -218,6 +219,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
   };
   const [activeFormToBuild, setActiveFormToBuild] = useState<string | null>(null);
   const [processCode, setProcessCode] = useState('');
+  const [printTemplateData, setPrintTemplateData] = useState<any | null>(null);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [version, setVersion] = useState('1');
@@ -432,48 +434,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
     }
   };
 
-  const handlePdfDelete = async (formName: string, pdfKey: string) => {
-    if (!window.confirm(`Are you sure you want to delete the PDF attachment for "${formName}"? This will permanently delete the file.`)) return;
 
-    setIsUploading(prev => ({ ...prev, [formName]: true }));
-
-    try {
-      const res = await fetch('/api/storage/delete-file', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          processId,
-          formName,
-          pdfKey
-        })
-      });
-
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || 'Failed to delete file.');
-      }
-
-      // Update local state
-      setWorkflowFormsData(prev => {
-        const copy = { ...prev };
-        if (copy[formName]) {
-          const { pdfName, pdfKey: k, pdfSize: s, ...rest } = copy[formName];
-          copy[formName] = rest;
-        }
-        return copy;
-      });
-
-      // Refresh quota usage
-      fetchQuotaStatus();
-
-      alert(`Successfully deleted PDF for "${formName}".`);
-    } catch (err) {
-      console.error(err);
-      alert(err instanceof Error ? err.message : 'An error occurred while deleting the file.');
-    } finally {
-      setIsUploading(prev => ({ ...prev, [formName]: false }));
-    }
-  };
 
 
   const handleAddRole = () => {
@@ -2718,137 +2679,39 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                               />
                             )}
 
-                            {/* PDF Upload / View group */}
-                            {(canEditForm || hasPdf) && (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                                {!hasPdf ? (
-                                  canEditForm && (
-                                    <button
-                                      type="button"
-                                      className="btn btn-secondary btn-sm"
-                                      disabled={isUploading[formId] || !processId}
-                                      style={{ 
-                                        display: 'inline-flex', 
-                                        alignItems: 'center', 
-                                        gap: '0.3rem', 
-                                        padding: '0.25rem 0.6rem', 
-                                        fontSize: '0.78rem',
-                                        height: '28px',
-                                        background: '#ffffff',
-                                        border: '1px solid #e2e8f0',
-                                        color: '#0f4c81',
-                                        fontWeight: 500,
-                                        borderRadius: '6px',
-                                        boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
-                                        margin: 0
-                                      }}
-                                      onClick={() => {
-                                        if (!processId) {
-                                          alert('Please save the process document as a draft first before uploading files.');
-                                          return;
-                                        }
-                                        document.getElementById(`pdf-file-${formId}`)?.click();
-                                      }}
-                                    >
-                                      <Upload size={12} /> Upload PDF
-                                    </button>
-                                  )
-                                ) : (
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.15rem' }}>
-                                    <button
-                                      type="button"
-                                      className="btn btn-secondary btn-sm"
-                                      title={formData.pdfName}
-                                      disabled={isUploading[formId]}
-                                      style={{ 
-                                        display: 'inline-flex', 
-                                        alignItems: 'center', 
-                                        gap: '0.3rem', 
-                                        padding: '0.25rem 0.6rem', 
-                                        fontSize: '0.78rem',
-                                        height: '28px',
-                                        background: '#ffffff',
-                                        border: '1px solid #e2e8f0',
-                                        color: '#0f4c81',
-                                        fontWeight: 500,
-                                        borderRadius: '6px',
-                                        boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
-                                        margin: 0
-                                      }}
-                                      onClick={async () => {
-                                        const pdfKey = formData?.pdfKey;
-                                        if (pdfKey) {
-                                          try {
-                                            const res = await fetch(`/api/storage/download-url?key=${encodeURIComponent(pdfKey)}`);
-                                            if (!res.ok) throw new Error('Failed to get download URL');
-                                            const { downloadUrl } = await res.json();
-                                            window.open(downloadUrl, '_blank');
-                                          } catch (err) {
-                                            console.error(err);
-                                            alert('Failed to load PDF attachment.');
-                                          }
-                                        }
-                                      }}
-                                    >
-                                      <Printer size={12} /> Print
-                                    </button>
-
-                                    {/* Edit PDF actions - only if editable */}
-                                    {canEditForm && (
-                                      <>
-                                        <button
-                                          type="button"
-                                          className="btn btn-secondary btn-sm"
-                                          title="Replace PDF"
-                                          disabled={isUploading[formId]}
-                                          style={{ 
-                                            display: 'flex', 
-                                            alignItems: 'center', 
-                                            justifyContent: 'center',
-                                            height: '28px',
-                                            width: '28px',
-                                            padding: 0,
-                                            border: '1px solid #e2e8f0',
-                                            background: '#ffffff',
-                                            borderRadius: '6px',
-                                            boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
-                                            color: '#0f4c81',
-                                            margin: 0
-                                          }}
-                                          onClick={() => document.getElementById(`pdf-file-${formId}`)?.click()}
-                                        >
-                                          <Upload size={11} />
-                                        </button>
-
-                                        <button
-                                          type="button"
-                                          title="Remove PDF"
-                                          disabled={isUploading[formId]}
-                                          style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            height: '28px',
-                                            width: '28px',
-                                            padding: 0,
-                                            border: '1px solid #fca5a5',
-                                            background: '#fee2e2',
-                                            borderRadius: '6px',
-                                            color: '#ef4444',
-                                            cursor: 'pointer',
-                                            fontSize: '0.9rem',
-                                            fontWeight: 'bold',
-                                            margin: 0
-                                          }}
-                                          onClick={() => handlePdfDelete(formId, formData.pdfKey || '')}
-                                        >
-                                          &times;
-                                        </button>
-                                      </>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
+                            {hasDigitalForm && (
+                              <button
+                                type="button"
+                                className="btn btn-secondary btn-sm"
+                                style={{ 
+                                  display: 'inline-flex', 
+                                  alignItems: 'center', 
+                                  gap: '0.3rem', 
+                                  padding: '0.25rem 0.6rem', 
+                                  fontSize: '0.78rem',
+                                  height: '28px',
+                                  background: '#ffffff',
+                                  border: '1px solid #e2e8f0',
+                                  color: '#0f4c81',
+                                  fontWeight: 500,
+                                  borderRadius: '6px',
+                                  boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                                  margin: 0
+                                }}
+                                onClick={() => {
+                                  const fullTemplate = {
+                                    ...formData,
+                                    formTitle: liveForm?.form_title || liveForm?.form_name || formData?.formTitle || formId,
+                                    layoutBlocks: liveForm ? (typeof liveForm.layout_blocks === 'string' ? JSON.parse(liveForm.layout_blocks) : liveForm.layout_blocks) : (formData?.layoutBlocks || []),
+                                    revisionHistory: liveForm ? (typeof liveForm.revision_history === 'string' ? JSON.parse(liveForm.revision_history) : liveForm.revision_history) : (formData?.revisionHistory || []),
+                                    version: liveForm ? liveForm.version : (formData?.version || 'V0.1'),
+                                    status: liveForm ? liveForm.status : (formData?.status || 'DRAFT')
+                                  };
+                                  setPrintTemplateData(fullTemplate as any);
+                                }}
+                              >
+                                <Printer size={12} /> Print
+                              </button>
                             )}
 
                             {/* Digital Form Action Button (Edit or View) */}
@@ -3025,6 +2888,12 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
             />
           </div>
         </div>
+      )}
+      {printTemplateData && (
+        <PrintBlankForm
+          template={printTemplateData}
+          onClose={() => setPrintTemplateData(null)}
+        />
       )}
     </div>
   );

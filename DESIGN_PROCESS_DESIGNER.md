@@ -9,7 +9,7 @@
 | **Module Name** | Process Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Last Verified Against Codebase** | 2026-07-09 |
+| **Last Verified Against Codebase** | 2026-07-14 |
 | **Verified By Session** | [9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) |
 
 ### Quick File Index
@@ -392,3 +392,4 @@ Base URL: relative path (proxied via Vite dev server to `http://localhost:3001`)
 | 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Add a minimal back arrow button (ArrowLeft icon) in ProcessReader header next to the title to return back to the Dashboard. |
 | 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Add a circular back arrow button (ArrowLeft icon) before the tabs in ProcessEditor.tsx to cancel editing and return to the Process Reader screen. |
 | 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Fix TypeScript Vercel deployment errors in BpmnModelerComponent (unused RotateCcw, onReset, missing filter type) and ProcessReader (unused attachmentText). |
+| 2026-07-14 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Replace PDF upload buttons block with Print button and PrintBlankForm integration in ProcessEditor.tsx. |
