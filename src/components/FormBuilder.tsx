@@ -2713,7 +2713,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                               {col.type === 'checkbox' && (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', marginTop: '0.2rem', padding: '0.4rem', borderTop: '1px dashed var(--neutral-border)' }}>
                                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.25rem', marginBottom: '0.25rem' }}>
-                                    <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Bố cục:</span>
+                                    <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Lựa chọn (Checkbox Options)</span>
                                     <div style={{ display: 'flex', border: '1px solid var(--neutral-border)', borderRadius: '4px', overflow: 'hidden' }}>
                                       <button
                                         type="button"
@@ -2754,7 +2754,6 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                                       </button>
                                     </div>
                                   </div>
-                                  <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Lựa chọn (Checkbox Options)</label>
                                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                                     {(col.options || []).map((opt, oIdx) => (
                                       <div key={oIdx} style={{ display: 'flex', gap: '0.2rem', alignItems: 'center' }}>
