@@ -2712,8 +2712,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                               </div>
                               {col.type === 'checkbox' && (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', marginTop: '0.2rem', padding: '0.4rem', borderTop: '1px dashed var(--neutral-border)' }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.25rem', marginBottom: '0.25rem' }}>
-                                    <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Lựa chọn (Checkbox Options)</span>
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginBottom: '0.15rem' }}>
                                     <div style={{ display: 'flex', border: '1px solid var(--neutral-border)', borderRadius: '4px', overflow: 'hidden' }}>
                                       <button
                                         type="button"
