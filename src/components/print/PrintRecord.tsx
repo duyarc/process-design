@@ -17,6 +17,26 @@ interface PrintRecordProps {
   onClose: () => void;
 }
 
+const getCheckboxGridTemplate = (options: any[]) => {
+  if (!options || options.length === 0) return '1fr 1fr';
+  let maxLen1 = 0;
+  let maxLen2 = 0;
+  options.forEach((opt, idx) => {
+    const len = opt && opt.label ? opt.label.length : 0;
+    if (idx % 2 === 0) {
+      if (len > maxLen1) maxLen1 = len;
+    } else {
+      if (len > maxLen2) maxLen2 = len;
+    }
+  });
+  if (maxLen1 === 0) maxLen1 = 10;
+  if (maxLen2 === 0) maxLen2 = 10;
+  const total = maxLen1 + maxLen2;
+  const pct1 = Math.max(30, Math.min(70, Math.round((maxLen1 / total) * 100)));
+  const pct2 = 100 - pct1;
+  return `${pct1}% ${pct2}%`;
+};
+
 export default function PrintRecord({ submission, processTitle, logoText, descriptionText, columnLabels, onClose }: PrintRecordProps) {
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [loadingImages, setLoadingImages] = useState(false);
@@ -683,7 +703,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                                 hasOptions ? (
                                    <div style={{
                                      display: col.checkboxLayout === '2-column' ? 'grid' : 'flex',
-                                     gridTemplateColumns: col.checkboxLayout === '2-column' ? 'repeat(2, 1fr)' : undefined,
+                                     gridTemplateColumns: col.checkboxLayout === '2-column' ? getCheckboxGridTemplate(col.options || []) : undefined,
                                      flexDirection: col.checkboxLayout === '2-column' ? undefined : 'column',
                                      gap: col.checkboxLayout === '2-column' ? '4px 12px' : '5px',
                                      alignItems: 'flex-start',
