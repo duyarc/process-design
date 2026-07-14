@@ -120,6 +120,15 @@ export interface MatrixConfigISO {
   columnAlign?: 'left' | 'center'; // Canh lề cột (trái hoặc giữa)
 }
 
+export interface ColumnSummaryRowConfig {
+  id: string;
+  label: string;
+  type: 'sum' | 'manual' | 'percentage' | 'sum_all';
+  percentageValue?: number;
+  percentageOfId?: string;
+  sumRowIds?: string[];
+}
+
 export interface TableColumnConfig {
   id: string;
   label: string;
@@ -127,6 +136,8 @@ export interface TableColumnConfig {
   type: 'static_text' | 'text' | 'number' | 'checkbox' | 'radio' | 'date' | 'time';
   options?: RadioOption[];
   align?: 'left' | 'center' | 'right';
+  checkboxLayout?: '1-column' | '2-column';
+  summaryRows?: ColumnSummaryRowConfig[];
 }
 
 export interface TableRowConfig {

@@ -684,8 +684,16 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                                 <span style={{ fontWeight: 500, display: 'block', textAlign: cellAlign }}>{block.tableData?.[row.id]?.[col.id] || ''}</span>
                               ) : col.type === 'checkbox' ? (
                                 hasOptions ? (
-                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', alignItems: 'flex-start', padding: '4px 0' }}>
-                                    {(col.options || []).map((opt: any, oIdx: number) => {
+                                   <div style={{
+                                     display: col.checkboxLayout === '2-column' ? 'grid' : 'flex',
+                                     gridTemplateColumns: col.checkboxLayout === '2-column' ? 'repeat(2, 1fr)' : undefined,
+                                     flexDirection: col.checkboxLayout === '2-column' ? undefined : 'column',
+                                     gap: col.checkboxLayout === '2-column' ? '4px 12px' : '5px',
+                                     alignItems: 'flex-start',
+                                     padding: '4px 0',
+                                     width: '100%'
+                                   }}>
+                                     {(col.options || []).map((opt: any, oIdx: number) => {
                                       const currentValues = cellValue ? cellValue.split(',').filter(Boolean) : [];
                                       const isChecked = currentValues.includes(opt.value || opt.label);
                                       return (
@@ -730,6 +738,39 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                     ))
                   )}
                 </tbody>
+                {(() => {
+                  const footerRows: React.ReactNode[] = [];
+                  (block.tableColumns || []).forEach((col: any, colIdx: number) => {
+                    if (col.type === 'number' && col.summaryRows && col.summaryRows.length > 0) {
+                      col.summaryRows.forEach((row: any) => {
+                        const cellKey = `${block.id}_summary_${col.id}_${row.id}`;
+                        const snapshotVal = submission.formData.find(f => f.id === cellKey)?.value || '0';
+                        const numVal = parseFloat(snapshotVal) || 0;
+                        
+                        footerRows.push(
+                          <tr key={`${col.id}_${row.id}`} style={{ background: '#ffffff', fontWeight: 'bold' }}>
+                            {colIdx > 0 && (
+                              <td colSpan={colIdx} style={{ border: '1.5px solid #000000', padding: '6px 8px', textAlign: 'right', fontSize: '0.8rem', color: '#000000' }}>
+                                {row.label}
+                              </td>
+                            )}
+                            <td style={{ border: '1.5px solid #000000', padding: '6px 8px', textAlign: 'right', fontSize: '0.8rem', color: '#000000' }}>
+                              {numVal.toLocaleString('vi-VN')} VND
+                            </td>
+                            {(block.tableColumns || []).length - 1 - colIdx > 0 && (
+                              <td colSpan={(block.tableColumns || []).length - 1 - colIdx} style={{ border: '1.5px solid #000000', padding: '6px 8px' }} />
+                            )}
+                          </tr>
+                        );
+                      });
+                    }
+                  });
+                  return footerRows.length > 0 ? (
+                    <tfoot style={{ borderTop: '2px solid #000000' }}>
+                      {footerRows}
+                    </tfoot>
+                  ) : null;
+                })()}
               </table>
             </div>
           </div>

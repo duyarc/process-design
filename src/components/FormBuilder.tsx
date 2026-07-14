@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { FormFieldISO, FormRevisionEntry, FormTemplateISO, LayoutBlockISO, RadioOption, MatrixConfigISO, TableColumnConfig } from '../types';
+import type { FormFieldISO, FormRevisionEntry, FormTemplateISO, LayoutBlockISO, RadioOption, MatrixConfigISO, TableColumnConfig, ColumnSummaryRowConfig } from '../types';
 import { formatFormVersion, getColStyleWidth } from '../types';
 import { 
   Plus, 
@@ -19,7 +19,9 @@ import {
   AlignLeft,
   AlignCenter,
   AlignRight,
-  GitBranch
+  GitBranch,
+  Rows2,
+  Columns2
 } from 'lucide-react';
 import PrintBlankForm from './print/PrintBlankForm';
 
@@ -1864,9 +1866,17 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                                                />
                                              ) : col.type === 'checkbox' ? (
                                                hasOptions ? (
-                                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start', padding: '4px 0' }}>
+                                                 <div style={{
+                                                   display: col.checkboxLayout === '2-column' ? 'grid' : 'flex',
+                                                   gridTemplateColumns: col.checkboxLayout === '2-column' ? 'repeat(2, 1fr)' : undefined,
+                                                   flexDirection: col.checkboxLayout === '2-column' ? undefined : 'column',
+                                                   gap: col.checkboxLayout === '2-column' ? '4px 12px' : '4px',
+                                                   alignItems: 'flex-start',
+                                                   padding: '4px 0',
+                                                   width: '100%'
+                                                 }}>
                                                    {(col.options || []).map((opt, oIdx) => (
-                                                     <label key={oIdx} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: 'var(--text-primary)', cursor: 'not-allowed', margin: 0 }}>
+                                                     <label key={oIdx} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: 'var(--text-primary)', cursor: 'not-allowed', margin: 0, whiteSpace: 'nowrap' }}>
                                                        <input type="checkbox" disabled style={{ pointerEvents: 'none' }} />
                                                        <span>{opt.label}</span>
                                                      </label>
@@ -1916,6 +1926,70 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                                   ))
                                 )}
                               </tbody>
+                              {(() => {
+                                const footerRows: React.ReactNode[] = [];
+                                (block.tableColumns || []).forEach((col, colIdx) => {
+                                  if (col.type === 'number' && col.summaryRows && col.summaryRows.length > 0) {
+                                    const summaryRows = col.summaryRows;
+                                    const getDummySummaryVal = (row: any): number => {
+                                      if (row.type === 'sum') {
+                                        let sum = 0;
+                                        (block.tableRows || []).forEach((r: any) => {
+                                          const valStr = block.tableData?.[r.id]?.[col.id] || '';
+                                          const num = parseFloat(valStr.replace(/,/g, '')) || 0;
+                                          sum += num;
+                                        });
+                                        return sum;
+                                      }
+                                      if (row.type === 'percentage') {
+                                        if (!row.percentageOfId) return 0;
+                                        const parentRow = summaryRows.find((r: any) => r.id === row.percentageOfId);
+                                        if (!parentRow) return 0;
+                                        const parentVal = getDummySummaryVal(parentRow);
+                                        return parentVal * ((row.percentageValue || 0) / 100);
+                                      }
+                                      if (row.type === 'sum_all') {
+                                        let sum = 0;
+                                        (row.sumRowIds || []).forEach((id: string) => {
+                                          const targetRow = summaryRows.find((r: any) => r.id === id);
+                                          if (targetRow) {
+                                            sum += getDummySummaryVal(targetRow);
+                                          }
+                                        });
+                                        return sum;
+                                      }
+                                      return 0;
+                                    };
+
+                                    summaryRows.forEach((row) => {
+                                      const dummyVal = getDummySummaryVal(row);
+                                      const isManual = row.type === 'manual';
+                                      const displayStr = isManual ? '[Người điền tự nhập]' : dummyVal.toLocaleString('vi-VN') + ' VND';
+                                      
+                                      footerRows.push(
+                                        <tr key={`${col.id}_${row.id}`} style={{ background: '#f8fafc', fontWeight: 'bold', borderTop: '1.5px solid #cbd5e1' }}>
+                                          {colIdx > 0 && (
+                                            <td colSpan={colIdx} style={{ padding: '6px', borderRight: '1px solid #cbd5e1', textAlign: 'right', color: 'var(--text-secondary)' }}>
+                                              {row.label}
+                                            </td>
+                                          )}
+                                          <td style={{ padding: '6px', borderRight: '1px solid #cbd5e1', textAlign: 'right', color: 'var(--text-primary)' }}>
+                                            {displayStr}
+                                          </td>
+                                          {(block.tableColumns || []).length - 1 - colIdx > 0 && (
+                                            <td colSpan={(block.tableColumns || []).length - 1 - colIdx} style={{ padding: '6px' }} />
+                                          )}
+                                        </tr>
+                                      );
+                                    });
+                                  }
+                                });
+                                return footerRows.length > 0 ? (
+                                  <tfoot style={{ borderTop: '2px solid #94a3b8' }}>
+                                    {footerRows}
+                                  </tfoot>
+                                ) : null;
+                              })()}
                             </table>
                           </div>
                           {!isLocked && (
@@ -2638,6 +2712,48 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                               </div>
                               {col.type === 'checkbox' && (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', marginTop: '0.2rem', padding: '0.4rem', borderTop: '1px dashed var(--neutral-border)' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.25rem', marginBottom: '0.25rem' }}>
+                                    <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Bố cục:</span>
+                                    <div style={{ display: 'flex', border: '1px solid var(--neutral-border)', borderRadius: '4px', overflow: 'hidden' }}>
+                                      <button
+                                        type="button"
+                                        disabled={isLocked}
+                                        onClick={() => handleUpdateTableColumn(activeBlock.id, col.id, { checkboxLayout: '1-column' })}
+                                        style={{
+                                          padding: '2px 8px',
+                                          background: (col.checkboxLayout || '1-column') === '1-column' ? '#cbd5e1' : '#ffffff',
+                                          border: 'none',
+                                          cursor: 'pointer',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center'
+                                        }}
+                                        title="1 Cột (Xếp dọc)"
+                                      >
+                                        <Rows2 size={12} style={{ color: (col.checkboxLayout || '1-column') === '1-column' ? 'var(--text-primary)' : 'var(--text-muted)' }} />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        disabled={isLocked}
+                                        onClick={() => handleUpdateTableColumn(activeBlock.id, col.id, { checkboxLayout: '2-column' })}
+                                        style={{
+                                          padding: '2px 8px',
+                                          background: col.checkboxLayout === '2-column' ? '#cbd5e1' : '#ffffff',
+                                          borderLeft: '1px solid var(--neutral-border)',
+                                          borderRight: 'none',
+                                          borderTop: 'none',
+                                          borderBottom: 'none',
+                                          cursor: 'pointer',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center'
+                                        }}
+                                        title="2 Cột (Song song)"
+                                      >
+                                        <Columns2 size={12} style={{ color: col.checkboxLayout === '2-column' ? 'var(--text-primary)' : 'var(--text-muted)' }} />
+                                      </button>
+                                    </div>
+                                  </div>
                                   <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Lựa chọn (Checkbox Options)</label>
                                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                                     {(col.options || []).map((opt, oIdx) => (
@@ -2676,6 +2792,135 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                                       style={{ display: 'flex', alignItems: 'center', gap: '2px', padding: '0.15rem 0.3rem', fontSize: '0.65rem', borderRadius: '4px', border: '1px dashed #94a3b8', background: 'none', color: 'var(--text-secondary)', cursor: 'pointer', width: 'fit-content', marginTop: '0.2rem' }}
                                     >
                                       <Plus size={10} /> Thêm lựa chọn
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                              {col.type === 'number' && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', marginTop: '0.2rem', padding: '0.4rem', borderTop: '1px dashed var(--neutral-border)' }}>
+                                  <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Hàng cộng chân bảng (Summary)</label>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                                    {(col.summaryRows || []).map((row, sIdx) => (
+                                      <div key={row.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', border: '1px solid #cbd5e1', padding: '4px', borderRadius: '4px', background: '#ffffff' }}>
+                                        <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
+                                          <input
+                                            type="text"
+                                            disabled={isLocked}
+                                            placeholder="Tiêu đề hàng cộng"
+                                            value={row.label}
+                                            onChange={(e) => {
+                                              const nextRows = [...(col.summaryRows || [])];
+                                              nextRows[sIdx] = { ...nextRows[sIdx], label: e.target.value };
+                                              handleUpdateTableColumn(activeBlock.id, col.id, { summaryRows: nextRows });
+                                            }}
+                                            style={{ flex: 1, padding: '0.15rem 0.25rem', fontSize: '0.7rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
+                                          />
+                                          <button
+                                            type="button"
+                                            disabled={isLocked}
+                                            onClick={() => {
+                                              const nextRows = (col.summaryRows || []).filter(r => r.id !== row.id);
+                                              handleUpdateTableColumn(activeBlock.id, col.id, { summaryRows: nextRows });
+                                            }}
+                                            style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '0 2px', fontSize: '0.75rem', lineHeight: 1 }}
+                                          >✕</button>
+                                        </div>
+
+                                        <div style={{ display: 'flex', gap: '0.25rem' }}>
+                                          <select
+                                            disabled={isLocked}
+                                            value={row.type}
+                                            onChange={(e) => {
+                                              const nextRows = [...(col.summaryRows || [])];
+                                              nextRows[sIdx] = { ...nextRows[sIdx], type: e.target.value as any };
+                                              handleUpdateTableColumn(activeBlock.id, col.id, { summaryRows: nextRows });
+                                            }}
+                                            style={{ flex: 1, padding: '0.15rem 0.25rem', fontSize: '0.7rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
+                                          >
+                                            <option value="sum">Tổng cột (Sum)</option>
+                                            <option value="manual">Nhập thủ công</option>
+                                            <option value="percentage">Phần trăm (%)</option>
+                                            <option value="sum_all">Tổng hàng khác</option>
+                                          </select>
+                                        </div>
+
+                                        {row.type === 'percentage' && (
+                                          <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
+                                            <input
+                                              type="number"
+                                              placeholder="%"
+                                              disabled={isLocked}
+                                              value={row.percentageValue || ''}
+                                              onChange={(e) => {
+                                                const nextRows = [...(col.summaryRows || [])];
+                                                nextRows[sIdx] = { ...nextRows[sIdx], percentageValue: parseFloat(e.target.value) || 0 };
+                                                handleUpdateTableColumn(activeBlock.id, col.id, { summaryRows: nextRows });
+                                              }}
+                                              style={{ width: '45px', padding: '0.15rem 0.25rem', fontSize: '0.7rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
+                                            />
+                                            <span style={{ fontSize: '0.65rem' }}>% của</span>
+                                            <select
+                                              disabled={isLocked}
+                                              value={row.percentageOfId || ''}
+                                              onChange={(e) => {
+                                                const nextRows = [...(col.summaryRows || [])];
+                                                nextRows[sIdx] = { ...nextRows[sIdx], percentageOfId: e.target.value };
+                                                handleUpdateTableColumn(activeBlock.id, col.id, { summaryRows: nextRows });
+                                              }}
+                                              style={{ flex: 1, padding: '0.15rem 0.25rem', fontSize: '0.7rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
+                                            >
+                                              <option value="">-- Hàng cộng --</option>
+                                              {(col.summaryRows || []).slice(0, sIdx).map(r => (
+                                                <option key={r.id} value={r.id}>{r.label || 'Không tên'}</option>
+                                              ))}
+                                            </select>
+                                          </div>
+                                        )}
+
+                                        {row.type === 'sum_all' && (
+                                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                                            <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Chọn hàng cộng/trừ:</span>
+                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+                                              {(col.summaryRows || []).slice(0, sIdx).map(r => {
+                                                const isIncluded = (row.sumRowIds || []).includes(r.id);
+                                                return (
+                                                  <label key={r.id} style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.65rem', cursor: 'pointer' }}>
+                                                    <input
+                                                      type="checkbox"
+                                                      disabled={isLocked}
+                                                      checked={isIncluded}
+                                                      onChange={(e) => {
+                                                        const nextRows = [...(col.summaryRows || [])];
+                                                        let nextSumRowIds = [...(row.sumRowIds || [])];
+                                                        if (e.target.checked) {
+                                                          nextSumRowIds.push(r.id);
+                                                        } else {
+                                                          nextSumRowIds = nextSumRowIds.filter(id => id !== r.id);
+                                                        }
+                                                        nextRows[sIdx] = { ...nextRows[sIdx], sumRowIds: nextSumRowIds };
+                                                        handleUpdateTableColumn(activeBlock.id, col.id, { summaryRows: nextRows });
+                                                      }}
+                                                    />
+                                                    {r.label || 'Không tên'}
+                                                  </label>
+                                                );
+                                              })}
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                  {!isLocked && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const nextRows: ColumnSummaryRowConfig[] = [...(col.summaryRows || []), { id: `sum_${Date.now()}`, label: 'Cộng:', type: 'sum' }];
+                                         handleUpdateTableColumn(activeBlock.id, col.id, { summaryRows: nextRows });
+                                      }}
+                                      style={{ display: 'flex', alignItems: 'center', gap: '2px', padding: '0.15rem 0.3rem', fontSize: '0.65rem', borderRadius: '4px', border: '1px dashed #94a3b8', background: 'none', color: 'var(--text-secondary)', cursor: 'pointer', width: 'fit-content', marginTop: '0.2rem' }}
+                                    >
+                                      <Plus size={10} /> Thêm hàng cộng
                                     </button>
                                   )}
                                 </div>

@@ -29,6 +29,47 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
   const [submitting, setSubmitting] = useState(false);
   const [submittedId, setSubmittedId] = useState<string | null>(null);
 
+  const calculateSummaryValue = (
+    col: any,
+    row: any,
+    block: any,
+    currentValues: { [key: string]: string }
+  ): number => {
+    if (row.type === 'sum') {
+      let sum = 0;
+      (block.tableRows || []).forEach((r: any) => {
+        const cellKey = `${block.id}_${r.id}_${col.id}`;
+        const valStr = currentValues[cellKey] || '';
+        const num = parseFloat(valStr.replace(/,/g, '')) || 0;
+        sum += num;
+      });
+      return sum;
+    }
+    if (row.type === 'manual') {
+      const cellKey = `${block.id}_summary_${col.id}_${row.id}`;
+      const valStr = currentValues[cellKey] || '';
+      return parseFloat(valStr.replace(/,/g, '')) || 0;
+    }
+    if (row.type === 'percentage') {
+      if (!row.percentageOfId) return 0;
+      const parentRow = (col.summaryRows || []).find((r: any) => r.id === row.percentageOfId);
+      if (!parentRow) return 0;
+      const parentVal = calculateSummaryValue(col, parentRow, block, currentValues);
+      return parentVal * ((row.percentageValue || 0) / 100);
+    }
+    if (row.type === 'sum_all') {
+      let sum = 0;
+      (row.sumRowIds || []).forEach((id: string) => {
+        const targetRow = (col.summaryRows || []).find((r: any) => r.id === id);
+        if (targetRow) {
+          sum += calculateSummaryValue(col, targetRow, block, currentValues);
+        }
+      });
+      return sum;
+    }
+    return 0;
+  };
+
   // Fetch process details
   const fetchProcess = async () => {
     try {
@@ -267,6 +308,25 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
                 });
               }
             });
+          });
+
+          // Collect summary row values
+          block.tableColumns.forEach((col: any) => {
+            if (col.type === 'number' && col.summaryRows) {
+              col.summaryRows.forEach((sRow: any) => {
+                const key = `${block.id}_summary_${col.id}_${sRow.id}`;
+                const val = calculateSummaryValue(col, sRow, block, formValues);
+                snapshots.push({
+                  id: key,
+                  checkItem: `Hàng cộng (${col.label}): ${sRow.label}`,
+                  locationCode: 'N/A',
+                  targetRange: 'Tính toán chân bảng',
+                  reactionProtocol: '',
+                  value: String(val),
+                  status: 'PASS'
+                });
+              });
+            }
           });
         }
       });
@@ -831,12 +891,20 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
                                       <span style={{ fontWeight: 500, display: 'block', textAlign: cellAlign }}>{block.tableData?.[row.id]?.[col.id] || ''}</span>
                                     ) : col.type === 'checkbox' ? (
                                       hasOptions ? (
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', alignItems: 'flex-start', padding: '4px' }}>
+                                        <div style={{
+                                          display: col.checkboxLayout === '2-column' ? 'grid' : 'flex',
+                                          gridTemplateColumns: col.checkboxLayout === '2-column' ? 'repeat(2, 1fr)' : undefined,
+                                          flexDirection: col.checkboxLayout === '2-column' ? undefined : 'column',
+                                          gap: col.checkboxLayout === '2-column' ? '4px 12px' : '5px',
+                                          alignItems: 'flex-start',
+                                          padding: '4px',
+                                          width: '100%'
+                                        }}>
                                           {(col.options || []).map((opt: any, oIdx: number) => {
                                             const currentValues = cellValue ? cellValue.split(',').filter(Boolean) : [];
                                             const isChecked = currentValues.includes(opt.value || opt.label);
                                             return (
-                                              <label key={oIdx} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: 'var(--text-primary)', cursor: 'pointer', margin: 0 }}>
+                                              <label key={oIdx} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: 'var(--text-primary)', cursor: 'pointer', margin: 0, whiteSpace: 'nowrap' }}>
                                                 <input 
                                                   type="checkbox" 
                                                   checked={isChecked} 
@@ -914,6 +982,49 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
                           ))
                         )}
                       </tbody>
+                      {(() => {
+                        const footerRows: React.ReactNode[] = [];
+                        (block.tableColumns || []).forEach((col: any, colIdx: number) => {
+                          if (col.type === 'number' && col.summaryRows && col.summaryRows.length > 0) {
+                            col.summaryRows.forEach((row: any) => {
+                              const cellKey = `${block.id}_summary_${col.id}_${row.id}`;
+                              const val = calculateSummaryValue(col, row, block, formValues);
+                              const isManual = row.type === 'manual';
+                              
+                              footerRows.push(
+                                <tr key={`${col.id}_${row.id}`} style={{ background: '#f8fafc', fontWeight: 'bold', borderTop: '1.5px solid var(--neutral-border)' }}>
+                                  {colIdx > 0 && (
+                                    <td colSpan={colIdx} style={{ padding: '6px', borderRight: '1px solid var(--neutral-border)', textAlign: 'right', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
+                                      {row.label}
+                                    </td>
+                                  )}
+                                  <td style={{ padding: '6px', borderRight: '1px solid var(--neutral-border)', textAlign: 'right', color: 'var(--text-primary)' }}>
+                                    {isManual ? (
+                                      <input
+                                        type="number"
+                                        value={formValues[cellKey] || ''}
+                                        onChange={(e) => setFormValues(prev => ({ ...prev, [cellKey]: e.target.value }))}
+                                        placeholder="Nhập..."
+                                        style={{ width: '100px', padding: '0.2rem 0.35rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', textAlign: 'right' }}
+                                      />
+                                    ) : (
+                                      <span style={{ fontSize: '0.8rem' }}>{val.toLocaleString('vi-VN')} VND</span>
+                                    )}
+                                  </td>
+                                  {(block.tableColumns || []).length - 1 - colIdx > 0 && (
+                                    <td colSpan={(block.tableColumns || []).length - 1 - colIdx} style={{ padding: '6px' }} />
+                                  )}
+                                </tr>
+                              );
+                            });
+                          }
+                        });
+                        return footerRows.length > 0 ? (
+                          <tfoot style={{ borderTop: '2px solid var(--neutral-border)' }}>
+                            {footerRows}
+                          </tfoot>
+                        ) : null;
+                      })()}
                     </table>
                   </div>
                 </div>

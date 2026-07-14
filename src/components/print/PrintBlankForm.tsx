@@ -450,9 +450,17 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                                   <span style={{ fontWeight: 500, display: 'block', textAlign: cellAlign }}>{block.tableData?.[row.id]?.[col.id] || ''}</span>
                                 ) : col.type === 'checkbox' ? (
                                   hasOptions ? (
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', alignItems: 'flex-start', padding: '4px 0' }}>
+                                    <div style={{
+                                      display: col.checkboxLayout === '2-column' ? 'grid' : 'flex',
+                                      gridTemplateColumns: col.checkboxLayout === '2-column' ? 'repeat(2, 1fr)' : undefined,
+                                      flexDirection: col.checkboxLayout === '2-column' ? undefined : 'column',
+                                      gap: col.checkboxLayout === '2-column' ? '4px 12px' : '5px',
+                                      alignItems: 'flex-start',
+                                      padding: '4px 0',
+                                      width: '100%'
+                                    }}>
                                       {(col.options || []).map((opt, oIdx) => (
-                                        <div key={oIdx} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#000000' }}>
+                                        <div key={oIdx} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#000000', whiteSpace: 'nowrap' }}>
                                           <span style={{
                                             display: 'inline-block',
                                             width: '12px',
@@ -497,6 +505,35 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                       ))
                     )}
                   </tbody>
+                  {(() => {
+                    const footerRows: React.ReactNode[] = [];
+                    (block.tableColumns || []).forEach((col: any, colIdx: number) => {
+                      if (col.type === 'number' && col.summaryRows && col.summaryRows.length > 0) {
+                        col.summaryRows.forEach((row: any) => {
+                          footerRows.push(
+                            <tr key={`${col.id}_${row.id}`} style={{ background: '#ffffff', fontWeight: 'bold' }}>
+                              {colIdx > 0 && (
+                                <td colSpan={colIdx} style={{ border: '1.5px solid #000000', padding: '6px 8px', textAlign: 'right', fontSize: '0.8rem', color: '#000000' }}>
+                                  {row.label}
+                                </td>
+                              )}
+                              <td style={{ border: '1.5px solid #000000', padding: '6px 8px', textAlign: 'right', fontSize: '0.8rem', color: '#94a3b8' }}>
+                                ...........................
+                              </td>
+                              {(block.tableColumns || []).length - 1 - colIdx > 0 && (
+                                <td colSpan={(block.tableColumns || []).length - 1 - colIdx} style={{ border: '1.5px solid #000000', padding: '6px 8px' }} />
+                              )}
+                            </tr>
+                          );
+                        });
+                      }
+                    });
+                    return footerRows.length > 0 ? (
+                      <tfoot style={{ borderTop: '2px solid #000000' }}>
+                        {footerRows}
+                      </tfoot>
+                    ) : null;
+                  })()}
                 </table>
               </div>
             )}
