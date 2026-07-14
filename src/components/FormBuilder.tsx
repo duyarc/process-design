@@ -338,7 +338,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
       id: `b_${type.toLowerCase()}_${Date.now()}`,
       type,
       columns,
-      title: type === 'INFO_GRID' ? 'Thông tin chung' : type === 'CHECKLIST_TABLE' ? 'Bảng kiểm tra' : type === 'MATRIX_TABLE' ? 'Bảng kiểm đếm số lượng' : type === 'TABLE' ? 'Bảng biểu mẫu động' : type === 'SECTION_LABEL' ? 'Tiêu đề danh mục' : 'Ký nhận',
+      title: type === 'TITLE' ? formTitle : type === 'INFO_GRID' ? 'Thông tin chung' : type === 'CHECKLIST_TABLE' ? 'Bảng kiểm tra' : type === 'MATRIX_TABLE' ? 'Bảng kiểm đếm số lượng' : type === 'TABLE' ? 'Bảng biểu mẫu động' : type === 'SECTION_LABEL' ? 'Tiêu đề danh mục' : 'Ký nhận',
       description: type === 'SECTION_LABEL' ? 'Mô tả chi tiết cho danh mục này...' : undefined,
       fields: [],
       columnLabels: type === 'CHECKLIST_TABLE' ? {
@@ -408,6 +408,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
 
   const handleUpdateBlockTitle = (blockId: string, newTitle: string) => {
     setLayoutBlocks(prev => prev.map(b => b.id === blockId ? { ...b, title: newTitle } : b));
+    // Sync to formTitle if this is the TITLE block
+    const block = layoutBlocks.find(b => b.id === blockId);
+    if (block?.type === 'TITLE') setFormTitle(newTitle);
   };
 
   const handleUpdateBlockColumns = (blockId: string, cols: 1 | 2 | 3) => {
@@ -2834,7 +2837,12 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                     type="text"
                     disabled={isLocked}
                     value={formTitle}
-                    onChange={(e) => setFormTitle(e.target.value)}
+                    onChange={(e) => {
+                      setFormTitle(e.target.value);
+                      // Sync to TITLE block if one exists
+                      const titleBlock = layoutBlocks.find(b => b.type === 'TITLE');
+                      if (titleBlock) handleUpdateBlockTitle(titleBlock.id, e.target.value);
+                    }}
                     style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
                   />
                 </div>
