@@ -9,7 +9,7 @@
 | **Module Name** | Form Operations |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Last Verified Against Codebase** | 2026-07-13 |
+| **Last Verified Against Codebase** | 2026-07-14 |
 | **Verified By Session** | [9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) |
 
 ### Quick File Index
@@ -378,3 +378,4 @@ FormFiller supports direct URL access for operator distribution:
 | 2026-07-13 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Remove trailing colon (":") from field labels in INFO_GRID blocks if the label is blank. Affects PrintRecord.tsx. |
 | 2026-07-13 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Fix logo race condition in PrintRecord.tsx by adding logoReady state guard to print dialog initialization. |
 | 2026-07-13 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Fix logo print blank on slow machines by using img onLoad/onError listeners to ensure image bytes are loaded before printing. |
+| 2026-07-14 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Implement multi-option checkbox table columns in FormFiller.tsx (interactive multi-select with comma-separated values) and PrintRecord.tsx (render checked status from data). |

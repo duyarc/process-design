@@ -823,20 +823,50 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
                               {(block.tableColumns || []).map((col: any) => {
                                 const cellKey = `${block.id}_${row.id}_${col.id}`;
                                 const cellValue = formValues[cellKey] || '';
-                                const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? 'center' : 'left'));
+                                const hasOptions = col.type === 'checkbox' && col.options && col.options.length > 0;
+                                const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? (hasOptions ? 'left' : 'center') : 'left'));
                                 return (
                                   <td key={col.id} style={{ padding: '6px', borderRight: '1px solid var(--neutral-border)', verticalAlign: 'middle', textAlign: cellAlign }}>
                                     {col.type === 'static_text' ? (
                                       <span style={{ fontWeight: 500, display: 'block', textAlign: cellAlign }}>{block.tableData?.[row.id]?.[col.id] || ''}</span>
                                     ) : col.type === 'checkbox' ? (
-                                      <div style={{ textAlign: 'center' }}>
-                                        <input 
-                                          type="checkbox" 
-                                          checked={cellValue === 'true'} 
-                                          onChange={(e) => setFormValues(prev => ({ ...prev, [cellKey]: e.target.checked ? 'true' : 'false' }))} 
-                                          style={{ transform: 'scale(1.1)', cursor: 'pointer' }}
-                                        />
-                                      </div>
+                                      hasOptions ? (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', alignItems: 'flex-start', padding: '4px' }}>
+                                          {(col.options || []).map((opt: any, oIdx: number) => {
+                                            const currentValues = cellValue ? cellValue.split(',').filter(Boolean) : [];
+                                            const isChecked = currentValues.includes(opt.value || opt.label);
+                                            return (
+                                              <label key={oIdx} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: 'var(--text-primary)', cursor: 'pointer', margin: 0 }}>
+                                                <input 
+                                                  type="checkbox" 
+                                                  checked={isChecked} 
+                                                  onChange={(e) => {
+                                                    const val = opt.value || opt.label;
+                                                    let nextValues;
+                                                    if (e.target.checked) {
+                                                      nextValues = [...currentValues, val];
+                                                    } else {
+                                                      nextValues = currentValues.filter((v: string) => v !== val);
+                                                    }
+                                                    setFormValues(prev => ({ ...prev, [cellKey]: nextValues.join(',') }));
+                                                  }} 
+                                                  style={{ transform: 'scale(1.0)', cursor: 'pointer' }}
+                                                />
+                                                <span>{opt.label}</span>
+                                              </label>
+                                            );
+                                          })}
+                                        </div>
+                                      ) : (
+                                        <div style={{ textAlign: 'center' }}>
+                                          <input 
+                                            type="checkbox" 
+                                            checked={cellValue === 'true'} 
+                                            onChange={(e) => setFormValues(prev => ({ ...prev, [cellKey]: e.target.checked ? 'true' : 'false' }))} 
+                                            style={{ transform: 'scale(1.1)', cursor: 'pointer' }}
+                                          />
+                                        </div>
+                                      )
                                     ) : col.type === 'radio' ? (
                                       <div style={{ textAlign: 'center' }}>
                                         <input 

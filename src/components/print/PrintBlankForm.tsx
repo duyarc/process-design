@@ -421,7 +421,8 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                     <tr>
                       {(block.tableColumns || []).map((col) => {
                         const colWidth = getColStyleWidth(col.id, col.width, block.tableColumns || []);
-                        const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? 'center' : 'left'));
+                        const hasOptions = col.type === 'checkbox' && col.options && col.options.length > 0;
+                        const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? (hasOptions ? 'left' : 'center') : 'left'));
                         return (
                           <th key={col.id} style={{ border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'bold', fontSize: '0.8rem', textAlign: cellAlign, width: colWidth }}>
                             {col.label}
@@ -441,12 +442,43 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                       (block.tableRows || []).map((row) => (
                         <tr key={row.id} style={{ pageBreakInside: 'avoid' }}>
                           {(block.tableColumns || []).map((col) => {
-                            const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? 'center' : 'left'));
+                            const hasOptions = col.type === 'checkbox' && col.options && col.options.length > 0;
+                            const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? (hasOptions ? 'left' : 'center') : 'left'));
                             return (
                               <td key={col.id} style={{ border: '1.5px solid #000000', padding: '6px 8px', fontSize: '0.8rem', verticalAlign: 'middle', height: '35px', textAlign: cellAlign }}>
                                 {col.type === 'static_text' ? (
                                   <span style={{ fontWeight: 500, display: 'block', textAlign: cellAlign }}>{block.tableData?.[row.id]?.[col.id] || ''}</span>
-                                ) : col.type === 'checkbox' || col.type === 'radio' ? (
+                                ) : col.type === 'checkbox' ? (
+                                  hasOptions ? (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', alignItems: 'flex-start', padding: '4px 0' }}>
+                                      {(col.options || []).map((opt, oIdx) => (
+                                        <div key={oIdx} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#000000' }}>
+                                          <span style={{
+                                            display: 'inline-block',
+                                            width: '12px',
+                                            height: '12px',
+                                            border: '1.5px solid #000000',
+                                            background: '#ffffff',
+                                            borderRadius: '2px',
+                                            flexShrink: 0
+                                          }} />
+                                          <span>{opt.label}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <div style={{ display: 'flex', justifyContent: 'center' }}>
+                                      <span style={{
+                                        display: 'inline-block',
+                                        width: '14px',
+                                        height: '14px',
+                                        border: '1.5px solid #000000',
+                                        background: '#ffffff',
+                                        borderRadius: '2px'
+                                      }} />
+                                    </div>
+                                  )
+                                ) : col.type === 'radio' ? (
                                   <div style={{ display: 'flex', justifyContent: 'center' }}>
                                     <span style={{
                                       display: 'inline-block',
@@ -454,7 +486,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                                       height: '14px',
                                       border: '1.5px solid #000000',
                                       background: '#ffffff',
-                                      borderRadius: col.type === 'radio' ? '50%' : '2px'
+                                      borderRadius: '50%'
                                     }} />
                                   </div>
                                 ) : null}

@@ -1839,7 +1839,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                                       onMouseLeave={() => setHoveredTableRowId(null)}
                                     >
                                        {(block.tableColumns || []).map((col) => {
-                                         const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? 'center' : 'left'));
+                                         const hasOptions = col.type === 'checkbox' && col.options && col.options.length > 0;
+                                         const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? (hasOptions ? 'left' : 'center') : 'left'));
                                          return (
                                            <td key={col.id} style={{ padding: '4px', borderRight: '1px solid #cbd5e1', verticalAlign: 'middle', textAlign: cellAlign }}>
                                              {col.type === 'static_text' ? (
@@ -1862,7 +1863,18 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                                                  style={{ width: '100%', border: 'none', background: 'transparent', outline: 'none', padding: '2px', fontSize: '0.75rem', textAlign: cellAlign }}
                                                />
                                              ) : col.type === 'checkbox' ? (
-                                               <div style={{ textAlign: 'center' }}><input type="checkbox" disabled /></div>
+                                               hasOptions ? (
+                                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start', padding: '4px 0' }}>
+                                                   {(col.options || []).map((opt, oIdx) => (
+                                                     <label key={oIdx} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: 'var(--text-primary)', cursor: 'not-allowed', margin: 0 }}>
+                                                       <input type="checkbox" disabled style={{ pointerEvents: 'none' }} />
+                                                       <span>{opt.label}</span>
+                                                     </label>
+                                                   ))}
+                                                 </div>
+                                               ) : (
+                                                 <div style={{ textAlign: 'center' }}><input type="checkbox" disabled /></div>
+                                               )
                                              ) : col.type === 'radio' ? (
                                                <div style={{ textAlign: 'center' }}><input type="radio" disabled /></div>
                                              ) : col.type === 'date' ? (
@@ -2624,6 +2636,50 @@ export default function FormBuilder({ formName, initialData, onSave, onClose }: 
                                   style={{ flex: 0.6, padding: '0.2rem 0.3rem', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', backgroundColor: isLast ? '#f1f5f9' : '#ffffff', color: isLast ? '#64748b' : 'inherit', cursor: isLast ? 'not-allowed' : 'text' }}
                                 />
                               </div>
+                              {col.type === 'checkbox' && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', marginTop: '0.2rem', padding: '0.4rem', borderTop: '1px dashed var(--neutral-border)' }}>
+                                  <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Lựa chọn (Checkbox Options)</label>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                    {(col.options || []).map((opt, oIdx) => (
+                                      <div key={oIdx} style={{ display: 'flex', gap: '0.2rem', alignItems: 'center' }}>
+                                        <input
+                                          type="text"
+                                          disabled={isLocked}
+                                          placeholder="Nhãn"
+                                          value={opt.label}
+                                          onChange={(e) => {
+                                            const newOpts = [...(col.options || [])];
+                                            newOpts[oIdx] = { ...newOpts[oIdx], label: e.target.value };
+                                            handleUpdateTableColumn(activeBlock.id, col.id, { options: newOpts });
+                                          }}
+                                          style={{ flex: 1, padding: '0.15rem 0.25rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', fontSize: '0.7rem' }}
+                                        />
+                                        <button
+                                          type="button"
+                                          disabled={isLocked}
+                                          onClick={() => {
+                                            const newOpts = (col.options || []).filter((_, i) => i !== oIdx);
+                                            handleUpdateTableColumn(activeBlock.id, col.id, { options: newOpts });
+                                          }}
+                                          style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '0 2px', fontSize: '0.75rem', lineHeight: 1 }}
+                                        >✕</button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                  {!isLocked && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const newOpts = [...(col.options || []), { label: 'Lựa chọn mới', value: `OPT_${Date.now()}`, isPass: false }];
+                                        handleUpdateTableColumn(activeBlock.id, col.id, { options: newOpts });
+                                      }}
+                                      style={{ display: 'flex', alignItems: 'center', gap: '2px', padding: '0.15rem 0.3rem', fontSize: '0.65rem', borderRadius: '4px', border: '1px dashed #94a3b8', background: 'none', color: 'var(--text-secondary)', cursor: 'pointer', width: 'fit-content', marginTop: '0.2rem' }}
+                                    >
+                                      <Plus size={10} /> Thêm lựa chọn
+                                    </button>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           );
                         })}
