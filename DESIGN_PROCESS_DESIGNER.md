@@ -9,7 +9,7 @@
 | **Module Name** | Process Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Last Verified Against Codebase** | 2026-07-14 |
+| **Last Verified Against Codebase** | 2026-07-18 |
 | **Verified By Session** | [9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) |
 
 > **⚠️ Session Note (2026-07-14):** Deep codebase research revealed several undocumented architectural facts — see Sections 4.5, 6.2, and 7 for critical notes added.
@@ -471,3 +471,4 @@ Base URL: relative path (proxied via Vite dev server to `http://localhost:3001`)
 | 2026-07-14 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Replace PDF upload buttons block with Print button and PrintBlankForm integration in ProcessEditor.tsx. |
 | 2026-07-14 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Deep codebase research: Document critical architectural facts — workflowFormsData cleanup only in handleSave, process_forms junction table, workflowForms derived list, normalizeProcessFormsData migration, handleSave race condition fix via pendingStepsRef. See Section 4.5. |
 | 2026-07-14 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Add linkedProcessId + onUnlinkFromProcess props to FormBuilder bridge (Section 6.2). Implement Form ID lock and unlink flow. |
+| 2026-07-18 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Add whiteSpace: 'pre-line' to the process description paragraph styling in ProcessReader.tsx. |

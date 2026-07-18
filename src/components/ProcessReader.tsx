@@ -674,7 +674,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
               <span>{process.title}</span>
             </h1>
             {process.description && process.description.trim() && (
-              <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: 0 }}>
+              <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: 0, whiteSpace: 'pre-line' }}>
                 {process.description}
               </p>
             )}
