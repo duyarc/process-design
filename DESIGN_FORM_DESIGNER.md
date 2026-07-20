@@ -9,7 +9,7 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Last Verified Against Codebase** | 2026-07-14 |
+| **Last Verified Against Codebase** | 2026-07-20 |
 | **Verified By Session** | [9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) |
 
 > **⚠️ Session Note (2026-07-14):** Deep codebase research confirmed FormBuilder has no awareness of which process it belongs to. `formName` prop is always identical to `formId`. New `linkedProcessId` and `onUnlinkFromProcess` props added — see Section 6.1 and Technical Debt table.
@@ -445,4 +445,6 @@ All calls are inline `fetch()` within `FormBuilder.tsx` and `PrintBlankForm.tsx`
 | 2026-07-14 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Add support for 1-column vs 2-column checkbox layout (icon button group) and customizable footer summary rows on number columns (Auto Sum, Manual, Percentage, Sum Rows) in FormBuilder.tsx and PrintBlankForm.tsx. |
 | 2026-07-14 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Fix tfoot border rendering (precise borderTop/borderBottom styling) and remove whiteSpace: 'nowrap' to prevent checkbox label clipping in PrintBlankForm.tsx. |
 | 2026-07-14 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Deep codebase research: Document that `formName` prop always equals `formId`. Clarify FormBuilder has no intrinsic process context. Add new props `linkedProcessId` and `onUnlinkFromProcess`. Update Section 6.1 interface contract and Technical Debt table. |
+| 2026-07-20 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Bug fix (critical):** `isLogoKeyUsed()` in `server.cjs` rewrote to query `forms.layout_blocks` (the authoritative table) instead of `processes.workflowFormsData` (which never contains `layoutBlocks`). The old implementation always returned `false`, causing every logo to be deleted from R2 on the next process save. Fixed by using `SELECT COUNT(*) FROM forms WHERE layout_blocks::text LIKE '%' || $1 || '%'`. |
+| 2026-07-20 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Bug fix:** `handleLogoUpload()` in `FormBuilder.tsx` now calls `saveFormToBackend({ layoutBlocksOverride })` immediately after a successful R2 upload, persisting the logo R2 key to `forms.layout_blocks` in DB before any cleanup routine can run. Added `layoutBlocksOverride` option to `saveFormToBackend` signature to bypass React state batching. |
 
