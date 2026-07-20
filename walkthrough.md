@@ -200,3 +200,13 @@ This walkthrough describes the implementation of automatic flowchart wrapping us
     *   **Different-Lane Branches (Vertical Exit)**: If the source shape is a Gateway and the target is in a different lane, the sequence flow is routed to exit vertically (from the top of the gateway if target is above, or bottom if target is below) using a 3-point orthogonal path.
     *   *Result*: Shifting the gateway horizontally clears the vertical channel above/below it, allowing vertical exit lines to route cleanly without cutting through preceding task blocks, and resolving scrambled/overlapping Yes/No gateway branch labels.
 
+---
+
+## 11. Process Description Line Breaks Fix
+
+### Preserving formatting in View & Print Layouts
+*   **[ProcessReader.tsx](file:///d:/Code/antigravity/process-optimization/src/components/ProcessReader.tsx) [MODIFY]**
+    *   Added `whiteSpace: 'pre-line'` style to the process description paragraph tag. 
+    *   This preserves all newlines (line breaks) entered by the user in the Process Editor description textarea, rendering text correctly formatted in both the interactive SOP View mode and the Chrome print layout.
+
+
