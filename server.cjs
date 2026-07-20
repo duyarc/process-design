@@ -1525,31 +1525,31 @@ function getLogoKeysFromForms(workflowFormsData) {
 
 // Helper: check if a logo key is still used in any form
 async function isLogoKeyUsed(logoKey) {
-  let allProcesses = [];
+  // FIX: Logo keys are stored in forms.layout_blocks (the authoritative source),
+  // NOT in processes.workflowFormsData. The old implementation always returned false,
+  // causing logos to be incorrectly deleted from R2.
   if (dbPool) {
-    const res = await dbPool.query('SELECT "workflowFormsData" FROM processes');
-    allProcesses = res.rows;
+    // Query the forms table directly using LIKE on the JSONB text representation.
+    // Logo keys have the fixed prefix 'uploads/logo_' and contain no SQL wildcards,
+    // so false positives are virtually impossible.
+    const res = await dbPool.query(
+      `SELECT COUNT(*) AS cnt FROM forms WHERE layout_blocks::text LIKE '%' || $1 || '%'`,
+      [logoKey]
+    );
+    return parseInt(res.rows[0].cnt, 10) > 0;
   } else {
-    allProcesses = await readProcessesFromCSV();
-  }
-
-  for (const proc of allProcesses) {
-    let formsData = proc.workflowFormsData;
-    if (typeof formsData === 'string') {
-      try { formsData = JSON.parse(formsData); } catch (e) { formsData = {}; }
-    }
-    if (!formsData) continue;
-    for (const form of Object.values(formsData)) {
-      if (form && form.layoutBlocks) {
-        for (const block of form.layoutBlocks) {
-          if (block.logo === logoKey) {
-            return true;
-          }
-        }
+    // Offline CSV mode: scan the local forms JSON file
+    const forms = readFormsOffline();
+    for (const form of forms) {
+      const blocks = Array.isArray(form.layout_blocks)
+        ? form.layout_blocks
+        : JSON.parse(form.layout_blocks || '[]');
+      for (const block of blocks) {
+        if (block.logo === logoKey) return true;
       }
     }
+    return false;
   }
-  return false;
 }
 
 // Helper: Delete logo from R2 if not used anywhere

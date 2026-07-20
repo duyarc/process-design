@@ -125,7 +125,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     fetchFormTemplate();
   }, [initialData?.formId]);
 
-  const saveFormToBackend = async (opts: { versionOverride?: string, statusOverride?: 'ACTIVE' | 'DRAFT' | 'ARCHIVED', historyOverride?: FormRevisionEntry[], effectiveDateOverride?: string } = {}) => {
+  const saveFormToBackend = async (opts: { versionOverride?: string, statusOverride?: 'ACTIVE' | 'DRAFT' | 'ARCHIVED', historyOverride?: FormRevisionEntry[], effectiveDateOverride?: string, layoutBlocksOverride?: LayoutBlockISO[] } = {}) => {
     const activeVersion = opts.versionOverride || version;
     const activeStatus = opts.statusOverride || status;
     const activeHistory = opts.historyOverride || revisionHistory;
@@ -138,7 +138,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
         status: activeStatus,
         version: activeVersion,
         effectiveDate: activeStatus === 'ACTIVE' ? (opts.effectiveDateOverride || effectiveDate) : null,
-        layoutBlocks,
+        layoutBlocks: opts.layoutBlocksOverride ?? layoutBlocks,
         revisionHistory: activeHistory,
         oldFormId: initialData?.formId && initialData.formId !== formId ? initialData.formId : undefined
       };
@@ -340,7 +340,15 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
       }
 
       handleUpdateBlockLogo(blockId, pdfKey);
-      alert('Logo uploaded successfully!');
+      // Auto-save immediately with the updated blocks so the R2 key is persisted
+      // to DB before any cleanup routine runs. We pass layoutBlocksOverride because
+      // setLayoutBlocks (called inside handleUpdateBlockLogo) is async — the state
+      // won't be updated yet when saveFormToBackend reads `layoutBlocks` from closure.
+      const updatedBlocks = layoutBlocks.map(b =>
+        b.id === blockId ? { ...b, logo: pdfKey } : b
+      );
+      await saveFormToBackend({ layoutBlocksOverride: updatedBlocks });
+      alert('Logo uploaded and saved successfully!');
     } catch (err) {
       console.error(err);
       alert(`Error uploading logo: ${err instanceof Error ? err.message : 'Upload failed'}`);
