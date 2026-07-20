@@ -9,7 +9,7 @@
 | **Module Name** | Process Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Last Verified Against Codebase** | 2026-07-18 |
+| **Last Verified Against Codebase** | 2026-07-20 |
 | **Verified By Session** | [9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) |
 
 > **⚠️ Session Note (2026-07-14):** Deep codebase research revealed several undocumented architectural facts — see Sections 4.5, 6.2, and 7 for critical notes added.
@@ -23,7 +23,13 @@
 | [`src/components/BpmnModelerComponent.tsx`](src/components/BpmnModelerComponent.tsx) | Interactive BPMN diagram editor (drag & drop) | 423 lines |
 | [`src/components/BpmnViewerComponent.tsx`](src/components/BpmnViewerComponent.tsx) | Read-only BPMN diagram renderer | 293 lines |
 | [`src/components/BPMNGuide.tsx`](src/components/BPMNGuide.tsx) | BPMN notation reference guide (static content) | 39,444 bytes |
-| [`src/utils/bpmnXmlGenerator.ts`](src/utils/bpmnXmlGenerator.ts) | Pure function: converts ProcessStep[] → BPMN 2.0 XML | 32,645 bytes |
+| [`src/utils/bpmnXmlGenerator.ts`](src/utils/bpmnXmlGenerator.ts) | **Orchestrator** — imports sub-modules, renders final BPMN 2.0 XML string | ~360 lines |
+| [`src/utils/layout/types.ts`](src/utils/layout/types.ts) | Shared internal types for the layout engine sub-modules | ~110 lines |
+| [`src/utils/layout/gridLayout.ts`](src/utils/layout/gridLayout.ts) | **Module 1** — assigns each step to a (row, col) grid cell | ~190 lines |
+| [`src/utils/layout/linkEvents.ts`](src/utils/layout/linkEvents.ts) | **Module 2** — synthesises cross-row throw/catch link event pairs | ~95 lines |
+| [`src/utils/layout/nodePositioner.ts`](src/utils/layout/nodePositioner.ts) | **Module 3** — computes pixel bounding-boxes for all BPMN shapes | ~185 lines |
+| [`src/utils/layout/edgeRouter.ts`](src/utils/layout/edgeRouter.ts) | **Module 4** — computes sequence-flow waypoints (5 routing strategies) | ~175 lines |
+| [`src/utils/layout/documentPlacer.ts`](src/utils/layout/documentPlacer.ts) | **Module 5** — places document shapes with connector collision detection | ~240 lines |
 | [`src/types.ts`](src/types.ts) | Shared TypeScript types — `Process`, `ProcessStep`, `SOPSignOffs`, etc. | 247 lines |
 
 > **Update rule:** Whenever any of the above files is modified in a session, update
@@ -256,7 +262,86 @@ Legacy process records used human-readable form names (e.g. `"Inspection Sheet"`
 
 ---
 
-## 5. Key Flows
+## 4.6 BPMN Auto-Layout Engine Architecture
+
+> **Added 2026-07-20.** `bpmnXmlGenerator.ts` was refactored from a 1,000-line monolith into a thin orchestrator backed by 5 focused sub-modules in `src/utils/layout/`.
+
+### Pipeline Overview
+
+```
+generateBPMNXML(steps, title, roles, rowFilter?)
+  │
+  ├── [Module 1] gridLayout.ts       → stepRows[], stepCols[], layoutNodes[], originalFlows[]
+  │        Assigns each ProcessStep to a (row, col) cell.
+  │        Wraps to a new row after 6 columns (COLS_PER_ROW).
+  │        Gateways always force a column increment.
+  │
+  ├── [Module 2] linkEvents.ts       → allNodes[], finalFlows[]
+  │        For each forward cross-row flow, synthesises a
+  │        Throw Link Event (col 6, end of source row) and a
+  │        Catch Link Event (col 0, start of target row).
+  │        Backward loops (row A > row B) are kept as physical curved lines.
+  │
+  ├── [Module 3] nodePositioner.ts   → nodePositions: Map<id, Rect>, labelPositions
+  │        Converts (row, col) grid cells to pixel (x, y, w, h) coordinates.
+  │        Respects custom drag-and-drop positions stored in step.layoutX/Y.
+  │        computeMaxRightEdge() called on full node set for uniform pool width.
+  │
+  ├── [Module 4] edgeRouter.ts       → edgeWaypoints: Map<flowId, WP[]>, allEdgeSegments[]
+  │        Routes sequence flows using one of 5 strategies:
+  │          1. backward-loop        — target row < source row
+  │          2. vertical-aligned     — same X center (±35px)
+  │          3. forward-straight     — left→right, same Y (±5px)
+  │          4. forward-elbow        — left→right, different Y (cross-lane)
+  │          5. backward-horizontal  — fallback loop
+  │        Also emits allEdgeSegments[] (all waypoint-to-waypoint segments)
+  │        for use by documentPlacer collision detection.
+  │
+  └── [Module 5] documentPlacer.ts  → DocumentPlacement[]
+           Places DataObjectReference shapes (document icons) for form-producing
+           task steps. Uses Direction A collision detection:
+             - 6 candidate positions are tried in priority order.
+             - First collision-free candidate wins (4px clearance margin).
+             - Collision check skipped when step.formLayouts[formName] exists
+               (user has manually positioned the shape — respect it).
+           Association edge waypoints are computed from the chosen position.
+```
+
+### Layout Constants (`layout/types.ts: DEFAULT_LAYOUT_CONSTANTS`)
+
+| Constant | Value | Description |
+|---|---|---|
+| `laneHeight` | 160px | Height of one role swimlane |
+| `rowSpacing` | 80px | Vertical gap between page rows |
+| `nodeWidth` | 110px | Task box width |
+| `nodeHeight` | 80px | Task box height |
+| `circleSize` | 36px | Event circle diameter |
+| `gatewaySize` | 50px | Gateway diamond size |
+| `startX` | 220px | X offset of grid column 0 from pool left edge |
+| `spacingX` | 180px | Horizontal spacing between grid columns |
+
+### Document Shape Candidate Positions
+
+Tried in order by `documentPlacer.ts` until a collision-free position is found:
+
+| Priority | dx | dy | Label |
+|---|---|---|---|
+| 1 (default) | 0 | −60 | top-center (directly above task) |
+| 2 | +120 | +30 | right of task |
+| 3 | 0 | +150 | below task |
+| 4 | −120 | +30 | left of task |
+| 5 | +60 | 0 | top-right |
+| 6 | −60 | 0 | top-left |
+
+### Public API (unchanged)
+
+| Export | Signature | Consumers |
+|---|---|---|
+| `getNumRows` | `(steps: ProcessStep[]) → number` | `ProcessEditor.tsx` |
+| `generateBPMNXML` | `(steps, title, roles, rowFilter?) → string` | `ProcessEditor.tsx`, `ProcessReader.tsx`, `BpmnViewerComponent.tsx` |
+
+---
+
 
 ### Flow A: Open an Existing Process in the Editor
 
@@ -472,3 +557,5 @@ Base URL: relative path (proxied via Vite dev server to `http://localhost:3001`)
 | 2026-07-14 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Deep codebase research: Document critical architectural facts — workflowFormsData cleanup only in handleSave, process_forms junction table, workflowForms derived list, normalizeProcessFormsData migration, handleSave race condition fix via pendingStepsRef. See Section 4.5. |
 | 2026-07-14 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Add linkedProcessId + onUnlinkFromProcess props to FormBuilder bridge (Section 6.2). Implement Form ID lock and unlink flow. |
 | 2026-07-18 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Add whiteSpace: 'pre-line' to the process description paragraph styling in ProcessReader.tsx. |
+| 2026-07-20 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Refactor `bpmnXmlGenerator.ts` into modular layout engine.** Extract 1,000-line monolith into 5 focused sub-modules under `src/utils/layout/`: `gridLayout.ts`, `linkEvents.ts`, `nodePositioner.ts`, `edgeRouter.ts`, `documentPlacer.ts`. Public API (`getNumRows`, `generateBPMNXML`) unchanged. Add Section 4.6 documenting the pipeline and constants. |
+| 2026-07-20 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Implement Direction A document shape collision detection** in `documentPlacer.ts`. Document shapes now try 6 candidate positions and select the first that does not intersect any sequence-flow edge segment (4px clearance). Manually positioned shapes (user drag) bypass the check. Fixes connector-cuts-through-document-shape rendering issue. |
