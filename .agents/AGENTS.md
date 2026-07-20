@@ -1,11 +1,14 @@
 # Project Rules & Customizations
 
-- **Quy tắc Tối ưu hóa Mô hình (Model Selection Optimization)**:
-  - Trước khi thực hiện bất kỳ tác vụ hoặc viết đoạn mã nguồn nào, Agent **bắt buộc** phải đánh giá xem mô hình hiện tại đang được chọn có phải là mô hình tối ưu nhất cho tác vụ đó hay không.
-  - **Phân loại mô hình tối ưu**:
-    - **Claude Sonnet 4.6 (Thinking)**: Dành cho lập trình logic lõi, cấu trúc dữ liệu phức tạp, cơ chế bảo mật (phân quyền RBAC, Auth, Route Guard), tái cấu trúc (refactor) các tệp mã nguồn lớn, hoặc giải quyết các lỗi biên dịch khó.
-    - **Gemini 3.5 Flash (Medium/High)**: Dành cho code CSS/layout giao diện tĩnh, viết truy vấn SQL / Migration, chạy lệnh terminal (git push, npm run build), kiểm thử và thảo luận/giải đáp thông tin.
-  - **Hành động bắt buộc**: Nếu mô hình hiện tại đang chọn không tối ưu (ví dụ: đang dùng Flash để viết logic bảo mật, hoặc đang dùng Sonnet để chạy git/npm build), Agent **PHẢI DỪNG LẠI** và gửi yêu cầu người dùng chuyển đổi mô hình trên chat UI trước khi tiếp tục xử lý.
+- **Quy tắc Tối ưu hóa Mô hình & Cộng tác (Model Selection & Collaboration Rule)**:
+  - **Mặc định sử dụng Gemini (Flash/Pro)** cho phần lớn các tác vụ thiết kế giao diện, lập trình, viết kiểm thử, chạy lệnh terminal và thảo luận để tiết kiệm tối đa quota Claude Sonnet.
+  - **Phân chia vai trò cộng tác**:
+    - **Người dùng làm Kiến trúc sư (The Thinker)**: Người dùng dẫn dắt, cung cấp giải pháp logic cốt lõi và hướng đi chi tiết. Agent sẽ hỗ trợ làm rõ và thiết lập kế hoạch (Implementation Plan) dựa trên định hướng đó để Người dùng phê duyệt.
+    - **Agent làm Trợ lý thực thi (The Assistant)**: Gemini sẽ thực hiện viết mã nguồn, kiểm tra biên dịch (build), viết tài liệu và giải đáp thông tin dưới sự kiểm soát chặt chẽ của Người dùng.
+  - **Khi nào đề xuất chuyển sang Claude Sonnet 4.6 (Thinking)**:
+    - Chỉ khi gặp lỗi biên dịch TypeScript phức tạp mà Gemini đã thử sửa 2 lần theo hướng dẫn của Người dùng nhưng vẫn thất bại.
+    - Hoặc khi giải quyết các vấn đề liên quan đến thuật toán tối ưu hóa toán học phức tạp cần lập luận sâu sắc.
+    - *Hành động bắt buộc*: Agent phải phân tích lý do cụ thể và đề xuất Người dùng chuyển đổi mô hình trên Chat UI trước khi tiếp tục.
 
 - **Quy tắc Cập nhật Tài liệu Thiết kế (Design Document Maintenance)**:
   - Tệp `DESIGN_PROCESS_DESIGNER.md` là tài liệu thiết kế chính thức của module **Process Designer**.
