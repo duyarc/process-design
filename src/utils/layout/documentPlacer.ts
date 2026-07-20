@@ -367,15 +367,6 @@ export function placeDocuments(
         let wMid = cand.waypointMid;
         let wTo = cand.waypointTo;
 
-        if (rowFilter !== undefined && rowOffset !== undefined) {
-          doY -= rowFilter * rowOffset;
-          labelY -= rowFilter * rowOffset;
-          wFrom = { x: wFrom.x, y: wFrom.y - rowFilter * rowOffset };
-          if (wMid) {
-            wMid = { x: wMid.x, y: wMid.y - rowFilter * rowOffset };
-          }
-          wTo = { x: wTo.x, y: wTo.y - rowFilter * rowOffset };
-        }
 
         labelBoxes.push({ x: cand.labelX, y: labelY, w: textW });
 
