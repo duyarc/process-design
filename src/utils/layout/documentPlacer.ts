@@ -183,6 +183,32 @@ function hasEdgeCollision(
   return false;
 }
 
+/**
+ * Returns true if a document shape placed at (doX, doY) would overlap
+ * with any task node bounding box other than the current step task.
+ * Margin is set to 10px to ensure a clean visual spacing.
+ */
+function hasTaskCollision(
+  doX: number,
+  doY: number,
+  currentNodeId: string,
+  nodePositions: Map<string, Rect>
+): boolean {
+  const margin = 10;
+  for (const [nodeId, rect] of nodePositions.entries()) {
+    if (nodeId === currentNodeId || rect.shape === 'text-annotation') continue;
+
+    // Check intersection between document rect (DOC_W x DOC_H) and task rect
+    const overlapX = doX + DOC_W + margin > rect.x && rect.x + rect.width + margin > doX;
+    const overlapY = doY + DOC_H + margin > rect.y && rect.y + rect.height + margin > doY;
+
+    if (overlapX && overlapY) {
+      return true;
+    }
+  }
+  return false;
+}
+
 // computeLabelPosition was refactored inline into getCandidates.
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -278,59 +304,95 @@ export function placeDocuments(
         return;
       }
 
-      // ── Auto position: try candidates until collision-free ─────────────
-      const textW = Math.min(100, Math.max(50, formName.length * 7));
-      const candidates = getCandidates(
-        fromPos.x,
-        fromPos.y,
-        fromPos.width,
-        fromPos.height,
-        idx,
-        forms.length,
-        textW
-      );
+      // ── Auto position: try candidates for ALL forms of this step together ──
+      // This ensures if the first form falls back to Top-Center, all subsequent
+      // forms are also placed at Top-Center (preventing layout splitting/clipping).
+      let chosenCandidateIndex = 0; // default fallback (Middle-Right)
+      const numForms = forms.length;
 
-      // Default candidate fallback is candidate 0 (Middle-Right)
-      let chosenCandidate = candidates[0];
+      // Loop through each of the 4 candidate indices (0: right, 1: top, 2: below, 3: left)
+      for (let cIdx = 0; cIdx < 4; cIdx++) {
+        let candidateGroupIsValid = true;
 
-      for (const cand of candidates) {
-        if (!hasEdgeCollision(cand.x, cand.y, allEdgeSegments)) {
-          chosenCandidate = cand;
-          break;
+        // Verify if this candidate index is valid for ALL forms in this step
+        for (let idx = 0; idx < numForms; idx++) {
+          const formName = forms[idx];
+          const textW = Math.min(100, Math.max(50, formName.length * 7));
+          const candidates = getCandidates(
+            fromPos.x,
+            fromPos.y,
+            fromPos.width,
+            fromPos.height,
+            idx,
+            numForms,
+            textW
+          );
+
+          const cand = candidates[cIdx];
+          
+          // Check collision with sequence flows OR other task shapes
+          if (
+            hasEdgeCollision(cand.x, cand.y, allEdgeSegments) ||
+            hasTaskCollision(cand.x, cand.y, node.id, nodePositions)
+          ) {
+            candidateGroupIsValid = false;
+            break; // Try next candidate index
+          }
+        }
+
+        if (candidateGroupIsValid) {
+          chosenCandidateIndex = cIdx;
+          break; // Found a valid placement direction for the whole group!
         }
       }
 
-      let doY = chosenCandidate.y;
-      let labelY = chosenCandidate.labelY;
-      let wFrom = chosenCandidate.waypointFrom;
-      let wMid = chosenCandidate.waypointMid;
-      let wTo = chosenCandidate.waypointTo;
+      // Now place all forms of this step using the chosen candidate index
+      forms.forEach((formName, idx) => {
+        const textW = Math.min(100, Math.max(50, formName.length * 7));
+        const candidates = getCandidates(
+          fromPos.x,
+          fromPos.y,
+          fromPos.width,
+          fromPos.height,
+          idx,
+          numForms,
+          textW
+        );
 
-      if (rowFilter !== undefined && rowOffset !== undefined) {
-        doY -= rowFilter * rowOffset;
-        labelY -= rowFilter * rowOffset;
-        wFrom = { x: wFrom.x, y: wFrom.y - rowFilter * rowOffset };
-        if (wMid) {
-          wMid = { x: wMid.x, y: wMid.y - rowFilter * rowOffset };
+        const cand = candidates[chosenCandidateIndex];
+
+        let doY = cand.y;
+        let labelY = cand.labelY;
+        let wFrom = cand.waypointFrom;
+        let wMid = cand.waypointMid;
+        let wTo = cand.waypointTo;
+
+        if (rowFilter !== undefined && rowOffset !== undefined) {
+          doY -= rowFilter * rowOffset;
+          labelY -= rowFilter * rowOffset;
+          wFrom = { x: wFrom.x, y: wFrom.y - rowFilter * rowOffset };
+          if (wMid) {
+            wMid = { x: wMid.x, y: wMid.y - rowFilter * rowOffset };
+          }
+          wTo = { x: wTo.x, y: wTo.y - rowFilter * rowOffset };
         }
-        wTo = { x: wTo.x, y: wTo.y - rowFilter * rowOffset };
-      }
 
-      labelBoxes.push({ x: chosenCandidate.labelX, y: labelY, w: textW });
+        labelBoxes.push({ x: cand.labelX, y: labelY, w: textW });
 
-      placements.push({
-        nodeId: node.id,
-        formName,
-        idx,
-        x: Math.round(chosenCandidate.x),
-        y: Math.round(doY),
-        labelX: Math.round(chosenCandidate.labelX),
-        labelY: Math.round(labelY),
-        labelW: textW,
-        labelH: 24,
-        waypointFrom: { x: Math.round(wFrom.x), y: Math.round(wFrom.y) },
-        waypointMid: wMid ? { x: Math.round(wMid.x), y: Math.round(wMid.y) } : undefined,
-        waypointTo: { x: Math.round(wTo.x), y: Math.round(wTo.y) }
+        placements.push({
+          nodeId: node.id,
+          formName,
+          idx,
+          x: Math.round(cand.x),
+          y: Math.round(doY),
+          labelX: Math.round(cand.labelX),
+          labelY: Math.round(labelY),
+          labelW: textW,
+          labelH: 24,
+          waypointFrom: { x: Math.round(wFrom.x), y: Math.round(wFrom.y) },
+          waypointMid: wMid ? { x: Math.round(wMid.x), y: Math.round(wMid.y) } : undefined,
+          waypointTo: { x: Math.round(wTo.x), y: Math.round(wTo.y) }
+        });
       });
     });
   });
