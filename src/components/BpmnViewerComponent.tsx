@@ -98,9 +98,9 @@ export const BpmnViewerComponent: React.FC<BpmnViewerComponentProps> = ({ xml })
               h: parseInt(match[4], 10)
             });
           }
-
           if (laneBounds.length > 0) {
-            const numRows = Math.max(...laneBounds.map(l => l.row)) + 1;
+            const uniqueRows = Array.from(new Set(laneBounds.map(l => l.row)));
+            const numRows = uniqueRows.length;
             if (numRows > 1) {
               // Extract pool width from XML or default
               let poolWidth = 1320;
