@@ -84,6 +84,7 @@ export interface DocumentPlacement {
   labelH: number;
   /** Association edge waypoints: task → document */
   waypointFrom: { x: number; y: number };
+  waypointMid?: { x: number; y: number };
   waypointTo: { x: number; y: number };
 }
 

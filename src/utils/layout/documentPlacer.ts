@@ -25,19 +25,76 @@ const DOC_H = 50;
 /** Clearance margin added around the document rect when testing intersections */
 const COLLISION_MARGIN = 4;
 
+interface PositionCandidate {
+  x: number;
+  y: number;
+  labelX: number;
+  labelY: number;
+  waypointFrom: { x: number; y: number };
+  waypointMid?: { x: number; y: number };
+  waypointTo: { x: number; y: number };
+}
+
 /**
- * Candidate position offsets relative to the default top-center position
- * (taskX + taskW/2 - DOC_W/2, taskY - 60).
- * Tried in order: the first collision-free candidate wins.
+ * Generate candidate positions and associated routing details relative to the
+ * task node bounds (tx, ty, tw, th).
  */
-const CANDIDATE_OFFSETS: { dx: number; dy: number; label: string }[] = [
-  { dx: 0,    dy: 0,    label: 'top-center' },  // default (y=-60 from task top)
-  { dx: 120,  dy: 30,   label: 'right'      },  // to the right of the task
-  { dx: 0,    dy: 150,  label: 'below'      },  // below the task
-  { dx: -120, dy: 30,   label: 'left'       },  // to the left of the task
-  { dx: 60,   dy: 0,    label: 'top-right'  },  // shifted right at same height
-  { dx: -60,  dy: 0,    label: 'top-left'   },  // shifted left at same height
-];
+function getCandidates(
+  tx: number,
+  ty: number,
+  tw: number,
+  th: number,
+  idx: number,
+  numForms: number,
+  labelW: number
+): PositionCandidate[] {
+  const staggerOffset = (idx - (numForms - 1) / 2) * 60;
+
+  return [
+    // Candidate 1: Middle-Right (Default)
+    // Document center Y aligned horizontally with task center Y.
+    // Connector goes from middle-right of task to middle-left of document.
+    {
+      x: tx + tw + 24 + idx * 50,
+      y: ty + th / 2 - DOC_H / 2,
+      labelX: (tx + tw + 24 + idx * 50 + DOC_W / 2) - labelW / 2,
+      labelY: ty + th / 2 - DOC_H / 2 - 18,
+      waypointFrom: { x: tx + tw, y: ty + th / 2 },
+      waypointTo: { x: tx + tw + 24 + idx * 50, y: ty + th / 2 }
+    },
+    // Candidate 2: Top-Center (Original position fallback)
+    // Connector goes from top-center of task to bottom-center of document.
+    {
+      x: tx + tw / 2 - DOC_W / 2 + staggerOffset,
+      y: ty - 60,
+      labelX: (tx + tw / 2 + staggerOffset) - labelW / 2,
+      labelY: ty - 60 - 18,
+      waypointFrom: { x: tx + tw / 2, y: ty },
+      waypointTo: { x: tx + tw / 2 + staggerOffset, y: ty - 10 }
+    },
+    // Candidate 3: Below-Center
+    // Connector goes from bottom-center of task to top-center of document.
+    {
+      x: tx + tw / 2 - DOC_W / 2 + staggerOffset,
+      y: ty + th + 40,
+      labelX: (tx + tw / 2 + staggerOffset) - labelW / 2,
+      labelY: ty + th + 40 - 18,
+      waypointFrom: { x: tx + tw / 2, y: ty + th },
+      waypointTo: { x: tx + tw / 2 + staggerOffset, y: ty + th + 40 }
+    },
+    // Candidate 4: Middle-Left
+    // Connector goes from middle-left of task to middle-right of document.
+    {
+      x: tx - DOC_W - 24 - idx * 50,
+      y: ty + th / 2 - DOC_H / 2,
+      labelX: (tx - DOC_W - 24 - idx * 50 + DOC_W / 2) - labelW / 2,
+      labelY: ty + th / 2 - DOC_H / 2 - 18,
+      waypointFrom: { x: tx, y: ty + th / 2 },
+      waypointTo: { x: tx - 24 - idx * 50, y: ty + th / 2 }
+    }
+  ];
+}
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Collision detection helper
@@ -126,46 +183,7 @@ function hasEdgeCollision(
   return false;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Label positioning helper (carries over from original bpmnXmlGenerator)
-// ─────────────────────────────────────────────────────────────────────────────
-
-function computeLabelPosition(
-  doX: number,
-  formName: string,
-  idx: number,
-  labelBoxes: { x: number; y: number; w: number }[]
-): { labelX: number; labelY: number; labelW: number; labelH: number } {
-  const textW = Math.min(100, Math.max(50, formName.length * 7));
-  const currentLeft = (doX + DOC_W / 2) - textW / 2;
-  const currentRight = (doX + DOC_W / 2) + textW / 2;
-  let labelY = -18; // relative offset from doY (will be added by caller)
-
-  if (idx === 1) {
-    const prev1 = labelBoxes[0];
-    const overlap1 = currentLeft < prev1.x + prev1.w && currentRight > prev1.x;
-    labelY = overlap1 ? prev1.y - 15 : prev1.y;
-  } else if (idx >= 2) {
-    const prev1 = labelBoxes[idx - 1];
-    const prev2 = labelBoxes[idx - 2];
-    const overlap1 = currentLeft < prev1.x + prev1.w && currentRight > prev1.x;
-    const overlap2 = currentLeft < prev2.x + prev2.w && currentRight > prev2.x;
-    if (!overlap1) {
-      labelY = prev1.y;
-    } else if (!overlap2) {
-      labelY = prev2.y !== prev1.y ? prev2.y : prev1.y - 15;
-    } else {
-      labelY = prev1.y - 15;
-    }
-  }
-
-  return {
-    labelX: Math.round(currentLeft),
-    labelY, // caller must add doY to this
-    labelW: textW,
-    labelH: 24,
-  };
-}
+// computeLabelPosition was refactored inline into getCandidates.
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Main export
@@ -261,52 +279,58 @@ export function placeDocuments(
       }
 
       // ── Auto position: try candidates until collision-free ─────────────
-      // Default anchor: centered above the task, 60px above the task top
-      const baseX = fromPos.x + (fromPos.width / 2) - (DOC_W / 2) + (idx - (forms.length - 1) / 2) * 60;
-      const baseY = fromPos.y - 60;
+      const textW = Math.min(100, Math.max(50, formName.length * 7));
+      const candidates = getCandidates(
+        fromPos.x,
+        fromPos.y,
+        fromPos.width,
+        fromPos.height,
+        idx,
+        forms.length,
+        textW
+      );
 
-      let chosenX = baseX;
-      let chosenY = baseY;
+      // Default candidate fallback is candidate 0 (Middle-Right)
+      let chosenCandidate = candidates[0];
 
-      for (const candidate of CANDIDATE_OFFSETS) {
-        const tryX = baseX + candidate.dx;
-        const tryY = baseY + candidate.dy;
-        if (!hasEdgeCollision(tryX, tryY, allEdgeSegments)) {
-          chosenX = tryX;
-          chosenY = tryY;
+      for (const cand of candidates) {
+        if (!hasEdgeCollision(cand.x, cand.y, allEdgeSegments)) {
+          chosenCandidate = cand;
           break;
         }
       }
-      // If all candidates collide, fall through to the first candidate (graceful degradation)
 
-      let doY = chosenY;
+      let doY = chosenCandidate.y;
+      let labelY = chosenCandidate.labelY;
+      let wFrom = chosenCandidate.waypointFrom;
+      let wMid = chosenCandidate.waypointMid;
+      let wTo = chosenCandidate.waypointTo;
+
       if (rowFilter !== undefined && rowOffset !== undefined) {
         doY -= rowFilter * rowOffset;
+        labelY -= rowFilter * rowOffset;
+        wFrom = { x: wFrom.x, y: wFrom.y - rowFilter * rowOffset };
+        if (wMid) {
+          wMid = { x: wMid.x, y: wMid.y - rowFilter * rowOffset };
+        }
+        wTo = { x: wTo.x, y: wTo.y - rowFilter * rowOffset };
       }
-      const doX = chosenX;
 
-      // Compute label position
-      const raw = computeLabelPosition(doX, formName, idx, labelBoxes);
-      const labelX = raw.labelX;
-      const labelY = doY + raw.labelY; // labelY from helper is relative
-      const labelW = raw.labelW;
-      const labelH = raw.labelH;
-
-      labelBoxes.push({ x: labelX, y: labelY, w: labelW });
-
-      // Association waypoints: from task top-center to document bottom-center
-      const fromX = fromPos.x + fromPos.width / 2;
-      const fromY = fromPos.y;
-      const doCenterX = doX + DOC_W / 2;
-      const doYBottom = doY + DOC_H;
+      labelBoxes.push({ x: chosenCandidate.labelX, y: labelY, w: textW });
 
       placements.push({
-        nodeId: node.id, formName, idx,
-        x: Math.round(doX), y: Math.round(doY),
-        labelX: Math.round(labelX), labelY: Math.round(labelY),
-        labelW, labelH,
-        waypointFrom: { x: Math.round(fromX), y: Math.round(fromY) },
-        waypointTo:   { x: Math.round(doCenterX), y: Math.round(doYBottom) },
+        nodeId: node.id,
+        formName,
+        idx,
+        x: Math.round(chosenCandidate.x),
+        y: Math.round(doY),
+        labelX: Math.round(chosenCandidate.labelX),
+        labelY: Math.round(labelY),
+        labelW: textW,
+        labelH: 24,
+        waypointFrom: { x: Math.round(wFrom.x), y: Math.round(wFrom.y) },
+        waypointMid: wMid ? { x: Math.round(wMid.x), y: Math.round(wMid.y) } : undefined,
+        waypointTo: { x: Math.round(wTo.x), y: Math.round(wTo.y) }
       });
     });
   });

@@ -407,6 +407,7 @@ export function generateBPMNXML(
       xml += `
       <bpmndi:BPMNEdge id="DataOutputAssoc_${node.id}_${idx}_di" bpmnElement="DataOutputAssoc_${node.id}_${idx}">
         <di:waypoint x="${dp.waypointFrom.x}" y="${dp.waypointFrom.y}" />
+        ${dp.waypointMid ? `<di:waypoint x="${dp.waypointMid.x}" y="${dp.waypointMid.y}" />` : ''}
         <di:waypoint x="${dp.waypointTo.x}" y="${dp.waypointTo.y}" />
       </bpmndi:BPMNEdge>`;
     });

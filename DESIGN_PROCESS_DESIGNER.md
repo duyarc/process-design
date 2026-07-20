@@ -324,14 +324,12 @@ generateBPMNXML(steps, title, roles, rowFilter?)
 
 Tried in order by `documentPlacer.ts` until a collision-free position is found:
 
-| Priority | dx | dy | Label |
+| Priority | Placement Strategy | Connector Routing | Relative Label Position |
 |---|---|---|---|
-| 1 (default) | 0 | −60 | top-center (directly above task) |
-| 2 | +120 | +30 | right of task |
-| 3 | 0 | +150 | below task |
-| 4 | −120 | +30 | left of task |
-| 5 | +60 | 0 | top-right |
-| 6 | −60 | 0 | top-left |
+| 1 (default) | **Middle-Right** (horizontally aligned with task center) | Straight horizontal line (no turns) from task right-center to doc left-center | Above document shape |
+| 2 | **Top-Center** (fallback) | Straight vertical line from task top-center to doc bottom-center | Above document shape |
+| 3 | **Below-Center** (fallback) | Straight vertical line from task bottom-center to doc top-center | Above document shape |
+| 4 | **Middle-Left** (fallback) | Straight horizontal line from task left-center to doc right-center | Above document shape |
 
 ### Public API (unchanged)
 
@@ -559,3 +557,4 @@ Base URL: relative path (proxied via Vite dev server to `http://localhost:3001`)
 | 2026-07-18 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Add whiteSpace: 'pre-line' to the process description paragraph styling in ProcessReader.tsx. |
 | 2026-07-20 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Refactor `bpmnXmlGenerator.ts` into modular layout engine.** Extract 1,000-line monolith into 5 focused sub-modules under `src/utils/layout/`: `gridLayout.ts`, `linkEvents.ts`, `nodePositioner.ts`, `edgeRouter.ts`, `documentPlacer.ts`. Public API (`getNumRows`, `generateBPMNXML`) unchanged. Add Section 4.6 documenting the pipeline and constants. |
 | 2026-07-20 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Implement Direction A document shape collision detection** in `documentPlacer.ts`. Document shapes now try 6 candidate positions and select the first that does not intersect any sequence-flow edge segment (4px clearance). Manually positioned shapes (user drag) bypass the check. Fixes connector-cuts-through-document-shape rendering issue. |
+| 2026-07-20 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Align document shapes middle-right of task shapes by default.** Keep relative label position (above shape). Configure shortest straight horizontal connector path from middle-right of task to middle-left of document. Updates types.ts, documentPlacer.ts, and bpmnXmlGenerator.ts. |
