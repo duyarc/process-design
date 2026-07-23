@@ -696,6 +696,53 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     }
   };
 
+  const handleMoveField = (blockId: string, fieldId: string, direction: 'up' | 'down') => {
+    if (isLocked) return;
+    setLayoutBlocks(prev => prev.map(b => {
+      if (b.id !== blockId) return b;
+      const index = b.fields.findIndex(f => f.id === fieldId);
+      if (index === -1) return b;
+      const targetIndex = direction === 'up' ? index - 1 : index + 1;
+      if (targetIndex < 0 || targetIndex >= b.fields.length) return b;
+      const updatedFields = [...b.fields];
+      const temp = updatedFields[index];
+      updatedFields[index] = updatedFields[targetIndex];
+      updatedFields[targetIndex] = temp;
+      return { ...b, fields: updatedFields };
+    }));
+  };
+
+  const handleMoveRow = (blockId: string, rowId: string, direction: 'up' | 'down') => {
+    if (isLocked) return;
+    setLayoutBlocks(prev => prev.map(b => {
+      if (b.id !== blockId) return b;
+      const rows = b.tableRows || [];
+      const index = rows.findIndex(r => r.id === rowId);
+      if (index === -1) return b;
+      const targetIndex = direction === 'up' ? index - 1 : index + 1;
+      if (targetIndex < 0 || targetIndex >= rows.length) return b;
+      
+      const updatedRows = [...rows];
+      const temp = updatedRows[index];
+      updatedRows[index] = updatedRows[targetIndex];
+      updatedRows[targetIndex] = temp;
+      
+      // Auto-renumber the first column if it's static_text
+      const updatedData = { ...b.tableData || {} };
+      const firstCol = b.tableColumns?.[0];
+      if (firstCol && firstCol.type === 'static_text') {
+        updatedRows.forEach((r, idx) => {
+          updatedData[r.id] = {
+            ...updatedData[r.id] || {},
+            [firstCol.id]: String(idx + 1)
+          };
+        });
+      }
+      
+      return { ...b, tableRows: updatedRows, tableData: updatedData };
+    }));
+  };
+
   // 4. Save and Publish
 
   const handlePublish = async () => {
@@ -1724,7 +1771,35 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                     }}
                                   >
                                     <span style={{ fontWeight: 600 }}>{sanitizeLabel(f.checkItem)}</span>
-                                    <span style={{ color: 'var(--text-muted)' }}>[{f.type}]</span>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                      {isFieldSelected && !isLocked && (
+                                        <div style={{ display: 'flex', alignItems: 'center', marginRight: '6px' }}>
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleMoveField(block.id, f.id, 'up');
+                                            }}
+                                            style={{ background: 'none', border: 'none', padding: '1px 2px', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--text-secondary)' }}
+                                            title="Di chuyển lên"
+                                          >
+                                            <ArrowUp size={11} />
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleMoveField(block.id, f.id, 'down');
+                                            }}
+                                            style={{ background: 'none', border: 'none', padding: '1px 2px', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--text-secondary)' }}
+                                            title="Di chuyển xuống"
+                                          >
+                                            <ArrowDown size={11} />
+                                          </button>
+                                        </div>
+                                      )}
+                                      <span style={{ color: 'var(--text-muted)' }}>[{f.type}]</span>
+                                    </div>
                                   </div>
                                 );
                               })}
@@ -1971,7 +2046,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                     );
                                   })}
                                   {!isLocked && (
-                                    <th style={{ width: '32px', padding: '0', border: 'none', background: 'transparent' }} />
+                                    <th style={{ width: '75px', padding: '0', border: 'none', background: 'transparent' }} />
                                   )}
                                 </tr>
                               </thead>
@@ -2050,28 +2125,46 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                          );
                                        })}
                                       {!isLocked && (
-                                         <td style={{ width: '32px', padding: '0 4px', border: 'none', textAlign: 'center' }}>
-                                          <button
-                                            type="button"
-                                            onClick={() => {
-                                              setLayoutBlocks(prev => prev.map(b => {
-                                                if (b.id === block.id) {
-                                                  const updatedRows = (b.tableRows || []).filter(r => r.id !== row.id);
-                                                  const updatedData = { ...b.tableData || {} };
-                                                  delete updatedData[row.id];
-                                                  return { ...b, tableRows: updatedRows, tableData: updatedData };
-                                                }
-                                                return b;
-                                              }));
-                                               setHoveredTableRowId(null);
-                                            }}
-                                             style={{ background: 'none', border: '1px solid transparent', color: '#ef4444', cursor: 'pointer', padding: '2px', borderRadius: '4px', opacity: hoveredTableRowId === row.id ? 1 : 0, transition: 'opacity 0.15s ease', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '22px', height: '22px', margin: '0 auto' }}
-                                            title="Xóa dòng"
-                                          >
-                                             <Trash2 size={11} />
-                                          </button>
-                                        </td>
-                                      )}
+                                         <td style={{ width: '75px', padding: '0 4px', border: 'none', textAlign: 'center' }}>
+                                           <div style={{ display: 'flex', gap: '2px', justifyContent: 'center', opacity: hoveredTableRowId === row.id ? 1 : 0, transition: 'opacity 0.15s ease' }}>
+                                             <button
+                                               type="button"
+                                               onClick={() => handleMoveRow(block.id, row.id, 'up')}
+                                               style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}
+                                               title="Di chuyển dòng lên"
+                                             >
+                                               <ArrowUp size={11} style={{ pointerEvents: 'none' }} />
+                                             </button>
+                                             <button
+                                               type="button"
+                                               onClick={() => handleMoveRow(block.id, row.id, 'down')}
+                                               style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}
+                                               title="Di chuyển dòng xuống"
+                                             >
+                                               <ArrowDown size={11} style={{ pointerEvents: 'none' }} />
+                                             </button>
+                                             <button
+                                               type="button"
+                                               onClick={() => {
+                                                 setLayoutBlocks(prev => prev.map(b => {
+                                                   if (b.id === block.id) {
+                                                     const updatedRows = (b.tableRows || []).filter(r => r.id !== row.id);
+                                                     const updatedData = { ...b.tableData || {} };
+                                                     delete updatedData[row.id];
+                                                     return { ...b, tableRows: updatedRows, tableData: updatedData };
+                                                   }
+                                                   return b;
+                                                 }));
+                                                  setHoveredTableRowId(null);
+                                               }}
+                                                style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                               title="Xóa dòng"
+                                             >
+                                                <Trash2 size={11} />
+                                             </button>
+                                           </div>
+                                         </td>
+                                       )}
                                     </tr>
                                   ))
                                 )}
@@ -2200,9 +2293,36 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                     borderRadius: '4px',
                                     padding: '0.5rem',
                                     textAlign: 'center',
-                                    background: isFieldSelected ? 'rgba(16, 163, 163, 0.05)' : '#f8fafc'
+                                    background: isFieldSelected ? 'rgba(16, 163, 163, 0.05)' : '#f8fafc',
+                                    position: 'relative'
                                   }}
                                 >
+                                  {isFieldSelected && !isLocked && (
+                                    <div style={{ position: 'absolute', right: '4px', top: '4px', display: 'flex', gap: '2px' }}>
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleMoveField(block.id, f.id, 'up');
+                                        }}
+                                        style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '3px', padding: '1px 2px', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--text-secondary)' }}
+                                        title="Di chuyển sang trái / lên"
+                                      >
+                                        <ArrowUp size={10} />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleMoveField(block.id, f.id, 'down');
+                                        }}
+                                        style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '3px', padding: '1px 2px', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--text-secondary)' }}
+                                        title="Di chuyển sang phải / xuống"
+                                      >
+                                        <ArrowDown size={10} />
+                                      </button>
+                                    </div>
+                                  )}
                                   <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
                                     {f.checkItem}
                                   </div>
