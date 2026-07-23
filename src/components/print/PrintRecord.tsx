@@ -670,7 +670,8 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                             ) : (
                               <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', flexWrap: 'wrap' }}>
                                 {fieldOptions.map((opt: any) => {
-                                  const isSelected = field.value === opt.value || (field.value.startsWith(opt.value + ' '));
+                                  const selectedValues = field.value ? field.value.split(',').filter(Boolean) : [];
+                                  const isSelected = selectedValues.includes(opt.value) || field.value === opt.value || (field.value.startsWith(opt.value + ' '));
                                   const activeColor = opt.isPass ? '#10b981' : '#ef4444';
                                   return (
                                     <span key={opt.value} style={{

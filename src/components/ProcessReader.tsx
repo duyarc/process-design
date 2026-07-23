@@ -184,11 +184,28 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
             isOverallPass = false;
           }
         } else if (field.type === 'radio' || field.type === 'checkbox') {
-          const selectedOpt = field.options?.find((o: any) => o.value === val);
           targetRange = field.options ? field.options.filter((o: any) => o.isPass).map((o: any) => o.label).join(' / ') : (field.targetRange || 'Checked & Ok');
-          if (!selectedOpt?.isPass) {
-            fieldStatus = 'FAIL';
-            isOverallPass = false;
+          if (field.type === 'checkbox') {
+            const selectedVals = val ? val.split(',').filter(Boolean) : [];
+            if (selectedVals.length === 0) {
+              fieldStatus = 'FAIL';
+              isOverallPass = false;
+            } else {
+              const hasFail = selectedVals.some(v => {
+                const opt = field.options?.find((o: any) => o.value === v);
+                return opt && !opt.isPass;
+              });
+              if (hasFail) {
+                fieldStatus = 'FAIL';
+                isOverallPass = false;
+              }
+            }
+          } else {
+            const selectedOpt = field.options?.find((o: any) => o.value === val);
+            if (!selectedOpt?.isPass) {
+              fieldStatus = 'FAIL';
+              isOverallPass = false;
+            }
           }
         } else {
           targetRange = field.targetRange || 'Required';
@@ -1373,7 +1390,32 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                                           style={{ padding: '0.4rem 0.5rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', width: '100%', height: '34px' }}
                                         />
                                       )
-                                    ) : (field.type === 'radio' || field.type === 'checkbox') ? (
+                                    ) : field.type === 'checkbox' ? (
+                                      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', minHeight: '34px', alignItems: 'center' }}>
+                                        {(field.options ?? [{ label: 'Đạt', value: 'PASS', isPass: true }, { label: 'Không Đạt', value: 'FAIL', isPass: false }]).map((opt: any) => {
+                                          const currentValues = value ? value.split(',').filter(Boolean) : [];
+                                          const isChecked = currentValues.includes(opt.value);
+                                          return (
+                                            <label key={opt.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.82rem', cursor: 'pointer', margin: 0 }}>
+                                              <input 
+                                                type="checkbox" 
+                                                checked={isChecked}
+                                                onChange={(e) => {
+                                                  let nextValues;
+                                                  if (e.target.checked) {
+                                                    nextValues = [...currentValues, opt.value];
+                                                  } else {
+                                                    nextValues = currentValues.filter((v: string) => v !== opt.value);
+                                                  }
+                                                  setFormValues(prev => ({ ...prev, [field.id]: nextValues.join(',') }));
+                                                }}
+                                              />
+                                              {opt.label}
+                                            </label>
+                                          );
+                                        })}
+                                      </div>
+                                    ) : field.type === 'radio' ? (
                                       <select
                                         value={value}
                                         onChange={(e) => setFormValues(prev => ({ ...prev, [field.id]: e.target.value }))}
@@ -1429,9 +1471,20 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                                 } else if (field.type === 'radio' || field.type === 'checkbox') {
                                   const passLabels = field.options ? field.options.filter((o: any) => o.isPass).map((o: any) => o.label).join(' / ') : 'Đạt';
                                   specHint = `Target: ${passLabels}`;
-                                  const selectedOpt = field.options?.find((o: any) => o.value === value);
-                                  if (value !== '' && !selectedOpt?.isPass) {
-                                    isOutOfSpec = true;
+                                  if (field.type === 'checkbox') {
+                                    const selectedVals = value ? value.split(',').filter(Boolean) : [];
+                                    const hasFail = selectedVals.some((v: string) => {
+                                      const opt = field.options?.find((o: any) => o.value === v);
+                                      return opt && !opt.isPass;
+                                    });
+                                    if (hasFail) {
+                                      isOutOfSpec = true;
+                                    }
+                                  } else {
+                                    const selectedOpt = field.options?.find((o: any) => o.value === value);
+                                    if (value !== '' && !selectedOpt?.isPass) {
+                                      isOutOfSpec = true;
+                                    }
                                   }
                                 } else if (field.type === 'text') {
                                   specHint = field.targetRange ? `Target: ${field.targetRange}` : '';
@@ -1477,14 +1530,27 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                                       {(field.type === 'radio' || field.type === 'checkbox') && (
                                          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                                            {(field.options ?? [{ label: 'Đạt', value: 'PASS', isPass: true }, { label: 'Không Đạt', value: 'FAIL', isPass: false }]).map((opt: any) => {
-                                             const isSelected = value === opt.value;
+                                             const currentValues = value ? value.split(',').filter(Boolean) : [];
+                                             const isSelected = field.type === 'checkbox' ? currentValues.includes(opt.value) : value === opt.value;
                                              const activeColor = opt.isPass ? '#10b981' : '#ef4444';
                                              return (
                                                <button
                                                  key={opt.value}
                                                  type="button"
                                                  className="btn btn-sm"
-                                                 onClick={() => setFormValues(prev => ({ ...prev, [field.id]: isSelected ? '' : opt.value }))}
+                                                 onClick={() => {
+                                                   if (field.type === 'checkbox') {
+                                                     let nextValues;
+                                                     if (isSelected) {
+                                                       nextValues = currentValues.filter((v: string) => v !== opt.value);
+                                                     } else {
+                                                       nextValues = [...currentValues, opt.value];
+                                                     }
+                                                     setFormValues(prev => ({ ...prev, [field.id]: nextValues.join(',') }));
+                                                   } else {
+                                                     setFormValues(prev => ({ ...prev, [field.id]: isSelected ? '' : opt.value }));
+                                                   }
+                                                 }}
                                                  style={{
                                                    padding: '0.4rem 1rem',
                                                    fontSize: '0.8rem',

@@ -671,34 +671,38 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     }));
   };
 
-  const handleChangeFieldType = (blockId: string, fieldId: string, newType: 'text' | 'number' | 'date' | 'time' | 'radio' | 'signature' | 'photo') => {
+  const handleChangeFieldType = (blockId: string, fieldId: string, newType: 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo') => {
     if (isLocked) return;
+    
+    // Find current field to inspect its options
+    const block = layoutBlocks.find(b => b.id === blockId);
+    const field = block?.fields.find(f => f.id === fieldId);
+    
     const updates: Partial<FormFieldISO> = { type: newType };
     
     if (newType === 'number') {
       updates.minSpec = undefined;
       updates.maxSpec = undefined;
       updates.unit = '';
-      updates.options = undefined;
     } else if (newType === 'time') {
       updates.timeMode = 'single';
-      updates.options = undefined;
       updates.minSpec = undefined;
       updates.maxSpec = undefined;
       updates.unit = undefined;
-    } else if (newType === 'radio') {
-      updates.options = [...DEFAULT_RADIO_OPTIONS];
+    } else if (newType === 'radio' || newType === 'checkbox') {
       updates.minSpec = undefined;
       updates.maxSpec = undefined;
       updates.unit = undefined;
+      // If options do not exist, initialize them
+      if (!field?.options || field.options.length === 0) {
+        updates.options = [...DEFAULT_RADIO_OPTIONS];
+      }
     } else if (newType === 'signature') {
       updates.reactionProtocol = 'Ký và ghi rõ họ tên';
-      updates.options = undefined;
       updates.minSpec = undefined;
       updates.maxSpec = undefined;
       updates.unit = undefined;
     } else {
-      updates.options = undefined;
       updates.minSpec = undefined;
       updates.maxSpec = undefined;
       updates.unit = undefined;
@@ -2495,6 +2499,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                     <option value="number">Numeric Spec Check</option>
                     <option value="date">Date Picker</option>
                     <option value="time">Time Picker</option>
+                    <option value="checkbox">Checkbox Group</option>
                     <option value="radio">Radio Group</option>
                     <option value="signature">Sign-off</option>
                     <option value="photo">Camera/Photo Log</option>
@@ -2951,7 +2956,14 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                 <select
                                   disabled={isLocked || isLockedCol}
                                   value={col.type}
-                                  onChange={(e) => handleUpdateTableColumn(activeBlock.id, col.id, { type: e.target.value as any })}
+                                  onChange={(e) => {
+                                    const nextType = e.target.value as any;
+                                    const updates: Partial<TableColumnConfig> = { type: nextType };
+                                    if ((nextType === 'radio' || nextType === 'checkbox') && (!col.options || col.options.length === 0)) {
+                                      updates.options = [{ label: 'Đạt', value: 'PASS', isPass: true }, { label: 'Không Đạt', value: 'FAIL', isPass: false }];
+                                    }
+                                    handleUpdateTableColumn(activeBlock.id, col.id, updates);
+                                  }}
                                   style={{ flex: 1.0, padding: '0.2rem 0.3rem', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', backgroundColor: isLockedCol ? '#f1f5f9' : '#ffffff' }}
                                 >
                                   <option value="text">Chữ</option>
@@ -3139,7 +3151,14 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                 <select
                                   disabled={isLocked}
                                   value={col.type}
-                                  onChange={(e) => handleUpdateTableColumn(activeBlock.id, col.id, { type: e.target.value as any })}
+                                  onChange={(e) => {
+                                    const nextType = e.target.value as any;
+                                    const updates: Partial<TableColumnConfig> = { type: nextType };
+                                    if ((nextType === 'radio' || nextType === 'checkbox') && (!col.options || col.options.length === 0)) {
+                                      updates.options = [{ label: 'Đạt', value: 'PASS', isPass: true }, { label: 'Không Đạt', value: 'FAIL', isPass: false }];
+                                    }
+                                    handleUpdateTableColumn(activeBlock.id, col.id, updates);
+                                  }}
                                   style={{ flex: 1.0, padding: '0.2rem 0.3rem', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
                                 >
                                   <option value="static_text">Nhãn</option>
