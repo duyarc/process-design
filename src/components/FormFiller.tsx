@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { Process, FormTemplateISO, SubmissionFieldSnapshot } from '../types';
 import { formatFormVersion, getColStyleWidth } from '../types';
+import { sanitizeLabel } from '../utils/formUtils';
 import { 
   ArrowLeft, 
   CheckCircle2, 
@@ -631,7 +632,7 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
                     return (
                       <div key={field.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
                         <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                          {field.checkItem}
+                          {sanitizeLabel(field.checkItem)}
                         </label>
                         {field.type === 'date' ? (
                           <input
@@ -759,7 +760,7 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
                       }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                           <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>
-                            {fIdx + 1}. {field.checkItem} {field.locationCode && <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontFamily: 'monospace' }}>[{field.locationCode}]</span>}
+                            {fIdx + 1}. {sanitizeLabel(field.checkItem)} {field.locationCode && <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontFamily: 'monospace' }}>[{field.locationCode}]</span>}
                           </span>
                           {specHint && <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{specHint}</span>}
                         </div>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { Process, SubmissionFieldSnapshot } from '../types';
 import { formatFormVersion, getColStyleWidth } from '../types';
+import { sanitizeLabel } from '../utils/formUtils';
 import { useAuth } from '../context/AuthContext';
 import { Printer, Edit2, Camera, AlertTriangle, X, PenTool, GitBranch, Eye, ArrowLeft } from 'lucide-react';
 import { generateBPMNXML, getNumRows } from '../utils/bpmnXmlGenerator';
@@ -1080,7 +1081,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                     <tbody>
                       {process.formFields.map((field, index) => (
                         <tr key={field.id || index} style={{ borderBottom: '1px solid var(--neutral-border)' }}>
-                          <td style={{ padding: '0.45rem 0.6rem', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-primary)' }}>{field.checkItem}</td>
+                          <td style={{ padding: '0.45rem 0.6rem', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-primary)' }}>{sanitizeLabel(field.checkItem)}</td>
                           <td style={{ padding: '0.45rem 0.6rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{field.targetRange}</td>
                           <td style={{ padding: '0.45rem 0.6rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{field.reactionProtocol}</td>
                         </tr>
@@ -1423,7 +1424,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                                   }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                                       <span style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-primary)' }}>
-                                        {fIdx + 1}. {field.checkItem}
+                                        {fIdx + 1}. {sanitizeLabel(field.checkItem)}
                                       </span>
                                     </div>
 

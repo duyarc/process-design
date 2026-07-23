@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { FormFieldISO, FormRevisionEntry, FormTemplateISO, LayoutBlockISO, RadioOption, MatrixConfigISO, TableColumnConfig, ColumnSummaryRowConfig } from '../types';
 import { formatFormVersion, getColStyleWidth } from '../types';
+import { sanitizeLabel } from '../utils/formUtils';
 import { 
   Plus, 
   Trash2, 
@@ -1661,7 +1662,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                     background: isFieldSelected ? 'rgba(16, 163, 163, 0.05)' : 'none'
                                   }}
                                 >
-                                  <span style={{ fontWeight: 600 }}>{f.checkItem ? `${f.checkItem}:` : ''}</span>
+                                  <span style={{ fontWeight: 600 }}>{sanitizeLabel(f.checkItem)}</span>
                                   <span style={{ color: 'var(--text-muted)' }}>[{f.type}]</span>
                                 </div>
                               );

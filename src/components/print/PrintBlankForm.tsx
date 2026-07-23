@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import type { FormTemplateISO } from '../../types';
 import { formatFormVersion, getColStyleWidth } from '../../types';
+import { sanitizeLabel } from '../../utils/formUtils';
 
 interface PrintBlankFormProps {
   template: FormTemplateISO;
@@ -319,40 +320,54 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                         flexDirection: 'column',
                         gap: '8px'
                       }}>
-                        {colFields.map(f => (
-                          <div key={f.id} style={{ display: 'flex', alignItems: 'baseline', gap: '8px', fontSize: '0.85rem' }}>
-                            <span style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{f.checkItem ? `${f.checkItem}:` : ''}</span>
-                            {(f.type === 'checkbox' || f.type === 'radio') ? (
-                              <div style={{ display: 'inline-flex', gap: '15px', alignItems: 'center' }}>
-                                {(f.options ?? [{ label: 'Có', value: 'YES' }, { label: 'Không', value: 'NO' }]).map((opt: any) => (
-                                  <span key={opt.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem' }}>
-                                    <span style={{
-                                      display: 'inline-block',
-                                      width: '14px',
-                                      height: '14px',
-                                      border: '1.5px solid #000000',
-                                      background: '#ffffff',
-                                      borderRadius: '2px'
-                                    }} />
-                                    <span>{opt.label}</span>
-                                  </span>
-                                ))}
+                        {colFields.map(f => {
+                          const cleanLabel = sanitizeLabel(f.checkItem);
+                          if (f.type === 'checkbox' || f.type === 'radio') {
+                            const options = f.options ?? [{ label: 'Có', value: 'YES' }, { label: 'Không', value: 'NO' }];
+                            return (
+                              <div key={f.id} style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.85rem' }}>
+                                {cleanLabel && (
+                                  <span style={{ fontWeight: 700, color: '#000000' }}>{cleanLabel}</span>
+                                )}
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 20px', alignItems: 'center', paddingTop: '2px' }}>
+                                  {options.map((opt: any) => (
+                                    <span key={opt.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+                                      <span style={{
+                                        display: 'inline-block',
+                                        width: '14px',
+                                        height: '14px',
+                                        border: '1.5px solid #000000',
+                                        background: '#ffffff',
+                                        borderRadius: '2px',
+                                        flexShrink: 0
+                                      }} />
+                                      <span>{opt.label}</span>
+                                    </span>
+                                  ))}
+                                </div>
                               </div>
-                            ) : f.type === 'time' ? (
-                              f.timeMode === 'dual' ? (
-                                <div style={{ fontSize: '0.85rem', color: '#000000', display: 'flex', alignItems: 'center', gap: '4px', flex: 1 }}>
-                                  Từ <span style={{ borderBottom: '1px solid #000000', flex: 1, minWidth: '40px', display: 'inline-block', height: '14px', textAlign: 'center' }} /> : <span style={{ borderBottom: '1px solid #000000', flex: 1, minWidth: '40px', display: 'inline-block', height: '14px', textAlign: 'center' }} /> đến <span style={{ borderBottom: '1px solid #000000', flex: 1, minWidth: '40px', display: 'inline-block', height: '14px', textAlign: 'center' }} /> : <span style={{ borderBottom: '1px solid #000000', flex: 1, minWidth: '40px', display: 'inline-block', height: '14px', textAlign: 'center' }} />
-                                </div>
+                            );
+                          }
+
+                          return (
+                            <div key={f.id} style={{ display: 'flex', alignItems: 'baseline', gap: '8px', fontSize: '0.85rem' }}>
+                              {cleanLabel && <span style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{cleanLabel}</span>}
+                              {f.type === 'time' ? (
+                                f.timeMode === 'dual' ? (
+                                  <div style={{ fontSize: '0.85rem', color: '#000000', display: 'flex', alignItems: 'center', gap: '4px', flex: 1 }}>
+                                    Từ <span style={{ borderBottom: '1px solid #000000', flex: 1, minWidth: '40px', display: 'inline-block', height: '14px', textAlign: 'center' }} /> : <span style={{ borderBottom: '1px solid #000000', flex: 1, minWidth: '40px', display: 'inline-block', height: '14px', textAlign: 'center' }} /> đến <span style={{ borderBottom: '1px solid #000000', flex: 1, minWidth: '40px', display: 'inline-block', height: '14px', textAlign: 'center' }} /> : <span style={{ borderBottom: '1px solid #000000', flex: 1, minWidth: '40px', display: 'inline-block', height: '14px', textAlign: 'center' }} />
+                                  </div>
+                                ) : (
+                                  <div style={{ fontSize: '0.85rem', color: '#000000', display: 'flex', alignItems: 'center', gap: '4px', flex: 1 }}>
+                                    <span style={{ borderBottom: '1px solid #000000', flex: 1, minWidth: '60px', display: 'inline-block', height: '14px', textAlign: 'center' }} /> : <span style={{ borderBottom: '1px solid #000000', flex: 1, minWidth: '60px', display: 'inline-block', height: '14px', textAlign: 'center' }} />
+                                  </div>
+                                )
                               ) : (
-                                <div style={{ fontSize: '0.85rem', color: '#000000', display: 'flex', alignItems: 'center', gap: '4px', flex: 1 }}>
-                                  <span style={{ borderBottom: '1px solid #000000', flex: 1, minWidth: '60px', display: 'inline-block', height: '14px', textAlign: 'center' }} /> : <span style={{ borderBottom: '1px solid #000000', flex: 1, minWidth: '60px', display: 'inline-block', height: '14px', textAlign: 'center' }} />
-                                </div>
-                              )
-                            ) : (
-                              <div style={{ flex: 1, borderBottom: '1px solid #000000', minHeight: '16px' }} />
-                            )}
-                          </div>
-                        ))}
+                                <div style={{ flex: 1, borderBottom: '1px solid #000000', minHeight: '16px' }} />
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     ))}
                   </div>

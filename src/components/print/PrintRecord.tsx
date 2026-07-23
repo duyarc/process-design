@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import type { Submission } from '../../types';
 import { formatFormVersion, getColStyleWidth } from '../../types';
+import { sanitizeLabel } from '../../utils/formUtils';
 
 interface PrintRecordProps {
   submission: Submission;
@@ -469,11 +470,11 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
             <tbody>
               {checklistFields.map((field, idx) => {
                 const matchHeader = field.checkItem.match(/^\[(.*?)\]\s*(.*)$/);
-                let displayTitle = field.checkItem;
+                let displayTitle = sanitizeLabel(field.checkItem);
                 let sectionHeader = '';
                 if (matchHeader) {
                   sectionHeader = matchHeader[1];
-                  displayTitle = matchHeader[2];
+                  displayTitle = sanitizeLabel(matchHeader[2]);
                 }
 
                 const renderRows = [];
