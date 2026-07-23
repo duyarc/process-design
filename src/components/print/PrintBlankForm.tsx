@@ -94,7 +94,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
       zIndex: 99999,
       background: '#ffffff',
       color: '#000000',
-      fontFamily: 'system-ui, -apple-system, sans-serif',
+      fontFamily: "'Be Vietnam Pro', system-ui, -apple-system, sans-serif",
       padding: '20px',
       overflowY: 'auto'
     }}>
