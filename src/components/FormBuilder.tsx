@@ -2439,24 +2439,44 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                   <>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', borderTop: '1px solid var(--neutral-border)', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
                       <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Format</label>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.25rem', background: '#f1f5f9', padding: '0.2rem', borderRadius: '6px' }}>
                         <button
                           type="button"
                           disabled={isLocked}
                           onClick={() => handleUpdateBlockSectionFormat(activeBlockId!, 'H1')}
-                          className={`btn btn-sm ${(activeBlock.sectionFormat || 'H1') === 'H1' ? 'btn-primary' : 'btn-secondary'}`}
-                          style={{ fontWeight: 700, padding: '0.35rem 0.5rem' }}
+                          style={{
+                            padding: '0.3rem 0.5rem',
+                            fontSize: '0.82rem',
+                            fontWeight: 700,
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: isLocked ? 'not-allowed' : 'pointer',
+                            background: (activeBlock.sectionFormat || 'H1') === 'H1' ? 'var(--primary)' : 'transparent',
+                            color: (activeBlock.sectionFormat || 'H1') === 'H1' ? '#ffffff' : 'var(--text-secondary)',
+                            boxShadow: (activeBlock.sectionFormat || 'H1') === 'H1' ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                            transition: 'all 0.15s ease'
+                          }}
                         >
-                          H1 (Line)
+                          H1
                         </button>
                         <button
                           type="button"
                           disabled={isLocked}
                           onClick={() => handleUpdateBlockSectionFormat(activeBlockId!, 'H2')}
-                          className={`btn btn-sm ${activeBlock.sectionFormat === 'H2' ? 'btn-primary' : 'btn-secondary'}`}
-                          style={{ fontWeight: 700, padding: '0.35rem 0.5rem' }}
+                          style={{
+                            padding: '0.3rem 0.5rem',
+                            fontSize: '0.82rem',
+                            fontWeight: 700,
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: isLocked ? 'not-allowed' : 'pointer',
+                            background: activeBlock.sectionFormat === 'H2' ? 'var(--primary)' : 'transparent',
+                            color: activeBlock.sectionFormat === 'H2' ? '#ffffff' : 'var(--text-secondary)',
+                            boxShadow: activeBlock.sectionFormat === 'H2' ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                            transition: 'all 0.15s ease'
+                          }}
                         >
-                          H2 (Box)
+                          H2
                         </button>
                       </div>
                     </div>
