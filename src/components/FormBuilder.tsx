@@ -1620,7 +1620,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                             padding: '10px 0',
                             display: 'flex',
                             alignItems: 'center',
-                            marginBottom: '10px'
+                            marginBottom: '10px',
+                            position: 'relative'
                           }}>
                             {logoUrl && (
                               <div style={{
@@ -1639,20 +1640,41 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                               <p style={{ margin: 0, fontSize: '0.8rem', fontStyle: 'italic', color: 'var(--text-secondary)' }}>
                                 {block.fields[0]?.checkItem || '(mô tả ngắn kiểm tra)'}
                               </p>
+                              {block.showDate && (block.datePosition ?? 'B') === 'B' && (
+                                <div style={{ marginTop: '4px', fontSize: '0.78rem', color: 'var(--text-secondary)', textAlign: 'center' }}>
+                                  <span style={{ fontWeight: 600 }}>Ngày</span> <span style={{ borderBottom: '1px solid #cbd5e1', display: 'inline-block', width: '90px' }}>&nbsp;</span>
+                                </div>
+                              )}
                             </div>
+                            {block.showDate && block.datePosition === 'A' && (
+                              <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap', marginLeft: '10px', alignSelf: 'flex-start', paddingTop: '4px' }}>
+                                <span style={{ fontWeight: 600 }}>Ngày</span> <span style={{ borderBottom: '1px solid #cbd5e1', display: 'inline-block', width: '80px' }}>&nbsp;</span>
+                              </div>
+                            )}
                           </div>
                         ) : (
                           <div style={{
                             padding: '10px 0',
                             textAlign: 'center',
-                            marginBottom: '10px'
+                            marginBottom: '10px',
+                            position: 'relative'
                           }}>
+                            {block.showDate && block.datePosition === 'A' && (
+                              <div style={{ position: 'absolute', right: 0, top: '10px', fontSize: '0.78rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                                <span style={{ fontWeight: 600 }}>Ngày</span> <span style={{ borderBottom: '1px solid #cbd5e1', display: 'inline-block', width: '80px' }}>&nbsp;</span>
+                              </div>
+                            )}
                             <h1 style={{ margin: '0 0 4px 0', fontSize: '1.25rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-primary)' }}>
                               {block.title || 'TÊN BIỂU MẪU'}
                             </h1>
                             <p style={{ margin: 0, fontSize: '0.8rem', fontStyle: 'italic', color: 'var(--text-secondary)' }}>
                               {block.fields[0]?.checkItem || '(mô tả ngắn kiểm tra)'}
                             </p>
+                            {block.showDate && (block.datePosition ?? 'B') === 'B' && (
+                              <div style={{ marginTop: '4px', fontSize: '0.78rem', color: 'var(--text-secondary)', textAlign: 'center' }}>
+                                <span style={{ fontWeight: 600 }}>Ngày</span> <span style={{ borderBottom: '1px solid #cbd5e1', display: 'inline-block', width: '90px' }}>&nbsp;</span>
+                              </div>
+                            )}
                           </div>
                         )
                       )}
@@ -2622,6 +2644,43 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                         placeholder="e.g. (kiểm tra trước khi load...)"
                         style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
                       />
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--neutral-border)', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
+                      <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          disabled={isLocked}
+                          checked={!!activeBlock.showDate}
+                          onChange={(e) => {
+                            const val = e.target.checked;
+                            setLayoutBlocks(prev => prev.map(b => b.id === activeBlock.id ? { ...b, showDate: val, datePosition: b.datePosition || 'B' } : b));
+                          }}
+                        />
+                        Hiển thị ô "Ngày"
+                      </label>
+                      {activeBlock.showDate && (
+                        <div style={{ display: 'flex', border: '1px solid var(--neutral-border)', borderRadius: '4px', overflow: 'hidden' }}>
+                          <button
+                            type="button"
+                            disabled={isLocked}
+                            onClick={() => setLayoutBlocks(prev => prev.map(b => b.id === activeBlock.id ? { ...b, datePosition: 'A' } : b))}
+                            style={{ padding: '3px 6px', background: activeBlock.datePosition === 'A' ? '#cbd5e1' : '#ffffff', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                            title="Bên phải tiêu đề"
+                          >
+                            <AlignRight size={13} style={{ color: activeBlock.datePosition === 'A' ? 'var(--text-primary)' : 'var(--text-muted)' }} />
+                          </button>
+                          <button
+                            type="button"
+                            disabled={isLocked}
+                            onClick={() => setLayoutBlocks(prev => prev.map(b => b.id === activeBlock.id ? { ...b, datePosition: 'B' } : b))}
+                            style={{ padding: '3px 6px', background: (activeBlock.datePosition || 'B') === 'B' ? '#cbd5e1' : '#ffffff', borderLeft: '1px solid var(--neutral-border)', borderTop: 'none', borderRight: 'none', borderBottom: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                            title="Dưới mô tả (Giữa)"
+                          >
+                            <AlignCenter size={13} style={{ color: (activeBlock.datePosition || 'B') === 'B' ? 'var(--text-primary)' : 'var(--text-muted)' }} />
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </>
                 )}

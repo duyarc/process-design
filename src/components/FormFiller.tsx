@@ -389,6 +389,19 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
         }
       });
 
+      const titleBlock = formTemplate.layoutBlocks?.find((b: any) => b.type === 'TITLE' && b.showDate);
+      if (titleBlock) {
+        snapshots.push({
+          id: '__title_date__',
+          checkItem: 'Ngày',
+          locationCode: 'TITLE',
+          targetRange: 'Ngày kiểm tra',
+          reactionProtocol: '',
+          value: formValues['__title_date__'] || '',
+          status: 'PASS'
+        });
+      }
+
       const allMediaKeys: string[] = [];
       Object.values(uploadedPhotos).forEach(keys => {
         allMediaKeys.push(...keys);
@@ -627,11 +640,33 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
 
               {/* 1. TITLE BLOCK */}
               {block.type === 'TITLE' && (
-                <div style={{ textAlign: 'center', padding: '0.5rem 0' }}>
+                <div style={{ textAlign: 'center', padding: '0.5rem 0', position: 'relative' }}>
+                  {block.showDate && block.datePosition === 'A' && (
+                    <div style={{ position: 'absolute', right: 0, top: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.82rem' }}>
+                      <span style={{ fontWeight: 600 }}>Ngày</span>
+                      <input
+                        type="date"
+                        value={formValues['__title_date__'] || ''}
+                        onChange={(e) => setFormValues(prev => ({ ...prev, '__title_date__': e.target.value }))}
+                        style={{ padding: '0.2rem 0.4rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px' }}
+                      />
+                    </div>
+                  )}
                   <h1 style={{ fontSize: '1.25rem', fontWeight: 800, margin: '0 0 0.25rem 0' }}>{block.title}</h1>
-                  <p style={{ fontSize: '0.82rem', fontStyle: 'italic', color: 'var(--text-secondary)' }}>
+                  <p style={{ fontSize: '0.82rem', fontStyle: 'italic', color: 'var(--text-secondary)', margin: 0 }}>
                     {block.fields[0]?.checkItem}
                   </p>
+                  {block.showDate && (block.datePosition ?? 'B') === 'B' && (
+                    <div style={{ marginTop: '0.5rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.35rem', fontSize: '0.82rem' }}>
+                      <span style={{ fontWeight: 600 }}>Ngày</span>
+                      <input
+                        type="date"
+                        value={formValues['__title_date__'] || ''}
+                        onChange={(e) => setFormValues(prev => ({ ...prev, '__title_date__': e.target.value }))}
+                        style={{ padding: '0.2rem 0.4rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px' }}
+                      />
+                    </div>
+                  )}
                 </div>
               )}
 

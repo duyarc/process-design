@@ -284,7 +284,8 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                   padding: '10px 0',
                   display: 'flex',
                   alignItems: 'center',
-                  marginBottom: '15px'
+                  marginBottom: '15px',
+                  position: 'relative'
                 }}>
                   {logoUrl && (
                     <div style={{
@@ -309,20 +310,41 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                     <p style={{ margin: 0, fontSize: '0.85rem', fontStyle: 'italic', color: '#475569' }}>
                       {block.fields[0]?.checkItem || ''}
                     </p>
+                    {block.showDate && (block.datePosition ?? 'B') === 'B' && (
+                      <div style={{ marginTop: '6px', fontSize: '0.85rem', textAlign: 'center' }}>
+                        <span style={{ fontWeight: 600 }}>Ngày</span> <span style={{ borderBottom: '1px solid #000000', display: 'inline-block', width: '90px', marginLeft: '6px' }}>&nbsp;</span>
+                      </div>
+                    )}
                   </div>
+                  {block.showDate && block.datePosition === 'A' && (
+                    <div style={{ fontSize: '0.85rem', whiteSpace: 'nowrap', marginLeft: '10px', alignSelf: 'flex-start', paddingTop: '4px' }}>
+                      <span style={{ fontWeight: 600 }}>Ngày</span> <span style={{ borderBottom: '1px solid #000000', display: 'inline-block', width: '80px', marginLeft: '6px' }}>&nbsp;</span>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div style={{
                   padding: '10px 0',
                   textAlign: 'center',
-                  marginBottom: '15px'
+                  marginBottom: '15px',
+                  position: 'relative'
                 }}>
+                  {block.showDate && block.datePosition === 'A' && (
+                    <div style={{ position: 'absolute', right: 0, top: '10px', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
+                      <span style={{ fontWeight: 600 }}>Ngày</span> <span style={{ borderBottom: '1px solid #000000', display: 'inline-block', width: '80px', marginLeft: '6px' }}>&nbsp;</span>
+                    </div>
+                  )}
                   <h1 style={{ margin: '0 0 4px 0', fontSize: '1.35rem', fontWeight: 800, textTransform: 'uppercase' }}>
                     {block.title}
                   </h1>
                   <p style={{ margin: 0, fontSize: '0.85rem', fontStyle: 'italic', color: '#475569' }}>
                     {block.fields[0]?.checkItem || ''}
                   </p>
+                  {block.showDate && (block.datePosition ?? 'B') === 'B' && (
+                    <div style={{ marginTop: '6px', fontSize: '0.85rem', textAlign: 'center' }}>
+                      <span style={{ fontWeight: 600 }}>Ngày</span> <span style={{ borderBottom: '1px solid #000000', display: 'inline-block', width: '90px', marginLeft: '6px' }}>&nbsp;</span>
+                    </div>
+                  )}
                 </div>
               )
             )}

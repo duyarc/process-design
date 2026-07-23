@@ -167,6 +167,8 @@ export interface LayoutBlockISO {
   tableColumns?: TableColumnConfig[];
   tableRows?: TableRowConfig[];
   tableData?: { [rowId: string]: { [colId: string]: string } };
+  showDate?: boolean;
+  datePosition?: 'A' | 'B';
 }
 
 export interface FormTemplateISO {

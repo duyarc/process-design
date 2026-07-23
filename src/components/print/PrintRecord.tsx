@@ -377,52 +377,90 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
       </div>
 
       {/* TITLE BLOCK */}
-      {logoText ? (
-        <div className="print-block print-block-avoid" style={{
-          padding: '10px 0',
-          display: 'flex',
-          alignItems: 'center',
-          marginBottom: '15px'
-        }}>
-          {logoUrl && (
-            <div style={{
-              marginRight: '20px',
-              display: 'flex',
-              alignItems: 'center',
-              height: '65px'
-            }}>
-              <img
-                src={logoUrl}
-                alt="Logo"
-                style={{ maxHeight: '65px', maxWidth: '260px', objectFit: 'contain' }}
-                onLoad={() => setImgLoaded(true)}
-                onError={() => setImgLoaded(true)}
-              />
+      {(() => {
+        const titleBlock = layoutBlocks.find(b => b.type === 'TITLE');
+        const titleDateSnapshot = submission.formData.find(s => s.id === '__title_date__');
+        const showDate = titleBlock?.showDate || !!titleDateSnapshot;
+        const datePos = titleBlock?.datePosition ?? 'B';
+        const rawDate = titleDateSnapshot?.value;
+        let formattedDate = '';
+        if (rawDate) {
+          const parts = rawDate.split('-');
+          if (parts.length === 3) formattedDate = `${parts[2]}/${parts[1]}/${parts[0]}`;
+          else formattedDate = rawDate;
+        } else if (submission.submittedAt) {
+          formattedDate = new Date(submission.submittedAt).toLocaleDateString('vi-VN');
+        }
+
+        return logoText ? (
+          <div className="print-block print-block-avoid" style={{
+            padding: '10px 0',
+            display: 'flex',
+            alignItems: 'center',
+            marginBottom: '15px',
+            position: 'relative'
+          }}>
+            {logoUrl && (
+              <div style={{
+                marginRight: '20px',
+                display: 'flex',
+                alignItems: 'center',
+                height: '65px'
+              }}>
+                <img
+                  src={logoUrl}
+                  alt="Logo"
+                  style={{ maxHeight: '65px', maxWidth: '260px', objectFit: 'contain' }}
+                  onLoad={() => setImgLoaded(true)}
+                  onError={() => setImgLoaded(true)}
+                />
+              </div>
+            )}
+            <div style={{ textAlign: 'center', flex: 1 }}>
+              <h1 style={{ margin: '0 0 2px 0', fontSize: '1.35rem', fontWeight: 800, textTransform: 'uppercase' }}>
+                {processTitle || 'PHIẾU KIỂM TRA'}
+              </h1>
+              <p style={{ margin: 0, fontSize: '0.85rem', fontStyle: 'italic', color: '#475569' }}>
+                {descriptionText || ''}
+              </p>
+              {showDate && datePos === 'B' && (
+                <div style={{ marginTop: '6px', fontSize: '0.85rem', textAlign: 'center' }}>
+                  <span style={{ fontWeight: 600 }}>Ngày</span> <span style={{ borderBottom: '1px solid #000000', display: 'inline-block', width: '90px', marginLeft: '6px' }}>{formattedDate}</span>
+                </div>
+              )}
             </div>
-          )}
-          <div style={{ textAlign: 'center', flex: 1 }}>
-            <h1 style={{ margin: '0 0 2px 0', fontSize: '1.35rem', fontWeight: 800, textTransform: 'uppercase' }}>
+            {showDate && datePos === 'A' && (
+              <div style={{ fontSize: '0.85rem', whiteSpace: 'nowrap', marginLeft: '10px', alignSelf: 'flex-start', paddingTop: '4px' }}>
+                <span style={{ fontWeight: 600 }}>Ngày</span> <span style={{ borderBottom: '1px solid #000000', display: 'inline-block', width: '80px', marginLeft: '6px' }}>{formattedDate}</span>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="print-block print-block-avoid" style={{
+            padding: '10px 0',
+            textAlign: 'center',
+            marginBottom: '15px',
+            position: 'relative'
+          }}>
+            {showDate && datePos === 'A' && (
+              <div style={{ position: 'absolute', right: 0, top: '10px', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
+                <span style={{ fontWeight: 600 }}>Ngày</span> <span style={{ borderBottom: '1px solid #000000', display: 'inline-block', width: '80px', marginLeft: '6px' }}>{formattedDate}</span>
+              </div>
+            )}
+            <h1 style={{ margin: '0 0 4px 0', fontSize: '1.35rem', fontWeight: 800, textTransform: 'uppercase' }}>
               {processTitle || 'PHIẾU KIỂM TRA'}
             </h1>
             <p style={{ margin: 0, fontSize: '0.85rem', fontStyle: 'italic', color: '#475569' }}>
               {descriptionText || ''}
             </p>
+            {showDate && datePos === 'B' && (
+              <div style={{ marginTop: '6px', fontSize: '0.85rem', textAlign: 'center' }}>
+                <span style={{ fontWeight: 600 }}>Ngày</span> <span style={{ borderBottom: '1px solid #000000', display: 'inline-block', width: '90px', marginLeft: '6px' }}>{formattedDate}</span>
+              </div>
+            )}
           </div>
-        </div>
-      ) : (
-        <div className="print-block print-block-avoid" style={{
-          padding: '10px 0',
-          textAlign: 'center',
-          marginBottom: '15px'
-        }}>
-          <h1 style={{ margin: '0 0 4px 0', fontSize: '1.35rem', fontWeight: 800, textTransform: 'uppercase' }}>
-            {processTitle || 'PHIẾU KIỂM TRA'}
-          </h1>
-          <p style={{ margin: 0, fontSize: '0.85rem', fontStyle: 'italic', color: '#475569' }}>
-            {descriptionText || ''}
-          </p>
-        </div>
-      )}
+        );
+      })()}
 
       {/* INFO GRID BLOCK */}
       {infoFields.length > 0 && (() => {
