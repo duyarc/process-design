@@ -144,6 +144,8 @@ export interface TableRowConfig {
   id: string;
 }
 
+export type TitleFormatISO = 'H1' | 'H2' | 'BODY' | 'NONE';
+
 export interface LayoutBlockISO {
   id: string;
   type: 'TITLE' | 'INFO_GRID' | 'CHECKLIST_TABLE' | 'MATRIX_TABLE' | 'SIGN' | 'TABLE' | 'SECTION_LABEL';
@@ -153,6 +155,7 @@ export interface LayoutBlockISO {
   logo?: string;
   description?: string;
   sectionFormat?: 'H1' | 'H2';
+  titleFormat?: TitleFormatISO;
   columnLabels?: {
     stt: string;
     item: string;

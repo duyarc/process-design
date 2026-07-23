@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import type { Submission } from '../../types';
 import { formatFormVersion, getColStyleWidth } from '../../types';
-import { sanitizeLabel } from '../../utils/formUtils';
+import { sanitizeLabel, getEffectiveTitleFormat } from '../../utils/formUtils';
 
 interface PrintRecordProps {
   submission: Submission;
@@ -656,11 +656,24 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
 
       {/* REGULAR TABLE RECORD BLOCK */}
       {layoutBlocks.filter(b => b.type === 'TABLE').map((block: any) => {
+        const titleFmt = getEffectiveTitleFormat(block);
         return (
           <div key={block.id} className="print-block" style={{ marginTop: '15px' }}>
-            <div style={{ fontSize: '0.85rem', fontWeight: 'bold', marginBottom: '8px', textTransform: 'uppercase', color: '#1e293b' }}>
-              {block.title || 'BẢNG THÔNG TIN'}
-            </div>
+            {titleFmt !== 'NONE' && (
+              titleFmt === 'H1' ? (
+                <h2 style={{ margin: '0 0 8px 0', fontSize: '1.05rem', fontWeight: 700, textTransform: 'uppercase', color: '#000000', borderBottom: '2px solid #000000', paddingBottom: '3px' }}>
+                  {block.title || 'BẢNG THÔNG TIN'}
+                </h2>
+              ) : titleFmt === 'H2' ? (
+                <div style={{ padding: '6px 10px', background: '#f1f5f9', borderLeft: '4px solid #000000', borderRadius: '4px', marginBottom: '8px', fontWeight: 700, fontSize: '0.9rem', color: '#000000' }}>
+                  {block.title || 'BẢNG THÔNG TIN'}
+                </div>
+              ) : (
+                <div style={{ fontSize: '0.85rem', fontWeight: 400, marginBottom: '8px', color: '#000000' }}>
+                  {block.title || 'BẢNG THÔNG TIN'}
+                </div>
+              )
+            )}
             <div style={{ overflowX: 'auto' }}>
               <table className="print-table" style={{
                 width: '100%',

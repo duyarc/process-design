@@ -2,7 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import type { FormTemplateISO } from '../../types';
 import { formatFormVersion, getColStyleWidth } from '../../types';
-import { sanitizeLabel } from '../../utils/formUtils';
+import { sanitizeLabel, getEffectiveTitleFormat } from '../../utils/formUtils';
 
 interface PrintBlankFormProps {
   template: FormTemplateISO;
@@ -199,51 +199,71 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
           <div key={block.id} className={`print-block ${block.type !== 'CHECKLIST_TABLE' ? 'print-block-avoid' : ''}`}>
             
             {/* 1.1 SECTION LABEL BLOCK */}
-            {block.type === 'SECTION_LABEL' && (
-              block.sectionFormat === 'H1' ? (
-                <div style={{
-                  padding: '4px 0 4px 0',
-                  marginBottom: '4px',
-                  pageBreakInside: 'avoid',
-                  breakInside: 'avoid'
-                }}>
-                  <h2 style={{
-                    margin: '0 0 4px 0',
-                    fontSize: '1.1rem',
-                    fontWeight: 700,
-                    color: '#000000',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px',
-                    borderBottom: '2px solid #000000',
-                    paddingBottom: '3px'
+            {block.type === 'SECTION_LABEL' && (() => {
+              const titleFmt = getEffectiveTitleFormat(block);
+              if (titleFmt === 'NONE') return null;
+              if (titleFmt === 'H1') {
+                return (
+                  <div style={{
+                    padding: '4px 0 4px 0',
+                    marginBottom: '4px',
+                    pageBreakInside: 'avoid',
+                    breakInside: 'avoid'
                   }}>
+                    <h2 style={{
+                      margin: '0 0 4px 0',
+                      fontSize: '1.1rem',
+                      fontWeight: 700,
+                      color: '#000000',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                      borderBottom: '2px solid #000000',
+                      paddingBottom: '3px'
+                    }}>
+                      {block.title}
+                    </h2>
+                    {block.description && (
+                      <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#333333', whiteSpace: 'pre-line' }}>
+                        {block.description}
+                      </p>
+                    )}
+                  </div>
+                );
+              }
+              if (titleFmt === 'H2') {
+                return (
+                  <div style={{
+                    padding: '8px 12px',
+                    background: '#f1f5f9',
+                    borderLeft: '4px solid #000000',
+                    borderRadius: '4px',
+                    marginBottom: '5px'
+                  }}>
+                    <h3 style={{ margin: '0 0 4px 0', fontSize: '0.95rem', fontWeight: 700, color: '#1e293b' }}>
+                      {block.title}
+                    </h3>
+                    {block.description && (
+                      <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#475569', whiteSpace: 'pre-line' }}>
+                        {block.description}
+                      </p>
+                    )}
+                  </div>
+                );
+              }
+              // BODY format (normal body text, non-bold)
+              return (
+                <div style={{ padding: '2px 0', marginBottom: '4px' }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 400, color: '#000000' }}>
                     {block.title}
-                  </h2>
+                  </div>
                   {block.description && (
-                    <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#333333', whiteSpace: 'pre-line' }}>
+                    <p style={{ margin: '2px 0 0 0', fontSize: '0.8rem', color: '#333333', whiteSpace: 'pre-line' }}>
                       {block.description}
                     </p>
                   )}
                 </div>
-              ) : (
-                <div style={{
-                  padding: '8px 12px',
-                  background: '#f1f5f9',
-                  borderLeft: '4px solid #000000',
-                  borderRadius: '4px',
-                  marginBottom: '5px'
-                }}>
-                  <h3 style={{ margin: '0 0 4px 0', fontSize: '0.95rem', fontWeight: 700, color: '#1e293b' }}>
-                    {block.title}
-                  </h3>
-                  {block.description && (
-                    <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#475569', whiteSpace: 'pre-line' }}>
-                      {block.description}
-                    </p>
-                  )}
-                </div>
-              )
-            )}
+              );
+            })()}
 
             {/* 1. TITLE BLOCK */}
             {block.type === 'TITLE' && (
@@ -301,6 +321,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
               block.fields.forEach((f, idx) => {
                 cols[idx % block.columns].push(f);
               });
+              const titleFmt = getEffectiveTitleFormat(block);
 
               return (
                 <div style={{
@@ -308,6 +329,21 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                   marginTop: '2px',
                   marginBottom: '8px'
                 }}>
+                  {titleFmt !== 'NONE' && (
+                    titleFmt === 'H1' ? (
+                      <h2 style={{ margin: '0 0 6px 0', fontSize: '1.05rem', fontWeight: 700, color: '#000000', textTransform: 'uppercase', borderBottom: '2px solid #000000', paddingBottom: '3px' }}>
+                        {block.title}
+                      </h2>
+                    ) : titleFmt === 'H2' ? (
+                      <div style={{ padding: '6px 10px', background: '#f1f5f9', borderLeft: '4px solid #000000', borderRadius: '4px', marginBottom: '6px', fontWeight: 700, fontSize: '0.9rem', color: '#000000' }}>
+                        {block.title}
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: '0.85rem', fontWeight: 400, marginBottom: '6px', color: '#000000' }}>
+                        {block.title}
+                      </div>
+                    )
+                  )}
                   <div style={{
                     display: 'flex',
                     justifyContent: 'space-between',

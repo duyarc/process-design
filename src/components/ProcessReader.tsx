@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { Process, SubmissionFieldSnapshot } from '../types';
 import { formatFormVersion, getColStyleWidth } from '../types';
-import { sanitizeLabel } from '../utils/formUtils';
+import { sanitizeLabel, getEffectiveTitleFormat } from '../utils/formUtils';
 import { useAuth } from '../context/AuthContext';
 import { Printer, Edit2, Camera, AlertTriangle, X, PenTool, GitBranch, Eye, ArrowLeft } from 'lucide-react';
 import { generateBPMNXML, getNumRows } from '../utils/bpmnXmlGenerator';
@@ -1210,21 +1210,26 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                       if (block.fields.length === 0 && block.type !== 'TITLE' && block.type !== 'SECTION_LABEL' && block.type !== 'TABLE') return null;
 
                       if (block.type === 'SECTION_LABEL') {
-                        const isH1 = block.sectionFormat === 'H1';
+                        const titleFmt = getEffectiveTitleFormat(block);
+                        if (titleFmt === 'NONE') return null;
                         return (
-                          <div key={block.id} style={isH1 ? {
+                          <div key={block.id} style={titleFmt === 'H1' ? {
                             padding: '0.5rem 0',
                             marginTop: '1.25rem',
                             marginBottom: '0.75rem'
-                          } : {
+                          } : titleFmt === 'H2' ? {
                             padding: '0.75rem 1rem',
                             background: '#f1f5f9',
                             borderLeft: '4px solid var(--primary)',
                             borderRadius: '6px',
                             marginTop: '1.25rem',
                             marginBottom: '0.5rem'
+                          } : {
+                            padding: '0.25rem 0',
+                            marginTop: '1rem',
+                            marginBottom: '0.5rem'
                           }}>
-                            {isH1 ? (
+                            {titleFmt === 'H1' ? (
                               <h2 style={{
                                 margin: '0 0 4px 0',
                                 fontSize: '1.15rem',
@@ -1237,10 +1242,14 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                               }}>
                                 {block.title}
                               </h2>
-                            ) : (
+                            ) : titleFmt === 'H2' ? (
                               <h3 style={{ margin: '0 0 4px 0', fontSize: '1.0rem', fontWeight: 700, color: 'var(--text-primary)' }}>
                                 {block.title}
                               </h3>
+                            ) : (
+                              <div style={{ margin: '0 0 4px 0', fontSize: '0.9rem', fontWeight: 400, color: 'var(--text-primary)' }}>
+                                {block.title}
+                              </div>
                             )}
                             {block.description && (
                               <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: 'var(--text-secondary)', whiteSpace: 'pre-line' }}>
@@ -1250,6 +1259,8 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                           </div>
                         );
                       }
+
+                      const blockTitleFmt = getEffectiveTitleFormat(block);
 
                       return (
                         <div key={block.id} style={{
@@ -1262,17 +1273,21 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                           flexDirection: 'column',
                           gap: '1rem'
                         }}>
-                          <h4 style={{
-                            margin: 0,
-                            fontSize: '0.9rem',
-                            fontWeight: 700,
-                            textTransform: 'uppercase',
-                            color: 'var(--text-primary)',
-                            borderBottom: '2.5px solid var(--primary)',
-                            paddingBottom: '0.25rem'
-                          }}>
-                            {block.title}
-                          </h4>
+                          {blockTitleFmt !== 'NONE' && (
+                            blockTitleFmt === 'H1' ? (
+                              <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-primary)', borderBottom: '2px solid var(--text-primary)', paddingBottom: '0.3rem' }}>
+                                {block.title}
+                              </h2>
+                            ) : blockTitleFmt === 'H2' ? (
+                              <div style={{ padding: '0.6rem 0.8rem', background: '#f1f5f9', borderLeft: '4px solid var(--primary)', borderRadius: '4px', fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)' }}>
+                                {block.title}
+                              </div>
+                            ) : (
+                              <div style={{ margin: 0, fontSize: '0.88rem', fontWeight: 400, color: 'var(--text-primary)' }}>
+                                {block.title}
+                              </div>
+                            )
+                          )}
 
                           {/* 1. TITLE BLOCK */}
                           {block.type === 'TITLE' && (

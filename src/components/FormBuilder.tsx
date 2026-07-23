@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import type { FormFieldISO, FormRevisionEntry, FormTemplateISO, LayoutBlockISO, RadioOption, MatrixConfigISO, TableColumnConfig, ColumnSummaryRowConfig } from '../types';
+import type { FormFieldISO, FormRevisionEntry, FormTemplateISO, LayoutBlockISO, RadioOption, MatrixConfigISO, TableColumnConfig, ColumnSummaryRowConfig, TitleFormatISO } from '../types';
 import { formatFormVersion, getColStyleWidth } from '../types';
-import { sanitizeLabel } from '../utils/formUtils';
+import { sanitizeLabel, getEffectiveTitleFormat } from '../utils/formUtils';
 import { 
   Plus, 
   Trash2, 
@@ -473,8 +473,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     }));
   };
 
-  const handleUpdateBlockSectionFormat = (blockId: string, format: 'H1' | 'H2') => {
-    setLayoutBlocks(prev => prev.map(b => b.id === blockId ? { ...b, sectionFormat: format } : b));
+  const handleUpdateBlockTitleFormat = (blockId: string, format: TitleFormatISO) => {
+    setLayoutBlocks(prev => prev.map(b => b.id === blockId ? { ...b, titleFormat: format, sectionFormat: format === 'H1' || format === 'H2' ? format : b.sectionFormat } : b));
   };
   const handleUpdateBlockColumnLabels = (blockId: string, updates: Partial<NonNullable<LayoutBlockISO['columnLabels']>>) => {
     setLayoutBlocks(prev => prev.map(b => {
@@ -1544,49 +1544,69 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                     <div style={{ marginTop: '0.25rem' }}>
                       
                       {/* 1.1 SECTION LABEL BLOCK */}
-                      {block.type === 'SECTION_LABEL' && (
-                        block.sectionFormat === 'H1' ? (
-                          <div style={{
-                            padding: '0.25rem 0 0.5rem 0',
-                            marginBottom: '0.75rem'
-                          }}>
-                            <h2 style={{
-                              margin: '0 0 4px 0',
-                              fontSize: '1.1rem',
-                              fontWeight: 700,
-                              color: '#0f172a',
-                              textTransform: 'uppercase',
-                              letterSpacing: '0.5px',
-                              borderBottom: '2px solid #0f172a',
-                              paddingBottom: '0.25rem'
+                      {block.type === 'SECTION_LABEL' && (() => {
+                        const titleFmt = getEffectiveTitleFormat(block);
+                        if (titleFmt === 'NONE') return null;
+                        if (titleFmt === 'H1') {
+                          return (
+                            <div style={{
+                              padding: '0.25rem 0 0.5rem 0',
+                              marginBottom: '0.75rem'
                             }}>
-                              {block.title || 'TIÊU ĐỀ DANH MỤC'}
-                            </h2>
-                            {block.description && (
-                              <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: '#475569', whiteSpace: 'pre-line' }}>
-                                {block.description}
-                              </p>
-                            )}
-                          </div>
-                        ) : (
-                          <div style={{
-                            padding: '0.5rem 0.75rem',
-                            background: '#f1f5f9',
-                            borderLeft: '4px solid #0f172a',
-                            borderRadius: '4px',
-                            marginBottom: '0.5rem'
-                          }}>
-                            <h3 style={{ margin: '0 0 4px 0', fontSize: '0.95rem', fontWeight: 700, color: '#1e293b' }}>
+                              <h2 style={{
+                                margin: '0 0 4px 0',
+                                fontSize: '1.1rem',
+                                fontWeight: 700,
+                                color: '#0f172a',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.5px',
+                                borderBottom: '2px solid #0f172a',
+                                paddingBottom: '0.25rem'
+                              }}>
+                                {block.title || 'TIÊU ĐỀ DANH MỤC'}
+                              </h2>
+                              {block.description && (
+                                <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: '#475569', whiteSpace: 'pre-line' }}>
+                                  {block.description}
+                                </p>
+                              )}
+                            </div>
+                          );
+                        }
+                        if (titleFmt === 'H2') {
+                          return (
+                            <div style={{
+                              padding: '0.5rem 0.75rem',
+                              background: '#f1f5f9',
+                              borderLeft: '4px solid #0f172a',
+                              borderRadius: '4px',
+                              marginBottom: '0.5rem'
+                            }}>
+                              <h3 style={{ margin: '0 0 4px 0', fontSize: '0.95rem', fontWeight: 700, color: '#1e293b' }}>
+                                {block.title || 'Tiêu đề danh mục'}
+                              </h3>
+                              {block.description && (
+                                <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b', whiteSpace: 'pre-line' }}>
+                                  {block.description}
+                                </p>
+                              )}
+                            </div>
+                          );
+                        }
+                        // BODY format (normal body text, non-bold)
+                        return (
+                          <div style={{ padding: '0.25rem 0', marginBottom: '0.5rem' }}>
+                            <div style={{ fontSize: '0.85rem', fontWeight: 400, color: 'var(--text-primary)' }}>
                               {block.title || 'Tiêu đề danh mục'}
-                            </h3>
+                            </div>
                             {block.description && (
-                              <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b', whiteSpace: 'pre-line' }}>
+                              <p style={{ margin: '2px 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)', whiteSpace: 'pre-line' }}>
                                 {block.description}
                               </p>
                             )}
                           </div>
-                        )
-                      )}
+                        );
+                      })()}
 
                       {/* 1. TITLE BLOCK */}
                       {block.type === 'TITLE' && (
@@ -1633,51 +1653,66 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                       )}
 
                       {/* 2. INFO GRID BLOCK */}
-                      {block.type === 'INFO_GRID' && (
-                        <div>
-                          <div style={{ fontSize: '0.8rem', fontWeight: 700, borderBottom: '1px solid #cbd5e1', paddingBottom: '2px', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>
-                            {block.title}
-                          </div>
-                          <div style={{
-                            display: 'grid',
-                            gridTemplateColumns: `repeat(${block.columns}, 1fr)`,
-                            gap: '0.75rem'
-                          }}>
-                            {block.fields.map(f => {
-                              const isFieldSelected = activeFieldId === f.id;
-                              return (
-                                <div 
-                                  key={f.id} 
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setActiveBlockId(block.id);
-                                    setActiveFieldId(f.id);
-                                  }}
-                                  style={{
-                                    borderBottom: isFieldSelected ? '2px solid var(--primary)' : '1px dotted #cbd5e1',
-                                    padding: '2px 4px',
-                                    fontSize: '0.75rem',
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    background: isFieldSelected ? 'rgba(16, 163, 163, 0.05)' : 'none'
-                                  }}
-                                >
-                                  <span style={{ fontWeight: 600 }}>{sanitizeLabel(f.checkItem)}</span>
-                                  <span style={{ color: 'var(--text-muted)' }}>[{f.type}]</span>
+                      {block.type === 'INFO_GRID' && (() => {
+                        const titleFmt = getEffectiveTitleFormat(block);
+                        return (
+                          <div>
+                            {titleFmt !== 'NONE' && (
+                              titleFmt === 'H1' ? (
+                                <h2 style={{ margin: '0 0 8px 0', fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', borderBottom: '2px solid var(--text-primary)', paddingBottom: '3px' }}>
+                                  {block.title}
+                                </h2>
+                              ) : titleFmt === 'H2' ? (
+                                <div style={{ padding: '0.4rem 0.6rem', background: '#f1f5f9', borderLeft: '4px solid var(--primary)', borderRadius: '4px', marginBottom: '0.5rem', fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+                                  {block.title}
                                 </div>
-                              );
-                            })}
-                            {!isLocked && (
-                              <div 
-                                onClick={(e) => { e.stopPropagation(); handleAddField(block.id, 'text'); }}
-                                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px dashed #cbd5e1', borderRadius: '4px', padding: '4px', fontSize: '0.7rem', color: 'var(--text-muted)', cursor: 'pointer' }}
-                              >
-                                <Plus size={10} style={{ marginRight: '2px' }} /> Add Field Slot
-                              </div>
+                              ) : (
+                                <div style={{ fontSize: '0.82rem', fontWeight: 400, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
+                                  {block.title}
+                                </div>
+                              )
                             )}
+                            <div style={{
+                              display: 'grid',
+                              gridTemplateColumns: `repeat(${block.columns}, 1fr)`,
+                              gap: '0.75rem'
+                            }}>
+                              {block.fields.map(f => {
+                                const isFieldSelected = activeFieldId === f.id;
+                                return (
+                                  <div 
+                                    key={f.id} 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setActiveBlockId(block.id);
+                                      setActiveFieldId(f.id);
+                                    }}
+                                    style={{
+                                      borderBottom: isFieldSelected ? '2px solid var(--primary)' : '1px dotted #cbd5e1',
+                                      padding: '2px 4px',
+                                      fontSize: '0.75rem',
+                                      display: 'flex',
+                                      justifyContent: 'space-between',
+                                      background: isFieldSelected ? 'rgba(16, 163, 163, 0.05)' : 'none'
+                                    }}
+                                  >
+                                    <span style={{ fontWeight: 600 }}>{sanitizeLabel(f.checkItem)}</span>
+                                    <span style={{ color: 'var(--text-muted)' }}>[{f.type}]</span>
+                                  </div>
+                                );
+                              })}
+                              {!isLocked && (
+                                <div 
+                                  onClick={(e) => { e.stopPropagation(); handleAddField(block.id, 'text'); }}
+                                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px dashed #cbd5e1', borderRadius: '4px', padding: '4px', fontSize: '0.7rem', color: 'var(--text-muted)', cursor: 'pointer' }}
+                                >
+                                  <Plus size={10} style={{ marginRight: '2px' }} /> Add Field Slot
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        );
+                      })()}
 
                       {/* 3. CHECKLIST TABLE BLOCK */}
                       {block.type === 'CHECKLIST_TABLE' && (
@@ -2436,64 +2471,53 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                   />
                 </div>
 
-                {activeBlock.type === 'SECTION_LABEL' && (
-                  <>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', borderTop: '1px solid var(--neutral-border)', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
-                      <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Format</label>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.25rem', background: '#f1f5f9', padding: '0.2rem', borderRadius: '6px' }}>
-                        <button
-                          type="button"
-                          disabled={isLocked}
-                          onClick={() => handleUpdateBlockSectionFormat(activeBlockId!, 'H1')}
-                          style={{
-                            padding: '0.3rem 0.5rem',
-                            fontSize: '0.82rem',
-                            fontWeight: 700,
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: isLocked ? 'not-allowed' : 'pointer',
-                            background: (activeBlock.sectionFormat || 'H1') === 'H1' ? 'var(--primary)' : 'transparent',
-                            color: (activeBlock.sectionFormat || 'H1') === 'H1' ? '#ffffff' : 'var(--text-secondary)',
-                            boxShadow: (activeBlock.sectionFormat || 'H1') === 'H1' ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
-                            transition: 'all 0.15s ease'
-                          }}
-                        >
-                          H1
-                        </button>
-                        <button
-                          type="button"
-                          disabled={isLocked}
-                          onClick={() => handleUpdateBlockSectionFormat(activeBlockId!, 'H2')}
-                          style={{
-                            padding: '0.3rem 0.5rem',
-                            fontSize: '0.82rem',
-                            fontWeight: 700,
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: isLocked ? 'not-allowed' : 'pointer',
-                            background: activeBlock.sectionFormat === 'H2' ? 'var(--primary)' : 'transparent',
-                            color: activeBlock.sectionFormat === 'H2' ? '#ffffff' : 'var(--text-secondary)',
-                            boxShadow: activeBlock.sectionFormat === 'H2' ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
-                            transition: 'all 0.15s ease'
-                          }}
-                        >
-                          H2
-                        </button>
-                      </div>
+                {activeBlock.type !== 'TITLE' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                    <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Title Format</label>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.2rem', background: '#f1f5f9', padding: '0.2rem', borderRadius: '6px' }}>
+                      {(['H1', 'H2', 'BODY', 'NONE'] as const).map(fmt => {
+                        const activeFmt = getEffectiveTitleFormat(activeBlock);
+                        const isSelected = activeFmt === fmt;
+                        const labelText = fmt === 'BODY' ? 'Body' : fmt === 'NONE' ? 'None' : fmt;
+                        return (
+                          <button
+                            key={fmt}
+                            type="button"
+                            disabled={isLocked}
+                            onClick={() => handleUpdateBlockTitleFormat(activeBlockId!, fmt)}
+                            style={{
+                              padding: '0.3rem 0.2rem',
+                              fontSize: '0.75rem',
+                              fontWeight: isSelected ? 700 : 500,
+                              border: 'none',
+                              borderRadius: '4px',
+                              cursor: isLocked ? 'not-allowed' : 'pointer',
+                              background: isSelected ? 'var(--primary)' : 'transparent',
+                              color: isSelected ? '#ffffff' : 'var(--text-secondary)',
+                              boxShadow: isSelected ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                              transition: 'all 0.15s ease'
+                            }}
+                          >
+                            {labelText}
+                          </button>
+                        );
+                      })}
                     </div>
+                  </div>
+                )}
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                      <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Description</label>
-                      <textarea
-                        disabled={isLocked}
-                        value={activeBlock.description || ''}
-                        onChange={(e) => handleUpdateBlockDescription(activeBlockId!, e.target.value)}
-                        placeholder="Nhập mô tả..."
-                        rows={3}
-                        style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', fontSize: '0.85rem', resize: 'vertical' }}
-                      />
-                    </div>
-                  </>
+                {activeBlock.type === 'SECTION_LABEL' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', borderTop: '1px solid var(--neutral-border)', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
+                    <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Description</label>
+                    <textarea
+                      disabled={isLocked}
+                      value={activeBlock.description || ''}
+                      onChange={(e) => handleUpdateBlockDescription(activeBlockId!, e.target.value)}
+                      placeholder="Nhập mô tả..."
+                      rows={3}
+                      style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', fontSize: '0.85rem', resize: 'vertical' }}
+                    />
+                  </div>
                 )}
 
                 {activeBlock.type === 'TITLE' && (
