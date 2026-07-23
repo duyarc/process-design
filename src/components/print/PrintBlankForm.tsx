@@ -131,7 +131,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
             display: none !important;
           }
           .print-block {
-            margin-bottom: 12px;
+            margin-bottom: 24px;
           }
           .print-block-avoid {
             page-break-inside: avoid;
@@ -325,9 +325,9 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
 
               return (
                 <div style={{
-                  padding: '2px 0',
-                  marginTop: '2px',
-                  marginBottom: '8px'
+                  padding: '0',
+                  marginTop: '0',
+                  marginBottom: '0'
                 }}>
                   {titleFmt !== 'NONE' && (
                     titleFmt === 'H1' ? (
@@ -415,7 +415,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
             {block.type === 'CHECKLIST_TABLE' && (() => {
               const titleFmt = getEffectiveTitleFormat(block);
               return (
-                <div style={{ marginTop: '15px' }}>
+                <div style={{ marginTop: '0' }}>
                   {titleFmt !== 'NONE' && (
                     titleFmt === 'H1' ? (
                       <h2 style={{ margin: '0 0 6px 0', fontSize: '1.05rem', fontWeight: 700, color: '#000000', textTransform: 'uppercase', borderBottom: '2px solid #000000', paddingBottom: '3px' }}>
@@ -526,7 +526,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
             {block.type === 'TABLE' && (() => {
               const titleFmt = getEffectiveTitleFormat(block);
               return (
-                <div style={{ marginTop: '15px' }}>
+                <div style={{ marginTop: '0' }}>
                   {titleFmt !== 'NONE' && (
                     titleFmt === 'H1' ? (
                       <h2 style={{ margin: '0 0 6px 0', fontSize: '1.05rem', fontWeight: 700, color: '#000000', textTransform: 'uppercase', borderBottom: '2px solid #000000', paddingBottom: '3px' }}>
@@ -704,7 +704,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
             {block.type === 'MATRIX_TABLE' && block.matrixConfig && (() => {
               const titleFmt = getEffectiveTitleFormat(block);
               return (
-                <div style={{ marginTop: '15px' }}>
+                <div style={{ marginTop: '0' }}>
                   {titleFmt !== 'NONE' && (
                     titleFmt === 'H1' ? (
                       <h2 style={{ margin: '0 0 6px 0', fontSize: '1.05rem', fontWeight: 700, color: '#000000', textTransform: 'uppercase', borderBottom: '2px solid #000000', paddingBottom: '3px' }}>
@@ -791,7 +791,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
             {block.type === 'SIGN' && (() => {
               const titleFmt = getEffectiveTitleFormat(block);
               return (
-                <div style={{ marginTop: '15px' }}>
+                <div style={{ marginTop: '0' }}>
                   {titleFmt !== 'NONE' && (
                     titleFmt === 'H1' ? (
                       <h2 style={{ margin: '0 0 6px 0', fontSize: '1.05rem', fontWeight: 700, color: '#000000', textTransform: 'uppercase', borderBottom: '2px solid #000000', paddingBottom: '3px' }}>

@@ -302,7 +302,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
             display: none !important;
           }
           .print-block {
-            margin-bottom: 12px;
+            margin-bottom: 24px;
           }
           .print-block-avoid {
             page-break-inside: avoid;
@@ -421,9 +421,9 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
 
         return (
           <div className="print-block print-block-avoid" style={{
-            padding: '10px 0',
-            marginTop: '10px',
-            marginBottom: '15px'
+            padding: '0',
+            marginTop: '0',
+            marginBottom: '0'
           }}>
             <div style={{
               display: 'flex',
@@ -458,7 +458,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
         const titleText = matchedBlock?.title || 'BẢNG KIỂM TRA CHẤT LƯỢNG';
         const titleFmt = matchedBlock ? getEffectiveTitleFormat(matchedBlock) : 'BODY';
         return (
-          <div className="print-block" style={{ marginTop: '15px' }}>
+          <div className="print-block" style={{ marginTop: '0' }}>
             {titleFmt !== 'NONE' && (
               titleFmt === 'H1' ? (
                 <h2 style={{ margin: '0 0 8px 0', fontSize: '1.05rem', fontWeight: 700, textTransform: 'uppercase', color: '#000000', borderBottom: '2px solid #000000', paddingBottom: '3px' }}>
@@ -593,7 +593,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
         const grandTotal = rowTotals.reduce((sum: number, val) => sum + val, 0);
 
         return (
-          <div key={block.blockId} className="print-block" style={{ marginTop: '15px' }}>
+          <div key={block.blockId} className="print-block" style={{ marginTop: '0' }}>
             {(() => {
               const matchedBlock = layoutBlocks.find(b => b.id === block.blockId);
               const titleText = matchedBlock?.title || 'BẢNG KIỂM ĐẾM SỐ LƯỢNG';
@@ -695,7 +695,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
       {layoutBlocks.filter(b => b.type === 'TABLE').map((block: any) => {
         const titleFmt = getEffectiveTitleFormat(block);
         return (
-          <div key={block.id} className="print-block" style={{ marginTop: '15px' }}>
+          <div key={block.id} className="print-block" style={{ marginTop: '0' }}>
             {titleFmt !== 'NONE' && (
               titleFmt === 'H1' ? (
                 <h2 style={{ margin: '0 0 8px 0', fontSize: '1.05rem', fontWeight: 700, textTransform: 'uppercase', color: '#000000', borderBottom: '2px solid #000000', paddingBottom: '3px' }}>
@@ -878,7 +878,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
       {layoutBlocks.filter(b => b.type === 'SECTION_LABEL').map((block: any) => {
         const isH1 = block.sectionFormat === 'H1';
         return (
-          <div key={block.id} className="print-block print-block-avoid" style={{ marginTop: '15px' }}>
+          <div key={block.id} className="print-block print-block-avoid" style={{ marginTop: '0' }}>
             {isH1 ? (
               <div style={{
                 padding: '4px 0 8px 0',
@@ -926,7 +926,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
 
       {/* PHOTO EVIDENCE LOG */}
       {imageUrls.length > 0 && (
-        <div className="print-block" style={{ marginTop: '20px', pageBreakInside: 'avoid' }}>
+        <div className="print-block" style={{ marginTop: '0', pageBreakInside: 'avoid' }}>
           <h4 style={{ margin: '0 0 10px 0', fontSize: '0.85rem', fontWeight: 'bold', textTransform: 'uppercase', color: '#475569' }}>
             Hình ảnh bằng chứng đính kèm (Photo Evidence Log)
           </h4>
