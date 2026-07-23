@@ -1,8 +1,20 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import type { FormTemplateISO } from '../../types';
+import type { FormTemplateISO, LayoutBlockISO, TableColumnConfig } from '../../types';
 import { formatFormVersion, getColStyleWidth } from '../../types';
 import { sanitizeLabel, getEffectiveTitleFormat } from '../../utils/formUtils';
+
+// Helper: derive CHECKLIST_TABLE columns — falls back to columnLabels for backward compat
+function getChecklistColumns(block: LayoutBlockISO): TableColumnConfig[] {
+  if (block.tableColumns && block.tableColumns.length > 0) return block.tableColumns;
+  return [
+    { id: 'col_stt',      label: block.columnLabels?.stt      || 'STT',                          width: '40px',  type: 'static_text', locked: true },
+    { id: 'col_item',     label: block.columnLabels?.item     || 'Chi tiết kiểm tra',            width: 'auto',  type: 'static_text', locked: true },
+    { id: 'col_target',   label: block.columnLabels?.target   || 'Đạt / Không Đạt',             width: '130px', type: 'radio',        align: 'center',
+      options: [{ label: 'Đ', value: 'PASS', isPass: true }, { label: 'KĐ', value: 'FAIL', isPass: false }] },
+    { id: 'col_reaction', label: block.columnLabels?.reaction || 'Mô tả cụ thể nếu Không đạt', width: '220px', type: 'text' }
+  ];
+}
 
 interface PrintBlankFormProps {
   template: FormTemplateISO;
@@ -437,10 +449,22 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                   }}>
                   <thead>
                     <tr>
-                      <th style={{ width: '40px', border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 600, fontSize: '0.8rem', textAlign: 'center' }}>{block.columnLabels?.stt || 'STT'}</th>
-                      <th style={{ border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 600, fontSize: '0.8rem', textAlign: 'left' }}>{block.columnLabels?.item || 'Chi tiết kiểm tra'}</th>
-                      <th style={{ width: '130px', border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 600, fontSize: '0.8rem', textAlign: 'center' }}>{block.columnLabels?.target || 'Đạt / Không Đạt'}</th>
-                      <th style={{ width: '220px', border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 600, fontSize: '0.8rem', textAlign: 'left' }}>{block.columnLabels?.reaction || 'Mô tả cụ thể nếu Không đạt'}</th>
+                      {getChecklistColumns(block).map((col, cIdx) => (
+                        <th
+                          key={col.id}
+                          style={{
+                            width: col.locked && cIdx === 1 ? undefined : col.width,
+                            border: '1.5px solid #000000',
+                            padding: '6px',
+                            background: '#f1f5f9',
+                            fontWeight: 600,
+                            fontSize: '0.8rem',
+                            textAlign: (col.align || (cIdx === 0 ? 'center' : 'left')) as any
+                          }}
+                        >
+                          {col.label}
+                        </th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody>
@@ -462,7 +486,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                       if (sectionHeader && sectionHeader !== prevSection) {
                         renderRows.push(
                           <tr key={`sec_${field.id}`} style={{ background: '#f8fafc', pageBreakInside: 'avoid' }}>
-                            <td colSpan={4} style={{ border: '1.5px solid #000000', padding: '6px 8px', fontWeight: 'bold', fontSize: '0.8rem', textTransform: 'uppercase', color: '#1e293b' }}>
+                            <td colSpan={getChecklistColumns(block).length} style={{ border: '1.5px solid #000000', padding: '6px 8px', fontWeight: 'bold', fontSize: '0.8rem', textTransform: 'uppercase', color: '#1e293b' }}>
                               {sectionHeader}
                             </td>
                           </tr>
@@ -478,14 +502,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                               <div style={{ display: 'flex', justifyContent: 'center', gap: '15px', flexWrap: 'wrap', alignItems: 'center' }}>
                                 {(field.options ?? [{ label: 'Đ', value: 'PASS', isPass: true }, { label: 'KĐ', value: 'FAIL', isPass: false }]).map(opt => (
                                   <span key={opt.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem' }}>
-                                    <span style={{
-                                      display: 'inline-block',
-                                      width: '14px',
-                                      height: '14px',
-                                      border: '1.5px solid #000000',
-                                      background: '#ffffff',
-                                      borderRadius: '2px'
-                                    }} />
+                                    <span style={{ display: 'inline-block', width: '14px', height: '14px', border: '1.5px solid #000000', background: '#ffffff', borderRadius: '2px' }} />
                                     <span>{opt.label}</span>
                                   </span>
                                 ))}
@@ -511,6 +528,10 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                               <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Spec: {field.minSpec} ~ {field.maxSpec} {field.unit}</span>
                             ) : ''}
                           </td>
+                          {/* Extra custom columns beyond the default 4 */}
+                          {getChecklistColumns(block).slice(4).map(col => (
+                            <td key={col.id} style={{ border: '1.5px solid #000000', padding: '8px 6px' }} />
+                          ))}
                         </tr>
                       );
 

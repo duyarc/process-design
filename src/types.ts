@@ -138,6 +138,7 @@ export interface TableColumnConfig {
   align?: 'left' | 'center' | 'right';
   checkboxLayout?: '1-column' | '2-column';
   summaryRows?: ColumnSummaryRowConfig[];
+  locked?: boolean; // If true: cannot delete or change type (used for structural cols in CHECKLIST_TABLE)
 }
 
 export interface TableRowConfig {

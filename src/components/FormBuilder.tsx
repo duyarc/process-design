@@ -374,6 +374,18 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     return { major: 0, minor: 1 };
   };
 
+  // Helper: derive CHECKLIST_TABLE columns — falls back to columnLabels for backward compat
+  const getChecklistColumns = (block: LayoutBlockISO): TableColumnConfig[] => {
+    if (block.tableColumns && block.tableColumns.length > 0) return block.tableColumns;
+    return [
+      { id: 'col_stt',      label: block.columnLabels?.stt      || 'STT',                          width: '40px',  type: 'static_text', locked: true },
+      { id: 'col_item',     label: block.columnLabels?.item     || 'Chi tiết kiểm tra',            width: 'auto',  type: 'static_text', locked: true },
+      { id: 'col_target',   label: block.columnLabels?.target   || 'Đạt / Không Đạt',             width: '130px', type: 'radio',        align: 'center',
+        options: [{ label: 'Đ', value: 'PASS', isPass: true }, { label: 'KĐ', value: 'FAIL', isPass: false }] },
+      { id: 'col_reaction', label: block.columnLabels?.reaction || 'Mô tả cụ thể nếu Không đạt', width: '220px', type: 'text' }
+    ];
+  };
+
   // 2. Block Handlers
   const handleAddBlock = (type: 'TITLE' | 'INFO_GRID' | 'CHECKLIST_TABLE' | 'MATRIX_TABLE' | 'SIGN' | 'TABLE' | 'SECTION_LABEL', columns: 1 | 2 | 3 = 1) => {
     if (isLocked) return;
@@ -402,7 +414,13 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
         notesColumnHeader: 'Ghi chú',
         columnAlign: 'center'
       } : undefined,
-      tableColumns: type === 'TABLE' ? [
+      tableColumns: type === 'CHECKLIST_TABLE' ? [
+        { id: 'col_stt',      label: 'STT',                          width: '40px',  type: 'static_text', locked: true },
+        { id: 'col_item',     label: 'Chi tiết kiểm tra',            width: 'auto',  type: 'static_text', locked: true },
+        { id: 'col_target',   label: 'Đạt / Không Đạt',             width: '130px', type: 'radio',        align: 'center',
+          options: [{ label: 'Đ', value: 'PASS', isPass: true }, { label: 'KĐ', value: 'FAIL', isPass: false }] },
+        { id: 'col_reaction', label: 'Mô tả cụ thể nếu Không đạt', width: '220px', type: 'text' }
+      ] : type === 'TABLE' ? [
         { id: 'col_1', label: 'STT', width: '10%', type: 'static_text' },
         { id: 'col_2', label: 'Tên hạng mục', width: '50%', type: 'static_text' },
         { id: 'col_3', label: 'Trị số', width: '20%', type: 'number' },
@@ -476,21 +494,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
   const handleUpdateBlockTitleFormat = (blockId: string, format: TitleFormatISO) => {
     setLayoutBlocks(prev => prev.map(b => b.id === blockId ? { ...b, titleFormat: format, sectionFormat: format === 'H1' || format === 'H2' ? format : b.sectionFormat } : b));
   };
-  const handleUpdateBlockColumnLabels = (blockId: string, updates: Partial<NonNullable<LayoutBlockISO['columnLabels']>>) => {
-    setLayoutBlocks(prev => prev.map(b => {
-      if (b.id !== blockId) return b;
-      return {
-        ...b,
-        columnLabels: {
-          stt: b.columnLabels?.stt || 'STT',
-          item: b.columnLabels?.item || 'Nội dung kiểm tra',
-          target: b.columnLabels?.target || 'Kết quả',
-          reaction: b.columnLabels?.reaction || 'Ghi chú lỗi',
-          ...updates
-        }
-      };
-    }));
-  };
+
+
 
   const handleUpdateBlockMatrixConfig = (blockId: string, updates: Partial<MatrixConfigISO>) => {
     setLayoutBlocks(prev => prev.map(b => {
@@ -1724,16 +1729,24 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
                             <thead>
                               <tr style={{ background: '#f1f5f9', borderBottom: '1px solid #cbd5e1' }}>
-                                <th style={{ padding: '4px 6px', textAlign: 'left', width: '40px' }}>{block.columnLabels?.stt || 'STT'}</th>
-                                <th style={{ padding: '4px 6px', textAlign: 'left' }}>{block.columnLabels?.item || 'Chi tiết kiểm tra'}</th>
-                                <th style={{ padding: '4px 6px', textAlign: 'center', width: '130px' }}>{block.columnLabels?.target || 'Đạt / Không Đạt'}</th>
-                                <th style={{ padding: '4px 6px', textAlign: 'left', width: '220px' }}>{block.columnLabels?.reaction || 'Mô tả cụ thể nếu Không đạt'}</th>
+                                {getChecklistColumns(block).map((col, cIdx) => (
+                                  <th
+                                    key={col.id}
+                                    style={{
+                                      padding: '4px 6px',
+                                      textAlign: (col.align || (cIdx === 0 ? 'center' : 'left')) as any,
+                                      width: col.type === 'static_text' && col.locked && cIdx === 1 ? undefined : col.width
+                                    }}
+                                  >
+                                    {col.label}
+                                  </th>
+                                ))}
                               </tr>
                             </thead>
                             <tbody>
                               {block.fields.length === 0 ? (
                                 <tr>
-                                  <td colSpan={4} style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                                  <td colSpan={getChecklistColumns(block).length} style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
                                     No checklist fields added yet. Click elements in the left panel to populate this checklist.
                                   </td>
                                 </tr>
@@ -1754,45 +1767,55 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                         cursor: 'pointer'
                                       }}
                                     >
-                                      <td style={{ padding: '4px 6px', fontWeight: 600 }}>{idx + 1}</td>
-                                      <td style={{ padding: '4px 6px' }}>{f.checkItem}</td>
-                                      <td style={{ padding: '4px 6px', textAlign: 'center' }}>
-                                        {(f.type === 'radio' || f.type === 'checkbox') ? (
-                                          <div style={{ display: 'flex', justifyContent: 'center', gap: '4px', flexWrap: 'wrap' }}>
-                                            {(f.options ?? DEFAULT_RADIO_OPTIONS).map(opt => (
-                                              <span key={opt.value} style={{
-                                                display: 'inline-flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                padding: '0 5px',
-                                                height: '16px',
-                                                borderRadius: '8px',
-                                                border: '1px solid #cbd5e1',
-                                                fontSize: '0.5rem',
-                                                color: 'var(--text-secondary)',
-                                                whiteSpace: 'nowrap'
-                                              }}>{opt.label}</span>
-                                            ))}
-                                          </div>
-                                        ) : f.type === 'time' ? (
-                                          f.timeMode === 'dual' ? (
-                                            <span style={{ color: 'var(--text-muted)', fontSize: '0.65rem' }}>([Từ] ~ [Đến])</span>
-                                          ) : (
-                                            <span style={{ color: 'var(--text-muted)', fontSize: '0.65rem' }}>([Giờ])</span>
-                                          )
-                                        ) : f.type === 'number' ? (
-                                          (f.minSpec !== undefined && f.minSpec !== null && f.maxSpec !== undefined && f.maxSpec !== null) ? (
-                                            <span style={{ color: 'var(--text-muted)', fontSize: '0.65rem' }}>({f.minSpec}-{f.maxSpec} {f.unit})</span>
-                                          ) : f.unit ? (
-                                            <span style={{ color: 'var(--text-muted)', fontSize: '0.65rem' }}>({f.unit})</span>
-                                          ) : null
-                                        ) : (
-                                          <span style={{ color: 'var(--text-muted)', fontSize: '0.65rem' }}>{f.type}</span>
-                                        )}
-                                      </td>
-                                      <td style={{ padding: '4px 6px', borderLeft: '1px solid #e2e8f0', color: 'var(--text-muted)', fontStyle: 'italic', fontSize: '0.65rem' }}>
-                                        {f.reactionProtocol ? 'Reaction protocol active' : ''}
-                                      </td>
+                                      {getChecklistColumns(block).map((col, cIdx) => {
+                                        if (cIdx === 0) {
+                                          // STT column — auto index
+                                          return <td key={col.id} style={{ padding: '4px 6px', fontWeight: 600, textAlign: 'center' }}>{idx + 1}</td>;
+                                        }
+                                        if (cIdx === 1) {
+                                          // Item column — field checkItem text
+                                          return <td key={col.id} style={{ padding: '4px 6px' }}>{f.checkItem}</td>;
+                                        }
+                                        if (cIdx === 2) {
+                                          // Primary result column — render based on field type
+                                          return (
+                                            <td key={col.id} style={{ padding: '4px 6px', textAlign: 'center' }}>
+                                              {(f.type === 'radio' || f.type === 'checkbox') ? (
+                                                <div style={{ display: 'flex', justifyContent: 'center', gap: '4px', flexWrap: 'wrap' }}>
+                                                  {(f.options ?? DEFAULT_RADIO_OPTIONS).map(opt => (
+                                                    <span key={opt.value} style={{
+                                                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                                                      padding: '0 5px', height: '16px', borderRadius: '8px',
+                                                      border: '1px solid #cbd5e1', fontSize: '0.5rem',
+                                                      color: 'var(--text-secondary)', whiteSpace: 'nowrap'
+                                                    }}>{opt.label}</span>
+                                                  ))}
+                                                </div>
+                                              ) : f.type === 'time' ? (
+                                                f.timeMode === 'dual'
+                                                  ? <span style={{ color: 'var(--text-muted)', fontSize: '0.65rem' }}>([Từ] ~ [Đến])</span>
+                                                  : <span style={{ color: 'var(--text-muted)', fontSize: '0.65rem' }}>([Giờ])</span>
+                                              ) : f.type === 'number' ? (
+                                                (f.minSpec !== undefined && f.maxSpec !== undefined)
+                                                  ? <span style={{ color: 'var(--text-muted)', fontSize: '0.65rem' }}>({f.minSpec}-{f.maxSpec} {f.unit})</span>
+                                                  : f.unit ? <span style={{ color: 'var(--text-muted)', fontSize: '0.65rem' }}>({f.unit})</span> : null
+                                              ) : (
+                                                <span style={{ color: 'var(--text-muted)', fontSize: '0.65rem' }}>{f.type}</span>
+                                              )}
+                                            </td>
+                                          );
+                                        }
+                                        if (cIdx === 3) {
+                                          // Default reaction/notes column
+                                          return (
+                                            <td key={col.id} style={{ padding: '4px 6px', borderLeft: '1px solid #e2e8f0', color: 'var(--text-muted)', fontStyle: 'italic', fontSize: '0.65rem' }}>
+                                              {f.reactionProtocol ? 'Reaction protocol active' : ''}
+                                            </td>
+                                          );
+                                        }
+                                        // Extra custom columns — empty placeholder
+                                        return <td key={col.id} style={{ padding: '4px 6px', borderLeft: '1px solid #e2e8f0' }} />;
+                                      })}
                                     </tr>
                                   );
                                 })
@@ -2603,53 +2626,162 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                   </>
                 )}
 
-                {activeBlock.type === 'CHECKLIST_TABLE' && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', borderTop: '1px solid var(--neutral-border)', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
-                    <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Table Column Labels</label>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.2rem' }}>
-                      <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-                        <span style={{ width: '45px', color: 'var(--text-muted)' }}>Col 1</span>
-                        <input
-                          type="text"
-                          disabled={isLocked}
-                          value={activeBlock.columnLabels?.stt || 'STT'}
-                          onChange={(e) => handleUpdateBlockColumnLabels(activeBlockId!, { stt: e.target.value })}
-                          style={{ flex: 1, padding: '0.25rem 0.4rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
-                        />
+                {activeBlock.type === 'CHECKLIST_TABLE' && (() => {
+                  const clCols = getChecklistColumns(activeBlock);
+                  const clSumOther = clCols.length > 1
+                    ? clCols.slice(0, clCols.length - 1)
+                        .filter(c => !c.locked && c.width && (c.width.endsWith('%') || !isNaN(parseFloat(c.width))))
+                        .reduce((sum, c) => sum + parseFloat(c.width), 0)
+                    : 0;
+                  const clLastAdjusted = Math.max(0, 100 - clSumOther);
+
+                  return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', borderTop: '1px solid var(--neutral-border)', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
+                      <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Cấu hình Cột</label>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingRight: '4px' }}>
+                        {clCols.map((col, cIdx, arr) => {
+                          const isLast = cIdx === arr.length - 1;
+                          const isLockedCol = !!col.locked;
+                          return (
+                            <div key={col.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', border: `1px solid ${isLockedCol ? '#e2e8f0' : 'var(--neutral-border)'}`, padding: '6px', borderRadius: '4px', background: isLockedCol ? '#f1f5f9' : '#f8fafc' }}>
+                              <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
+                                {isLockedCol && (
+                                  <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', padding: '1px 4px', background: '#e2e8f0', borderRadius: '3px', whiteSpace: 'nowrap' }}>🔒 Cố định</span>
+                                )}
+                                <input
+                                  type="text"
+                                  disabled={isLocked}
+                                  value={col.label}
+                                  onChange={(e) => handleUpdateTableColumn(activeBlock.id, col.id, { label: e.target.value })}
+                                  placeholder="Tên cột"
+                                  style={{ flex: 1, padding: '0.2rem 0.3rem', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
+                                />
+                                <button
+                                  type="button"
+                                  disabled={isLocked || cIdx === 0 || isLockedCol}
+                                  onClick={() => handleMoveColumn(activeBlock.id, col.id, 'left')}
+                                  style={{ width: '24px', height: '24px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: isLocked || cIdx === 0 || isLockedCol ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: isLocked || cIdx === 0 || isLockedCol ? 0.4 : 1, padding: 0 }}
+                                  title="Di chuyển lên"
+                                >
+                                  <ArrowUp size={13} style={{ color: '#0f172a' }} />
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={isLocked || cIdx === arr.length - 1 || isLockedCol}
+                                  onClick={() => handleMoveColumn(activeBlock.id, col.id, 'right')}
+                                  style={{ width: '24px', height: '24px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: isLocked || cIdx === arr.length - 1 || isLockedCol ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: isLocked || cIdx === arr.length - 1 || isLockedCol ? 0.4 : 1, padding: 0 }}
+                                  title="Di chuyển xuống"
+                                >
+                                  <ArrowDown size={13} style={{ color: '#0f172a' }} />
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={isLocked || arr.length <= 1 || isLockedCol}
+                                  onClick={() => handleDeleteColumn(activeBlock.id, col.id)}
+                                  style={{ width: '24px', height: '24px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: isLocked || arr.length <= 1 || isLockedCol ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: isLocked || arr.length <= 1 || isLockedCol ? 0.4 : 1, padding: 0 }}
+                                  title="Xóa cột"
+                                >
+                                  <Trash2 size={13} style={{ color: '#ef4444' }} />
+                                </button>
+                              </div>
+
+                              {!isLockedCol && (
+                                <div style={{ display: 'flex', gap: '0.25rem' }}>
+                                  <select
+                                    disabled={isLocked}
+                                    value={col.type}
+                                    onChange={(e) => handleUpdateTableColumn(activeBlock.id, col.id, { type: e.target.value as any })}
+                                    style={{ flex: 1.0, padding: '0.2rem 0.3rem', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
+                                  >
+                                    <option value="text">Chữ</option>
+                                    <option value="number">Số</option>
+                                    <option value="checkbox">Checkbox</option>
+                                    <option value="radio">Radio</option>
+                                    <option value="date">Ngày</option>
+                                    <option value="time">Giờ</option>
+                                    <option value="static_text">Nhãn</option>
+                                  </select>
+
+                                  {(() => {
+                                    const currentAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? 'center' : 'left'));
+                                    return (
+                                      <div style={{ display: 'flex', border: '1px solid var(--neutral-border)', borderRadius: '4px', overflow: 'hidden', flex: 0.6 }}>
+                                        <button type="button" disabled={isLocked} onClick={() => handleUpdateTableColumn(activeBlock.id, col.id, { align: 'left' })} style={{ flex: 1, padding: '2px', background: currentAlign === 'left' ? '#cbd5e1' : '#ffffff', border: 'none', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center' }} title="Canh trái"><AlignLeft size={12} style={{ color: currentAlign === 'left' ? 'var(--text-primary)' : 'var(--text-muted)' }} /></button>
+                                        <button type="button" disabled={isLocked} onClick={() => handleUpdateTableColumn(activeBlock.id, col.id, { align: 'center' })} style={{ flex: 1, padding: '2px', background: currentAlign === 'center' ? '#cbd5e1' : '#ffffff', borderLeft: '1px solid var(--neutral-border)', borderRight: '1px solid var(--neutral-border)', borderTop: 'none', borderBottom: 'none', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center' }} title="Canh giữa"><AlignCenter size={12} style={{ color: currentAlign === 'center' ? 'var(--text-primary)' : 'var(--text-muted)' }} /></button>
+                                        <button type="button" disabled={isLocked} onClick={() => handleUpdateTableColumn(activeBlock.id, col.id, { align: 'right' })} style={{ flex: 1, padding: '2px', background: currentAlign === 'right' ? '#cbd5e1' : '#ffffff', border: 'none', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center' }} title="Canh phải"><AlignRight size={12} style={{ color: currentAlign === 'right' ? 'var(--text-primary)' : 'var(--text-muted)' }} /></button>
+                                      </div>
+                                    );
+                                  })()}
+
+                                  <input
+                                    type="text"
+                                    disabled={isLocked || isLast}
+                                    value={isLast ? `${clLastAdjusted}%` : col.width}
+                                    onChange={(e) => {
+                                      const val = e.target.value;
+                                      const finalVal = /^\d+$/.test(val) ? `${val}%` : val;
+                                      handleUpdateTableColumn(activeBlock.id, col.id, { width: finalVal });
+                                    }}
+                                    placeholder="Width %"
+                                    style={{ flex: 0.6, padding: '0.2rem 0.3rem', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', backgroundColor: isLast ? '#f1f5f9' : '#ffffff', color: isLast ? '#64748b' : 'inherit', cursor: isLast ? 'not-allowed' : 'text' }}
+                                  />
+                                </div>
+                              )}
+
+                              {col.type === 'checkbox' && !isLockedCol && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', marginTop: '0.2rem', padding: '0.4rem', borderTop: '1px dashed var(--neutral-border)' }}>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                    {(col.options || []).map((opt, oIdx) => (
+                                      <div key={oIdx} style={{ display: 'flex', gap: '0.2rem', alignItems: 'center' }}>
+                                        <input type="text" disabled={isLocked} placeholder="Nhãn" value={opt.label} onChange={(e) => { const newOpts = [...(col.options || [])]; newOpts[oIdx] = { ...newOpts[oIdx], label: e.target.value }; handleUpdateTableColumn(activeBlock.id, col.id, { options: newOpts }); }} style={{ flex: 1, padding: '0.15rem 0.25rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', fontSize: '0.7rem' }} />
+                                        <button type="button" disabled={isLocked} onClick={() => { const newOpts = (col.options || []).filter((_, i) => i !== oIdx); handleUpdateTableColumn(activeBlock.id, col.id, { options: newOpts }); }} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '0 2px', fontSize: '0.75rem', lineHeight: 1 }}>✕</button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                  {!isLocked && (
+                                    <button type="button" onClick={() => { const newOpts = [...(col.options || []), { label: 'Lựa chọn mới', value: `OPT_${Date.now()}`, isPass: false }]; handleUpdateTableColumn(activeBlock.id, col.id, { options: newOpts }); }} style={{ display: 'flex', alignItems: 'center', gap: '2px', padding: '0.15rem 0.3rem', fontSize: '0.65rem', borderRadius: '4px', border: '1px dashed #94a3b8', background: 'none', color: 'var(--text-secondary)', cursor: 'pointer', width: 'fit-content' }}>
+                                      <Plus size={10} /> Thêm lựa chọn
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+
+                              {col.type === 'radio' && !isLockedCol && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', marginTop: '0.2rem', padding: '0.4rem', borderTop: '1px dashed var(--neutral-border)' }}>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                    {(col.options || []).map((opt, oIdx) => (
+                                      <div key={oIdx} style={{ display: 'flex', gap: '0.2rem', alignItems: 'center' }}>
+                                        <input type="text" disabled={isLocked} placeholder="Nhãn" value={opt.label} onChange={(e) => { const newOpts = [...(col.options || [])]; newOpts[oIdx] = { ...newOpts[oIdx], label: e.target.value }; handleUpdateTableColumn(activeBlock.id, col.id, { options: newOpts }); }} style={{ flex: 1, padding: '0.15rem 0.25rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', fontSize: '0.7rem' }} />
+                                        <button type="button" disabled={isLocked} onClick={() => { const newOpts = (col.options || []).filter((_, i) => i !== oIdx); handleUpdateTableColumn(activeBlock.id, col.id, { options: newOpts }); }} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '0 2px', fontSize: '0.75rem', lineHeight: 1 }}>✕</button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                  {!isLocked && (
+                                    <button type="button" onClick={() => { const newOpts = [...(col.options || []), { label: 'Lựa chọn mới', value: `OPT_${Date.now()}`, isPass: false }]; handleUpdateTableColumn(activeBlock.id, col.id, { options: newOpts }); }} style={{ display: 'flex', alignItems: 'center', gap: '2px', padding: '0.15rem 0.3rem', fontSize: '0.65rem', borderRadius: '4px', border: '1px dashed #94a3b8', background: 'none', color: 'var(--text-secondary)', cursor: 'pointer', width: 'fit-content' }}>
+                                      <Plus size={10} /> Thêm lựa chọn
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
-                      <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-                        <span style={{ width: '45px', color: 'var(--text-muted)' }}>Col 2</span>
-                        <input
-                          type="text"
-                          disabled={isLocked}
-                          value={activeBlock.columnLabels?.item || 'Chi tiết kiểm tra'}
-                          onChange={(e) => handleUpdateBlockColumnLabels(activeBlockId!, { item: e.target.value })}
-                          style={{ flex: 1, padding: '0.25rem 0.4rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
-                        />
-                      </div>
-                      <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-                        <span style={{ width: '45px', color: 'var(--text-muted)' }}>Col 3</span>
-                        <input
-                          type="text"
-                          disabled={isLocked}
-                          value={activeBlock.columnLabels?.target || 'Đạt / Không Đạt'}
-                          onChange={(e) => handleUpdateBlockColumnLabels(activeBlockId!, { target: e.target.value })}
-                          style={{ flex: 1, padding: '0.25rem 0.4rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
-                        />
-                      </div>
-                      <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-                        <span style={{ width: '45px', color: 'var(--text-muted)' }}>Col 4</span>
-                        <input
-                          type="text"
-                          disabled={isLocked}
-                          value={activeBlock.columnLabels?.reaction || 'Mô tả cụ thể nếu Không đạt'}
-                          onChange={(e) => handleUpdateBlockColumnLabels(activeBlockId!, { reaction: e.target.value })}
-                          style={{ flex: 1, padding: '0.25rem 0.4rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
-                        />
-                      </div>
+
+                      <button
+                        type="button"
+                        disabled={isLocked}
+                        onClick={() => handleAddColumn(activeBlock.id)}
+                        className="btn btn-secondary btn-sm"
+                        style={{ padding: '0.35rem', fontSize: '0.75rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.25rem' }}
+                      >
+                        <Plus size={12} />
+                        <span>Thêm Cột Mới</span>
+                      </button>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
 
                 {activeBlock.type === 'TABLE' && (() => {
                   const cols = activeBlock.tableColumns || [];

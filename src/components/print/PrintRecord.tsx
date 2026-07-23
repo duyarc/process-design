@@ -1,8 +1,20 @@
 import { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
-import type { Submission } from '../../types';
+import type { Submission, LayoutBlockISO, TableColumnConfig } from '../../types';
 import { formatFormVersion, getColStyleWidth } from '../../types';
 import { sanitizeLabel, getEffectiveTitleFormat } from '../../utils/formUtils';
+
+// Helper: derive CHECKLIST_TABLE columns — falls back to columnLabels for backward compat
+function getChecklistColumns(block: LayoutBlockISO | undefined, fallbackLabels?: { stt?: string; item?: string; target?: string; reaction?: string }): TableColumnConfig[] {
+  if (block?.tableColumns && block.tableColumns.length > 0) return block.tableColumns;
+  return [
+    { id: 'col_stt',      label: block?.columnLabels?.stt      || fallbackLabels?.stt      || 'STT',                          width: '40px',  type: 'static_text', locked: true },
+    { id: 'col_item',     label: block?.columnLabels?.item     || fallbackLabels?.item     || 'Chi tiết kiểm tra',            width: 'auto',  type: 'static_text', locked: true },
+    { id: 'col_target',   label: block?.columnLabels?.target   || fallbackLabels?.target   || 'Đạt / Không Đạt',             width: '90px',  type: 'radio',        align: 'center',
+      options: [{ label: 'Đ', value: 'PASS', isPass: true }, { label: 'KĐ', value: 'FAIL', isPass: false }] },
+    { id: 'col_reaction', label: block?.columnLabels?.reaction || fallbackLabels?.reaction || 'Mô tả cụ thể nếu Không đạt', width: '220px', type: 'text' }
+  ];
+}
 
 interface PrintRecordProps {
   submission: Submission;
@@ -480,10 +492,22 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
             }}>
             <thead>
               <tr>
-                <th style={{ width: '40px', border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 600, fontSize: '0.8rem', textAlign: 'center' }}>{columnLabels?.stt || 'STT'}</th>
-                <th style={{ border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 600, fontSize: '0.8rem', textAlign: 'left' }}>{columnLabels?.item || 'Chi tiết kiểm tra'}</th>
-                <th style={{ width: '90px', border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 600, fontSize: '0.8rem', textAlign: 'center' }}>{columnLabels?.target || 'Đạt / Không Đạt'}</th>
-                <th style={{ width: '220px', border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 600, fontSize: '0.8rem', textAlign: 'left' }}>{columnLabels?.reaction || 'Mô tả cụ thể nếu Không đạt'}</th>
+                {getChecklistColumns(matchedBlock, columnLabels).map((col, cIdx) => (
+                  <th
+                    key={col.id}
+                    style={{
+                      width: col.locked && cIdx === 1 ? undefined : col.width,
+                      border: '1.5px solid #000000',
+                      padding: '6px',
+                      background: '#f1f5f9',
+                      fontWeight: 600,
+                      fontSize: '0.8rem',
+                      textAlign: (col.align || (cIdx === 0 ? 'center' : 'left')) as any
+                    }}
+                  >
+                    {col.label}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
@@ -506,7 +530,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                 if (sectionHeader && sectionHeader !== prevSection) {
                   renderRows.push(
                     <tr key={`sec_${field.id}`} style={{ background: '#f8fafc', pageBreakInside: 'avoid' }}>
-                      <td colSpan={4} style={{ border: '1.5px solid #000000', padding: '6px 8px', fontWeight: 'bold', fontSize: '0.8rem', textTransform: 'uppercase', color: '#1e293b' }}>
+                      <td colSpan={getChecklistColumns(matchedBlock, columnLabels).length} style={{ border: '1.5px solid #000000', padding: '6px 8px', fontWeight: 'bold', fontSize: '0.8rem', textTransform: 'uppercase', color: '#1e293b' }}>
                         {sectionHeader}
                       </td>
                     </tr>
@@ -562,6 +586,10 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                         ''
                       )}
                     </td>
+                    {/* Extra custom columns beyond the default 4 */}
+                    {getChecklistColumns(matchedBlock, columnLabels).slice(4).map(col => (
+                      <td key={col.id} style={{ border: '1.5px solid #000000', padding: '8px 6px' }} />
+                    ))}
                   </tr>
                 );
 
