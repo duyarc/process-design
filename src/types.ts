@@ -139,6 +139,7 @@ export interface TableColumnConfig {
   checkboxLayout?: '1-column' | '2-column';
   summaryRows?: ColumnSummaryRowConfig[];
   locked?: boolean; // If true: cannot delete or change type (used for structural cols in CHECKLIST_TABLE)
+  hidden?: boolean; // If true: do not render in canvas/print layout
 }
 
 export interface TableRowConfig {
@@ -169,6 +170,7 @@ export interface LayoutBlockISO {
   tableData?: { [rowId: string]: { [colId: string]: string } };
   showDate?: boolean;
   datePosition?: 'A' | 'B';
+  hideSTT?: boolean;
 }
 
 export interface FormTemplateISO {

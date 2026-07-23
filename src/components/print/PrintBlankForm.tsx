@@ -6,14 +6,34 @@ import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName } from '../../util
 
 // Helper: derive CHECKLIST_TABLE columns — falls back to columnLabels for backward compat
 function getChecklistColumns(block: LayoutBlockISO): TableColumnConfig[] {
-  if (block.tableColumns && block.tableColumns.length > 0) return block.tableColumns;
-  return [
-    { id: 'col_stt',      label: block.columnLabels?.stt      || 'STT',                          width: '40px',  type: 'static_text', locked: true },
-    { id: 'col_item',     label: block.columnLabels?.item     || 'Chi tiết kiểm tra',            width: 'auto',  type: 'static_text', locked: true },
-    { id: 'col_target',   label: block.columnLabels?.target   || 'Đạt / Không Đạt',             width: '130px', type: 'radio',        align: 'center',
-      options: [{ label: 'Đ', value: 'PASS', isPass: true }, { label: 'KĐ', value: 'FAIL', isPass: false }] },
-    { id: 'col_reaction', label: block.columnLabels?.reaction || 'Mô tả cụ thể nếu Không đạt', width: '220px', type: 'text' }
-  ];
+  let cols: TableColumnConfig[];
+  if (block.tableColumns && block.tableColumns.length > 0) {
+    cols = block.tableColumns;
+  } else if (block.columnLabels) {
+    cols = [
+      { id: 'col_stt',      label: block.columnLabels.stt      || 'STT',                          width: '40px',  type: 'static_text', locked: true },
+      { id: 'col_item',     label: block.columnLabels.item     || 'Chi tiết kiểm tra',            width: 'auto',  type: 'static_text', locked: true },
+      { id: 'col_target',   label: block.columnLabels.target   || 'Đạt / Không Đạt',             width: '130px', type: 'radio',        align: 'center',
+        options: [{ label: 'Đ', value: 'PASS', isPass: true }, { label: 'KĐ', value: 'FAIL', isPass: false }] },
+      { id: 'col_reaction', label: block.columnLabels.reaction || 'Mô tả cụ thể nếu Không đạt', width: '220px', type: 'text' }
+    ];
+  } else {
+    cols = [
+      { id: 'col_stt',      label: 'STT',                          width: '5%',   type: 'static_text', locked: true },
+      { id: 'col_item',     label: 'Tiêu chí',                     width: '35%',  type: 'static_text', locked: true },
+      { id: 'col_unit',     label: 'Đơn vị',                       width: '10%',  type: 'static_text', locked: true },
+      { id: 'col_spec',     label: 'Tiêu chuẩn',                   width: '20%',  type: 'static_text', locked: true },
+      { id: 'col_target',   label: 'Kết quả',                      width: '15%',  type: 'radio',        align: 'center', locked: true,
+        options: [{ label: 'Đ', value: 'PASS', isPass: true }, { label: 'KĐ', value: 'FAIL', isPass: false }] },
+      { id: 'col_reaction', label: 'Ghi chú',                      width: '15%',  type: 'text' }
+    ];
+  }
+
+  if (block.hideSTT) {
+    cols = cols.map(c => c.id === 'col_stt' ? { ...c, hidden: true } : c);
+  }
+
+  return cols.filter(c => !c.hidden);
 }
 
 interface PrintBlankFormProps {
@@ -482,17 +502,17 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                   }}>
                   <thead>
                     <tr>
-                      {getChecklistColumns(block).map((col, cIdx) => (
+                      {getChecklistColumns(block).map((col) => (
                         <th
                           key={col.id}
                           style={{
-                            width: col.locked && cIdx === 1 ? undefined : col.width,
+                            width: col.width,
                             border: '1.5px solid #000000',
                             padding: '6px',
                             background: '#f1f5f9',
                             fontWeight: 600,
                             fontSize: '0.8rem',
-                            textAlign: (col.align || (cIdx === 0 ? 'center' : 'left')) as any
+                            textAlign: (col.align || (col.id === 'col_stt' ? 'center' : 'left')) as any
                           }}
                         >
                           {col.label}
@@ -528,43 +548,73 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
 
                       renderRows.push(
                         <tr key={field.id} style={{ pageBreakInside: 'avoid' }}>
-                          <td style={{ border: '1.5px solid #000000', padding: '8px 6px', textAlign: 'center', fontSize: '0.8rem', fontWeight: 600 }}>{idx + 1}</td>
-                          <td style={{ border: '1.5px solid #000000', padding: '8px 6px', fontSize: '0.8rem' }}>{displayTitle}</td>
-                          <td style={{ border: '1.5px solid #000000', padding: '8px 6px', textAlign: 'center' }}>
-                            {(field.type === 'radio' || field.type === 'checkbox') ? (
-                              <div style={{ display: 'flex', justifyContent: 'center', gap: '15px', flexWrap: 'wrap', alignItems: 'center' }}>
-                                {(field.options ?? [{ label: 'Đ', value: 'PASS', isPass: true }, { label: 'KĐ', value: 'FAIL', isPass: false }]).map(opt => (
-                                  <span key={opt.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem' }}>
-                                    <span style={{ display: 'inline-block', width: '14px', height: '14px', border: '1.5px solid #000000', background: '#ffffff', borderRadius: '2px' }} />
-                                    <span>{opt.label}</span>
-                                  </span>
-                                ))}
-                              </div>
-                            ) : field.type === 'time' ? (
-                              field.timeMode === 'dual' ? (
-                                <div style={{ fontSize: '0.75rem', color: '#000000', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '2px' }}>
-                                  Từ <span style={{ borderBottom: '1px solid #000000', width: '22px', display: 'inline-block', height: '12px' }} />:<span style={{ borderBottom: '1px solid #000000', width: '22px', display: 'inline-block', height: '12px' }} /> đến <span style={{ borderBottom: '1px solid #000000', width: '22px', display: 'inline-block', height: '12px' }} />:<span style={{ borderBottom: '1px solid #000000', width: '22px', display: 'inline-block', height: '12px' }} />
-                                </div>
-                              ) : (
-                                <div style={{ fontSize: '0.75rem', color: '#000000', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '2px' }}>
-                                  <span style={{ borderBottom: '1px solid #000000', width: '30px', display: 'inline-block', height: '12px' }} /> : <span style={{ borderBottom: '1px solid #000000', width: '30px', display: 'inline-block', height: '12px' }} />
-                                </div>
-                              )
-                            ) : field.type === 'number' ? (
-                              <span style={{ fontSize: '0.75rem', color: '#64748b' }}>.............. {field.unit || 'oC'}</span>
-                            ) : (
-                              <div style={{ borderBottom: '1px dashed #94a3b8', width: '80%', height: '14px', margin: '0 auto' }} />
-                            )}
-                          </td>
-                          <td style={{ border: '1.5px solid #000000', padding: '8px 6px', textAlign: 'left', fontSize: '0.75rem', color: '#64748b' }}>
-                            {field.type === 'number' && field.minSpec !== undefined && field.minSpec !== null && field.maxSpec !== undefined && field.maxSpec !== null ? (
-                              <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>Spec: {field.minSpec} ~ {field.maxSpec} {field.unit}</span>
-                            ) : ''}
-                          </td>
-                          {/* Extra custom columns beyond the default 4 */}
-                          {getChecklistColumns(block).slice(4).map(col => (
-                            <td key={col.id} style={{ border: '1.5px solid #000000', padding: '8px 6px' }} />
-                          ))}
+                          {getChecklistColumns(block).map((col) => {
+                            const commonStyle: React.CSSProperties = {
+                              border: '1.5px solid #000000',
+                              padding: '8px 6px',
+                              fontSize: '0.8rem',
+                              textAlign: col.align as any || 'left'
+                            };
+
+                            if (col.id === 'col_stt') {
+                              return <td key={col.id} style={{ ...commonStyle, textAlign: 'center', fontWeight: 600 }}>{idx + 1}</td>;
+                            }
+                            if (col.id === 'col_item') {
+                              return <td key={col.id} style={commonStyle}>{displayTitle}</td>;
+                            }
+                            if (col.id === 'col_unit') {
+                              return <td key={col.id} style={{ ...commonStyle, textAlign: 'center' }}>{field.unit || ''}</td>;
+                            }
+                            if (col.id === 'col_spec') {
+                              let specText = '';
+                              if (field.type === 'number') {
+                                if (field.minSpec !== undefined && field.maxSpec !== undefined) {
+                                  specText = `${field.minSpec} ~ ${field.maxSpec}`;
+                                } else if (field.minSpec !== undefined) {
+                                  specText = `>= ${field.minSpec}`;
+                                } else if (field.maxSpec !== undefined) {
+                                  specText = `<= ${field.maxSpec}`;
+                                }
+                              } else {
+                                specText = field.targetRange || '';
+                              }
+                              return <td key={col.id} style={commonStyle}>{specText}</td>;
+                            }
+                            if (col.id === 'col_target') {
+                              return (
+                                <td key={col.id} style={{ ...commonStyle, textAlign: 'center' }}>
+                                  {(field.type === 'radio' || field.type === 'checkbox') ? (
+                                    <div style={{ display: 'flex', justifyContent: 'center', gap: '15px', flexWrap: 'wrap', alignItems: 'center' }}>
+                                      {(field.options ?? [{ label: 'Đ', value: 'PASS', isPass: true }, { label: 'KĐ', value: 'FAIL', isPass: false }]).map(opt => (
+                                        <span key={opt.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem' }}>
+                                          <span style={{ display: 'inline-block', width: '14px', height: '14px', border: '1.5px solid #000000', background: '#ffffff', borderRadius: '2px' }} />
+                                          <span>{opt.label}</span>
+                                        </span>
+                                      ))}
+                                    </div>
+                                  ) : field.type === 'time' ? (
+                                    field.timeMode === 'dual' ? (
+                                      <div style={{ fontSize: '0.75rem', color: '#000000', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '2px' }}>
+                                        Từ <span style={{ borderBottom: '1px solid #000000', width: '22px', display: 'inline-block', height: '12px' }} />:<span style={{ borderBottom: '1px solid #000000', width: '22px', display: 'inline-block', height: '12px' }} /> đến <span style={{ borderBottom: '1px solid #000000', width: '22px', display: 'inline-block', height: '12px' }} />:<span style={{ borderBottom: '1px solid #000000', width: '22px', display: 'inline-block', height: '12px' }} />
+                                      </div>
+                                    ) : (
+                                      <div style={{ fontSize: '0.75rem', color: '#000000', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '2px' }}>
+                                        <span style={{ borderBottom: '1px solid #000000', width: '30px', display: 'inline-block', height: '12px' }} /> : <span style={{ borderBottom: '1px solid #000000', width: '30px', display: 'inline-block', height: '12px' }} />
+                                      </div>
+                                    )
+                                  ) : field.type === 'number' ? (
+                                    <span style={{ fontSize: '0.75rem', color: '#64748b' }}>..............</span>
+                                  ) : (
+                                    <div style={{ borderBottom: '1px dashed #94a3b8', width: '80%', height: '14px', margin: '0 auto' }} />
+                                  )}
+                                </td>
+                              );
+                            }
+                            if (col.id === 'col_reaction') {
+                              return <td key={col.id} style={{ ...commonStyle, color: '#64748b', fontSize: '0.75rem' }} />;
+                            }
+                            return <td key={col.id} style={commonStyle} />;
+                          })}
                         </tr>
                       );
 

@@ -6,14 +6,34 @@ import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName } from '../../util
 
 // Helper: derive CHECKLIST_TABLE columns — falls back to columnLabels for backward compat
 function getChecklistColumns(block: LayoutBlockISO | undefined, fallbackLabels?: { stt?: string; item?: string; target?: string; reaction?: string }): TableColumnConfig[] {
-  if (block?.tableColumns && block.tableColumns.length > 0) return block.tableColumns;
-  return [
-    { id: 'col_stt',      label: block?.columnLabels?.stt      || fallbackLabels?.stt      || 'STT',                          width: '40px',  type: 'static_text', locked: true },
-    { id: 'col_item',     label: block?.columnLabels?.item     || fallbackLabels?.item     || 'Chi tiết kiểm tra',            width: 'auto',  type: 'static_text', locked: true },
-    { id: 'col_target',   label: block?.columnLabels?.target   || fallbackLabels?.target   || 'Đạt / Không Đạt',             width: '90px',  type: 'radio',        align: 'center',
-      options: [{ label: 'Đ', value: 'PASS', isPass: true }, { label: 'KĐ', value: 'FAIL', isPass: false }] },
-    { id: 'col_reaction', label: block?.columnLabels?.reaction || fallbackLabels?.reaction || 'Mô tả cụ thể nếu Không đạt', width: '220px', type: 'text' }
-  ];
+  let cols: TableColumnConfig[];
+  if (block?.tableColumns && block.tableColumns.length > 0) {
+    cols = block.tableColumns;
+  } else if (block?.columnLabels) {
+    cols = [
+      { id: 'col_stt',      label: block.columnLabels.stt      || fallbackLabels?.stt      || 'STT',                          width: '40px',  type: 'static_text', locked: true },
+      { id: 'col_item',     label: block.columnLabels.item     || fallbackLabels?.item     || 'Chi tiết kiểm tra',            width: 'auto',  type: 'static_text', locked: true },
+      { id: 'col_target',   label: block.columnLabels.target   || fallbackLabels?.target   || 'Đạt / Không Đạt',             width: '90px',  type: 'radio',        align: 'center',
+        options: [{ label: 'Đ', value: 'PASS', isPass: true }, { label: 'KĐ', value: 'FAIL', isPass: false }] },
+      { id: 'col_reaction', label: block.columnLabels.reaction || fallbackLabels?.reaction || 'Mô tả cụ thể nếu Không đạt', width: '220px', type: 'text' }
+    ];
+  } else {
+    cols = [
+      { id: 'col_stt',      label: fallbackLabels?.stt || 'STT',                          width: '5%',   type: 'static_text', locked: true },
+      { id: 'col_item',     label: fallbackLabels?.item || 'Tiêu chí',                     width: '35%',  type: 'static_text', locked: true },
+      { id: 'col_unit',     label: 'Đơn vị',                       width: '10%',  type: 'static_text', locked: true },
+      { id: 'col_spec',     label: 'Tiêu chuẩn',                   width: '20%',  type: 'static_text', locked: true },
+      { id: 'col_target',   label: fallbackLabels?.target || 'Kết quả',                      width: '15%',  type: 'radio',        align: 'center', locked: true,
+        options: [{ label: 'Đ', value: 'PASS', isPass: true }, { label: 'KĐ', value: 'FAIL', isPass: false }] },
+      { id: 'col_reaction', label: fallbackLabels?.reaction || 'Ghi chú',                      width: '15%',  type: 'text' }
+    ];
+  }
+
+  if (block?.hideSTT) {
+    cols = cols.map(c => c.id === 'col_stt' ? { ...c, hidden: true } : c);
+  }
+
+  return cols.filter(c => !c.hidden);
 }
 
 interface PrintRecordProps {
@@ -553,17 +573,17 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
             }}>
             <thead>
               <tr>
-                {getChecklistColumns(matchedBlock, columnLabels).map((col, cIdx) => (
+                {getChecklistColumns(matchedBlock, columnLabels).map((col) => (
                   <th
                     key={col.id}
                     style={{
-                      width: col.locked && cIdx === 1 ? undefined : col.width,
+                      width: col.width,
                       border: '1.5px solid #000000',
                       padding: '6px',
                       background: '#f1f5f9',
                       fontWeight: 600,
                       fontSize: '0.8rem',
-                      textAlign: (col.align || (cIdx === 0 ? 'center' : 'left')) as any
+                      textAlign: (col.align || (col.id === 'col_stt' ? 'center' : 'left')) as any
                     }}
                   >
                     {col.label}
@@ -599,58 +619,96 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                 }
 
                 const isFailed = field.status === 'FAIL';
+                const designField = matchedBlock?.fields.find((df: any) => df.id === field.id);
+                const fieldUnit = designField?.unit || '';
+                const fieldType = designField?.type || (field.id.startsWith('f_temp_') ? 'number' : 'radio');
+                const fieldMinSpec = designField?.minSpec;
+                const fieldMaxSpec = designField?.maxSpec;
+                const fieldOptions = designField?.options || [{ label: 'Đ', value: 'PASS', isPass: true }, { label: 'KĐ', value: 'FAIL', isPass: false }];
 
                 renderRows.push(
                   <tr key={field.id} style={{ pageBreakInside: 'avoid', background: isFailed ? '#fef2f2' : 'transparent' }}>
-                    <td style={{ border: '1.5px solid #000000', padding: '8px 6px', textAlign: 'center', fontSize: '0.8rem', fontWeight: 600 }}>{idx + 1}</td>
-                    <td style={{ border: '1.5px solid #000000', padding: '8px 6px', fontSize: '0.8rem' }}>{displayTitle}</td>
-                    <td style={{ 
-                      border: '1.5px solid #000000', 
-                      padding: '8px 6px', 
-                      textAlign: 'center'
-                    }}>
-                      {field.id.startsWith('f_temp_') ? (
-                        <span style={{ fontWeight: 'bold', fontSize: '0.85rem', color: isFailed ? '#dc2626' : '#16a34a' }}>
-                          {parseFloat(field.value) || field.value} {field.targetRange.split(' ').pop()}
-                        </span>
-                      ) : (
-                        <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                          {((field as any).options ?? [{ label: 'Đ', value: 'PASS', isPass: true }, { label: 'KĐ', value: 'FAIL', isPass: false }]).map((opt: any) => {
-                            const isSelected = field.value === opt.value || (field.value.startsWith(opt.value + ' '));
-                            const activeColor = opt.isPass ? '#10b981' : '#ef4444';
-                            return (
-                              <span key={opt.value} style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                minWidth: '20px',
-                                height: '20px',
-                                padding: '0 4px',
-                                borderRadius: '10px',
-                                fontSize: '0.7rem',
-                                fontWeight: 'bold',
-                                background: isSelected ? activeColor : 'transparent',
-                                color: isSelected ? '#ffffff' : '#cbd5e1',
-                                border: isSelected ? `1px solid ${activeColor}` : '1px solid #cbd5e1'
-                              }}>{opt.label}</span>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </td>
-                    <td style={{ border: '1.5px solid #000000', padding: '8px 6px', fontSize: '0.75rem', color: isFailed ? '#b45309' : '#475569' }}>
-                      {isFailed ? (
-                        <div>
-                          <strong>Lỗi:</strong> {field.reactionProtocol}
-                        </div>
-                      ) : (
-                        ''
-                      )}
-                    </td>
-                    {/* Extra custom columns beyond the default 4 */}
-                    {getChecklistColumns(matchedBlock, columnLabels).slice(4).map(col => (
-                      <td key={col.id} style={{ border: '1.5px solid #000000', padding: '8px 6px' }} />
-                    ))}
+                    {getChecklistColumns(matchedBlock, columnLabels).map((col) => {
+                      const commonStyle: React.CSSProperties = {
+                        border: '1.5px solid #000000',
+                        padding: '8px 6px',
+                        fontSize: '0.8rem',
+                        textAlign: col.align as any || 'left'
+                      };
+
+                      if (col.id === 'col_stt') {
+                        return <td key={col.id} style={{ ...commonStyle, textAlign: 'center', fontWeight: 600 }}>{idx + 1}</td>;
+                      }
+                      if (col.id === 'col_item') {
+                        return <td key={col.id} style={commonStyle}>{displayTitle}</td>;
+                      }
+                      if (col.id === 'col_unit') {
+                        return <td key={col.id} style={{ ...commonStyle, textAlign: 'center' }}>{fieldUnit}</td>;
+                      }
+                      if (col.id === 'col_spec') {
+                        let specText = '';
+                        if (fieldType === 'number') {
+                          if (fieldMinSpec !== undefined && fieldMaxSpec !== undefined) {
+                            specText = `${fieldMinSpec} ~ ${fieldMaxSpec}`;
+                          } else if (fieldMinSpec !== undefined) {
+                            specText = `>= ${fieldMinSpec}`;
+                          } else if (fieldMaxSpec !== undefined) {
+                            specText = `<= ${fieldMaxSpec}`;
+                          }
+                        } else {
+                          specText = designField?.targetRange || field.targetRange || '';
+                        }
+                        return <td key={col.id} style={commonStyle}>{specText}</td>;
+                      }
+                      if (col.id === 'col_target') {
+                        return (
+                          <td key={col.id} style={{ ...commonStyle, textAlign: 'center' }}>
+                            {field.id.startsWith('f_temp_') ? (
+                              <span style={{ fontWeight: 'bold', fontSize: '0.85rem', color: isFailed ? '#dc2626' : '#16a34a' }}>
+                                {parseFloat(field.value) || field.value} {fieldUnit}
+                              </span>
+                            ) : (
+                              <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                {fieldOptions.map((opt: any) => {
+                                  const isSelected = field.value === opt.value || (field.value.startsWith(opt.value + ' '));
+                                  const activeColor = opt.isPass ? '#10b981' : '#ef4444';
+                                  return (
+                                    <span key={opt.value} style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      minWidth: '20px',
+                                      height: '20px',
+                                      padding: '0 4px',
+                                      borderRadius: '10px',
+                                      fontSize: '0.7rem',
+                                      fontWeight: 'bold',
+                                      background: isSelected ? activeColor : 'transparent',
+                                      color: isSelected ? '#ffffff' : '#cbd5e1',
+                                      border: isSelected ? `1px solid ${activeColor}` : '1px solid #cbd5e1'
+                                    }}>{opt.label}</span>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </td>
+                        );
+                      }
+                      if (col.id === 'col_reaction') {
+                        return (
+                          <td key={col.id} style={{ ...commonStyle, fontSize: '0.75rem', color: isFailed ? '#b45309' : '#475569' }}>
+                            {isFailed ? (
+                              <div>
+                                <strong>Lỗi:</strong> {field.reactionProtocol}
+                              </div>
+                            ) : (
+                              field.value && !field.id.startsWith('f_temp_') && !fieldOptions.some((o: any) => field.value === o.value) ? field.value : ''
+                            )}
+                          </td>
+                        );
+                      }
+                      return <td key={col.id} style={commonStyle} />;
+                    })}
                   </tr>
                 );
 

@@ -810,7 +810,7 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
                       }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                           <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>
-                            {fIdx + 1}. {sanitizeLabel(field.checkItem)} {field.locationCode && <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontFamily: 'monospace' }}>[{field.locationCode}]</span>}
+                            {block.hideSTT || block.tableColumns?.find((c: any) => c.id === 'col_stt')?.hidden ? '' : `${fIdx + 1}. `}{sanitizeLabel(field.checkItem)} {field.locationCode && <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontFamily: 'monospace' }}>[{field.locationCode}]</span>}
                           </span>
                           {specHint && <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{specHint}</span>}
                         </div>

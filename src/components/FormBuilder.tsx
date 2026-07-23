@@ -24,7 +24,9 @@ import {
   Rows2,
   Columns2,
   Link,
-  Link2Off
+  Link2Off,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import PrintBlankForm from './print/PrintBlankForm';
 
@@ -375,15 +377,36 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
   };
 
   // Helper: derive CHECKLIST_TABLE columns — falls back to columnLabels for backward compat
-  const getChecklistColumns = (block: LayoutBlockISO): TableColumnConfig[] => {
-    if (block.tableColumns && block.tableColumns.length > 0) return block.tableColumns;
-    return [
-      { id: 'col_stt',      label: block.columnLabels?.stt      || 'STT',                          width: '40px',  type: 'static_text', locked: true },
-      { id: 'col_item',     label: block.columnLabels?.item     || 'Chi tiết kiểm tra',            width: 'auto',  type: 'static_text', locked: true },
-      { id: 'col_target',   label: block.columnLabels?.target   || 'Đạt / Không Đạt',             width: '130px', type: 'radio',        align: 'center',
-        options: [{ label: 'Đ', value: 'PASS', isPass: true }, { label: 'KĐ', value: 'FAIL', isPass: false }] },
-      { id: 'col_reaction', label: block.columnLabels?.reaction || 'Mô tả cụ thể nếu Không đạt', width: '220px', type: 'text' }
-    ];
+  const getChecklistColumns = (block: LayoutBlockISO, includeHidden = false): TableColumnConfig[] => {
+    let cols: TableColumnConfig[];
+    if (block.tableColumns && block.tableColumns.length > 0) {
+      cols = block.tableColumns;
+    } else if (block.columnLabels) {
+      cols = [
+        { id: 'col_stt',      label: block.columnLabels.stt      || 'STT',                          width: '40px',  type: 'static_text', locked: true },
+        { id: 'col_item',     label: block.columnLabels.item     || 'Chi tiết kiểm tra',            width: 'auto',  type: 'static_text', locked: true },
+        { id: 'col_target',   label: block.columnLabels.target   || 'Đạt / Không Đạt',             width: '130px', type: 'radio',        align: 'center',
+          options: [{ label: 'Đ', value: 'PASS', isPass: true }, { label: 'KĐ', value: 'FAIL', isPass: false }] },
+        { id: 'col_reaction', label: block.columnLabels.reaction || 'Mô tả cụ thể nếu Không đạt', width: '220px', type: 'text' }
+      ];
+    } else {
+      cols = [
+        { id: 'col_stt',      label: 'STT',                          width: '5%',   type: 'static_text', locked: true },
+        { id: 'col_item',     label: 'Tiêu chí',                     width: '35%',  type: 'static_text', locked: true },
+        { id: 'col_unit',     label: 'Đơn vị',                       width: '10%',  type: 'static_text', locked: true },
+        { id: 'col_spec',     label: 'Tiêu chuẩn',                   width: '20%',  type: 'static_text', locked: true },
+        { id: 'col_target',   label: 'Kết quả',                      width: '15%',  type: 'radio',        align: 'center', locked: true,
+          options: [{ label: 'Đ', value: 'PASS', isPass: true }, { label: 'KĐ', value: 'FAIL', isPass: false }] },
+        { id: 'col_reaction', label: 'Ghi chú',                      width: '15%',  type: 'text' }
+      ];
+    }
+
+    if (block.hideSTT) {
+      cols = cols.map(c => c.id === 'col_stt' ? { ...c, hidden: true } : c);
+    }
+
+    if (includeHidden) return cols;
+    return cols.filter(c => !c.hidden);
   };
 
   // 2. Block Handlers
@@ -399,9 +422,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
       fields: [],
       columnLabels: type === 'CHECKLIST_TABLE' ? {
         stt: 'STT',
-        item: 'Chi tiết kiểm tra',
-        target: 'Đạt / Không Đạt',
-        reaction: 'Mô tả cụ thể nếu Không đạt'
+        item: 'Tiêu chí',
+        target: 'Kết quả',
+        reaction: 'Ghi chú'
       } : undefined,
       matrixConfig: type === 'MATRIX_TABLE' ? {
         rowHeader: 'Lớp',
@@ -415,11 +438,13 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
         columnAlign: 'center'
       } : undefined,
       tableColumns: type === 'CHECKLIST_TABLE' ? [
-        { id: 'col_stt',      label: 'STT',                          width: '40px',  type: 'static_text', locked: true },
-        { id: 'col_item',     label: 'Chi tiết kiểm tra',            width: 'auto',  type: 'static_text', locked: true },
-        { id: 'col_target',   label: 'Đạt / Không Đạt',             width: '130px', type: 'radio',        align: 'center',
+        { id: 'col_stt',      label: 'STT',                          width: '5%',   type: 'static_text', locked: true },
+        { id: 'col_item',     label: 'Tiêu chí',                     width: '35%',  type: 'static_text', locked: true },
+        { id: 'col_unit',     label: 'Đơn vị',                       width: '10%',  type: 'static_text', locked: true },
+        { id: 'col_spec',     label: 'Tiêu chuẩn',                   width: '20%',  type: 'static_text', locked: true },
+        { id: 'col_target',   label: 'Kết quả',                      width: '15%',  type: 'radio',        align: 'center', locked: true,
           options: [{ label: 'Đ', value: 'PASS', isPass: true }, { label: 'KĐ', value: 'FAIL', isPass: false }] },
-        { id: 'col_reaction', label: 'Mô tả cụ thể nếu Không đạt', width: '220px', type: 'text' }
+        { id: 'col_reaction', label: 'Ghi chú',                      width: '15%',  type: 'text' }
       ] : type === 'TABLE' ? [
         { id: 'col_1', label: 'STT', width: '10%', type: 'static_text' },
         { id: 'col_2', label: 'Tên hạng mục', width: '50%', type: 'static_text' },
@@ -1826,13 +1851,13 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
                             <thead>
                               <tr style={{ background: '#f1f5f9', borderBottom: '1px solid #cbd5e1' }}>
-                                {getChecklistColumns(block).map((col, cIdx) => (
+                                {getChecklistColumns(block).map((col) => (
                                   <th
                                     key={col.id}
                                     style={{
                                       padding: '4px 6px',
-                                      textAlign: (col.align || (cIdx === 0 ? 'center' : 'left')) as any,
-                                      width: col.type === 'static_text' && col.locked && cIdx === 1 ? undefined : col.width
+                                      textAlign: (col.align || (col.id === 'col_stt' ? 'center' : 'left')) as any,
+                                      width: col.width
                                     }}
                                   >
                                     {col.label}
@@ -1864,17 +1889,32 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                         cursor: 'pointer'
                                       }}
                                     >
-                                      {getChecklistColumns(block).map((col, cIdx) => {
-                                        if (cIdx === 0) {
-                                          // STT column — auto index
+                                      {getChecklistColumns(block).map((col) => {
+                                        if (col.id === 'col_stt') {
                                           return <td key={col.id} style={{ padding: '4px 6px', fontWeight: 600, textAlign: 'center' }}>{idx + 1}</td>;
                                         }
-                                        if (cIdx === 1) {
-                                          // Item column — field checkItem text
+                                        if (col.id === 'col_item') {
                                           return <td key={col.id} style={{ padding: '4px 6px' }}>{f.checkItem}</td>;
                                         }
-                                        if (cIdx === 2) {
-                                          // Primary result column — render based on field type
+                                        if (col.id === 'col_unit') {
+                                          return <td key={col.id} style={{ padding: '4px 6px', color: 'var(--text-secondary)' }}>{f.unit || ''}</td>;
+                                        }
+                                        if (col.id === 'col_spec') {
+                                          let specText = '';
+                                          if (f.type === 'number') {
+                                            if (f.minSpec !== undefined && f.maxSpec !== undefined) {
+                                              specText = `${f.minSpec} ~ ${f.maxSpec}`;
+                                            } else if (f.minSpec !== undefined) {
+                                              specText = `>= ${f.minSpec}`;
+                                            } else if (f.maxSpec !== undefined) {
+                                              specText = `<= ${f.maxSpec}`;
+                                            }
+                                          } else {
+                                            specText = f.targetRange || '';
+                                          }
+                                          return <td key={col.id} style={{ padding: '4px 6px', color: 'var(--text-secondary)' }}>{specText}</td>;
+                                        }
+                                        if (col.id === 'col_target') {
                                           return (
                                             <td key={col.id} style={{ padding: '4px 6px', textAlign: 'center' }}>
                                               {(f.type === 'radio' || f.type === 'checkbox') ? (
@@ -1894,23 +1934,21 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                   : <span style={{ color: 'var(--text-muted)', fontSize: '0.65rem' }}>([Giờ])</span>
                                               ) : f.type === 'number' ? (
                                                 (f.minSpec !== undefined && f.maxSpec !== undefined)
-                                                  ? <span style={{ color: 'var(--text-muted)', fontSize: '0.65rem' }}>({f.minSpec}-{f.maxSpec} {f.unit})</span>
-                                                  : f.unit ? <span style={{ color: 'var(--text-muted)', fontSize: '0.65rem' }}>({f.unit})</span> : null
+                                                  ? <span style={{ color: 'var(--text-muted)', fontSize: '0.65rem' }}>({f.minSpec}-{f.maxSpec})</span>
+                                                  : null
                                               ) : (
                                                 <span style={{ color: 'var(--text-muted)', fontSize: '0.65rem' }}>{f.type}</span>
                                               )}
                                             </td>
                                           );
                                         }
-                                        if (cIdx === 3) {
-                                          // Default reaction/notes column
+                                        if (col.id === 'col_reaction') {
                                           return (
                                             <td key={col.id} style={{ padding: '4px 6px', borderLeft: '1px solid #e2e8f0', color: 'var(--text-muted)', fontStyle: 'italic', fontSize: '0.65rem' }}>
-                                              {f.reactionProtocol ? 'Reaction protocol active' : ''}
+                                              {f.reactionProtocol || ''}
                                             </td>
                                           );
                                         }
-                                        // Extra custom columns — empty placeholder
                                         return <td key={col.id} style={{ padding: '4px 6px', borderLeft: '1px solid #e2e8f0' }} />;
                                       })}
                                     </tr>
@@ -2535,6 +2573,33 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                   </>
                 )}
 
+                {activeField.type !== 'number' && activeBlock?.type === 'CHECKLIST_TABLE' && (
+                  <>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                      <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Tiêu chuẩn</label>
+                      <input
+                        type="text"
+                        disabled={isLocked}
+                        placeholder="e.g. Đúng vị trí, không trầy xước"
+                        value={activeField.targetRange || ''}
+                        onChange={(e) => handleUpdateField(activeBlockId!, activeFieldId!, { targetRange: e.target.value })}
+                        style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                      <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Đơn vị</label>
+                      <input
+                        type="text"
+                        disabled={isLocked}
+                        placeholder="e.g. oC, kg, mm"
+                        value={activeField.unit || ''}
+                        onChange={(e) => handleUpdateField(activeBlockId!, activeFieldId!, { unit: e.target.value })}
+                        style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
+                      />
+                    </div>
+                  </>
+                )}
+
                 {(activeField.type === 'radio' || activeField.type === 'checkbox') && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', borderTop: '1px solid var(--neutral-border)', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
                     <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Radio Options</label>
@@ -2806,10 +2871,11 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                 )}
 
                 {activeBlock.type === 'CHECKLIST_TABLE' && (() => {
-                  const clCols = getChecklistColumns(activeBlock);
-                  const clSumOther = clCols.length > 1
-                    ? clCols.slice(0, clCols.length - 1)
-                        .filter(c => !c.locked && c.width && (c.width.endsWith('%') || !isNaN(parseFloat(c.width))))
+                  const clCols = getChecklistColumns(activeBlock, true);
+                  const visibleCols = clCols.filter(c => !c.hidden);
+                  const clSumOther = visibleCols.length > 1
+                    ? visibleCols.slice(0, visibleCols.length - 1)
+                        .filter(c => c.width && (c.width.endsWith('%') || !isNaN(parseFloat(c.width))))
                         .reduce((sum, c) => sum + parseFloat(c.width), 0)
                     : 0;
                   const clLastAdjusted = Math.max(0, 100 - clSumOther);
@@ -2823,14 +2889,14 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                           const isLast = cIdx === arr.length - 1;
                           const isLockedCol = !!col.locked;
                           return (
-                            <div key={col.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', border: `1px solid ${isLockedCol ? '#e2e8f0' : 'var(--neutral-border)'}`, padding: '6px', borderRadius: '4px', background: isLockedCol ? '#f1f5f9' : '#f8fafc' }}>
+                            <div key={col.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', border: `1px solid ${isLockedCol ? '#e2e8f0' : 'var(--neutral-border)'}`, padding: '6px', borderRadius: '4px', background: isLockedCol ? '#f1f5f9' : '#f8fafc', opacity: col.hidden ? 0.6 : 1 }}>
                               <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
                                 {isLockedCol && (
                                   <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', padding: '1px 4px', background: '#e2e8f0', borderRadius: '3px', whiteSpace: 'nowrap' }}>🔒 Cố định</span>
                                 )}
                                 <input
                                   type="text"
-                                  disabled={isLocked}
+                                  disabled={isLocked || isLockedCol}
                                   value={col.label}
                                   onChange={(e) => handleUpdateTableColumn(activeBlock.id, col.id, { label: e.target.value })}
                                   placeholder="Tên cột"
@@ -2854,27 +2920,42 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                 >
                                   <ArrowDown size={13} style={{ color: '#0f172a' }} />
                                 </button>
-                                <button
-                                  type="button"
-                                  disabled={isLocked || arr.length <= 1 || isLockedCol}
-                                  onClick={() => handleDeleteColumn(activeBlock.id, col.id)}
-                                  style={{ width: '24px', height: '24px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: isLocked || arr.length <= 1 || isLockedCol ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: isLocked || arr.length <= 1 || isLockedCol ? 0.4 : 1, padding: 0 }}
-                                  title="Xóa cột"
-                                >
-                                  <Trash2 size={13} style={{ color: '#ef4444' }} />
-                                </button>
+                                {isLockedCol ? (
+                                  <button
+                                    type="button"
+                                    disabled={isLocked}
+                                    onClick={() => handleUpdateTableColumn(activeBlock.id, col.id, { hidden: !col.hidden })}
+                                    style={{ width: '24px', height: '24px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: isLocked ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
+                                    title={col.hidden ? "Hiện cột" : "Ẩn cột"}
+                                  >
+                                    {col.hidden ? (
+                                      <EyeOff size={13} style={{ color: '#ef4444' }} />
+                                    ) : (
+                                      <Eye size={13} style={{ color: 'var(--primary)' }} />
+                                    )}
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    disabled={isLocked || arr.length <= 1}
+                                    onClick={() => handleDeleteColumn(activeBlock.id, col.id)}
+                                    style={{ width: '24px', height: '24px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: isLocked || arr.length <= 1 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: isLocked || arr.length <= 1 ? 0.4 : 1, padding: 0 }}
+                                    title="Xóa cột"
+                                  >
+                                    <Trash2 size={13} style={{ color: '#ef4444' }} />
+                                  </button>
+                                )}
                               </div>
 
-                              {!isLockedCol && (
-                                <div style={{ display: 'flex', gap: '0.25rem' }}>
-                                  <select
-                                    disabled={isLocked}
-                                    value={col.type}
-                                    onChange={(e) => handleUpdateTableColumn(activeBlock.id, col.id, { type: e.target.value as any })}
-                                    style={{ flex: 1.0, padding: '0.2rem 0.3rem', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
-                                  >
-                                    <option value="text">Chữ</option>
-                                    <option value="number">Số</option>
+                              <div style={{ display: 'flex', gap: '0.25rem' }}>
+                                <select
+                                  disabled={isLocked || isLockedCol}
+                                  value={col.type}
+                                  onChange={(e) => handleUpdateTableColumn(activeBlock.id, col.id, { type: e.target.value as any })}
+                                  style={{ flex: 1.0, padding: '0.2rem 0.3rem', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', backgroundColor: isLockedCol ? '#f1f5f9' : '#ffffff' }}
+                                >
+                                  <option value="text">Chữ</option>
+                                  <option value="number">Số</option>
                                     <option value="checkbox">Checkbox</option>
                                     <option value="radio">Radio</option>
                                     <option value="date">Ngày</option>
@@ -2906,7 +2987,6 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                     style={{ flex: 0.6, padding: '0.2rem 0.3rem', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', backgroundColor: isLast ? '#f1f5f9' : '#ffffff', color: isLast ? '#64748b' : 'inherit', cursor: isLast ? 'not-allowed' : 'text' }}
                                   />
                                 </div>
-                              )}
 
                               {col.type === 'checkbox' && !isLockedCol && (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', marginTop: '0.2rem', padding: '0.4rem', borderTop: '1px dashed var(--neutral-border)' }}>
