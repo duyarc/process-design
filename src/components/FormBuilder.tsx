@@ -1642,13 +1642,13 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                               </p>
                               {block.showDate && (block.datePosition ?? 'B') === 'B' && (
                                 <div style={{ marginTop: '4px', fontSize: '0.78rem', color: 'var(--text-secondary)', textAlign: 'center' }}>
-                                  <span style={{ fontWeight: 600 }}>Ngày</span> <span style={{ borderBottom: '1px solid #cbd5e1', display: 'inline-block', width: '90px' }}>&nbsp;</span>
+                                  <span style={{ fontWeight: 600 }}>Ngày</span> <span style={{ marginLeft: '6px', color: 'var(--text-muted)', letterSpacing: '2px' }}>&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;</span>
                                 </div>
                               )}
                             </div>
                             {block.showDate && block.datePosition === 'A' && (
                               <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap', marginLeft: '10px', alignSelf: 'flex-start', paddingTop: '4px' }}>
-                                <span style={{ fontWeight: 600 }}>Ngày</span> <span style={{ borderBottom: '1px solid #cbd5e1', display: 'inline-block', width: '80px' }}>&nbsp;</span>
+                                <span style={{ fontWeight: 600 }}>Ngày</span> <span style={{ marginLeft: '6px', color: 'var(--text-muted)', letterSpacing: '2px' }}>&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;</span>
                               </div>
                             )}
                           </div>
@@ -1661,7 +1661,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                           }}>
                             {block.showDate && block.datePosition === 'A' && (
                               <div style={{ position: 'absolute', right: 0, top: '10px', fontSize: '0.78rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-                                <span style={{ fontWeight: 600 }}>Ngày</span> <span style={{ borderBottom: '1px solid #cbd5e1', display: 'inline-block', width: '80px' }}>&nbsp;</span>
+                                <span style={{ fontWeight: 600 }}>Ngày</span> <span style={{ marginLeft: '6px', color: 'var(--text-muted)', letterSpacing: '2px' }}>&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;</span>
                               </div>
                             )}
                             <h1 style={{ margin: '0 0 4px 0', fontSize: '1.25rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-primary)' }}>
@@ -1672,7 +1672,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                             </p>
                             {block.showDate && (block.datePosition ?? 'B') === 'B' && (
                               <div style={{ marginTop: '4px', fontSize: '0.78rem', color: 'var(--text-secondary)', textAlign: 'center' }}>
-                                <span style={{ fontWeight: 600 }}>Ngày</span> <span style={{ borderBottom: '1px solid #cbd5e1', display: 'inline-block', width: '90px' }}>&nbsp;</span>
+                                <span style={{ fontWeight: 600 }}>Ngày</span> <span style={{ marginLeft: '6px', color: 'var(--text-muted)', letterSpacing: '2px' }}>&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;</span>
                               </div>
                             )}
                           </div>

@@ -312,13 +312,13 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                     </p>
                     {block.showDate && (block.datePosition ?? 'B') === 'B' && (
                       <div style={{ marginTop: '6px', fontSize: '0.85rem', textAlign: 'center' }}>
-                        <span style={{ fontWeight: 600 }}>Ngày</span> <span style={{ borderBottom: '1px solid #000000', display: 'inline-block', width: '90px', marginLeft: '6px' }}>&nbsp;</span>
+                        <span style={{ fontWeight: 600 }}>Ngày</span> <span style={{ marginLeft: '6px', color: '#475569', letterSpacing: '2px' }}>&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;</span>
                       </div>
                     )}
                   </div>
                   {block.showDate && block.datePosition === 'A' && (
                     <div style={{ fontSize: '0.85rem', whiteSpace: 'nowrap', marginLeft: '10px', alignSelf: 'flex-start', paddingTop: '4px' }}>
-                      <span style={{ fontWeight: 600 }}>Ngày</span> <span style={{ borderBottom: '1px solid #000000', display: 'inline-block', width: '80px', marginLeft: '6px' }}>&nbsp;</span>
+                      <span style={{ fontWeight: 600 }}>Ngày</span> <span style={{ marginLeft: '6px', color: '#475569', letterSpacing: '2px' }}>&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;</span>
                     </div>
                   )}
                 </div>
@@ -331,7 +331,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                 }}>
                   {block.showDate && block.datePosition === 'A' && (
                     <div style={{ position: 'absolute', right: 0, top: '10px', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
-                      <span style={{ fontWeight: 600 }}>Ngày</span> <span style={{ borderBottom: '1px solid #000000', display: 'inline-block', width: '80px', marginLeft: '6px' }}>&nbsp;</span>
+                      <span style={{ fontWeight: 600 }}>Ngày</span> <span style={{ marginLeft: '6px', color: '#475569', letterSpacing: '2px' }}>&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;</span>
                     </div>
                   )}
                   <h1 style={{ margin: '0 0 4px 0', fontSize: '1.35rem', fontWeight: 800, textTransform: 'uppercase' }}>
@@ -342,7 +342,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                   </p>
                   {block.showDate && (block.datePosition ?? 'B') === 'B' && (
                     <div style={{ marginTop: '6px', fontSize: '0.85rem', textAlign: 'center' }}>
-                      <span style={{ fontWeight: 600 }}>Ngày</span> <span style={{ borderBottom: '1px solid #000000', display: 'inline-block', width: '90px', marginLeft: '6px' }}>&nbsp;</span>
+                      <span style={{ fontWeight: 600 }}>Ngày</span> <span style={{ marginLeft: '6px', color: '#475569', letterSpacing: '2px' }}>&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;</span>
                     </div>
                   )}
                 </div>
