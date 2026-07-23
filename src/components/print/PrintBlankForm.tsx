@@ -858,22 +858,26 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                     justifyContent: 'space-between',
                     gap: '40px'
                   }}>
-                    {block.fields.filter(f => f.checkItem && f.checkItem.trim() !== '').map((f) => (
-                      <div key={f.id} style={{
-                        flex: 1,
-                        height: '80px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'flex-start',
-                        gap: '4px'
-                      }}>
-                        <span style={{ fontSize: '0.85rem', fontWeight: 'bold', textAlign: 'center' }}>{f.checkItem}</span>
-                        <span style={{ fontSize: '0.75rem', fontStyle: 'italic', color: '#475569', textAlign: 'center' }}>
-                          {f.reactionProtocol ? (f.reactionProtocol.startsWith('(') ? f.reactionProtocol : `(${f.reactionProtocol})`) : '(Ký và ghi rõ họ tên)'}
-                        </span>
-                      </div>
-                    ))}
+                    {block.fields.map((f) => {
+                      const isBlank = !f.checkItem || f.checkItem.trim() === '';
+                      return (
+                        <div key={f.id} style={{
+                          flex: 1,
+                          height: '80px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'flex-start',
+                          gap: '4px',
+                          visibility: isBlank ? 'hidden' : 'visible'
+                        }}>
+                          <span style={{ fontSize: '0.85rem', fontWeight: 'bold', textAlign: 'center' }}>{f.checkItem}</span>
+                          <span style={{ fontSize: '0.75rem', fontStyle: 'italic', color: '#475569', textAlign: 'center' }}>
+                            {f.reactionProtocol ? (f.reactionProtocol.startsWith('(') ? f.reactionProtocol : `(${f.reactionProtocol})`) : '(Ký và ghi rõ họ tên)'}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               );
