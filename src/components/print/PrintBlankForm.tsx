@@ -836,7 +836,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                     justifyContent: 'space-between',
                     gap: '40px'
                   }}>
-                    {block.fields.map((f) => (
+                    {block.fields.filter(f => f.checkItem && f.checkItem.trim() !== '').map((f) => (
                       <div key={f.id} style={{
                         flex: 1,
                         height: '80px',
