@@ -546,8 +546,13 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
           if (block.fields.length === 0 && block.type !== 'TITLE' && block.type !== 'SECTION_LABEL' && block.type !== 'TABLE') return null;
 
           if (block.type === 'SECTION_LABEL') {
+            const isH1 = block.sectionFormat === 'H1';
             return (
-              <div key={block.id} style={{
+              <div key={block.id} style={isH1 ? {
+                padding: '0.5rem 0',
+                marginTop: '1.25rem',
+                marginBottom: '0.75rem'
+              } : {
                 padding: '0.75rem 1rem',
                 background: '#f1f5f9',
                 borderLeft: '4px solid var(--primary)',
@@ -555,11 +560,26 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
                 marginTop: '1.25rem',
                 marginBottom: '0.5rem'
               }}>
-                <h3 style={{ margin: '0 0 4px 0', fontSize: '1.0rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                  {block.title}
-                </h3>
+                {isH1 ? (
+                  <h2 style={{
+                    margin: '0 0 4px 0',
+                    fontSize: '1.15rem',
+                    fontWeight: 700,
+                    color: 'var(--text-primary)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                    borderBottom: '2px solid var(--text-primary)',
+                    paddingBottom: '0.3rem'
+                  }}>
+                    {block.title}
+                  </h2>
+                ) : (
+                  <h3 style={{ margin: '0 0 4px 0', fontSize: '1.0rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                    {block.title}
+                  </h3>
+                )}
                 {block.description && (
-                  <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)', whiteSpace: 'pre-line' }}>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: 'var(--text-secondary)', whiteSpace: 'pre-line' }}>
                     {block.description}
                   </p>
                 )}

@@ -381,7 +381,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
       type,
       columns,
       title: type === 'TITLE' ? formTitle : type === 'INFO_GRID' ? 'Thông tin chung' : type === 'CHECKLIST_TABLE' ? 'Bảng kiểm tra' : type === 'MATRIX_TABLE' ? 'Bảng kiểm đếm số lượng' : type === 'TABLE' ? 'Bảng biểu mẫu động' : type === 'SECTION_LABEL' ? 'Tiêu đề danh mục' : 'Ký nhận',
-      description: type === 'SECTION_LABEL' ? 'Mô tả chi tiết cho danh mục này...' : undefined,
+      description: type === 'SECTION_LABEL' ? '' : undefined,
+      sectionFormat: type === 'SECTION_LABEL' ? 'H1' : undefined,
       fields: [],
       columnLabels: type === 'CHECKLIST_TABLE' ? {
         stt: 'STT',
@@ -469,6 +470,10 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
       const updatedFields = b.fields.map((f, idx) => idx === 0 ? { ...f, checkItem: newDesc } : f);
       return { ...b, description: newDesc, fields: updatedFields };
     }));
+  };
+
+  const handleUpdateBlockSectionFormat = (blockId: string, format: 'H1' | 'H2') => {
+    setLayoutBlocks(prev => prev.map(b => b.id === blockId ? { ...b, sectionFormat: format } : b));
   };
   const handleUpdateBlockColumnLabels = (blockId: string, updates: Partial<NonNullable<LayoutBlockISO['columnLabels']>>) => {
     setLayoutBlocks(prev => prev.map(b => {
@@ -1539,22 +1544,47 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                       
                       {/* 1.1 SECTION LABEL BLOCK */}
                       {block.type === 'SECTION_LABEL' && (
-                        <div style={{
-                          padding: '0.5rem 0.75rem',
-                          background: '#f1f5f9',
-                          borderLeft: '4px solid #3b82f6',
-                          borderRadius: '4px',
-                          marginBottom: '0.5rem'
-                        }}>
-                          <h3 style={{ margin: '0 0 4px 0', fontSize: '0.95rem', fontWeight: 700, color: '#1e293b' }}>
-                            {block.title || 'Tiêu đề phân đoạn (Section Title)'}
-                          </h3>
-                          {block.description && (
-                            <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b', whiteSpace: 'pre-line' }}>
-                              {block.description}
-                            </p>
-                          )}
-                        </div>
+                        block.sectionFormat === 'H1' ? (
+                          <div style={{
+                            padding: '0.25rem 0 0.5rem 0',
+                            marginBottom: '0.75rem'
+                          }}>
+                            <h2 style={{
+                              margin: '0 0 4px 0',
+                              fontSize: '1.1rem',
+                              fontWeight: 700,
+                              color: '#0f172a',
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.5px',
+                              borderBottom: '2px solid #0f172a',
+                              paddingBottom: '0.25rem'
+                            }}>
+                              {block.title || 'TIÊU ĐỀ DANH MỤC'}
+                            </h2>
+                            {block.description && (
+                              <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: '#475569', whiteSpace: 'pre-line' }}>
+                                {block.description}
+                              </p>
+                            )}
+                          </div>
+                        ) : (
+                          <div style={{
+                            padding: '0.5rem 0.75rem',
+                            background: '#f1f5f9',
+                            borderLeft: '4px solid #0f172a',
+                            borderRadius: '4px',
+                            marginBottom: '0.5rem'
+                          }}>
+                            <h3 style={{ margin: '0 0 4px 0', fontSize: '0.95rem', fontWeight: 700, color: '#1e293b' }}>
+                              {block.title || 'Tiêu đề danh mục'}
+                            </h3>
+                            {block.description && (
+                              <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b', whiteSpace: 'pre-line' }}>
+                                {block.description}
+                              </p>
+                            )}
+                          </div>
+                        )
                       )}
 
                       {/* 1. TITLE BLOCK */}
@@ -2406,17 +2436,43 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                 </div>
 
                 {activeBlock.type === 'SECTION_LABEL' && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', borderTop: '1px solid var(--neutral-border)', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
-                    <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Mô tả danh mục (Description)</label>
-                    <textarea
-                      disabled={isLocked}
-                      value={activeBlock.description || ''}
-                      onChange={(e) => handleUpdateBlockDescription(activeBlockId!, e.target.value)}
-                      placeholder="Nhập mô tả cho danh mục này..."
-                      rows={3}
-                      style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', fontSize: '0.85rem', resize: 'vertical' }}
-                    />
-                  </div>
+                  <>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', borderTop: '1px solid var(--neutral-border)', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
+                      <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Format</label>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                        <button
+                          type="button"
+                          disabled={isLocked}
+                          onClick={() => handleUpdateBlockSectionFormat(activeBlockId!, 'H1')}
+                          className={`btn btn-sm ${(activeBlock.sectionFormat || 'H1') === 'H1' ? 'btn-primary' : 'btn-secondary'}`}
+                          style={{ fontWeight: 700, padding: '0.35rem 0.5rem' }}
+                        >
+                          H1 (Line)
+                        </button>
+                        <button
+                          type="button"
+                          disabled={isLocked}
+                          onClick={() => handleUpdateBlockSectionFormat(activeBlockId!, 'H2')}
+                          className={`btn btn-sm ${activeBlock.sectionFormat === 'H2' ? 'btn-primary' : 'btn-secondary'}`}
+                          style={{ fontWeight: 700, padding: '0.35rem 0.5rem' }}
+                        >
+                          H2 (Box)
+                        </button>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                      <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Description</label>
+                      <textarea
+                        disabled={isLocked}
+                        value={activeBlock.description || ''}
+                        onChange={(e) => handleUpdateBlockDescription(activeBlockId!, e.target.value)}
+                        placeholder="Nhập mô tả..."
+                        rows={3}
+                        style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', fontSize: '0.85rem', resize: 'vertical' }}
+                      />
+                    </div>
+                  </>
                 )}
 
                 {activeBlock.type === 'TITLE' && (

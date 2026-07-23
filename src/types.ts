@@ -152,6 +152,7 @@ export interface LayoutBlockISO {
   fields: FormFieldISO[];
   logo?: string;
   description?: string;
+  sectionFormat?: 'H1' | 'H2';
   columnLabels?: {
     stt: string;
     item: string;

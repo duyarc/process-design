@@ -199,22 +199,49 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
             
             {/* 1.1 SECTION LABEL BLOCK */}
             {block.type === 'SECTION_LABEL' && (
-              <div style={{
-                padding: '8px 12px',
-                background: '#f1f5f9',
-                borderLeft: '4px solid #000000',
-                borderRadius: '4px',
-                marginBottom: '5px'
-              }}>
-                <h3 style={{ margin: '0 0 4px 0', fontSize: '0.95rem', fontWeight: 700, color: '#1e293b' }}>
-                  {block.title}
-                </h3>
-                {block.description && (
-                  <p style={{ margin: 0, fontSize: '0.8rem', color: '#475569', whiteSpace: 'pre-line' }}>
-                    {block.description}
-                  </p>
-                )}
-              </div>
+              block.sectionFormat === 'H1' ? (
+                <div style={{
+                  padding: '4px 0 8px 0',
+                  marginBottom: '10px',
+                  pageBreakInside: 'avoid',
+                  breakInside: 'avoid'
+                }}>
+                  <h2 style={{
+                    margin: '0 0 4px 0',
+                    fontSize: '1.1rem',
+                    fontWeight: 700,
+                    color: '#000000',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                    borderBottom: '2px solid #000000',
+                    paddingBottom: '3px'
+                  }}>
+                    {block.title}
+                  </h2>
+                  {block.description && (
+                    <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#333333', whiteSpace: 'pre-line' }}>
+                      {block.description}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div style={{
+                  padding: '8px 12px',
+                  background: '#f1f5f9',
+                  borderLeft: '4px solid #000000',
+                  borderRadius: '4px',
+                  marginBottom: '5px'
+                }}>
+                  <h3 style={{ margin: '0 0 4px 0', fontSize: '0.95rem', fontWeight: 700, color: '#1e293b' }}>
+                    {block.title}
+                  </h3>
+                  {block.description && (
+                    <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#475569', whiteSpace: 'pre-line' }}>
+                      {block.description}
+                    </p>
+                  )}
+                </div>
+              )
             )}
 
             {/* 1. TITLE BLOCK */}

@@ -825,24 +825,50 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
 
       {/* SECTION LABEL RECORD BLOCK */}
       {layoutBlocks.filter(b => b.type === 'SECTION_LABEL').map((block: any) => {
+        const isH1 = block.sectionFormat === 'H1';
         return (
           <div key={block.id} className="print-block print-block-avoid" style={{ marginTop: '15px' }}>
-            <div style={{
-              padding: '8px 12px',
-              background: '#f1f5f9',
-              borderLeft: '4px solid #000000',
-              borderRadius: '4px',
-              marginBottom: '5px'
-            }}>
-              <h3 style={{ margin: '0 0 4px 0', fontSize: '0.95rem', fontWeight: 700, color: '#1e293b' }}>
-                {block.title}
-              </h3>
-              {block.description && (
-                <p style={{ margin: 0, fontSize: '0.8rem', color: '#475569', whiteSpace: 'pre-line' }}>
-                  {block.description}
-                </p>
-              )}
-            </div>
+            {isH1 ? (
+              <div style={{
+                padding: '4px 0 8px 0',
+                marginBottom: '10px'
+              }}>
+                <h2 style={{
+                  margin: '0 0 4px 0',
+                  fontSize: '1.1rem',
+                  fontWeight: 700,
+                  color: '#000000',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
+                  borderBottom: '2px solid #000000',
+                  paddingBottom: '3px'
+                }}>
+                  {block.title}
+                </h2>
+                {block.description && (
+                  <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#333333', whiteSpace: 'pre-line' }}>
+                    {block.description}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div style={{
+                padding: '8px 12px',
+                background: '#f1f5f9',
+                borderLeft: '4px solid #000000',
+                borderRadius: '4px',
+                marginBottom: '5px'
+              }}>
+                <h3 style={{ margin: '0 0 4px 0', fontSize: '0.95rem', fontWeight: 700, color: '#1e293b' }}>
+                  {block.title}
+                </h3>
+                {block.description && (
+                  <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#475569', whiteSpace: 'pre-line' }}>
+                    {block.description}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         );
       })}
