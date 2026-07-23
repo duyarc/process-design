@@ -453,12 +453,31 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
       })()}
 
       {/* CHECKLIST TABLE BLOCK */}
-      {checklistFields.length > 0 && (
-        <div className="print-block" style={{ marginTop: '15px' }}>
-          <table className="print-table" style={{
-            width: '100%',
-            borderCollapse: 'collapse'
-          }}>
+      {checklistFields.length > 0 && (() => {
+        const matchedBlock = layoutBlocks.find(b => b.type === 'CHECKLIST_TABLE');
+        const titleText = matchedBlock?.title || 'BẢNG KIỂM TRA CHẤT LƯỢNG';
+        const titleFmt = matchedBlock ? getEffectiveTitleFormat(matchedBlock) : 'BODY';
+        return (
+          <div className="print-block" style={{ marginTop: '15px' }}>
+            {titleFmt !== 'NONE' && (
+              titleFmt === 'H1' ? (
+                <h2 style={{ margin: '0 0 8px 0', fontSize: '1.05rem', fontWeight: 700, textTransform: 'uppercase', color: '#000000', borderBottom: '2px solid #000000', paddingBottom: '3px' }}>
+                  {titleText}
+                </h2>
+              ) : titleFmt === 'H2' ? (
+                <div style={{ padding: '6px 10px', background: '#f1f5f9', borderLeft: '4px solid #000000', borderRadius: '4px', marginBottom: '8px', fontWeight: 700, fontSize: '0.9rem', color: '#000000' }}>
+                  {titleText}
+                </div>
+              ) : (
+                <div style={{ fontSize: '0.85rem', fontWeight: 400, marginBottom: '8px', color: '#000000' }}>
+                  {titleText}
+                </div>
+              )
+            )}
+            <table className="print-table" style={{
+              width: '100%',
+              borderCollapse: 'collapse'
+            }}>
             <thead>
               <tr>
                 <th style={{ width: '40px', border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'bold', fontSize: '0.8rem', textAlign: 'center' }}>{columnLabels?.stt || 'STT'}</th>
@@ -551,7 +570,8 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
             </tbody>
           </table>
         </div>
-      )}
+        );
+      })()}
 
       {/* MATRIX TABLE RECORD BLOCK */}
       {Object.values(matrixBlocksMap).map((block: any) => {
@@ -574,9 +594,26 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
 
         return (
           <div key={block.blockId} className="print-block" style={{ marginTop: '15px' }}>
-            <div style={{ fontSize: '0.85rem', fontWeight: 'bold', marginBottom: '8px', textTransform: 'uppercase', color: '#1e293b' }}>
-              {(layoutBlocks.find(b => b.id === block.blockId)?.title) || 'BẢNG KIỂM ĐẾM SỐ LƯỢNG'}
-            </div>
+            {(() => {
+              const matchedBlock = layoutBlocks.find(b => b.id === block.blockId);
+              const titleText = matchedBlock?.title || 'BẢNG KIỂM ĐẾM SỐ LƯỢNG';
+              const titleFmt = matchedBlock ? getEffectiveTitleFormat(matchedBlock) : 'BODY';
+              return titleFmt !== 'NONE' && (
+                titleFmt === 'H1' ? (
+                  <h2 style={{ margin: '0 0 8px 0', fontSize: '1.05rem', fontWeight: 700, textTransform: 'uppercase', color: '#000000', borderBottom: '2px solid #000000', paddingBottom: '3px' }}>
+                    {titleText}
+                  </h2>
+                ) : titleFmt === 'H2' ? (
+                  <div style={{ padding: '6px 10px', background: '#f1f5f9', borderLeft: '4px solid #000000', borderRadius: '4px', marginBottom: '8px', fontWeight: 700, fontSize: '0.9rem', color: '#000000' }}>
+                    {titleText}
+                  </div>
+                ) : (
+                  <div style={{ fontSize: '0.85rem', fontWeight: 400, marginBottom: '8px', color: '#000000' }}>
+                    {titleText}
+                  </div>
+                )
+              );
+            })()}
             <table className="print-table" style={{
               width: '100%',
               borderCollapse: 'collapse'

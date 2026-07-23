@@ -412,12 +412,29 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
             })()}
 
             {/* 3. CHECKLIST TABLE BLOCK */}
-            {block.type === 'CHECKLIST_TABLE' && (
-              <div style={{ marginTop: '15px' }}>
-                <table className="print-table" style={{
-                  width: '100%',
-                  borderCollapse: 'collapse'
-                }}>
+            {block.type === 'CHECKLIST_TABLE' && (() => {
+              const titleFmt = getEffectiveTitleFormat(block);
+              return (
+                <div style={{ marginTop: '15px' }}>
+                  {titleFmt !== 'NONE' && (
+                    titleFmt === 'H1' ? (
+                      <h2 style={{ margin: '0 0 6px 0', fontSize: '1.05rem', fontWeight: 700, color: '#000000', textTransform: 'uppercase', borderBottom: '2px solid #000000', paddingBottom: '3px' }}>
+                        {block.title}
+                      </h2>
+                    ) : titleFmt === 'H2' ? (
+                      <div style={{ padding: '6px 10px', background: '#f1f5f9', borderLeft: '4px solid #000000', borderRadius: '4px', marginBottom: '6px', fontWeight: 700, fontSize: '0.9rem', color: '#000000' }}>
+                        {block.title}
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: '0.85rem', fontWeight: 400, marginBottom: '6px', color: '#000000' }}>
+                        {block.title}
+                      </div>
+                    )
+                  )}
+                  <table className="print-table" style={{
+                    width: '100%',
+                    borderCollapse: 'collapse'
+                  }}>
                   <thead>
                     <tr>
                       <th style={{ width: '40px', border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'bold', fontSize: '0.8rem', textAlign: 'center' }}>{block.columnLabels?.stt || 'STT'}</th>
@@ -502,16 +519,34 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                   </tbody>
                 </table>
               </div>
-            )}
+            );
+          })()}
 
             {/* 3.2 DYNAMIC TABLE BLOCK */}
-            {block.type === 'TABLE' && (
-              <div style={{ marginTop: '15px' }}>
-                <table className="print-table" style={{
-                  width: '100%',
-                  borderCollapse: 'collapse',
-                  tableLayout: 'fixed'
-                }}>
+            {block.type === 'TABLE' && (() => {
+              const titleFmt = getEffectiveTitleFormat(block);
+              return (
+                <div style={{ marginTop: '15px' }}>
+                  {titleFmt !== 'NONE' && (
+                    titleFmt === 'H1' ? (
+                      <h2 style={{ margin: '0 0 6px 0', fontSize: '1.05rem', fontWeight: 700, color: '#000000', textTransform: 'uppercase', borderBottom: '2px solid #000000', paddingBottom: '3px' }}>
+                        {block.title}
+                      </h2>
+                    ) : titleFmt === 'H2' ? (
+                      <div style={{ padding: '6px 10px', background: '#f1f5f9', borderLeft: '4px solid #000000', borderRadius: '4px', marginBottom: '6px', fontWeight: 700, fontSize: '0.9rem', color: '#000000' }}>
+                        {block.title}
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: '0.85rem', fontWeight: 400, marginBottom: '6px', color: '#000000' }}>
+                        {block.title}
+                      </div>
+                    )
+                  )}
+                  <table className="print-table" style={{
+                    width: '100%',
+                    borderCollapse: 'collapse',
+                    tableLayout: 'fixed'
+                  }}>
                   <thead>
                     <tr>
                       {(block.tableColumns || []).map((col) => {
@@ -662,15 +697,33 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                   })()}
                 </table>
               </div>
-            )}
+            );
+          })()}
 
             {/* 3.1 MATRIX TABLE BLOCK */}
-            {block.type === 'MATRIX_TABLE' && block.matrixConfig && (
-              <div style={{ marginTop: '15px' }}>
-                <table className="print-table" style={{
-                  width: '100%',
-                  borderCollapse: 'collapse'
-                }}>
+            {block.type === 'MATRIX_TABLE' && block.matrixConfig && (() => {
+              const titleFmt = getEffectiveTitleFormat(block);
+              return (
+                <div style={{ marginTop: '15px' }}>
+                  {titleFmt !== 'NONE' && (
+                    titleFmt === 'H1' ? (
+                      <h2 style={{ margin: '0 0 6px 0', fontSize: '1.05rem', fontWeight: 700, color: '#000000', textTransform: 'uppercase', borderBottom: '2px solid #000000', paddingBottom: '3px' }}>
+                        {block.title}
+                      </h2>
+                    ) : titleFmt === 'H2' ? (
+                      <div style={{ padding: '6px 10px', background: '#f1f5f9', borderLeft: '4px solid #000000', borderRadius: '4px', marginBottom: '6px', fontWeight: 700, fontSize: '0.9rem', color: '#000000' }}>
+                        {block.title}
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: '0.85rem', fontWeight: 400, marginBottom: '6px', color: '#000000' }}>
+                        {block.title}
+                      </div>
+                    )
+                  )}
+                  <table className="print-table" style={{
+                    width: '100%',
+                    borderCollapse: 'collapse'
+                  }}>
                   <thead>
                     <tr>
                       <th rowSpan={2} style={{ width: '50px', border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'bold', fontSize: '0.8rem', textAlign: 'center' }}>
@@ -731,36 +784,57 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                   </tbody>
                 </table>
               </div>
-            )}
+            );
+          })()}
 
             {/* 4. SIGN BLOCK */}
-            {block.type === 'SIGN' && (
-              <div style={{
-                paddingTop: '5px',
-                marginTop: '12px',
-                marginBottom: '45px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                gap: '40px'
-              }}>
-                {block.fields.map((f) => (
-                  <div key={f.id} style={{
-                    flex: 1,
-                    height: '80px',
+            {block.type === 'SIGN' && (() => {
+              const titleFmt = getEffectiveTitleFormat(block);
+              return (
+                <div style={{ marginTop: '15px' }}>
+                  {titleFmt !== 'NONE' && (
+                    titleFmt === 'H1' ? (
+                      <h2 style={{ margin: '0 0 6px 0', fontSize: '1.05rem', fontWeight: 700, color: '#000000', textTransform: 'uppercase', borderBottom: '2px solid #000000', paddingBottom: '3px' }}>
+                        {block.title}
+                      </h2>
+                    ) : titleFmt === 'H2' ? (
+                      <div style={{ padding: '6px 10px', background: '#f1f5f9', borderLeft: '4px solid #000000', borderRadius: '4px', marginBottom: '6px', fontWeight: 700, fontSize: '0.9rem', color: '#000000' }}>
+                        {block.title}
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: '0.85rem', fontWeight: 400, marginBottom: '6px', color: '#000000' }}>
+                        {block.title}
+                      </div>
+                    )
+                  )}
+                  <div style={{
+                    paddingTop: '5px',
+                    marginTop: '12px',
+                    marginBottom: '45px',
                     display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'flex-start',
-                    gap: '4px'
+                    justifyContent: 'space-between',
+                    gap: '40px'
                   }}>
-                    <span style={{ fontSize: '0.85rem', fontWeight: 'bold', textAlign: 'center' }}>{f.checkItem}</span>
-                    <span style={{ fontSize: '0.75rem', fontStyle: 'italic', color: '#475569', textAlign: 'center' }}>
-                      {f.reactionProtocol ? (f.reactionProtocol.startsWith('(') ? f.reactionProtocol : `(${f.reactionProtocol})`) : '(Ký và ghi rõ họ tên)'}
-                    </span>
+                    {block.fields.map((f) => (
+                      <div key={f.id} style={{
+                        flex: 1,
+                        height: '80px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'flex-start',
+                        gap: '4px'
+                      }}>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 'bold', textAlign: 'center' }}>{f.checkItem}</span>
+                        <span style={{ fontSize: '0.75rem', fontStyle: 'italic', color: '#475569', textAlign: 'center' }}>
+                          {f.reactionProtocol ? (f.reactionProtocol.startsWith('(') ? f.reactionProtocol : `(${f.reactionProtocol})`) : '(Ký và ghi rõ họ tên)'}
+                        </span>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            )}
+                </div>
+              );
+            })()}
 
           </div>
         );
