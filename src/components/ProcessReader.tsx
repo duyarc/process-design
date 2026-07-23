@@ -1673,9 +1673,6 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                            {/* 3.2 DYNAMIC TABLE BLOCK */}
                            {block.type === 'TABLE' && (
                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem', marginTop: '1rem' }}>
-                               <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                                 {block.title}
-                               </div>
                                <div style={{ overflowX: 'auto', border: '1px solid var(--neutral-border)', borderRadius: '6px' }}>
                                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', background: '#ffffff', tableLayout: 'fixed' }}>
                                    <thead>
