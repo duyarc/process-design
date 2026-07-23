@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import type { Submission, LayoutBlockISO, TableColumnConfig } from '../../types';
 import { formatFormVersion, getColStyleWidth } from '../../types';
-import { sanitizeLabel, getEffectiveTitleFormat } from '../../utils/formUtils';
+import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName } from '../../utils/formUtils';
 
 // Helper: derive CHECKLIST_TABLE columns — falls back to columnLabels for backward compat
 function getChecklistColumns(block: LayoutBlockISO | undefined, fallbackLabels?: { stt?: string; item?: string; target?: string; reaction?: string }): TableColumnConfig[] {
@@ -130,6 +130,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
   }, [loadingImages, imgLoaded, onClose]);
 
   const [layoutBlocks, setLayoutBlocks] = useState<any[]>([]);
+  const [formTitle, setFormTitle] = useState<string>('');
 
   useEffect(() => {
     fetch(`/api/processes`)
@@ -137,11 +138,33 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
       .then(data => {
         const proc = data.find((p: any) => p.id === submission.processId);
         if (proc && proc.workflowFormsData && proc.workflowFormsData[submission.formId]) {
-          setLayoutBlocks(proc.workflowFormsData[submission.formId].layoutBlocks || []);
+          const fData = proc.workflowFormsData[submission.formId];
+          setLayoutBlocks(fData.layoutBlocks || []);
+          setFormTitle(fData.formTitle || '');
         }
       })
       .catch(err => console.error('Error fetching process blocks for PrintRecord:', err));
   }, [submission.processId, submission.formId]);
+
+  // Set document.title according to Digital 5S standard
+  useEffect(() => {
+    const originalTitle = document.title;
+    const titleBlock = layoutBlocks.find(b => b.type === 'TITLE');
+    const activeFormTitle = formTitle || titleBlock?.title || processTitle || 'Record';
+
+    let datePart = '';
+    if (submission.submittedAt) {
+      const parts = submission.submittedAt.split('T')[0].split('-');
+      if (parts.length === 3) datePart = parts.join(''); // YYYYMMDD
+    }
+
+    const normalizedTitle = to5SFileName(activeFormTitle);
+    document.title = `REC_${datePart}_${normalizedTitle}`;
+
+    return () => {
+      document.title = originalTitle;
+    };
+  }, [formTitle, layoutBlocks, processTitle, submission.submittedAt]);
 
   // 3. Separate flat data into Layout Blocks for structured printing
   const infoFields = submission.formData.filter(

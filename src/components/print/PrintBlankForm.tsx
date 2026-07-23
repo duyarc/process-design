@@ -2,7 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import type { FormTemplateISO, LayoutBlockISO, TableColumnConfig } from '../../types';
 import { formatFormVersion, getColStyleWidth } from '../../types';
-import { sanitizeLabel, getEffectiveTitleFormat } from '../../utils/formUtils';
+import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName } from '../../utils/formUtils';
 
 // Helper: derive CHECKLIST_TABLE columns — falls back to columnLabels for backward compat
 function getChecklistColumns(block: LayoutBlockISO): TableColumnConfig[] {
@@ -95,6 +95,17 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
       clearTimeout(timer);
     };
   }, [imgLoaded, onClose]);
+
+  // Set document.title according to Digital 5S standard
+  React.useEffect(() => {
+    const originalTitle = document.title;
+    if (template.formTitle) {
+      document.title = `FORM_${to5SFileName(template.formTitle)}`;
+    }
+    return () => {
+      document.title = originalTitle;
+    };
+  }, [template.formTitle]);
 
   return ReactDOM.createPortal(
     <div className="print-container" style={{

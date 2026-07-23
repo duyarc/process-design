@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { Process, SubmissionFieldSnapshot } from '../types';
 import { formatFormVersion, getColStyleWidth } from '../types';
-import { sanitizeLabel, getEffectiveTitleFormat } from '../utils/formUtils';
+import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName } from '../utils/formUtils';
 import { useAuth } from '../context/AuthContext';
 import { Printer, Edit2, Camera, AlertTriangle, X, PenTool, GitBranch, Eye, ArrowLeft } from 'lucide-react';
 import { generateBPMNXML, getNumRows } from '../utils/bpmnXmlGenerator';
@@ -41,6 +41,17 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
 
 
   const { hasPermission } = useAuth();
+
+  // Set document.title according to Digital 5S standard
+  useEffect(() => {
+    const originalTitle = document.title;
+    if (process?.title) {
+      document.title = `SOP_${to5SFileName(process.title)}`;
+    }
+    return () => {
+      document.title = originalTitle;
+    };
+  }, [process?.title]);
 
   // ISO Form execution states
   const [activeFormToFill, setActiveFormToFill] = useState<string | null>(null);

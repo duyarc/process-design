@@ -17,3 +17,23 @@ export const getEffectiveTitleFormat = (block: { type: string; titleFormat?: Tit
   if (block.type === 'SECTION_LABEL') return block.sectionFormat || 'H1';
   return 'BODY';
 };
+
+/**
+ * Normalizes any title string to follow Digital 5S naming conventions:
+ * 1. Remove Vietnamese diacritics (accents)
+ * 2. Strip special characters (except alphanumeric, spaces, and underscores)
+ * 3. Replace spaces with underscores and remove duplicate underscores
+ */
+export function to5SFileName(title: string): string {
+  if (!title) return '';
+  return title
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // remove diacritics
+    .replace(/[đđ]/g, 'd')
+    .replace(/[ĐĐ]/g, 'D')
+    .replace(/[^a-zA-Z0-9\s_]/g, '') // strip special chars
+    .trim()
+    .replace(/\s+/g, '_') // space to underscore
+    .replace(/_+/g, '_'); // duplicate underscores to single
+}
+
