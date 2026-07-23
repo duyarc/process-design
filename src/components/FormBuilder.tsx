@@ -1516,7 +1516,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
             minHeight: '1050px',
             display: 'flex',
             flexDirection: 'column',
-            gap: '1.5rem',
+            gap: '1rem',
             position: 'relative'
           }}>
             
