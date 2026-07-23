@@ -2751,9 +2751,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                   onChange={(e) => handleUpdateTableColumn(activeBlock.id, col.id, { type: e.target.value as any })}
                                   style={{ flex: 1.0, padding: '0.2rem 0.3rem', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
                                 >
-                                  <option value="static_text">Nhãn tĩnh</option>
-                                  <option value="text">Chữ nhập</option>
-                                  <option value="number">Số nhập</option>
+                                  <option value="static_text">Nhãn</option>
+                                  <option value="text">Chữ</option>
+                                  <option value="number">Số</option>
                                   <option value="checkbox">Checkbox</option>
                                   <option value="radio">Radio</option>
                                   <option value="date">Ngày</option>
