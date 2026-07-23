@@ -1275,16 +1275,16 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
 
                       return (
                         <div key={block.id} style={{
-                          border: '1.5px solid var(--neutral-border)',
-                          borderRadius: '8px',
-                          padding: '1.25rem',
-                          background: '#ffffff',
+                          border: block.type === 'TITLE' ? 'none' : '1.5px solid var(--neutral-border)',
+                          borderRadius: block.type === 'TITLE' ? '0' : '8px',
+                          padding: block.type === 'TITLE' ? '0.5rem 0' : '1.25rem',
+                          background: block.type === 'TITLE' ? 'transparent' : '#ffffff',
                           marginBottom: '0.5rem',
                           display: 'flex',
                           flexDirection: 'column',
                           gap: '1rem'
                         }}>
-                          {blockTitleFmt !== 'NONE' && (
+                          {blockTitleFmt !== 'NONE' && block.type !== 'TITLE' && (
                             blockTitleFmt === 'H1' ? (
                               <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-primary)', borderBottom: '2px solid var(--text-primary)', paddingBottom: '0.3rem' }}>
                                 {block.title}
@@ -1303,7 +1303,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                           {/* 1. TITLE BLOCK */}
                           {block.type === 'TITLE' && (
                             <div style={{ textAlign: 'center', padding: '0.5rem 0' }}>
-                              <h1 style={{ fontSize: '1.2rem', fontWeight: 800, margin: '0 0 0.25rem 0' }}>{block.title}</h1>
+                              <h1 style={{ fontSize: '1.2rem', fontWeight: 800, margin: '0 0 0.25rem 0', textTransform: 'uppercase' }}>{block.title}</h1>
                               <p style={{ fontSize: '0.8rem', fontStyle: 'italic', color: 'var(--text-secondary)' }}>
                                 {block.fields[0]?.checkItem}
                               </p>

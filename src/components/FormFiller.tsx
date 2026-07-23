@@ -614,15 +614,15 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
 
           return (
             <div key={block.id} style={{
-              border: '1.5px solid var(--neutral-border)',
-              borderRadius: '8px',
-              padding: '1.5rem',
-              background: '#ffffff',
+              border: block.type === 'TITLE' ? 'none' : '1.5px solid var(--neutral-border)',
+              borderRadius: block.type === 'TITLE' ? '0' : '8px',
+              padding: block.type === 'TITLE' ? '0.5rem 0' : '1.5rem',
+              background: block.type === 'TITLE' ? 'transparent' : '#ffffff',
               display: 'flex',
               flexDirection: 'column',
               gap: '1.25rem'
             }}>
-              {blockTitleFmt !== 'NONE' && (
+              {blockTitleFmt !== 'NONE' && block.type !== 'TITLE' && (
                 blockTitleFmt === 'H1' ? (
                   <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-primary)', borderBottom: '2px solid var(--text-primary)', paddingBottom: '0.3rem' }}>
                     {block.title}
@@ -652,7 +652,7 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
                       />
                     </div>
                   )}
-                  <h1 style={{ fontSize: '1.25rem', fontWeight: 800, margin: '0 0 0.25rem 0' }}>{block.title}</h1>
+                  <h1 style={{ fontSize: '1.25rem', fontWeight: 800, margin: '0 0 0.25rem 0', textTransform: 'uppercase' }}>{block.title}</h1>
                   <p style={{ fontSize: '0.82rem', fontStyle: 'italic', color: 'var(--text-secondary)', margin: 0 }}>
                     {block.fields[0]?.checkItem}
                   </p>
