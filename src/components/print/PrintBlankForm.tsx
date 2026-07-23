@@ -202,8 +202,8 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
             {block.type === 'SECTION_LABEL' && (
               block.sectionFormat === 'H1' ? (
                 <div style={{
-                  padding: '4px 0 8px 0',
-                  marginBottom: '10px',
+                  padding: '4px 0 4px 0',
+                  marginBottom: '4px',
                   pageBreakInside: 'avoid',
                   breakInside: 'avoid'
                 }}>
@@ -304,9 +304,9 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
 
               return (
                 <div style={{
-                  padding: '10px 0',
-                  marginTop: '10px',
-                  marginBottom: '15px'
+                  padding: '2px 0',
+                  marginTop: '2px',
+                  marginBottom: '8px'
                 }}>
                   <div style={{
                     display: 'flex',
@@ -318,18 +318,18 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                         flex: 1,
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: '8px'
+                        gap: '5px'
                       }}>
                         {colFields.map(f => {
                           const cleanLabel = sanitizeLabel(f.checkItem);
                           if (f.type === 'checkbox' || f.type === 'radio') {
                             const options = f.options ?? [{ label: 'Có', value: 'YES' }, { label: 'Không', value: 'NO' }];
                             return (
-                              <div key={f.id} style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.85rem' }}>
+                              <div key={f.id} style={{ display: 'flex', flexDirection: 'column', gap: '2px', fontSize: '0.85rem' }}>
                                 {cleanLabel && (
-                                  <span style={{ fontWeight: 700, color: '#000000' }}>{cleanLabel}</span>
+                                  <span style={{ fontWeight: 600, color: '#000000' }}>{cleanLabel}</span>
                                 )}
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 20px', alignItems: 'center', paddingTop: '2px' }}>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 20px', alignItems: 'center' }}>
                                   {options.map((opt: any) => (
                                     <span key={opt.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
                                       <span style={{
