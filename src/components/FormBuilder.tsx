@@ -2155,13 +2155,13 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                              ) : col.type === 'radio' ? (
                                                <div style={{ textAlign: 'center' }}><input type="radio" disabled /></div>
                                              ) : col.type === 'date' ? (
-                                               <span style={{ color: '#cbd5e1', fontSize: '0.7rem' }}>[Ngày]</span>
+                                               <span style={{ color: '#cbd5e1', fontSize: '0.7rem', display: 'block', textAlign: 'center' }}>[Ngày]</span>
                                              ) : col.type === 'time' ? (
-                                               <span style={{ color: '#cbd5e1', fontSize: '0.7rem' }}>[Giờ]</span>
+                                               <span style={{ color: '#cbd5e1', fontSize: '0.7rem', display: 'block', textAlign: 'center' }}>[Giờ]</span>
                                              ) : col.type === 'number' ? (
-                                               <span style={{ color: '#cbd5e1', fontSize: '0.7rem' }}>[Nhập số]</span>
+                                               <span style={{ color: '#cbd5e1', fontSize: '0.7rem', display: 'block', textAlign: 'right' }}>[Nhập số]</span>
                                              ) : (
-                                               <span style={{ color: '#cbd5e1', fontSize: '0.7rem' }}>[Nhập chữ]</span>
+                                               <span style={{ color: '#cbd5e1', fontSize: '0.7rem', display: 'block', textAlign: 'left' }}>[Nhập chữ]</span>
                                              )}
                                            </td>
                                          );
