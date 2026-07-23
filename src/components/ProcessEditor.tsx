@@ -852,8 +852,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
       checkItem: '',
       locationCode: '',
       targetRange: '',
-      reactionProtocol: '',
-      frequency: 'Once/Shift'
+      reactionProtocol: ''
     };
     setFormFields(prev => [...prev, newField]);
   };

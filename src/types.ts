@@ -28,7 +28,7 @@ export interface FormField {
   locationCode: string;
   targetRange: string;
   reactionProtocol: string;
-  frequency: string;
+  frequency?: string;
 }
 
 export interface RadioOption {
@@ -95,7 +95,7 @@ export interface FormFieldISO {
   unit?: string;
   targetRange?: string; // For text/boolean targets e.g. "Released & functional"
   options?: RadioOption[]; // For radio type: list of selectable options
-  frequency: string;
+  frequency?: string;
   reactionProtocol: string;
   timeMode?: 'single' | 'dual';
 }

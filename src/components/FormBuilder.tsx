@@ -600,7 +600,6 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
       type,
       checkItem: `${labelPrefix}mới`,
       locationCode: `LOC-${Math.floor(10 + Math.random() * 90)}`,
-      frequency: "Once/Shift",
       reactionProtocol: type === 'radio' || type === 'number' ? "Báo cáo trưởng ca và ghi nhận hành động khắc phục." : ""
     };
 
@@ -2248,7 +2247,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                   </div>
                 )}
 
-                {activeField.type === 'signature' ? (
+                {activeField.type === 'signature' && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
                     <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Ghi chú</label>
                     <input
@@ -2257,17 +2256,6 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                       placeholder="Ký và ghi rõ họ tên"
                       value={activeField.reactionProtocol || ''}
                       onChange={(e) => handleUpdateField(activeBlockId!, activeFieldId!, { reactionProtocol: e.target.value })}
-                      style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
-                    />
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                    <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Check Frequency</label>
-                    <input
-                      type="text"
-                      disabled={isLocked}
-                      value={activeField.frequency}
-                      onChange={(e) => handleUpdateField(activeBlockId!, activeFieldId!, { frequency: e.target.value })}
                       style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
                     />
                   </div>

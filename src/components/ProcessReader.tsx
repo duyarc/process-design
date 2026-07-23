@@ -1072,10 +1072,9 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                   <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead>
                       <tr style={{ background: '#f9fafb' }}>
-                        <th style={{ padding: '0.45rem 0.6rem', textAlign: 'left', fontWeight: 600, fontSize: '0.75rem', width: '40%' }}>Check Item / Parameter</th>
-                        <th style={{ padding: '0.45rem 0.6rem', textAlign: 'left', fontWeight: 600, fontSize: '0.75rem', width: '15%' }}>Target Range</th>
-                        <th style={{ padding: '0.45rem 0.6rem', textAlign: 'left', fontWeight: 600, fontSize: '0.75rem', width: '12%' }}>Frequency</th>
-                        <th style={{ padding: '0.45rem 0.6rem', textAlign: 'left', fontWeight: 600, fontSize: '0.75rem', width: '33%' }}>Reaction Protocol / Consequence</th>
+                        <th style={{ padding: '0.45rem 0.6rem', textAlign: 'left', fontWeight: 600, fontSize: '0.75rem', width: '45%' }}>Check Item / Parameter</th>
+                        <th style={{ padding: '0.45rem 0.6rem', textAlign: 'left', fontWeight: 600, fontSize: '0.75rem', width: '20%' }}>Target Range</th>
+                        <th style={{ padding: '0.45rem 0.6rem', textAlign: 'left', fontWeight: 600, fontSize: '0.75rem', width: '35%' }}>Reaction Protocol / Consequence</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1083,7 +1082,6 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                         <tr key={field.id || index} style={{ borderBottom: '1px solid var(--neutral-border)' }}>
                           <td style={{ padding: '0.45rem 0.6rem', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-primary)' }}>{field.checkItem}</td>
                           <td style={{ padding: '0.45rem 0.6rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{field.targetRange}</td>
-                          <td style={{ padding: '0.45rem 0.6rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{field.frequency}</td>
                           <td style={{ padding: '0.45rem 0.6rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{field.reactionProtocol}</td>
                         </tr>
                       ))}
@@ -1406,9 +1404,6 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                                       <span style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-primary)' }}>
                                         {fIdx + 1}. {field.checkItem}
-                                      </span>
-                                      <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', background: '#f1f5f9', padding: '0.15rem 0.4rem', borderRadius: '4px' }}>
-                                        {field.frequency}
                                       </span>
                                     </div>
 

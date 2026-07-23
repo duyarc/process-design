@@ -9,7 +9,7 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Last Verified Against Codebase** | 2026-07-20 |
+| **Last Verified Against Codebase** | 2026-07-23 |
 | **Verified By Session** | [9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) |
 
 > **⚠️ Session Note (2026-07-14):** Deep codebase research confirmed FormBuilder has no awareness of which process it belongs to. `formName` prop is always identical to `formId`. New `linkedProcessId` and `onUnlinkFromProcess` props added — see Section 6.1 and Technical Debt table.
@@ -447,4 +447,6 @@ All calls are inline `fetch()` within `FormBuilder.tsx` and `PrintBlankForm.tsx`
 | 2026-07-14 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Deep codebase research: Document that `formName` prop always equals `formId`. Clarify FormBuilder has no intrinsic process context. Add new props `linkedProcessId` and `onUnlinkFromProcess`. Update Section 6.1 interface contract and Technical Debt table. |
 | 2026-07-20 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Bug fix (critical):** `isLogoKeyUsed()` in `server.cjs` rewrote to query `forms.layout_blocks` (the authoritative table) instead of `processes.workflowFormsData` (which never contains `layoutBlocks`). The old implementation always returned `false`, causing every logo to be deleted from R2 on the next process save. Fixed by using `SELECT COUNT(*) FROM forms WHERE layout_blocks::text LIKE '%' || $1 || '%'`. |
 | 2026-07-20 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Bug fix:** `handleLogoUpload()` in `FormBuilder.tsx` now calls `saveFormToBackend({ layoutBlocksOverride })` immediately after a successful R2 upload, persisting the logo R2 key to `forms.layout_blocks` in DB before any cleanup routine can run. Added `layoutBlocksOverride` option to `saveFormToBackend` signature to bypass React state batching. |
+| 2026-07-23 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Retire Check Frequency:** Retire Check Frequency ("frequency") property from FormBuilder field inspector panel and default field creation. Update FormFieldISO and FormField interfaces in types.ts to make frequency optional for backward compatibility. |
+
 
