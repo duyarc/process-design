@@ -302,7 +302,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
             display: none !important;
           }
           .print-block {
-            margin-bottom: 24px;
+            margin-bottom: 16px;
           }
           .print-block-avoid {
             page-break-inside: avoid;
@@ -480,10 +480,10 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
             }}>
             <thead>
               <tr>
-                <th style={{ width: '40px', border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'bold', fontSize: '0.8rem', textAlign: 'center' }}>{columnLabels?.stt || 'STT'}</th>
-                <th style={{ border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'bold', fontSize: '0.8rem', textAlign: 'left' }}>{columnLabels?.item || 'Chi tiết kiểm tra'}</th>
-                <th style={{ width: '90px', border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'bold', fontSize: '0.8rem', textAlign: 'center' }}>{columnLabels?.target || 'Đạt / Không Đạt'}</th>
-                <th style={{ width: '220px', border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'bold', fontSize: '0.8rem', textAlign: 'left' }}>{columnLabels?.reaction || 'Mô tả cụ thể nếu Không đạt'}</th>
+                <th style={{ width: '40px', border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 600, fontSize: '0.8rem', textAlign: 'center' }}>{columnLabels?.stt || 'STT'}</th>
+                <th style={{ border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 600, fontSize: '0.8rem', textAlign: 'left' }}>{columnLabels?.item || 'Chi tiết kiểm tra'}</th>
+                <th style={{ width: '90px', border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 600, fontSize: '0.8rem', textAlign: 'center' }}>{columnLabels?.target || 'Đạt / Không Đạt'}</th>
+                <th style={{ width: '220px', border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 600, fontSize: '0.8rem', textAlign: 'left' }}>{columnLabels?.reaction || 'Mô tả cụ thể nếu Không đạt'}</th>
               </tr>
             </thead>
             <tbody>
@@ -620,26 +620,26 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
             }}>
               <thead>
                 <tr>
-                  <th rowSpan={2} style={{ width: '50px', border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'bold', fontSize: '0.8rem', textAlign: 'center' }}>
+                  <th rowSpan={2} style={{ width: '50px', border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 600, fontSize: '0.8rem', textAlign: 'center' }}>
                     {block.rowHeader}
                   </th>
-                  <th colSpan={block.columns.length} style={{ border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'bold', fontSize: '0.8rem', textAlign: 'center' }}>
+                  <th colSpan={block.columns.length} style={{ border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 600, fontSize: '0.8rem', textAlign: 'center' }}>
                     {block.columnHeader}
                   </th>
                   {block.showTotalColumn && (
-                    <th rowSpan={2} style={{ width: '130px', border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'bold', fontSize: '0.8rem', textAlign: 'center' }}>
+                    <th rowSpan={2} style={{ width: '130px', border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 600, fontSize: '0.8rem', textAlign: 'center' }}>
                       {block.totalColumnHeader}
                     </th>
                   )}
                   {block.showNotesColumn && (
-                    <th rowSpan={2} style={{ width: '180px', border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'bold', fontSize: '0.8rem', textAlign: 'left' }}>
+                    <th rowSpan={2} style={{ width: '180px', border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 600, fontSize: '0.8rem', textAlign: 'left' }}>
                       {block.notesColumnHeader}
                     </th>
                   )}
                 </tr>
                 <tr>
                   {block.columns.map((colName: string, cIdx: number) => (
-                    <th key={cIdx} style={{ border: '1.5px solid #000000', padding: '4px', background: '#f8fafc', fontWeight: 'bold', fontSize: '0.75rem', textAlign: block.columnAlign || 'center' }}>
+                    <th key={cIdx} style={{ border: '1.5px solid #000000', padding: '4px', background: '#f8fafc', fontWeight: 600, fontSize: '0.75rem', textAlign: block.columnAlign || 'center' }}>
                       {colName}
                     </th>
                   ))}
@@ -724,7 +724,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                       const hasOptions = col.type === 'checkbox' && col.options && col.options.length > 0;
                       const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? (hasOptions ? 'left' : 'center') : 'left'));
                       return (
-                        <th key={col.id} style={{ border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'bold', fontSize: '0.8rem', textAlign: cellAlign, width: colWidth }}>
+                        <th key={col.id} style={{ border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 600, fontSize: '0.8rem', textAlign: cellAlign, width: colWidth }}>
                           {col.label}
                         </th>
                       );

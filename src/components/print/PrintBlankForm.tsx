@@ -131,7 +131,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
             display: none !important;
           }
           .print-block {
-            margin-bottom: 24px;
+            margin-bottom: 16px;
           }
           .print-block-avoid {
             page-break-inside: avoid;
@@ -437,10 +437,10 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                   }}>
                   <thead>
                     <tr>
-                      <th style={{ width: '40px', border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'bold', fontSize: '0.8rem', textAlign: 'center' }}>{block.columnLabels?.stt || 'STT'}</th>
-                      <th style={{ border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'bold', fontSize: '0.8rem', textAlign: 'left' }}>{block.columnLabels?.item || 'Chi tiết kiểm tra'}</th>
-                      <th style={{ width: '130px', border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'bold', fontSize: '0.8rem', textAlign: 'center' }}>{block.columnLabels?.target || 'Đạt / Không Đạt'}</th>
-                      <th style={{ width: '220px', border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'bold', fontSize: '0.8rem', textAlign: 'left' }}>{block.columnLabels?.reaction || 'Mô tả cụ thể nếu Không đạt'}</th>
+                      <th style={{ width: '40px', border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 600, fontSize: '0.8rem', textAlign: 'center' }}>{block.columnLabels?.stt || 'STT'}</th>
+                      <th style={{ border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 600, fontSize: '0.8rem', textAlign: 'left' }}>{block.columnLabels?.item || 'Chi tiết kiểm tra'}</th>
+                      <th style={{ width: '130px', border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 600, fontSize: '0.8rem', textAlign: 'center' }}>{block.columnLabels?.target || 'Đạt / Không Đạt'}</th>
+                      <th style={{ width: '220px', border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 600, fontSize: '0.8rem', textAlign: 'left' }}>{block.columnLabels?.reaction || 'Mô tả cụ thể nếu Không đạt'}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -554,7 +554,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                         const hasOptions = col.type === 'checkbox' && col.options && col.options.length > 0;
                         const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? (hasOptions ? 'left' : 'center') : 'left'));
                         return (
-                          <th key={col.id} style={{ border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'bold', fontSize: '0.8rem', textAlign: cellAlign, width: colWidth }}>
+                          <th key={col.id} style={{ border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 600, fontSize: '0.8rem', textAlign: cellAlign, width: colWidth }}>
                             {col.label}
                           </th>
                         );
@@ -726,26 +726,26 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                   }}>
                   <thead>
                     <tr>
-                      <th rowSpan={2} style={{ width: '50px', border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'bold', fontSize: '0.8rem', textAlign: 'center' }}>
+                      <th rowSpan={2} style={{ width: '50px', border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 600, fontSize: '0.8rem', textAlign: 'center' }}>
                         {block.matrixConfig.rowHeader}
                       </th>
-                      <th colSpan={block.matrixConfig.columns.length} style={{ border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'bold', fontSize: '0.8rem', textAlign: 'center' }}>
+                      <th colSpan={block.matrixConfig.columns.length} style={{ border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 600, fontSize: '0.8rem', textAlign: 'center' }}>
                         {block.matrixConfig.columnHeader}
                       </th>
                       {block.matrixConfig.showTotalColumn && (
-                        <th rowSpan={2} style={{ width: '130px', border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'bold', fontSize: '0.8rem', textAlign: 'center' }}>
+                        <th rowSpan={2} style={{ width: '130px', border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 600, fontSize: '0.8rem', textAlign: 'center' }}>
                           {block.matrixConfig.totalColumnHeader}
                         </th>
                       )}
                       {block.matrixConfig.showNotesColumn && (
-                        <th rowSpan={2} style={{ width: '180px', border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'bold', fontSize: '0.8rem', textAlign: 'left' }}>
+                        <th rowSpan={2} style={{ width: '180px', border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 600, fontSize: '0.8rem', textAlign: 'left' }}>
                           {block.matrixConfig.notesColumnHeader}
                         </th>
                       )}
                     </tr>
                     <tr>
                       {block.matrixConfig.columns.map((colName, cIdx) => (
-                        <th key={cIdx} style={{ border: '1.5px solid #000000', padding: '4px', background: '#f8fafc', fontWeight: 'bold', fontSize: '0.75rem', textAlign: block.matrixConfig!.columnAlign || 'center' }}>
+                        <th key={cIdx} style={{ border: '1.5px solid #000000', padding: '4px', background: '#f8fafc', fontWeight: 600, fontSize: '0.75rem', textAlign: block.matrixConfig!.columnAlign || 'center' }}>
                           {colName || `Cột ${cIdx + 1}`}
                         </th>
                       ))}
