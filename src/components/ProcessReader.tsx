@@ -1292,10 +1292,10 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
 
                       return (
                         <div key={block.id} style={{
-                          border: block.type === 'TITLE' ? 'none' : '1.5px solid var(--neutral-border)',
-                          borderRadius: block.type === 'TITLE' ? '0' : '8px',
-                          padding: block.type === 'TITLE' ? '0.5rem 0' : '1.25rem',
-                          background: block.type === 'TITLE' ? 'transparent' : '#ffffff',
+                          border: 'none',
+                          borderRadius: '0',
+                          padding: '0.25rem 0',
+                          background: 'transparent',
                           marginBottom: '0.5rem',
                           display: 'flex',
                           flexDirection: 'column',
@@ -1336,6 +1336,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                             }}>
                               {block.fields.map((field: any) => {
                                 const value = formValues[field.id] || '';
+                                const inputStyle = { padding: '0.4rem 0.5rem', fontSize: '0.8rem', border: '1px solid #e2e8f0', borderRadius: '4px', width: '100%', height: '34px', backgroundColor: '#f8fafc' };
                                 return (
                                   <div key={field.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                                     <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
@@ -1346,7 +1347,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                                         type="date"
                                         value={value}
                                         onChange={(e) => setFormValues(prev => ({ ...prev, [field.id]: e.target.value }))}
-                                        style={{ padding: '0.4rem 0.5rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', width: '100%', height: '34px' }}
+                                        style={inputStyle}
                                       />
                                     ) : field.type === 'time' ? (
                                       field.timeMode === 'dual' ? (() => {
@@ -1364,7 +1365,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                                                   const val = e.target.value;
                                                   setFormValues(prev => ({ ...prev, [field.id]: `${val} - ${eTime}` }));
                                                 }}
-                                                style={{ padding: '0.4rem 0.5rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', width: '100%', height: '34px' }}
+                                                style={inputStyle}
                                               />
                                             </div>
                                             <span style={{ marginTop: '10px', color: '#cbd5e1' }}>~</span>
@@ -1377,7 +1378,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                                                   const val = e.target.value;
                                                   setFormValues(prev => ({ ...prev, [field.id]: `${sTime} - ${val}` }));
                                                 }}
-                                                style={{ padding: '0.4rem 0.5rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', width: '100%', height: '34px' }}
+                                                style={inputStyle}
                                               />
                                             </div>
                                           </div>
@@ -1387,7 +1388,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                                           type="time"
                                           value={value}
                                           onChange={(e) => setFormValues(prev => ({ ...prev, [field.id]: e.target.value }))}
-                                          style={{ padding: '0.4rem 0.5rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', width: '100%', height: '34px' }}
+                                          style={inputStyle}
                                         />
                                       )
                                     ) : field.type === 'checkbox' ? (
@@ -1419,7 +1420,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                                       <select
                                         value={value}
                                         onChange={(e) => setFormValues(prev => ({ ...prev, [field.id]: e.target.value }))}
-                                        style={{ padding: '0.4rem 0.5rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', width: '100%', height: '34px' }}
+                                        style={inputStyle}
                                       >
                                         <option value="">-- Chọn --</option>
                                         {(field.options ?? [{ label: 'Đạt', value: 'PASS', isPass: true }, { label: 'Không Đạt', value: 'FAIL', isPass: false }]).map((opt: any) => (
@@ -1431,7 +1432,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                                         type="text"
                                         value={value}
                                         onChange={(e) => setFormValues(prev => ({ ...prev, [field.id]: e.target.value }))}
-                                        style={{ padding: '0.4rem 0.5rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', width: '100%', height: '34px' }}
+                                        style={inputStyle}
                                       />
                                     )}
                                   </div>
@@ -1739,8 +1740,8 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                            {/* 3.2 DYNAMIC TABLE BLOCK */}
                            {block.type === 'TABLE' && (
                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem', marginTop: '1rem' }}>
-                               <div style={{ overflowX: 'auto', border: '1px solid var(--neutral-border)', borderRadius: '6px' }}>
-                                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', background: '#ffffff', tableLayout: 'fixed' }}>
+                               <div style={{ overflowX: 'auto' }}>
+                                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', background: '#ffffff', tableLayout: 'fixed', border: '1px solid var(--neutral-border)' }}>
                                    <thead>
                                      <tr style={{ background: '#f1f5f9', borderBottom: '2px solid var(--neutral-border)' }}>
                                        {(block.tableColumns || []).map((col: any) => {
@@ -1857,8 +1858,8 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                                 <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)' }}>
                                   {block.title}
                                 </div>
-                                <div style={{ overflowX: 'auto', border: '1px solid var(--neutral-border)', borderRadius: '6px' }}>
-                                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', background: '#ffffff' }}>
+                                <div style={{ overflowX: 'auto' }}>
+                                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', background: '#ffffff', border: '1px solid var(--neutral-border)' }}>
                                     <thead>
                                       <tr style={{ background: '#f1f5f9', borderBottom: '2px solid var(--neutral-border)' }}>
                                         <th rowSpan={2} style={{ padding: '8px', borderRight: '1px solid var(--neutral-border)', textAlign: 'center', width: '60px', fontWeight: 'bold' }}>

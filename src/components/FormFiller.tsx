@@ -631,10 +631,10 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
 
           return (
             <div key={block.id} style={{
-              border: block.type === 'TITLE' ? 'none' : '1.5px solid var(--neutral-border)',
-              borderRadius: block.type === 'TITLE' ? '0' : '8px',
-              padding: block.type === 'TITLE' ? '0.5rem 0' : '1.5rem',
-              background: block.type === 'TITLE' ? 'transparent' : '#ffffff',
+              border: 'none',
+              borderRadius: '0',
+              padding: '0.25rem 0',
+              background: 'transparent',
               display: 'flex',
               flexDirection: 'column',
               gap: '1.25rem'
@@ -696,6 +696,7 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
                 }}>
                   {block.fields.map((field: any) => {
                     const value = formValues[field.id] || '';
+                    const inputStyle = { padding: '0.45rem 0.6rem', fontSize: '0.82rem', border: '1px solid #e2e8f0', borderRadius: '4px', width: '100%', height: '36px', backgroundColor: '#f8fafc' };
                     return (
                       <div key={field.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
                         <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
@@ -706,7 +707,7 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
                             type="date"
                             value={value}
                             onChange={(e) => setFormValues(prev => ({ ...prev, [field.id]: e.target.value }))}
-                            style={{ padding: '0.45rem 0.6rem', fontSize: '0.82rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', width: '100%', height: '36px' }}
+                            style={inputStyle}
                           />
                         ) : field.type === 'time' ? (
                           field.timeMode === 'dual' ? (() => {
@@ -724,7 +725,7 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
                                       const val = e.target.value;
                                       setFormValues(prev => ({ ...prev, [field.id]: `${val} - ${eTime}` }));
                                     }}
-                                    style={{ padding: '0.45rem 0.6rem', fontSize: '0.82rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', width: '100%', height: '36px' }}
+                                    style={inputStyle}
                                   />
                                 </div>
                                 <span style={{ marginTop: '12px', color: '#cbd5e1' }}>~</span>
@@ -737,7 +738,7 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
                                       const val = e.target.value;
                                       setFormValues(prev => ({ ...prev, [field.id]: `${sTime} - ${val}` }));
                                     }}
-                                    style={{ padding: '0.45rem 0.6rem', fontSize: '0.82rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', width: '100%', height: '36px' }}
+                                    style={inputStyle}
                                   />
                                 </div>
                               </div>
@@ -747,7 +748,7 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
                               type="time"
                               value={value}
                               onChange={(e) => setFormValues(prev => ({ ...prev, [field.id]: e.target.value }))}
-                              style={{ padding: '0.45rem 0.6rem', fontSize: '0.82rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', width: '100%', height: '36px' }}
+                              style={inputStyle}
                             />
                           )
                         ) : field.type === 'checkbox' ? (
@@ -779,7 +780,7 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
                           <select
                             value={value}
                             onChange={(e) => setFormValues(prev => ({ ...prev, [field.id]: e.target.value }))}
-                            style={{ padding: '0.45rem 0.6rem', fontSize: '0.82rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', width: '100%', height: '36px' }}
+                            style={inputStyle}
                           >
                             <option value="">-- Chọn --</option>
                             {(field.options ?? [{ label: 'Đạt', value: 'PASS', isPass: true }, { label: 'Không Đạt', value: 'FAIL', isPass: false }]).map((opt: any) => (
@@ -791,7 +792,7 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
                             type="text"
                             value={value}
                             onChange={(e) => setFormValues(prev => ({ ...prev, [field.id]: e.target.value }))}
-                            style={{ padding: '0.45rem 0.6rem', fontSize: '0.82rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', width: '100%', height: '36px' }}
+                            style={inputStyle}
                           />
                         )}
                       </div>
@@ -1022,8 +1023,8 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
               {/* 3.1 DYNAMIC TABLE BLOCK */}
               {block.type === 'TABLE' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
-                  <div style={{ overflowX: 'auto', border: '1px solid var(--neutral-border)', borderRadius: '6px' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', background: '#ffffff', tableLayout: 'fixed' }}>
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', background: '#ffffff', tableLayout: 'fixed', border: '1px solid var(--neutral-border)' }}>
                       <thead>
                         <tr style={{ background: '#f1f5f9', borderBottom: '2px solid var(--neutral-border)' }}>
                           {(block.tableColumns || []).map((col: any) => {
