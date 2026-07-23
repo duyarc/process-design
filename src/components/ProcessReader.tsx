@@ -1809,7 +1809,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                                                      type="number" 
                                                      value={cellValue} 
                                                      onChange={(e) => setFormValues(prev => ({ ...prev, [cellKey]: e.target.value }))} 
-                                                     placeholder="Nhập số..."
+                                                     
                                                      style={{ width: '100%', padding: '0.35rem 0.45rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', textAlign: cellAlign }}
                                                    />
                                                  ) : (
@@ -1817,7 +1817,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                                                      type="text" 
                                                      value={cellValue} 
                                                      onChange={(e) => setFormValues(prev => ({ ...prev, [cellKey]: e.target.value }))} 
-                                                     placeholder="Nhập chữ..."
+                                                     
                                                      style={{ width: '100%', padding: '0.35rem 0.45rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', textAlign: cellAlign }}
                                                    />
                                                  )}

@@ -1130,7 +1130,6 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
                                         type="number" 
                                         value={cellValue} 
                                         onChange={(e) => setFormValues(prev => ({ ...prev, [cellKey]: e.target.value }))} 
-                                        placeholder="Nhập số..."
                                         style={{ width: '100%', padding: '0.35rem 0.45rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', textAlign: cellAlign }}
                                       />
                                     ) : (
@@ -1138,7 +1137,6 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
                                         type="text" 
                                         value={cellValue} 
                                         onChange={(e) => setFormValues(prev => ({ ...prev, [cellKey]: e.target.value }))} 
-                                        placeholder="Nhập chữ..."
                                         style={{ width: '100%', padding: '0.35rem 0.45rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', textAlign: cellAlign }}
                                       />
                                     )}
