@@ -469,7 +469,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                   {titleText}
                 </div>
               ) : (
-                <div style={{ fontSize: '0.85rem', fontWeight: 400, marginBottom: '8px', color: '#000000' }}>
+                <div style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '8px', color: '#000000' }}>
                   {titleText}
                 </div>
               )
@@ -608,7 +608,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                     {titleText}
                   </div>
                 ) : (
-                  <div style={{ fontSize: '0.85rem', fontWeight: 400, marginBottom: '8px', color: '#000000' }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '8px', color: '#000000' }}>
                     {titleText}
                   </div>
                 )
@@ -706,7 +706,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                   {block.title || 'BẢNG THÔNG TIN'}
                 </div>
               ) : (
-                <div style={{ fontSize: '0.85rem', fontWeight: 400, marginBottom: '8px', color: '#000000' }}>
+                <div style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '8px', color: '#000000' }}>
                   {block.title || 'BẢNG THÔNG TIN'}
                 </div>
               )

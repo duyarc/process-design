@@ -1596,7 +1596,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                         // BODY format (normal body text, non-bold)
                         return (
                           <div style={{ padding: '0.25rem 0', marginBottom: '0.5rem' }}>
-                            <div style={{ fontSize: '0.85rem', fontWeight: 400, color: 'var(--text-primary)' }}>
+                            <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>
                               {block.title || 'Tiêu đề danh mục'}
                             </div>
                             {block.description && (
@@ -1667,7 +1667,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                   {block.title}
                                 </div>
                               ) : (
-                                <div style={{ fontSize: '0.82rem', fontWeight: 400, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
+                                <div style={{ fontSize: '0.82rem', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
                                   {block.title}
                                 </div>
                               )

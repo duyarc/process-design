@@ -584,7 +584,7 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
                     {block.title}
                   </h3>
                 ) : (
-                  <div style={{ margin: '0 0 4px 0', fontSize: '0.9rem', fontWeight: 400, color: 'var(--text-primary)' }}>
+                  <div style={{ margin: '0 0 4px 0', fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)' }}>
                     {block.title}
                   </div>
                 )}
@@ -619,7 +619,7 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
                     {block.title}
                   </div>
                 ) : (
-                  <div style={{ margin: 0, fontSize: '0.88rem', fontWeight: 400, color: 'var(--text-primary)' }}>
+                  <div style={{ margin: 0, fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)' }}>
                     {block.title}
                   </div>
                 )
