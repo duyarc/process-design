@@ -2495,14 +2495,14 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                     onChange={(e) => handleChangeFieldType(activeBlockId!, activeFieldId!, e.target.value as any)}
                     style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', background: '#fff' }}
                   >
-                    <option value="text">Text Note Field</option>
-                    <option value="number">Numeric Spec Check</option>
-                    <option value="date">Date Picker</option>
-                    <option value="time">Time Picker</option>
-                    <option value="checkbox">Checkbox Group</option>
-                    <option value="radio">Radio Group</option>
+                    <option value="text">Text</option>
+                    <option value="number">Number</option>
+                    <option value="date">Date</option>
+                    <option value="time">Time</option>
+                    <option value="checkbox">Checkbox</option>
+                    <option value="radio">Radio</option>
                     <option value="signature">Sign-off</option>
-                    <option value="photo">Camera/Photo Log</option>
+                    <option value="photo">Photo</option>
                   </select>
                 </div>
 
