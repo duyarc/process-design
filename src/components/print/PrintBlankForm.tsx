@@ -391,15 +391,15 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                               {f.type === 'time' ? (
                                 f.timeMode === 'dual' ? (
                                   <div style={{ fontSize: '0.85rem', color: '#000000', display: 'flex', alignItems: 'center', gap: '4px', flex: 1 }}>
-                                    Từ <span style={{ borderBottom: '1.5px dotted #94a3b8', flex: 1, minWidth: '40px', display: 'inline-block', height: '14px', textAlign: 'center' }} /> : <span style={{ borderBottom: '1.5px dotted #94a3b8', flex: 1, minWidth: '40px', display: 'inline-block', height: '14px', textAlign: 'center' }} /> đến <span style={{ borderBottom: '1.5px dotted #94a3b8', flex: 1, minWidth: '40px', display: 'inline-block', height: '14px', textAlign: 'center' }} /> : <span style={{ borderBottom: '1.5px dotted #94a3b8', flex: 1, minWidth: '40px', display: 'inline-block', height: '14px', textAlign: 'center' }} />
+                                    Từ <span style={{ borderBottom: '1px solid #e2e8f0', flex: 1, minWidth: '40px', display: 'inline-block', height: '14px', textAlign: 'center' }} /> : <span style={{ borderBottom: '1px solid #e2e8f0', flex: 1, minWidth: '40px', display: 'inline-block', height: '14px', textAlign: 'center' }} /> đến <span style={{ borderBottom: '1px solid #e2e8f0', flex: 1, minWidth: '40px', display: 'inline-block', height: '14px', textAlign: 'center' }} /> : <span style={{ borderBottom: '1px solid #e2e8f0', flex: 1, minWidth: '40px', display: 'inline-block', height: '14px', textAlign: 'center' }} />
                                   </div>
                                 ) : (
                                   <div style={{ fontSize: '0.85rem', color: '#000000', display: 'flex', alignItems: 'center', gap: '4px', flex: 1 }}>
-                                    <span style={{ borderBottom: '1.5px dotted #94a3b8', flex: 1, minWidth: '60px', display: 'inline-block', height: '14px', textAlign: 'center' }} /> : <span style={{ borderBottom: '1.5px dotted #94a3b8', flex: 1, minWidth: '60px', display: 'inline-block', height: '14px', textAlign: 'center' }} />
+                                    <span style={{ borderBottom: '1px solid #e2e8f0', flex: 1, minWidth: '60px', display: 'inline-block', height: '14px', textAlign: 'center' }} /> : <span style={{ borderBottom: '1px solid #e2e8f0', flex: 1, minWidth: '60px', display: 'inline-block', height: '14px', textAlign: 'center' }} />
                                   </div>
                                 )
                               ) : (
-                                <div style={{ flex: 1, borderBottom: '1.5px dotted #94a3b8', minHeight: '16px' }} />
+                                <div style={{ flex: 1, borderBottom: '1px solid #e2e8f0', minHeight: '16px' }} />
                               )}
                             </div>
                           );
