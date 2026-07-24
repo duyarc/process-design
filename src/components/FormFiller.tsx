@@ -1603,7 +1603,7 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
             disabled={submitting}
             style={{ padding: '0.5rem 2rem' }}
           >
-            {submitting ? 'Submitting Check...' : 'Submit Check Record'}
+            {submitting ? 'Submitting...' : 'Submit'}
           </button>
         </div>
 

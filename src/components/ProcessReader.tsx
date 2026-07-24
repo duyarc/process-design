@@ -2120,7 +2120,7 @@ setFormValues(prev => ({ ...prev, [field.id]: stringifySubtableValue(newRows) })
                       onClick={() => handleSubmitForm(formTemplate)}
                       style={{ background: '#10b981', borderColor: '#10b981' }}
                     >
-                      {submitting ? 'Submitting...' : 'Submit Completed Record'}
+                      {submitting ? 'Submitting...' : 'Submit'}
                     </button>
                   </div>
                 </>
