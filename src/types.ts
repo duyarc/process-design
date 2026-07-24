@@ -90,6 +90,7 @@ export interface SubtableColumn {
   label: string;
   type: 'text' | 'number' | 'date' | 'time';
   width?: string;
+  align?: 'left' | 'center' | 'right';
 }
 
 export interface FormFieldISO {

@@ -543,11 +543,14 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
                               <tr>
-                                {cols.map((col: any) => (
-                                  <th key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', background: '#f1f5f9', fontWeight: 600, textAlign: 'left', fontSize: '0.78rem', width: col.width }}>
-                                    {col.label}
-                                  </th>
-                                ))}
+                                {cols.map((col: any) => {
+                                  const headerAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'date' || col.type === 'time' ? 'center' : 'left'));
+                                  return (
+                                    <th key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', background: '#f1f5f9', fontWeight: 600, textAlign: headerAlign as any, fontSize: '0.78rem', width: col.width }}>
+                                      {col.label}
+                                    </th>
+                                  );
+                                })}
                               </tr>
                             </thead>
                             <tbody>

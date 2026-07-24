@@ -825,7 +825,7 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
                             rows = [{}];
                           }
                           const updateRows = (newRows: Record<string, string>[]) => {
-                            setFormValues(prev => ({ ...prev, [field.id]: stringifySubtableValue(newRows) }));
+                    setFormValues(prev => ({ ...prev, [field.id]: stringifySubtableValue(newRows) }));
                           };
                           return (
                             <div style={{ width: '100%' }}>
@@ -833,11 +833,14 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
                                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem', background: '#fff' }}>
                                   <thead>
                                     <tr style={{ background: '#f1f5f9' }}>
-                                      {cols.map((col: any) => (
-                                        <th key={col.id} style={{ border: '1px solid #cbd5e1', padding: '4px 6px', fontWeight: 600, textAlign: 'left', width: col.width, whiteSpace: 'nowrap' }}>
-                                          {col.label}
-                                        </th>
-                                      ))}
+                                      {cols.map((col: any) => {
+                                        const headerAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'date' || col.type === 'time' ? 'center' : 'left'));
+                                        return (
+                                          <th key={col.id} style={{ border: '1px solid #cbd5e1', padding: '4px 6px', fontWeight: 600, textAlign: headerAlign as any, width: col.width, whiteSpace: 'nowrap' }}>
+                                            {col.label}
+                                          </th>
+                                        );
+                                      })}
                                       <th style={{ width: '26px', border: '1px solid #cbd5e1', background: '#f1f5f9' }} />
                                     </tr>
                                   </thead>
