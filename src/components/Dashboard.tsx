@@ -13,6 +13,7 @@ interface DashboardProps {
   onViewFormSubmissions?: (formName: string) => void;
   onPrintForm?: (processId: string, formName: string) => void;
   onOpenFormManager?: (processId: string, formName: string) => void;
+  onOpenFormFiller?: (processId: string, formName: string) => void;
   viewMode?: 'processes' | 'forms' | 'submissions' | 'guide';
   onViewModeChange?: (mode: 'processes' | 'forms' | 'submissions' | 'guide') => void;
   initialFormFilter?: string | null;
@@ -33,6 +34,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onEditProcess, 
   onViewFormSubmissions, 
   onOpenFormManager,
+  onOpenFormFiller,
   viewMode = 'processes',
   onViewModeChange,
   initialFormFilter = null,
@@ -678,13 +680,17 @@ export const Dashboard: React.FC<DashboardProps> = ({
           if (form.linkedProcesses.length > 1) {
             setProcessSelectDialog({ form, action: 'fill' });
           } else if (form.linkedProcesses.length === 1) {
-            if (onOpenFormManager) {
+            if (onOpenFormFiller) {
+              onOpenFormFiller(form.linkedProcesses[0].id, form.formName);
+            } else if (onOpenFormManager) {
               onOpenFormManager(form.linkedProcesses[0].id, form.formName);
             } else {
               onSelectProcess(form.linkedProcesses[0].id);
             }
           } else {
-            if (onOpenFormManager) {
+            if (onOpenFormFiller) {
+              onOpenFormFiller('unlinked', form.formName);
+            } else if (onOpenFormManager) {
               onOpenFormManager('unlinked', form.formName);
             } else {
               onSelectProcess('unlinked');
@@ -1151,7 +1157,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
                           const form = processSelectDialog.form;
                           setProcessSelectDialog(null);
                           if (action === 'fill') {
-                            if (onOpenFormManager) {
+                            if (onOpenFormFiller) {
+                              onOpenFormFiller(lp.id, form.formName);
+                            } else if (onOpenFormManager) {
                               onOpenFormManager(lp.id, form.formName);
                             } else {
                               onSelectProcess(lp.id);

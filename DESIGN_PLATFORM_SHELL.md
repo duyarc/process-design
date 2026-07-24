@@ -198,11 +198,13 @@ Self-contained component. Relies entirely on `useAuth()` to get the current list
 ---
 
 ## 8. Change Log
+## 9. Change Log
 
 | Date | Session / Conversation | Change |
 |---|---|---|
 | 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Document created. Initial full write based on codebase review. |
 | 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Make process family default to Draft version if available. |
+| 2026-07-24 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Fill Form Navigation Fix in Forms Tab:** Connected missing `onOpenFormFiller` prop from `App.tsx` into `<Dashboard />` component and updated `handleFillAction` & `processSelectDialog` in `Dashboard.tsx` to route to online form filler screen (`FormFiller`) when clicking Fill Form (`PenTool`) button, resolving route collision with View Submissions (`History`) button. |
 | 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Move the Guide tab option from the main dashboard tabs into the profile dropdown menu. |
 | 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Introduce a collapsible "Retired Processes" section at the bottom of the processes list on the Dashboard. |
 | 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Prioritize 'Retired' status when choosing the default representative version of a process family on the Dashboard. |

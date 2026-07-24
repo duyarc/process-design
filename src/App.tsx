@@ -261,6 +261,7 @@ const MainApp: React.FC = () => {
             onPrintForm={handlePrintForm}
             onPrintProcess={handlePrintProcess}
             onOpenFormManager={handleOpenFormManager}
+            onOpenFormFiller={handleOpenFormFiller}
             viewMode={dashboardViewMode}
             onViewModeChange={setDashboardViewMode}
             initialFormFilter={initialFormFilter}
