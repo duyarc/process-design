@@ -541,7 +541,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                   flexDirection: 'column',
                   gap: '8px'
                 }}>
-                  {colFields.map(f => {
+                  {colFields.map((f, fIdx) => {
                     const matchedBlock = layoutBlocks.find(b => b.fields?.some((field: any) => field.id === f.id));
                     const matchedField = matchedBlock?.fields?.find((field: any) => field.id === f.id);
                     if (matchedField?.type === 'subtable') {
@@ -550,7 +550,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                       const cols = matchedField.subtableColumns ?? [];
                       return (
                         <div key={f.id} className="subtable-print-container" style={{ fontSize: '0.82rem', width: '100%', marginBottom: '6px', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                          {f.checkItem && <div style={{ fontWeight: 600, marginTop: '18px', marginBottom: '6px', pageBreakAfter: 'avoid', breakAfter: 'avoid' }}>{f.checkItem}:</div>}
+                          {f.checkItem && <div style={{ fontWeight: 600, marginTop: fIdx === 0 ? '0px' : '14px', marginBottom: '6px', pageBreakAfter: 'avoid', breakAfter: 'avoid' }}>{f.checkItem}:</div>}
                           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
                               <tr>
@@ -598,7 +598,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                     return (
                       <div key={f.id} style={{ display: 'flex', alignItems: 'baseline', gap: '8px', fontSize: '0.85rem' }}>
                         <span style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{f.checkItem ? `${f.checkItem}:` : ''}</span>
-                        <span style={{ borderBottom: '1px solid #e2e8f0', flex: 1, paddingBottom: '2px', fontWeight: 700 }}>
+                        <span style={{ borderBottom: '1px solid #94a3b8', flex: 1, paddingBottom: '2px', fontWeight: 700 }}>
                           {f.value}
                         </span>
                       </div>

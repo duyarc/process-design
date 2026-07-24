@@ -440,7 +440,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                         flexDirection: 'column',
                         gap: '8px'
                       }}>
-                        {colFields.map(f => {
+                        {colFields.map((f, fIdx) => {
                           const cleanLabel = sanitizeLabel(f.checkItem);
                           if (f.type === 'checkbox' || f.type === 'radio') {
                             const options = f.options ?? [{ label: 'Có', value: 'YES' }, { label: 'Không', value: 'NO' }];
@@ -473,7 +473,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                             const blankRows = f.subtableDefaultRows ?? 3;
                             return (
                               <div key={f.id} className="subtable-print-container" style={{ fontSize: '0.82rem', width: '100%', gridColumn: `span ${block.columns || 1}`, pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                                {cleanLabel && <div style={{ fontWeight: 600, marginTop: '18px', marginBottom: '6px', pageBreakAfter: 'avoid', breakAfter: 'avoid' }}>{cleanLabel}</div>}
+                                {cleanLabel && <div style={{ fontWeight: 600, marginTop: fIdx === 0 ? '0px' : '14px', marginBottom: '6px', pageBreakAfter: 'avoid', breakAfter: 'avoid' }}>{cleanLabel}</div>}
                                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                   <thead>
                                     <tr>
@@ -509,21 +509,36 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                             );
                           }
 
+                          if (f.type === 'date') {
+                            return (
+                              <div key={f.id} style={{ display: 'flex', alignItems: 'baseline', gap: '8px', fontSize: '0.85rem' }}>
+                                {cleanLabel && <span style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{cleanLabel}</span>}
+                                <div style={{ fontSize: '0.8rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                  <span style={{ borderBottom: '1.5px solid #475569', width: '32px', textAlign: 'center', fontWeight: 600, fontSize: '0.75rem', color: '#64748b' }}>DD</span>
+                                  <span style={{ color: '#475569', fontWeight: 600 }}>/</span>
+                                  <span style={{ borderBottom: '1.5px solid #475569', width: '32px', textAlign: 'center', fontWeight: 600, fontSize: '0.75rem', color: '#64748b' }}>MM</span>
+                                  <span style={{ color: '#475569', fontWeight: 600 }}>/</span>
+                                  <span style={{ borderBottom: '1.5px solid #475569', width: '48px', textAlign: 'center', fontWeight: 600, fontSize: '0.75rem', color: '#64748b' }}>YYYY</span>
+                                </div>
+                              </div>
+                            );
+                          }
+
                           return (
                             <div key={f.id} style={{ display: 'flex', alignItems: 'baseline', gap: '8px', fontSize: '0.85rem' }}>
                               {cleanLabel && <span style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{cleanLabel}</span>}
                               {f.type === 'time' ? (
                                 f.timeMode === 'dual' ? (
-                                  <div style={{ fontSize: '0.85rem', color: '#000000', display: 'flex', alignItems: 'center', gap: '4px', flex: 1 }}>
-                                    Từ <span style={{ borderBottom: '1px solid #e2e8f0', flex: 1, minWidth: '40px', display: 'inline-block', height: '14px', textAlign: 'center' }} /> : <span style={{ borderBottom: '1px solid #e2e8f0', flex: 1, minWidth: '40px', display: 'inline-block', height: '14px', textAlign: 'center' }} /> đến <span style={{ borderBottom: '1px solid #e2e8f0', flex: 1, minWidth: '40px', display: 'inline-block', height: '14px', textAlign: 'center' }} /> : <span style={{ borderBottom: '1px solid #e2e8f0', flex: 1, minWidth: '40px', display: 'inline-block', height: '14px', textAlign: 'center' }} />
+                                  <div style={{ fontSize: '0.8rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    Từ <span style={{ borderBottom: '1.5px solid #475569', width: '32px', textAlign: 'center', fontWeight: 600, fontSize: '0.75rem', color: '#64748b' }}>HH</span> : <span style={{ borderBottom: '1.5px solid #475569', width: '32px', textAlign: 'center', fontWeight: 600, fontSize: '0.75rem', color: '#64748b' }}>MM</span> đến <span style={{ borderBottom: '1.5px solid #475569', width: '32px', textAlign: 'center', fontWeight: 600, fontSize: '0.75rem', color: '#64748b' }}>HH</span> : <span style={{ borderBottom: '1.5px solid #475569', width: '32px', textAlign: 'center', fontWeight: 600, fontSize: '0.75rem', color: '#64748b' }}>MM</span>
                                   </div>
                                 ) : (
-                                  <div style={{ fontSize: '0.85rem', color: '#000000', display: 'flex', alignItems: 'center', gap: '4px', flex: 1 }}>
-                                    <span style={{ borderBottom: '1px solid #e2e8f0', flex: 1, minWidth: '60px', display: 'inline-block', height: '14px', textAlign: 'center' }} /> : <span style={{ borderBottom: '1px solid #e2e8f0', flex: 1, minWidth: '60px', display: 'inline-block', height: '14px', textAlign: 'center' }} />
+                                  <div style={{ fontSize: '0.8rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <span style={{ borderBottom: '1.5px solid #475569', width: '36px', textAlign: 'center', fontWeight: 600, fontSize: '0.75rem', color: '#64748b' }}>HH</span> <span style={{ color: '#475569', fontWeight: 600 }}>:</span> <span style={{ borderBottom: '1.5px solid #475569', width: '36px', textAlign: 'center', fontWeight: 600, fontSize: '0.75rem', color: '#64748b' }}>MM</span>
                                   </div>
                                 )
                               ) : (
-                                <div style={{ flex: 1, borderBottom: '1px solid #e2e8f0', minHeight: '16px' }} />
+                                <div style={{ flex: 1, borderBottom: '1px dotted #64748b', minHeight: '16px' }} />
                               )}
                             </div>
                           );
