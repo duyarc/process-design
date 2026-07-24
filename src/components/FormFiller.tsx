@@ -8,7 +8,8 @@ import {
   X, 
   Camera, 
   AlertTriangle, 
-  Link2 
+  Link2,
+  PenTool
 } from 'lucide-react';
 
 interface FormFillerProps {
@@ -47,6 +48,9 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
   const [uploadedPhotos, setUploadedPhotos] = useState<{ [fieldId: string]: string[] }>({}); // fieldId -> array of keys
   const [isPhotoUploading, setIsPhotoUploading] = useState<{ [fieldId: string]: boolean }>({});
   const [operatorId, setOperatorId] = useState('');
+  const [signValues, setSignValues] = useState<{ [fieldId: string]: { name: string; confirmedAt: string } | null }>({});
+  const [signInputs, setSignInputs] = useState<{ [fieldId: string]: string }>({});
+  const [signOpen, setSignOpen] = useState<{ [fieldId: string]: boolean }>({});
   const [submitting, setSubmitting] = useState(false);
   const [submittedId, setSubmittedId] = useState<string | null>(null);
 
@@ -236,10 +240,23 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
 
   // Submit filled form
   const handleSubmitForm = async () => {
-    if (!operatorId.trim()) {
+    const signBlocks = formTemplate.layoutBlocks?.filter((b: any) => b.type === 'SIGN' && b.fields.length > 0) || [];
+    const mandatorySignField = signBlocks[0]?.fields[0];
+    const hasSignBlock = !!mandatorySignField;
+
+    if (hasSignBlock && !signValues[mandatorySignField.id]?.name?.trim()) {
+      alert(`Vui lòng ký xác nhận tại ô chữ ký bắt buộc ("${mandatorySignField.checkItem}") trước khi nộp phiếu.`);
+      return;
+    }
+
+    if (!hasSignBlock && !operatorId.trim()) {
       alert('Please enter your Operator ID to sign off this submission (Attributability).');
       return;
     }
+
+    const effectiveOperatorId = hasSignBlock
+      ? signValues[mandatorySignField.id]!.name
+      : operatorId;
 
     const allFields = formTemplate.layoutBlocks?.flatMap((b: any) => b.fields) || [];
 
@@ -406,6 +423,24 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
         }
       });
 
+      // Collect SIGN block signatures dynamically
+      signBlocks.forEach((block: any) => {
+        block.fields.forEach((f: any) => {
+          const sv = signValues[f.id];
+          if (sv) {
+            snapshots.push({
+              id: f.id,
+              checkItem: f.checkItem,
+              locationCode: `SIGN_${f.id}`,
+              targetRange: 'Chữ ký điện tử',
+              reactionProtocol: f.reactionProtocol || 'Ký và ghi rõ họ tên',
+              value: `${sv.name} [Xác thực: ${new Date(sv.confirmedAt).toLocaleString('vi-VN')}]`,
+              status: 'PASS'
+            });
+          }
+        });
+      });
+
       const titleBlock = formTemplate.layoutBlocks?.find((b: any) => b.type === 'TITLE' && b.showDate);
       if (titleBlock) {
         snapshots.push({
@@ -436,7 +471,7 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
         processId: process.id,
         formId: formTemplate.formId,
         formVersion: formTemplate.version,
-        operatorId,
+        operatorId: effectiveOperatorId,
         status: isOverallPass ? 'PASS' : 'ABNORMALITY',
         formData: snapshots,
         mediaUrls: allMediaKeys
@@ -457,6 +492,9 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
       setFieldReactions({});
       setUploadedPhotos({});
       setOperatorId('');
+      setSignValues({});
+      setSignInputs({});
+      setSignOpen({});
     } catch (err) {
       console.error(err);
       alert(`Failed to submit: ${err instanceof Error ? err.message : 'Server error'}`);
@@ -517,60 +555,47 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
       {/* Main Form Paper Card */}
       <div className="paper-card" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
         
-        {/* Title Block */}
-        <div style={{ borderBottom: '1px solid var(--neutral-border)', paddingBottom: '1rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', background: '#f1f5f9', padding: '0.1rem 0.4rem', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
-              {formTemplate.formId || 'N/A'}
-            </span>
-            <span className="badge" style={{ 
-              backgroundColor: formTemplate.status === 'DRAFT' ? '#fffbeb' : '#f0fdf4', 
-              color: formTemplate.status === 'DRAFT' ? '#b45309' : '#15803d', 
-              border: `1px solid ${formTemplate.status === 'DRAFT' ? '#fde68a' : '#bbf7d0'}`, 
-              textTransform: 'uppercase', 
-              fontSize: '0.65rem', 
-              fontWeight: 700, 
-              padding: '0.1rem 0.4rem', 
-              borderRadius: '4px' 
-            }}>
-              {formTemplate.status || 'DRAFT'}
-            </span>
-          </div>
-          <h1 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 700 }}>{formTemplate.formTitle || formName}</h1>
-          <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-            Process Standard: <strong>{process.title}</strong> | Version: <strong>{formatFormVersion(formTemplate.version) || 'V1'}</strong>
-          </p>
-        </div>
 
-        {/* Operator Identification */}
-        <div style={{
-          background: '#eff6ff',
-          border: '1px solid #bfdbfe',
-          padding: '1.25rem',
-          borderRadius: '8px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '0.5rem'
-        }}>
-          <label style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1e40af', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-            <span>Operator ID / Attributable Signature *</span>
-          </label>
-          <input
-            type="text"
-            value={operatorId}
-            onChange={(e) => setOperatorId(e.target.value)}
-            placeholder="Enter your Name or Badge ID (e.g. John Doe / OP-42)"
-            style={{
-              width: '100%',
-              padding: '0.5rem 0.75rem',
-              fontSize: '0.85rem',
-              border: '1px solid #93c5fd',
-              borderRadius: '6px',
-              outline: 'none',
-              background: '#ffffff'
-            }}
-          />
-        </div>
+
+      {/* Check if form has a SIGN block */}
+      {(() => {
+        const hasSignBlock = formTemplate?.layoutBlocks?.some((b: any) => b.type === 'SIGN' && b.fields.length > 0);
+        return (
+          <>
+            {/* Fallback Operator Identification (Only shown if form has NO SIGN block) */}
+            {!hasSignBlock && (
+              <div style={{
+                background: '#eff6ff',
+                border: '1px solid #bfdbfe',
+                padding: '1.25rem',
+                borderRadius: '8px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.5rem'
+              }}>
+                <label style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1e40af', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                  <span>Operator ID / Attributable Signature *</span>
+                </label>
+                <input
+                  type="text"
+                  value={operatorId}
+                  onChange={(e) => setOperatorId(e.target.value)}
+                  placeholder="Enter your Name or Badge ID (e.g. John Doe / OP-42)"
+                  style={{
+                    width: '100%',
+                    padding: '0.5rem 0.75rem',
+                    fontSize: '0.85rem',
+                    border: '1px solid #93c5fd',
+                    borderRadius: '6px',
+                    outline: 'none',
+                    background: '#ffffff'
+                  }}
+                />
+              </div>
+            )}
+          </>
+        );
+      })()}
 
         {/* Checklist Groups */}
         {formTemplate.layoutBlocks && formTemplate.layoutBlocks.map((block: any) => {
@@ -1287,37 +1312,171 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
                 </div>
               )}
 
-              {/* 5. SIGN BLOCK */}
+              {/* 5. SIGN BLOCK — Interactive Click-to-Sign */}
               {block.type === 'SIGN' && (
                 <div style={{
                   paddingTop: '5px',
                   marginTop: '12px',
                   display: 'flex',
                   justifyContent: 'space-between',
-                  gap: '40px'
+                  gap: '24px',
+                  flexWrap: 'wrap'
                 }}>
-                  {block.fields.map((f: any) => (
-                    <div key={f.id} style={{
-                      flex: 1,
-                      height: '65px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'flex-start',
-                      gap: '4px'
-                    }}>
-                      <span style={{ fontSize: '0.85rem', fontWeight: 'bold', textAlign: 'center' }}>{f.checkItem}</span>
-                      <span style={{ fontSize: '0.75rem', fontStyle: 'italic', color: 'var(--text-muted)', textAlign: 'center' }}>
-                        {f.reactionProtocol ? (f.reactionProtocol.startsWith('(') ? f.reactionProtocol : `(${f.reactionProtocol})`) : '(Ký và ghi rõ họ tên)'}
-                      </span>
-                    </div>
-                  ))}
+                  {block.fields.map((f: any, fIdx: number) => {
+                    const confirmed = signValues[f.id];
+                    const isOpen = signOpen[f.id];
+                    const inputVal = signInputs[f.id] || '';
+                    const isMandatory = fIdx === 0;
+
+                    return (
+                      <div key={f.id} style={{
+                        flex: 1,
+                        minWidth: '220px',
+                        minHeight: '90px',
+                        border: confirmed
+                          ? '1.5px solid #10b981'
+                          : isOpen
+                          ? '1.5px solid var(--primary)'
+                          : '1.5px dashed #cbd5e1',
+                        borderRadius: '8px',
+                        padding: '0.75rem',
+                        background: confirmed ? '#f0fdf4' : isOpen ? '#f0fdfa' : '#fafafa',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '6px',
+                        transition: 'all 0.2s ease'
+                      }}>
+                        {/* Header label */}
+                        <div style={{
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                          color: confirmed ? '#059669' : 'var(--text-secondary)',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center'
+                        }}>
+                          <span>
+                            {f.checkItem}
+                            {isMandatory && <span style={{ color: '#ef4444', marginLeft: '2px' }} title="Chữ ký bắt buộc">*</span>}
+                          </span>
+                          {confirmed && <CheckCircle2 size={14} style={{ color: '#10b981' }} />}
+                        </div>
+
+                        {/* Subtitle / reactionProtocol */}
+                        <div style={{ fontSize: '0.68rem', fontStyle: 'italic', color: 'var(--text-muted)' }}>
+                          {f.reactionProtocol ? (f.reactionProtocol.startsWith('(') ? f.reactionProtocol : `(${f.reactionProtocol})`) : '(Ký và ghi rõ họ tên)'}
+                        </div>
+
+                        {/* IDLE state — Chưa ký */}
+                        {!confirmed && !isOpen && (
+                          <button
+                            type="button"
+                            onClick={() => setSignOpen(prev => ({ ...prev, [f.id]: true }))}
+                            style={{
+                              marginTop: '4px',
+                              padding: '0.45rem 0.75rem',
+                              border: '1px solid #cbd5e1',
+                              borderRadius: '6px',
+                              background: '#ffffff',
+                              fontSize: '0.75rem',
+                              color: 'var(--text-secondary)',
+                              cursor: 'pointer',
+                              textAlign: 'left',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.35rem'
+                            }}
+                          >
+                            <PenTool size={12} /> Ký tên tại đây...
+                          </button>
+                        )}
+
+                        {/* INPUT state — Đang nhập tên & xác nhận */}
+                        {!confirmed && isOpen && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '2px' }}>
+                            <input
+                              type="text"
+                              placeholder="Họ và tên người ký..."
+                              value={inputVal}
+                              onChange={e => setSignInputs(prev => ({ ...prev, [f.id]: e.target.value }))}
+                              style={{
+                                padding: '0.4rem 0.6rem',
+                                fontSize: '0.82rem',
+                                border: '1px solid var(--primary)',
+                                borderRadius: '6px',
+                                outline: 'none'
+                              }}
+                              autoFocus
+                            />
+                            <label style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', fontSize: '0.72rem', color: 'var(--text-secondary)', cursor: 'pointer', margin: 0 }}>
+                              <input
+                                type="checkbox"
+                                id={`attestation_${f.id}`}
+                                onChange={e => {
+                                  if (e.target.checked && inputVal.trim()) {
+                                    setSignValues(prev => ({
+                                      ...prev,
+                                      [f.id]: { name: inputVal.trim(), confirmedAt: new Date().toISOString() }
+                                    }));
+                                    setSignOpen(prev => ({ ...prev, [f.id]: false }));
+                                  }
+                                }}
+                                style={{ marginTop: '1px', accentColor: 'var(--primary)' }}
+                              />
+                              Tôi xác nhận thông tin trên là trung thực và chịu trách nhiệm về bản ghi này.
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() => setSignOpen(prev => ({ ...prev, [f.id]: false }))}
+                              style={{ fontSize: '0.7rem', color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', padding: 0 }}
+                            >
+                              Huỷ
+                            </button>
+                          </div>
+                        )}
+
+                        {/* CONFIRMED state — Đã ký */}
+                        {confirmed && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '4px' }}>
+                            <span style={{ fontSize: '1.0rem', fontWeight: 700, color: '#059669', fontFamily: "'Dancing Script', cursive, sans-serif" }}>
+                              {confirmed.name}
+                            </span>
+                            <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+                              [Đã xác thực điện tử] · {new Date(confirmed.confirmedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setSignValues(prev => ({ ...prev, [f.id]: null }))}
+                              style={{ fontSize: '0.65rem', color: '#94a3b8', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', padding: 0, marginTop: '2px', textDecoration: 'underline' }}
+                            >
+                              Ký lại
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
 
             </div>
           );
         })}
+
+        {/* Static layout-driven footer matching paper printouts & Form Designer */}
+        <div style={{
+          borderTop: '1px solid #334155',
+          paddingTop: '0.5rem',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          fontSize: '0.65rem',
+          color: 'var(--text-muted)',
+          fontFamily: 'monospace'
+        }}>
+          <span>{formTemplate.formId || 'N/A'}</span>
+          <span>{formatFormVersion(formTemplate.version || 'v0.1', formTemplate.status, formTemplate.effectiveDate, formTemplate.updatedAt)}</span>
+        </div>
 
         {/* Submit Bar */}
         <div style={{
