@@ -1463,7 +1463,7 @@ setFormValues(prev => ({ ...prev, [field.id]: stringifySubtableValue(newRows) })
                                                   <tr key={rowIdx}>
                                                     {cols.map((col: any) => {
                                                       if (col.type === 'static_text') {
-                                                        const sttAlign = col.align || 'center';
+                                                        const sttAlign = col.align || 'left';
                                                         return (
                                                           <td key={col.id} style={{ border: '1px solid #e2e8f0', padding: '4px 6px', textAlign: sttAlign as any, fontWeight: 600, color: '#1e293b', fontSize: '0.78rem', background: '#f8fafc' }}>
                                                             {field.subtableStaticData?.[rowIdx]?.[col.id] || ''}
