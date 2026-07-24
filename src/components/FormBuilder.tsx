@@ -1917,8 +1917,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                               {Array.from({ length: previewRowCount }).map((_, rIdx) => (
                                                 <tr key={rIdx}>
                                                   {cols.map((col: SubtableColumn) => (
-                                                    <td key={col.id} style={{ border: '1px solid #e2e8f0', padding: '4px 6px', height: '28px', color: '#94a3b8', fontStyle: 'italic', fontSize: '0.68rem', textAlign: col.type === 'number' ? 'right' : col.type === 'date' || col.type === 'time' ? 'center' : 'left' }}>
-                                                      {col.type === 'number' ? '[0]' : col.type === 'date' ? '[Ngày]' : col.type === 'time' ? '[Giờ]' : '[Nhập chữ]'}
+                                                    <td key={col.id} style={{ border: '1px solid #e2e8f0', padding: '4px 6px', height: '28px', color: col.type === 'static_text' ? '#0f172a' : '#94a3b8', fontStyle: col.type === 'static_text' ? 'normal' : 'italic', fontWeight: col.type === 'static_text' ? 600 : 400, fontSize: '0.68rem', textAlign: (col.type === 'static_text' ? (col.align || 'center') : col.type === 'number' ? 'right' : col.type === 'date' || col.type === 'time' ? 'center' : 'left') as any }}>
+                                                      {col.type === 'static_text' ? `${rIdx + 1}` : col.type === 'number' ? '[0]' : col.type === 'date' ? '[Ngày]' : col.type === 'time' ? '[Giờ]' : '[Nhập chữ]'}
                                                     </td>
                                                   ))}
                                                   {!isLocked && (
@@ -2908,6 +2908,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                   }}
                                   style={{ flex: 1.0, padding: '0.2rem 0.3rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', fontSize: '0.75rem', background: '#fff' }}
                                 >
+                                  <option value="static_text">Nhãn</option>
                                   <option value="text">Chữ</option>
                                   <option value="number">Số</option>
                                   <option value="date">Ngày</option>

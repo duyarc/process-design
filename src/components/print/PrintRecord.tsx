@@ -561,6 +561,14 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                               ) : rows.map((row, rowIdx) => (
                                 <tr key={rowIdx}>
                                   {cols.map((col: any) => {
+                                    if (col.type === 'static_text') {
+                                      const sttAlign = col.align || 'center';
+                                      return (
+                                        <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', textAlign: sttAlign as any, fontWeight: 600, fontSize: '0.82rem' }}>
+                                          {rowIdx + 1}
+                                        </td>
+                                      );
+                                    }
                                     const cellAlign = col.type === 'number' ? 'right' : col.type === 'date' || col.type === 'time' ? 'center' : 'left';
                                     return (
                                       <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', textAlign: cellAlign as any, fontSize: '0.82rem' }}>

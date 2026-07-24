@@ -1462,6 +1462,14 @@ setFormValues(prev => ({ ...prev, [field.id]: stringifySubtableValue(newRows) })
                                                 {rows.map((row, rowIdx) => (
                                                   <tr key={rowIdx}>
                                                     {cols.map((col: any) => {
+                                                      if (col.type === 'static_text') {
+                                                        const sttAlign = col.align || 'center';
+                                                        return (
+                                                          <td key={col.id} style={{ border: '1px solid #e2e8f0', padding: '4px 6px', textAlign: sttAlign as any, fontWeight: 600, color: '#1e293b', fontSize: '0.78rem', background: '#f8fafc' }}>
+                                                            {rowIdx + 1}
+                                                          </td>
+                                                        );
+                                                      }
                                                       const cellAlign = col.type === 'number' ? 'right' : col.type === 'date' || col.type === 'time' ? 'center' : 'left';
                                                       return (
                                                         <td key={col.id} style={{ border: '1px solid #e2e8f0', padding: '2px' }}>

@@ -88,7 +88,7 @@ export interface Process {
 export interface SubtableColumn {
   id: string;
   label: string;
-  type: 'text' | 'number' | 'date' | 'time';
+  type: 'static_text' | 'text' | 'number' | 'date' | 'time';
   width?: string;
   align?: 'left' | 'center' | 'right';
 }
