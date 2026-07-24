@@ -156,13 +156,13 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
             height: auto !important;
             min-height: 100% !important;
             overflow: visible !important;
-            padding: 0 0 30px 0 !important;
+            padding: 0 0 48px 0 !important;
             margin: 0 !important;
             box-sizing: border-box !important;
           }
           @page {
             size: A4 portrait;
-            margin: 15mm 15mm 15mm 15mm;
+            margin: 15mm 15mm 20mm 15mm;
           }
           body {
             background: #ffffff !important;
@@ -174,7 +174,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
             display: none !important;
           }
           .print-block {
-            margin-bottom: 16px;
+            margin-bottom: 20px;
           }
           .print-block-avoid {
             page-break-inside: avoid;
@@ -185,7 +185,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
           }
           .print-footer {
             position: fixed;
-            bottom: 8px;
+            bottom: 0px;
             left: 0;
             right: 0;
             display: flex;
@@ -454,7 +454,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                             const blankRows = f.subtableDefaultRows ?? 3;
                             return (
                               <div key={f.id} style={{ fontSize: '0.82rem', width: '100%', gridColumn: `span ${block.columns || 1}` }}>
-                                {cleanLabel && <div style={{ fontWeight: 600, marginBottom: '4px' }}>{cleanLabel}</div>}
+                                {cleanLabel && <div style={{ fontWeight: 600, marginBottom: '8px' }}>{cleanLabel}</div>}
                                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                   <thead>
                                     <tr>

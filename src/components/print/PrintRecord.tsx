@@ -339,13 +339,13 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
             height: auto !important;
             min-height: 100% !important;
             overflow: visible !important;
-            padding: 0 0 30px 0 !important;
+            padding: 0 0 48px 0 !important;
             margin: 0 !important;
             box-sizing: border-box !important;
           }
           @page {
             size: A4 portrait;
-            margin: 15mm 15mm 15mm 15mm;
+            margin: 15mm 15mm 20mm 15mm;
           }
           body {
             background: #ffffff !important;
@@ -357,7 +357,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
             display: none !important;
           }
           .print-block {
-            margin-bottom: 16px;
+            margin-bottom: 20px;
           }
           .print-block-avoid {
             page-break-inside: avoid;
@@ -368,7 +368,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
           }
           .print-footer {
             position: fixed;
-            bottom: 8px;
+            bottom: 0px;
             left: 0;
             right: 0;
             display: flex;
@@ -539,7 +539,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                       const cols = matchedField.subtableColumns ?? [];
                       return (
                         <div key={f.id} style={{ fontSize: '0.82rem', width: '100%', marginBottom: '6px' }}>
-                          {f.checkItem && <div style={{ fontWeight: 600, marginBottom: '4px' }}>{f.checkItem}:</div>}
+                          {f.checkItem && <div style={{ fontWeight: 600, marginBottom: '8px' }}>{f.checkItem}:</div>}
                           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
                               <tr>
