@@ -1820,7 +1820,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                               gridTemplateColumns: `repeat(${block.columns}, 1fr)`,
                               gap: '0.75rem'
                             }}>
-                              {block.fields.map(f => {
+                              {block.fields.map((f, fIdx, fArr) => {
                                 const isFieldSelected = activeFieldId === f.id;
                                 return (
                                   <div 
@@ -1844,34 +1844,58 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                       <span style={{ fontWeight: 600 }}>{sanitizeLabel(f.checkItem)}</span>
                                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                                         {isFieldSelected && !isLocked && (
-                                          <div style={{ display: 'flex', alignItems: 'center', marginRight: '6px' }}>
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '2px', marginRight: '4px' }}>
                                             <button
                                               type="button"
+                                              disabled={fIdx === 0}
                                               onClick={(e) => {
                                                 e.stopPropagation();
                                                 handleMoveField(block.id, f.id, 'up');
                                               }}
-                                              style={{ background: 'none', border: 'none', padding: '1px 2px', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--text-secondary)' }}
+                                              style={{ width: '18px', height: '18px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '3px', cursor: fIdx === 0 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: fIdx === 0 ? 0.3 : 1, padding: 0 }}
                                               title="Di chuyển lên"
                                             >
-                                              <ArrowUp size={11} />
+                                              <ArrowUp size={10} style={{ color: '#0f172a' }} />
                                             </button>
                                             <button
                                               type="button"
+                                              disabled={fIdx === fArr.length - 1}
                                               onClick={(e) => {
                                                 e.stopPropagation();
                                                 handleMoveField(block.id, f.id, 'down');
                                               }}
-                                              style={{ background: 'none', border: 'none', padding: '1px 2px', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--text-secondary)' }}
+                                              style={{ width: '18px', height: '18px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '3px', cursor: fIdx === fArr.length - 1 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: fIdx === fArr.length - 1 ? 0.3 : 1, padding: 0 }}
                                               title="Di chuyển xuống"
                                             >
-                                              <ArrowDown size={11} />
+                                              <ArrowDown size={10} style={{ color: '#0f172a' }} />
                                             </button>
                                           </div>
                                         )}
                                         <span style={{ color: 'var(--text-muted)' }}>[{f.type}]</span>
                                       </div>
                                     </div>
+
+                                    {(f.type === 'radio' || f.type === 'checkbox') && (() => {
+                                      const options = f.options ?? [{ label: 'Đạt', value: 'PASS' }, { label: 'Không Đạt', value: 'FAIL' }];
+                                      return (
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', alignItems: 'center', marginTop: '4px', paddingTop: '2px' }}>
+                                          {options.map((opt: any) => (
+                                            <span key={opt.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.78rem', color: '#334155', whiteSpace: 'nowrap' }}>
+                                              <span style={{
+                                                display: 'inline-block',
+                                                width: '12px',
+                                                height: '12px',
+                                                border: '1.5px solid #64748b',
+                                                borderRadius: f.type === 'radio' ? '50%' : '2px',
+                                                background: '#ffffff',
+                                                flexShrink: 0
+                                              }} />
+                                              <span>{opt.label}</span>
+                                            </span>
+                                          ))}
+                                        </div>
+                                      );
+                                    })()}
 
                                     {f.type === 'subtable' && (() => {
                                       const cols = f.subtableColumns ?? [];
@@ -2565,14 +2589,47 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                 <h3 style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-primary)' }}>
                   Field Properties
                 </h3>
-                <button 
-                  type="button" 
-                  disabled={isLocked}
-                  onClick={() => handleDeleteField(activeBlockId!, activeFieldId!)}
-                  style={{ border: 'none', background: 'none', color: 'var(--danger)', cursor: isLocked ? 'not-allowed' : 'pointer' }}
-                >
-                  <Trash2 size={14} />
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  {(() => {
+                    const activeBlockObj = layoutBlocks.find(b => b.id === activeBlockId);
+                    if (!activeBlockObj || isLocked) return null;
+                    const fieldIdx = activeBlockObj.fields.findIndex(f => f.id === activeFieldId);
+                    if (fieldIdx === -1) return null;
+                    const isFirst = fieldIdx === 0;
+                    const isLast = fieldIdx === activeBlockObj.fields.length - 1;
+                    return (
+                      <div style={{ display: 'flex', gap: '2px', marginRight: '4px' }}>
+                        <button
+                          type="button"
+                          disabled={isFirst}
+                          onClick={() => handleMoveField(activeBlockId!, activeFieldId!, 'up')}
+                          style={{ width: '22px', height: '22px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: isFirst ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: isFirst ? 0.3 : 1, padding: 0 }}
+                          title="Di chuyển trường lên"
+                        >
+                          <ArrowUp size={12} style={{ color: '#0f172a' }} />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={isLast}
+                          onClick={() => handleMoveField(activeBlockId!, activeFieldId!, 'down')}
+                          style={{ width: '22px', height: '22px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: isLast ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: isLast ? 0.3 : 1, padding: 0 }}
+                          title="Di chuyển trường xuống"
+                        >
+                          <ArrowDown size={12} style={{ color: '#0f172a' }} />
+                        </button>
+                      </div>
+                    );
+                  })()}
+                  <button 
+                    type="button" 
+                    disabled={isLocked}
+                    onClick={() => handleDeleteField(activeBlockId!, activeFieldId!)}
+                    style={{ border: 'none', background: 'none', color: 'var(--danger)', cursor: isLocked ? 'not-allowed' : 'pointer' }}
+                    title="Xóa trường này"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.8rem' }}>
