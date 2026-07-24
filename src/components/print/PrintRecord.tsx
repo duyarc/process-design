@@ -357,7 +357,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
             display: none !important;
           }
           .print-block {
-            margin-bottom: 20px;
+            margin-bottom: 0px;
           }
           .print-block-avoid {
             page-break-inside: avoid;
@@ -539,7 +539,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                   flex: 1,
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '8px'
+                  gap: '10px'
                 }}>
                   {colFields.map((f, fIdx) => {
                     const matchedBlock = layoutBlocks.find(b => b.fields?.some((field: any) => field.id === f.id));
@@ -549,7 +549,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                       try { rows = JSON.parse(f.value || '[]'); } catch {}
                       const cols = matchedField.subtableColumns ?? [];
                       return (
-                        <div key={f.id} className="subtable-print-container" style={{ fontSize: '0.82rem', width: '100%', marginBottom: '6px', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                        <div key={f.id} className="subtable-print-container" style={{ fontSize: '0.82rem', width: '100%', marginBottom: '14px', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                           {f.checkItem && <div style={{ fontWeight: 600, marginTop: fIdx === 0 ? '0px' : '14px', marginBottom: '6px', pageBreakAfter: 'avoid', breakAfter: 'avoid' }}>{f.checkItem}:</div>}
                           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
@@ -1096,7 +1096,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
             {isH1 ? (
               <div style={{
                 padding: '0',
-                marginTop: '28px',
+                marginTop: '18px',
                 marginBottom: '8px',
                 pageBreakInside: 'avoid',
                 breakInside: 'avoid',
@@ -1127,7 +1127,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                 background: '#f1f5f9',
                 borderLeft: '4px solid #000000',
                 borderRadius: '4px',
-                marginTop: '20px',
+                marginTop: '14px',
                 marginBottom: '6px',
                 pageBreakInside: 'avoid',
                 breakInside: 'avoid',

@@ -174,7 +174,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
             display: none !important;
           }
           .print-block {
-            margin-bottom: 20px;
+            margin-bottom: 0px;
           }
           .print-block-avoid {
             page-break-inside: avoid;
@@ -260,7 +260,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                 return (
                   <div style={{
                     padding: '0',
-                    marginTop: '28px',
+                    marginTop: '18px',
                     marginBottom: '8px',
                     pageBreakInside: 'avoid',
                     breakInside: 'avoid',
@@ -294,7 +294,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                     background: '#f1f5f9',
                     borderLeft: '4px solid #000000',
                     borderRadius: '4px',
-                    marginTop: '20px',
+                    marginTop: '14px',
                     marginBottom: '6px',
                     pageBreakInside: 'avoid',
                     breakInside: 'avoid',
@@ -314,7 +314,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
               }
               // BODY format (normal body text, non-bold)
               return (
-                <div style={{ padding: '2px 0', marginTop: '14px', marginBottom: '4px', pageBreakAfter: 'avoid', breakAfter: 'avoid' }}>
+                <div style={{ padding: '2px 0', marginTop: '10px', marginBottom: '4px', pageBreakAfter: 'avoid', breakAfter: 'avoid' }}>
                   <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#000000' }}>
                     {block.title}
                   </div>
@@ -438,7 +438,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                         flex: 1,
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: '8px'
+                        gap: '10px'
                       }}>
                         {colFields.map((f, fIdx) => {
                           const cleanLabel = sanitizeLabel(f.checkItem);
@@ -472,7 +472,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                             const cols = f.subtableColumns ?? [];
                             const blankRows = f.subtableDefaultRows ?? 3;
                             return (
-                              <div key={f.id} className="subtable-print-container" style={{ fontSize: '0.82rem', width: '100%', gridColumn: `span ${block.columns || 1}`, pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                              <div key={f.id} className="subtable-print-container" style={{ fontSize: '0.82rem', width: '100%', marginBottom: '14px', gridColumn: `span ${block.columns || 1}`, pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                                 {cleanLabel && <div style={{ fontWeight: 600, marginTop: fIdx === 0 ? '0px' : '14px', marginBottom: '6px', pageBreakAfter: 'avoid', breakAfter: 'avoid' }}>{cleanLabel}</div>}
                                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                   <thead>
@@ -538,7 +538,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                                   </div>
                                 )
                               ) : (
-                                <div style={{ flex: 1, borderBottom: '1px dotted #64748b', minHeight: '16px' }} />
+                                <div style={{ flex: 1, borderBottom: '1px dotted #64748b', minHeight: '22px' }} />
                               )}
                             </div>
                           );
