@@ -1916,11 +1916,34 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                             <tbody>
                                               {Array.from({ length: previewRowCount }).map((_, rIdx) => (
                                                 <tr key={rIdx}>
-                                                  {cols.map((col: SubtableColumn) => (
-                                                    <td key={col.id} style={{ border: '1px solid #e2e8f0', padding: '4px 6px', height: '28px', color: col.type === 'static_text' ? '#0f172a' : '#94a3b8', fontStyle: col.type === 'static_text' ? 'normal' : 'italic', fontWeight: col.type === 'static_text' ? 600 : 400, fontSize: '0.68rem', textAlign: (col.type === 'static_text' ? (col.align || 'center') : col.type === 'number' ? 'right' : col.type === 'date' || col.type === 'time' ? 'center' : 'left') as any }}>
-                                                      {col.type === 'static_text' ? `${rIdx + 1}` : col.type === 'number' ? '[0]' : col.type === 'date' ? '[Ngày]' : col.type === 'time' ? '[Giờ]' : '[Nhập chữ]'}
-                                                    </td>
-                                                  ))}
+                                                  {cols.map((col: SubtableColumn) => {
+                                                    const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'date' || col.type === 'time' ? 'center' : 'left'));
+                                                    if (col.type === 'static_text') {
+                                                      const val = f.subtableStaticData?.[rIdx]?.[col.id] || '';
+                                                      return (
+                                                        <td key={col.id} style={{ border: '1px solid #e2e8f0', padding: '2px', height: '28px' }}>
+                                                          <input
+                                                            type="text"
+                                                            disabled={isLocked}
+                                                            value={val}
+                                                            onChange={(e) => {
+                                                              const newVal = e.target.value;
+                                                              const currentData = { ...(f.subtableStaticData || {}) };
+                                                              currentData[rIdx] = { ...(currentData[rIdx] || {}), [col.id]: newVal };
+                                                              handleUpdateField(block.id, f.id, { subtableStaticData: currentData });
+                                                            }}
+                                                            placeholder="Gõ nhãn..."
+                                                            style={{ width: '100%', border: 'none', background: 'transparent', outline: 'none', padding: '2px 4px', fontSize: '0.72rem', fontWeight: 600, color: '#0f172a', textAlign: cellAlign as any, boxSizing: 'border-box' }}
+                                                          />
+                                                        </td>
+                                                      );
+                                                    }
+                                                    return (
+                                                      <td key={col.id} style={{ border: '1px solid #e2e8f0', padding: '4px 6px', height: '28px', color: '#94a3b8', fontStyle: 'italic', fontSize: '0.68rem', textAlign: cellAlign as any }}>
+                                                        {col.type === 'number' ? '[0]' : col.type === 'date' ? '[Ngày]' : col.type === 'time' ? '[Giờ]' : '[Nhập chữ]'}
+                                                      </td>
+                                                    );
+                                                  })}
                                                   {!isLocked && (
                                                     <td style={{ border: '1px solid #e2e8f0', textAlign: 'center', padding: '1px' }}>
                                                       <button

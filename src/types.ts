@@ -108,6 +108,7 @@ export interface FormFieldISO {
   timeMode?: 'single' | 'dual';
   subtableColumns?: SubtableColumn[];
   subtableDefaultRows?: number;
+  subtableStaticData?: Record<number, Record<string, string>>;
 }
 
 export interface FormRevisionEntry {

@@ -475,9 +475,9 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                                           if (col.type === 'static_text') {
                                             const sttAlign = col.align || 'center';
                                             return (
-                                              <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', height: '28px', textAlign: sttAlign as any, fontWeight: 600, fontSize: '0.8rem' }}>
-                                                {rowIdx + 1}
-                                              </td>
+                                               <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', height: '28px', textAlign: sttAlign as any, fontWeight: 600, fontSize: '0.8rem' }}>
+                                                 {f.subtableStaticData?.[rowIdx]?.[col.id] || ''}
+                                               </td>
                                             );
                                           }
                                           return <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', height: '28px' }} />;

@@ -852,7 +852,7 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
                                             const sttAlign = col.align || 'center';
                                             return (
                                               <td key={col.id} style={{ border: '1px solid #e2e8f0', padding: '4px 6px', textAlign: sttAlign as any, fontWeight: 600, color: '#1e293b', fontSize: '0.78rem', background: '#f8fafc' }}>
-                                                {rowIdx + 1}
+                                                 {field.subtableStaticData?.[rowIdx]?.[col.id] || ''}
                                               </td>
                                             );
                                           }
