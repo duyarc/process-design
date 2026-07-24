@@ -550,7 +550,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                       const cols = matchedField.subtableColumns ?? [];
                       return (
                         <div key={f.id} className="subtable-print-container" style={{ fontSize: '0.82rem', width: '100%', marginBottom: '6px', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                          {f.checkItem && <div style={{ fontWeight: 600, marginBottom: '8px', pageBreakAfter: 'avoid', breakAfter: 'avoid' }}>{f.checkItem}:</div>}
+                          {f.checkItem && <div style={{ fontWeight: 600, marginTop: '18px', marginBottom: '6px', pageBreakAfter: 'avoid', breakAfter: 'avoid' }}>{f.checkItem}:</div>}
                           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
                               <tr>
@@ -1095,8 +1095,13 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
           <div key={block.id} className="print-block print-block-avoid" style={{ marginTop: '0' }}>
             {isH1 ? (
               <div style={{
-                padding: '4px 0 8px 0',
-                marginBottom: '10px'
+                padding: '0',
+                marginTop: '28px',
+                marginBottom: '8px',
+                pageBreakInside: 'avoid',
+                breakInside: 'avoid',
+                pageBreakAfter: 'avoid',
+                breakAfter: 'avoid'
               }}>
                 <h2 style={{
                   margin: '0 0 4px 0',
@@ -1122,7 +1127,12 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                 background: '#f1f5f9',
                 borderLeft: '4px solid #000000',
                 borderRadius: '4px',
-                marginBottom: '5px'
+                marginTop: '20px',
+                marginBottom: '6px',
+                pageBreakInside: 'avoid',
+                breakInside: 'avoid',
+                pageBreakAfter: 'avoid',
+                breakAfter: 'avoid'
               }}>
                 <h3 style={{ margin: '0 0 4px 0', fontSize: '0.95rem', fontWeight: 700, color: '#1e293b' }}>
                   {block.title}
