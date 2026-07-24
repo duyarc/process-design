@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { FormFieldISO, FormRevisionEntry, FormTemplateISO, LayoutBlockISO, RadioOption, MatrixConfigISO, TableColumnConfig, ColumnSummaryRowConfig, TitleFormatISO } from '../types';
+import type { FormFieldISO, FormRevisionEntry, FormTemplateISO, LayoutBlockISO, RadioOption, MatrixConfigISO, TableColumnConfig, ColumnSummaryRowConfig, TitleFormatISO, SubtableColumn } from '../types';
 import { formatFormVersion, getColStyleWidth } from '../types';
 import { sanitizeLabel, getEffectiveTitleFormat } from '../utils/formUtils';
 import { 
@@ -27,7 +27,8 @@ import {
   Link2Off,
   Eye,
   EyeOff,
-  CheckSquare
+  CheckSquare,
+  Table as TableIcon
 } from 'lucide-react';
 import PrintBlankForm from './print/PrintBlankForm';
 
@@ -628,10 +629,10 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     { label: 'Không', value: 'FAIL', isPass: false }
   ];
 
-  const handleAddField = (blockId: string, type: 'text' | 'number' | 'date' | 'time' | 'radio' | 'checkbox' | 'signature' | 'photo') => {
+  const handleAddField = (blockId: string, type: 'text' | 'number' | 'date' | 'time' | 'radio' | 'checkbox' | 'signature' | 'photo' | 'subtable') => {
     if (isLocked) return;
     
-    const labelPrefix = type === 'radio' || type === 'checkbox' ? 'Kiểm tra ' : type === 'number' ? 'Đo thông số ' : type === 'time' ? 'Thời gian ' : 'Thông tin ';
+    const labelPrefix = type === 'radio' || type === 'checkbox' ? 'Kiểm tra ' : type === 'number' ? 'Đo thông số ' : type === 'time' ? 'Thời gian ' : type === 'subtable' ? 'Bảng ' : 'Thông tin ';
     const newField: FormFieldISO = {
       id: `f_${type}_${Date.now()}`,
       type,
@@ -648,6 +649,13 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
       newField.timeMode = 'single';
     } else if (type === 'radio' || type === 'checkbox') {
       newField.options = [...DEFAULT_RADIO_OPTIONS];
+    } else if (type === 'subtable') {
+      newField.subtableColumns = [
+        { id: `stcol_${Date.now()}_1`, label: 'Ngành hàng', type: 'text', width: '35%' },
+        { id: `stcol_${Date.now()}_2`, label: 'Nhóm sản phẩm', type: 'text', width: '40%' },
+        { id: `stcol_${Date.now()}_3`, label: '% Doanh thu', type: 'number', width: '25%' },
+      ];
+      newField.subtableDefaultRows = 3;
     }
 
     setLayoutBlocks(prev => prev.map(b => {
@@ -672,7 +680,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     }));
   };
 
-  const handleChangeFieldType = (blockId: string, fieldId: string, newType: 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo') => {
+  const handleChangeFieldType = (blockId: string, fieldId: string, newType: 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo' | 'subtable') => {
     if (isLocked) return;
     
     // Find current field to inspect its options
@@ -697,6 +705,17 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
       // If options do not exist, initialize them
       if (!field?.options || field.options.length === 0) {
         updates.options = [...DEFAULT_RADIO_OPTIONS];
+      }
+    } else if (newType === 'subtable') {
+      updates.minSpec = undefined;
+      updates.maxSpec = undefined;
+      updates.unit = undefined;
+      if (!field?.subtableColumns || field.subtableColumns.length === 0) {
+        updates.subtableColumns = [
+          { id: `stcol_${Date.now()}_1`, label: 'Cột 1', type: 'text', width: '50%' },
+          { id: `stcol_${Date.now()}_2`, label: 'Cột 2', type: 'text', width: '50%' },
+        ];
+        updates.subtableDefaultRows = 3;
       }
     } else if (newType === 'signature') {
       updates.reactionProtocol = 'Ký và ghi rõ họ tên';
@@ -1493,6 +1512,16 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                   </button>
                   <button 
                     type="button" 
+                    onClick={() => handleAddField(activeBlockId, 'subtable')}
+                    disabled={isLocked || activeBlock?.type === 'SIGN' || activeBlock?.type === 'CHECKLIST_TABLE'}
+                    className="btn btn-secondary" 
+                    style={{ justifyContent: 'start', padding: '0.4rem 0.5rem', fontSize: '0.75rem' }}
+                  >
+                    <TableIcon size={13} style={{ marginRight: '0.35rem' }} />
+                    Subtable
+                  </button>
+                  <button 
+                    type="button" 
                     onClick={() => handleAddField(activeBlockId, 'date')}
                     disabled={isLocked || activeBlock?.type === 'SIGN'}
                     className="btn btn-secondary" 
@@ -1803,43 +1832,104 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                     }}
                                     style={{
                                       borderBottom: isFieldSelected ? '2px solid var(--primary)' : '1px dotted #cbd5e1',
-                                      padding: '2px 4px',
+                                      padding: '4px',
                                       fontSize: '0.75rem',
                                       display: 'flex',
-                                      justifyContent: 'space-between',
+                                      flexDirection: 'column',
+                                      gap: '4px',
                                       background: isFieldSelected ? 'rgba(16, 163, 163, 0.05)' : 'none'
                                     }}
                                   >
-                                    <span style={{ fontWeight: 600 }}>{sanitizeLabel(f.checkItem)}</span>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                      {isFieldSelected && !isLocked && (
-                                        <div style={{ display: 'flex', alignItems: 'center', marginRight: '6px' }}>
-                                          <button
-                                            type="button"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              handleMoveField(block.id, f.id, 'up');
-                                            }}
-                                            style={{ background: 'none', border: 'none', padding: '1px 2px', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--text-secondary)' }}
-                                            title="Di chuyển lên"
-                                          >
-                                            <ArrowUp size={11} />
-                                          </button>
-                                          <button
-                                            type="button"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              handleMoveField(block.id, f.id, 'down');
-                                            }}
-                                            style={{ background: 'none', border: 'none', padding: '1px 2px', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--text-secondary)' }}
-                                            title="Di chuyển xuống"
-                                          >
-                                            <ArrowDown size={11} />
-                                          </button>
-                                        </div>
-                                      )}
-                                      <span style={{ color: 'var(--text-muted)' }}>[{f.type}]</span>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                      <span style={{ fontWeight: 600 }}>{sanitizeLabel(f.checkItem)}</span>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        {isFieldSelected && !isLocked && (
+                                          <div style={{ display: 'flex', alignItems: 'center', marginRight: '6px' }}>
+                                            <button
+                                              type="button"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleMoveField(block.id, f.id, 'up');
+                                              }}
+                                              style={{ background: 'none', border: 'none', padding: '1px 2px', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--text-secondary)' }}
+                                              title="Di chuyển lên"
+                                            >
+                                              <ArrowUp size={11} />
+                                            </button>
+                                            <button
+                                              type="button"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleMoveField(block.id, f.id, 'down');
+                                              }}
+                                              style={{ background: 'none', border: 'none', padding: '1px 2px', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--text-secondary)' }}
+                                              title="Di chuyển xuống"
+                                            >
+                                              <ArrowDown size={11} />
+                                            </button>
+                                          </div>
+                                        )}
+                                        <span style={{ color: 'var(--text-muted)' }}>[{f.type}]</span>
+                                      </div>
                                     </div>
+
+                                    {f.type === 'subtable' && (() => {
+                                      const cols = f.subtableColumns ?? [];
+                                      const previewRowCount = f.subtableDefaultRows ?? 3;
+                                      return (
+                                        <div style={{ marginTop: '2px', width: '100%' }}>
+                                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.72rem', background: '#fff' }}>
+                                            <thead>
+                                              <tr style={{ background: '#f1f5f9', borderBottom: '1px solid #cbd5e1' }}>
+                                                {cols.map((col: SubtableColumn) => (
+                                                  <th key={col.id} style={{ border: '1px solid #cbd5e1', padding: '3px 6px', fontWeight: 600, textAlign: 'left', width: col.width }}>
+                                                    {col.label}
+                                                  </th>
+                                                ))}
+                                                {!isLocked && <th style={{ width: '22px', border: '1px solid #cbd5e1' }} />}
+                                              </tr>
+                                            </thead>
+                                            <tbody>
+                                              {Array.from({ length: previewRowCount }).map((_, rIdx) => (
+                                                <tr key={rIdx}>
+                                                  {cols.map((col: SubtableColumn) => (
+                                                    <td key={col.id} style={{ border: '1px solid #e2e8f0', padding: '3px 6px', color: '#94a3b8', fontStyle: 'italic', fontSize: '0.68rem', textAlign: col.type === 'number' ? 'right' : col.type === 'date' || col.type === 'time' ? 'center' : 'left' }}>
+                                                      {col.type === 'number' ? '[0]' : col.type === 'date' ? '[Ngày]' : col.type === 'time' ? '[Giờ]' : '[Nhập chữ]'}
+                                                    </td>
+                                                  ))}
+                                                  {!isLocked && (
+                                                    <td style={{ border: '1px solid #e2e8f0', textAlign: 'center', padding: '1px' }}>
+                                                      <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                          e.stopPropagation();
+                                                          handleUpdateField(block.id, f.id, { subtableDefaultRows: Math.max(1, previewRowCount - 1) });
+                                                        }}
+                                                        style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '0', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                                                        title="Xóa dòng in phôi này"
+                                                      >
+                                                        <Trash2 size={11} />
+                                                      </button>
+                                                    </td>
+                                                  )}
+                                                </tr>
+                                              ))}
+                                            </tbody>
+                                          </table>
+                                          {!isLocked && (
+                                            <button
+                                              type="button"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleUpdateField(block.id, f.id, { subtableDefaultRows: previewRowCount + 1 });
+                                              }}
+                                              style={{ marginTop: '4px', float: 'right', fontSize: '0.68rem', padding: '2px 8px', border: '1px solid #cbd5e1', borderRadius: '3px', background: '#fff', cursor: 'pointer', color: 'var(--primary)', fontWeight: 600 }}
+                                            >+ Thêm dòng</button>
+                                          )}
+                                          <div style={{ clear: 'both' }} />
+                                        </div>
+                                      );
+                                    })()}
                                   </div>
                                 );
                               })}
@@ -2514,6 +2604,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                     <option value="radio">Radio</option>
                     <option value="signature">Sign-off</option>
                     <option value="photo">Photo</option>
+                    <option value="subtable">Subtable</option>
                   </select>
                 </div>
 
@@ -2671,6 +2762,116 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                         <Plus size={11} /> Thêm lựa chọn
                       </button>
                     )}
+                  </div>
+                )}
+
+                {activeField.type === 'subtable' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', borderTop: '1px solid var(--neutral-border)', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
+                    <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.8rem' }}>Cấu hình Cột</label>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      {(activeField.subtableColumns ?? []).map((col, idx, arr) => (
+                        <div key={col.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', border: '1px solid var(--neutral-border)', padding: '6px', borderRadius: '4px', background: '#f8fafc' }}>
+                          {/* Hàng 1: Tên cột + Di chuyển (Up/Down) + Nút xóa */}
+                          <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
+                            <input
+                              type="text"
+                              disabled={isLocked}
+                              value={col.label}
+                              placeholder="Tên cột"
+                              onChange={(e) => {
+                                const newCols = [...(activeField.subtableColumns ?? [])];
+                                newCols[idx] = { ...newCols[idx], label: e.target.value };
+                                handleUpdateField(activeBlockId!, activeFieldId!, { subtableColumns: newCols });
+                              }}
+                              style={{ flex: 1, padding: '0.2rem 0.35rem', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
+                            />
+                            <button
+                              type="button"
+                              disabled={isLocked || idx === 0}
+                              onClick={() => {
+                                const newCols = [...(activeField.subtableColumns ?? [])];
+                                const temp = newCols[idx - 1];
+                                newCols[idx - 1] = newCols[idx];
+                                newCols[idx] = temp;
+                                handleUpdateField(activeBlockId!, activeFieldId!, { subtableColumns: newCols });
+                              }}
+                              style={{ width: '24px', height: '24px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: isLocked || idx === 0 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: isLocked || idx === 0 ? 0.4 : 1, padding: 0 }}
+                              title="Di chuyển lên"
+                            >
+                              <ArrowUp size={13} style={{ color: '#0f172a' }} />
+                            </button>
+                            <button
+                              type="button"
+                              disabled={isLocked || idx === arr.length - 1}
+                              onClick={() => {
+                                const newCols = [...(activeField.subtableColumns ?? [])];
+                                const temp = newCols[idx + 1];
+                                newCols[idx + 1] = newCols[idx];
+                                newCols[idx] = temp;
+                                handleUpdateField(activeBlockId!, activeFieldId!, { subtableColumns: newCols });
+                              }}
+                              style={{ width: '24px', height: '24px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: isLocked || idx === arr.length - 1 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: isLocked || idx === arr.length - 1 ? 0.4 : 1, padding: 0 }}
+                              title="Di chuyển xuống"
+                            >
+                              <ArrowDown size={13} style={{ color: '#0f172a' }} />
+                            </button>
+                            <button
+                              type="button"
+                              disabled={isLocked || arr.length <= 1}
+                              onClick={() => {
+                                const newCols = (activeField.subtableColumns ?? []).filter((_, i) => i !== idx);
+                                handleUpdateField(activeBlockId!, activeFieldId!, { subtableColumns: newCols });
+                              }}
+                              style={{ width: '24px', height: '24px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: isLocked || arr.length <= 1 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: isLocked || arr.length <= 1 ? 0.4 : 1, padding: 0 }}
+                              title="Xóa cột"
+                            >
+                              <Trash2 size={13} style={{ color: '#ef4444' }} />
+                            </button>
+                          </div>
+                          {/* Hàng 2: Dropdown Kiểu + Độ rộng */}
+                          <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
+                            <select
+                              disabled={isLocked}
+                              value={col.type}
+                              onChange={(e) => {
+                                const newCols = [...(activeField.subtableColumns ?? [])];
+                                newCols[idx] = { ...newCols[idx], type: e.target.value as SubtableColumn['type'] };
+                                handleUpdateField(activeBlockId!, activeFieldId!, { subtableColumns: newCols });
+                              }}
+                              style={{ flex: 1, padding: '0.2rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', fontSize: '0.72rem', background: '#fff' }}
+                            >
+                              <option value="text">Chữ</option>
+                              <option value="number">Số</option>
+                              <option value="date">Ngày</option>
+                              <option value="time">Giờ</option>
+                            </select>
+                            <input
+                              type="text"
+                              disabled={isLocked}
+                              placeholder="Độ rộng (VD: 30%)"
+                              value={col.width || ''}
+                              onChange={(e) => {
+                                const newCols = [...(activeField.subtableColumns ?? [])];
+                                newCols[idx] = { ...newCols[idx], width: e.target.value };
+                                handleUpdateField(activeBlockId!, activeFieldId!, { subtableColumns: newCols });
+                              }}
+                              style={{ width: '90px', padding: '0.2rem 0.35rem', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        disabled={isLocked}
+                        onClick={() => {
+                          const newCol: SubtableColumn = { id: `stcol_${Date.now()}`, label: 'Cột mới', type: 'text', width: 'auto' };
+                          handleUpdateField(activeBlockId!, activeFieldId!, { subtableColumns: [...(activeField.subtableColumns ?? []), newCol] });
+                        }}
+                        style={{ width: '100%', padding: '0.4rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', background: '#ffffff', fontSize: '0.78rem', fontWeight: 600, cursor: isLocked ? 'not-allowed' : 'pointer', color: 'var(--text-primary)' }}
+                      >
+                        + Thêm Cột Mới
+                      </button>
+                    </div>
                   </div>
                 )}
 

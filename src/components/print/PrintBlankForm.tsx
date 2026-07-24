@@ -449,6 +449,35 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                               </div>
                             );
                           }
+                          if (f.type === 'subtable') {
+                            const cols = f.subtableColumns ?? [];
+                            const blankRows = f.subtableDefaultRows ?? 3;
+                            return (
+                              <div key={f.id} style={{ fontSize: '0.82rem', width: '100%', gridColumn: `span ${block.columns || 1}` }}>
+                                {cleanLabel && <div style={{ fontWeight: 600, marginBottom: '4px' }}>{cleanLabel}</div>}
+                                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                  <thead>
+                                    <tr>
+                                      {cols.map((col: any) => (
+                                        <th key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', background: '#f1f5f9', fontWeight: 600, textAlign: 'left', fontSize: '0.78rem', width: col.width }}>
+                                          {col.label}
+                                        </th>
+                                      ))}
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {Array.from({ length: blankRows }).map((_, rowIdx) => (
+                                      <tr key={rowIdx}>
+                                        {cols.map((col: any) => (
+                                          <td key={col.id} style={{ border: '1.5px solid #000000', padding: '5px 6px', minHeight: '22px', height: '22px' }} />
+                                        ))}
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            );
+                          }
 
                           return (
                             <div key={f.id} style={{ display: 'flex', alignItems: 'baseline', gap: '8px', fontSize: '0.85rem' }}>

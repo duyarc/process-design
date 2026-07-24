@@ -3,7 +3,12 @@ import type { Process, SubmissionFieldSnapshot } from '../types';
 import { formatFormVersion, getColStyleWidth } from '../types';
 import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName } from '../utils/formUtils';
 import { useAuth } from '../context/AuthContext';
-import { Printer, Edit2, Camera, AlertTriangle, X, PenTool, GitBranch, Eye, ArrowLeft } from 'lucide-react';
+import { Printer, Edit2, Camera, AlertTriangle, X, PenTool, GitBranch, Eye, ArrowLeft, Trash2 } from 'lucide-react';
+
+const parseSubtableValue = (val: string): Record<string, string>[] => {
+  try { return JSON.parse(val || '[]'); } catch { return []; }
+};
+const stringifySubtableValue = (rows: Record<string, string>[]): string => JSON.stringify(rows);
 import { generateBPMNXML, getNumRows } from '../utils/bpmnXmlGenerator';
 import { BpmnViewerComponent } from './BpmnViewerComponent';
 import PrintBlankForm from './print/PrintBlankForm';
@@ -1427,7 +1432,78 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                                           <option key={opt.value} value={opt.value}>{opt.label}</option>
                                         ))}
                                       </select>
-                                    ) : (
+                                    ) : field.type === 'subtable' ? (() => {
+                                      const cols = field.subtableColumns ?? [];
+                                      let rows: Record<string, string>[] = parseSubtableValue(value);
+                                      if (rows.length === 0) {
+                                        rows = [{}];
+                                      }
+                                      const updateRows = (newRows: Record<string, string>[]) => {
+                                        setFormValues(prev => ({ ...prev, [field.id]: stringifySubtableValue(newRows) }));
+                                      };
+                                      return (
+                                        <div style={{ width: '100%' }}>
+                                          <div style={{ overflowX: 'auto' }}>
+                                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem', background: '#fff' }}>
+                                              <thead>
+                                                <tr style={{ background: '#f1f5f9' }}>
+                                                  {cols.map((col: any) => (
+                                                    <th key={col.id} style={{ border: '1px solid #cbd5e1', padding: '4px 6px', fontWeight: 600, textAlign: 'left', width: col.width, whiteSpace: 'nowrap' }}>
+                                                      {col.label}
+                                                    </th>
+                                                  ))}
+                                                  <th style={{ width: '26px', border: '1px solid #cbd5e1', background: '#f1f5f9' }} />
+                                                </tr>
+                                              </thead>
+                                              <tbody>
+                                                {rows.map((row, rowIdx) => (
+                                                  <tr key={rowIdx}>
+                                                    {cols.map((col: any) => {
+                                                      const cellAlign = col.type === 'number' ? 'right' : col.type === 'date' || col.type === 'time' ? 'center' : 'left';
+                                                      return (
+                                                        <td key={col.id} style={{ border: '1px solid #e2e8f0', padding: '2px' }}>
+                                                          <input
+                                                            type={col.type === 'number' ? 'number' : col.type === 'date' ? 'date' : col.type === 'time' ? 'time' : 'text'}
+                                                            value={row[col.id] || ''}
+                                                            onChange={(e) => {
+                                                              const newRows = rows.map((r, i) => i === rowIdx ? { ...r, [col.id]: e.target.value } : r);
+                                                              updateRows(newRows);
+                                                            }}
+                                                            style={{ width: '100%', border: 'none', padding: '4px 6px', background: '#f8fafc', fontSize: '0.78rem', textAlign: cellAlign as any, outline: 'none', boxSizing: 'border-box' }}
+                                                          />
+                                                        </td>
+                                                      );
+                                                    })}
+                                                    <td style={{ border: '1px solid #e2e8f0', textAlign: 'center', padding: '1px', verticalAlign: 'middle' }}>
+                                                      <button
+                                                        type="button"
+                                                        onClick={() => updateRows(rows.filter((_, i) => i !== rowIdx))}
+                                                        style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '2px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                                                        title="Xóa dòng này"
+                                                        onMouseEnter={(e) => e.currentTarget.style.color = '#ef4444'}
+                                                        onMouseLeave={(e) => e.currentTarget.style.color = '#94a3b8'}
+                                                      >
+                                                        <Trash2 size={12} />
+                                                      </button>
+                                                    </td>
+                                                  </tr>
+                                                ))}
+                                              </tbody>
+                                            </table>
+                                          </div>
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              const emptyRow: Record<string, string> = {};
+                                              cols.forEach((col: any) => { emptyRow[col.id] = ''; });
+                                              updateRows([...rows, emptyRow]);
+                                            }}
+                                            style={{ marginTop: '4px', float: 'right', fontSize: '0.72rem', padding: '2px 10px', border: '1px solid #cbd5e1', borderRadius: '4px', background: '#fff', cursor: 'pointer', color: 'var(--primary)', fontWeight: 600 }}
+                                          >+ Thêm dòng</button>
+                                          <div style={{ clear: 'both' }} />
+                                        </div>
+                                      );
+                                    })() : (
                                       <input
                                         type="text"
                                         value={value}

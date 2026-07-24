@@ -85,9 +85,16 @@ export interface Process {
   };
 }
 
+export interface SubtableColumn {
+  id: string;
+  label: string;
+  type: 'text' | 'number' | 'date' | 'time';
+  width?: string;
+}
+
 export interface FormFieldISO {
   id: string;
-  type: 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo';
+  type: 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo' | 'subtable';
   checkItem: string;
   locationCode: string;
   minSpec?: number;
@@ -98,6 +105,8 @@ export interface FormFieldISO {
   frequency?: string;
   reactionProtocol: string;
   timeMode?: 'single' | 'dual';
+  subtableColumns?: SubtableColumn[];
+  subtableDefaultRows?: number;
 }
 
 export interface FormRevisionEntry {

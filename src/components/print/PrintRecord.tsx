@@ -530,14 +530,58 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                   flexDirection: 'column',
                   gap: '8px'
                 }}>
-                  {colFields.map(f => (
-                    <div key={f.id} style={{ display: 'flex', alignItems: 'baseline', gap: '8px', fontSize: '0.85rem' }}>
-                      <span style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{f.checkItem ? `${f.checkItem}:` : ''}</span>
-                      <span style={{ borderBottom: '1px solid #e2e8f0', flex: 1, paddingBottom: '2px', fontWeight: 700 }}>
-                        {f.value}
-                      </span>
-                    </div>
-                  ))}
+                  {colFields.map(f => {
+                    const matchedBlock = layoutBlocks.find(b => b.fields?.some((field: any) => field.id === f.id));
+                    const matchedField = matchedBlock?.fields?.find((field: any) => field.id === f.id);
+                    if (matchedField?.type === 'subtable') {
+                      let rows: Record<string, string>[] = [];
+                      try { rows = JSON.parse(f.value || '[]'); } catch {}
+                      const cols = matchedField.subtableColumns ?? [];
+                      return (
+                        <div key={f.id} style={{ fontSize: '0.82rem', width: '100%', marginBottom: '6px' }}>
+                          {f.checkItem && <div style={{ fontWeight: 600, marginBottom: '4px' }}>{f.checkItem}:</div>}
+                          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                            <thead>
+                              <tr>
+                                {cols.map((col: any) => (
+                                  <th key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', background: '#f1f5f9', fontWeight: 600, textAlign: 'left', fontSize: '0.78rem', width: col.width }}>
+                                    {col.label}
+                                  </th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {rows.length === 0 ? (
+                                <tr>
+                                  <td colSpan={cols.length || 1} style={{ border: '1.5px solid #000000', padding: '5px', textAlign: 'center', color: '#94a3b8', fontStyle: 'italic', fontSize: '0.75rem' }}>Chưa có dữ liệu</td>
+                                </tr>
+                              ) : rows.map((row, rowIdx) => (
+                                <tr key={rowIdx}>
+                                  {cols.map((col: any) => {
+                                    const cellAlign = col.type === 'number' ? 'right' : col.type === 'date' || col.type === 'time' ? 'center' : 'left';
+                                    return (
+                                      <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', textAlign: cellAlign as any, fontSize: '0.82rem' }}>
+                                        {row[col.id] || ''}
+                                      </td>
+                                    );
+                                  })}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div key={f.id} style={{ display: 'flex', alignItems: 'baseline', gap: '8px', fontSize: '0.85rem' }}>
+                        <span style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{f.checkItem ? `${f.checkItem}:` : ''}</span>
+                        <span style={{ borderBottom: '1px solid #e2e8f0', flex: 1, paddingBottom: '2px', fontWeight: 700 }}>
+                          {f.value}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               ))}
             </div>
