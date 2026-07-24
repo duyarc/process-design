@@ -820,8 +820,20 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
                           </select>
                         ) : field.type === 'subtable' ? (() => {
                           const cols = field.subtableColumns ?? [];
+                          const hasStaticCol = cols.some((c: any) => c.type === 'static_text');
                           let rows: Record<string, string>[] = parseSubtableValue(value);
-                          if (rows.length === 0) {
+                          if (hasStaticCol) {
+                            const staticDataKeys = Object.keys(field.subtableStaticData || {}).map(Number).filter(n => !isNaN(n));
+                            const maxStaticKey = staticDataKeys.length > 0 ? Math.max(...staticDataKeys) + 1 : 0;
+                            const targetRowCount = Math.max(field.subtableDefaultRows ?? 1, maxStaticKey);
+                            if (rows.length < targetRowCount) {
+                              const padded = [...rows];
+                              while (padded.length < targetRowCount) {
+                                padded.push({});
+                              }
+                              rows = padded;
+                            }
+                          } else if (rows.length === 0) {
                             rows = [{}];
                           }
                           const updateRows = (newRows: Record<string, string>[]) => {
