@@ -26,7 +26,8 @@ import {
   Link,
   Link2Off,
   Eye,
-  EyeOff
+  EyeOff,
+  CheckSquare
 } from 'lucide-react';
 import PrintBlankForm from './print/PrintBlankForm';
 
@@ -627,16 +628,16 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     { label: 'Không', value: 'FAIL', isPass: false }
   ];
 
-  const handleAddField = (blockId: string, type: 'text' | 'number' | 'date' | 'time' | 'radio' | 'signature' | 'photo') => {
+  const handleAddField = (blockId: string, type: 'text' | 'number' | 'date' | 'time' | 'radio' | 'checkbox' | 'signature' | 'photo') => {
     if (isLocked) return;
     
-    const labelPrefix = type === 'radio' ? 'Kiểm tra ' : type === 'number' ? 'Đo thông số ' : type === 'time' ? 'Thời gian ' : 'Thông tin ';
+    const labelPrefix = type === 'radio' || type === 'checkbox' ? 'Kiểm tra ' : type === 'number' ? 'Đo thông số ' : type === 'time' ? 'Thời gian ' : 'Thông tin ';
     const newField: FormFieldISO = {
       id: `f_${type}_${Date.now()}`,
       type,
       checkItem: `${labelPrefix}mới`,
       locationCode: `LOC-${Math.floor(10 + Math.random() * 90)}`,
-      reactionProtocol: type === 'radio' || type === 'number' ? "Báo cáo trưởng ca và ghi nhận hành động khắc phục." : ""
+      reactionProtocol: type === 'radio' || type === 'checkbox' || type === 'number' ? "Báo cáo trưởng ca và ghi nhận hành động khắc phục." : ""
     };
 
     if (type === 'number') {
@@ -645,7 +646,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
       newField.unit = '';
     } else if (type === 'time') {
       newField.timeMode = 'single';
-    } else if (type === 'radio') {
+    } else if (type === 'radio' || type === 'checkbox') {
       newField.options = [...DEFAULT_RADIO_OPTIONS];
     }
 
@@ -1452,13 +1453,13 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                   </p>
                   <button 
                     type="button" 
-                    onClick={() => handleAddField(activeBlockId, 'radio')}
+                    onClick={() => handleAddField(activeBlockId, 'text')}
                     disabled={isLocked || activeBlock?.type === 'SIGN'}
                     className="btn btn-secondary" 
                     style={{ justifyContent: 'start', padding: '0.4rem 0.5rem', fontSize: '0.75rem' }}
                   >
-                    <ListChecks size={13} style={{ marginRight: '0.35rem' }} />
-                    Radio Group
+                    <FileText size={13} style={{ marginRight: '0.35rem' }} />
+                    Text
                   </button>
                   <button 
                     type="button" 
@@ -1468,17 +1469,27 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                     style={{ justifyContent: 'start', padding: '0.4rem 0.5rem', fontSize: '0.75rem' }}
                   >
                     <Hash size={13} style={{ marginRight: '0.35rem' }} />
-                    Numeric Spec Check
+                    Number
                   </button>
                   <button 
                     type="button" 
-                    onClick={() => handleAddField(activeBlockId, 'text')}
+                    onClick={() => handleAddField(activeBlockId, 'radio')}
                     disabled={isLocked || activeBlock?.type === 'SIGN'}
                     className="btn btn-secondary" 
                     style={{ justifyContent: 'start', padding: '0.4rem 0.5rem', fontSize: '0.75rem' }}
                   >
-                    <FileText size={13} style={{ marginRight: '0.35rem' }} />
-                    Text Note Field
+                    <ListChecks size={13} style={{ marginRight: '0.35rem' }} />
+                    Radio
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => handleAddField(activeBlockId, 'checkbox')}
+                    disabled={isLocked || activeBlock?.type === 'SIGN'}
+                    className="btn btn-secondary" 
+                    style={{ justifyContent: 'start', padding: '0.4rem 0.5rem', fontSize: '0.75rem' }}
+                  >
+                    <CheckSquare size={13} style={{ marginRight: '0.35rem' }} />
+                    Checkbox
                   </button>
                   <button 
                     type="button" 
@@ -1488,7 +1499,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                     style={{ justifyContent: 'start', padding: '0.4rem 0.5rem', fontSize: '0.75rem' }}
                   >
                     <Calendar size={13} style={{ marginRight: '0.35rem' }} />
-                    Date Picker
+                    Date
                   </button>
                   <button 
                     type="button" 
@@ -1498,7 +1509,17 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                     style={{ justifyContent: 'start', padding: '0.4rem 0.5rem', fontSize: '0.75rem' }}
                   >
                     <Clock size={13} style={{ marginRight: '0.35rem' }} />
-                    Time Picker
+                    Time
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => handleAddField(activeBlockId, 'photo')}
+                    disabled={isLocked || activeBlock?.type !== 'CHECKLIST_TABLE'}
+                    className="btn btn-secondary" 
+                    style={{ justifyContent: 'start', padding: '0.4rem 0.5rem', fontSize: '0.75rem' }}
+                  >
+                    <Camera size={13} style={{ marginRight: '0.35rem' }} />
+                    Photo
                   </button>
                   <button 
                     type="button" 
@@ -1509,16 +1530,6 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                   >
                     <PenTool size={13} style={{ marginRight: '0.35rem' }} />
                     Sign-off
-                  </button>
-                  <button 
-                    type="button" 
-                    onClick={() => handleAddField(activeBlockId, 'photo')}
-                    disabled={isLocked || activeBlock?.type !== 'CHECKLIST_TABLE'}
-                    className="btn btn-secondary" 
-                    style={{ justifyContent: 'start', padding: '0.4rem 0.5rem', fontSize: '0.75rem' }}
-                  >
-                    <Camera size={13} style={{ marginRight: '0.35rem' }} />
-                    Camera/Photo Log
                   </button>
                 </div>
               )

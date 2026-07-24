@@ -9,7 +9,7 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Last Verified Against Codebase** | 2026-07-23 |
+| **Last Verified Against Codebase** | 2026-07-24 |
 | **Verified By Session** | [9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) |
 
 > **⚠️ Session Note (2026-07-14):** Deep codebase research confirmed FormBuilder has no awareness of which process it belongs to. `formName` prop is always identical to `formId`. New `linkedProcessId` and `onUnlinkFromProcess` props added — see Section 6.1 and Technical Debt table.
@@ -473,6 +473,7 @@ All calls are inline `fetch()` within `FormBuilder.tsx` and `PrintBlankForm.tsx`
 | 2026-07-23 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Remove Table Input Placeholder Guidance:** Removed the confusing and cluttered placeholder attributes (`placeholder="Nhập chữ..."` and `placeholder="Nhập số..."`) from dynamic table cells in FormFiller.tsx and ProcessReader.tsx for a cleaner, paper-like look. |
 | 2026-07-23 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Table Inputs Soft Highlighting & Standardized Alignments:** Updated dynamic table cell input controls in FormFiller.tsx and ProcessReader.tsx to use a soft background color (`#f8fafc`) and thin borders (`1px solid #e2e8f0`) to visually guide users to fillable elements. Standardized input text alignments by type (Left for text, Right for numbers, Center for date/time) while maintaining configured configurations on table headers. |
 | 2026-07-23 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Form Designer Preview Alignment Synchronization:** Updated dynamic table cell placeholders (`[Nhập chữ]`, `[Nhập số]`, `[Ngày]`, `[Giờ]`) inside the Form Designer authoring canvas in FormBuilder.tsx to follow the same standardized data type alignments as the live form (Left for text, Right for numbers, Center for date/time) to ensure a true WYSIWYG experience. |
+| 2026-07-24 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Form Designer Sidebar Toolbox Sync:** Added the missing Checkbox button to the toolbox under "2. Field Elements" in FormBuilder.tsx and mapped it to handleAddField. Simplified all element labels to match the new type names (Text, Number, Radio, Checkbox, Date, Time, Photo, Sign-off) and reordered them logically based on frequency of use. Updated handleAddField signature and options initialization logic to support the new `'checkbox'` type. |
 
 
 
