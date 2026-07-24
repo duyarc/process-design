@@ -472,7 +472,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                                     {Array.from({ length: blankRows }).map((_, rowIdx) => (
                                       <tr key={rowIdx}>
                                         {cols.map((col: any) => (
-                                          <td key={col.id} style={{ border: '1.5px solid #000000', padding: '5px 6px', minHeight: '22px', height: '22px' }} />
+                                          <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', height: '28px' }} />
                                         ))}
                                       </tr>
                                     ))}
@@ -711,7 +711,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                             const hasOptions = col.type === 'checkbox' && col.options && col.options.length > 0;
                             const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? (hasOptions ? 'left' : 'center') : 'left'));
                             return (
-                              <td key={col.id} style={{ border: '1.5px solid #000000', padding: '6px 8px', fontSize: '0.8rem', verticalAlign: 'middle', height: '35px', textAlign: cellAlign }}>
+                              <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'middle', height: '28px', textAlign: cellAlign }}>
                                 {col.type === 'static_text' ? (
                                   <span style={{ fontWeight: 500, display: 'block', textAlign: cellAlign }}>{block.tableData?.[row.id]?.[col.id] || ''}</span>
                                 ) : col.type === 'checkbox' ? (
@@ -894,27 +894,27 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                           {rIdx + 1}
                         </td>
                         {block.matrixConfig!.columns.map((_, cIdx) => (
-                          <td key={cIdx} style={{ border: '1.5px solid #000000', padding: '6px', height: '24px' }}></td>
+                          <td key={cIdx} style={{ border: '1.5px solid #000000', padding: '4px 6px', height: '28px' }}></td>
                         ))}
                         {block.matrixConfig!.showTotalColumn && (
-                          <td style={{ border: '1.5px solid #000000', padding: '6px', height: '24px' }}></td>
+                          <td style={{ border: '1.5px solid #000000', padding: '4px 6px', height: '28px' }}></td>
                         )}
                         {block.matrixConfig!.showNotesColumn && (
-                          <td style={{ border: '1.5px solid #000000', padding: '6px', height: '24px' }}></td>
+                          <td style={{ border: '1.5px solid #000000', padding: '4px 6px', height: '28px' }}></td>
                         )}
                       </tr>
                     ))}
                     {/* Empty Total Row */}
                     <tr style={{ background: '#f8fafc', fontWeight: 'bold', pageBreakInside: 'avoid' }}>
-                      <td style={{ border: '1.5px solid #000000', padding: '6px', textAlign: 'center', fontSize: '0.8rem' }}>TỔNG</td>
+                      <td style={{ border: '1.5px solid #000000', padding: '4px 6px', textAlign: 'center', fontSize: '0.8rem' }}>TỔNG</td>
                       {block.matrixConfig.columns.map((_, cIdx) => (
-                        <td key={cIdx} style={{ border: '1.5px solid #000000', padding: '6px', height: '24px' }}></td>
+                        <td key={cIdx} style={{ border: '1.5px solid #000000', padding: '4px 6px', height: '28px' }}></td>
                       ))}
                       {block.matrixConfig.showTotalColumn && (
-                        <td style={{ border: '1.5px solid #000000', padding: '6px', height: '24px' }}></td>
+                        <td style={{ border: '1.5px solid #000000', padding: '4px 6px', height: '28px' }}></td>
                       )}
                       {block.matrixConfig.showNotesColumn && (
-                        <td style={{ border: '1.5px solid #000000', padding: '6px', height: '24px' }}></td>
+                        <td style={{ border: '1.5px solid #000000', padding: '4px 6px', height: '28px' }}></td>
                       )}
                     </tr>
                   </tbody>

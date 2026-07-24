@@ -1917,7 +1917,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                               {Array.from({ length: previewRowCount }).map((_, rIdx) => (
                                                 <tr key={rIdx}>
                                                   {cols.map((col: SubtableColumn) => (
-                                                    <td key={col.id} style={{ border: '1px solid #e2e8f0', padding: '3px 6px', color: '#94a3b8', fontStyle: 'italic', fontSize: '0.68rem', textAlign: col.type === 'number' ? 'right' : col.type === 'date' || col.type === 'time' ? 'center' : 'left' }}>
+                                                    <td key={col.id} style={{ border: '1px solid #e2e8f0', padding: '4px 6px', height: '28px', color: '#94a3b8', fontStyle: 'italic', fontSize: '0.68rem', textAlign: col.type === 'number' ? 'right' : col.type === 'date' || col.type === 'time' ? 'center' : 'left' }}>
                                                       {col.type === 'number' ? '[0]' : col.type === 'date' ? '[Ngày]' : col.type === 'time' ? '[Giờ]' : '[Nhập chữ]'}
                                                     </td>
                                                   ))}
