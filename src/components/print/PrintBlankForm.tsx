@@ -974,15 +974,14 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                     paddingTop: '5px',
                     marginTop: '12px',
                     marginBottom: '45px',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    gap: '40px'
+                    display: 'grid',
+                    gridTemplateColumns: `repeat(${block.columns || 2}, 1fr)`,
+                    gap: '20px'
                   }}>
                     {block.fields.map((f) => {
                       const isBlank = !f.checkItem || f.checkItem.trim() === '';
                       return (
                         <div key={f.id} style={{
-                          flex: 1,
                           height: '80px',
                           display: 'flex',
                           flexDirection: 'column',
