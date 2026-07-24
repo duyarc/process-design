@@ -180,6 +180,17 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
             page-break-inside: avoid;
             break-inside: avoid;
           }
+          thead {
+            display: table-header-group;
+          }
+          tr {
+            page-break-inside: avoid;
+            break-inside: avoid;
+          }
+          .subtable-print-container {
+            page-break-inside: avoid;
+            break-inside: avoid;
+          }
           .print-table tfoot td {
             background: transparent !important;
           }
@@ -239,7 +250,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
       {/* Dynamic Blocks Rendering */}
       {template.layoutBlocks && template.layoutBlocks.map((block) => {
         return (
-          <div key={block.id} className={`print-block ${block.type !== 'CHECKLIST_TABLE' ? 'print-block-avoid' : ''}`}>
+          <div key={block.id} className={`print-block ${block.type !== 'CHECKLIST_TABLE' && block.type !== 'INFO_GRID' ? 'print-block-avoid' : ''}`}>
             
             {/* 1.1 SECTION LABEL BLOCK */}
             {block.type === 'SECTION_LABEL' && (() => {
@@ -453,8 +464,8 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                             const cols = f.subtableColumns ?? [];
                             const blankRows = f.subtableDefaultRows ?? 3;
                             return (
-                              <div key={f.id} style={{ fontSize: '0.82rem', width: '100%', gridColumn: `span ${block.columns || 1}` }}>
-                                {cleanLabel && <div style={{ fontWeight: 600, marginBottom: '8px' }}>{cleanLabel}</div>}
+                              <div key={f.id} className="subtable-print-container" style={{ fontSize: '0.82rem', width: '100%', gridColumn: `span ${block.columns || 1}`, pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                                {cleanLabel && <div style={{ fontWeight: 600, marginBottom: '8px', pageBreakAfter: 'avoid', breakAfter: 'avoid' }}>{cleanLabel}</div>}
                                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                   <thead>
                                     <tr>

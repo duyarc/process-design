@@ -363,6 +363,17 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
             page-break-inside: avoid;
             break-inside: avoid;
           }
+          thead {
+            display: table-header-group;
+          }
+          tr {
+            page-break-inside: avoid;
+            break-inside: avoid;
+          }
+          .subtable-print-container {
+            page-break-inside: avoid;
+            break-inside: avoid;
+          }
           .print-table tfoot td {
             background: transparent !important;
           }
@@ -513,7 +524,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
         });
 
         return (
-          <div className="print-block print-block-avoid" style={{
+          <div className="print-block" style={{
             padding: '0',
             marginTop: '0',
             marginBottom: '0'
@@ -538,8 +549,8 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                       try { rows = JSON.parse(f.value || '[]'); } catch {}
                       const cols = matchedField.subtableColumns ?? [];
                       return (
-                        <div key={f.id} style={{ fontSize: '0.82rem', width: '100%', marginBottom: '6px' }}>
-                          {f.checkItem && <div style={{ fontWeight: 600, marginBottom: '8px' }}>{f.checkItem}:</div>}
+                        <div key={f.id} className="subtable-print-container" style={{ fontSize: '0.82rem', width: '100%', marginBottom: '6px', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                          {f.checkItem && <div style={{ fontWeight: 600, marginBottom: '8px', pageBreakAfter: 'avoid', breakAfter: 'avoid' }}>{f.checkItem}:</div>}
                           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
                               <tr>
