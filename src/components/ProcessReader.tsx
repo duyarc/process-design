@@ -1458,16 +1458,16 @@ setFormValues(prev => ({ ...prev, [field.id]: stringifySubtableValue(newRows) })
                                           <div style={{ overflowX: 'auto' }}>
                                             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem', background: '#fff' }}>
                                               <thead>
-                                                <tr style={{ background: '#f1f5f9' }}>
+                                                <tr style={{ background: '#e2e8f0', borderBottom: '2px solid var(--primary)' }}>
                                                   {cols.map((col: any) => {
                                                     const headerAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'date' || col.type === 'time' ? 'center' : 'left'));
                                                     return (
-                                                      <th key={col.id} style={{ border: '1px solid #cbd5e1', padding: '4px 6px', fontWeight: 600, textAlign: headerAlign as any, width: col.width, whiteSpace: 'nowrap' }}>
+                                                      <th key={col.id} style={{ border: '1px solid #cbd5e1', padding: '6px 8px', fontWeight: 600, color: '#0f172a', fontSize: '0.8rem', textAlign: headerAlign as any, width: col.width, whiteSpace: 'nowrap' }}>
                                                         {col.label}
                                                       </th>
                                                     );
                                                   })}
-                                                  <th style={{ width: '26px', border: '1px solid #cbd5e1', background: '#f1f5f9' }} />
+                                                  <th style={{ width: '26px', border: '1px solid #cbd5e1', background: '#e2e8f0' }} />
                                                 </tr>
                                               </thead>
                                               <tbody>
@@ -1842,11 +1842,11 @@ setFormValues(prev => ({ ...prev, [field.id]: stringifySubtableValue(newRows) })
                                <div style={{ overflowX: 'auto' }}>
                                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', background: '#ffffff', tableLayout: 'fixed', border: '1px solid var(--neutral-border)' }}>
                                    <thead>
-                                     <tr style={{ background: '#f1f5f9', borderBottom: '2px solid var(--neutral-border)' }}>
+                                     <tr style={{ background: '#e2e8f0', borderBottom: '2px solid var(--primary)' }}>
                                        {(block.tableColumns || []).map((col: any) => {
                                          const colWidth = getColStyleWidth(col.id, col.width, block.tableColumns || []);
                                          return (
-                                           <th key={col.id} style={{ padding: '8px', borderRight: '1px solid var(--neutral-border)', textAlign: 'left', width: colWidth, fontWeight: 'bold' }}>
+                                           <th key={col.id} style={{ padding: '8px 10px', borderRight: '1px solid #cbd5e1', color: '#0f172a', textAlign: 'left', width: colWidth, fontWeight: 600, fontSize: '0.8rem' }}>
                                              {col.label}
                                            </th>
                                          );

@@ -9,8 +9,8 @@
 | **Module Name** | Form Operations |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Last Verified Against Codebase** | 2026-07-24 |
-| **Verified By Session** | [9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) |
+| **Last Verified Against Codebase** | 2026-07-27 |
+| **Verified By Session** | [083f0d7d-7591-41ae-a3be-0b523d42c450](conversation://083f0d7d-7591-41ae-a3be-0b523d42c450) |
 
 ### Quick File Index
 
@@ -384,3 +384,4 @@ FormFiller supports direct URL access for operator distribution:
 | 2026-07-24 | [083f0d7d](conversation://083f0d7d-7591-41ae-a3be-0b523d42c450) | Remove duplicate Title Block header in FormFiller.tsx and replace with layout-driven footer strip matching Form Designer preview & Print Form. |
 | 2026-07-24 | [083f0d7d](conversation://083f0d7d-7591-41ae-a3be-0b523d42c450) | Upgrade SIGN block in FormFiller.tsx with interactive 3-state Click-to-Sign UI, attestation checkbox, cursive signature font, and dynamic SIGN snapshot collection. |
 | 2026-07-24 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Subtable Input & Output Support:** Implemented Subtable dynamic row input support in `FormFiller.tsx` and `ProcessReader.tsx` with 1 default empty input row, `+ Thêm dòng` button, and `<Trash2 />` row deletion. JSON values parsed and updated automatically. Implemented filled record subtable grid output in `PrintRecord.tsx` with layout-driven column headers lookup (`Option A`). Header alignment (`<th>`) dynamically reads configured `col.align`. Supported `static_text` (Nhãn) column type rendering custom `subtableStaticData` row labels aligned according to configured `col.align` (left/center/right). Fixed print footer overlap, removed `print-block-avoid` on `INFO_GRID` to resolve blank Page 1, bound Subtable titles via `breakAfter: 'avoid'`, applied A4 Print Form Spacing Matrix (`colFields gap: 10px`, subtable `marginBottom: 14px`, `SECTION_LABEL marginTop: 18px/14px/10px`), and enhanced field underlines (`#94a3b8`) in `PrintRecord.tsx`. Auto-expand all configured fixed label (`static_text`) rows by default in `FormFiller.tsx` & `ProcessReader.tsx` online forms. Simplified online form submit button text to "Submit" (`FormFiller.tsx` and `ProcessReader.tsx`). |
+| 2026-07-27 | [083f0d7d](conversation://083f0d7d-7591-41ae-a3be-0b523d42c450) | **Table Header Redesign:** Redesigned table headers across `FormFiller.tsx` for dynamic `TABLE`, `CHECKLIST_TABLE` (subtable grid), and `MATRIX_TABLE` blocks to use Executive Slate Header Bar (`#e2e8f0` background, `#0f172a` charcoal text, `fontWeight: 600`, `2px solid var(--primary)` accent bottom border), sentence-case typography, establishing 100% visual contrast from fillable input cells. |

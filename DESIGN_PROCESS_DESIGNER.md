@@ -9,8 +9,8 @@
 | **Module Name** | Process Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Last Verified Against Codebase** | 2026-07-23 |
-| **Verified By Session** | [9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) |
+| **Last Verified Against Codebase** | 2026-07-27 |
+| **Verified By Session** | [083f0d7d-7591-41ae-a3be-0b523d42c450](conversation://083f0d7d-7591-41ae-a3be-0b523d42c450) |
 
 > **⚠️ Session Note (2026-07-14):** Deep codebase research revealed several undocumented architectural facts — see Sections 4.5, 6.2, and 7 for critical notes added.
 
@@ -562,5 +562,6 @@ Base URL: relative path (proxied via Vite dev server to `http://localhost:3001`)
 | 2026-07-20 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Fix incorrect page divider dashed line rendering on single-page views.** Update BpmnViewerComponent.tsx to compute the number of rows based on actual unique row values present in the XML dataset, rather than using max row indices, preventing incorrect divider lines at y=0 on isolated page renderings. |
 | 2026-07-23 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Retire Check Frequency:** Remove frequency initialization in ProcessEditor.tsx. Remove Frequency column from Process Quality Control Points table and frequency badge from field card headers in ProcessReader.tsx. |
 | 2026-07-23 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Standardize SOP PDF Naming according to Digital 5S Rules:** Set `document.title` on mount in `ProcessReader.tsx` using `to5SFileName` to guide the default browser suggested PDF filenames. SOP files use prefix and format `SOP_[Normalized_SOP_Title]`. |
+| 2026-07-27 | [083f0d7d](conversation://083f0d7d-7591-41ae-a3be-0b523d42c450) | **Table Header Redesign:** Updated table headers in `ProcessReader.tsx` for dynamic `TABLE` and subtable grid blocks to use Executive Slate Header Bar (`#e2e8f0` background, `#0f172a` charcoal text, `fontWeight: 600`, `2px solid var(--primary)` accent bottom border), establishing 100% visual contrast from fillable input cells while preserving sentence-case typography for optimal readability. |
 
 

@@ -1904,13 +1904,13 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                         <div style={{ marginTop: '2px', width: '100%' }}>
                                           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.72rem', background: '#fff' }}>
                                             <thead>
-                                              <tr style={{ background: '#f1f5f9', borderBottom: '1px solid #cbd5e1' }}>
+                                              <tr style={{ background: '#e2e8f0', borderBottom: '2px solid var(--primary)' }}>
                                                 {cols.map((col: SubtableColumn) => (
-                                                  <th key={col.id} style={{ border: '1px solid #cbd5e1', padding: '3px 6px', fontWeight: 600, textAlign: (col.align || (col.type === 'number' ? 'right' : (col.type === 'date' || col.type === 'time' ? 'center' : 'left'))) as any, width: col.width }}>
+                                                  <th key={col.id} style={{ border: '1px solid #cbd5e1', padding: '4px 6px', fontWeight: 600, color: '#0f172a', textAlign: (col.align || (col.type === 'number' ? 'right' : (col.type === 'date' || col.type === 'time' ? 'center' : 'left'))) as any, width: col.width }}>
                                                     {col.label}
                                                   </th>
                                                 ))}
-                                                {!isLocked && <th style={{ width: '22px', border: '1px solid #cbd5e1' }} />}
+                                                {!isLocked && <th style={{ width: '22px', border: '1px solid #cbd5e1', background: '#e2e8f0' }} />}
                                               </tr>
                                             </thead>
                                             <tbody>
@@ -2143,27 +2143,27 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                           <div style={{ overflowX: 'auto', border: '1px solid #cbd5e1', borderRadius: '4px' }}>
                             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
                               <thead>
-                                <tr style={{ background: '#f1f5f9', borderBottom: '1.5px solid #cbd5e1' }}>
-                                  <th rowSpan={2} style={{ padding: '6px', borderRight: '1px solid #cbd5e1', borderBottom: '1.5px solid #cbd5e1', textAlign: 'center', width: '50px' }}>
+                                <tr style={{ background: '#e2e8f0' }}>
+                                  <th rowSpan={2} style={{ padding: '6px', borderRight: '1px solid #cbd5e1', borderBottom: '2px solid var(--primary)', textAlign: 'center', width: '50px', color: '#0f172a', fontWeight: 600 }}>
                                     {block.matrixConfig.rowHeader}
                                   </th>
-                                  <th colSpan={block.matrixConfig.columns.length} style={{ padding: '4px', borderRight: '1px solid #cbd5e1', borderBottom: '1px solid #cbd5e1', textAlign: 'center' }}>
+                                  <th colSpan={block.matrixConfig.columns.length} style={{ padding: '4px', borderRight: '1px solid #cbd5e1', borderBottom: '1px solid #cbd5e1', textAlign: 'center', color: '#0f172a', fontWeight: 600 }}>
                                     {block.matrixConfig.columnHeader}
                                   </th>
                                   {block.matrixConfig.showTotalColumn && (
-                                    <th rowSpan={2} style={{ padding: '4px', borderRight: '1px solid #cbd5e1', borderBottom: '1.5px solid #cbd5e1', textAlign: 'center', width: '100px', fontSize: '0.7rem' }}>
+                                    <th rowSpan={2} style={{ padding: '4px', borderRight: '1px solid #cbd5e1', borderBottom: '2px solid var(--primary)', textAlign: 'center', width: '100px', fontSize: '0.7rem', color: '#0f172a', fontWeight: 600 }}>
                                       {block.matrixConfig.totalColumnHeader}
                                     </th>
                                   )}
                                   {block.matrixConfig.showNotesColumn && (
-                                    <th rowSpan={2} style={{ padding: '4px', borderBottom: '1.5px solid #cbd5e1', textAlign: 'left', width: '150px' }}>
+                                    <th rowSpan={2} style={{ padding: '4px', borderBottom: '2px solid var(--primary)', textAlign: 'left', width: '150px', color: '#0f172a', fontWeight: 600 }}>
                                       {block.matrixConfig.notesColumnHeader}
                                     </th>
                                   )}
                                 </tr>
-                                <tr style={{ background: '#f8fafc', borderBottom: '1.5px solid #cbd5e1' }}>
+                                <tr style={{ background: '#cbd5e1', borderBottom: '2px solid var(--primary)' }}>
                                   {block.matrixConfig.columns.map((colName, cIdx) => (
-                                    <th key={cIdx} style={{ padding: '4px', borderRight: '1px solid #cbd5e1', textAlign: block.matrixConfig!.columnAlign || 'center', fontWeight: 'normal', fontSize: '0.7rem' }}>
+                                    <th key={cIdx} style={{ padding: '4px', borderRight: '1px solid #94a3b8', textAlign: block.matrixConfig!.columnAlign || 'center', fontWeight: 600, fontSize: '0.7rem', color: '#0f172a' }}>
                                       {colName || `(Cột ${cIdx + 1})`}
                                     </th>
                                   ))}
@@ -2226,11 +2226,11 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                           <div style={{ overflowX: 'auto', border: '1px solid #cbd5e1', borderRadius: '4px' }}>
                             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem', tableLayout: 'fixed' }}>
                               <thead>
-                                <tr style={{ background: '#f1f5f9', borderBottom: '1.5px solid #cbd5e1' }}>
+                                <tr style={{ background: '#e2e8f0', borderBottom: '2px solid var(--primary)' }}>
                                   {(block.tableColumns || []).map((col) => {
                                     const colWidth = getColStyleWidth(col.id, col.width, block.tableColumns || []);
                                     return (
-                                      <th key={col.id} style={{ padding: '6px', borderRight: '1px solid #cbd5e1', textAlign: 'left', width: colWidth, fontWeight: 'bold' }}>
+                                      <th key={col.id} style={{ padding: '6px 8px', borderRight: '1px solid #cbd5e1', color: '#0f172a', textAlign: 'left', width: colWidth, fontWeight: 600, fontSize: '0.75rem' }}>
                                         {col.label || '(Không có nhãn)'}
                                       </th>
                                     );

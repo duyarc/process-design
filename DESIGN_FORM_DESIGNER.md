@@ -9,8 +9,8 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Last Verified Against Codebase** | 2026-07-24 |
-| **Verified By Session** | [9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) |
+| **Last Verified Against Codebase** | 2026-07-27 |
+| **Verified By Session** | [083f0d7d-7591-41ae-a3be-0b523d42c450](conversation://083f0d7d-7591-41ae-a3be-0b523d42c450) |
 
 > **⚠️ Session Note (2026-07-14):** Deep codebase research confirmed FormBuilder has no awareness of which process it belongs to. `formName` prop is always identical to `formId`. New `linkedProcessId` and `onUnlinkFromProcess` props added — see Section 6.1 and Technical Debt table.
 
@@ -486,6 +486,7 @@ All calls are inline `fetch()` within `FormBuilder.tsx` and `PrintBlankForm.tsx`
 | 2026-07-24 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **SIGN Block Print Layout Standardization (WYSIWYG Fix):** Converted SIGN block container in `PrintBlankForm.tsx` from Flexbox to CSS Grid (`gridTemplateColumns: repeat(block.columns || 2, 1fr)`), ensuring single signature slots stay correctly positioned in Column 1 (left 50%) matching Canvas preview instead of stretching 100% full width across page center. |
 | 2026-07-24 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Combined Proposal 2 & Proposal 3 Print Field Styling Upgrade:** (1) Applied Proposal 2 dotted handwriting baselines (`1px dotted #64748b`, contrast ratio 4.8:1) for free-form text/number fields in `PrintBlankForm.tsx`. (2) Applied Proposal 3 structured segment combs for Date (`DD/MM/YYYY`) and Time (`HH:MM`) fields (`1.5px solid #475569`). (3) Dynamically set Subtable title `marginTop` to `0px` when Subtable is the first item in a column, eliminating vertical misalignment when placed beside standard fields. |
 | 2026-07-24 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **A4 Print Form Spacing Matrix Standardization (ISO 216 / GDS / WCAG AA Aligned):** (1) Reset `.print-block` global `margin-bottom` to `0px` to eliminate accumulated 40–48px gaps between blocks. (2) Increased free-form handwriting field line `minHeight` from `16px` to `22px` (ISO 7mm handwriting height standard). (3) Set Subtable bottom margin to `14px` (ISO 5–6mm breathing space after table borders). (4) Standardized intra-group field `gap` to `10px` and recalibrated SECTION_LABEL `marginTop` to `18px` (H1), `14px` (H2), `10px` (Body). |
+| 2026-07-27 | [083f0d7d](conversation://083f0d7d-7591-41ae-a3be-0b523d42c450) | **Table Header UX Redesign:** Redesigned table headers in `FormBuilder.tsx` preview for dynamic `TABLE`, `CHECKLIST_TABLE` (subtable grid), and `MATRIX_TABLE` blocks to use Executive Slate Header Bar (`#e2e8f0` background, `#0f172a` charcoal text, `fontWeight: 600`, `2px solid var(--primary)` accent bottom border), establishing 100% visual contrast from fillable input cells while maintaining sentence-case typography for optimal readability. |
 
 
 
