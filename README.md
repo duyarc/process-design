@@ -6,7 +6,7 @@ A digital platform designed to digitize, author, and track operational workflows
 
 ## 🏗️ System Architecture
 
-The project is divided into four distinct functional modules, each governed by its own architectural design document.
+The project is divided into five distinct functional modules, each governed by its own architectural design document. The file → document ownership map lives in [AGENTS.md](./AGENTS.md).
 
 ### 1. [Platform Shell](./DESIGN_PLATFORM_SHELL.md)
 The foundational layer and main entry point of the application.
@@ -27,6 +27,11 @@ The authoring tool for creating dynamic templates (checklists, parameter sheets,
 The execution and tracking layer for running processes on the floor.
 - **Responsibilities:** Digital fill-out of forms, capturing photo evidence (QMS protocol), real-time pass/fail evaluation, logging submissions, and supervisor verification sign-off.
 - **Key Components:** `FormFiller.tsx`, `FormManager.tsx`, `SubmissionManager.tsx`.
+
+### 5. [Backend & Persistence](./DESIGN_BACKEND.md)
+The Express API server backing all four frontend modules.
+- **Responsibilities:** 30 REST endpoints, Postgres/Supabase schema and migrations, Cloudflare R2 presigned upload and cleanup, JWT issuance, and CSV offline fallback.
+- **Key Components:** `server.cjs`, `api/index.js`.
 
 ---
 

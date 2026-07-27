@@ -9,22 +9,21 @@
 | **Module Name** | Platform Shell |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Last Verified Against Codebase** | 2026-07-27 |
-| **Verified By Session** | [083f0d7d-7591-41ae-a3be-0b523d42c450](conversation://083f0d7d-7591-41ae-a3be-0b523d42c450) |
+| **Verified At Commit** | `001af74` (2026-07-27) — Sections 4 and 6 checked against source |
 
 ### Quick File Index
 
-| File | Role | Size |
-|---|---|---|
-| [`src/App.tsx`](src/App.tsx) | Main orchestrator, routing, layout shell | 340 lines |
-| [`src/components/Dashboard.tsx`](src/components/Dashboard.tsx) | Landing page containing hub views (Processes, Forms, Submissions, Guide) | 706 lines |
-| [`src/components/LoginPage.tsx`](src/components/LoginPage.tsx) | Authentication UI (Credentials & Google OAuth) | 229 lines |
-| [`src/components/UserManagement.tsx`](src/components/UserManagement.tsx) | User administration and Role matrix view | 570 lines |
-| [`src/context/AuthContext.tsx`](src/context/AuthContext.tsx) | Auth logic, JWT storage, RBAC definitions | 225 lines |
+| File | Role |
+|---|---|
+| [`src/App.tsx`](src/App.tsx) | Main orchestrator, routing, layout shell |
+| [`src/components/Dashboard.tsx`](src/components/Dashboard.tsx) | Landing page containing hub views (Processes, Forms, Submissions, Guide) |
+| [`src/components/LoginPage.tsx`](src/components/LoginPage.tsx) | Authentication UI (Credentials & Google OAuth) |
+| [`src/components/UserManagement.tsx`](src/components/UserManagement.tsx) | User administration and Role matrix view |
+| [`src/context/AuthContext.tsx`](src/context/AuthContext.tsx) | Auth logic, JWT storage, RBAC definitions |
 
 > **Update rule:** Whenever any of the above files is modified in a session, update
-> the "Last Verified" date and add an entry to the [Change Log](#9-change-log) at the
-> bottom of this document.
+> the "Verified At Commit" field and add an entry to the [Change Log](#8-change-log) at the
+> bottom of this document. See [`AGENTS.md`](AGENTS.md) for the full maintenance contract.
 
 ---
 
@@ -101,7 +100,7 @@ Platform Shell
 
 All auth-related types are defined in [`src/context/AuthContext.tsx`](src/context/AuthContext.tsx).
 
-### `User` (lines 70–79)
+### `User` (`interface User`)
 ```typescript
 export interface User {
   id: string;
@@ -121,7 +120,7 @@ export type RoleId = 'admin' | 'supervisor' | 'operator';
 ```
 Roles define the broad archetype of the user.
 
-### `PermissionKey` (lines 6–16)
+### `PermissionKey` (`export type PermissionKey`)
 Fine-grained permissions mapped to roles via `RolePermissionsMatrix`:
 - **Document Design**: `'view_document'`, `'design_document'`, `'version_document'`
 - **Form Run**: `'fill_form'`, `'view_records'`, `'verify_records'`
@@ -176,13 +175,18 @@ Self-contained component. Relies entirely on `useAuth()` to get the current list
 
 | Method | Endpoint | Used By | Purpose |
 |---|---|---|---|
-| `POST` | `/api/auth/login` | AuthContext | Validate username/password, return JWT |
+| `POST` | `/api/auth/login` | AuthContext | Validate credentials, return JWT. Accepts **either** email or username in the same field. |
+| `POST` | `/api/auth/check-email` | LoginPage | Email-first step: reports whether an account exists, driving progressive disclosure of the password vs. registration fields. |
+| `POST` | `/api/auth/register` | LoginPage | Self-service account registration. |
 | `POST` | `/api/auth/google` | AuthContext | Validate Google ID token, return JWT |
 | `GET` | `/api/users` | AuthContext | Fetch user list (Admin/Supervisor only) |
-| `POST` | `/api/users` | UserManagement | Create a new user account |
-| `PUT` | `/api/users/:id` | UserManagement | Update user account details |
+| `POST` | `/api/users` | UserManagement | **Upsert.** Creates a user when `id` is absent from the body; updates that user when `id` is present. Password is preserved via `COALESCE` when omitted. |
+| `DELETE` | `/api/users/:id` | UserManagement | Delete a user account |
 | `GET` | `/api/processes` | Dashboard | Fetch processes for listing |
 | `GET` | `/api/forms` | Dashboard | Fetch unlinked forms for listing |
+
+> There is **no `PUT /api/users/:id`**. Updates go through the `POST /api/users` upsert
+> described above. See [`DESIGN_BACKEND.md`](DESIGN_BACKEND.md) for the full endpoint surface.
 
 ---
 
@@ -198,22 +202,15 @@ Self-contained component. Relies entirely on `useAuth()` to get the current list
 ---
 
 ## 8. Change Log
-## 9. Change Log
 
-| Date | Session / Conversation | Change |
+Architectural changes only — schema, contracts, invariants, routing structure. UI polish
+lives in `git log`; run `git show <commit>` for the full diff of any entry below.
+
+| Date | Commit | Change |
 |---|---|---|
-| 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Document created. Initial full write based on codebase review. |
-| 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Make process family default to Draft version if available. |
-| 2026-07-24 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Fill Form Navigation Fix in Forms Tab:** Connected missing `onOpenFormFiller` prop from `App.tsx` into `<Dashboard />` component and updated `handleFillAction` & `processSelectDialog` in `Dashboard.tsx` to route to online form filler screen (`FormFiller`) when clicking Fill Form (`PenTool`) button, resolving route collision with View Submissions (`History`) button. |
-| 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Move the Guide tab option from the main dashboard tabs into the profile dropdown menu. |
-| 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Introduce a collapsible "Retired Processes" section at the bottom of the processes list on the Dashboard. |
-| 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Prioritize 'Retired' status when choosing the default representative version of a process family on the Dashboard. |
-| 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Implement universal List/Grid View layout toggling for Processes, Forms, and Submissions tabs. |
-| 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Support displaying multiple active linked processes for a form and prompting an action selection dialog if more than one exists. |
-| 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Simplify the processes list table layout by replacing the complex 'Metadata' column with a clean, single-value 'Last update' column. |
-| 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Hide the virtual fallback process family 'unlinked' (Biểu mẫu tự do) from the Processes listing tab. |
-| 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Add direct Print action buttons to the Processes tab list and grid card layouts. |
-| 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Fix Process Reader back navigation routing bug by explicitly calling setPage('dashboard'). |
-| 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Remove the "Quy trình đã lưu kho" section title header from the retired processes list on the Dashboard. |
-| 2026-07-27 | [083f0d7d](conversation://083f0d7d-7591-41ae-a3be-0b523d42c450) | Implement Email-First Progressive Disclosure Auth flow in LoginPage.tsx, AuthContext.tsx, and server.cjs (check-email & self-service register endpoints, dual email/username login query). |
-| 2026-07-27 | [083f0d7d](conversation://083f0d7d-7591-41ae-a3be-0b523d42c450) | Re-style LoginPage.tsx to strictly align with Master UI/UX Design System (DESIGN_UI_UX.md): warm cream canvas background, Executive Paper Card layout with Teal top accent border, CSS variables, and cohesive typography. |
+| 2026-07-27 | `f9271da` | Re-style LoginPage to the Master UI/UX Design System: all colors via CSS variables, Executive Paper Card layout. Establishes that shell UI must consume `DESIGN_UI_UX.md` tokens rather than local styles. |
+| 2026-07-27 | `9a555cb` | **Auth flow change:** Email-First progressive disclosure across `LoginPage.tsx`, `AuthContext.tsx`, `server.cjs`. Adds `POST /api/auth/check-email` and `POST /api/auth/register` (self-service); login query now matches on either email or username. |
+| 2026-07-24 | `c9109fc` | **Routing contract fix:** `onOpenFormFiller` was never passed from `App.tsx` into `<Dashboard />`, so the Fill Form action collided with View Submissions. Dashboard now routes to `FormFiller`. |
+| 2026-07-09 | `8df2f3c` | Support multiple active linked processes per form, with an action-selection dialog when more than one exists. Hide the virtual `unlinked` process family from the Processes tab. |
+| 2026-07-09 | `1385a38` | Fix ProcessReader back-navigation by explicitly calling `setPage('dashboard')` — a consequence of state-based routing with no formal router (see Section 7). |
+| 2026-07-09 | `8df2f3c` | Document created. Initial full write based on codebase review. |

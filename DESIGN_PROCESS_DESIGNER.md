@@ -9,31 +9,30 @@
 | **Module Name** | Process Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Last Verified Against Codebase** | 2026-07-27 |
-| **Verified By Session** | [083f0d7d-7591-41ae-a3be-0b523d42c450](conversation://083f0d7d-7591-41ae-a3be-0b523d42c450) |
+| **Verified At Commit** | `001af74` (2026-07-27) — Sections 4, 4.5, 4.6 and 6 checked against source |
 
-> **⚠️ Session Note (2026-07-14):** Deep codebase research revealed several undocumented architectural facts — see Sections 4.5, 6.2, and 7 for critical notes added.
+> **⚠️ Note:** Several architectural facts here are not obvious from the code — see Sections 4.5, 6.2, and 7.
 
 ### Quick File Index
 
-| File | Role | Lines / Size |
-|---|---|---|
-| [`src/components/ProcessEditor.tsx`](src/components/ProcessEditor.tsx) | Primary authoring UI — all four editor tabs | 2,804 lines |
-| [`src/components/ProcessReader.tsx`](src/components/ProcessReader.tsx) | Read-only SOP viewer and print layout | 1,771 lines |
-| [`src/components/BpmnModelerComponent.tsx`](src/components/BpmnModelerComponent.tsx) | Interactive BPMN diagram editor (drag & drop) | 423 lines |
-| [`src/components/BpmnViewerComponent.tsx`](src/components/BpmnViewerComponent.tsx) | Read-only BPMN diagram renderer | 293 lines |
-| [`src/components/BPMNGuide.tsx`](src/components/BPMNGuide.tsx) | BPMN notation reference guide (static content) | 39,444 bytes |
-| [`src/utils/bpmnXmlGenerator.ts`](src/utils/bpmnXmlGenerator.ts) | **Orchestrator** — imports sub-modules, renders final BPMN 2.0 XML string | ~360 lines |
-| [`src/utils/layout/types.ts`](src/utils/layout/types.ts) | Shared internal types for the layout engine sub-modules | ~110 lines |
-| [`src/utils/layout/gridLayout.ts`](src/utils/layout/gridLayout.ts) | **Module 1** — assigns each step to a (row, col) grid cell | ~190 lines |
-| [`src/utils/layout/linkEvents.ts`](src/utils/layout/linkEvents.ts) | **Module 2** — synthesises cross-row throw/catch link event pairs | ~95 lines |
-| [`src/utils/layout/nodePositioner.ts`](src/utils/layout/nodePositioner.ts) | **Module 3** — computes pixel bounding-boxes for all BPMN shapes | ~185 lines |
-| [`src/utils/layout/edgeRouter.ts`](src/utils/layout/edgeRouter.ts) | **Module 4** — computes sequence-flow waypoints (5 routing strategies) | ~175 lines |
-| [`src/utils/layout/documentPlacer.ts`](src/utils/layout/documentPlacer.ts) | **Module 5** — places document shapes with connector collision detection | ~240 lines |
-| [`src/types.ts`](src/types.ts) | Shared TypeScript types — `Process`, `ProcessStep`, `SOPSignOffs`, etc. | 247 lines |
+| File | Role |
+|---|---|
+| [`src/components/ProcessEditor.tsx`](src/components/ProcessEditor.tsx) | Primary authoring UI — all four editor tabs |
+| [`src/components/ProcessReader.tsx`](src/components/ProcessReader.tsx) | Read-only SOP viewer and print layout |
+| [`src/components/BpmnModelerComponent.tsx`](src/components/BpmnModelerComponent.tsx) | Interactive BPMN diagram editor (drag & drop) |
+| [`src/components/BpmnViewerComponent.tsx`](src/components/BpmnViewerComponent.tsx) | Read-only BPMN diagram renderer |
+| [`src/components/BPMNGuide.tsx`](src/components/BPMNGuide.tsx) | BPMN notation reference guide (static content) |
+| [`src/utils/bpmnXmlGenerator.ts`](src/utils/bpmnXmlGenerator.ts) | **Orchestrator** — imports sub-modules, renders final BPMN 2.0 XML string |
+| [`src/utils/layout/types.ts`](src/utils/layout/types.ts) | Shared internal types for the layout engine sub-modules |
+| [`src/utils/layout/gridLayout.ts`](src/utils/layout/gridLayout.ts) | **Module 1** — assigns each step to a (row, col) grid cell |
+| [`src/utils/layout/linkEvents.ts`](src/utils/layout/linkEvents.ts) | **Module 2** — synthesises cross-row throw/catch link event pairs |
+| [`src/utils/layout/nodePositioner.ts`](src/utils/layout/nodePositioner.ts) | **Module 3** — computes pixel bounding-boxes for all BPMN shapes |
+| [`src/utils/layout/edgeRouter.ts`](src/utils/layout/edgeRouter.ts) | **Module 4** — computes sequence-flow waypoints (5 routing strategies) |
+| [`src/utils/layout/documentPlacer.ts`](src/utils/layout/documentPlacer.ts) | **Module 5** — places document shapes with connector collision detection |
+| [`src/types.ts`](src/types.ts) | Shared TypeScript types — `Process`, `ProcessStep`, `SOPSignOffs`, etc. |
 
 > **Update rule:** Whenever any of the above files is modified in a session, update
-> the "Last Verified" date and add an entry to the [Change Log](#8-change-log) at the bottom
+> the "Verified At Commit" field and add an entry to the [Change Log](#8-change-log) at the bottom
 > of this document.
 
 ---
@@ -114,7 +113,7 @@ Process Designer Module
 ## 4. Data Model
 
 ### Core Type: `Process`
-Defined in [`src/types.ts`](src/types.ts), lines 58–85.
+Defined as `interface Process` in [`src/types.ts`](src/types.ts).
 
 ```typescript
 interface Process {
@@ -145,7 +144,7 @@ interface Process {
 ```
 
 ### Core Type: `ProcessStep`
-Defined in [`src/types.ts`](src/types.ts), lines 1–22.
+Defined as `interface ProcessStep` in [`src/types.ts`](src/types.ts).
 
 ```typescript
 interface ProcessStep {
@@ -235,7 +234,7 @@ const linkedProcs = processes.filter(proc =>
 
 #### ⚠️ `handleSave` cleanup — only path that removes orphaned forms
 
-`handleSave` is the **ONLY** save path that cleans up `workflowFormsData` (lines 1141–1162). It:
+`handleSave` is the **ONLY** save path that cleans up `workflowFormsData`. It:
 1. Collects `activeFormNames` from current `steps` (only forms still referenced by a step).
 2. Builds `cleanedFormsData` — keeps only forms in `activeFormNames`.
 3. Saves `workflowFormsData: cleanedFormsData` to DB.
@@ -244,7 +243,7 @@ const linkedProcs = processes.filter(proc =>
 
 #### ⚠️ `handleSave` race condition with steps state
 
-`handleSave` reads `steps` from React closure (line 1055):
+`handleSave` reads `steps` from React closure:
 ```ts
 const filteredSteps = steps.filter(s => s.action.trim() !== '');
 ```
@@ -256,7 +255,7 @@ If `setSteps(updatedSteps)` is called right before `await handleSave(...)`, Reac
 
 #### `normalizeProcessFormsData` migration function
 
-Legacy process records used human-readable form names (e.g. `"Inspection Sheet"`) as `workflowFormsData` keys instead of `formId`s. `normalizeProcessFormsData()` (lines 480–524) migrates these on load:
+Legacy process records used human-readable form names (e.g. `"Inspection Sheet"`) as `workflowFormsData` keys instead of `formId`s. `normalizeProcessFormsData()` migrates these on load:
 - Maps old name-keys → formId-keys using `val.formId || key`.
 - Also normalizes `step.formName`/`step.formNames` from old names to IDs.
 
@@ -439,7 +438,7 @@ User selects a different version from the dropdown in ProcessReader
 
 ### 6.1 Props Accepted from App.tsx (Shell)
 
-**ProcessEditor** (`src/components/ProcessEditor.tsx`, line 106–115)
+**ProcessEditor** (`interface ProcessEditorProps` in [`src/components/ProcessEditor.tsx`](src/components/ProcessEditor.tsx))
 
 | Prop | Type | Description |
 |---|---|---|
@@ -452,20 +451,21 @@ User selects a different version from the dropdown in ProcessReader
 | `onClearInitialEditOpts` | `() => void` | Called on mount to clear initial tab/form state in App |
 | `exitOnCloseForm` | `boolean` | If true, closing FormBuilder calls onCancel() instead of returning to editor |
 
-**ProcessReader** (`src/components/ProcessReader.tsx`, line 10–17)
+**ProcessReader** (`interface ProcessReaderProps` in [`src/components/ProcessReader.tsx`](src/components/ProcessReader.tsx))
 
 | Prop | Type | Description |
 |---|---|---|
 | `processId` | `string` | ID of the process version to display |
 | `onBack` | `() => void` | Called when user clicks Back |
-| `onEdit` | `(id: string) => void` | Called when user clicks Edit/View; App opens ProcessEditor |
-| `initialPrintFormName` | `string \| null` | If set, triggers print dialog for this form on mount |
-| `onClearPrintForm` | `() => void` | Clears the initialPrintFormName in App after use |
+| `onEdit` | `(id: string, tab?: 'description' \| 'workflow' \| 'form', formName?: string \| null) => void` | Called when user clicks Edit/View; App opens ProcessEditor, optionally on a specific tab or form |
+| `initialPrintFormName` | `string \| null` (optional) | If set, triggers print dialog for this form on mount |
+| `onClearPrintForm` | `() => void` (optional) | Clears the initialPrintFormName in App after use |
 | `onSwitchVersion` | `(id: string) => void` | Called when user selects a different version from the dropdown |
 
 ### 6.2 Props Passed to FormBuilder (Form Designer Bridge)
 
-FormBuilder is rendered as a modal overlay inside ProcessEditor at line 2824.
+FormBuilder is rendered as a modal overlay inside ProcessEditor, guarded by the
+`activeFormToBuild` state (search for `<FormBuilder`).
 
 > **Note:** `formName` prop is always the `formId` string — these are the same value. The legacy prop name `formName` is a historical artifact.
 
@@ -523,45 +523,25 @@ Base URL: relative path (proxied via Vite dev server to `http://localhost:3001`)
 
 ## 8. Change Log
 
-| Date | Session / Conversation | Change |
+Architectural changes only — schema, interface contracts, invariants, and layout-engine
+structure. UI polish and styling tweaks live in `git log`; run `git show <sha>` for the
+full diff of any entry below.
+
+| Date | Commit | Change |
 |---|---|---|
-| 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Document created. Initial full write based on codebase review. |
-| 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Auto-sync custom layout coordinates to React state on tab switch. |
-| 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Remove Reset to Auto-Layout button from modeler header. |
-| 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Remove warning banner when custom layout is active in ProcessEditor.tsx. |
-| 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Fix association edge spacing calculation to match form shape spacing (60px). |
-| 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Add Y-staggering (20px per item) to multiple form layouts to prevent label overlap. |
-| 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Reduce default form label Y distance from 28px to 18px above the shape. |
-| 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Align form shapes Y-coordinates at same level; stagger only labels (15px per index) vertically. |
-| 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Implement Method 1: Mathematical boundary collision detection to stagger labels only when they overlap. |
-| 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Implement n-1/n-2 overlapping look-behind checks for labels to produce a space-efficient zig-zag pattern. |
-| 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Render digital form number and version as a badge prefix before Form name in ProcessReader.tsx. |
-| 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Refactor Forms view in ProcessReader.tsx into a borderless table list with minimal grey badges. |
-| 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Swap positions of APPROVALS and FORMS cards in ProcessReader.tsx. |
-| 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Make Forms action buttons icon-only (Design, Fill, Print) using square icons with tooltips. |
-| 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Update Form Version and Status pills design to use git-branch version styling and clean color-coded status badges. |
-| 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Refine form status pill size (0.62rem, compact padding) and add letter-spacing for premium feel. |
-| 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Add Process ID badge prefix before the Process Title in ProcessReader.tsx header. |
-| 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Hide the process description paragraph in ProcessReader.tsx if it is empty/blank. |
-| 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Add handleReactivateVersion function and 'Reactivate' button for Retired process versions. |
-| 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Remove the redundant 'CURRENT' label badge from the Version History list item in ProcessEditor.tsx. |
-| 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Sort process versions in the Version History sidebar by latest updated timestamp in descending order. |
-| 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Accept initialTriggerPrint prop in ProcessReader to trigger immediate browser printing on mount. |
-| 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Automatically navigate back to the previous page (Dashboard) once the browser print dialog is exited/closed in direct print mode. |
-| 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Add a minimal back arrow button (ArrowLeft icon) in ProcessReader header next to the title to return back to the Dashboard. |
-| 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Add a circular back arrow button (ArrowLeft icon) before the tabs in ProcessEditor.tsx to cancel editing and return to the Process Reader screen. |
-| 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Fix TypeScript Vercel deployment errors in BpmnModelerComponent (unused RotateCcw, onReset, missing filter type) and ProcessReader (unused attachmentText). |
-| 2026-07-14 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Replace PDF upload buttons block with Print button and PrintBlankForm integration in ProcessEditor.tsx. |
-| 2026-07-14 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Deep codebase research: Document critical architectural facts — workflowFormsData cleanup only in handleSave, process_forms junction table, workflowForms derived list, normalizeProcessFormsData migration, handleSave race condition fix via pendingStepsRef. See Section 4.5. |
-| 2026-07-14 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Add linkedProcessId + onUnlinkFromProcess props to FormBuilder bridge (Section 6.2). Implement Form ID lock and unlink flow. |
-| 2026-07-18 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Add whiteSpace: 'pre-line' to the process description paragraph styling in ProcessReader.tsx. |
-| 2026-07-20 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Refactor `bpmnXmlGenerator.ts` into modular layout engine.** Extract 1,000-line monolith into 5 focused sub-modules under `src/utils/layout/`: `gridLayout.ts`, `linkEvents.ts`, `nodePositioner.ts`, `edgeRouter.ts`, `documentPlacer.ts`. Public API (`getNumRows`, `generateBPMNXML`) unchanged. Add Section 4.6 documenting the pipeline and constants. |
-| 2026-07-20 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Implement Direction A document shape collision detection** in `documentPlacer.ts`. Document shapes now try 6 candidate positions and select the first that does not intersect any sequence-flow edge segment (4px clearance). Manually positioned shapes (user drag) bypass the check. Fixes connector-cuts-through-document-shape rendering issue. |
-| 2026-07-20 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Align document shapes middle-right of task shapes by default.** Keep relative label position (above shape). Configure shortest straight horizontal connector path from middle-right of task to middle-left of document. Updates types.ts, documentPlacer.ts, and bpmnXmlGenerator.ts. |
-| 2026-07-20 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Fix double-subtraction page shift bug in documentPlacer.ts.** Auto-positions calculated relative to shifted task positions are already shifted, so skip subtracting `rowFilter * rowOffset` again in the auto path. Prevents document shapes on later pages from floating in the blank gaps. |
-| 2026-07-20 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Fix incorrect page divider dashed line rendering on single-page views.** Update BpmnViewerComponent.tsx to compute the number of rows based on actual unique row values present in the XML dataset, rather than using max row indices, preventing incorrect divider lines at y=0 on isolated page renderings. |
-| 2026-07-23 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Retire Check Frequency:** Remove frequency initialization in ProcessEditor.tsx. Remove Frequency column from Process Quality Control Points table and frequency badge from field card headers in ProcessReader.tsx. |
-| 2026-07-23 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Standardize SOP PDF Naming according to Digital 5S Rules:** Set `document.title` on mount in `ProcessReader.tsx` using `to5SFileName` to guide the default browser suggested PDF filenames. SOP files use prefix and format `SOP_[Normalized_SOP_Title]`. |
-| 2026-07-27 | [083f0d7d](conversation://083f0d7d-7591-41ae-a3be-0b523d42c450) | **Table Header Redesign:** Updated table headers in `ProcessReader.tsx` for dynamic `TABLE` and subtable grid blocks to use Executive Slate Header Bar (`#e2e8f0` background, `#0f172a` charcoal text, `fontWeight: 600`, `2px solid var(--primary)` accent bottom border), establishing 100% visual contrast from fillable input cells while preserving sentence-case typography for optimal readability. |
-
-
+| 2026-07-09 | `8df2f3c` | Document created. Initial full write based on codebase review. |
+| 2026-07-09 | `8df2f3c` | Auto-sync custom BPMN layout coordinates to React state on tab switch, so manual drags are not lost when leaving the modeler tab. |
+| 2026-07-09 | `1385a38` | Added `initialTriggerPrint` prop to ProcessReader for print-on-mount, with auto-navigation back to Dashboard when the print dialog closes. |
+| 2026-07-09 | `bc3c04e` | Fixed TypeScript build errors in BpmnModelerComponent (unused `RotateCcw`, `onReset`, missing filter type) and ProcessReader (unused `attachmentText`). |
+| 2026-07-14 | `57c64ee` | Replaced the PDF upload block with a Print button and PrintBlankForm integration in ProcessEditor. |
+| 2026-07-14 | `e02e99d` | **Interface change:** added `linkedProcessId` and `onUnlinkFromProcess` to the FormBuilder bridge (Section 6.2). Implemented the Form ID lock and unlink flow. |
+| 2026-07-14 | `e02e99d` | **Invariants documented (Section 4.5):** `workflowFormsData` cleanup happens only in `handleSave`; the `process_forms` junction table and derived `workflowForms` list; `normalizeProcessFormsData()` legacy key migration; and the `handleSave` stale-`steps` race fixed via `pendingStepsRef`. |
+| 2026-07-20 | `02aa7a9` | **Refactor:** `bpmnXmlGenerator.ts` split from a ~1,000-line monolith into 5 sub-modules under `src/utils/layout/` (`gridLayout`, `linkEvents`, `nodePositioner`, `edgeRouter`, `documentPlacer`). Public API (`getNumRows`, `generateBPMNXML`) unchanged. Section 4.6 added. |
+| 2026-07-20 | `02aa7a9` | **Layout algorithm:** document shapes now try 6 candidate positions and pick the first that does not intersect any sequence-flow edge segment (4px clearance). Manually dragged shapes bypass the check. Fixes connectors cutting through document shapes. |
+| 2026-07-20 | `0529624` | Document shapes default to middle-right of their task shape with a straight horizontal connector to the document's middle-left; labels stay above the shape. Touches `types.ts`, `documentPlacer.ts`, `bpmnXmlGenerator.ts`. |
+| 2026-07-20 | `d2c7104` | Candidate position synced across all forms of a single step, preventing overlaps with other task nodes. |
+| 2026-07-20 | `11118db` | **Bug fix:** removed double subtraction of `rowFilter * rowOffset` in the `documentPlacer` auto path — auto positions are computed from already-shifted task positions, so subtracting again floated document shapes into blank page gaps. |
+| 2026-07-20 | `071c395` | **Bug fix:** BpmnViewerComponent now counts actual unique row values in the XML rather than max row index, preventing spurious page-divider dashed lines at y=0 on single-page views. |
+| 2026-07-23 | `4f741e4` | **Schema change:** retired the `frequency` property — removed initialization in ProcessEditor and the Frequency column and badge from ProcessReader. |
+| 2026-07-23 | `88d96bd` | SOP PDF filenames standardized to Digital 5S rules via `to5SFileName()`, producing `SOP_[Normalized_Title]`. |
+| 2026-07-18 | `24d0ea5` | Process description preserves newlines in ProcessReader via `whiteSpace: 'pre-line'`. |

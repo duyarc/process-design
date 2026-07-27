@@ -1588,7 +1588,7 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
           );
         })}
 
-        {/* Static layout-driven footer matching paper printouts & Form Designer */}
+        {/* Static layout-driven footer matching paper printouts & Form Builder */}
         <div style={{
           borderTop: '1px solid #334155',
           paddingTop: '0.5rem',

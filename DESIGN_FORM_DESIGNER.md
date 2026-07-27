@@ -9,22 +9,21 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Last Verified Against Codebase** | 2026-07-27 |
-| **Verified By Session** | [083f0d7d-7591-41ae-a3be-0b523d42c450](conversation://083f0d7d-7591-41ae-a3be-0b523d42c450) |
+| **Verified At Commit** | `001af74` (2026-07-27) — Sections 4 and 6 checked against source |
 
-> **⚠️ Session Note (2026-07-14):** Deep codebase research confirmed FormBuilder has no awareness of which process it belongs to. `formName` prop is always identical to `formId`. New `linkedProcessId` and `onUnlinkFromProcess` props added — see Section 6.1 and Technical Debt table.
+> **⚠️ Architectural note:** FormBuilder has no awareness of which process it belongs to. The `formName` prop is always identical to `formId`. See Section 6.1 and the Technical Debt table.
 
 ### Quick File Index
 
-| File | Role | Size |
-|---|---|---|
-| [`src/components/FormBuilder.tsx`](src/components/FormBuilder.tsx) | Primary authoring UI — block canvas + field editor + version management | 3,443 lines |
-| [`src/components/print/PrintBlankForm.tsx`](src/components/print/PrintBlankForm.tsx) | Blank form print renderer (React Portal) | 561 lines |
-| [`src/types.ts`](src/types.ts) | Shared types: `FormTemplateISO`, `LayoutBlockISO`, `FormFieldISO`, `FormRevisionEntry`, `MatrixConfigISO`, `TableColumnConfig` | lines 87–162 |
+| File | Role |
+|---|---|
+| [`src/components/FormBuilder.tsx`](src/components/FormBuilder.tsx) | Primary authoring UI — block canvas + field editor + version management |
+| [`src/components/print/PrintBlankForm.tsx`](src/components/print/PrintBlankForm.tsx) | Blank form print renderer (React Portal) |
+| [`src/types.ts`](src/types.ts) | Shared types: `FormTemplateISO`, `LayoutBlockISO`, `FormFieldISO`, `FormRevisionEntry`, `MatrixConfigISO`, `TableColumnConfig` (**owning doc** for these types) |
 
-> **Update rule:** Whenever any of the above files is modified in a session, update
-> the "Last Verified" date and add an entry to the [Change Log](#9-change-log) at the
-> bottom of this document.
+> **Update rule:** Whenever any of the above files is modified in a session, update the
+> "Verified At Commit" field and add an entry to the [Change Log](#8-change-log) at the
+> bottom of this document. Cite symbol names, never line numbers.
 
 ---
 
@@ -110,7 +109,7 @@ Form Designer Module
 
 All types are defined in [`src/types.ts`](src/types.ts).
 
-### Top-level: `FormTemplateISO` (lines 155–162)
+### Top-level: `FormTemplateISO`
 
 ```typescript
 interface FormTemplateISO {
@@ -123,7 +122,7 @@ interface FormTemplateISO {
 }
 ```
 
-### Layout Block: `LayoutBlockISO` (lines 135–153)
+### Layout Block: `LayoutBlockISO`
 
 ```typescript
 interface LayoutBlockISO {
@@ -156,7 +155,7 @@ interface LayoutBlockISO {
 | `SIGN` | Signature/approval block | Yes (signature type) |
 | `SECTION_LABEL` | Visual separator with heading and description text | No |
 
-### Field: `FormFieldISO` (lines 87–100)
+### Field: `FormFieldISO`
 
 ```typescript
 interface FormFieldISO {
@@ -175,7 +174,7 @@ interface FormFieldISO {
 }
 ```
 
-### Revision History: `FormRevisionEntry` (lines 102–108)
+### Revision History: `FormRevisionEntry`
 
 ```typescript
 interface FormRevisionEntry {
@@ -348,7 +347,7 @@ User clicks "Print Preview" in the top action bar
 
 ### 6.1 Props Accepted from ProcessEditor
 
-**FormBuilder** (`src/components/FormBuilder.tsx`, line 28–41)
+**FormBuilder** — see `interface FormBuilderProps` in [`src/components/FormBuilder.tsx`](src/components/FormBuilder.tsx)
 
 > **⚠️ Key architectural fact:** The `formName` prop is always identical to the `formId` string (e.g. `"3S-QC/F1.1"`). The prop is named `formName` for historical reasons but its value is always a `formId`. Do NOT assume `formName` is a human-readable label.
 
@@ -386,7 +385,7 @@ ProcessEditor stores only `{ formId, formTitle, version, status }` in `workflowF
 
 ### 6.3 Props Accepted by PrintBlankForm
 
-**PrintBlankForm** (`src/components/print/PrintBlankForm.tsx`, line 6–9)
+**PrintBlankForm** — see `interface PrintBlankFormProps` in [`src/components/print/PrintBlankForm.tsx`](src/components/print/PrintBlankForm.tsx)
 
 | Prop | Type | Description |
 |---|---|---|
@@ -403,6 +402,8 @@ All calls are inline `fetch()` within `FormBuilder.tsx` and `PrintBlankForm.tsx`
 | `GET` | `/api/forms/:formId?version=v0.1` | FormBuilder | Check if a specific version already exists before save/publish |
 | `GET` | `/api/forms/:formId/history` | FormBuilder (mount) | Load the full merged revision timeline |
 | `POST` | `/api/forms` | FormBuilder (`saveFormToBackend`) | Upsert a form template (save draft or publish) |
+| `POST` | `/api/forms/:formId/activate` | FormBuilder | Transition a DRAFT version to ACTIVE |
+| `POST` | `/api/forms/:formId/archive` | FormBuilder | Transition an ACTIVE version to ARCHIVED |
 | `DELETE` | `/api/forms/:formId?version=v0.1` | FormBuilder | Delete a specific version record |
 | `GET` | `/api/storage/logos` | FormBuilder (on mount + after logo change) | Fetch the list of previously uploaded logos from R2 |
 | `DELETE` | `/api/storage/logos` | FormBuilder | Delete an unused logo from R2 |
@@ -417,7 +418,7 @@ All calls are inline `fetch()` within `FormBuilder.tsx` and `PrintBlankForm.tsx`
 
 | Issue | Impact | Notes |
 |---|---|---|
-| **FormBuilder is a monolith** | 3,443-line single file with no sub-component isolation | Left panel, center canvas, right panel, all block renderers, all field renderers, all handlers are co-located |
+| **FormBuilder is a monolith** | Single file with no sub-component isolation — the largest file in the codebase by a wide margin | Left panel, center canvas, right panel, all block renderers, all field renderers, all handlers are co-located |
 | **No independent page route** | FormBuilder cannot be accessed standalone | Always launched via `activeFormToBuild` state in ProcessEditor; no deep-linking |
 | **`initialData` is a red herring** | Causes a visual flash (prop state → DB fetch override) | Props are used only as the initial seed; DB response overwrites them immediately on mount. A future improvement would be to load directly from DB and skip the `initialData` prop entirely |
 | **`isLocked` is UI-only** | Server does not enforce lock | ACTIVE forms can technically be mutated via direct API calls; only the UI guards prevent editing |
@@ -433,65 +434,27 @@ All calls are inline `fetch()` within `FormBuilder.tsx` and `PrintBlankForm.tsx`
 
 ## 8. Change Log
 
-| Date | Session / Conversation | Change |
+Architectural changes only — schema, interface contracts, invariants, and new block
+types. UI polish and styling tweaks live in `git log`; run `git show <sha>` for the
+full diff of any entry below.
+
+| Date | Commit | Change |
 |---|---|---|
-| 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Document created. Initial full write based on codebase review. |
-| 2026-07-10 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Standardize form version strings in FormBuilder, server.cjs, and types.ts. Extract version date into a separate effectiveDate field and clean up legacy formatting regexes. |
-| 2026-07-13 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Remove trailing colon (":") from field labels in INFO_GRID blocks if the label is blank. Affects FormBuilder.tsx and PrintBlankForm.tsx. |
-| 2026-07-13 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Fix logo race condition in PrintBlankForm.tsx by adding logoReady state guard to print dialog initialization. |
-| 2026-07-13 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Fix logo print blank on slow machines by using img onLoad/onError listeners to ensure image bytes are loaded before printing. |
-| 2026-07-14 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Link formTitle state and TITLE block title field in FormBuilder (bidirectional sync). |
-| 2026-07-14 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Implement multi-option checkbox table columns in FormBuilder and PrintBlankForm.tsx with options editor and stacked layout preview/print. |
-| 2026-07-14 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Add support for 1-column vs 2-column checkbox layout (icon button group) and customizable footer summary rows on number columns (Auto Sum, Manual, Percentage, Sum Rows) in FormBuilder.tsx and PrintBlankForm.tsx. |
-| 2026-07-14 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Fix tfoot border rendering (precise borderTop/borderBottom styling) and remove whiteSpace: 'nowrap' to prevent checkbox label clipping in PrintBlankForm.tsx. |
-| 2026-07-14 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Deep codebase research: Document that `formName` prop always equals `formId`. Clarify FormBuilder has no intrinsic process context. Add new props `linkedProcessId` and `onUnlinkFromProcess`. Update Section 6.1 interface contract and Technical Debt table. |
-| 2026-07-20 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Bug fix (critical):** `isLogoKeyUsed()` in `server.cjs` rewrote to query `forms.layout_blocks` (the authoritative table) instead of `processes.workflowFormsData` (which never contains `layoutBlocks`). The old implementation always returned `false`, causing every logo to be deleted from R2 on the next process save. Fixed by using `SELECT COUNT(*) FROM forms WHERE layout_blocks::text LIKE '%' || $1 || '%'`. |
-| 2026-07-20 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Bug fix:** `handleLogoUpload()` in `FormBuilder.tsx` now calls `saveFormToBackend({ layoutBlocksOverride })` immediately after a successful R2 upload, persisting the logo R2 key to `forms.layout_blocks` in DB before any cleanup routine can run. Added `layoutBlocksOverride` option to `saveFormToBackend` signature to bypass React state batching. |
-| 2026-07-23 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Retire Check Frequency:** Retire Check Frequency ("frequency") property from FormBuilder field inspector panel and default field creation. Update FormFieldISO and FormField interfaces in types.ts to make frequency optional for backward compatibility. |
-| 2026-07-23 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Upgrade Section Label block:** Add H1 (full-width bottom line accent) vs H2 (left bar box accent) format selector. Rename description label to "Description" in FormBuilder sidebar and set default description to blank ("") for newly created blocks. |
-| 2026-07-23 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Complete Colon Removal & Radio Group Layout Upgrade:** Remove all hardcoded trailing colons (`:`) across FormBuilder, FormFiller, ProcessReader, PrintBlankForm, and PrintRecord via `sanitizeLabel()` helper (`label.replace(/:+$/, '')`). Upgrade Radio/Checkbox group layout to Picture 2 format: top dedicated title row without colons, and flex-wrapped stacked option pills below. |
-| 2026-07-23 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Space Optimization & Font Weight Consistency:** Tighten excessive padding/margins between Section H1 lines and Info Grid fields (from >30px down to ~8px), tighten field row gaps (from 8px to 5px), tighten radio label gap (from 4px+2px to 2px), and unify radio title font weight to `fontWeight: 600` matching regular text field labels. |
-| 2026-07-23 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Universal Block Title Format Selector:** Add `titleFormat?: 'H1' | 'H2' | 'BODY' | 'NONE'` to `LayoutBlockISO`. Add 4-button segmented pill selector (`[H1] [H2] [Body] [None]`) to FormBuilder sidebar inspector for all block types. `SECTION_LABEL` defaults to `H1`, while all content blocks default to non-bold `BODY` text (`fontWeight: 400`). Implemented across FormBuilder, FormFiller, ProcessReader, PrintBlankForm, and PrintRecord. |
-| 2026-07-23 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Shorten Table Column Type Selector Options:** Rename "Nhãn tĩnh" ➔ "Nhãn", "Chữ nhập" ➔ "Chữ", "Số nhập" ➔ "Số" in FormBuilder table config inspector selector. |
-| 2026-07-23 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Fix Block Title Print Formatting:** Support `titleFormat` options (`H1`, `H2`, `BODY`, `NONE`) for all remaining block types (`CHECKLIST_TABLE`, `TABLE`, `MATRIX_TABLE`, `SIGN`) in `PrintBlankForm.tsx` and `PrintRecord.tsx` to match canvas layout print previews exactly. |
-| 2026-07-23 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Standardize Block Spacing in Print Templates:** Standardize block separation by removing ad-hoc block-level inline `marginTop` styles and replacing them with a unified `.print-block` margin-bottom of `24px` in stylesheet of `PrintBlankForm.tsx` and `PrintRecord.tsx`. |
-| 2026-07-23 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Standardize Font Family in Print Templates:** Set `fontFamily` of print container portal to `'Be Vietnam Pro'` in `PrintBlankForm.tsx` and `PrintRecord.tsx` to preserve brand typography on PDF and physical print outputs. |
-| 2026-07-23 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Refine Print Spacing & Normalize Table Header Font Weight:** Adjusted `.print-block` margin-bottom from `24px` to `16px` to resolve excessive gap between INFO_GRID and TABLE blocks. Standardized all table `<th>` headers to `fontWeight: 600` (semi-bold) in `PrintBlankForm.tsx` and `PrintRecord.tsx` for visual consistency with field labels. |
-| 2026-07-23 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Form 3S-FA-01 Visual Consistency Fixes:** (1) Elevated BODY format block title font weight from `400` → `600` across FormBuilder, FormFiller, ProcessReader, PrintBlankForm, and PrintRecord to eliminate hierarchy inversion. (2) Upgraded handwriting slots in PrintBlankForm to `1.5px dotted #94a3b8` lines. (3) Harmonized INFO_GRID row gap to `8px` matching table row density. |
-| 2026-07-23 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Refine Blank Form Handwriting Lines:** Changed dotted lines `borderBottom: '1.5px dotted #94a3b8'` to thin light grey lines `1px solid #e2e8f0` in `PrintBlankForm.tsx` to match the record print style. |
-| 2026-07-23 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Upgrade CHECKLIST_TABLE Column Editor:** Migrated CHECKLIST_TABLE from fixed `columnLabels` system to dynamic `tableColumns: TableColumnConfig[]` (same as TABLE block). Added `locked?: boolean` to `TableColumnConfig`. New inspector panel reuses TABLE column editor handlers (`handleAddColumn`, `handleUpdateTableColumn`, `handleMoveColumn`, `handleDeleteColumn`); STT and Item columns show 🔒 badge and are protected from deletion/type change. Default columns: STT (static_text, locked), Chi tiết kiểm tra (static_text, locked), Đạt/Không Đạt (radio with Đ/KĐ options), Mô tả (text). Full backward compatibility via `getChecklistColumns()` helper that falls back to `columnLabels` for existing saved forms. Updated `FormBuilder.tsx`, `PrintBlankForm.tsx`, `PrintRecord.tsx`. |
-| 2026-07-23 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Upgrade TITLE Block with "Ngày" Date Slot:** Added optional `showDate?: boolean` and `datePosition?: 'A' | 'B'` to `LayoutBlockISO`. FormBuilder inspector features a minimal toggle switch + icon selector (`AlignRight` for inline right position A, `AlignCenter` for centered below description position B). FormFiller provides a date picker (`__title_date__` saved into submission snapshots). PrintBlankForm renders handwriting slot `Ngày ___________`. PrintRecord displays the entered date value (or submission timestamp fallback). |
-| 2026-07-23 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Preserve SIGN Block Column Layout in Print:** Modified `PrintBlankForm.tsx` to keep blank sign-off fields in the DOM but hide them visually with `visibility: 'hidden'` instead of filtering them out. This prevents the column count from collapsing and ensures filled columns stay aligned in their designed grid positions (e.g. left column) rather than stretching full-width and centering. |
-| 2026-07-23 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Refine Date Handwriting Layout in TITLE Block:** Replaced solid underscore border with dynamic slash `/` separators (`   /   /    `) for handwriting date slot in `PrintBlankForm.tsx` and `FormBuilder.tsx` canvas preview to provide a more standard physical form appearance. |
-| 2026-07-23 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Standardize PDF Naming according to Digital 5S Rules:** Set `document.title` on mount in print templates to guide the default browser suggested PDF filenames. Created `to5SFileName` helper in `formUtils.ts` to strip diacritics, strip special characters, and normalize spaces to underscores. Blank forms use `FORM_[Normalized_Form_Title]`. Filled records fetch `formTitle` and format as `REC_[YYYYMMDD]_[Normalized_Form_Title]` for perfect chronological sorting. |
-| 2026-07-23 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Add Field and Row Reordering on Canvas:** (1) Enabled field rearranging inside INFO_GRID and SIGN blocks via inline ArrowUp/ArrowDown buttons that display when a field is selected in the canvas. (2) Enabled row rearranging inside TABLE blocks via hover ArrowUp/ArrowDown buttons next to the row delete icon. (3) Added `handleMoveRow` with 5S automation that auto-renumbers the first STT static column sequentially (1, 2, 3...) when rows are swapped. |
-| 2026-07-23 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Align Canvas Block Gap with Print Styles:** Changed the center canvas block wrapper's vertical gap spacing from `1.5rem` (`24px`) to `1rem` (`16px`) in `FormBuilder.tsx` to match the exact print block spacing layout (`margin-bottom: 16px`), providing an accurate WYSIWYG preview. |
-| 2026-07-23 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Checklist Table Upgrade (STT Toggle, Percentage-Based Widths, 6-Column Layout):** Added `hidden?: boolean` to `TableColumnConfig`. Exposed Eye/EyeOff toggle buttons on locked columns in the Column Settings editor to control visibility. Replaced px widths with percentage-based widths for 5S-optimized default columns (STT, Tiêu chí, Đơn vị, Tiêu chuẩn, Kết quả, Ghi chú). Refactored all rendering loops to map dynamically by `col.id`. Updated `FormBuilder.tsx`, `PrintBlankForm.tsx`, `PrintRecord.tsx`, `FormFiller.tsx`, and `types.ts`. |
-| 2026-07-23 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Form Visual Synchronization (Flat TITLE Block) & Duplicate Table Title Fix:** Flattened TITLE block container in FormFiller.tsx and ProcessReader.tsx by removing boxed border, background, and padding. Centered main form header and added `textTransform: 'uppercase'` to match printout styles. Skipped card title duplicate header rendering for TITLE block. Removed duplicate inner `{block.title}` text rendering from dynamic TABLE block component in FormFiller.tsx and ProcessReader.tsx. |
-| 2026-07-23 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Checkbox Group & Option Preservation:** Added Checkbox Group (Hộp kiểm) to the field type options in FormBuilder.tsx. Upgraded type change handlers (`handleChangeFieldType` and column type select `onChange`) to preserve previously configured options in the data model (hiding them from the UI instead of deleting them). Enabled multi-select checkbox group controls rendering and comma-separated value splitting/validation in FormFiller.tsx, ProcessReader.tsx, and PrintRecord.tsx. |
-| 2026-07-23 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Paper-like Flat Form Layout (Fillable PDF Style):** Removed individual card borders, backgrounds, shadows, and padding from blocks in FormFiller.tsx and ProcessReader.tsx. Styled text, number, date, and time inputs inside INFO_GRID to render as flat rectangles with light grey backgrounds (`#f8fafc`) and thin borders (`1px solid #e2e8f0`) to mimic digital fillable PDF fields. Flattened dynamic table and matrix table container wrappers (removed outer border-radius and borders) to match printed grid sheets. |
-| 2026-07-23 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Remove Table Input Placeholder Guidance:** Removed the confusing and cluttered placeholder attributes (`placeholder="Nhập chữ..."` and `placeholder="Nhập số..."`) from dynamic table cells in FormFiller.tsx and ProcessReader.tsx for a cleaner, paper-like look. |
-| 2026-07-23 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Table Inputs Soft Highlighting & Standardized Alignments:** Updated dynamic table cell input controls in FormFiller.tsx and ProcessReader.tsx to use a soft background color (`#f8fafc`) and thin borders (`1px solid #e2e8f0`) to visually guide users to fillable elements. Standardized input text alignments by type (Left for text, Right for numbers, Center for date/time) while maintaining configured configurations on table headers. |
-| 2026-07-23 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Form Designer Preview Alignment Synchronization:** Updated dynamic table cell placeholders (`[Nhập chữ]`, `[Nhập số]`, `[Ngày]`, `[Giờ]`) inside the Form Designer authoring canvas in FormBuilder.tsx to follow the same standardized data type alignments as the live form (Left for text, Right for numbers, Center for date/time) to ensure a true WYSIWYG experience. |
-| 2026-07-24 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Form Designer Sidebar Toolbox Sync:** Added the missing Checkbox button to the toolbox under "2. Field Elements" in FormBuilder.tsx and mapped it to handleAddField. Simplified all element labels to match the new type names (Text, Number, Radio, Checkbox, Date, Time, Photo, Sign-off) and reordered them logically based on frequency of use. Updated handleAddField signature and options initialization logic to support the new `'checkbox'` type. |
-| 2026-07-24 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Subtable Field Element Implementation (Practice 1):** Added `subtable` Field Element to `INFO_GRID` blocks across Form Designer (`FormBuilder.tsx`), Online Form (`FormFiller.tsx`, `ProcessReader.tsx`), Print Blank (`PrintBlankForm.tsx`), and Print Record (`PrintRecord.tsx`). Added `SubtableColumn` interface in `types.ts`. FormBuilder features WYSIWYG canvas preview with `+ Thêm dòng` and `<Trash2 />` per row to adjust blank rows count (`subtableDefaultRows`). Properties Panel features system-standard `Cấu hình Cột` UI cards with Up/Down arrow buttons, red Trash2 delete button, column type selector (`Chữ`, `Số`, `Ngày`, `Giờ`), width input, and `+ Thêm Cột Mới` button. |
-| 2026-07-24 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Subtable Header Alignment & Auto-Calculated Column Width:** Standardized Subtable column config cards in FormBuilder Properties Panel according to Image 2 design. Added 3-button alignment group (`AlignLeft`, `AlignCenter`, `AlignRight`) setting `col.align` for column headers (`<th>`). Table body inputs (`<td>`) retain default data type alignment (left for text, right for numbers, center for date/time). Automatically calculate and display remaining width percentage (`stLastAdjusted%`) disabled for the last column matching TABLE block behavior. Updated `FormBuilder.tsx`, `FormFiller.tsx`, `ProcessReader.tsx`, `PrintBlankForm.tsx`, `PrintRecord.tsx`, and `types.ts`. |
-| 2026-07-24 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Canvas Radio & Checkbox WYSIWYG Options Render & Field Reorder UI:** (1) Rendered live option pills (`[ ] Label` for checkbox, `( ) Label` for radio) directly under field labels on Form Designer Canvas inside `INFO_GRID` blocks to provide accurate A4 height preview. (2) Enhanced Up/Down arrow buttons (`[↑]` `[↓]`) on Canvas header line for each field in `INFO_GRID` with clear disabled states on top/bottom bounds. (3) Added `[↑]` `[↓]` move buttons to FIELD PROPERTIES header in right Properties Panel inspector. |
-| 2026-07-24 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Standardized Blank Table Row Heights Across All Tables:** Standardized blank row cell heights to `28px` with `padding: 4px 6px` across `SUBTABLE`, `TABLE`, and `MATRIX_TABLE` in `PrintBlankForm.tsx` and `FormBuilder.tsx` to eliminate row height visual discrepancies (previously 22px in Subtable vs 35px in Table) for consistent handwriting space without wasting A4 vertical page height. |
-| 2026-07-24 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Subtable Label ("static_text") Column Type:** Ported the `static_text` (Nhãn) column type from TABLE to SUBTABLE across `types.ts`, `FormBuilder.tsx`, `FormFiller.tsx`, `ProcessReader.tsx`, `PrintBlankForm.tsx`, and `PrintRecord.tsx`. Subtable `static_text` columns render read-only row labels in bold `<span>` / `<td>`. |
-| 2026-07-24 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Editable Custom Subtable Static Text Labels:** Added `subtableStaticData?: Record<number, Record<string, string>>` to `FormFieldISO` in `types.ts`. Form Designer Canvas in `FormBuilder.tsx` now renders an editable `<input placeholder="Gõ nhãn...">` for each row cell of a Subtable `static_text` column matching TABLE block behavior. Untyped cells remain blank (`""`) across `FormFiller.tsx`, `ProcessReader.tsx`, `PrintBlankForm.tsx`, and `PrintRecord.tsx`. Body cell alignment for Subtable `static_text` labels strictly follows configured `col.align` (left / center / right). |
-| 2026-07-24 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Print Layout Spacing Optimization & Footer Overlap Fix:** Fixed print footer text overlap on table bottom border by expanding `@page` bottom margin to `20mm`, setting `.print-container` padding to `48px`, and positioning `.print-footer` at `bottom: 0px`. Increased Subtable title margin-bottom to `8px` and block spacing to `20px` across `PrintBlankForm.tsx` and `PrintRecord.tsx`. |
-| 2026-07-24 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Print Page Break & Subtable Header Binding Fix:** (1) Removed `print-block-avoid` from `INFO_GRID` block wrapper allowing multi-field containers to break across pages continuously, resolving blank Page 1 issue. (2) Added `pageBreakAfter: 'avoid'` / `breakAfter: 'avoid'` to Subtable title `<div>` and `pageBreakInside: 'avoid'` to subtable wrappers, preventing subtable titles from being orphaned at the bottom of a page. Added `thead { display: table-header-group; }` to repeat column headers across page splits in `PrintBlankForm.tsx` and `PrintRecord.tsx`. |
-| 2026-07-24 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **3:1 Asymmetric Spacing System Implementation (Gestalt Law of Proximity):** Eliminated even spacing ambiguity ("Floating Heading Syndrome") by enforcing asymmetric 3:1 spacing ratio before vs after headings across `PrintBlankForm.tsx` and `PrintRecord.tsx`. Configured `marginTop: 28px` / `marginBottom: 8px` for H1, `marginTop: 20px` / `marginBottom: 6px` for H2, and `marginTop: 18px` / `marginBottom: 6px` for Subtable titles. |
-| 2026-07-24 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **SIGN Block Print Layout Standardization (WYSIWYG Fix):** Converted SIGN block container in `PrintBlankForm.tsx` from Flexbox to CSS Grid (`gridTemplateColumns: repeat(block.columns || 2, 1fr)`), ensuring single signature slots stay correctly positioned in Column 1 (left 50%) matching Canvas preview instead of stretching 100% full width across page center. |
-| 2026-07-24 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Combined Proposal 2 & Proposal 3 Print Field Styling Upgrade:** (1) Applied Proposal 2 dotted handwriting baselines (`1px dotted #64748b`, contrast ratio 4.8:1) for free-form text/number fields in `PrintBlankForm.tsx`. (2) Applied Proposal 3 structured segment combs for Date (`DD/MM/YYYY`) and Time (`HH:MM`) fields (`1.5px solid #475569`). (3) Dynamically set Subtable title `marginTop` to `0px` when Subtable is the first item in a column, eliminating vertical misalignment when placed beside standard fields. |
-| 2026-07-24 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **A4 Print Form Spacing Matrix Standardization (ISO 216 / GDS / WCAG AA Aligned):** (1) Reset `.print-block` global `margin-bottom` to `0px` to eliminate accumulated 40–48px gaps between blocks. (2) Increased free-form handwriting field line `minHeight` from `16px` to `22px` (ISO 7mm handwriting height standard). (3) Set Subtable bottom margin to `14px` (ISO 5–6mm breathing space after table borders). (4) Standardized intra-group field `gap` to `10px` and recalibrated SECTION_LABEL `marginTop` to `18px` (H1), `14px` (H2), `10px` (Body). |
-| 2026-07-27 | [083f0d7d](conversation://083f0d7d-7591-41ae-a3be-0b523d42c450) | **Table Header UX Redesign:** Redesigned table headers in `FormBuilder.tsx` preview for dynamic `TABLE`, `CHECKLIST_TABLE` (subtable grid), and `MATRIX_TABLE` blocks to use Executive Slate Header Bar (`#e2e8f0` background, `#0f172a` charcoal text, `fontWeight: 600`, `2px solid var(--primary)` accent bottom border), establishing 100% visual contrast from fillable input cells while maintaining sentence-case typography for optimal readability. |
-
-
-
-
-
-
-
-
+| 2026-07-09 | `8df2f3c` | Document created. Initial full write based on codebase review. |
+| 2026-07-10 | `294e5bb` | Standardized form version strings across FormBuilder, `server.cjs`, and `types.ts`. Extracted the version date into a separate `effectiveDate` column and removed legacy formatting regexes. |
+| 2026-07-14 | `0001891` | Bidirectional sync between `formTitle` state and the TITLE block's title field. |
+| 2026-07-14 | `cce673b` | Multi-option checkbox table columns: `TableColumnConfig` gained an options editor; renders as stacked layout in preview and print. |
+| 2026-07-14 | `7a0890c` | Column-scoped table footer summary rows (`ColumnSummaryRowConfig`: Auto Sum, Manual, Percentage, Sum Rows) plus 1- vs 2-column checkbox layout. |
+| 2026-07-14 | `e02e99d` | **Interface change:** added `linkedProcessId` and `onUnlinkFromProcess` props. Documented that `formName` always equals `formId` and that FormBuilder has no intrinsic process context. See Section 6.1 and Technical Debt. |
+| 2026-07-20 | `5bea009` | **Critical bug fix:** `isLogoKeyUsed()` in `server.cjs` now queries `forms.layout_blocks` instead of `processes.workflowFormsData`, which never contains `layoutBlocks`. The old implementation always returned `false`, deleting every logo from R2 on the next process save. `handleLogoUpload()` also now persists the R2 key immediately via `saveFormToBackend({ layoutBlocksOverride })`, bypassing React state batching. See [DESIGN_BACKEND.md](DESIGN_BACKEND.md) for the storage-authority invariant. |
+| 2026-07-23 | `4f741e4` | **Schema change:** retired the `frequency` property from `FormFieldISO` and `FormField` (now optional for backward compatibility) and removed it from the field inspector. |
+| 2026-07-23 | `c925d2f` | SECTION_LABEL block gained an H1 (full-width bottom line) vs H2 (left bar box) format selector. |
+| 2026-07-23 | `fb35d10` | Trailing colons removed platform-wide via a `sanitizeLabel()` helper (`label.replace(/:+$/, '')`). Radio/checkbox groups restructured to a dedicated title row plus flex-wrapped option pills. |
+| 2026-07-23 | `ccf057b` | **Schema change:** added `titleFormat?: 'H1' \| 'H2' \| 'BODY' \| 'NONE'` to `LayoutBlockISO`, with a segmented selector for every block type. `SECTION_LABEL` defaults to `H1`; content blocks default to `BODY`. |
+| 2026-07-23 | `72512f0` `c4b76f9` | **Schema change:** CHECKLIST_TABLE migrated from fixed `columnLabels` to dynamic `tableColumns: TableColumnConfig[]`, with `locked?: boolean` and `hidden?: boolean` added to `TableColumnConfig`. Backward compatible via `getChecklistColumns()`, which falls back to `columnLabels` for existing saved forms. |
+| 2026-07-23 | `e70dac7` | **Schema change:** added `showDate?: boolean` and `datePosition?: 'A' \| 'B'` to `LayoutBlockISO` for the TITLE block date slot. FormFiller saves it as `__title_date__` in submission snapshots. |
+| 2026-07-23 | `88d96bd` | PDF filenames standardized to Digital 5S rules via a new `to5SFileName()` helper in `formUtils.ts`. Blank forms use `FORM_[Title]`; records use `REC_[YYYYMMDD]_[Title]`. |
+| 2026-07-23 | `e79af21` | Checkbox group field type added; type-change handlers now preserve previously configured options in the data model rather than deleting them. |
+| 2026-07-24 | `4a81811` | **Schema change:** new `subtable` field element for INFO_GRID blocks, with a `SubtableColumn` interface in `types.ts`. Implemented across designer, filler, reader, and both print templates. |
+| 2026-07-24 | `f9b190e` `5b8b7c8` | **Schema change:** subtable `static_text` (Nhãn) column type plus `subtableStaticData?: Record<number, Record<string, string>>` on `FormFieldISO` for editable custom row labels. |
+| 2026-07-24 | `93e1564` | Print spacing standardized to an A4 matrix aligned with ISO 216 / GDS / WCAG AA: `.print-block` margin reset to `0`, handwriting line `minHeight` raised to `22px` (ISO 7mm), field `gap` `10px`, SECTION_LABEL `marginTop` 18/14/10px by level. |

@@ -7,6 +7,10 @@ name: Master UI/UX Design System
 
 This document is the **single source of truth** for the visual design language of the platform. All agents and developers MUST consult this file before creating or modifying UI components.
 
+| Field | Value |
+|---|---|
+| **Verified At Commit** | `001af74` (2026-07-27) — Section 2 design tokens checked against `src/index.css` |
+
 ## 1. Design Principles
 
 The visual system is designed to convey **Executive Trustworthiness** and **Premium Digital Craftsmanship**. It blends high-contrast readability with a tactile, skeuomorphic feel, inspired by high-quality paper reports and frosted glass elements.
@@ -101,6 +105,6 @@ All buttons must use the base `.btn` class.
 
 ## 5. Change Log
 
-| Date | Session / Conversation | Change |
+| Date | Commit | Change |
 |---|---|---|
-| 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Re-written to act as the strict Master Design Source of Truth, mapping exactly to `src/index.css` variables and classes. |
+| 2026-07-09 | `8df2f3c` | Re-written to act as the strict Master Design Source of Truth, mapping exactly to `src/index.css` variables and classes. |

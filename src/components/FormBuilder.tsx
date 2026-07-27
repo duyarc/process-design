@@ -1205,7 +1205,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <FileText size={18} style={{ color: 'var(--primary)' }} />
-          <h2 style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>Form Designer</h2>
+          <h2 style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>Form Builder</h2>
           {status !== 'DRAFT' && (
             <span className={`badge ${status === 'ACTIVE' ? 'badge-success' : 'badge-warning'}`} style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem' }}>
               {status}
