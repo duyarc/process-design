@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import type { Process, FormTemplateISO, SubmissionFieldSnapshot } from '../types';
 import { formatFormVersion, getColStyleWidth } from '../types';
 import { sanitizeLabel, getEffectiveTitleFormat } from '../utils/formUtils';
+import PrintBlankForm from './print/PrintBlankForm';
 import { 
   ArrowLeft, 
   CheckCircle2, 
@@ -10,7 +11,8 @@ import {
   AlertTriangle, 
   Link2,
   PenTool,
-  Trash2
+  Trash2,
+  Printer
 } from 'lucide-react';
 
 const parseSubtableValue = (val: string): Record<string, string>[] => {
@@ -59,6 +61,7 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
   const [signOpen, setSignOpen] = useState<{ [fieldId: string]: boolean }>({});
   const [submitting, setSubmitting] = useState(false);
   const [submittedId, setSubmittedId] = useState<string | null>(null);
+  const [showPrintBlank, setShowPrintBlank] = useState(false);
 
   const calculateSummaryValue = (
     col: any,
@@ -536,6 +539,16 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
     );
   }
 
+  // Print blank form overlay
+  if (showPrintBlank && formTemplate) {
+    return (
+      <PrintBlankForm
+        template={formTemplate}
+        onClose={() => setShowPrintBlank(false)}
+      />
+    );
+  }
+
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       
@@ -547,15 +560,27 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
           </button>
         </div>
 
-        <button 
-          className="btn btn-secondary btn-sm" 
-          onClick={handleCopyShareLink}
-          style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.35rem 0.75rem' }}
-          title="Copy link to this form"
-        >
-          <Link2 size={13} />
-          <span>Copy Form Link</span>
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <button 
+            className="btn btn-secondary btn-sm" 
+            onClick={() => setShowPrintBlank(true)}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.35rem 0.75rem' }}
+            title="In form trắng A4 để ghi tay"
+          >
+            <Printer size={13} />
+            <span>In form trắng</span>
+          </button>
+
+          <button 
+            className="btn btn-secondary btn-sm" 
+            onClick={handleCopyShareLink}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.35rem 0.75rem' }}
+            title="Copy link to this form"
+          >
+            <Link2 size={13} />
+            <span>Copy Form Link</span>
+          </button>
+        </div>
       </div>
 
       {/* Main Form Paper Card */}

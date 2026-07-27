@@ -9,22 +9,21 @@
 | **Module Name** | Form Operations |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Last Verified Against Codebase** | 2026-07-27 |
-| **Verified By Session** | [083f0d7d-7591-41ae-a3be-0b523d42c450](conversation://083f0d7d-7591-41ae-a3be-0b523d42c450) |
+| **Verified At Commit** | `001af74` (2026-07-27) — Sections 4 and 6 checked against source |
 
 ### Quick File Index
 
-| File | Role | Size |
-|---|---|---|
-| [`src/components/FormFiller.tsx`](src/components/FormFiller.tsx) | Digital form fill-out UI for operators | 1,049 lines |
-| [`src/components/FormManager.tsx`](src/components/FormManager.tsx) | Per-form submission log + supervisor sign-off | 593 lines |
-| [`src/components/SubmissionManager.tsx`](src/components/SubmissionManager.tsx) | Cross-form global submission log (embedded in Dashboard) | 565 lines |
-| [`src/components/print/PrintRecord.tsx`](src/components/print/PrintRecord.tsx) | Completed submission print renderer (React Portal) | 814 lines |
-| [`src/types.ts`](src/types.ts) | Shared types: `Submission`, `SubmissionFieldSnapshot` | lines 164–189 |
+| File | Role |
+|---|---|
+| [`src/components/FormFiller.tsx`](src/components/FormFiller.tsx) | Digital form fill-out UI for operators |
+| [`src/components/FormManager.tsx`](src/components/FormManager.tsx) | Per-form submission log + supervisor sign-off |
+| [`src/components/SubmissionManager.tsx`](src/components/SubmissionManager.tsx) | Cross-form global submission log (embedded in Dashboard) |
+| [`src/components/print/PrintRecord.tsx`](src/components/print/PrintRecord.tsx) | Completed submission print renderer (React Portal) |
+| [`src/types.ts`](src/types.ts) | Shared types: `Submission`, `SubmissionFieldSnapshot` (owned by this doc) |
 
 > **Update rule:** Whenever any of the above files is modified in a session, update
-> the "Last Verified" date and add an entry to the [Change Log](#9-change-log) at the
-> bottom of this document.
+> the "Verified At Commit" field and add an entry to the [Change Log](#8-change-log) at the
+> bottom of this document. Cite symbol names, never line numbers.
 
 ---
 
@@ -125,7 +124,7 @@ Form Operations Module
 
 All types are defined in [`src/types.ts`](src/types.ts).
 
-### `Submission` (lines 174–189)
+### `Submission` (`interface Submission`)
 
 ```typescript
 interface Submission {
@@ -146,7 +145,7 @@ interface Submission {
 }
 ```
 
-### `SubmissionFieldSnapshot` (lines 164–172)
+### `SubmissionFieldSnapshot` (`interface SubmissionFieldSnapshot`)
 
 ```typescript
 interface SubmissionFieldSnapshot {
@@ -293,7 +292,7 @@ User clicks "Print" on a submission row
 
 ### 6.1 Props Accepted by Each Component
 
-**FormFiller** (`src/components/FormFiller.tsx`, line 13–17)
+**FormFiller** (`interface FormFillerProps` in [`src/components/FormFiller.tsx`](src/components/FormFiller.tsx))
 
 | Prop | Type | Description |
 |---|---|---|
@@ -301,7 +300,7 @@ User clicks "Print" on a submission row
 | `formName` | `string` | The `formId` of the form template to fill (e.g. `"FM-QC-F01"`) |
 | `onBack` | `() => void` | Called when user clicks Back or after a successful submission chooses to return |
 
-**FormManager** (`src/components/FormManager.tsx`, line 20–25)
+**FormManager** (`interface FormManagerProps` in [`src/components/FormManager.tsx`](src/components/FormManager.tsx))
 
 | Prop | Type | Description |
 |---|---|---|
@@ -310,7 +309,7 @@ User clicks "Print" on a submission row
 | `onOpenFormFiller` | `(processId, formName) => void` | Called when user clicks "+ Fill New Record"; App navigates to `FormFiller` |
 | `onBack` | `() => void` | Called when user clicks Back |
 
-**SubmissionManager** (`src/components/SubmissionManager.tsx`, line 19–23)
+**SubmissionManager** (`interface SubmissionManagerProps` in [`src/components/SubmissionManager.tsx`](src/components/SubmissionManager.tsx))
 
 | Prop | Type | Description |
 |---|---|---|
@@ -318,7 +317,7 @@ User clicks "Print" on a submission row
 | `initialFormFilter` | `string \| null` (optional) | Pre-populates the search bar (used when launched from Dashboard with a specific form context) |
 | `isEmbedded` | `boolean` (optional, default `false`) | When `true`, hides the Back button — used when rendered inside Dashboard's Submissions tab |
 
-**PrintRecord** (`src/components/print/PrintRecord.tsx`, line 6–18)
+**PrintRecord** (`interface PrintRecordProps` in [`src/components/print/PrintRecord.tsx`](src/components/print/PrintRecord.tsx))
 
 | Prop | Type | Description |
 |---|---|---|
@@ -334,13 +333,15 @@ User clicks "Print" on a submission row
 | Method | Endpoint | Used By | Purpose |
 |---|---|---|---|
 | `GET` | `/api/processes` | FormFiller, FormManager, SubmissionManager | Load process record to resolve form template |
-| `GET` | `/api/forms/:formId` | FormFiller | Load form template in unlinked mode (`processId === 'unlinked'`) |
+| `GET` | `/api/forms/*formId` | FormFiller | Load form template in unlinked mode (`processId === 'unlinked'`). Wildcard route — form IDs contain `/` (e.g. `3S-QC/F1.1`) |
 | `GET` | `/api/submissions` | FormManager, SubmissionManager | Load all submission records (filtered client-side) |
 | `POST` | `/api/submissions` | FormFiller | Save a completed form submission |
 | `POST` | `/api/submissions/:id/signoff` | FormManager, SubmissionManager | Add supervisor sign-off to a submission |
 | `POST` | `/api/storage/presign-upload` | FormFiller | Get a pre-signed R2 URL for photo evidence upload |
 | `PUT` | `(presigned R2 URL)` | FormFiller | Direct upload of photo evidence to Cloudflare R2 |
 | `GET` | `/api/storage/download-url?key=...` | PrintRecord, SubmissionManager | Resolve R2 keys to pre-signed download URLs for photo evidence and logo display |
+
+> Full endpoint reference, including request/response shapes and DB schema, lives in [DESIGN_BACKEND.md](DESIGN_BACKEND.md).
 
 ### 6.3 URL Deep-Link Schema
 
@@ -371,17 +372,18 @@ FormFiller supports direct URL access for operator distribution:
 
 ## 8. Change Log
 
-| Date | Session / Conversation | Change |
+Architectural changes only — data model, contracts, invariants, new block types.
+UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dropped.
+
+| Date | Commit | Change |
 |---|---|---|
-| 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Document created. Initial full write based on codebase review. |
-| 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Re-layout SubmissionManager to full-width and replace the 2-column split with a slide-over details drawer overlay. |
-| 2026-07-13 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Remove trailing colon (":") from field labels in INFO_GRID blocks if the label is blank. Affects PrintRecord.tsx. |
-| 2026-07-13 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Fix logo race condition in PrintRecord.tsx by adding logoReady state guard to print dialog initialization. |
-| 2026-07-13 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Fix logo print blank on slow machines by using img onLoad/onError listeners to ensure image bytes are loaded before printing. |
-| 2026-07-14 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Implement multi-option checkbox table columns in FormFiller.tsx (interactive multi-select with comma-separated values) and PrintRecord.tsx (render checked status from data). |
-| 2026-07-14 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Add support for 1-column vs 2-column checkbox layout and customizable footer summary rows on number columns (Auto Sum, Manual, Percentage, Sum Rows) in FormFiller.tsx and PrintRecord.tsx. |
-| 2026-07-14 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Fix tfoot border rendering (precise borderTop/borderBottom styling) in PrintRecord.tsx and remove whiteSpace: 'nowrap' to prevent checkbox label clipping in FormFiller.tsx. |
-| 2026-07-24 | [083f0d7d](conversation://083f0d7d-7591-41ae-a3be-0b523d42c450) | Remove duplicate Title Block header in FormFiller.tsx and replace with layout-driven footer strip matching Form Designer preview & Print Form. |
-| 2026-07-24 | [083f0d7d](conversation://083f0d7d-7591-41ae-a3be-0b523d42c450) | Upgrade SIGN block in FormFiller.tsx with interactive 3-state Click-to-Sign UI, attestation checkbox, cursive signature font, and dynamic SIGN snapshot collection. |
-| 2026-07-24 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Subtable Input & Output Support:** Implemented Subtable dynamic row input support in `FormFiller.tsx` and `ProcessReader.tsx` with 1 default empty input row, `+ Thêm dòng` button, and `<Trash2 />` row deletion. JSON values parsed and updated automatically. Implemented filled record subtable grid output in `PrintRecord.tsx` with layout-driven column headers lookup (`Option A`). Header alignment (`<th>`) dynamically reads configured `col.align`. Supported `static_text` (Nhãn) column type rendering custom `subtableStaticData` row labels aligned according to configured `col.align` (left/center/right). Fixed print footer overlap, removed `print-block-avoid` on `INFO_GRID` to resolve blank Page 1, bound Subtable titles via `breakAfter: 'avoid'`, applied A4 Print Form Spacing Matrix (`colFields gap: 10px`, subtable `marginBottom: 14px`, `SECTION_LABEL marginTop: 18px/14px/10px`), and enhanced field underlines (`#94a3b8`) in `PrintRecord.tsx`. Auto-expand all configured fixed label (`static_text`) rows by default in `FormFiller.tsx` & `ProcessReader.tsx` online forms. Simplified online form submit button text to "Submit" (`FormFiller.tsx` and `ProcessReader.tsx`). |
-| 2026-07-27 | [083f0d7d](conversation://083f0d7d-7591-41ae-a3be-0b523d42c450) | **Table Header Redesign:** Redesigned table headers across `FormFiller.tsx` for dynamic `TABLE`, `CHECKLIST_TABLE` (subtable grid), and `MATRIX_TABLE` blocks to use Executive Slate Header Bar (`#e2e8f0` background, `#0f172a` charcoal text, `fontWeight: 600`, `2px solid var(--primary)` accent bottom border), sentence-case typography, establishing 100% visual contrast from fillable input cells. |
+| 2026-07-09 | `8df2f3c` | Document created. Initial full write based on codebase review. |
+| 2026-07-14 | `cce673b` | Multi-option checkbox table columns: values stored as comma-separated strings in the field snapshot. Affects FormFiller and PrintRecord. |
+| 2026-07-14 | `7a0890c` | Column-scoped table footer summary rows (Auto Sum, Manual, Percentage, Sum Rows). |
+| 2026-07-24 | `395767b` | SIGN block gains an interactive 3-state Click-to-Sign UI in FormFiller; SIGN values are now collected into the submission snapshot dynamically. |
+| 2026-07-24 | `4a81811` | **Subtable support across the operations path.** Dynamic row input in FormFiller/ProcessReader with add/delete row; values serialized as JSON in the snapshot. PrintRecord renders the subtable grid with column headers resolved from the form layout. `static_text` column type renders `subtableStaticData` row labels. |
+| 2026-07-24 | `536e08a` | `static_text` label alignment strictly follows the configured `col.align`. |
+| 2026-07-24 | `f9b190e` | Subtable rows support editable custom static-text labels. |
+| 2026-07-24 | `446b552` | Removed `print-block-avoid` on `INFO_GRID` (was producing a blank page 1); Subtable titles bound to their tables during page splits via `breakAfter: 'avoid'`. |
+| 2026-07-27 | `001af74` | Table headers across FormFiller use the Executive Slate Header Bar treatment to separate headers from fillable input cells. |
+| 2026-07-27 | `cbace2b` | Added "In form trắng" (Print Blank Form) button in FormFiller header toolbar, triggering PrintBlankForm overlay for instant A4 paper template printing. |
