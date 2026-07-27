@@ -140,21 +140,20 @@ const LoginPage: React.FC = () => {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      background: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #0f172a 100%)',
-      fontFamily: 'var(--font-sans, Inter, system-ui, sans-serif)',
+      backgroundColor: 'var(--neutral-bg)',
+      fontFamily: "'Be Vietnam Pro', var(--font-sans, Inter, system-ui, sans-serif)",
+      padding: '1.5rem',
     }}>
-      {/* Glassmorphism card */}
+      {/* Executive Paper Card */}
       <div style={{
         width: '100%',
         maxWidth: '420px',
-        margin: '1rem',
-        background: 'rgba(255,255,255,0.06)',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-        border: '1px solid rgba(255,255,255,0.12)',
-        borderRadius: '20px',
+        background: 'var(--neutral-card)',
+        border: '1px solid var(--neutral-border)',
+        borderTop: '4px solid var(--primary)',
+        borderRadius: 'var(--container-radius, 16px)',
         padding: '2.5rem 2rem',
-        boxShadow: '0 25px 50px rgba(0,0,0,0.5)',
+        boxShadow: 'var(--shadow-lg)',
         position: 'relative'
       }}>
         {/* Back button if in step 2 */}
@@ -164,13 +163,19 @@ const LoginPage: React.FC = () => {
             onClick={handleReset}
             style={{
               position: 'absolute', left: '1.5rem', top: '1.5rem',
-              background: 'rgba(255,255,255,0.1)', border: 'none',
-              color: '#fff', borderRadius: '8px', padding: '0.4rem 0.6rem',
+              background: '#f1f5f9', border: '1px solid var(--neutral-border)',
+              color: 'var(--text-secondary)', borderRadius: '6px', padding: '0.35rem 0.6rem',
               cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.35rem',
-              fontSize: '0.78rem', transition: 'background 0.2s'
+              fontSize: '0.78rem', fontWeight: 500, transition: 'all 0.2s'
             }}
-            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = '#e2e8f0';
+              e.currentTarget.style.color = 'var(--text-primary)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = '#f1f5f9';
+              e.currentTarget.style.color = 'var(--text-secondary)';
+            }}
           >
             <ArrowLeft size={14} /> Quay lại
           </button>
@@ -181,17 +186,22 @@ const LoginPage: React.FC = () => {
           <div style={{
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
             width: '56px', height: '56px',
-            background: 'linear-gradient(135deg, #3b82f6, #6366f1)',
-            borderRadius: '16px',
+            background: 'var(--primary-gradient)',
+            borderRadius: '14px',
             marginBottom: '0.75rem',
-            boxShadow: '0 8px 24px rgba(99,102,241,0.4)',
+            boxShadow: '0 8px 20px rgba(16, 163, 163, 0.25)',
           }}>
             <BookOpen size={26} color="#fff" />
           </div>
-          <h1 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 700, color: '#fff' }}>
+          <h1 style={{
+            margin: 0, fontSize: '1.4rem', fontWeight: 700,
+            background: 'var(--primary-gradient)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent'
+          }}>
             Process Design
           </h1>
-          <p style={{ margin: '0.35rem 0 0', fontSize: '0.82rem', color: 'rgba(255,255,255,0.6)' }}>
+          <p style={{ margin: '0.35rem 0 0', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
             {step === 'EMAIL' && 'Đăng nhập hoặc tạo tài khoản để tiếp tục'}
             {step === 'LOGIN' && `Chào mừng trở lại ${existingUserFullName ? `, ${existingUserFullName}` : ''}`}
             {step === 'REGISTER' && 'Tạo tài khoản mới để điền & lưu biểu mẫu'}
@@ -201,21 +211,21 @@ const LoginPage: React.FC = () => {
         {/* Form Link Notice Banner (If accessing via share link) */}
         {fillContext && (
           <div style={{
-            background: 'rgba(59, 130, 246, 0.15)',
-            border: '1px solid rgba(59, 130, 246, 0.3)',
-            borderRadius: '10px',
+            background: '#eff6ff',
+            border: '1px solid #bfdbfe',
+            borderRadius: '8px',
             padding: '0.65rem 0.85rem',
             marginBottom: '1.25rem',
             display: 'flex',
             alignItems: 'center',
             gap: '0.6rem',
             fontSize: '0.8rem',
-            color: '#93c5fd'
+            color: '#1e40af'
           }}>
-            <FileText size={18} style={{ flexShrink: 0, color: '#60a5fa' }} />
+            <FileText size={18} style={{ flexShrink: 0, color: '#3b82f6' }} />
             <div>
-              <div style={{ fontWeight: 600, color: '#ffffff' }}>Bạn được mời điền biểu mẫu</div>
-              <div style={{ fontSize: '0.72rem', opacity: 0.85 }}>Mẫu: {fillContext.formName} ({fillContext.processId})</div>
+              <div style={{ fontWeight: 600, color: '#1e3a8a' }}>Bạn được mời điền biểu mẫu</div>
+              <div style={{ fontSize: '0.72rem', color: '#3b82f6' }}>Mẫu: {fillContext.formName} ({fillContext.processId})</div>
             </div>
           </div>
         )}
@@ -224,13 +234,13 @@ const LoginPage: React.FC = () => {
         {step === 'EMAIL' && (
           <form onSubmit={handleCheckEmail} noValidate>
             <div style={{ marginBottom: '1.25rem' }}>
-              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'rgba(255,255,255,0.7)', marginBottom: '0.4rem' }}>
+              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.4rem' }}>
                 Địa chỉ Email / Tên đăng nhập
               </label>
               <div style={{ position: 'relative' }}>
                 <Mail size={16} style={{
                   position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)',
-                  color: 'rgba(255,255,255,0.4)',
+                  color: 'var(--text-muted)',
                 }} />
                 <input
                   id="login-email"
@@ -244,16 +254,22 @@ const LoginPage: React.FC = () => {
                     width: '100%',
                     boxSizing: 'border-box',
                     padding: '0.65rem 0.85rem 0.65rem 2.4rem',
-                    background: 'rgba(255,255,255,0.08)',
-                    border: '1px solid rgba(255,255,255,0.15)',
-                    borderRadius: '10px',
-                    color: '#fff',
+                    background: '#ffffff',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '8px',
+                    color: 'var(--text-primary)',
                     fontSize: '0.9rem',
                     outline: 'none',
-                    transition: 'border-color 0.2s',
+                    transition: 'all 0.2s',
                   }}
-                  onFocus={(e) => e.target.style.borderColor = 'rgba(99,102,241,0.8)'}
-                  onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.15)'}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = 'var(--primary)';
+                    e.target.style.boxShadow = '0 0 0 3px var(--border-focus)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#cbd5e1';
+                    e.target.style.boxShadow = 'none';
+                  }}
                 />
               </div>
             </div>
@@ -261,9 +277,9 @@ const LoginPage: React.FC = () => {
             {error && (
               <div style={{
                 display: 'flex', alignItems: 'center', gap: '0.5rem',
-                background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)',
+                background: '#fef2f2', border: '1px solid #fecaca',
                 borderRadius: '8px', padding: '0.6rem 0.85rem',
-                marginBottom: '1rem', color: '#fca5a5', fontSize: '0.82rem',
+                marginBottom: '1rem', color: 'var(--danger)', fontSize: '0.82rem',
               }}>
                 <AlertCircle size={15} style={{ flexShrink: 0 }} />
                 {error}
@@ -277,17 +293,15 @@ const LoginPage: React.FC = () => {
               style={{
                 width: '100%',
                 padding: '0.75rem',
-                background: isLoading
-                  ? 'rgba(99,102,241,0.5)'
-                  : 'linear-gradient(135deg, #3b82f6, #6366f1)',
+                background: isLoading ? '#94a3b8' : 'var(--primary-gradient)',
                 border: 'none',
-                borderRadius: '10px',
+                borderRadius: '8px',
                 color: '#fff',
                 fontSize: '0.95rem',
                 fontWeight: 700,
                 cursor: isLoading ? 'not-allowed' : 'pointer',
                 transition: 'opacity 0.2s',
-                boxShadow: isLoading ? 'none' : '0 4px 15px rgba(99,102,241,0.4)',
+                boxShadow: isLoading ? 'none' : 'var(--shadow-sm)',
               }}
             >
               {isLoading ? 'Đang kiểm tra...' : 'Tiếp tục →'}
@@ -296,12 +310,12 @@ const LoginPage: React.FC = () => {
             {/* OR separator */}
             <div style={{
               display: 'flex', alignItems: 'center', margin: '1.25rem 0',
-              fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)',
+              fontSize: '0.75rem', color: 'var(--text-muted)',
               fontFamily: 'inherit'
             }}>
-              <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.1)' }}></div>
+              <div style={{ flex: 1, height: '1px', background: 'var(--neutral-border)' }}></div>
               <span style={{ padding: '0 0.75rem' }}>HOẶC</span>
-              <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.1)' }}></div>
+              <div style={{ flex: 1, height: '1px', background: 'var(--neutral-border)' }}></div>
             </div>
 
             {/* Google Login button */}
@@ -337,29 +351,29 @@ const LoginPage: React.FC = () => {
         {step === 'LOGIN' && (
           <form onSubmit={handleLoginSubmit} noValidate>
             <div style={{
-              fontSize: '0.8rem', color: 'rgba(255,255,255,0.7)',
-              background: 'rgba(255,255,255,0.05)', padding: '0.5rem 0.75rem',
-              borderRadius: '8px', marginBottom: '1.25rem', display: 'flex',
-              justifyContent: 'space-between', alignItems: 'center'
+              fontSize: '0.8rem', color: 'var(--text-secondary)',
+              background: '#f8fafc', border: '1px solid var(--neutral-border)',
+              padding: '0.5rem 0.75rem', borderRadius: '8px', marginBottom: '1.25rem',
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center'
             }}>
-              <span style={{ fontFamily: 'monospace', color: '#93c5fd' }}>{email}</span>
+              <span style={{ fontFamily: 'monospace', color: 'var(--primary)', fontWeight: 600 }}>{email}</span>
               <button
                 type="button"
                 onClick={handleReset}
-                style={{ background: 'none', border: 'none', color: '#60a5fa', fontSize: '0.75rem', cursor: 'pointer', textDecoration: 'underline' }}
+                style={{ background: 'none', border: 'none', color: 'var(--secondary)', fontSize: '0.75rem', cursor: 'pointer', textDecoration: 'underline' }}
               >
                 Đổi
               </button>
             </div>
 
             <div style={{ marginBottom: '1.25rem' }}>
-              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: 'rgba(255,255,255,0.7)', marginBottom: '0.4rem' }}>
+              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.4rem' }}>
                 Mật khẩu
               </label>
               <div style={{ position: 'relative' }}>
                 <Lock size={16} style={{
                   position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)',
-                  color: 'rgba(255,255,255,0.4)',
+                  color: 'var(--text-muted)',
                 }} />
                 <input
                   id="login-password"
@@ -373,16 +387,22 @@ const LoginPage: React.FC = () => {
                     width: '100%',
                     boxSizing: 'border-box',
                     padding: '0.65rem 0.85rem 0.65rem 2.4rem',
-                    background: 'rgba(255,255,255,0.08)',
-                    border: '1px solid rgba(255,255,255,0.15)',
-                    borderRadius: '10px',
-                    color: '#fff',
+                    background: '#ffffff',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '8px',
+                    color: 'var(--text-primary)',
                     fontSize: '0.9rem',
                     outline: 'none',
-                    transition: 'border-color 0.2s',
+                    transition: 'all 0.2s',
                   }}
-                  onFocus={(e) => e.target.style.borderColor = 'rgba(99,102,241,0.8)'}
-                  onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.15)'}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = 'var(--primary)';
+                    e.target.style.boxShadow = '0 0 0 3px var(--border-focus)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#cbd5e1';
+                    e.target.style.boxShadow = 'none';
+                  }}
                 />
               </div>
             </div>
@@ -390,9 +410,9 @@ const LoginPage: React.FC = () => {
             {error && (
               <div style={{
                 display: 'flex', alignItems: 'center', gap: '0.5rem',
-                background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)',
+                background: '#fef2f2', border: '1px solid #fecaca',
                 borderRadius: '8px', padding: '0.6rem 0.85rem',
-                marginBottom: '1rem', color: '#fca5a5', fontSize: '0.82rem',
+                marginBottom: '1rem', color: 'var(--danger)', fontSize: '0.82rem',
               }}>
                 <AlertCircle size={15} style={{ flexShrink: 0 }} />
                 {error}
@@ -406,17 +426,15 @@ const LoginPage: React.FC = () => {
               style={{
                 width: '100%',
                 padding: '0.75rem',
-                background: isLoading
-                  ? 'rgba(99,102,241,0.5)'
-                  : 'linear-gradient(135deg, #3b82f6, #6366f1)',
+                background: isLoading ? '#94a3b8' : 'var(--primary-gradient)',
                 border: 'none',
-                borderRadius: '10px',
+                borderRadius: '8px',
                 color: '#fff',
                 fontSize: '0.95rem',
                 fontWeight: 700,
                 cursor: isLoading ? 'not-allowed' : 'pointer',
                 transition: 'opacity 0.2s',
-                boxShadow: isLoading ? 'none' : '0 4px 15px rgba(99,102,241,0.4)',
+                boxShadow: isLoading ? 'none' : 'var(--shadow-sm)',
               }}
             >
               {isLoading ? 'Đang xác thực...' : 'Đăng nhập'}
@@ -428,16 +446,16 @@ const LoginPage: React.FC = () => {
         {step === 'REGISTER' && (
           <form onSubmit={handleRegisterSubmit} noValidate>
             <div style={{
-              fontSize: '0.78rem', color: 'rgba(255,255,255,0.7)',
-              background: 'rgba(255,255,255,0.05)', padding: '0.5rem 0.75rem',
-              borderRadius: '8px', marginBottom: '1rem', display: 'flex',
-              justifyContent: 'space-between', alignItems: 'center'
+              fontSize: '0.78rem', color: 'var(--text-secondary)',
+              background: '#f8fafc', border: '1px solid var(--neutral-border)',
+              padding: '0.5rem 0.75rem', borderRadius: '8px', marginBottom: '1rem',
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center'
             }}>
-              <span>Đăng ký tài khoản mới cho: <strong style={{ color: '#93c5fd' }}>{email}</strong></span>
+              <span>Đăng ký tài khoản cho: <strong style={{ color: 'var(--primary)' }}>{email}</strong></span>
               <button
                 type="button"
                 onClick={handleReset}
-                style={{ background: 'none', border: 'none', color: '#60a5fa', fontSize: '0.75rem', cursor: 'pointer', textDecoration: 'underline' }}
+                style={{ background: 'none', border: 'none', color: 'var(--secondary)', fontSize: '0.75rem', cursor: 'pointer', textDecoration: 'underline' }}
               >
                 Đổi
               </button>
@@ -445,13 +463,13 @@ const LoginPage: React.FC = () => {
 
             {/* Full Name */}
             <div style={{ marginBottom: '0.9rem' }}>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'rgba(255,255,255,0.7)', marginBottom: '0.35rem' }}>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
                 Họ và tên của bạn *
               </label>
               <div style={{ position: 'relative' }}>
                 <User size={16} style={{
                   position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)',
-                  color: 'rgba(255,255,255,0.4)',
+                  color: 'var(--text-muted)',
                 }} />
                 <input
                   type="text"
@@ -463,12 +481,20 @@ const LoginPage: React.FC = () => {
                     width: '100%',
                     boxSizing: 'border-box',
                     padding: '0.6rem 0.85rem 0.6rem 2.4rem',
-                    background: 'rgba(255,255,255,0.08)',
-                    border: '1px solid rgba(255,255,255,0.15)',
-                    borderRadius: '10px',
-                    color: '#fff',
+                    background: '#ffffff',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '8px',
+                    color: 'var(--text-primary)',
                     fontSize: '0.85rem',
                     outline: 'none'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = 'var(--primary)';
+                    e.target.style.boxShadow = '0 0 0 3px var(--border-focus)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#cbd5e1';
+                    e.target.style.boxShadow = 'none';
                   }}
                 />
               </div>
@@ -476,13 +502,13 @@ const LoginPage: React.FC = () => {
 
             {/* Password */}
             <div style={{ marginBottom: '0.9rem' }}>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'rgba(255,255,255,0.7)', marginBottom: '0.35rem' }}>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
                 Mật khẩu mới *
               </label>
               <div style={{ position: 'relative' }}>
                 <Lock size={16} style={{
                   position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)',
-                  color: 'rgba(255,255,255,0.4)',
+                  color: 'var(--text-muted)',
                 }} />
                 <input
                   type="password"
@@ -493,12 +519,20 @@ const LoginPage: React.FC = () => {
                     width: '100%',
                     boxSizing: 'border-box',
                     padding: '0.6rem 0.85rem 0.6rem 2.4rem',
-                    background: 'rgba(255,255,255,0.08)',
-                    border: '1px solid rgba(255,255,255,0.15)',
-                    borderRadius: '10px',
-                    color: '#fff',
+                    background: '#ffffff',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '8px',
+                    color: 'var(--text-primary)',
                     fontSize: '0.85rem',
                     outline: 'none'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = 'var(--primary)';
+                    e.target.style.boxShadow = '0 0 0 3px var(--border-focus)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#cbd5e1';
+                    e.target.style.boxShadow = 'none';
                   }}
                 />
               </div>
@@ -506,13 +540,13 @@ const LoginPage: React.FC = () => {
 
             {/* Confirm Password */}
             <div style={{ marginBottom: '1.25rem' }}>
-              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'rgba(255,255,255,0.7)', marginBottom: '0.35rem' }}>
+              <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.35rem' }}>
                 Xác nhận mật khẩu *
               </label>
               <div style={{ position: 'relative' }}>
                 <Lock size={16} style={{
                   position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)',
-                  color: 'rgba(255,255,255,0.4)',
+                  color: 'var(--text-muted)',
                 }} />
                 <input
                   type="password"
@@ -523,12 +557,20 @@ const LoginPage: React.FC = () => {
                     width: '100%',
                     boxSizing: 'border-box',
                     padding: '0.6rem 0.85rem 0.6rem 2.4rem',
-                    background: 'rgba(255,255,255,0.08)',
-                    border: '1px solid rgba(255,255,255,0.15)',
-                    borderRadius: '10px',
-                    color: '#fff',
+                    background: '#ffffff',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '8px',
+                    color: 'var(--text-primary)',
                     fontSize: '0.85rem',
                     outline: 'none'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = 'var(--primary)';
+                    e.target.style.boxShadow = '0 0 0 3px var(--border-focus)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#cbd5e1';
+                    e.target.style.boxShadow = 'none';
                   }}
                 />
               </div>
@@ -537,9 +579,9 @@ const LoginPage: React.FC = () => {
             {error && (
               <div style={{
                 display: 'flex', alignItems: 'center', gap: '0.5rem',
-                background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)',
+                background: '#fef2f2', border: '1px solid #fecaca',
                 borderRadius: '8px', padding: '0.6rem 0.85rem',
-                marginBottom: '1rem', color: '#fca5a5', fontSize: '0.82rem',
+                marginBottom: '1rem', color: 'var(--danger)', fontSize: '0.82rem',
               }}>
                 <AlertCircle size={15} style={{ flexShrink: 0 }} />
                 {error}
@@ -553,17 +595,15 @@ const LoginPage: React.FC = () => {
               style={{
                 width: '100%',
                 padding: '0.75rem',
-                background: isLoading
-                  ? 'rgba(99,102,241,0.5)'
-                  : 'linear-gradient(135deg, #10b981, #059669)',
+                background: isLoading ? '#94a3b8' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                 border: 'none',
-                borderRadius: '10px',
+                borderRadius: '8px',
                 color: '#fff',
                 fontSize: '0.95rem',
                 fontWeight: 700,
                 cursor: isLoading ? 'not-allowed' : 'pointer',
                 transition: 'opacity 0.2s',
-                boxShadow: isLoading ? 'none' : '0 4px 15px rgba(16,185,129,0.4)',
+                boxShadow: isLoading ? 'none' : 'var(--shadow-sm)',
               }}
             >
               {isLoading ? 'Đang tạo tài khoản...' : 'Tạo tài khoản & Tiếp tục →'}
