@@ -2036,7 +2036,98 @@ app.post('/api/auth/google', async (req, res) => {
   }
 });
 
-// POST /api/auth/login - Traditional username/password fallback login
+// POST /api/auth/check-email - Check if email exists in system for progressive disclosure auth
+app.post('/api/auth/check-email', async (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ error: 'Vui lòng nhập email.' });
+  }
+
+  try {
+    if (!dbPool) {
+      return res.status(503).json({ error: 'Database connection not available.' });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const result = await dbPool.query(
+      'SELECT id, full_name, email, username FROM users WHERE (email = $1 OR username = $1) AND status = $2',
+      [cleanEmail, 'active']
+    );
+
+    if (result.rows.length > 0) {
+      return res.json({
+        exists: true,
+        full_name: result.rows[0].full_name,
+        email: result.rows[0].email
+      });
+    }
+
+    res.json({ exists: false, full_name: null });
+  } catch (err) {
+    console.error('Check email error:', err);
+    res.status(500).json({ error: 'Failed to check email.' });
+  }
+});
+
+// POST /api/auth/register - Self-service registration for new users
+app.post('/api/auth/register', async (req, res) => {
+  const { email, full_name, password } = req.body;
+  if (!email || !full_name || !password) {
+    return res.status(400).json({ error: 'Vui lòng nhập đầy đủ thông tin.' });
+  }
+
+  try {
+    if (!dbPool) {
+      return res.status(503).json({ error: 'Database connection not available.' });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+
+    // Check if user already exists
+    const existing = await dbPool.query(
+      'SELECT id FROM users WHERE email = $1 OR username = $1',
+      [cleanEmail]
+    );
+    if (existing.rows.length > 0) {
+      return res.status(409).json({ error: 'Tài khoản với email này đã tồn tại.' });
+    }
+
+    const newId = 'u_' + Date.now();
+    const username = cleanEmail.split('@')[0] + '_' + Date.now().toString().slice(-4);
+
+    const result = await dbPool.query(`
+      INSERT INTO users (id, email, username, password, full_name, role_id, status)
+      VALUES ($1, $2, $3, $4, $5, 'operator', 'active')
+      RETURNING id, email, username, full_name, title, role_id, status
+    `, [newId, cleanEmail, username, password, full_name.trim()]);
+
+    const user = result.rows[0];
+
+    const token = jwt.sign(
+      { id: user.id, email: user.email, role_id: user.role_id },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    res.json({
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        full_name: user.full_name,
+        title: user.title,
+        role_id: user.role_id,
+        status: user.status
+      }
+    });
+  } catch (err) {
+    console.error('Registration error:', err);
+    res.status(500).json({ error: 'Tạo tài khoản thất bại.' });
+  }
+});
+
+// POST /api/auth/login - Traditional username/email + password fallback login
 app.post('/api/auth/login', async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) {
@@ -2048,9 +2139,11 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(503).json({ error: 'Database connection not available.' });
     }
 
+    const cleanInput = username.trim().toLowerCase();
+
     const result = await dbPool.query(
-      'SELECT * FROM users WHERE username = $1 AND password = $2',
-      [username.trim(), password]
+      'SELECT * FROM users WHERE (LOWER(email) = $1 OR LOWER(username) = $1) AND password = $2',
+      [cleanInput, password]
     );
 
     if (result.rows.length === 0) {

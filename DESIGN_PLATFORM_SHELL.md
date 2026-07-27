@@ -9,8 +9,8 @@
 | **Module Name** | Platform Shell |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Last Verified Against Codebase** | 2026-07-09 |
-| **Verified By Session** | [9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) |
+| **Last Verified Against Codebase** | 2026-07-27 |
+| **Verified By Session** | [083f0d7d-7591-41ae-a3be-0b523d42c450](conversation://083f0d7d-7591-41ae-a3be-0b523d42c450) |
 
 ### Quick File Index
 
@@ -215,3 +215,4 @@ Self-contained component. Relies entirely on `useAuth()` to get the current list
 | 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Add direct Print action buttons to the Processes tab list and grid card layouts. |
 | 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Fix Process Reader back navigation routing bug by explicitly calling setPage('dashboard'). |
 | 2026-07-09 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | Remove the "Quy trình đã lưu kho" section title header from the retired processes list on the Dashboard. |
+| 2026-07-27 | [083f0d7d](conversation://083f0d7d-7591-41ae-a3be-0b523d42c450) | Implement Email-First Progressive Disclosure Auth flow in LoginPage.tsx, AuthContext.tsx, and server.cjs (check-email & self-service register endpoints, dual email/username login query). |

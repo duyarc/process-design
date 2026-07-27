@@ -89,6 +89,7 @@ interface AuthContextType {
 
   /** Attempt login; returns error message string on failure, null on success */
   login: (username: string, password: string) => Promise<string | null>;
+  register: (email: string, full_name: string, password: string) => Promise<string | null>;
   loginWithGoogle: (idToken: string) => Promise<string | null>;
   logout: () => void;
 
@@ -184,6 +185,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const register = async (email: string, full_name: string, password: string): Promise<string | null> => {
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, full_name, password })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        return data.error || 'Tạo tài khoản thất bại.';
+      }
+      localStorage.setItem('jwt_token', data.token);
+      localStorage.setItem('currentUser', JSON.stringify(data.user));
+      setCurrentUser(data.user);
+      return null; // success
+    } catch (err) {
+      console.error('Registration error:', err);
+      return 'Không thể kết nối đến máy chủ để tạo tài khoản.';
+    }
+  };
+
   const logout = () => {
     localStorage.removeItem('jwt_token');
     localStorage.removeItem('currentUser');
@@ -202,6 +224,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         users,
         rolePermissions,
         login,
+        register,
         loginWithGoogle,
         logout,
         hasPermission,
