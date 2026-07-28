@@ -215,21 +215,21 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
   // Copy section states
   const [showCopyModal, setShowCopyModal] = useState(false);
   const [allProcesses, setAllProcesses] = useState<any[]>([]);
+  const [allFormsData, setAllFormsData] = useState<any[]>([]);
   const [selectedFormKey, setSelectedFormKey] = useState<string>(''); // format: "processId:formName"
   const [selectedBlockId, setSelectedBlockId] = useState<string>('');
 
   useEffect(() => {
-    if (showCopyModal && allProcesses.length === 0) {
-      fetch('/api/processes')
-        .then(res => res.json())
-        .then(data => {
-          if (Array.isArray(data)) {
-            setAllProcesses(data);
-          }
-        })
-        .catch(err => console.error('Error fetching processes for section copy:', err));
+    if (showCopyModal && (allProcesses.length === 0 || allFormsData.length === 0)) {
+      Promise.all([
+        fetch('/api/processes').then(res => res.json()).catch(() => []),
+        fetch('/api/forms').then(res => res.json()).catch(() => [])
+      ]).then(([procData, formData]) => {
+        if (Array.isArray(procData)) setAllProcesses(procData);
+        if (Array.isArray(formData)) setAllFormsData(formData);
+      }).catch(err => console.error('Error fetching data for section copy:', err));
     }
-  }, [showCopyModal, allProcesses]);
+  }, [showCopyModal, allProcesses, allFormsData]);
 
   useEffect(() => {
     if (showLogoGallery && existingLogos.length > 0) {
@@ -4352,29 +4352,106 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
             </div>
           </div>
         )}
-      {/* 5. LOGO GALLERY MODAL */}
+      {/* 5. COPY SECTION FROM FORM MODAL */}
       {showCopyModal && (() => {
-        const availableForms: { processId: string; processTitle: string; formName: string; blocks: LayoutBlockISO[] }[] = [];
+        interface FormOptionItem {
+          key: string;
+          processId: string;
+          processTitle: string;
+          formId: string;
+          formTitle: string;
+          formName: string;
+          updatedAt: string;
+          blocks: LayoutBlockISO[];
+          isSameProcess: boolean;
+          isUnlinked: boolean;
+        }
+
+        const availableFormsMap = new Map<string, FormOptionItem>();
+        const currentProcId = linkedProcessId || initialData?.formId || '';
+
+        // 1. Collect forms embedded in allProcesses
         allProcesses.forEach(proc => {
+          const isSameProc = proc.id === currentProcId;
           if (proc.workflowFormsData) {
-            Object.entries(proc.workflowFormsData).forEach(([fName, formData]: [string, any]) => {
-              // Skip current form
-              if (proc.id === initialData?.formId && fName === formName) {
+            const wfd = typeof proc.workflowFormsData === 'string' ? JSON.parse(proc.workflowFormsData) : proc.workflowFormsData;
+            Object.entries(wfd).forEach(([fName, formData]: [string, any]) => {
+              if (!formData || !Array.isArray(formData.layoutBlocks) || formData.layoutBlocks.length === 0) return;
+              
+              const key = `${proc.id}:${fName}`;
+              const fTitle = formData.formTitle || formData.form_title || fName;
+              const fId = formData.formId || formData.form_id || fName;
+
+              // Skip current form being edited
+              if (isSameProc && (fId === formId || fTitle === formTitle || fName === formName)) {
                 return;
               }
-              if (formData && Array.isArray(formData.layoutBlocks) && formData.layoutBlocks.length > 0) {
-                availableForms.push({
-                  processId: proc.id,
-                  processTitle: proc.title,
-                  formName: fName,
-                  blocks: formData.layoutBlocks
-                });
-              }
+
+              availableFormsMap.set(key, {
+                key,
+                processId: proc.id,
+                processTitle: proc.title || 'Quy trình',
+                formId: fId,
+                formTitle: fTitle,
+                formName: fName,
+                updatedAt: formData.updatedAt || proc.lastUpdated || formData.updated_at || '',
+                blocks: formData.layoutBlocks,
+                isSameProcess: isSameProc,
+                isUnlinked: false
+              });
             });
           }
         });
 
-        const selectedForm = availableForms.find(f => `${f.processId}:${f.formName}` === selectedFormKey);
+        // 2. Collect standalone forms from allFormsData
+        allFormsData.forEach(form => {
+          const blocks = typeof form.layout_blocks === 'string' ? JSON.parse(form.layout_blocks) : (form.layout_blocks || []);
+          if (!Array.isArray(blocks) || blocks.length === 0) return;
+
+          const fTitle = form.form_title || form.form_name || form.form_id;
+          const fId = form.form_id || form.form_name;
+          const fName = form.form_name || form.form_id;
+          const key = `form_db:${form.id || fId}`;
+
+          // Skip current form
+          if (fId === formId || fTitle === formTitle || fName === formName) return;
+
+          // Check if form is already in availableFormsMap
+          const alreadyExists = Array.from(availableFormsMap.values()).some(existing => existing.formId === fId && existing.formTitle === fTitle);
+          if (!alreadyExists) {
+            availableFormsMap.set(key, {
+              key,
+              processId: 'unlinked',
+              processTitle: 'Biểu mẫu tự do',
+              formId: fId,
+              formTitle: fTitle,
+              formName: fName,
+              updatedAt: form.updated_at || form.updatedAt || '',
+              blocks: blocks,
+              isSameProcess: false,
+              isUnlinked: true
+            });
+          }
+        });
+
+        const availableForms = Array.from(availableFormsMap.values());
+
+        // Sort into 3 predictive UX categories descending by updatedAt
+        const getTs = (item: FormOptionItem) => item.updatedAt ? new Date(item.updatedAt).getTime() : 0;
+
+        const sameProcessForms = availableForms
+          .filter(f => f.isSameProcess)
+          .sort((a, b) => getTs(b) - getTs(a));
+
+        const otherProcessForms = availableForms
+          .filter(f => !f.isSameProcess && !f.isUnlinked)
+          .sort((a, b) => getTs(b) - getTs(a));
+
+        const unlinkedForms = availableForms
+          .filter(f => f.isUnlinked)
+          .sort((a, b) => getTs(b) - getTs(a));
+
+        const selectedForm = availableForms.find(f => f.key === selectedFormKey);
         const selectedBlock = selectedForm?.blocks.find(b => b.id === selectedBlockId);
 
         return (
@@ -4424,14 +4501,45 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                   style={{ width: '100%', padding: '0.45rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', fontSize: '0.8rem', outline: 'none' }}
                 >
                   <option value="">-- Choose a Form --</option>
-                  {availableForms.map(f => {
-                    const key = `${f.processId}:${f.formName}`;
-                    return (
-                      <option key={key} value={key}>
-                        {f.processTitle} › {f.formName}
-                      </option>
-                    );
-                  })}
+                  {sameProcessForms.length > 0 && (
+                    <optgroup label={`📌 Form trong cùng quy trình (${sameProcessForms[0]?.processTitle || 'Quy trình hiện tại'})`}>
+                      {sameProcessForms.map(f => (
+                        <option key={f.key} value={f.key}>
+                          {f.formTitle} {f.formId && f.formId !== f.formTitle ? `(${f.formId})` : ''}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                  {otherProcessForms.length > 0 && (
+                    <optgroup label="🕒 Form các quy trình khác (Mới cập nhật gần đây)">
+                      {otherProcessForms.map(f => {
+                        let dateStr = '';
+                        if (f.updatedAt) {
+                          try { dateStr = ` — ${new Date(f.updatedAt).toLocaleDateString('vi-VN')}`; } catch {}
+                        }
+                        return (
+                          <option key={f.key} value={f.key}>
+                            {f.processTitle} › {f.formTitle} {f.formId && f.formId !== f.formTitle ? `(${f.formId})` : ''}{dateStr}
+                          </option>
+                        );
+                      })}
+                    </optgroup>
+                  )}
+                  {unlinkedForms.length > 0 && (
+                    <optgroup label="📄 Biểu mẫu tự do (Chưa liên kết)">
+                      {unlinkedForms.map(f => {
+                        let dateStr = '';
+                        if (f.updatedAt) {
+                          try { dateStr = ` — ${new Date(f.updatedAt).toLocaleDateString('vi-VN')}`; } catch {}
+                        }
+                        return (
+                          <option key={f.key} value={f.key}>
+                            {f.formTitle} {f.formId && f.formId !== f.formTitle ? `(${f.formId})` : ''}{dateStr}
+                          </option>
+                        );
+                      })}
+                    </optgroup>
+                  )}
                 </select>
               </div>
 
