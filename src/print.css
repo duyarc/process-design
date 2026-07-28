@@ -57,7 +57,11 @@
     box-shadow: none !important;
   }
 
-  /* Setup A4 Paper Page Margins */
+  /* Setup A4 Paper Page Margins.
+     RÀNG BUỘC: PrintBlankForm.tsx và PrintRecord.tsx khai lại @page thành
+     A4 portrait qua <style> nội tuyến và thắng rule này chỉ nhờ thứ tự DOM
+     (cùng specificity). @page không nhận selector nên không scope được theo
+     `.print-doc` — đừng chuyển khối này xuống sau trong tệp. */
   @page {
     size: A4 landscape;
     margin: 10mm;
@@ -99,7 +103,11 @@
     display: table-header-group !important;
   }
 
-  th, td {
+  /* Bảng chung của ứng dụng (ProcessReader, Dashboard...).
+     Loại trừ `.print-doc` — bản in biểu mẫu tự quản kích thước ô qua inline
+     style; nếu không loại trừ, `!important` ở đây thắng style attribute và
+     mọi padding/border/font-size đã thiết kế đều bị bỏ. Xem DESIGN_UI_UX.md §4. */
+  th:not(.print-doc *), td:not(.print-doc *) {
     border: 1px solid #111111 !important;
     padding: 6px 8px !important;
     color: #000000 !important;
@@ -107,7 +115,7 @@
     background: transparent !important;
   }
 
-  th {
+  th:not(.print-doc *) {
     font-weight: bold !important;
     background-color: #f0f0f0 !important;
     -webkit-print-color-adjust: exact;
@@ -181,6 +189,49 @@
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   PRINT DOCUMENT SPACING SCALE
+   Nguồn duy nhất cho nhịp dọc của bản in biểu mẫu (PrintBlankForm /
+   PrintRecord). Không đặt trong @media print để preview trên màn hình
+   khớp với bản in trên giấy.
+   ───────────────────────────────────────────────────────────── */
+.print-doc {
+  --pw-block-gap: 16px;
+  --pw-section-gap: 20px;
+  --pw-field-gap: 10px;
+  --pw-title-gap: 8px;
+  --pw-line-h: 22px;
+  --pw-table-gap: 14px;
+}
+
+/* Khoảng cách giữa các block: chỉ định nghĩa ở đây, không ở inline style.
+   Dùng selector anh-em nên block đầu tiên không có margin trên và margin
+   không cộng dồn. */
+.print-doc .print-block + .print-block {
+  margin-top: var(--pw-block-gap);
+}
+
+.print-doc .print-block--section + .print-block,
+.print-doc .print-block + .print-block--section {
+  margin-top: var(--pw-section-gap);
+}
+
+/* INFO_GRID: grid row-major khớp thứ tự canvas FormBuilder, baseline chung
+   theo hàng để các field cùng hàng thẳng nhau. */
+.print-doc .print-info-grid {
+  display: grid;
+  column-gap: 40px;
+  row-gap: var(--pw-field-gap);
+  align-items: baseline;
+}
+
+/* Field chiếm hết chiều rộng (subtable). Cần grid thật ở cha mới có hiệu lực. */
+.print-doc .print-info-grid > .print-field-full {
+  grid-column: 1 / -1;
+  align-self: stretch;
+  margin-bottom: calc(var(--pw-table-gap) - var(--pw-field-gap));
 }
 
 /* Screen overrides when printing is active, to force print layout calculations on screen before capture */

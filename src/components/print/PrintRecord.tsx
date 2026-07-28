@@ -311,7 +311,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
   });
 
   return ReactDOM.createPortal(
-    <div className="print-container" style={{
+    <div className="print-container print-doc" style={{
       position: 'fixed',
       top: 0,
       left: 0,
@@ -356,9 +356,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
           .no-print {
             display: none !important;
           }
-          .print-block {
-            margin-bottom: 0px;
-          }
+          /* Khoảng cách giữa các block do .print-doc trong print.css quản. */
           .print-block-avoid {
             page-break-inside: avoid;
             break-inside: avoid;
@@ -451,7 +449,6 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
             padding: '10px 0',
             display: 'flex',
             alignItems: 'center',
-            marginBottom: '15px',
             position: 'relative'
           }}>
             {logoUrl && (
@@ -493,7 +490,6 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
           <div className="print-block print-block-avoid" style={{
             padding: '10px 0',
             textAlign: 'center',
-            marginBottom: '15px',
             position: 'relative'
           }}>
             {showDate && datePos === 'A' && (
@@ -518,30 +514,13 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
 
       {/* INFO GRID BLOCK */}
       {infoFields.length > 0 && (() => {
-        const cols: any[][] = Array.from({ length: 2 }, () => []);
-        infoFields.forEach((f, idx) => {
-          cols[idx % 2].push(f);
-        });
+        const infoBlock = layoutBlocks.find(b => b.type === 'INFO_GRID');
+        const infoColumns = infoBlock?.columns || 2;
 
         return (
-          <div className="print-block" style={{
-            padding: '0',
-            marginTop: '0',
-            marginBottom: '0'
-          }}>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              gap: '40px'
-            }}>
-              {cols.map((colFields, colIdx) => (
-                <div key={colIdx} style={{
-                  flex: 1,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '10px'
-                }}>
-                  {colFields.map((f, fIdx) => {
+          <div className="print-block" style={{ padding: '0' }}>
+            <div className="print-info-grid" style={{ gridTemplateColumns: `repeat(${infoColumns}, 1fr)` }}>
+              {infoFields.map((f) => {
                     const matchedBlock = layoutBlocks.find(b => b.fields?.some((field: any) => field.id === f.id));
                     const matchedField = matchedBlock?.fields?.find((field: any) => field.id === f.id);
                     if (matchedField?.type === 'subtable') {
@@ -549,8 +528,8 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                       try { rows = JSON.parse(f.value || '[]'); } catch {}
                       const cols = matchedField.subtableColumns ?? [];
                       return (
-                        <div key={f.id} className="subtable-print-container" style={{ fontSize: '0.82rem', width: '100%', marginBottom: '14px', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                          {f.checkItem && <div style={{ fontWeight: 600, marginTop: fIdx === 0 ? '0px' : '14px', marginBottom: '6px', pageBreakAfter: 'avoid', breakAfter: 'avoid' }}>{f.checkItem}:</div>}
+                        <div key={f.id} className="subtable-print-container print-field-full" style={{ fontSize: '0.82rem', width: '100%', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                          {f.checkItem && <div style={{ fontWeight: 600, marginBottom: '6px', pageBreakAfter: 'avoid', breakAfter: 'avoid' }}>{f.checkItem}:</div>}
                           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
                               <tr>
@@ -576,7 +555,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                                       const sttAlign = col.align || 'left';
                                       return (
                                          <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', textAlign: sttAlign as any, fontWeight: 600, fontSize: '0.82rem' }}>
-                                           {f?.subtableStaticData?.[rowIdx]?.[col.id] || ''}
+                                           {matchedField.subtableStaticData?.[rowIdx]?.[col.id] || ''}
                                          </td>
                                       );
                                     }
@@ -604,8 +583,6 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                       </div>
                     );
                   })}
-                </div>
-              ))}
             </div>
           </div>
         );
@@ -617,7 +594,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
         const titleText = matchedBlock?.title || 'BẢNG KIỂM TRA CHẤT LƯỢNG';
         const titleFmt = matchedBlock ? getEffectiveTitleFormat(matchedBlock) : 'BODY';
         return (
-          <div className="print-block" style={{ marginTop: '0' }}>
+          <div className="print-block">
             {titleFmt !== 'NONE' && (
               titleFmt === 'H1' ? (
                 <h2 style={{ margin: '0 0 8px 0', fontSize: '1.05rem', fontWeight: 700, textTransform: 'uppercase', color: '#000000', borderBottom: '2px solid #000000', paddingBottom: '3px' }}>
@@ -807,7 +784,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
         const grandTotal = rowTotals.reduce((sum: number, val) => sum + val, 0);
 
         return (
-          <div key={block.blockId} className="print-block" style={{ marginTop: '0' }}>
+          <div key={block.blockId} className="print-block">
             {(() => {
               const matchedBlock = layoutBlocks.find(b => b.id === block.blockId);
               const titleText = matchedBlock?.title || 'BẢNG KIỂM ĐẾM SỐ LƯỢNG';
@@ -909,7 +886,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
       {layoutBlocks.filter(b => b.type === 'TABLE').map((block: any) => {
         const titleFmt = getEffectiveTitleFormat(block);
         return (
-          <div key={block.id} className="print-block" style={{ marginTop: '0' }}>
+          <div key={block.id} className="print-block">
             {titleFmt !== 'NONE' && (
               titleFmt === 'H1' ? (
                 <h2 style={{ margin: '0 0 8px 0', fontSize: '1.05rem', fontWeight: 700, textTransform: 'uppercase', color: '#000000', borderBottom: '2px solid #000000', paddingBottom: '3px' }}>
@@ -1092,12 +1069,11 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
       {layoutBlocks.filter(b => b.type === 'SECTION_LABEL').map((block: any) => {
         const isH1 = block.sectionFormat === 'H1';
         return (
-          <div key={block.id} className="print-block print-block-avoid" style={{ marginTop: '0' }}>
+          <div key={block.id} className="print-block print-block--section print-block-avoid">
             {isH1 ? (
               <div style={{
                 padding: '0',
-                marginTop: '18px',
-                marginBottom: '8px',
+                marginBottom: 'var(--pw-title-gap)',
                 pageBreakInside: 'avoid',
                 breakInside: 'avoid',
                 pageBreakAfter: 'avoid',
@@ -1127,8 +1103,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                 background: '#f1f5f9',
                 borderLeft: '4px solid #000000',
                 borderRadius: '4px',
-                marginTop: '14px',
-                marginBottom: '6px',
+                marginBottom: 'var(--pw-title-gap)',
                 pageBreakInside: 'avoid',
                 breakInside: 'avoid',
                 pageBreakAfter: 'avoid',
@@ -1150,7 +1125,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
 
       {/* PHOTO EVIDENCE LOG */}
       {imageUrls.length > 0 && (
-        <div className="print-block" style={{ marginTop: '0', pageBreakInside: 'avoid' }}>
+        <div className="print-block" style={{ pageBreakInside: 'avoid' }}>
           <h4 style={{ margin: '0 0 10px 0', fontSize: '0.85rem', fontWeight: 'bold', textTransform: 'uppercase', color: '#475569' }}>
             Hình ảnh bằng chứng đính kèm (Photo Evidence Log)
           </h4>
@@ -1185,8 +1160,6 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
       {/* SIGN BLOCK & AUDIT SIGN-OFF */}
       <div className="print-block print-block-avoid" style={{
         paddingTop: '5px',
-        marginTop: '12px',
-        marginBottom: '45px',
         display: 'flex',
         justifyContent: 'space-between',
         gap: '40px'

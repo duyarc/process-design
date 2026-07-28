@@ -9,7 +9,7 @@ This document is the **single source of truth** for the visual design language o
 
 | Field | Value |
 |---|---|
-| **Verified At Commit** | `001af74` (2026-07-27) — Section 2 design tokens checked against `src/index.css` |
+| **Verified At Commit** | `001af74` (2026-07-27) — Section 2 design tokens checked against `src/index.css`. Section 4 rewritten 2026-07-28 against **uncommitted** working-tree changes to `src/print.css`; re-verify and record the SHA when they land. |
 
 ## 1. Design Principles
 
@@ -99,7 +99,55 @@ All buttons must use the base `.btn` class.
 
 ## 4. Printing Layout Rules
 
-- **Print media (`@media print` in `print.css`):** Always hide headers, sidebars, dashboard navigation controls, and back buttons. Set paper margins to `15mm` and page size to `A4`. Reset background images to preserve physical printing ink. Use `page-break-inside: avoid` on charts, score blocks, and domain grids.
+- **Print media (`@media print` in `print.css`):** Always hide headers, sidebars, dashboard navigation controls, and back buttons. Page size is always `A4`; orientation and margins differ per document kind — see §4.1. Reset background images to preserve physical printing ink. Use `page-break-inside: avoid` on charts, score blocks, and domain grids.
+
+### 4.1 Page orientation — two conflicting `@page` rules by design
+
+`print.css` declares `@page { size: A4 landscape }` for the process/BPMN documents, which need the
+horizontal room. `PrintBlankForm.tsx` and `PrintRecord.tsx` each re-declare `@page { size: A4
+portrait; margin: 15mm 15mm 20mm 15mm }` in an inline `<style>`.
+
+`@page` accepts no selector, so the form portals **cannot** scope their override by `.print-doc`.
+They win purely on DOM order — same specificity, declared later. Do not move the `@page` block in
+`print.css` further down the file, and do not "deduplicate" these two declarations.
+
+### 4.2 Print spacing scale (`.print-doc`)
+
+The vertical rhythm of a printed form has exactly one source: the token block on `.print-doc` in
+`print.css`. It sits **outside** `@media print` so the on-screen preview matches paper.
+
+| Token | Value | Role |
+|---|---|---|
+| `--pw-block-gap` | `16px` | Between two adjacent content blocks |
+| `--pw-section-gap` | `20px` | Either side of a `SECTION_LABEL` chapter marker |
+| `--pw-field-gap` | `10px` | Between fields inside one block |
+| `--pw-title-gap` | `8px` | Block title down to its content |
+| `--pw-line-h` | `22px` | Handwriting line height (ISO 7mm) |
+| `--pw-table-gap` | `14px` | Below a table's bottom border |
+
+**Invariant.** Block spacing is owned by the adjacent-sibling selector `.print-block +
+.print-block` alone. A block must never declare its own outer `margin-top` / `margin-bottom`: an
+inline style beats the selector and silently reintroduces uneven gaps. This is what previously made
+inter-block spacing depend on *which type came next* rather than on a rule. Both print components
+were audited to hold this invariant; `SECTION_LABEL` wrappers carry `.print-block--section` so the
+wider section gap is chosen by CSS, not by the component.
+
+`.print-info-grid` is a row-major CSS grid with `align-items: baseline`, matching the FormBuilder
+canvas. Full-width children (subtables) use `.print-field-full` → `grid-column: 1 / -1`, which needs
+a real grid parent to take effect.
+
+### 4.3 The `.print-doc` table exclusion
+
+The global print rules for `th` / `td` are written as `th:not(.print-doc *), td:not(.print-doc *)`.
+
+Author `!important` outranks a plain style attribute, so the unscoped version silently overrode every
+inline `padding`, `border`, `font-size` and background in the form print templates — cell geometry on
+paper was `6px 8px / 10pt` regardless of design, and screen preview disagreed with the printout.
+Excluding `.print-doc` descendants hands those properties back to the components' inline styles.
+
+Use a `:not()` exclusion, **not** `revert`. `revert` rolls back to a lower cascade origin (user-agent
+defaults), it does not fall back to the inline style. The `th` background rule needs the same
+exclusion, otherwise designed header tints are still forced to `#f0f0f0`.
 
 ---
 
@@ -108,3 +156,4 @@ All buttons must use the base `.btn` class.
 | Date | Commit | Change |
 |---|---|---|
 | 2026-07-09 | `8df2f3c` | Re-written to act as the strict Master Design Source of Truth, mapping exactly to `src/index.css` variables and classes. |
+| 2026-07-28 | *(uncommitted)* | **Print spacing invariant:** `print.css` gained the `.print-doc` token scale plus the `.print-block + .print-block` sibling rule, making block spacing single-source. Added `.print-info-grid` (row-major grid, baseline-aligned) and `.print-field-full`. Scoped the global `th` / `td` print overrides with `:not(.print-doc *)` so form print templates keep their inline cell geometry. Documented the deliberate two-`@page` orientation split. See §4.1–4.3. |

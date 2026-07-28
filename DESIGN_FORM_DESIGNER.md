@@ -9,7 +9,7 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | `001af74` (2026-07-27) — Sections 4 and 6 checked against source |
+| **Verified At Commit** | `001af74` (2026-07-27) — Sections 4 and 6 checked against source. §6.4 added 2026-07-28 against **uncommitted** working-tree changes to `PrintBlankForm.tsx`; re-verify and record the SHA when they land. |
 
 > **⚠️ Architectural note:** FormBuilder has no awareness of which process it belongs to. The `formName` prop is always identical to `formId`. See Section 6.1 and the Technical Debt table.
 
@@ -392,6 +392,24 @@ ProcessEditor stores only `{ formId, formTitle, version, status }` in `workflowF
 | `template` | `FormTemplateISO` | The complete form snapshot to render |
 | `onClose` | `() => void` | Called when user dismisses the print view; triggers `setPrintPreviewData(null)` in FormBuilder |
 
+### 6.4 PrintBlankForm layout invariants
+
+The portal root carries `className="print-container print-doc"`. `.print-doc` is what activates the
+shared print spacing scale in `print.css` and the `.print-doc` table exclusion — dropping it silently
+reverts both. See [`DESIGN_UI_UX.md`](DESIGN_UI_UX.md) §4.2 and §4.3.
+
+- **Block spacing is not this component's concern.** Every block is wrapped in `.print-block`, and the
+  gap between blocks comes solely from `.print-block + .print-block`. No block wrapper may declare its
+  own outer margin; an inline margin beats the selector. `SECTION_LABEL` wrappers add
+  `.print-block--section` so CSS, not the component, picks the wider section gap.
+- **INFO_GRID renders row-major**, as a `.print-info-grid` CSS grid with
+  `gridTemplateColumns: repeat(block.columns, 1fr)` — the same shape the FormBuilder canvas uses. It
+  previously split fields into per-column flex stacks via `cols[idx % block.columns]`, which printed
+  field 2 at row 2 left instead of row 1 right, and let a tall field skew only its own column.
+- **Subtables span the full grid** via `.print-field-full` (`grid-column: 1 / -1`). The old
+  `gridColumn: span N` was inert because the parent was flex, not grid.
+- Handwriting slots use `minHeight: var(--pw-line-h)` rather than a literal `22px`.
+
 ### 6.4 API Endpoints Consumed
 
 All calls are inline `fetch()` within `FormBuilder.tsx` and `PrintBlankForm.tsx`.
@@ -460,4 +478,5 @@ full diff of any entry below.
 | 2026-07-24 | `f9b190e` `5b8b7c8` | **Schema change:** subtable `static_text` (Nhãn) column type plus `subtableStaticData?: Record<number, Record<string, string>>` on `FormFieldISO` for editable custom row labels. |
 | 2026-07-24 | `9a6bb9aa` | **A4 Print Form Spacing Matrix Standardization (ISO 216 / GDS / WCAG AA Aligned):** (1) Reset `.print-block` global `margin-bottom` to `0px` to eliminate accumulated 40–48px gaps between blocks. (2) Increased free-form handwriting field line `minHeight` from `16px` to `22px` (ISO 7mm handwriting height standard). (3) Set Subtable bottom margin to `14px` (ISO 5–6mm breathing space after table borders). (4) Standardized intra-group field `gap` to `10px` and recalibrated SECTION_LABEL `marginTop` to `18px` (H1), `14px` (H2), `10px` (Body). |
 | 2026-07-28 | `9a6bb9aa` | **Copy Section Predictive UX & Full Coverage Upgrade:** Updated Copy Section modal in `FormBuilder.tsx` to fetch both `/api/processes` and `/api/forms` (100% form coverage). Standardized labels to `FormTitle (FormID)` eliminating raw ID dropdown items. Implemented Predictive UX sorting with `<optgroup>` categorizing options into `📌 Form trong cùng quy trình`, `🕒 Form các quy trình khác (Mới cập nhật)`, and `📄 Biểu mẫu tự do`, sorted descending by `updatedAt`. |
+| 2026-07-28 | *(uncommitted)* | **Print whitespace normalization.** `PrintBlankForm` INFO_GRID switched from per-column flex stacks to a row-major CSS grid, matching the FormBuilder canvas; subtables now span the grid via `.print-field-full` (the previous `gridColumn: span N` was inert under a flex parent). All per-block inline margins removed — inter-block spacing is now owned solely by `.print-block + .print-block` in `print.css`, and the root portal carries `.print-doc`. See §6.4 and [DESIGN_UI_UX.md](DESIGN_UI_UX.md) §4.2. Supersedes the `margin-bottom: 0px` reset from the 2026-07-24 spacing-matrix entry. |
 | 2026-07-28 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **A4 Print Form Reference Aesthetic Upgrade:** Upgraded `PrintBlankForm.tsx` to match sample reference image: (1) Main title color `#0d9488` (Brand Teal). (2) SECTION_LABEL H1 underline `#0d9488` with `12px` bottom margin. (3) Field labels set to `fontWeight: 700` `#0f172a`. (4) Date handwriting slots updated to clean empty dotted lines `....... / ....... / .............` with `/` slashes (completely empty handwriting area with 0 printed characters). (5) Free-form text baselines set to `1px dotted #cbd5e1`. (6) Subtable grid borders set to clean light grey `1px solid #cbd5e1`, header bg `#f8fafc`, text `#475569`. |

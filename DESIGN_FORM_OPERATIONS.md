@@ -9,7 +9,7 @@
 | **Module Name** | Form Operations |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | `001af74` (2026-07-27) — Sections 4 and 6 checked against source |
+| **Verified At Commit** | `001af74` (2026-07-27) — Sections 4 and 6 checked against source. Flow H print-layout notes added 2026-07-28 against **uncommitted** working-tree changes to `PrintRecord.tsx`; re-verify and record the SHA when they land. |
 
 ### Quick File Index
 
@@ -286,6 +286,25 @@ User clicks "Print" on a submission row
             └─ onClose → setPrintSubmission(null) → list view re-renders
 ```
 
+**Print layout contract.** The portal root carries `print-container print-doc`. Vertical rhythm comes
+from the shared token scale in `print.css` — see [`DESIGN_UI_UX.md`](DESIGN_UI_UX.md) §4.2 — not from
+this component. Two consequences when editing `PrintRecord.tsx`:
+
+- A `.print-block` wrapper must not set its own outer `margin-top` / `margin-bottom`. Inline style
+  beats the `.print-block + .print-block` selector and reintroduces uneven gaps. `SECTION_LABEL`
+  wrappers get `.print-block--section`; inner (non-`.print-block`) wrappers are unaffected.
+- The INFO_GRID renders as `.print-info-grid`, a row-major grid whose column count is read from the
+  matching `INFO_GRID` block (`block.columns`) rather than hardcoded to 2, so a printed record matches
+  the FormBuilder canvas and the blank form.
+
+**Known limitation.** `PrintRecord` flattens every INFO_GRID field into one grid and takes its column
+count from the *first* `INFO_GRID` block found. A form with several INFO_GRID blocks at different
+column counts will render them all at the first block's count. Reconstructing per-block grids means
+reworking the snapshot-to-layout mapping, which is wider than the print layer.
+
+**Propagation.** Per [`AGENTS.md`](AGENTS.md), any print layout change here must be mirrored in
+`PrintBlankForm.tsx` (Form Designer module) and vice versa.
+
 ---
 
 ## 6. Module Interface (Boundary Contracts)
@@ -387,3 +406,4 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 | 2026-07-24 | `446b552` | Removed `print-block-avoid` on `INFO_GRID` (was producing a blank page 1); Subtable titles bound to their tables during page splits via `breakAfter: 'avoid'`. |
 | 2026-07-27 | `001af74` | Table headers across FormFiller use the Executive Slate Header Bar treatment to separate headers from fillable input cells. |
 | 2026-07-27 | `cbace2b` | Added "In form trắng" (Print Blank Form) button in FormFiller header toolbar, triggering PrintBlankForm overlay for instant A4 paper template printing. |
+| 2026-07-28 | *(uncommitted)* | **Print whitespace normalization propagated to `PrintRecord`.** INFO_GRID renders row-major via `.print-info-grid` and reads its column count from the layout's `INFO_GRID` block instead of hardcoding 2. Subtables span the grid through `.print-field-full`. All per-block inline margins removed so `.print-block + .print-block` in `print.css` is the sole owner of inter-block spacing; the portal root carries `.print-doc`. Also fixed a latent type error: static-text subtable cells read `subtableStaticData` from the form-layout field, not from `SubmissionFieldSnapshot`, which never carried it. See Flow H and [DESIGN_UI_UX.md](DESIGN_UI_UX.md) §4.2. |
