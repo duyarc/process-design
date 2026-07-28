@@ -384,7 +384,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                       <span style={{ fontWeight: 600 }}>Ngày</span> <span style={{ marginLeft: '6px', color: '#475569', letterSpacing: '2px' }}>&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;</span>
                     </div>
                   )}
-                  <h1 style={{ margin: '0 0 4px 0', fontSize: '1.35rem', fontWeight: 800, textTransform: 'uppercase' }}>
+                  <h1 style={{ margin: '0 0 4px 0', fontSize: '1.35rem', fontWeight: 800, textTransform: 'uppercase', color: '#0d9488' }}>
                     {block.title}
                   </h1>
                   <p style={{ margin: 0, fontSize: '0.85rem', fontStyle: 'italic', color: '#475569' }}>
@@ -415,15 +415,15 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                 }}>
                   {titleFmt !== 'NONE' && (
                     titleFmt === 'H1' ? (
-                      <h2 style={{ margin: '0 0 6px 0', fontSize: '1.05rem', fontWeight: 700, color: '#000000', textTransform: 'uppercase', borderBottom: '2px solid #000000', paddingBottom: '3px' }}>
+                      <h2 style={{ margin: '0 0 12px 0', fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', textTransform: 'uppercase', borderBottom: '1.5px solid #0d9488', paddingBottom: '3px' }}>
                         {block.title}
                       </h2>
                     ) : titleFmt === 'H2' ? (
-                      <div style={{ padding: '6px 10px', background: '#f1f5f9', borderLeft: '4px solid #000000', borderRadius: '4px', marginBottom: '6px', fontWeight: 700, fontSize: '0.9rem', color: '#000000' }}>
+                      <div style={{ padding: '6px 10px', background: '#f1f5f9', borderLeft: '4px solid #0d9488', borderRadius: '4px', marginBottom: '10px', fontWeight: 700, fontSize: '0.9rem', color: '#0f172a' }}>
                         {block.title}
                       </div>
                     ) : (
-                      <div style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '6px', color: '#000000' }}>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '8px', color: '#0f172a' }}>
                         {block.title}
                       </div>
                     )
@@ -447,7 +447,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                             return (
                               <div key={f.id} style={{ display: 'flex', flexDirection: 'column', gap: '2px', fontSize: '0.85rem' }}>
                                 {cleanLabel && (
-                                  <span style={{ fontWeight: 600, color: '#000000' }}>{cleanLabel}</span>
+                                  <span style={{ fontWeight: 700, color: '#0f172a' }}>{cleanLabel}</span>
                                 )}
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 20px', alignItems: 'center' }}>
                                   {options.map((opt: any) => (
@@ -473,14 +473,14 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                             const blankRows = f.subtableDefaultRows ?? 3;
                             return (
                               <div key={f.id} className="subtable-print-container" style={{ fontSize: '0.82rem', width: '100%', marginBottom: '14px', gridColumn: `span ${block.columns || 1}`, pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                                {cleanLabel && <div style={{ fontWeight: 600, marginTop: fIdx === 0 ? '0px' : '14px', marginBottom: '6px', pageBreakAfter: 'avoid', breakAfter: 'avoid' }}>{cleanLabel}</div>}
+                                {cleanLabel && <div style={{ fontWeight: 700, color: '#0f172a', marginTop: fIdx === 0 ? '0px' : '14px', marginBottom: '6px', pageBreakAfter: 'avoid', breakAfter: 'avoid' }}>{cleanLabel}</div>}
                                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                   <thead>
                                     <tr>
                                       {cols.map((col: any) => {
                                         const headerAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'date' || col.type === 'time' ? 'center' : 'left'));
                                         return (
-                                          <th key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', background: '#f1f5f9', fontWeight: 600, textAlign: headerAlign as any, fontSize: '0.78rem', width: col.width }}>
+                                          <th key={col.id} style={{ border: '1px solid #cbd5e1', padding: '5px 6px', background: '#f8fafc', fontWeight: 600, color: '#475569', textAlign: headerAlign as any, fontSize: '0.78rem', width: col.width }}>
                                             {col.label}
                                           </th>
                                         );
@@ -494,12 +494,12 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                                           if (col.type === 'static_text') {
                                             const sttAlign = col.align || 'left';
                                             return (
-                                               <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', height: '28px', textAlign: sttAlign as any, fontWeight: 600, fontSize: '0.8rem' }}>
+                                               <td key={col.id} style={{ border: '1px solid #cbd5e1', padding: '4px 6px', height: '28px', textAlign: sttAlign as any, fontWeight: 600, fontSize: '0.8rem', color: '#0f172a' }}>
                                                  {f.subtableStaticData?.[rowIdx]?.[col.id] || ''}
                                                </td>
                                             );
                                           }
-                                          return <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', height: '28px' }} />;
+                                          return <td key={col.id} style={{ border: '1px solid #cbd5e1', padding: '4px 6px', height: '28px' }} />;
                                         })}
                                       </tr>
                                     ))}
@@ -512,13 +512,15 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                           if (f.type === 'date') {
                             return (
                               <div key={f.id} style={{ display: 'flex', alignItems: 'baseline', gap: '8px', fontSize: '0.85rem' }}>
-                                {cleanLabel && <span style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{cleanLabel}</span>}
-                                <div style={{ fontSize: '0.8rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                  <span style={{ borderBottom: '1.5px solid #475569', width: '32px', textAlign: 'center', fontWeight: 600, fontSize: '0.75rem', color: '#64748b' }}>DD</span>
-                                  <span style={{ color: '#475569', fontWeight: 600 }}>/</span>
-                                  <span style={{ borderBottom: '1.5px solid #475569', width: '32px', textAlign: 'center', fontWeight: 600, fontSize: '0.75rem', color: '#64748b' }}>MM</span>
-                                  <span style={{ color: '#475569', fontWeight: 600 }}>/</span>
-                                  <span style={{ borderBottom: '1.5px solid #475569', width: '48px', textAlign: 'center', fontWeight: 600, fontSize: '0.75rem', color: '#64748b' }}>YYYY</span>
+                                {cleanLabel && <span style={{ fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap' }}>{cleanLabel}</span>}
+                                <div style={{ fontSize: '0.85rem', color: '#0f172a', display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+                                  <span style={{ borderBottom: '1px dotted #cbd5e1', width: '36px', display: 'inline-block', minHeight: '22px' }} />
+                                  <span style={{ color: '#000000', fontWeight: 600 }}>/</span>
+                                  <span style={{ borderBottom: '1px dotted #cbd5e1', width: '36px', display: 'inline-block', minHeight: '22px' }} />
+                                  <span style={{ color: '#000000', fontWeight: 600 }}>/</span>
+                                  <span style={{ borderBottom: '1px dotted #cbd5e1', width: '56px', display: 'inline-flex', alignItems: 'baseline', minHeight: '22px', color: '#94a3b8', fontSize: '0.8rem', letterSpacing: '1px' }}>
+                                    202...
+                                  </span>
                                 </div>
                               </div>
                             );
@@ -526,19 +528,19 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
 
                           return (
                             <div key={f.id} style={{ display: 'flex', alignItems: 'baseline', gap: '8px', fontSize: '0.85rem' }}>
-                              {cleanLabel && <span style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{cleanLabel}</span>}
+                              {cleanLabel && <span style={{ fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap' }}>{cleanLabel}</span>}
                               {f.type === 'time' ? (
                                 f.timeMode === 'dual' ? (
                                   <div style={{ fontSize: '0.8rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                    Từ <span style={{ borderBottom: '1.5px solid #475569', width: '32px', textAlign: 'center', fontWeight: 600, fontSize: '0.75rem', color: '#64748b' }}>HH</span> : <span style={{ borderBottom: '1.5px solid #475569', width: '32px', textAlign: 'center', fontWeight: 600, fontSize: '0.75rem', color: '#64748b' }}>MM</span> đến <span style={{ borderBottom: '1.5px solid #475569', width: '32px', textAlign: 'center', fontWeight: 600, fontSize: '0.75rem', color: '#64748b' }}>HH</span> : <span style={{ borderBottom: '1.5px solid #475569', width: '32px', textAlign: 'center', fontWeight: 600, fontSize: '0.75rem', color: '#64748b' }}>MM</span>
+                                    Từ <span style={{ borderBottom: '1px dotted #cbd5e1', width: '32px', display: 'inline-block', minHeight: '22px' }} /> : <span style={{ borderBottom: '1px dotted #cbd5e1', width: '32px', display: 'inline-block', minHeight: '22px' }} /> đến <span style={{ borderBottom: '1px dotted #cbd5e1', width: '32px', display: 'inline-block', minHeight: '22px' }} /> : <span style={{ borderBottom: '1px dotted #cbd5e1', width: '32px', display: 'inline-block', minHeight: '22px' }} />
                                   </div>
                                 ) : (
                                   <div style={{ fontSize: '0.8rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                    <span style={{ borderBottom: '1.5px solid #475569', width: '36px', textAlign: 'center', fontWeight: 600, fontSize: '0.75rem', color: '#64748b' }}>HH</span> <span style={{ color: '#475569', fontWeight: 600 }}>:</span> <span style={{ borderBottom: '1.5px solid #475569', width: '36px', textAlign: 'center', fontWeight: 600, fontSize: '0.75rem', color: '#64748b' }}>MM</span>
+                                    <span style={{ borderBottom: '1px dotted #cbd5e1', width: '36px', display: 'inline-block', minHeight: '22px' }} /> <span style={{ color: '#475569', fontWeight: 600 }}>:</span> <span style={{ borderBottom: '1px dotted #cbd5e1', width: '36px', display: 'inline-block', minHeight: '22px' }} />
                                   </div>
                                 )
                               ) : (
-                                <div style={{ flex: 1, borderBottom: '1px dotted #64748b', minHeight: '22px' }} />
+                                <div style={{ flex: 1, borderBottom: '1px dotted #cbd5e1', minHeight: '22px' }} />
                               )}
                             </div>
                           );
