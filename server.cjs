@@ -793,12 +793,12 @@ app.post('/api/forms', async (req, res) => {
         );
       }
 
-      // Check safety: Ensure we are not overwriting an existing ACTIVE version in database
+      // Check safety: Ensure we are not overwriting an existing ACTIVE version in database unless allowActiveUpdate is set
       const safetyCheck = await dbPool.query(
         'SELECT status FROM forms WHERE form_id = $1 AND version = $2',
         [formId, ver]
       );
-      if (safetyCheck.rows.length > 0 && safetyCheck.rows[0].status === 'ACTIVE') {
+      if (safetyCheck.rows.length > 0 && safetyCheck.rows[0].status === 'ACTIVE' && !req.body.allowActiveUpdate) {
         return res.status(400).json({ error: `Version ${ver} is already ACTIVE and locked. You must increment the version number to save your changes.` });
       }
 

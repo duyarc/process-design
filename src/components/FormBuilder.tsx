@@ -232,7 +232,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     fetchFormTemplate();
   }, [initialData?.formId]);
 
-  const saveFormToBackend = async (opts: { versionOverride?: string, statusOverride?: 'ACTIVE' | 'DRAFT' | 'ARCHIVED', historyOverride?: FormRevisionEntry[], effectiveDateOverride?: string, layoutBlocksOverride?: LayoutBlockISO[] } = {}) => {
+  const saveFormToBackend = async (opts: { versionOverride?: string, statusOverride?: 'ACTIVE' | 'DRAFT' | 'ARCHIVED', historyOverride?: FormRevisionEntry[], effectiveDateOverride?: string, layoutBlocksOverride?: LayoutBlockISO[], allowActiveUpdate?: boolean } = {}) => {
     const activeVersion = opts.versionOverride || version;
     const activeStatus = opts.statusOverride || status;
     const activeHistory = opts.historyOverride || revisionHistory;
@@ -247,6 +247,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
         effectiveDate: activeStatus === 'ACTIVE' ? (opts.effectiveDateOverride || effectiveDate) : null,
         layoutBlocks: opts.layoutBlocksOverride ?? layoutBlocks,
         revisionHistory: activeHistory,
+        allowActiveUpdate: opts.allowActiveUpdate ?? true,
         oldFormId: initialData?.formId && initialData.formId !== formId ? initialData.formId : undefined
       };
       
@@ -1056,10 +1057,16 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
       setViewingRevisionVersion(null);
     }
 
-    // 4. Save updated history to backend
+    // 4. Delete the version row from backend if it exists and save updated history
     try {
       setLoading(true);
-      await saveFormToBackend({ historyOverride: updatedHistory });
+      // Delete version row from forms table if present
+      await fetch(`/api/forms/${encodeURIComponent(formId)}?version=${encodeURIComponent(targetVersion)}`, {
+        method: 'DELETE'
+      });
+
+      // Save updated history list to current active/draft form record
+      await saveFormToBackend({ historyOverride: updatedHistory, allowActiveUpdate: true });
     } catch (err) {
       console.error('Error saving updated history after delete:', err);
     } finally {
