@@ -4487,14 +4487,11 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                   {revisionHistory.map((h, i) => {
                     const hasLayout = !!(h.layoutBlocks && h.layoutBlocks.length > 0);
                     const isCurrentActive = h.version === `v${major}.${minor}` && status === 'ACTIVE';
-                    const isCurrentDraft = h.version === `v${major}.${minor}` && status === 'DRAFT';
-                    const itemStatus = isCurrentActive ? 'ACTIVE' : (isCurrentDraft || h.status === 'DRAFT' ? 'DRAFT' : (h.status || 'RETIRED'));
                     
                     // Status colors matching ProcessEditor
-                    const statusColor = 
-                      itemStatus === 'ACTIVE' ? { bg: '#d1fae5', text: '#065f46', border: '#6ee7b7', label: 'Active' } :
-                      itemStatus === 'DRAFT'  ? { bg: '#fef3c7', text: '#92400e', border: '#fcd34d', label: 'Draft' }  :
-                                                { bg: '#fee2e2', text: '#991b1b', border: '#fca5a5', label: 'Retired' };
+                    const statusColor = isCurrentActive 
+                      ? { bg: '#d1fae5', text: '#065f46', border: '#6ee7b7', label: 'Active' }
+                      : { bg: '#fee2e2', text: '#991b1b', border: '#fca5a5', label: 'Retired' };
 
                     return (
                       <div 
@@ -4513,7 +4510,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                         onMouseLeave={e => { if (hasLayout && viewingRevisionVersion !== h.version) { e.currentTarget.style.background = '#f9fafb'; e.currentTarget.style.borderColor = 'var(--neutral-border)'; } }}
                         title={hasLayout ? "Click to view this version in read-only mode" : "Version log details"}
                       >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 700, marginBottom: h.change && !h.change.startsWith('Draft snapshot') ? '4px' : '0px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 700, marginBottom: '4px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                             <span style={{ color: 'var(--text-primary)' }}>{h.version}</span>
                             {viewingRevisionVersion === h.version && (
@@ -4527,7 +4524,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                             <span style={{ color: 'var(--text-muted)', fontSize: '0.68rem', fontWeight: 500 }}>{h.date}</span>
-                            {!isCurrentActive && !isCurrentDraft && (
+                            {!isCurrentActive && (
                               <button
                                 type="button"
                                 title={`Xóa phiên bản ${h.version}`}
@@ -4557,11 +4554,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                           </div>
                         </div>
                         
-                        {h.change && !h.change.startsWith('Draft snapshot') && (
-                          <div style={{ color: 'var(--text-secondary)', fontSize: '0.72rem', wordBreak: 'break-word', whiteSpace: 'pre-line', lineHeight: '1.25' }}>
-                            {h.change}
-                          </div>
-                        )}
+                        <div style={{ color: 'var(--text-secondary)', fontSize: '0.72rem', wordBreak: 'break-word', whiteSpace: 'pre-line', lineHeight: '1.25' }}>
+                          {h.change}
+                        </div>
                         
                         <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '4px', textAlign: 'right' }}>
                           By: {h.author}
