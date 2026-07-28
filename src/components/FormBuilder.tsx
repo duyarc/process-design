@@ -1011,6 +1011,62 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     setViewingRevisionVersion(entry.version);
   };
 
+  const handleDeleteRevisionEntry = async (targetVersion: string) => {
+    // 1. Check if submissions exist for this formId and targetVersion
+    try {
+      setLoading(true);
+      const res = await fetch('/api/submissions');
+      if (res.ok) {
+        const submissions = await res.json();
+        const matchingSubs = submissions.filter((s: any) => {
+          const fId = s.formId || s.form_id;
+          const vVer = (s.formVersion || s.form_version || '').replace(/\s*\([^)]*\)/g, '').trim();
+          const cleanTarget = targetVersion.replace(/\s*\([^)]*\)/g, '').trim();
+          return fId === formId && vVer === cleanTarget;
+        });
+
+        if (matchingSubs.length > 0) {
+          alert(`⛔ Không thể xóa phiên bản ${targetVersion} vì đã có ${matchingSubs.length} lượt điền dữ liệu lưu trữ trong hệ thống.`);
+          return;
+        }
+      }
+    } catch (err) {
+      console.error('Error checking version submissions:', err);
+    } finally {
+      setLoading(false);
+    }
+
+    // 2. Prompt confirmation
+    const confirmMessage = `⚠️ Bạn có chắc chắn muốn xóa phiên bản lịch sử ${targetVersion}?\nThao tác này sẽ xóa vĩnh viễn phiên bản này khỏi lịch sử và không thể hoàn tác.`;
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+
+    // 3. Filter out targetVersion
+    const updatedHistory = revisionHistory.filter(h => h.version !== targetVersion);
+    setRevisionHistory(updatedHistory);
+
+    if (viewingRevisionVersion === targetVersion) {
+      if (currentDraftBackup) {
+        setLayoutBlocks(currentDraftBackup.layoutBlocks);
+        setVersion(currentDraftBackup.version);
+        setIsLocked(currentDraftBackup.isLocked);
+        setCurrentDraftBackup(null);
+      }
+      setViewingRevisionVersion(null);
+    }
+
+    // 4. Save updated history to backend
+    try {
+      setLoading(true);
+      await saveFormToBackend({ historyOverride: updatedHistory });
+    } catch (err) {
+      console.error('Error saving updated history after delete:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleReturnToDraft = () => {
     if (currentDraftBackup) {
       setLayoutBlocks(currentDraftBackup.layoutBlocks);
@@ -4450,7 +4506,36 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                               {statusColor.label}
                             </span>
                           </div>
-                          <span style={{ color: 'var(--text-muted)', fontSize: '0.68rem', fontWeight: 500 }}>{h.date}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                            <span style={{ color: 'var(--text-muted)', fontSize: '0.68rem', fontWeight: 500 }}>{h.date}</span>
+                            {!isCurrentActive && (
+                              <button
+                                type="button"
+                                title={`Xóa phiên bản ${h.version}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteRevisionEntry(h.version);
+                                }}
+                                style={{
+                                  background: '#fee2e2',
+                                  border: '1px solid #fca5a5',
+                                  color: '#b91c1c',
+                                  borderRadius: '4px',
+                                  padding: '0.1rem 0.3rem',
+                                  fontSize: '0.65rem',
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  transition: 'all 0.15s ease'
+                                }}
+                                onMouseEnter={(e) => { e.currentTarget.style.background = '#fca5a5'; }}
+                                onMouseLeave={(e) => { e.currentTarget.style.background = '#fee2e2'; }}
+                              >
+                                <Trash2 size={11} />
+                              </button>
+                            )}
+                          </div>
                         </div>
                         
                         <div style={{ color: 'var(--text-secondary)', fontSize: '0.72rem', wordBreak: 'break-word', whiteSpace: 'pre-line', lineHeight: '1.25' }}>
