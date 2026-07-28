@@ -251,6 +251,18 @@ export const Dashboard: React.FC<DashboardProps> = ({
     });
   });
 
+  // Sort formsList descending by latest update timestamp (updated_at)
+  const getFormTimestamp = (form: any) => {
+    const dateVal = form.rawRecord?.updated_at || form.rawRecord?.updatedAt || 0;
+    return dateVal ? new Date(dateVal).getTime() : 0;
+  };
+
+  formsList.sort((a, b) => {
+    const diff = getFormTimestamp(b) - getFormTimestamp(a);
+    if (diff !== 0) return diff;
+    return a.formTitle.localeCompare(b.formTitle);
+  });
+
   const q = searchQuery.toLowerCase();
   const filteredFormsList = formsList.filter(form => {
     return form.formTitle.toLowerCase().includes(q) || 
