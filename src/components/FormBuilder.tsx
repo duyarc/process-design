@@ -1252,15 +1252,6 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
               >
                 Discard
               </button>
-              <div style={{ borderLeft: '1px solid var(--neutral-border)', height: '16px', margin: '0 0.5rem' }} />
-              <button 
-                type="button"
-                className="btn btn-primary btn-sm" 
-                onClick={handlePublish} 
-                style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '4px 12px', background: '#10b981', borderColor: '#10b981', fontSize: '0.8rem', fontWeight: 500 }}
-              >
-                Publish
-              </button>
             </>
           ) : (
             <>
@@ -4224,48 +4215,47 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                       </div>
 
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                        <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Release Date</label>
-                        <input 
-                          type="date"
-                          value={effectiveDate}
-                          onChange={(e) => setEffectiveDate(e.target.value)}
-                          style={{
-                            padding: '0.25rem 0.5rem',
-                            fontSize: '0.8rem',
-                            border: '1px solid var(--neutral-border)',
-                            borderRadius: '4px',
-                            outline: 'none',
-                            width: '100%',
-                            boxSizing: 'border-box'
-                          }}
-                        />
+                        <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Release Date & Action</label>
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                          <input 
+                            type="date"
+                            value={effectiveDate}
+                            onChange={(e) => setEffectiveDate(e.target.value)}
+                            style={{
+                              flex: 1,
+                              padding: '0.35rem 0.5rem',
+                              fontSize: '0.78rem',
+                              border: '1px solid var(--neutral-border)',
+                              borderRadius: '4px',
+                              outline: 'none',
+                              boxSizing: 'border-box'
+                            }}
+                          />
+                          <button 
+                            type="button"
+                            onClick={handlePublish} 
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              padding: '0.35rem 0.75rem',
+                              background: '#10b981',
+                              border: '1px solid #10b981',
+                              color: '#ffffff',
+                              borderRadius: '4px',
+                              fontSize: '0.78rem',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              whiteSpace: 'nowrap',
+                              transition: 'background-color 0.15s ease'
+                            }}
+                            onMouseEnter={(e) => { e.currentTarget.style.background = '#059669'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = '#10b981'; }}
+                          >
+                            Publish
+                          </button>
+                        </div>
                       </div>
-
-                      <button 
-                        type="button"
-                        onClick={handlePublish} 
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '0.35rem',
-                          width: '100%',
-                          padding: '0.45rem 0.75rem',
-                          background: '#10b981',
-                          border: '1px solid #10b981',
-                          color: '#ffffff',
-                          borderRadius: '6px',
-                          fontSize: '0.78rem',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          transition: 'background-color 0.15s ease',
-                          marginTop: '0.25rem'
-                        }}
-                        onMouseEnter={(e) => { e.currentTarget.style.background = '#059669'; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.background = '#10b981'; }}
-                      >
-                        PUBLISH
-                      </button>
                     </>
                   )}
                 </>
