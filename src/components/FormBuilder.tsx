@@ -1061,9 +1061,13 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     try {
       setLoading(true);
       // Delete version row from forms table if present
-      await fetch(`/api/forms/${encodeURIComponent(formId)}?version=${encodeURIComponent(targetVersion)}`, {
+      const deleteRes = await fetch(`/api/forms/${encodeURIComponent(formId)}?version=${encodeURIComponent(targetVersion)}`, {
         method: 'DELETE'
       });
+
+      if (!deleteRes.ok && deleteRes.status !== 404) {
+        console.warn('Could not delete version row from DB:', await deleteRes.text());
+      }
 
       // Save updated history list to current active/draft form record
       await saveFormToBackend({ historyOverride: updatedHistory, allowActiveUpdate: true });

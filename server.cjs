@@ -742,9 +742,10 @@ app.delete('/api/forms/*formId', async (req, res) => {
     }
     
     if (dbPool) {
+      const cleanVer = (version || '').replace(/\s*\([^)]*\)/g, '').trim();
       const result = await dbPool.query(
-        'DELETE FROM forms WHERE form_id = $1 AND version = $2',
-        [formId, version]
+        'DELETE FROM forms WHERE form_id = $1 AND (version = $2 OR REPLACE(REPLACE(version, \' (RETIRED)\', \'\'), \' (ACTIVE)\', \'\') = $3)',
+        [formId, version, cleanVer]
       );
       if (result.rowCount === 0) {
         return res.status(404).json({ 
@@ -753,7 +754,8 @@ app.delete('/api/forms/*formId', async (req, res) => {
       }
     } else {
       const forms = readFormsOffline();
-      const filtered = forms.filter(f => !(f.form_id === formId && f.version === version));
+      const cleanTarget = (version || '').replace(/\s*\([^)]*\)/g, '').trim();
+      const filtered = forms.filter(f => !(f.form_id === formId && (f.version === version || (f.version || '').replace(/\s*\([^)]*\)/g, '').trim() === cleanTarget)));
       if (filtered.length === forms.length) {
         return res.status(404).json({
           error: `Không tìm thấy bản ghi. Form ID: "${formId}", Version: "${version}".`
@@ -822,6 +824,16 @@ app.post('/api/forms', async (req, res) => {
       `;
       const values = [formId, formName, formTitle || formName, status || 'DRAFT', ver, effectiveDate || null, blocks, history, pdfName || null, pdfKey || null, pdfSize || 0];
       const result = await dbPool.query(query, values);
+
+      // Fanout updated revision_history to ALL other rows of the same form_id
+      // so no stale row retains deleted version entries
+      if (req.body.allowActiveUpdate || revisionHistory) {
+        await dbPool.query(
+          'UPDATE forms SET revision_history = $1 WHERE form_id = $2 AND version != $3',
+          [history, formId, ver]
+        );
+      }
+
       res.status(200).json(result.rows[0]);
     } else {
       let forms = readFormsOffline();
@@ -847,6 +859,17 @@ app.post('/api/forms', async (req, res) => {
       } else {
         forms.push(newForm);
       }
+
+      // Fanout updated revision_history offline
+      if (req.body.allowActiveUpdate || revisionHistory) {
+        const historyArr = Array.isArray(revisionHistory) ? revisionHistory : JSON.parse(revisionHistory || '[]');
+        forms.forEach(f => {
+          if (f.form_id === formId) {
+            f.revision_history = historyArr;
+          }
+        });
+      }
+
       writeFormsOffline(forms);
       res.status(200).json(newForm);
     }
