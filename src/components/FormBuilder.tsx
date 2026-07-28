@@ -235,10 +235,21 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
   const saveFormToBackend = async (opts: { versionOverride?: string, statusOverride?: 'ACTIVE' | 'DRAFT' | 'ARCHIVED', historyOverride?: FormRevisionEntry[], effectiveDateOverride?: string, layoutBlocksOverride?: LayoutBlockISO[], allowActiveUpdate?: boolean, oldVersionOverride?: string } = {}) => {
     const activeVersion = opts.versionOverride || version;
     const activeStatus = opts.statusOverride || status;
-    const activeHistory = opts.historyOverride || revisionHistory;
+    let activeHistory = opts.historyOverride || revisionHistory;
 
     try {
       const initialCleanVer = initialData?.version ? initialData.version.replace(/\s*\([^)]*\)/g, '').trim() : undefined;
+      const targetOldVer = opts.oldVersionOverride || (initialCleanVer && initialCleanVer !== activeVersion ? initialCleanVer : undefined);
+      
+      // If renaming a draft version, filter out the old draft version string from activeHistory
+      if (targetOldVer && targetOldVer !== activeVersion) {
+        activeHistory = activeHistory.filter(h => {
+          const cleanH = h.version ? h.version.replace(/\s*\([^)]*\)/g, '').trim() : '';
+          return cleanH !== targetOldVer;
+        });
+        setRevisionHistory(activeHistory);
+      }
+
       const payload = {
         formId,
         formName,
@@ -250,7 +261,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
         revisionHistory: activeHistory,
         allowActiveUpdate: opts.allowActiveUpdate ?? true,
         oldFormId: initialData?.formId && initialData.formId !== formId ? initialData.formId : undefined,
-        oldVersion: opts.oldVersionOverride || (initialCleanVer && initialCleanVer !== activeVersion ? initialCleanVer : undefined)
+        oldVersion: targetOldVer
       };
       
       const res = await fetch('/api/forms', {

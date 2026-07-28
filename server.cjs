@@ -655,6 +655,7 @@ app.get('/api/forms/*formId/history', async (req, res) => {
         if (Array.isArray(historyArray)) {
           historyArray.forEach(entry => {
             if (entry && entry.version) {
+              if (entry.status === 'DRAFT') return; // Skip un-published draft entries in revision_history
               const cleanVer = entry.version.replace(/\s*\([^)]*\)/g, '').trim();
               const existing = mergedHistoryMap.get(cleanVer);
               const hasLayout = entry.layoutBlocks && entry.layoutBlocks.length > 0;
@@ -666,7 +667,7 @@ app.get('/api/forms/*formId/history', async (req, res) => {
                   author: entry.author || 'QA Administrator',
                   change: entry.change || 'Published version',
                   layoutBlocks: entry.layoutBlocks || [],
-                  status: 'ACTIVE',
+                  status: entry.status || 'RETIRED',
                   rawVersion: entry.version
                 });
               }
