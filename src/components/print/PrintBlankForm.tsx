@@ -518,9 +518,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                                   <span style={{ color: '#000000', fontWeight: 600 }}>/</span>
                                   <span style={{ borderBottom: '1px dotted #cbd5e1', width: '36px', display: 'inline-block', minHeight: '22px' }} />
                                   <span style={{ color: '#000000', fontWeight: 600 }}>/</span>
-                                  <span style={{ borderBottom: '1px dotted #cbd5e1', width: '56px', display: 'inline-flex', alignItems: 'baseline', minHeight: '22px', color: '#94a3b8', fontSize: '0.8rem', letterSpacing: '1px' }}>
-                                    202...
-                                  </span>
+                                  <span style={{ borderBottom: '1px dotted #cbd5e1', width: '56px', display: 'inline-block', minHeight: '22px' }} />
                                 </div>
                               </div>
                             );
