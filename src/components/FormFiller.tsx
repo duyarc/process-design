@@ -1072,15 +1072,16 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
                                 />
                               )
                             ) : field.type === 'checkbox' ? (
-                              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', maxWidth: '100%' }}>
                                 {(field.options ?? [{ label: 'Đạt', value: 'PASS', isPass: true }, { label: 'Không Đạt', value: 'FAIL', isPass: false }]).map((opt: any) => {
                                   const currentValues = value ? value.split(',').filter(Boolean) : [];
                                   const isChecked = currentValues.includes(opt.value);
                                   return (
-                                    <label key={opt.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.82rem', cursor: 'pointer' }}>
+                                    <label key={opt.value} style={{ display: 'inline-flex', alignItems: 'flex-start', gap: '0.35rem', fontSize: '0.82rem', cursor: 'pointer', wordBreak: 'break-word', maxWidth: '100%' }}>
                                       <input 
                                         type="checkbox" 
                                         checked={isChecked}
+                                        style={{ marginTop: '2px', flexShrink: 0 }}
                                         onChange={(e) => {
                                           let nextValues;
                                           if (e.target.checked) {
@@ -1091,23 +1092,24 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
                                           setFormValues(prev => ({ ...prev, [field.id]: nextValues.join(',') }));
                                         }}
                                       />
-                                      {opt.label}
+                                      <span style={{ lineHeight: '1.3' }}>{opt.label}</span>
                                     </label>
                                   );
                                 })}
                               </div>
                             ) : field.type === 'radio' ? (
-                              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', maxWidth: '100%' }}>
                                 {(field.options ?? [{ label: 'Đạt', value: 'PASS', isPass: true }, { label: 'Không Đạt', value: 'FAIL', isPass: false }]).map((opt: any) => (
-                                  <label key={opt.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.82rem', cursor: 'pointer' }}>
+                                  <label key={opt.value} style={{ display: 'inline-flex', alignItems: 'flex-start', gap: '0.35rem', fontSize: '0.82rem', cursor: 'pointer', wordBreak: 'break-word', maxWidth: '100%' }}>
                                     <input 
                                       type="radio" 
                                       name={field.id}
                                       value={opt.value}
                                       checked={value === opt.value}
+                                      style={{ marginTop: '2px', flexShrink: 0 }}
                                       onChange={() => setFormValues(prev => ({ ...prev, [field.id]: opt.value }))}
                                     />
-                                    {opt.label}
+                                    <span style={{ lineHeight: '1.3' }}>{opt.label}</span>
                                   </label>
                                 ))}
                               </div>

@@ -424,19 +424,20 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                                 {cleanLabel && (
                                   <span style={{ fontWeight: 700, color: '#0f172a' }}>{cleanLabel}</span>
                                 )}
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 20px', alignItems: 'center' }}>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 20px', alignItems: 'flex-start', maxWidth: '100%' }}>
                                   {options.map((opt: any) => (
-                                    <span key={opt.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+                                    <span key={opt.value} style={{ display: 'inline-flex', alignItems: 'flex-start', gap: '6px', fontSize: '0.8rem', whiteSpace: 'normal', wordBreak: 'break-word', maxWidth: '100%' }}>
                                       <span style={{
                                         display: 'inline-block',
                                         width: '14px',
                                         height: '14px',
                                         border: '1.5px solid #000000',
                                         background: '#ffffff',
-                                        borderRadius: '2px',
-                                        flexShrink: 0
+                                        borderRadius: f.type === 'radio' ? '50%' : '2px',
+                                        flexShrink: 0,
+                                        marginTop: '2px'
                                       }} />
-                                      <span>{opt.label}</span>
+                                      <span style={{ lineHeight: '1.3' }}>{opt.label}</span>
                                     </span>
                                   ))}
                                 </div>

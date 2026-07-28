@@ -2059,9 +2059,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                     {(f.type === 'radio' || f.type === 'checkbox') && (() => {
                                       const options = f.options ?? [{ label: 'Đạt', value: 'PASS' }, { label: 'Không Đạt', value: 'FAIL' }];
                                       return (
-                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', alignItems: 'center', marginTop: '4px', paddingTop: '2px' }}>
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 18px', alignItems: 'flex-start', marginTop: '4px', paddingTop: '2px', maxWidth: '100%' }}>
                                           {options.map((opt: any) => (
-                                            <span key={opt.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.78rem', color: '#334155', whiteSpace: 'nowrap' }}>
+                                            <span key={opt.value} style={{ display: 'inline-flex', alignItems: 'flex-start', gap: '6px', fontSize: '0.78rem', color: '#334155', whiteSpace: 'normal', wordBreak: 'break-word', maxWidth: '100%' }}>
                                               <span style={{
                                                 display: 'inline-block',
                                                 width: '12px',
@@ -2069,9 +2069,10 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                 border: '1.5px solid #64748b',
                                                 borderRadius: f.type === 'radio' ? '50%' : '2px',
                                                 background: '#ffffff',
-                                                flexShrink: 0
+                                                flexShrink: 0,
+                                                marginTop: '2px'
                                               }} />
-                                              <span>{opt.label}</span>
+                                              <span style={{ lineHeight: '1.3' }}>{opt.label}</span>
                                             </span>
                                           ))}
                                         </div>
