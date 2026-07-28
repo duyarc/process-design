@@ -776,7 +776,7 @@ app.delete('/api/forms/*formId', async (req, res) => {
 // POST /api/forms - Save or Update form template (upsert by form_id + version composite key)
 app.post('/api/forms', async (req, res) => {
   try {
-    const { formId, formName, formTitle, status, version, effectiveDate, layoutBlocks, revisionHistory, pdfName, pdfKey, pdfSize, oldFormId } = req.body;
+    const { formId, formName, formTitle, status, version, effectiveDate, layoutBlocks, revisionHistory, pdfName, pdfKey, pdfSize, oldFormId, oldVersion } = req.body;
     
     if (!formId || !formName) {
       return res.status(400).json({ error: 'formId and formName are required' });
@@ -792,6 +792,14 @@ app.post('/api/forms', async (req, res) => {
         await dbPool.query(
           "DELETE FROM forms WHERE form_id = $1 AND version = $2 AND status = 'DRAFT'",
           [oldFormId, ver]
+        );
+      }
+      // If Version changed for a draft form, delete the old version draft record
+      if (oldVersion && oldVersion !== ver) {
+        const cleanOldVer = oldVersion.replace(/\s*\([^)]*\)/g, '').trim();
+        await dbPool.query(
+          "DELETE FROM forms WHERE form_id = $1 AND (version = $2 OR REPLACE(REPLACE(version, ' (RETIRED)', ''), ' (ACTIVE)', '') = $3) AND status = 'DRAFT'",
+          [formId, oldVersion, cleanOldVer]
         );
       }
 
@@ -839,6 +847,10 @@ app.post('/api/forms', async (req, res) => {
       let forms = readFormsOffline();
       if (oldFormId && oldFormId !== formId) {
         forms = forms.filter(f => !(f.form_id === oldFormId && f.version === ver && f.status === 'DRAFT'));
+      }
+      if (oldVersion && oldVersion !== ver) {
+        const cleanOld = oldVersion.replace(/\s*\([^)]*\)/g, '').trim();
+        forms = forms.filter(f => !(f.form_id === formId && (f.version === oldVersion || (f.version || '').replace(/\s*\([^)]*\)/g, '').trim() === cleanOld) && f.status === 'DRAFT'));
       }
       const existingIdx = forms.findIndex(f => f.form_id === formId && f.version === ver);
       const newForm = {

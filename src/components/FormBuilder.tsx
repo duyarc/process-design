@@ -232,12 +232,13 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     fetchFormTemplate();
   }, [initialData?.formId]);
 
-  const saveFormToBackend = async (opts: { versionOverride?: string, statusOverride?: 'ACTIVE' | 'DRAFT' | 'ARCHIVED', historyOverride?: FormRevisionEntry[], effectiveDateOverride?: string, layoutBlocksOverride?: LayoutBlockISO[], allowActiveUpdate?: boolean } = {}) => {
+  const saveFormToBackend = async (opts: { versionOverride?: string, statusOverride?: 'ACTIVE' | 'DRAFT' | 'ARCHIVED', historyOverride?: FormRevisionEntry[], effectiveDateOverride?: string, layoutBlocksOverride?: LayoutBlockISO[], allowActiveUpdate?: boolean, oldVersionOverride?: string } = {}) => {
     const activeVersion = opts.versionOverride || version;
     const activeStatus = opts.statusOverride || status;
     const activeHistory = opts.historyOverride || revisionHistory;
 
     try {
+      const initialCleanVer = initialData?.version ? initialData.version.replace(/\s*\([^)]*\)/g, '').trim() : undefined;
       const payload = {
         formId,
         formName,
@@ -248,7 +249,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
         layoutBlocks: opts.layoutBlocksOverride ?? layoutBlocks,
         revisionHistory: activeHistory,
         allowActiveUpdate: opts.allowActiveUpdate ?? true,
-        oldFormId: initialData?.formId && initialData.formId !== formId ? initialData.formId : undefined
+        oldFormId: initialData?.formId && initialData.formId !== formId ? initialData.formId : undefined,
+        oldVersion: opts.oldVersionOverride || (initialCleanVer && initialCleanVer !== activeVersion ? initialCleanVer : undefined)
       };
       
       const res = await fetch('/api/forms', {
@@ -1230,7 +1232,10 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
 
     try {
       setLoading(true);
-      await saveFormToBackend();
+      const initialCleanVersion = initialData?.version ? initialData.version.replace(/\s*\([^)]*\)/g, '').trim() : undefined;
+      await saveFormToBackend({
+        oldVersionOverride: initialCleanVersion && initialCleanVersion !== targetVersion ? initialCleanVersion : undefined
+      });
       onSave({
         formId,
         formTitle,
