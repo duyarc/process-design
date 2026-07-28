@@ -912,19 +912,6 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
       setChangeSummary(activeSummary);
     }
 
-    // Validation: Ensure all fields have names
-    let hasEmptyField = false;
-    layoutBlocks.forEach(b => {
-      if (b.fields.some(f => !f.checkItem.trim())) {
-        hasEmptyField = true;
-      }
-    });
-
-    if (hasEmptyField) {
-      alert('All layout fields must have a description label.');
-      return;
-    }
-
     const { major, minor } = parseVersion(version);
     const targetVersion = `v${major}.${minor}`;
     
