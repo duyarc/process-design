@@ -139,6 +139,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
     return retired || group[0]; // Active version takes priority, then Retired, else latest version
   };
 
+  const getFamilyTimestamp = (family: { representative: Process; allVersions: Process[] }) => {
+    const repTime = new Date(family.representative.lastUpdated || 0).getTime();
+    const maxVersionTime = Math.max(
+      ...family.allVersions.map(v => new Date(v.lastUpdated || 0).getTime()),
+      0
+    );
+    return Math.max(repTime, maxVersionTime);
+  };
+
   const processFamilies = Object.keys(groups)
     .filter(parentId => parentId !== 'unlinked')
     .map(parentId => {
@@ -149,7 +158,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
         representative,
         allVersions
       };
-    });
+    })
+    .sort((a, b) => getFamilyTimestamp(b) - getFamilyTimestamp(a));
 
   const filteredFamilies = processFamilies.filter(family => {
     const q = searchQuery.toLowerCase();
