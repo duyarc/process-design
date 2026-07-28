@@ -640,7 +640,7 @@ app.get('/api/forms/*formId/history', async (req, res) => {
         version: cleanVer,
         date: row.updated_at ? new Date(row.updated_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
         author: 'System Generated',
-        change: row.status === 'ACTIVE' ? 'Published version' : `Draft snapshot (Status: ${row.status})`,
+        change: row.status === 'ACTIVE' ? 'Published version' : '',
         layoutBlocks: typeof row.layout_blocks === 'string' ? JSON.parse(row.layout_blocks) : (row.layout_blocks || []),
         status: row.status,
         rawVersion: row.version

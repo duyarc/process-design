@@ -117,6 +117,7 @@ export interface FormRevisionEntry {
   author: string;
   change: string;
   layoutBlocks?: LayoutBlockISO[];
+  status?: string;
 }
 
 export interface MatrixConfigISO {
