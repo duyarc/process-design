@@ -77,14 +77,19 @@ const getCheckboxGridTemplate = (options: any[]) => {
 
 const generateFormChangeSummary = (
   initialBlocks?: LayoutBlockISO[],
-  currentBlocks?: LayoutBlockISO[]
+  currentBlocks?: LayoutBlockISO[],
+  history?: FormRevisionEntry[]
 ): string => {
+  const hasActiveVersion = (history || []).some(
+    h => h.status === 'ACTIVE' || h.status === 'RETIRED' || h.change?.includes('Published')
+  );
+
+  if (!hasActiveVersion) {
+    return 'Ban hành lần đầu';
+  }
+
   const current = currentBlocks || [];
   const initial = initialBlocks || [];
-
-  if (!initial || initial.length === 0) {
-    return '[KHỞI TẠO] Khởi tạo ban đầu biểu mẫu.';
-  }
 
   const changes: string[] = [];
 
@@ -305,12 +310,12 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
 
   useEffect(() => {
     if (rightTab === 'versions' && !changeSummary.trim()) {
-      const suggested = generateFormChangeSummary(initialData?.layoutBlocks, layoutBlocks);
+      const suggested = generateFormChangeSummary(initialData?.layoutBlocks, layoutBlocks, revisionHistory);
       if (suggested) {
         setChangeSummary(suggested);
       }
     }
-  }, [rightTab, layoutBlocks, initialData]);
+  }, [rightTab, layoutBlocks, initialData, revisionHistory]);
 
   useEffect(() => {
     setIsLocked(status === 'ACTIVE');
@@ -922,7 +927,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
   const handlePublish = async () => {
     let activeSummary = changeSummary.trim();
     if (!activeSummary) {
-      activeSummary = generateFormChangeSummary(initialData?.layoutBlocks, layoutBlocks);
+      activeSummary = generateFormChangeSummary(initialData?.layoutBlocks, layoutBlocks, revisionHistory);
       setChangeSummary(activeSummary);
     }
 
@@ -4388,7 +4393,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                           <button
                             type="button"
                             onClick={() => {
-                              const suggested = generateFormChangeSummary(initialData?.layoutBlocks, layoutBlocks);
+                              const suggested = generateFormChangeSummary(initialData?.layoutBlocks, layoutBlocks, revisionHistory);
                               setChangeSummary(suggested);
                             }}
                             style={{
