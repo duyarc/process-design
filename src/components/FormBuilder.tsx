@@ -75,6 +75,108 @@ const getCheckboxGridTemplate = (options: any[]) => {
   return `${pct1}% ${pct2}%`;
 };
 
+const generateFormChangeSummary = (
+  initialBlocks?: LayoutBlockISO[],
+  currentBlocks?: LayoutBlockISO[]
+): string => {
+  const current = currentBlocks || [];
+  const initial = initialBlocks || [];
+
+  if (!initial || initial.length === 0) {
+    return '[KHỞI TẠO] Khởi tạo ban đầu biểu mẫu.';
+  }
+
+  const changes: string[] = [];
+
+  const initialBlockMap = new Map<string, LayoutBlockISO>();
+  initial.forEach(b => initialBlockMap.set(b.id, b));
+
+  const currentBlockMap = new Map<string, LayoutBlockISO>();
+  current.forEach(b => currentBlockMap.set(b.id, b));
+
+  // 1. Detect added groups
+  current.forEach(b => {
+    if (!initialBlockMap.has(b.id)) {
+      const groupTitle = b.title || b.type;
+      changes.push(`[BỔ SUNG] Bổ sung nhóm mới: "${groupTitle}"`);
+    }
+  });
+
+  // 2. Detect removed groups
+  initial.forEach(b => {
+    if (!currentBlockMap.has(b.id)) {
+      const groupTitle = b.title || b.type;
+      changes.push(`[LOẠI BỎ] Loại bỏ nhóm: "${groupTitle}"`);
+    }
+  });
+
+  // 3. Detect modified groups and field diffs inside existing groups
+  current.forEach(currBlock => {
+    const initBlock = initialBlockMap.get(currBlock.id);
+    if (!initBlock) return;
+
+    const groupTitle = currBlock.title || currBlock.type;
+
+    if (currBlock.title !== initBlock.title) {
+      changes.push(`[ĐIỀU CHỈNH] Đổi tên nhóm: "${initBlock.title || 'Không tiêu đề'}" ➔ "${currBlock.title}"`);
+    }
+
+    const initFieldMap = new Map<string, FormFieldISO>();
+    (initBlock.fields || []).forEach(f => initFieldMap.set(f.id, f));
+
+    const currFieldMap = new Map<string, FormFieldISO>();
+    (currBlock.fields || []).forEach(f => currFieldMap.set(f.id, f));
+
+    // Added fields (nội dung)
+    (currBlock.fields || []).forEach(f => {
+      if (!initFieldMap.has(f.id)) {
+        const itemLabel = sanitizeLabel(f.checkItem) || f.type;
+        changes.push(`[BỔ SUNG] Thêm nội dung mới trong nhóm "${groupTitle}": "${itemLabel}"`);
+      }
+    });
+
+    // Removed fields (nội dung)
+    (initBlock.fields || []).forEach(f => {
+      if (!currFieldMap.has(f.id)) {
+        const itemLabel = sanitizeLabel(f.checkItem) || f.type;
+        changes.push(`[LOẠI BỎ] Loại bỏ nội dung trong nhóm "${groupTitle}": "${itemLabel}"`);
+      }
+    });
+
+    // Modified fields (nội dung)
+    (currBlock.fields || []).forEach(f => {
+      const initField = initFieldMap.get(f.id);
+      if (!initField) return;
+
+      const currLabel = sanitizeLabel(f.checkItem);
+      const initLabel = sanitizeLabel(initField.checkItem);
+
+      if (currLabel !== initLabel) {
+        changes.push(`[ĐIỀU CHỈNH] Cập nhật nhãn nội dung trong nhóm "${groupTitle}": "${initLabel}" ➔ "${currLabel}"`);
+      } else if (f.type !== initField.type) {
+        changes.push(`[ĐIỀU CHỈNH] Cập nhật kiểu nội dung "${currLabel || 'Nội dung'}" trong nhóm "${groupTitle}"`);
+      } else if (f.type === 'subtable') {
+        const initCols = initField.subtableColumns || [];
+        const currCols = f.subtableColumns || [];
+        if (initCols.length !== currCols.length || JSON.stringify(initCols) !== JSON.stringify(currCols)) {
+          changes.push(`[ĐIỀU CHỈNH] Điều chỉnh cột bảng subtable trong nhóm "${groupTitle}"`);
+        }
+      }
+    });
+  });
+
+  if (changes.length === 0) {
+    return '[ĐIỀU CHỈNH] Cập nhật điều chỉnh chi tiết biểu mẫu.';
+  }
+
+  const uniqueChanges = Array.from(new Set(changes));
+  if (uniqueChanges.length > 5) {
+    return uniqueChanges.slice(0, 4).join('\n') + '\n• Và một số điều chỉnh chi tiết khác.';
+  }
+
+  return uniqueChanges.join('\n');
+};
+
 export default function FormBuilder({ formName, initialData, onSave, onClose, linkedProcessId, onUnlinkFromProcess }: FormBuilderProps) {
   // 1. Core Layout State
   const [formId, setFormId] = useState(initialData?.formId || `FM-${formName.toUpperCase().replace(/[^A-Z0-9]/g, '-')}-001`);
@@ -186,6 +288,15 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
       setRightTab('properties');
     }
   }, [activeBlockId]);
+
+  useEffect(() => {
+    if (rightTab === 'versions' && !changeSummary.trim()) {
+      const suggested = generateFormChangeSummary(initialData?.layoutBlocks, layoutBlocks);
+      if (suggested) {
+        setChangeSummary(suggested);
+      }
+    }
+  }, [rightTab, layoutBlocks, initialData]);
 
   useEffect(() => {
     setIsLocked(status === 'ACTIVE');
@@ -795,9 +906,10 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
   // 4. Save and Publish
 
   const handlePublish = async () => {
-    if (!changeSummary.trim()) {
-      alert('Please enter a change summary before publishing a new active version.');
-      return;
+    let activeSummary = changeSummary.trim();
+    if (!activeSummary) {
+      activeSummary = generateFormChangeSummary(initialData?.layoutBlocks, layoutBlocks);
+      setChangeSummary(activeSummary);
     }
 
     // Validation: Ensure all fields have names
@@ -823,12 +935,15 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     if (!isSameFormAndVersion) {
       try {
         setLoading(true);
-        const checkRes = await fetch(`/api/forms/${encodeURIComponent(formId)}?version=${encodeURIComponent(targetVersion)}`);
-        if (checkRes.ok) {
-          versionExists = true;
+        const res = await fetch(`/api/forms/${encodeURIComponent(formId)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.version && data.version.replace(/\s*\([^)]*\)/g, '').trim() === targetVersion) {
+            versionExists = true;
+          }
         }
       } catch (err) {
-        console.error('Error verifying version existence:', err);
+        console.error('Error checking version existence:', err);
       } finally {
         setLoading(false);
       }
@@ -4198,7 +4313,31 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                       <div style={{ borderTop: '1px solid var(--neutral-border)', margin: '0.4rem 0' }} />
 
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                        <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Change Summary</label>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Change Summary</label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const suggested = generateFormChangeSummary(initialData?.layoutBlocks, layoutBlocks);
+                              setChangeSummary(suggested);
+                            }}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: '#0d9488',
+                              fontSize: '0.7rem',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '2px',
+                              padding: 0
+                            }}
+                            title="Tự động phân tích thay đổi và tạo tóm tắt"
+                          >
+                            ✨ Gợi ý tự động
+                          </button>
+                        </div>
                         <textarea 
                           value={changeSummary}
                           onChange={(e) => setChangeSummary(e.target.value)}
