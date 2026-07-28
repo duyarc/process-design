@@ -9,7 +9,7 @@ This document is the **single source of truth** for the visual design language o
 
 | Field | Value |
 |---|---|
-| **Verified At Commit** | `001af74` (2026-07-27) — Section 2 design tokens checked against `src/index.css`. Section 4 rewritten 2026-07-28 against **uncommitted** working-tree changes to `src/print.css`; re-verify and record the SHA when they land. |
+| **Verified At Commit** | `62b1a98` (2026-07-28) — Section 4 checked against `src/print.css` (token scale, sibling-spacing rule, `:not(.print-doc *)` table exclusion, `@page` split). Section 2 design tokens last checked at `001af74` against `src/index.css`. Print output not yet visually confirmed in a browser print preview. |
 
 ## 1. Design Principles
 
@@ -156,4 +156,4 @@ exclusion, otherwise designed header tints are still forced to `#f0f0f0`.
 | Date | Commit | Change |
 |---|---|---|
 | 2026-07-09 | `8df2f3c` | Re-written to act as the strict Master Design Source of Truth, mapping exactly to `src/index.css` variables and classes. |
-| 2026-07-28 | *(uncommitted)* | **Print spacing invariant:** `print.css` gained the `.print-doc` token scale plus the `.print-block + .print-block` sibling rule, making block spacing single-source. Added `.print-info-grid` (row-major grid, baseline-aligned) and `.print-field-full`. Scoped the global `th` / `td` print overrides with `:not(.print-doc *)` so form print templates keep their inline cell geometry. Documented the deliberate two-`@page` orientation split. See §4.1–4.3. |
+| 2026-07-28 | `62b1a98` | **Print spacing invariant:** `print.css` gained the `.print-doc` token scale plus the `.print-block + .print-block` sibling rule, making block spacing single-source. Added `.print-info-grid` (row-major grid, baseline-aligned) and `.print-field-full`. Scoped the global `th` / `td` print overrides with `:not(.print-doc *)` so form print templates keep their inline cell geometry. Documented the deliberate two-`@page` orientation split. See §4.1–4.3. |

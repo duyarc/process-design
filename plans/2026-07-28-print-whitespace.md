@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | **Authored against commit** | `0cf52c3` |
-| **Status** | Đã thực thi (Phase 1–5), `npm run build` sạch. Chờ kiểm tra thủ công bằng Print Preview — xem mục Kiểm tra. Chưa commit. |
+| **Status** | Đã thực thi (Phase 1–5), `npm run build` sạch, đã commit tại `62b1a98`. Chờ kiểm tra thủ công bằng Print Preview — xem mục Kiểm tra. |
 
 ---
 
@@ -596,9 +596,10 @@ thể scope theo `.print-doc`. Thêm chú thích ngay trên khối `@page` của
   chuyển sang `print.css`.
 - `DESIGN_FORM_OPERATIONS.md`: Change Log — cùng nội dung cho `PrintRecord.tsx`, thêm việc tôn trọng
   `block.columns` thay vì hardcode 2.
-- Cả ba tài liệu: `Verified At Commit` **không** được ghi một SHA chưa tồn tại. Vì các thay đổi còn
-  nằm trong working tree, mỗi header chỉ ghi chú rõ phần mới được kiểm chứng đối chiếu **uncommitted
-  working tree**, kèm yêu cầu ghi lại SHA khi commit. Change Log dùng `*(uncommitted)*` ở cột Commit.
+- Cả ba tài liệu: `Verified At Commit` **không** được ghi một SHA chưa tồn tại. Khi thực thi, các thay
+  đổi còn nằm trong working tree nên mỗi header tạm ghi chú `uncommitted working tree`, và Change Log
+  dùng `*(uncommitted)*` ở cột Commit. Sau khi commit code tại `62b1a98`, cả ba tài liệu đã được cập
+  nhật sang SHA thật trong một commit docs riêng.
 
 ---
 
