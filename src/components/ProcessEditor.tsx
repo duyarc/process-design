@@ -2751,11 +2751,14 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                                 onClick={() => {
                                   const fullTemplate = {
                                     ...formData,
+                                    formId: formId || formData?.formId || liveForm?.form_id || liveForm?.form_name,
                                     formTitle: liveForm?.form_title || liveForm?.form_name || formData?.formTitle || formId,
                                     layoutBlocks: liveForm ? (typeof liveForm.layout_blocks === 'string' ? JSON.parse(liveForm.layout_blocks) : liveForm.layout_blocks) : (formData?.layoutBlocks || []),
                                     revisionHistory: liveForm ? (typeof liveForm.revision_history === 'string' ? JSON.parse(liveForm.revision_history) : liveForm.revision_history) : (formData?.revisionHistory || []),
                                     version: liveForm ? liveForm.version : (formData?.version || 'V0.1'),
-                                    status: liveForm ? liveForm.status : (formData?.status || 'DRAFT')
+                                    status: liveForm ? liveForm.status : (formData?.status || 'DRAFT'),
+                                    effectiveDate: liveForm?.effective_date || (formData as any)?.effectiveDate,
+                                    updatedAt: liveForm?.updated_at || (formData as any)?.updatedAt
                                   };
                                   setPrintTemplateData(fullTemplate as any);
                                 }}

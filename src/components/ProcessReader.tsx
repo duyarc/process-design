@@ -392,11 +392,14 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
               const liveForm = await res.json();
               const fullTemplate = {
                 ...formData,
-                formTitle: liveForm.form_title || liveForm.form_name,
+                formId: formData?.formId || liveForm.form_id || liveForm.form_name,
+                formTitle: liveForm.form_title || liveForm.form_name || formData?.formTitle,
                 layoutBlocks: typeof liveForm.layout_blocks === 'string' ? JSON.parse(liveForm.layout_blocks) : liveForm.layout_blocks,
                 revisionHistory: typeof liveForm.revision_history === 'string' ? JSON.parse(liveForm.revision_history) : liveForm.revision_history,
                 version: liveForm.version,
-                status: liveForm.status
+                status: liveForm.status,
+                effectiveDate: liveForm.effective_date || (formData as any)?.effectiveDate,
+                updatedAt: liveForm.updated_at || (formData as any)?.updatedAt
               };
               setPrintTemplateData(fullTemplate as any);
               setIsDirectPrint(true);
@@ -1005,11 +1008,14 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                                         if (formData && liveForm) {
                                           const fullTemplate = {
                                             ...formData,
-                                            formTitle: liveForm.form_title || liveForm.form_name,
+                                            formId: formData?.formId || liveForm.form_id || liveForm.form_name,
+                                            formTitle: liveForm.form_title || liveForm.form_name || formData?.formTitle,
                                             layoutBlocks: typeof liveForm.layout_blocks === 'string' ? JSON.parse(liveForm.layout_blocks) : liveForm.layout_blocks,
                                             revisionHistory: typeof liveForm.revision_history === 'string' ? JSON.parse(liveForm.revision_history) : liveForm.revision_history,
                                             version: liveForm.version,
-                                            status: liveForm.status
+                                            status: liveForm.status,
+                                            effectiveDate: liveForm.effective_date || (formData as any)?.effectiveDate,
+                                            updatedAt: liveForm.updated_at || (formData as any)?.updatedAt
                                           };
                                           setPrintTemplateData(fullTemplate as any);
                                         }

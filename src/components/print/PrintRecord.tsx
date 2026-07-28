@@ -391,7 +391,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
 
       {/* Default footer forced at the bottom of printed page (Moved to top for Chromium print viewport rendering fix) */}
       <div className="print-footer">
-        <span>{submission.formId || 'N/A'}</span>
+        <span>{(submission as any).formId || (submission as any).form_id || (submission as any).formName || 'N/A'}</span>
         <span>{formatFormVersion(submission.formVersion || 'v1.0')}</span>
       </div>
 

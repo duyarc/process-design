@@ -208,8 +208,8 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
 
       {/* Default footer forced at the bottom of printed page (Moved to top for Chromium print viewport rendering fix) */}
       <div className="print-footer">
-        <span>{template.formId || 'N/A'}</span>
-        <span>{formatFormVersion(template.version || 'v0.1', template.status, template.effectiveDate, template.updatedAt)}</span>
+        <span>{(template as any).formId || (template as any).form_id || (template as any).formName || (template as any).id || 'N/A'}</span>
+        <span>{formatFormVersion(template.version || (template as any).rawRecord?.version || 'v0.1', template.status, template.effectiveDate || (template as any).effective_date, template.updatedAt || (template as any).updated_at)}</span>
       </div>
 
       {/* Close button (only visible on screen) */}
