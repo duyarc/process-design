@@ -234,12 +234,16 @@ export function generateBPMNXML(
     <bpmn:userTask id="${node.id}" name="${escapedAction}">${incomingStr}${outgoingStr}
     </bpmn:userTask>`;
     } else if (shape === 'subprocess') {
-      const displayName = node.stepRef?.subProcessId
-        ? `${escapedAction}\n[${node.stepRef.subProcessId}]`
-        : escapedAction;
       xml += `
-    <bpmn:callActivity id="${node.id}" name="${escapeXml(displayName)}">${incomingStr}${outgoingStr}
+    <bpmn:callActivity id="${node.id}" name="${escapedAction}">${incomingStr}${outgoingStr}
     </bpmn:callActivity>`;
+      if (node.stepRef?.subProcessId) {
+        xml += `
+    <bpmn:textAnnotation id="SubProcAnn_${node.id}">
+      <bpmn:text>${escapeXml(node.stepRef.subProcessId)}</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:association id="SubProcAssoc_${node.id}" sourceRef="${node.id}" targetRef="SubProcAnn_${node.id}" />`;
+      }
     } else {
       xml += `
     <bpmn:task id="${node.id}" name="${escapedAction}">${incomingStr}${outgoingStr}
@@ -350,6 +354,24 @@ export function generateBPMNXML(
       </bpmndi:BPMNShape>`;
       });
     }
+
+    // Subprocess ID text annotation DI
+    if (
+      node.type === 'step' &&
+      node.bpmnShape === 'subprocess' &&
+      node.stepRef?.subProcessId
+    ) {
+      const subText = node.stepRef.subProcessId;
+      const annW = Math.max(120, subText.length * 8);
+      const annH = 22;
+      const annX = Math.round(x + w / 2 - annW / 2);
+      const annY = Math.round(y + h + 8);
+
+      xml += `
+      <bpmndi:BPMNShape id="SubProcAnn_${node.id}_di" bpmnElement="SubProcAnn_${node.id}">
+        <dc:Bounds x="${annX}" y="${annY}" width="${annW}" height="${annH}" />
+      </bpmndi:BPMNShape>`;
+    }
   });
 
   // 6. Edge shapes DI
@@ -389,31 +411,48 @@ export function generateBPMNXML(
       </bpmndi:BPMNEdge>`;
   });
 
-  // 7. Data association edges DI
+  // 7. Subprocess association edges & Data association edges DI
   renderNodes.forEach((node) => {
+    const pos = nodePositions.get(node.id);
+
     if (
-      node.type !== 'step' ||
-      !node.stepRef?.producesForm ||
-      node.bpmnShape !== 'task'
-    ) return;
+      node.type === 'step' &&
+      node.stepRef?.producesForm &&
+      node.bpmnShape === 'task'
+    ) {
+      const forms =
+        node.stepRef.formNames && node.stepRef.formNames.length > 0
+          ? node.stepRef.formNames
+          : node.stepRef.formName
+          ? [node.stepRef.formName]
+          : ['Completed Form'];
 
-    const forms =
-      node.stepRef.formNames && node.stepRef.formNames.length > 0
-        ? node.stepRef.formNames
-        : node.stepRef.formName
-        ? [node.stepRef.formName]
-        : ['Completed Form'];
-
-    forms.forEach((_, idx) => {
-      const dp = docPlacementMap.get(`${node.id}::${idx}`);
-      if (!dp) return;
-      xml += `
+      forms.forEach((_, idx) => {
+        const dp = docPlacementMap.get(`${node.id}::${idx}`);
+        if (!dp) return;
+        xml += `
       <bpmndi:BPMNEdge id="DataOutputAssoc_${node.id}_${idx}_di" bpmnElement="DataOutputAssoc_${node.id}_${idx}">
         <di:waypoint x="${dp.waypointFrom.x}" y="${dp.waypointFrom.y}" />
         ${dp.waypointMid ? `<di:waypoint x="${dp.waypointMid.x}" y="${dp.waypointMid.y}" />` : ''}
         <di:waypoint x="${dp.waypointTo.x}" y="${dp.waypointTo.y}" />
       </bpmndi:BPMNEdge>`;
-    });
+      });
+    }
+
+    if (
+      node.type === 'step' &&
+      node.bpmnShape === 'subprocess' &&
+      node.stepRef?.subProcessId &&
+      pos
+    ) {
+      const { x, y, width: w, height: h } = pos;
+      const annY = Math.round(y + h + 8);
+      xml += `
+      <bpmndi:BPMNEdge id="SubProcAssoc_${node.id}_di" bpmnElement="SubProcAssoc_${node.id}">
+        <di:waypoint x="${Math.round(x + w / 2)}" y="${y + h}" />
+        <di:waypoint x="${Math.round(x + w / 2)}" y="${annY}" />
+      </bpmndi:BPMNEdge>`;
+    }
   });
 
   xml += `
