@@ -249,8 +249,12 @@ export function formatFormVersion(version: string, status?: string, effectiveDat
     return `${display} (draft)`;
   }
   if (status === 'ACTIVE' && effectiveDate) {
-    const [yyyy, mm, dd] = effectiveDate.split('-');
-    return `${display}-${dd}.${mm}.${yyyy}`; // "V0.1-04.07.2026"
+    const datePart = effectiveDate.split('T')[0]; // handle ISO "2026-07-29T00:00:00.000Z"
+    const parts = datePart.split('-');
+    if (parts.length === 3) {
+      const [yyyy, mm, dd] = parts;
+      return `${display}-${dd}.${mm}.${yyyy}`; // "V1.0-29.07.2026"
+    }
   }
 
   // Fallback for legacy embedded dates (e.g. in older submissions)
