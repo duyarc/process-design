@@ -201,7 +201,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
           }
           .print-footer {
             position: fixed;
-            bottom: 0;
+            bottom: ${isA5 ? '-5mm' : '-10mm'};
             left: 0;
             right: 0;
             display: flex !important;

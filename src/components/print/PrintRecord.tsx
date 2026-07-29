@@ -394,7 +394,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
           }
           .print-footer {
             position: fixed;
-            bottom: 0;
+            bottom: ${pageSize === 'A5_LANDSCAPE' ? '-5mm' : '-10mm'};
             left: 0;
             right: 0;
             display: flex !important;
