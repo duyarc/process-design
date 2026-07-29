@@ -200,13 +200,21 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
             background: transparent !important;
           }
           .print-footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 20px;
             display: flex !important;
+            align-items: center;
             justify-content: space-between;
             font-size: 0.75rem;
             font-family: inherit;
             color: #475569;
-            padding-top: 10px;
-            margin-top: 8px;
+          }
+          .print-footer-spacer {
+            height: 20px;
+            display: block;
           }
         }
       `}</style>
@@ -1005,14 +1013,18 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
         <tfoot>
           <tr>
             <td>
-              <div className="print-footer">
-                <span>{(template as any).formId || (template as any).form_id || (template as any).formName || (template as any).id || 'N/A'}</span>
-                <span>{formatFormVersion(template.version || (template as any).rawRecord?.version || 'v0.1', template.status, template.effectiveDate || (template as any).effective_date, template.updatedAt || (template as any).updated_at)}</span>
-              </div>
+              {/* Spacer giữ chỗ cho footer fixed — cùng chiều cao với .print-footer */}
+              <div className="print-footer-spacer"></div>
             </td>
           </tr>
         </tfoot>
       </table>
+
+      {/* Footer thực sự: position fixed, overlay đúng lên vùng spacer tfoot đã giữ chỗ */}
+      <div className="print-footer">
+        <span>{(template as any).formId || (template as any).form_id || (template as any).formName || (template as any).id || 'N/A'}</span>
+        <span>{formatFormVersion(template.version || (template as any).rawRecord?.version || 'v0.1', template.status, template.effectiveDate || (template as any).effective_date, template.updatedAt || (template as any).updated_at)}</span>
+      </div>
     </div>,
     document.body
   );

@@ -393,13 +393,21 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
             background: transparent !important;
           }
           .print-footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 20px;
             display: flex !important;
+            align-items: center;
             justify-content: space-between;
             font-size: 0.75rem;
             font-family: inherit;
             color: #475569;
-            padding-top: 10px;
-            margin-top: 8px;
+          }
+          .print-footer-spacer {
+            height: 20px;
+            display: block;
           }
         }
       `}</style>
@@ -1247,14 +1255,18 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
         <tfoot>
           <tr>
             <td>
-              <div className="print-footer">
-                <span>{(submission as any).formId || (submission as any).form_id || (submission as any).formName || 'N/A'}</span>
-                <span>{formatFormVersion(submission.formVersion || 'v1.0')}</span>
-              </div>
+              {/* Spacer giữ chỗ cho footer fixed — cùng chiều cao với .print-footer */}
+              <div className="print-footer-spacer"></div>
             </td>
           </tr>
         </tfoot>
       </table>
+
+      {/* Footer thực sự: position fixed, overlay đúng lên vùng spacer tfoot đã giữ chỗ */}
+      <div className="print-footer">
+        <span>{(submission as any).formId || (submission as any).form_id || (submission as any).formName || 'N/A'}</span>
+        <span>{formatFormVersion(submission.formVersion || 'v1.0')}</span>
+      </div>
     </div>,
     document.body
   );
