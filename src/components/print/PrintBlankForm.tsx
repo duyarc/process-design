@@ -161,7 +161,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
           }
           @page {
             size: ${isA5 ? 'A5 landscape' : 'A4 portrait'};
-            margin: ${isA5 ? '8mm 10mm 10mm 10mm' : '15mm 15mm 22mm 15mm'};
+            margin: ${isA5 ? '8mm 10mm 10mm 10mm' : '12mm 15mm 15mm 15mm'};
           }
           ${isA5 ? `
             .print-doc {
@@ -200,24 +200,16 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
             background: transparent !important;
           }
           .print-footer {
-            position: fixed;
-            bottom: ${isA5 ? '-5mm' : '-10mm'};
-            left: 0;
-            right: 0;
             display: flex !important;
             justify-content: space-between;
             font-size: 0.75rem;
             font-family: inherit;
             color: #475569;
+            padding-top: 10px;
+            margin-top: 8px;
           }
         }
       `}</style>
-
-      {/* Default footer forced at the bottom of printed page (Moved to top for Chromium print viewport rendering fix) */}
-      <div className="print-footer">
-        <span>{(template as any).formId || (template as any).form_id || (template as any).formName || (template as any).id || 'N/A'}</span>
-        <span>{formatFormVersion(template.version || (template as any).rawRecord?.version || 'v0.1', template.status, template.effectiveDate || (template as any).effective_date, template.updatedAt || (template as any).updated_at)}</span>
-      </div>
 
       {/* Close button (only visible on screen) */}
       <div className="no-print" style={{
@@ -252,8 +244,13 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
         </div>
       </div>
 
-      {/* Dynamic Blocks Rendering */}
-      {template.layoutBlocks && template.layoutBlocks.map((block) => {
+      {/* Outer Table Wrapper for Native Print Header/Footer Support */}
+      <table className="print-outer-table">
+        <tbody>
+          <tr>
+            <td>
+              {/* Dynamic Blocks Rendering */}
+              {template.layoutBlocks && template.layoutBlocks.map((block) => {
         return (
           <div key={block.id} className={`print-block${block.type === 'SECTION_LABEL' ? ' print-block--section' : ''} ${block.type !== 'CHECKLIST_TABLE' && block.type !== 'INFO_GRID' ? 'print-block-avoid' : ''}`}>
             
@@ -1002,6 +999,20 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
           </div>
         );
       })}
+            </td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td>
+              <div className="print-footer">
+                <span>{(template as any).formId || (template as any).form_id || (template as any).formName || (template as any).id || 'N/A'}</span>
+                <span>{formatFormVersion(template.version || (template as any).rawRecord?.version || 'v0.1', template.status, template.effectiveDate || (template as any).effective_date, template.updatedAt || (template as any).updated_at)}</span>
+              </div>
+            </td>
+          </tr>
+        </tfoot>
+      </table>
     </div>,
     document.body
   );

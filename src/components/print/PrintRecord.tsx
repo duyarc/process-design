@@ -354,7 +354,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
           }
           @page {
             size: ${pageSize === 'A5_LANDSCAPE' ? 'A5 landscape' : 'A4 portrait'};
-            margin: ${pageSize === 'A5_LANDSCAPE' ? '8mm 10mm 10mm 10mm' : '15mm 15mm 22mm 15mm'};
+            margin: ${pageSize === 'A5_LANDSCAPE' ? '8mm 10mm 10mm 10mm' : '12mm 15mm 15mm 15mm'};
           }
           ${pageSize === 'A5_LANDSCAPE' ? `
             .print-doc {
@@ -393,24 +393,16 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
             background: transparent !important;
           }
           .print-footer {
-            position: fixed;
-            bottom: ${pageSize === 'A5_LANDSCAPE' ? '-5mm' : '-10mm'};
-            left: 0;
-            right: 0;
             display: flex !important;
             justify-content: space-between;
             font-size: 0.75rem;
             font-family: inherit;
             color: #475569;
+            padding-top: 10px;
+            margin-top: 8px;
           }
         }
       `}</style>
-
-      {/* Default footer forced at the bottom of printed page (Moved to top for Chromium print viewport rendering fix) */}
-      <div className="print-footer">
-        <span>{(submission as any).formId || (submission as any).form_id || (submission as any).formName || 'N/A'}</span>
-        <span>{formatFormVersion(submission.formVersion || 'v1.0')}</span>
-      </div>
 
       {/* Close button (only visible on screen) */}
       <div className="no-print" style={{
@@ -445,7 +437,12 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
         </div>
       </div>
 
-      {/* TITLE BLOCK */}
+      {/* Outer Table Wrapper for Native Print Header/Footer Support */}
+      <table className="print-outer-table">
+        <tbody>
+          <tr>
+            <td>
+              {/* TITLE BLOCK */}
       {(() => {
         const titleBlock = layoutBlocks.find(b => b.type === 'TITLE');
         const titleDateSnapshot = submission.formData.find(s => s.id === '__title_date__');
@@ -1244,6 +1241,20 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
           )}
         </div>
       </div>
+            </td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td>
+              <div className="print-footer">
+                <span>{(submission as any).formId || (submission as any).form_id || (submission as any).formName || 'N/A'}</span>
+                <span>{formatFormVersion(submission.formVersion || 'v1.0')}</span>
+              </div>
+            </td>
+          </tr>
+        </tfoot>
+      </table>
     </div>,
     document.body
   );

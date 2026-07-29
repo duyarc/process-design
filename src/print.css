@@ -255,5 +255,25 @@ body.printing-active .bpmn-viewer-card {
   padding: 0 !important;
 }
 
+/* Layout Table cho bản in */
+.print-outer-table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  border: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.print-outer-table > tbody > tr > td,
+.print-outer-table > tfoot > tr > td {
+  border: none !important;
+  padding: 0 !important;
+  background: transparent !important;
+}
+
+.print-outer-table > tfoot {
+  display: table-footer-group !important;
+}
+
 
 
