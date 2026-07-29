@@ -2243,11 +2243,25 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                       })()}
 
                       {/* 3. CHECKLIST TABLE BLOCK */}
-                      {block.type === 'CHECKLIST_TABLE' && (
-                        <div>
-                          <div style={{ fontSize: '0.8rem', fontWeight: 700, borderBottom: '1px solid #cbd5e1', paddingBottom: '2px', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>
-                            {block.title}
-                          </div>
+                      {block.type === 'CHECKLIST_TABLE' && (() => {
+                        const titleFmt = getEffectiveTitleFormat(block);
+                        return (
+                          <div>
+                            {titleFmt !== 'NONE' && (
+                              titleFmt === 'H1' ? (
+                                <h2 style={{ margin: '0 0 8px 0', fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', borderBottom: '2px solid var(--text-primary)', paddingBottom: '3px' }}>
+                                  {block.title}
+                                </h2>
+                              ) : titleFmt === 'H2' ? (
+                                <div style={{ padding: '0.4rem 0.6rem', background: '#f1f5f9', borderLeft: '4px solid var(--primary)', borderRadius: '4px', marginBottom: '0.5rem', fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+                                  {block.title}
+                                </div>
+                              ) : (
+                                <div style={{ fontSize: '0.82rem', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
+                                  {block.title}
+                                </div>
+                              )
+                            )}
                           
                           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
                             <thead>
@@ -2380,14 +2394,29 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                             </div>
                           )}
                         </div>
-                      )}
+                      );
+                    })()}
 
                       {/* 3.1 MATRIX TABLE BLOCK */}
-                      {block.type === 'MATRIX_TABLE' && block.matrixConfig && (
-                        <div>
-                          <div style={{ fontSize: '0.8rem', fontWeight: 700, borderBottom: '1px solid #cbd5e1', paddingBottom: '2px', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>
-                            {block.title}
-                          </div>
+                      {block.type === 'MATRIX_TABLE' && block.matrixConfig && (() => {
+                        const titleFmt = getEffectiveTitleFormat(block);
+                        return (
+                          <div>
+                            {titleFmt !== 'NONE' && (
+                              titleFmt === 'H1' ? (
+                                <h2 style={{ margin: '0 0 8px 0', fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', borderBottom: '2px solid var(--text-primary)', paddingBottom: '3px' }}>
+                                  {block.title}
+                                </h2>
+                              ) : titleFmt === 'H2' ? (
+                                <div style={{ padding: '0.4rem 0.6rem', background: '#f1f5f9', borderLeft: '4px solid var(--primary)', borderRadius: '4px', marginBottom: '0.5rem', fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+                                  {block.title}
+                                </div>
+                              ) : (
+                                <div style={{ fontSize: '0.82rem', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
+                                  {block.title}
+                                </div>
+                              )
+                            )}
                           
                           <div style={{ overflowX: 'auto', border: '1px solid #cbd5e1', borderRadius: '4px' }}>
                             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
@@ -2463,14 +2492,29 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                             * Thiết kế mô phỏng (Hiển thị 3 hàng demo). Số dòng thực tế cấu hình: {block.matrixConfig.rowCount} hàng.
                           </div>
                         </div>
-                      )}
+                      );
+                    })()}
                       
                       {/* 3.2 DYNAMIC TABLE BLOCK */}
-                      {block.type === 'TABLE' && (
-                        <div>
-                          <div style={{ fontSize: '0.8rem', fontWeight: 700, borderBottom: '1px solid #cbd5e1', paddingBottom: '2px', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>
-                            {block.title}
-                          </div>
+                      {block.type === 'TABLE' && (() => {
+                        const titleFmt = getEffectiveTitleFormat(block);
+                        return (
+                          <div>
+                            {titleFmt !== 'NONE' && (
+                              titleFmt === 'H1' ? (
+                                <h2 style={{ margin: '0 0 8px 0', fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', borderBottom: '2px solid var(--text-primary)', paddingBottom: '3px' }}>
+                                  {block.title}
+                                </h2>
+                              ) : titleFmt === 'H2' ? (
+                                <div style={{ padding: '0.4rem 0.6rem', background: '#f1f5f9', borderLeft: '4px solid var(--primary)', borderRadius: '4px', marginBottom: '0.5rem', fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+                                  {block.title}
+                                </div>
+                              ) : (
+                                <div style={{ fontSize: '0.82rem', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
+                                  {block.title}
+                                </div>
+                              )
+                            )}
                           
                           <div style={{ overflowX: 'auto', border: '1px solid #cbd5e1', borderRadius: '4px' }}>
                             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem', tableLayout: 'fixed' }}>
@@ -2755,14 +2799,29 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                             </button>
                           )}
                         </div>
-                      )}
+                      );
+                    })()}
 
                       {/* 4. SIGN BLOCK */}
-                      {block.type === 'SIGN' && (
-                        <div>
-                          <div style={{ fontSize: '0.8rem', fontWeight: 700, borderBottom: '1px solid #cbd5e1', paddingBottom: '2px', marginBottom: '0.75rem', color: 'var(--text-secondary)' }}>
-                            {block.title}
-                          </div>
+                      {block.type === 'SIGN' && (() => {
+                        const titleFmt = getEffectiveTitleFormat(block);
+                        return (
+                          <div>
+                            {titleFmt !== 'NONE' && (
+                              titleFmt === 'H1' ? (
+                                <h2 style={{ margin: '0 0 8px 0', fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', borderBottom: '2px solid var(--text-primary)', paddingBottom: '3px' }}>
+                                  {block.title}
+                                </h2>
+                              ) : titleFmt === 'H2' ? (
+                                <div style={{ padding: '0.4rem 0.6rem', background: '#f1f5f9', borderLeft: '4px solid var(--primary)', borderRadius: '4px', marginBottom: '0.5rem', fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+                                  {block.title}
+                                </div>
+                              ) : (
+                                <div style={{ fontSize: '0.82rem', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
+                                  {block.title}
+                                </div>
+                              )
+                            )}
                           <div style={{
                             display: 'grid',
                             gridTemplateColumns: `repeat(${block.columns}, 1fr)`,
@@ -2827,7 +2886,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                             })}
                           </div>
                         </div>
-                      )}
+                      );
+                    })()}
 
                     </div>
                   </div>

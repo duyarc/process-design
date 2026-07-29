@@ -9,7 +9,7 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | `49a4f14` (2026-07-29) — Defaulted `SECTION_LABEL` Title Format to `NONE` in `FormBuilder.tsx` and `formUtils.ts`. |
+| **Verified At Commit** | `cb0b70f` (2026-07-29) — Harmonized Title Format (`H1`, `H2`, `BODY`, `NONE`) rendering across all 6 block types in `FormBuilder.tsx`. |
 
 > **⚠️ Architectural note:** FormBuilder has no awareness of which process it belongs to. The `formName` prop is always identical to `formId`. See Section 6.1 and the Technical Debt table.
 
