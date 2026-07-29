@@ -9,7 +9,7 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | `cb0b70f` (2026-07-29) — Harmonized Title Format (`H1`, `H2`, `BODY`, `NONE`) rendering across all 6 block types in `FormBuilder.tsx`. |
+| **Verified At Commit** | `5f44e34` (2026-07-29) — Standardized `CHECKLIST_TABLE` cell padding (`4px 6px`), min-height (`28px`), and outer rounded border to match `TABLE`. |
 
 > **⚠️ Architectural note:** FormBuilder has no awareness of which process it belongs to. The `formName` prop is always identical to `formId`. See Section 6.1 and the Technical Debt table.
 

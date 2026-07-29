@@ -598,7 +598,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                       if (sectionHeader && sectionHeader !== prevSection) {
                         renderRows.push(
                           <tr key={`sec_${field.id}`} style={{ background: '#f8fafc', pageBreakInside: 'avoid' }}>
-                            <td colSpan={getChecklistColumns(block).length} style={{ border: '1.5px solid #000000', padding: '6px 8px', fontWeight: 'var(--pw-weight-heavy)', fontSize: '0.8rem', textTransform: 'uppercase', color: '#1e293b' }}>
+                            <td colSpan={getChecklistColumns(block).length} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontWeight: 'var(--pw-weight-heavy)', fontSize: '0.8rem', textTransform: 'uppercase', color: '#1e293b' }}>
                               {sectionHeader}
                             </td>
                           </tr>
@@ -610,8 +610,10 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                           {getChecklistColumns(block).map((col) => {
                             const commonStyle: React.CSSProperties = {
                               border: '1.5px solid #000000',
-                              padding: '8px 6px',
+                              padding: '4px 6px',
                               fontSize: '0.8rem',
+                              verticalAlign: 'middle',
+                              height: '28px',
                               textAlign: col.align as any || 'left'
                             };
 
@@ -619,7 +621,11 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                               return <td key={col.id} style={{ ...commonStyle, textAlign: 'center', fontWeight: 'var(--pw-weight-regular)' }}>{idx + 1}</td>;
                             }
                             if (col.id === 'col_item') {
-                              return <td key={col.id} style={commonStyle}>{displayTitle}</td>;
+                              return (
+                                <td key={col.id} style={commonStyle}>
+                                  <span style={{ fontWeight: 'var(--pw-weight-regular)', display: 'block' }}>{displayTitle}</span>
+                                </td>
+                              );
                             }
                             if (col.id === 'col_unit') {
                               return <td key={col.id} style={{ ...commonStyle, textAlign: 'center' }}>{field.unit || ''}</td>;
@@ -661,11 +667,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                                         <span style={{ borderBottom: '1px solid #000000', width: '30px', display: 'inline-block', height: '12px' }} /> : <span style={{ borderBottom: '1px solid #000000', width: '30px', display: 'inline-block', height: '12px' }} />
                                       </div>
                                     )
-                                  ) : field.type === 'number' ? (
-                                    <span style={{ fontSize: '0.75rem', color: '#64748b' }}>..............</span>
-                                  ) : (
-                                    <div style={{ borderBottom: '1px dashed #94a3b8', width: '80%', height: '14px', margin: '0 auto' }} />
-                                  )}
+                                  ) : null}
                                 </td>
                               );
                             }

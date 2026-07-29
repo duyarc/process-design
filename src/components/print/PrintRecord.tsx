@@ -676,7 +676,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                 if (sectionHeader && sectionHeader !== prevSection) {
                   renderRows.push(
                     <tr key={`sec_${field.id}`} style={{ background: '#f8fafc', pageBreakInside: 'avoid' }}>
-                      <td colSpan={getChecklistColumns(matchedBlock, columnLabels).length} style={{ border: '1.5px solid #000000', padding: '6px 8px', fontWeight: 'var(--pw-weight-heavy)', fontSize: '0.8rem', textTransform: 'uppercase', color: '#1e293b' }}>
+                      <td colSpan={getChecklistColumns(matchedBlock, columnLabels).length} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontWeight: 'var(--pw-weight-heavy)', fontSize: '0.8rem', textTransform: 'uppercase', color: '#1e293b' }}>
                         {sectionHeader}
                       </td>
                     </tr>
@@ -696,8 +696,9 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                     {getChecklistColumns(matchedBlock, columnLabels).map((col) => {
                       const commonStyle: React.CSSProperties = {
                         border: '1.5px solid #000000',
-                        padding: '8px 6px',
+                        padding: '6px 8px',
                         fontSize: '0.8rem',
+                        verticalAlign: 'middle',
                         textAlign: col.align as any || 'left'
                       };
 
@@ -705,7 +706,11 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                         return <td key={col.id} style={{ ...commonStyle, textAlign: 'center', fontWeight: 'var(--pw-weight-regular)' }}>{idx + 1}</td>;
                       }
                       if (col.id === 'col_item') {
-                        return <td key={col.id} style={commonStyle}>{displayTitle}</td>;
+                        return (
+                          <td key={col.id} style={commonStyle}>
+                            <span style={{ fontWeight: 'var(--pw-weight-regular)', display: 'block' }}>{displayTitle}</span>
+                          </td>
+                        );
                       }
                       if (col.id === 'col_unit') {
                         return <td key={col.id} style={{ ...commonStyle, textAlign: 'center' }}>{fieldUnit}</td>;

@@ -2263,7 +2263,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                               )
                             )}
                           
-                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
+                          <div style={{ overflowX: 'auto', border: '1px solid #cbd5e1', borderRadius: '4px' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
                             <thead>
                               <tr style={{ background: '#f1f5f9', borderBottom: '1px solid #cbd5e1' }}>
                                 {getChecklistColumns(block).map((col) => (
@@ -2371,7 +2372,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                 })
                               )}
                             </tbody>
-                          </table>
+                            </table>
+                          </div>
                           
                           {!isLocked && (
                             <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>

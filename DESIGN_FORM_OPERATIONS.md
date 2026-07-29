@@ -9,7 +9,7 @@
 | **Module Name** | Form Operations |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | `49a4f14` (2026-07-29) — Updated `PrintRecord.tsx` to handle `NONE` Title Format via `getEffectiveTitleFormat`. |
+| **Verified At Commit** | `5f44e34` (2026-07-29) — Removed redundant dotted placeholder lines from `CHECKLIST_TABLE` on `PrintBlankForm.tsx`. |
 
 ### Quick File Index
 
