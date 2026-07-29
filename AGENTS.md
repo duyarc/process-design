@@ -110,8 +110,6 @@ Change Log **không** phải là bản sao thứ hai của `git log`.
 - **Thay bằng tên symbol** để agent tự tìm được: `interface FormBuilderProps`,
   `function handleLogoUpload`, `const DEFAULT_LAYOUT_CONSTANTS`.
 - **Cấm** ghi số dòng hoặc kích thước tệp trong bảng Quick File Index.
-- Ngoại lệ duy nhất: Implementation Plan (mục 9) được dùng số dòng, vì plan có thời hạn
-  ngắn và luôn ghi kèm commit SHA.
 
 ---
 
@@ -137,78 +135,18 @@ Agent **PHẢI** cập nhật `README.md` nếu: thêm module chức năng mới
 
 ---
 
-## 9. Implementation Plan (Planner / Executor)
+## 9. Quy tắc riêng theo Agent (Agent-Specific Overlays)
 
-Khi được yêu cầu lập kế hoạch cho tác vụ lớn (multi-file refactor, schema migration, hoặc
-bất kỳ thay đổi có **3+ write site**), agent **bắt buộc** viết plan theo định dạng
-executable dưới đây.
-
-### Phân tầng vai trò
-
-Quy tắc này nói về **năng lực của model**, không phải tên sản phẩm — mỗi agent tự map
-sang model tương ứng của mình:
-
-- **Planner tier** (model reasoning mạnh): đọc, phân tích, thiết kế, viết plan chi tiết.
-  Không thực thi.
-- **Executor tier** (model nhanh): áp dụng từng bước một cách máy móc, không cần suy luận.
-
-### Nguyên tắc
-
-- **Mỗi task là một surgical edit độc lập**: chỉ chạm **một tệp**, có vị trí cụ thể, và
-  cung cấp đầy đủ `Find` (đoạn cần tìm, khớp chính xác) + `Replace with` (đoạn thay thế).
-- **Không yêu cầu inference**: Executor không được tự suy luận "cần thay đổi gì".
-  Toàn bộ logic đã nằm trong plan.
-- **Verify sau mỗi Phase**: chạy `npm run build` để xác nhận zero lỗi TypeScript trước
-  khi sang Phase tiếp theo.
-- **Khi Executor gặp lỗi build không sửa được máy móc**: **DỪNG LẠI**, escalate lên
-  Planner tier. Không tự ý sửa lỗi TypeScript phức tạp.
-- **Escalation trigger** (Executor → Planner): đã thử sửa 2 lần theo hướng dẫn mà vẫn thất bại,
-  hoặc vấn đề cần lập luận sâu về thuật toán / kiến trúc.
-
-### Cấu trúc bắt buộc
-
-```
-## Phase N — [Tên phase]
-**File:** [đường dẫn tệp, relative từ repo root]
-
-### Task N.X — [Mô tả ngắn]
-**Find** (exact content):
-[đoạn mã cần tìm — PHẢI khớp chính xác nội dung tệp]
-**Replace with:**
-[đoạn mã thay thế hoàn chỉnh]
-```
-
-### Lưu plan ra tệp (Plan Artifacts)
-
-Plan cần tồn tại qua nhiều session **phải** được ghi ra tệp — mọi
-Planner/Executor plan đều thuộc loại này, vì bản chất nó được viết ở session này để
-thực thi ở session sau.
-
-- **Đường dẫn**: `plans/<YYYY-MM-DD>-<slug>.md`. Tên tệp có ngày để plan mới không
-  ghi đè plan cũ.
-- **Header bắt buộc**: `Authored against commit: <sha>` và `Status: Active | Done`.
-  Plan hết hạn nếu tệp đích bị sửa sau commit đó — Executor phải kiểm tra trước khi áp dụng.
-- **Chỉ dùng đường dẫn relative từ repo root**. Cấm `file:///d:/...` — đường dẫn tuyệt đối
-  chỉ đúng trên một máy.
-- **Khi hoàn thành**: xoá tệp plan, hoặc đổi `Status: Done`. Plan cũ còn sót lại nguy hiểm
-  hơn không có plan, vì agent sau có thể thực thi một plan đã bị thay thế.
-
----
-
-## 10. Quy tắc riêng theo Agent (Agent-Specific Overlays)
-
-Các mục 1–9 áp dụng cho **mọi** agent. Phần dưới đây chỉ áp dụng cho một agent cụ thể;
+Các mục 1–8 áp dụng cho **mọi** agent. Phần dưới đây chỉ áp dụng cho một agent cụ thể;
 agent khác bỏ qua.
 
 ### Google Antigravity
 
 - **Model routing**: Mặc định dùng Gemini (Flash/Pro) cho phần lớn tác vụ thiết kế giao diện,
   lập trình, viết kiểm thử, chạy lệnh terminal và thảo luận, để tiết kiệm quota của model
-  reasoning cao cấp. Map sang mục 9: Gemini Pro = Planner tier, Gemini Flash = Executor tier.
-- **Đề xuất đổi model**: Khi gặp điều kiện escalation ở mục 9, agent phải phân tích lý do
-  cụ thể và đề xuất Người dùng chuyển model trên Chat UI trước khi tiếp tục.
+  reasoning cao cấp.
 - **Phân chia vai trò cộng tác**:
   - *Người dùng làm Kiến trúc sư (The Thinker)*: dẫn dắt, cung cấp giải pháp logic cốt lõi
-    và hướng đi chi tiết. Agent hỗ trợ làm rõ và lập Implementation Plan để Người dùng phê duyệt.
+    và hướng đi chi tiết.
   - *Agent làm Trợ lý thực thi (The Assistant)*: viết mã, kiểm tra build, viết tài liệu và
     giải đáp thông tin dưới sự kiểm soát của Người dùng.

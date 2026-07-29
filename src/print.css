@@ -1,3 +1,11 @@
+/* Print Engine Typography Tokens (3-Group Architecture + Banner Exception) */
+:root {
+  --pw-weight-banner:  800;   /* Document Title Banner Exception */
+  --pw-weight-heavy:   700;   /* Group 1: Major Headings, Totals, Signer Roles */
+  --pw-weight-medium:  600;   /* Group 2: Sub-headings, Column <th>, Field Labels */
+  --pw-weight-regular: 400;   /* Group 3: Data, STT numbers, Punctuation */
+}
+
 /* Screen utility for hiding print-only elements */
 .print-only,
 .print-footer {

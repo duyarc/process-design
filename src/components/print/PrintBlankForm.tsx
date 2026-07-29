@@ -279,7 +279,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                     <h2 style={{
                       margin: '0 0 4px 0',
                       fontSize: '1.1rem',
-                      fontWeight: 700,
+                      fontWeight: 'var(--pw-weight-heavy)',
                       color: '#000000',
                       textTransform: 'uppercase',
                       letterSpacing: '0.5px',
@@ -309,7 +309,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                     pageBreakAfter: 'avoid',
                     breakAfter: 'avoid'
                   }}>
-                    <h3 style={{ margin: '0 0 4px 0', fontSize: '0.95rem', fontWeight: 700, color: '#1e293b' }}>
+                    <h3 style={{ margin: '0 0 4px 0', fontSize: '0.95rem', fontWeight: 'var(--pw-weight-heavy)', color: '#1e293b' }}>
                       {block.title}
                     </h3>
                     {block.description && (
@@ -323,7 +323,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
               // BODY format (normal body text, non-bold)
               return (
                 <div style={{ padding: '2px 0', marginBottom: 'var(--pw-title-gap)', pageBreakAfter: 'avoid', breakAfter: 'avoid' }}>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#000000' }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 'var(--pw-weight-medium)', color: '#000000' }}>
                     {block.title}
                   </div>
                   {block.description && (
@@ -361,7 +361,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                     </div>
                   )}
                   <div style={{ textAlign: 'center', flex: 1 }}>
-                    <h1 style={{ margin: '0 0 2px 0', fontSize: '1.35rem', fontWeight: 800, textTransform: 'uppercase' }}>
+                    <h1 style={{ margin: '0 0 2px 0', fontSize: '1.35rem', fontWeight: 'var(--pw-weight-banner)', textTransform: 'uppercase' }}>
                       {block.title}
                     </h1>
                     <p style={{ margin: 0, fontSize: '0.85rem', fontStyle: 'italic', color: '#475569' }}>
@@ -369,13 +369,13 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                     </p>
                     {block.showDate && (block.datePosition ?? 'B') === 'B' && (
                       <div style={{ marginTop: '6px', fontSize: '0.85rem', textAlign: 'center' }}>
-                        <span style={{ fontWeight: 600 }}>Ngày</span> <span style={{ marginLeft: '6px', color: '#475569', letterSpacing: '2px' }}>&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                        <span style={{ fontWeight: 'var(--pw-weight-regular)' }}>Ngày</span> <span style={{ marginLeft: '6px', color: '#475569', letterSpacing: '2px' }}>&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;</span>
                       </div>
                     )}
                   </div>
                   {block.showDate && block.datePosition === 'A' && (
                     <div style={{ fontSize: '0.85rem', whiteSpace: 'nowrap', marginLeft: '10px', alignSelf: 'flex-start', paddingTop: '4px' }}>
-                      <span style={{ fontWeight: 600 }}>Ngày</span> <span style={{ marginLeft: '6px', color: '#475569', letterSpacing: '2px' }}>&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                      <span style={{ fontWeight: 'var(--pw-weight-regular)' }}>Ngày</span> <span style={{ marginLeft: '6px', color: '#475569', letterSpacing: '2px' }}>&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;</span>
                     </div>
                   )}
                 </div>
@@ -387,10 +387,10 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                 }}>
                   {block.showDate && block.datePosition === 'A' && (
                     <div style={{ position: 'absolute', right: 0, top: '10px', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
-                      <span style={{ fontWeight: 600 }}>Ngày</span> <span style={{ marginLeft: '6px', color: '#475569', letterSpacing: '2px' }}>&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                      <span style={{ fontWeight: 'var(--pw-weight-regular)' }}>Ngày</span> <span style={{ marginLeft: '6px', color: '#475569', letterSpacing: '2px' }}>&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;</span>
                     </div>
                   )}
-                  <h1 style={{ margin: '0 0 4px 0', fontSize: '1.35rem', fontWeight: 800, textTransform: 'uppercase', color: '#0d9488' }}>
+                  <h1 style={{ margin: '0 0 4px 0', fontSize: '1.35rem', fontWeight: 'var(--pw-weight-banner)', textTransform: 'uppercase', color: '#0d9488' }}>
                     {block.title}
                   </h1>
                   <p style={{ margin: 0, fontSize: '0.85rem', fontStyle: 'italic', color: '#475569' }}>
@@ -398,7 +398,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                   </p>
                   {block.showDate && (block.datePosition ?? 'B') === 'B' && (
                     <div style={{ marginTop: '6px', fontSize: '0.85rem', textAlign: 'center' }}>
-                      <span style={{ fontWeight: 600 }}>Ngày</span> <span style={{ marginLeft: '6px', color: '#475569', letterSpacing: '2px' }}>&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                      <span style={{ fontWeight: 'var(--pw-weight-regular)' }}>Ngày</span> <span style={{ marginLeft: '6px', color: '#475569', letterSpacing: '2px' }}>&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;</span>
                     </div>
                   )}
                 </div>
@@ -413,15 +413,15 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                 <div style={{ padding: '0' }}>
                   {titleFmt !== 'NONE' && (
                     titleFmt === 'H1' ? (
-                      <h2 style={{ margin: '0 0 12px 0', fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', textTransform: 'uppercase', borderBottom: '1.5px solid #0d9488', paddingBottom: '3px' }}>
+                      <h2 style={{ margin: '0 0 12px 0', fontSize: '1.05rem', fontWeight: 'var(--pw-weight-heavy)', color: '#0f172a', textTransform: 'uppercase', borderBottom: '1.5px solid #0d9488', paddingBottom: '3px' }}>
                         {block.title}
                       </h2>
                     ) : titleFmt === 'H2' ? (
-                      <div style={{ padding: '6px 10px', background: '#f1f5f9', borderLeft: '4px solid #0d9488', borderRadius: '4px', marginBottom: '10px', fontWeight: 700, fontSize: '0.9rem', color: '#0f172a' }}>
+                      <div style={{ padding: '6px 10px', background: '#f1f5f9', borderLeft: '4px solid #0d9488', borderRadius: '4px', marginBottom: '10px', fontWeight: 'var(--pw-weight-heavy)', fontSize: '0.9rem', color: '#0f172a' }}>
                         {block.title}
                       </div>
                     ) : (
-                      <div style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '8px', color: '#0f172a' }}>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 'var(--pw-weight-medium)', marginBottom: '8px', color: '#0f172a' }}>
                         {block.title}
                       </div>
                     )
@@ -434,7 +434,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                             return (
                               <div key={f.id} style={{ display: 'flex', alignItems: 'baseline', gap: '8px', fontSize: '0.85rem' }}>
                                 {cleanLabel && (
-                                  <span style={{ fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap' }}>{cleanLabel}</span>
+                                  <span style={{ fontWeight: 'var(--pw-weight-medium)', color: '#0f172a', whiteSpace: 'nowrap' }}>{cleanLabel}</span>
                                 )}
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', alignItems: 'center', maxWidth: '100%' }}>
                                   {options.map((opt: any) => (
@@ -460,14 +460,14 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                             const blankRows = f.subtableDefaultRows ?? 3;
                             return (
                               <div key={f.id} className="subtable-print-container print-field-full" style={{ fontSize: '0.82rem', width: '100%', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                                {cleanLabel && <div style={{ fontWeight: 700, color: '#0f172a', marginBottom: '6px', pageBreakAfter: 'avoid', breakAfter: 'avoid' }}>{cleanLabel}</div>}
+                                {cleanLabel && <div style={{ fontWeight: 'var(--pw-weight-medium)', color: '#0f172a', marginBottom: '6px', pageBreakAfter: 'avoid', breakAfter: 'avoid' }}>{cleanLabel}</div>}
                                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                   <thead>
                                     <tr>
                                       {cols.map((col: any) => {
                                         const headerAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'date' || col.type === 'time' ? 'center' : 'left'));
                                         return (
-                                          <th key={col.id} style={{ border: '1px solid #cbd5e1', padding: '5px 6px', background: '#f8fafc', fontWeight: 600, color: '#475569', textAlign: headerAlign as any, fontSize: '0.78rem', width: col.width }}>
+                                          <th key={col.id} style={{ border: '1px solid #cbd5e1', padding: '5px 6px', background: '#f8fafc', fontWeight: 'var(--pw-weight-medium)', color: '#475569', textAlign: headerAlign as any, fontSize: '0.78rem', width: col.width }}>
                                             {col.label}
                                           </th>
                                         );
@@ -481,7 +481,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                                           if (col.type === 'static_text') {
                                             const sttAlign = col.align || 'left';
                                             return (
-                                               <td key={col.id} style={{ border: '1px solid #cbd5e1', padding: '4px 6px', height: '28px', textAlign: sttAlign as any, fontWeight: 600, fontSize: '0.8rem', color: '#0f172a' }}>
+                                               <td key={col.id} style={{ border: '1px solid #cbd5e1', padding: '4px 6px', height: '28px', textAlign: sttAlign as any, fontWeight: 'var(--pw-weight-regular)', fontSize: '0.8rem', color: '#0f172a' }}>
                                                  {f.subtableStaticData?.[rowIdx]?.[col.id] || ''}
                                                </td>
                                             );
@@ -499,12 +499,12 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                           if (f.type === 'date') {
                             return (
                               <div key={f.id} style={{ display: 'flex', alignItems: 'baseline', gap: '8px', fontSize: '0.85rem' }}>
-                                {cleanLabel && <span style={{ fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap' }}>{cleanLabel}</span>}
+                                {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-medium)', color: '#0f172a', whiteSpace: 'nowrap' }}>{cleanLabel}</span>}
                                 <div style={{ fontSize: '0.85rem', color: '#0f172a', display: 'flex', alignItems: 'baseline', gap: '4px' }}>
                                   <span style={{ borderBottom: '1px dotted #cbd5e1', width: '36px', display: 'inline-block', minHeight: 'var(--pw-line-h)' }} />
-                                  <span style={{ color: '#000000', fontWeight: 600 }}>/</span>
+                                  <span style={{ color: '#000000', fontWeight: 'var(--pw-weight-regular)' }}>/</span>
                                   <span style={{ borderBottom: '1px dotted #cbd5e1', width: '36px', display: 'inline-block', minHeight: 'var(--pw-line-h)' }} />
-                                  <span style={{ color: '#000000', fontWeight: 600 }}>/</span>
+                                  <span style={{ color: '#000000', fontWeight: 'var(--pw-weight-regular)' }}>/</span>
                                   <span style={{ borderBottom: '1px dotted #cbd5e1', width: '56px', display: 'inline-block', minHeight: 'var(--pw-line-h)' }} />
                                 </div>
                               </div>
@@ -513,7 +513,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
 
                           return (
                             <div key={f.id} style={{ display: 'flex', alignItems: 'baseline', gap: '8px', fontSize: '0.85rem' }}>
-                              {cleanLabel && <span style={{ fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap' }}>{cleanLabel}</span>}
+                              {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-medium)', color: '#0f172a', whiteSpace: 'nowrap' }}>{cleanLabel}</span>}
                               {f.type === 'time' ? (
                                 f.timeMode === 'dual' ? (
                                   <div style={{ fontSize: '0.8rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -521,7 +521,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                                   </div>
                                 ) : (
                                   <div style={{ fontSize: '0.8rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                    <span style={{ borderBottom: '1px dotted #cbd5e1', width: '36px', display: 'inline-block', minHeight: 'var(--pw-line-h)' }} /> <span style={{ color: '#475569', fontWeight: 600 }}>:</span> <span style={{ borderBottom: '1px dotted #cbd5e1', width: '36px', display: 'inline-block', minHeight: 'var(--pw-line-h)' }} />
+                                    <span style={{ borderBottom: '1px dotted #cbd5e1', width: '36px', display: 'inline-block', minHeight: 'var(--pw-line-h)' }} /> <span style={{ color: '#475569', fontWeight: 'var(--pw-weight-regular)' }}>:</span> <span style={{ borderBottom: '1px dotted #cbd5e1', width: '36px', display: 'inline-block', minHeight: 'var(--pw-line-h)' }} />
                                   </div>
                                 )
                               ) : (
@@ -542,15 +542,15 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                 <div style={{ marginTop: '0' }}>
                   {titleFmt !== 'NONE' && (
                     titleFmt === 'H1' ? (
-                      <h2 style={{ margin: '0 0 6px 0', fontSize: '1.05rem', fontWeight: 700, color: '#000000', textTransform: 'uppercase', borderBottom: '2px solid #000000', paddingBottom: '3px' }}>
+                      <h2 style={{ margin: '0 0 6px 0', fontSize: '1.05rem', fontWeight: 'var(--pw-weight-heavy)', color: '#000000', textTransform: 'uppercase', borderBottom: '2px solid #000000', paddingBottom: '3px' }}>
                         {block.title}
                       </h2>
                     ) : titleFmt === 'H2' ? (
-                      <div style={{ padding: '6px 10px', background: '#f1f5f9', borderLeft: '4px solid #000000', borderRadius: '4px', marginBottom: '6px', fontWeight: 700, fontSize: '0.9rem', color: '#000000' }}>
+                      <div style={{ padding: '6px 10px', background: '#f1f5f9', borderLeft: '4px solid #000000', borderRadius: '4px', marginBottom: '6px', fontWeight: 'var(--pw-weight-heavy)', fontSize: '0.9rem', color: '#000000' }}>
                         {block.title}
                       </div>
                     ) : (
-                      <div style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '6px', color: '#000000' }}>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 'var(--pw-weight-medium)', marginBottom: '6px', color: '#000000' }}>
                         {block.title}
                       </div>
                     )
@@ -569,7 +569,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                             border: '1.5px solid #000000',
                             padding: '6px',
                             background: '#f1f5f9',
-                            fontWeight: 600,
+                            fontWeight: 'var(--pw-weight-medium)',
                             fontSize: '0.8rem',
                             textAlign: (col.align || (col.id === 'col_stt' ? 'center' : 'left')) as any
                           }}
@@ -598,7 +598,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                       if (sectionHeader && sectionHeader !== prevSection) {
                         renderRows.push(
                           <tr key={`sec_${field.id}`} style={{ background: '#f8fafc', pageBreakInside: 'avoid' }}>
-                            <td colSpan={getChecklistColumns(block).length} style={{ border: '1.5px solid #000000', padding: '6px 8px', fontWeight: 'bold', fontSize: '0.8rem', textTransform: 'uppercase', color: '#1e293b' }}>
+                            <td colSpan={getChecklistColumns(block).length} style={{ border: '1.5px solid #000000', padding: '6px 8px', fontWeight: 'var(--pw-weight-heavy)', fontSize: '0.8rem', textTransform: 'uppercase', color: '#1e293b' }}>
                               {sectionHeader}
                             </td>
                           </tr>
@@ -616,7 +616,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                             };
 
                             if (col.id === 'col_stt') {
-                              return <td key={col.id} style={{ ...commonStyle, textAlign: 'center', fontWeight: 600 }}>{idx + 1}</td>;
+                              return <td key={col.id} style={{ ...commonStyle, textAlign: 'center', fontWeight: 'var(--pw-weight-regular)' }}>{idx + 1}</td>;
                             }
                             if (col.id === 'col_item') {
                               return <td key={col.id} style={commonStyle}>{displayTitle}</td>;
@@ -692,15 +692,15 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                 <div style={{ marginTop: '0' }}>
                   {titleFmt !== 'NONE' && (
                     titleFmt === 'H1' ? (
-                      <h2 style={{ margin: '0 0 6px 0', fontSize: '1.05rem', fontWeight: 700, color: '#000000', textTransform: 'uppercase', borderBottom: '2px solid #000000', paddingBottom: '3px' }}>
+                      <h2 style={{ margin: '0 0 6px 0', fontSize: '1.05rem', fontWeight: 'var(--pw-weight-heavy)', color: '#000000', textTransform: 'uppercase', borderBottom: '2px solid #000000', paddingBottom: '3px' }}>
                         {block.title}
                       </h2>
                     ) : titleFmt === 'H2' ? (
-                      <div style={{ padding: '6px 10px', background: '#f1f5f9', borderLeft: '4px solid #000000', borderRadius: '4px', marginBottom: '6px', fontWeight: 700, fontSize: '0.9rem', color: '#000000' }}>
+                      <div style={{ padding: '6px 10px', background: '#f1f5f9', borderLeft: '4px solid #000000', borderRadius: '4px', marginBottom: '6px', fontWeight: 'var(--pw-weight-heavy)', fontSize: '0.9rem', color: '#000000' }}>
                         {block.title}
                       </div>
                     ) : (
-                      <div style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '6px', color: '#000000' }}>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 'var(--pw-weight-medium)', marginBottom: '6px', color: '#000000' }}>
                         {block.title}
                       </div>
                     )
@@ -717,7 +717,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                         const hasOptions = col.type === 'checkbox' && col.options && col.options.length > 0;
                         const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? (hasOptions ? 'left' : 'center') : 'left'));
                         return (
-                          <th key={col.id} style={{ border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 600, fontSize: '0.8rem', textAlign: cellAlign, width: colWidth }}>
+                          <th key={col.id} style={{ border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'var(--pw-weight-medium)', fontSize: '0.8rem', textAlign: cellAlign, width: colWidth }}>
                             {col.label}
                           </th>
                         );
@@ -740,7 +740,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                             return (
                               <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'middle', height: '28px', textAlign: cellAlign }}>
                                 {col.type === 'static_text' ? (
-                                  <span style={{ fontWeight: 500, display: 'block', textAlign: cellAlign }}>{block.tableData?.[row.id]?.[col.id] || ''}</span>
+                                  <span style={{ fontWeight: 'var(--pw-weight-regular)', display: 'block', textAlign: cellAlign }}>{block.tableData?.[row.id]?.[col.id] || ''}</span>
                                 ) : col.type === 'checkbox' ? (
                                   hasOptions ? (
                                     <div style={{
@@ -827,7 +827,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                       <tfoot>
                         {summaryTypes.map((sumType, idx) => {
                           return (
-                            <tr key={sumType.id || idx} style={{ background: '#ffffff', fontWeight: 'bold' }}>
+                            <tr key={sumType.id || idx} style={{ background: '#ffffff', fontWeight: 'var(--pw-weight-heavy)' }}>
                               {firstSumColIdx > 0 && (
                                 <td colSpan={firstSumColIdx} style={{
                                   border: '1.5px solid #000000',
@@ -873,15 +873,15 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                 <div style={{ marginTop: '0' }}>
                   {titleFmt !== 'NONE' && (
                     titleFmt === 'H1' ? (
-                      <h2 style={{ margin: '0 0 6px 0', fontSize: '1.05rem', fontWeight: 700, color: '#000000', textTransform: 'uppercase', borderBottom: '2px solid #000000', paddingBottom: '3px' }}>
+                      <h2 style={{ margin: '0 0 6px 0', fontSize: '1.05rem', fontWeight: 'var(--pw-weight-heavy)', color: '#000000', textTransform: 'uppercase', borderBottom: '2px solid #000000', paddingBottom: '3px' }}>
                         {block.title}
                       </h2>
                     ) : titleFmt === 'H2' ? (
-                      <div style={{ padding: '6px 10px', background: '#f1f5f9', borderLeft: '4px solid #000000', borderRadius: '4px', marginBottom: '6px', fontWeight: 700, fontSize: '0.9rem', color: '#000000' }}>
+                      <div style={{ padding: '6px 10px', background: '#f1f5f9', borderLeft: '4px solid #000000', borderRadius: '4px', marginBottom: '6px', fontWeight: 'var(--pw-weight-heavy)', fontSize: '0.9rem', color: '#000000' }}>
                         {block.title}
                       </div>
                     ) : (
-                      <div style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '6px', color: '#000000' }}>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 'var(--pw-weight-medium)', marginBottom: '6px', color: '#000000' }}>
                         {block.title}
                       </div>
                     )
@@ -892,26 +892,26 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                   }}>
                   <thead>
                     <tr>
-                      <th rowSpan={2} style={{ width: '50px', border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 600, fontSize: '0.8rem', textAlign: 'center' }}>
+                      <th rowSpan={2} style={{ width: '50px', border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'var(--pw-weight-medium)', fontSize: '0.8rem', textAlign: 'center' }}>
                         {block.matrixConfig.rowHeader}
                       </th>
-                      <th colSpan={block.matrixConfig.columns.length} style={{ border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 600, fontSize: '0.8rem', textAlign: 'center' }}>
+                      <th colSpan={block.matrixConfig.columns.length} style={{ border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'var(--pw-weight-medium)', fontSize: '0.8rem', textAlign: 'center' }}>
                         {block.matrixConfig.columnHeader}
                       </th>
                       {block.matrixConfig.showTotalColumn && (
-                        <th rowSpan={2} style={{ width: '130px', border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 600, fontSize: '0.8rem', textAlign: 'center' }}>
+                        <th rowSpan={2} style={{ width: '130px', border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'var(--pw-weight-medium)', fontSize: '0.8rem', textAlign: 'center' }}>
                           {block.matrixConfig.totalColumnHeader}
                         </th>
                       )}
                       {block.matrixConfig.showNotesColumn && (
-                        <th rowSpan={2} style={{ width: '180px', border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 600, fontSize: '0.8rem', textAlign: 'left' }}>
+                        <th rowSpan={2} style={{ width: '180px', border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'var(--pw-weight-medium)', fontSize: '0.8rem', textAlign: 'left' }}>
                           {block.matrixConfig.notesColumnHeader}
                         </th>
                       )}
                     </tr>
                     <tr>
                       {block.matrixConfig.columns.map((colName, cIdx) => (
-                        <th key={cIdx} style={{ border: '1.5px solid #000000', padding: '4px', background: '#f8fafc', fontWeight: 600, fontSize: '0.75rem', textAlign: block.matrixConfig!.columnAlign || 'center' }}>
+                        <th key={cIdx} style={{ border: '1.5px solid #000000', padding: '4px', background: '#f8fafc', fontWeight: 'var(--pw-weight-medium)', fontSize: '0.75rem', textAlign: block.matrixConfig!.columnAlign || 'center' }}>
                           {colName || `Cột ${cIdx + 1}`}
                         </th>
                       ))}
@@ -920,7 +920,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                   <tbody>
                     {Array.from({ length: block.matrixConfig.rowCount }).map((_, rIdx) => (
                       <tr key={rIdx} style={{ pageBreakInside: 'avoid' }}>
-                        <td style={{ border: '1.5px solid #000000', padding: '6px', textAlign: 'center', fontSize: '0.8rem', fontWeight: 600 }}>
+                        <td style={{ border: '1.5px solid #000000', padding: '6px', textAlign: 'center', fontSize: '0.8rem', fontWeight: 'var(--pw-weight-regular)' }}>
                           {rIdx + 1}
                         </td>
                         {block.matrixConfig!.columns.map((_, cIdx) => (
@@ -935,7 +935,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                       </tr>
                     ))}
                     {/* Empty Total Row */}
-                    <tr style={{ background: '#f8fafc', fontWeight: 'bold', pageBreakInside: 'avoid' }}>
+                    <tr style={{ background: '#f8fafc', fontWeight: 'var(--pw-weight-heavy)', pageBreakInside: 'avoid' }}>
                       <td style={{ border: '1.5px solid #000000', padding: '4px 6px', textAlign: 'center', fontSize: '0.8rem' }}>TỔNG</td>
                       {block.matrixConfig.columns.map((_, cIdx) => (
                         <td key={cIdx} style={{ border: '1.5px solid #000000', padding: '4px 6px', height: '28px' }}></td>
@@ -960,15 +960,15 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                 <div style={{ marginTop: '0' }}>
                   {titleFmt !== 'NONE' && (
                     titleFmt === 'H1' ? (
-                      <h2 style={{ margin: '0 0 6px 0', fontSize: '1.05rem', fontWeight: 700, color: '#000000', textTransform: 'uppercase', borderBottom: '2px solid #000000', paddingBottom: '3px' }}>
+                      <h2 style={{ margin: '0 0 6px 0', fontSize: '1.05rem', fontWeight: 'var(--pw-weight-heavy)', color: '#000000', textTransform: 'uppercase', borderBottom: '2px solid #000000', paddingBottom: '3px' }}>
                         {block.title}
                       </h2>
                     ) : titleFmt === 'H2' ? (
-                      <div style={{ padding: '6px 10px', background: '#f1f5f9', borderLeft: '4px solid #000000', borderRadius: '4px', marginBottom: '6px', fontWeight: 700, fontSize: '0.9rem', color: '#000000' }}>
+                      <div style={{ padding: '6px 10px', background: '#f1f5f9', borderLeft: '4px solid #000000', borderRadius: '4px', marginBottom: '6px', fontWeight: 'var(--pw-weight-heavy)', fontSize: '0.9rem', color: '#000000' }}>
                         {block.title}
                       </div>
                     ) : (
-                      <div style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '6px', color: '#000000' }}>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 'var(--pw-weight-medium)', marginBottom: '6px', color: '#000000' }}>
                         {block.title}
                       </div>
                     )
@@ -992,7 +992,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                           gap: '4px',
                           visibility: isBlank ? 'hidden' : 'visible'
                         }}>
-                          <span style={{ fontSize: '0.85rem', fontWeight: 'bold', textAlign: 'center' }}>{f.checkItem}</span>
+                          <span style={{ fontSize: '0.85rem', fontWeight: 'var(--pw-weight-heavy)', textAlign: 'center' }}>{f.checkItem}</span>
                           <span style={{ fontSize: '0.75rem', fontStyle: 'italic', color: '#475569', textAlign: 'center' }}>
                             {f.reactionProtocol ? (f.reactionProtocol.startsWith('(') ? f.reactionProtocol : `(${f.reactionProtocol})`) : '(Ký và ghi rõ họ tên)'}
                           </span>

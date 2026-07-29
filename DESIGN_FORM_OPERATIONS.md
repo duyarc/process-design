@@ -9,7 +9,7 @@
 | **Module Name** | Form Operations |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | `f952e66` (2026-07-29) — Added `pageSize` support in `PrintRecord.tsx` and updated `@page` CSS rule to output A5 landscape layout when selected. |
+| **Verified At Commit** | `2fe6b85` (2026-07-29) — Standardized font-weights in `PrintRecord.tsx` against 4-tier CSS variables (`var(--pw-weight-*)`). |
 
 ### Quick File Index
 

@@ -490,7 +490,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
               </div>
             )}
             <div style={{ textAlign: 'center', flex: 1 }}>
-              <h1 style={{ margin: '0 0 2px 0', fontSize: '1.35rem', fontWeight: 800, textTransform: 'uppercase' }}>
+              <h1 style={{ margin: '0 0 2px 0', fontSize: '1.35rem', fontWeight: 'var(--pw-weight-banner)', textTransform: 'uppercase' }}>
                 {processTitle || 'PHIẾU KIỂM TRA'}
               </h1>
               <p style={{ margin: 0, fontSize: '0.85rem', fontStyle: 'italic', color: '#475569' }}>
@@ -498,13 +498,13 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
               </p>
               {showDate && datePos === 'B' && (
                 <div style={{ marginTop: '6px', fontSize: '0.85rem', textAlign: 'center' }}>
-                  <span style={{ fontWeight: 600 }}>Ngày</span> <span style={{ borderBottom: '1px solid #000000', display: 'inline-block', width: '90px', marginLeft: '6px' }}>{formattedDate}</span>
+                  <span style={{ fontWeight: 'var(--pw-weight-medium)' }}>Ngày</span> <span style={{ borderBottom: '1px solid #000000', display: 'inline-block', width: '90px', marginLeft: '6px' }}>{formattedDate}</span>
                 </div>
               )}
             </div>
             {showDate && datePos === 'A' && (
               <div style={{ fontSize: '0.85rem', whiteSpace: 'nowrap', marginLeft: '10px', alignSelf: 'flex-start', paddingTop: '4px' }}>
-                <span style={{ fontWeight: 600 }}>Ngày</span> <span style={{ borderBottom: '1px solid #000000', display: 'inline-block', width: '80px', marginLeft: '6px' }}>{formattedDate}</span>
+                <span style={{ fontWeight: 'var(--pw-weight-medium)' }}>Ngày</span> <span style={{ borderBottom: '1px solid #000000', display: 'inline-block', width: '80px', marginLeft: '6px' }}>{formattedDate}</span>
               </div>
             )}
           </div>
@@ -516,10 +516,10 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
           }}>
             {showDate && datePos === 'A' && (
               <div style={{ position: 'absolute', right: 0, top: '10px', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
-                <span style={{ fontWeight: 600 }}>Ngày</span> <span style={{ borderBottom: '1px solid #000000', display: 'inline-block', width: '80px', marginLeft: '6px' }}>{formattedDate}</span>
+                <span style={{ fontWeight: 'var(--pw-weight-medium)' }}>Ngày</span> <span style={{ borderBottom: '1px solid #000000', display: 'inline-block', width: '80px', marginLeft: '6px' }}>{formattedDate}</span>
               </div>
             )}
-            <h1 style={{ margin: '0 0 4px 0', fontSize: '1.35rem', fontWeight: 800, textTransform: 'uppercase' }}>
+            <h1 style={{ margin: '0 0 4px 0', fontSize: '1.35rem', fontWeight: 'var(--pw-weight-banner)', textTransform: 'uppercase' }}>
               {processTitle || 'PHIẾU KIỂM TRA'}
             </h1>
             <p style={{ margin: 0, fontSize: '0.85rem', fontStyle: 'italic', color: '#475569' }}>
@@ -527,7 +527,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
             </p>
             {showDate && datePos === 'B' && (
               <div style={{ marginTop: '6px', fontSize: '0.85rem', textAlign: 'center' }}>
-                <span style={{ fontWeight: 600 }}>Ngày</span> <span style={{ borderBottom: '1px solid #000000', display: 'inline-block', width: '90px', marginLeft: '6px' }}>{formattedDate}</span>
+                <span style={{ fontWeight: 'var(--pw-weight-medium)' }}>Ngày</span> <span style={{ borderBottom: '1px solid #000000', display: 'inline-block', width: '90px', marginLeft: '6px' }}>{formattedDate}</span>
               </div>
             )}
           </div>
@@ -551,14 +551,14 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                       const cols = matchedField.subtableColumns ?? [];
                       return (
                         <div key={f.id} className="subtable-print-container print-field-full" style={{ fontSize: '0.82rem', width: '100%', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                          {f.checkItem && <div style={{ fontWeight: 600, marginBottom: '6px', pageBreakAfter: 'avoid', breakAfter: 'avoid' }}>{f.checkItem}:</div>}
+                          {f.checkItem && <div style={{ fontWeight: 'var(--pw-weight-medium)', marginBottom: '6px', pageBreakAfter: 'avoid', breakAfter: 'avoid' }}>{f.checkItem}:</div>}
                           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
                               <tr>
                                 {cols.map((col: any) => {
                                   const headerAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'date' || col.type === 'time' ? 'center' : 'left'));
                                   return (
-                                    <th key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', background: '#f1f5f9', fontWeight: 600, textAlign: headerAlign as any, fontSize: '0.78rem', width: col.width }}>
+                                    <th key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', background: '#f1f5f9', fontWeight: 'var(--pw-weight-medium)', textAlign: headerAlign as any, fontSize: '0.78rem', width: col.width }}>
                                       {col.label}
                                     </th>
                                   );
@@ -576,7 +576,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                                     if (col.type === 'static_text') {
                                       const sttAlign = col.align || 'left';
                                       return (
-                                         <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', textAlign: sttAlign as any, fontWeight: 600, fontSize: '0.82rem' }}>
+                                         <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', textAlign: sttAlign as any, fontWeight: 'var(--pw-weight-regular)', fontSize: '0.82rem' }}>
                                            {matchedField.subtableStaticData?.[rowIdx]?.[col.id] || ''}
                                          </td>
                                       );
@@ -598,8 +598,8 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
 
                     return (
                       <div key={f.id} style={{ display: 'flex', alignItems: 'baseline', gap: '8px', fontSize: '0.85rem' }}>
-                        <span style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{f.checkItem ? `${f.checkItem}:` : ''}</span>
-                        <span style={{ borderBottom: '1px solid #94a3b8', flex: 1, paddingBottom: '2px', fontWeight: 700 }}>
+                        <span style={{ fontWeight: 'var(--pw-weight-medium)', whiteSpace: 'nowrap' }}>{f.checkItem ? `${f.checkItem}:` : ''}</span>
+                        <span style={{ borderBottom: '1px solid #94a3b8', flex: 1, paddingBottom: '2px', fontWeight: 'var(--pw-weight-regular)' }}>
                           {f.value}
                         </span>
                       </div>
@@ -614,20 +614,20 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
       {checklistFields.length > 0 && (() => {
         const matchedBlock = layoutBlocks.find(b => b.type === 'CHECKLIST_TABLE');
         const titleText = matchedBlock?.title || 'BẢNG KIỂM TRA CHẤT LƯỢNG';
-        const titleFmt = matchedBlock ? getEffectiveTitleFormat(matchedBlock) : 'BODY';
+        const titleFmt = matchedBlock ? getEffectiveTitleFormat(matchedBlock) : 'NONE';
         return (
           <div className="print-block">
             {titleFmt !== 'NONE' && (
               titleFmt === 'H1' ? (
-                <h2 style={{ margin: '0 0 8px 0', fontSize: '1.05rem', fontWeight: 700, textTransform: 'uppercase', color: '#000000', borderBottom: '2px solid #000000', paddingBottom: '3px' }}>
+                <h2 style={{ margin: '0 0 8px 0', fontSize: '1.05rem', fontWeight: 'var(--pw-weight-heavy)', textTransform: 'uppercase', color: '#000000', borderBottom: '2px solid #000000', paddingBottom: '3px' }}>
                   {titleText}
                 </h2>
               ) : titleFmt === 'H2' ? (
-                <div style={{ padding: '6px 10px', background: '#f1f5f9', borderLeft: '4px solid #000000', borderRadius: '4px', marginBottom: '8px', fontWeight: 700, fontSize: '0.9rem', color: '#000000' }}>
+                <div style={{ padding: '6px 10px', background: '#f1f5f9', borderLeft: '4px solid #000000', borderRadius: '4px', marginBottom: '8px', fontWeight: 'var(--pw-weight-heavy)', fontSize: '0.9rem', color: '#000000' }}>
                   {titleText}
                 </div>
               ) : (
-                <div style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '8px', color: '#000000' }}>
+                <div style={{ fontSize: '0.85rem', fontWeight: 'var(--pw-weight-medium)', marginBottom: '8px', color: '#000000' }}>
                   {titleText}
                 </div>
               )
@@ -646,7 +646,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                       border: '1.5px solid #000000',
                       padding: '6px',
                       background: '#f1f5f9',
-                      fontWeight: 600,
+                      fontWeight: 'var(--pw-weight-medium)',
                       fontSize: '0.8rem',
                       textAlign: (col.align || (col.id === 'col_stt' ? 'center' : 'left')) as any
                     }}
@@ -676,7 +676,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                 if (sectionHeader && sectionHeader !== prevSection) {
                   renderRows.push(
                     <tr key={`sec_${field.id}`} style={{ background: '#f8fafc', pageBreakInside: 'avoid' }}>
-                      <td colSpan={getChecklistColumns(matchedBlock, columnLabels).length} style={{ border: '1.5px solid #000000', padding: '6px 8px', fontWeight: 'bold', fontSize: '0.8rem', textTransform: 'uppercase', color: '#1e293b' }}>
+                      <td colSpan={getChecklistColumns(matchedBlock, columnLabels).length} style={{ border: '1.5px solid #000000', padding: '6px 8px', fontWeight: 'var(--pw-weight-heavy)', fontSize: '0.8rem', textTransform: 'uppercase', color: '#1e293b' }}>
                         {sectionHeader}
                       </td>
                     </tr>
@@ -702,7 +702,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                       };
 
                       if (col.id === 'col_stt') {
-                        return <td key={col.id} style={{ ...commonStyle, textAlign: 'center', fontWeight: 600 }}>{idx + 1}</td>;
+                        return <td key={col.id} style={{ ...commonStyle, textAlign: 'center', fontWeight: 'var(--pw-weight-regular)' }}>{idx + 1}</td>;
                       }
                       if (col.id === 'col_item') {
                         return <td key={col.id} style={commonStyle}>{displayTitle}</td>;
@@ -729,7 +729,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                         return (
                           <td key={col.id} style={{ ...commonStyle, textAlign: 'center' }}>
                             {field.id.startsWith('f_temp_') ? (
-                              <span style={{ fontWeight: 'bold', fontSize: '0.85rem', color: isFailed ? '#dc2626' : '#16a34a' }}>
+                              <span style={{ fontWeight: 'var(--pw-weight-heavy)', fontSize: '0.85rem', color: isFailed ? '#dc2626' : '#16a34a' }}>
                                 {parseFloat(field.value) || field.value} {fieldUnit}
                               </span>
                             ) : (
@@ -748,7 +748,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                                       padding: '0 4px',
                                       borderRadius: '10px',
                                       fontSize: '0.7rem',
-                                      fontWeight: 'bold',
+                                      fontWeight: 'var(--pw-weight-heavy)',
                                       background: isSelected ? activeColor : 'transparent',
                                       color: isSelected ? '#ffffff' : '#cbd5e1',
                                       border: isSelected ? `1px solid ${activeColor}` : '1px solid #cbd5e1'
@@ -765,7 +765,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                           <td key={col.id} style={{ ...commonStyle, fontSize: '0.75rem', color: isFailed ? '#b45309' : '#475569' }}>
                             {isFailed ? (
                               <div>
-                                <strong>Lỗi:</strong> {field.reactionProtocol}
+                                <span style={{ fontWeight: 'var(--pw-weight-heavy)' }}>Lỗi:</span> {field.reactionProtocol}
                               </div>
                             ) : (
                               field.value && !field.id.startsWith('f_temp_') && !fieldOptions.some((o: any) => field.value === o.value) ? field.value : ''
@@ -813,15 +813,15 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
               const titleFmt = matchedBlock ? getEffectiveTitleFormat(matchedBlock) : 'BODY';
               return titleFmt !== 'NONE' && (
                 titleFmt === 'H1' ? (
-                  <h2 style={{ margin: '0 0 8px 0', fontSize: '1.05rem', fontWeight: 700, textTransform: 'uppercase', color: '#000000', borderBottom: '2px solid #000000', paddingBottom: '3px' }}>
+                  <h2 style={{ margin: '0 0 8px 0', fontSize: '1.05rem', fontWeight: 'var(--pw-weight-heavy)', textTransform: 'uppercase', color: '#000000', borderBottom: '2px solid #000000', paddingBottom: '3px' }}>
                     {titleText}
                   </h2>
                 ) : titleFmt === 'H2' ? (
-                  <div style={{ padding: '6px 10px', background: '#f1f5f9', borderLeft: '4px solid #000000', borderRadius: '4px', marginBottom: '8px', fontWeight: 700, fontSize: '0.9rem', color: '#000000' }}>
+                  <div style={{ padding: '6px 10px', background: '#f1f5f9', borderLeft: '4px solid #000000', borderRadius: '4px', marginBottom: '8px', fontWeight: 'var(--pw-weight-heavy)', fontSize: '0.9rem', color: '#000000' }}>
                     {titleText}
                   </div>
                 ) : (
-                  <div style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '8px', color: '#000000' }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 'var(--pw-weight-medium)', marginBottom: '8px', color: '#000000' }}>
                     {titleText}
                   </div>
                 )
@@ -833,26 +833,26 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
             }}>
               <thead>
                 <tr>
-                  <th rowSpan={2} style={{ width: '50px', border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 600, fontSize: '0.8rem', textAlign: 'center' }}>
+                  <th rowSpan={2} style={{ width: '50px', border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'var(--pw-weight-medium)', fontSize: '0.8rem', textAlign: 'center' }}>
                     {block.rowHeader}
                   </th>
-                  <th colSpan={block.columns.length} style={{ border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 600, fontSize: '0.8rem', textAlign: 'center' }}>
+                  <th colSpan={block.columns.length} style={{ border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'var(--pw-weight-medium)', fontSize: '0.8rem', textAlign: 'center' }}>
                     {block.columnHeader}
                   </th>
                   {block.showTotalColumn && (
-                    <th rowSpan={2} style={{ width: '130px', border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 600, fontSize: '0.8rem', textAlign: 'center' }}>
+                    <th rowSpan={2} style={{ width: '130px', border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'var(--pw-weight-medium)', fontSize: '0.8rem', textAlign: 'center' }}>
                       {block.totalColumnHeader}
                     </th>
                   )}
                   {block.showNotesColumn && (
-                    <th rowSpan={2} style={{ width: '180px', border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 600, fontSize: '0.8rem', textAlign: 'left' }}>
+                    <th rowSpan={2} style={{ width: '180px', border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'var(--pw-weight-medium)', fontSize: '0.8rem', textAlign: 'left' }}>
                       {block.notesColumnHeader}
                     </th>
                   )}
                 </tr>
                 <tr>
                   {block.columns.map((colName: string, cIdx: number) => (
-                    <th key={cIdx} style={{ border: '1.5px solid #000000', padding: '4px', background: '#f8fafc', fontWeight: 600, fontSize: '0.75rem', textAlign: block.columnAlign || 'center' }}>
+                    <th key={cIdx} style={{ border: '1.5px solid #000000', padding: '4px', background: '#f8fafc', fontWeight: 'var(--pw-weight-medium)', fontSize: '0.75rem', textAlign: block.columnAlign || 'center' }}>
                       {colName}
                     </th>
                   ))}
@@ -861,7 +861,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
               <tbody>
                 {Array.from({ length: block.rowCount }).map((_: any, rIdx: number) => (
                   <tr key={rIdx} style={{ pageBreakInside: 'avoid' }}>
-                    <td style={{ border: '1.5px solid #000000', padding: '6px', textAlign: 'center', fontSize: '0.8rem', fontWeight: 'bold', background: '#f8fafc' }}>
+                    <td style={{ border: '1.5px solid #000000', padding: '6px', textAlign: 'center', fontSize: '0.8rem', fontWeight: 'var(--pw-weight-regular)', background: '#f8fafc' }}>
                       {rIdx + 1}
                     </td>
                     {block.columns.map((_: any, cIdx: number) => (
@@ -870,7 +870,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                       </td>
                     ))}
                     {block.showTotalColumn && (
-                      <td style={{ border: '1.5px solid #000000', padding: '6px', textAlign: 'right', fontSize: '0.8rem', fontWeight: 'bold', background: '#f8fafc' }}>
+                      <td style={{ border: '1.5px solid #000000', padding: '6px', textAlign: 'right', fontSize: '0.8rem', fontWeight: 'var(--pw-weight-heavy)', background: '#f8fafc' }}>
                         {rowTotals[rIdx]}
                       </td>
                     )}
@@ -882,7 +882,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                   </tr>
                 ))}
                 {/* Grand Total Row */}
-                <tr style={{ background: '#f1f5f9', fontWeight: 'bold', pageBreakInside: 'avoid' }}>
+                <tr style={{ background: '#f1f5f9', fontWeight: 'var(--pw-weight-heavy)', pageBreakInside: 'avoid' }}>
                   <td style={{ border: '1.5px solid #000000', padding: '6px', textAlign: 'center', fontSize: '0.8rem' }}>TỔNG</td>
                   {colTotals.map((total: number, cIdx: number) => (
                     <td key={cIdx} style={{ border: '1.5px solid #000000', padding: '6px', textAlign: 'right', fontSize: '0.8rem' }}>
@@ -911,15 +911,15 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
           <div key={block.id} className="print-block">
             {titleFmt !== 'NONE' && (
               titleFmt === 'H1' ? (
-                <h2 style={{ margin: '0 0 8px 0', fontSize: '1.05rem', fontWeight: 700, textTransform: 'uppercase', color: '#000000', borderBottom: '2px solid #000000', paddingBottom: '3px' }}>
+                <h2 style={{ margin: '0 0 8px 0', fontSize: '1.05rem', fontWeight: 'var(--pw-weight-heavy)', textTransform: 'uppercase', color: '#000000', borderBottom: '2px solid #000000', paddingBottom: '3px' }}>
                   {block.title || 'BẢNG THÔNG TIN'}
                 </h2>
               ) : titleFmt === 'H2' ? (
-                <div style={{ padding: '6px 10px', background: '#f1f5f9', borderLeft: '4px solid #000000', borderRadius: '4px', marginBottom: '8px', fontWeight: 700, fontSize: '0.9rem', color: '#000000' }}>
+                <div style={{ padding: '6px 10px', background: '#f1f5f9', borderLeft: '4px solid #000000', borderRadius: '4px', marginBottom: '8px', fontWeight: 'var(--pw-weight-heavy)', fontSize: '0.9rem', color: '#000000' }}>
                   {block.title || 'BẢNG THÔNG TIN'}
                 </div>
               ) : (
-                <div style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: '8px', color: '#000000' }}>
+                <div style={{ fontSize: '0.85rem', fontWeight: 'var(--pw-weight-medium)', marginBottom: '8px', color: '#000000' }}>
                   {block.title || 'BẢNG THÔNG TIN'}
                 </div>
               )
@@ -937,7 +937,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                       const hasOptions = col.type === 'checkbox' && col.options && col.options.length > 0;
                       const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? (hasOptions ? 'left' : 'center') : 'left'));
                       return (
-                        <th key={col.id} style={{ border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 600, fontSize: '0.8rem', textAlign: cellAlign, width: colWidth }}>
+                        <th key={col.id} style={{ border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'var(--pw-weight-medium)', fontSize: '0.8rem', textAlign: cellAlign, width: colWidth }}>
                           {col.label}
                         </th>
                       );
@@ -962,7 +962,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                           return (
                             <td key={col.id} style={{ border: '1.5px solid #000000', padding: '6px 8px', fontSize: '0.8rem', verticalAlign: 'middle', textAlign: cellAlign }}>
                               {col.type === 'static_text' ? (
-                                <span style={{ fontWeight: 500, display: 'block', textAlign: cellAlign }}>{block.tableData?.[row.id]?.[col.id] || ''}</span>
+                                <span style={{ fontWeight: 'var(--pw-weight-regular)', display: 'block', textAlign: cellAlign }}>{block.tableData?.[row.id]?.[col.id] || ''}</span>
                               ) : col.type === 'checkbox' ? (
                                 hasOptions ? (
                                    <div style={{
@@ -990,7 +990,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                                             borderRadius: '2px',
                                             flexShrink: 0,
                                             fontSize: '9px',
-                                            fontWeight: 'bold',
+                                            fontWeight: 'var(--pw-weight-heavy)',
                                             lineHeight: 1
                                           }}>
                                             {isChecked ? '✓' : ''}
@@ -1048,7 +1048,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                     <tfoot>
                       {summaryTypes.map((sumType, idx) => {
                         return (
-                          <tr key={sumType.id || idx} style={{ background: '#ffffff', fontWeight: 'bold' }}>
+                          <tr key={sumType.id || idx} style={{ background: '#ffffff', fontWeight: 'var(--pw-weight-heavy)' }}>
                             {firstSumColIdx > 0 && (
                               <td colSpan={firstSumColIdx} style={{
                                 border: '1.5px solid #000000',
@@ -1117,7 +1117,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                 <h2 style={{
                   margin: '0 0 4px 0',
                   fontSize: '1.1rem',
-                  fontWeight: 700,
+                  fontWeight: 'var(--pw-weight-heavy)',
                   color: '#000000',
                   textTransform: 'uppercase',
                   letterSpacing: '0.5px',
@@ -1144,7 +1144,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                 pageBreakAfter: 'avoid',
                 breakAfter: 'avoid'
               }}>
-                <h3 style={{ margin: '0 0 4px 0', fontSize: '0.95rem', fontWeight: 700, color: '#1e293b' }}>
+                <h3 style={{ margin: '0 0 4px 0', fontSize: '0.95rem', fontWeight: 'var(--pw-weight-heavy)', color: '#1e293b' }}>
                   {block.title}
                 </h3>
                 {block.description && (
@@ -1161,7 +1161,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
       {/* PHOTO EVIDENCE LOG */}
       {imageUrls.length > 0 && (
         <div className="print-block" style={{ pageBreakInside: 'avoid' }}>
-          <h4 style={{ margin: '0 0 10px 0', fontSize: '0.85rem', fontWeight: 'bold', textTransform: 'uppercase', color: '#475569' }}>
+          <h4 style={{ margin: '0 0 10px 0', fontSize: '0.85rem', fontWeight: 'var(--pw-weight-heavy)', textTransform: 'uppercase', color: '#475569' }}>
             Hình ảnh bằng chứng đính kèm (Photo Evidence Log)
           </h4>
           <div style={{
@@ -1207,9 +1207,9 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
           flexDirection: 'column',
           justifyContent: 'space-between'
         }}>
-          <span style={{ fontSize: '0.8rem', fontWeight: 'bold', textAlign: 'center' }}>Người kiểm tra (Operator)</span>
+          <span style={{ fontSize: '0.8rem', fontWeight: 'var(--pw-weight-heavy)', textAlign: 'center' }}>Người kiểm tra (Operator)</span>
           <div style={{ fontSize: '0.8rem' }}>
-            Họ tên: <strong>{submission.operatorId}</strong>
+            Họ tên: <span style={{ fontWeight: 'var(--pw-weight-medium)' }}>{submission.operatorId}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: '#475569' }}>
             <span>Ký tên: [Đã xác thực điện tử]</span>
@@ -1226,11 +1226,11 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
           justifyContent: 'space-between',
           background: submission.supervisorSignoff ? 'transparent' : '#f8fafc'
         }}>
-          <span style={{ fontSize: '0.8rem', fontWeight: 'bold', textAlign: 'center' }}>Người thẩm tra (Supervisor)</span>
+          <span style={{ fontSize: '0.8rem', fontWeight: 'var(--pw-weight-heavy)', textAlign: 'center' }}>Người thẩm tra (Supervisor)</span>
           {submission.supervisorSignoff ? (
             <>
               <div style={{ fontSize: '0.8rem' }}>
-                Họ tên: <strong>{submission.supervisorSignoff.signedBy}</strong>
+                Họ tên: <span style={{ fontWeight: 'var(--pw-weight-medium)' }}>{submission.supervisorSignoff.signedBy}</span>
                 {submission.supervisorSignoff.notes && (
                   <span style={{ fontSize: '0.7rem', color: '#64748b', fontStyle: 'italic', marginLeft: '4px' }}>
                     ({submission.supervisorSignoff.notes})
