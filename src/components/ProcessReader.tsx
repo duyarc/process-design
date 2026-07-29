@@ -812,7 +812,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
             style={{ marginBottom: '0.25rem' }}
           >
             <div className="mermaid-print-wrapper" style={{ margin: 0 }}>
-              <BpmnViewerComponent xml={rowXml} />
+              <BpmnViewerComponent xml={rowXml} processName={process?.title || 'Quy-trinh'} />
             </div>
           </div>
         );

@@ -2107,11 +2107,12 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                     onSavePositions={handleSaveBpmnPositions}
                     onReset={handleResetBpmnPositions}
                     isSaving={savingBpmn}
+                    processName={title}
                   />
                 </div>
               ) : (
                 <div>
-                   <BpmnViewerComponent xml={debouncedXml} />
+                   <BpmnViewerComponent xml={debouncedXml} processName={title} />
                 </div>
               )}
             </div>

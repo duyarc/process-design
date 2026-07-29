@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback, useImperativeHandle, forwardRef } from 'react';
 import BpmnModeler from 'bpmn-js/lib/Modeler';
-import { ZoomIn, ZoomOut, Maximize2, Save } from 'lucide-react';
+import { ZoomIn, ZoomOut, Maximize2, Save, Copy, Download, Check } from 'lucide-react';
+import { copyBpmnToClipboard, downloadBpmnVectorFile } from '../utils/bpmnExportUtils';
 import 'bpmn-js/dist/assets/diagram-js.css';
 import 'bpmn-js/dist/assets/bpmn-font/css/bpmn-embedded.css';
 import 'bpmn-js/dist/assets/bpmn-js.css';
@@ -31,6 +32,7 @@ interface BpmnModelerComponentProps {
   }) => Promise<void>;
   onReset: () => Promise<void>;
   isSaving: boolean;
+  processName?: string;
 }
 
 export interface BpmnModelerRef {
@@ -43,13 +45,39 @@ export interface BpmnModelerRef {
 export const BpmnModelerComponent = forwardRef<BpmnModelerRef, BpmnModelerComponentProps>(({ 
   xml, 
   onSavePositions, 
-  isSaving 
+  isSaving,
+  processName = 'Diagram'
 }, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const modelerRef = useRef<BpmnModeler | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [height, setHeight] = useState<number | string>('500px');
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [isCopied, setIsCopied] = useState(false);
+
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3500);
+  };
+
+  const handleCopy = async () => {
+    if (!modelerRef.current) return;
+    const res = await copyBpmnToClipboard(modelerRef.current);
+    if (res.success) {
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2500);
+      showToast(res.message, 'success');
+    } else {
+      showToast(res.message, 'error');
+    }
+  };
+
+  const handleDownload = async () => {
+    if (!modelerRef.current) return;
+    const res = await downloadBpmnVectorFile(modelerRef.current, processName);
+    showToast(res.message, res.success ? 'success' : 'error');
+  };
 
   const fitDiagram = useCallback(() => {
     if (!modelerRef.current || !containerRef.current) return;
@@ -297,22 +325,69 @@ export const BpmnModelerComponent = forwardRef<BpmnModelerRef, BpmnModelerCompon
         </div>
       </div>
 
-      {/* Floating Zoom controls */}
+      {/* Floating Zoom & Export controls */}
       <div 
+        className="no-print"
         style={{ 
           position: 'absolute', 
           top: '52px', 
           right: '12px', 
           zIndex: 10, 
           display: 'flex', 
-          gap: '4px',
-          background: 'rgba(255, 255, 255, 0.9)', 
-          padding: '4px', 
+          alignItems: 'center',
+          gap: '6px',
+          background: 'rgba(255, 255, 255, 0.92)', 
+          backdropFilter: 'blur(4px)',
+          padding: '4px 8px', 
           borderRadius: '6px',
           border: '1px solid var(--neutral-border)',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+          boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
         }}
       >
+        <button
+          type="button"
+          className="btn btn-secondary btn-sm"
+          style={{
+            padding: '0.25rem 0.55rem',
+            fontSize: '0.75rem',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px',
+            height: '26px',
+            color: isCopied ? '#059669' : '#0d9488',
+            borderColor: isCopied ? '#6ee7b7' : '#99f6e4',
+            background: isCopied ? '#ecfdf5' : '#f0fdf4'
+          }}
+          title="Sao chép ảnh sơ đồ (nền trắng) để dán Ctrl+V trực tiếp vào Word / Google Docs"
+          onClick={handleCopy}
+        >
+          {isCopied ? <Check size={12} /> : <Copy size={12} />}
+          <span>{isCopied ? 'Đã sao chép' : 'Copy'}</span>
+        </button>
+
+        <button
+          type="button"
+          className="btn btn-secondary btn-sm"
+          style={{
+            padding: '0.25rem 0.55rem',
+            fontSize: '0.75rem',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px',
+            height: '26px',
+            color: '#0284c7',
+            borderColor: '#bae6fd',
+            background: '#f0f9ff'
+          }}
+          title="Tải tệp sơ đồ chất lượng cao (.svg) về máy tính"
+          onClick={handleDownload}
+        >
+          <Download size={12} />
+          <span>Download</span>
+        </button>
+
+        <div style={{ width: '1px', height: '16px', background: '#cbd5e1', margin: '0 2px' }} />
+
         <button 
           type="button"
           onClick={handleZoomIn} 
@@ -341,6 +416,34 @@ export const BpmnModelerComponent = forwardRef<BpmnModelerRef, BpmnModelerCompon
           <Maximize2 size={16} style={{ color: 'var(--text-primary)' }} />
         </button>
       </div>
+
+      {/* Toast feedback notification */}
+      {toast && (
+        <div
+          className="no-print"
+          style={{
+            position: 'absolute',
+            bottom: '12px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 20,
+            background: toast.type === 'success' ? '#0f172a' : '#991b1b',
+            color: '#ffffff',
+            padding: '6px 14px',
+            borderRadius: '20px',
+            fontSize: '0.78rem',
+            fontWeight: 500,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.18)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            animation: 'fadeIn 0.2s ease-out'
+          }}
+        >
+          {toast.type === 'success' && <Check size={14} style={{ color: '#34d399' }} />}
+          <span>{toast.message}</span>
+        </div>
+      )}
 
       {/* Loading state */}
       {loading && (

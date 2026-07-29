@@ -1,7 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import BpmnViewer from 'bpmn-js/lib/Viewer';
+import { Copy, Download, Check } from 'lucide-react';
+import { copyBpmnToClipboard, downloadBpmnVectorFile } from '../utils/bpmnExportUtils';
 import 'bpmn-js/dist/assets/diagram-js.css';
 import 'bpmn-js/dist/assets/bpmn-font/css/bpmn-embedded.css';
+
 interface BpmnCanvas {
   zoom: (newZoom?: string | number) => number;
   viewbox: (newViewbox?: { x: number; y: number; width: number; height: number }) => {
@@ -13,13 +16,47 @@ interface BpmnCanvas {
 
 interface BpmnViewerComponentProps {
   xml: string;
+  processName?: string;
+  showExportControls?: boolean;
 }
 
-export const BpmnViewerComponent: React.FC<BpmnViewerComponentProps> = ({ xml }) => {
+export const BpmnViewerComponent: React.FC<BpmnViewerComponentProps> = ({ 
+  xml, 
+  processName = 'Diagram',
+  showExportControls = true 
+}) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const viewerRef = useRef<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [height, setHeight] = useState<number | string>('450px');
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [isCopied, setIsCopied] = useState(false);
+
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => {
+      setToast(null);
+    }, 3500);
+  };
+
+  const handleCopy = async () => {
+    if (!viewerRef.current) return;
+    const res = await copyBpmnToClipboard(viewerRef.current);
+    if (res.success) {
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2500);
+      showToast(res.message, 'success');
+    } else {
+      showToast(res.message, 'error');
+    }
+  };
+
+  const handleDownload = async () => {
+    if (!viewerRef.current) return;
+    const res = await downloadBpmnVectorFile(viewerRef.current, processName);
+    showToast(res.message, res.success ? 'success' : 'error');
+  };
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -41,6 +78,7 @@ export const BpmnViewerComponent: React.FC<BpmnViewerComponentProps> = ({ xml })
         }
       ]
     });
+    viewerRef.current = viewer;
 
     viewer.importXML(xml.trim())
       .then(() => {
@@ -275,6 +313,98 @@ export const BpmnViewerComponent: React.FC<BpmnViewerComponentProps> = ({ xml })
               {error}
             </pre>
           </div>
+        </div>
+      )}
+
+      {/* Export Action Controls */}
+      {showExportControls && !loading && !error && (
+        <div 
+          className="no-print"
+          style={{
+            position: 'absolute',
+            top: '8px',
+            right: '12px',
+            zIndex: 10,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            background: 'rgba(255, 255, 255, 0.92)',
+            backdropFilter: 'blur(4px)',
+            padding: '4px 8px',
+            borderRadius: '6px',
+            border: '1px solid var(--neutral-border)',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
+          }}
+        >
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            style={{
+              padding: '0.25rem 0.55rem',
+              fontSize: '0.75rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              height: '26px',
+              color: isCopied ? '#059669' : '#0d9488',
+              borderColor: isCopied ? '#6ee7b7' : '#99f6e4',
+              background: isCopied ? '#ecfdf5' : '#f0fdf4'
+            }}
+            title="Sao chép ảnh sơ đồ (nền trắng) để dán Ctrl+V trực tiếp vào Word / Google Docs"
+            onClick={handleCopy}
+          >
+            {isCopied ? <Check size={12} /> : <Copy size={12} />}
+            <span>{isCopied ? 'Đã sao chép' : 'Copy'}</span>
+          </button>
+
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            style={{
+              padding: '0.25rem 0.55rem',
+              fontSize: '0.75rem',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              height: '26px',
+              color: '#0284c7',
+              borderColor: '#bae6fd',
+              background: '#f0f9ff'
+            }}
+            title="Tải tệp sơ đồ chất lượng cao (.svg) về máy tính"
+            onClick={handleDownload}
+          >
+            <Download size={12} />
+            <span>Download</span>
+          </button>
+        </div>
+      )}
+
+      {/* Toast feedback notification */}
+      {toast && (
+        <div
+          className="no-print"
+          style={{
+            position: 'absolute',
+            bottom: '12px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 20,
+            background: toast.type === 'success' ? '#0f172a' : '#991b1b',
+            color: '#ffffff',
+            padding: '6px 14px',
+            borderRadius: '20px',
+            fontSize: '0.78rem',
+            fontWeight: 500,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.18)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            animation: 'fadeIn 0.2s ease-out'
+          }}
+        >
+          {toast.type === 'success' && <Check size={14} style={{ color: '#34d399' }} />}
+          <span>{toast.message}</span>
         </div>
       )}
 
