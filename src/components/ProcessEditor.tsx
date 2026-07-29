@@ -63,6 +63,8 @@ const enforceStepShapes = (stepsList: ProcessStep[]): ProcessStep[] => {
       formName = undefined;
       formNames = undefined;
     }
+
+    let subProcessId = shape === 'subprocess' ? step.subProcessId : undefined;
     
     return { 
       ...step, 
@@ -74,7 +76,8 @@ const enforceStepShapes = (stepsList: ProcessStep[]): ProcessStep[] => {
       branchNoTargetId,
       producesForm,
       formName,
-      formNames
+      formNames,
+      subProcessId
     };
   });
 };
@@ -2155,6 +2158,8 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                 let borderLeftColor = '#10a3a3'; // Default task (Teal)
                 if (step.bpmnShape === 'start-event') {
                   borderLeftColor = '#10b981'; // Start (Emerald Green)
+                } else if (step.bpmnShape === 'subprocess') {
+                  borderLeftColor = '#6366f1'; // Subprocess (Indigo)
                 } else if (step.bpmnShape === 'exclusive-gateway') {
                   borderLeftColor = '#f59e0b'; // Gateway (Amber Gold)
                 } else if (step.bpmnShape === 'end-event' || step.bpmnShape === 'message-end-event') {
@@ -2411,6 +2416,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                               style={{ padding: '0.35rem 1.5rem 0.35rem 0.5rem', fontSize: '0.85rem', width: '100%', margin: 0 }}
                             >
                               <option value="task">Task</option>
+                              <option value="subprocess">Quy trình con (Subprocess)</option>
                               <option value="exclusive-gateway">Gateway (XOR)</option>
                               <option value="end-event">End</option>
                               <option value="message-end-event">Message End</option>
@@ -2420,7 +2426,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
 
                         {/* Connects to Step Select */}
                         <div>
-                          {(isStart || step.bpmnShape === 'task' || !step.bpmnShape) ? (
+                          {(isStart || step.bpmnShape === 'task' || step.bpmnShape === 'subprocess' || !step.bpmnShape) ? (
                             <select
                               value={step.nextStepId || ''}
                               onChange={(e) => handleStepChange(index, 'nextStepId', e.target.value)}
@@ -2557,6 +2563,41 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                                 ))}
                               </select>
                             </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Sub-row for Subprocess ID */}
+                      {step.bpmnShape === 'subprocess' && (
+                        <div style={{ 
+                          borderTop: '1px solid #f1f5f9',
+                          background: '#f8fafc',
+                          padding: '0.35rem 0.75rem 0.4rem 50px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.75rem'
+                        }}>
+                          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#4f46e5' }}>
+                            Cấu hình Quy trình con:
+                          </span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, maxWidth: '450px' }}>
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                              Mã Quy trình con (Subprocess ID):
+                            </span>
+                            <input
+                              type="text"
+                              value={step.subProcessId || ''}
+                              onChange={(e) => handleStepChange(index, 'subProcessId', e.target.value)}
+                              placeholder="VD: PROC-QC-002"
+                              disabled={isReadOnly}
+                              style={{
+                                padding: '0.2rem 0.5rem',
+                                fontSize: '0.8rem',
+                                border: '1px solid #cbd5e1',
+                                borderRadius: '4px',
+                                flex: 1
+                              }}
+                            />
                           </div>
                         </div>
                       )}

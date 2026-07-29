@@ -233,10 +233,13 @@ export function generateBPMNXML(
       xml += `
     <bpmn:userTask id="${node.id}" name="${escapedAction}">${incomingStr}${outgoingStr}
     </bpmn:userTask>`;
-    } else if (shape === 'service-task') {
+    } else if (shape === 'subprocess') {
+      const displayName = node.stepRef?.subProcessId
+        ? `${escapedAction}\n[${node.stepRef.subProcessId}]`
+        : escapedAction;
       xml += `
-    <bpmn:serviceTask id="${node.id}" name="${escapedAction}">${incomingStr}${outgoingStr}
-    </bpmn:serviceTask>`;
+    <bpmn:callActivity id="${node.id}" name="${escapeXml(displayName)}">${incomingStr}${outgoingStr}
+    </bpmn:callActivity>`;
     } else {
       xml += `
     <bpmn:task id="${node.id}" name="${escapedAction}">${incomingStr}${outgoingStr}

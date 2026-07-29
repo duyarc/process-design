@@ -9,7 +9,7 @@
 | **Module Name** | Process Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | `001af74` (2026-07-27) — Sections 4, 4.5, 4.6 and 6 checked against source |
+| **Verified At Commit** | `90da324` (2026-07-29) — Added `subprocess` BPMN shape support and `subProcessId` field on `ProcessStep`. |
 
 > **⚠️ Note:** Several architectural facts here are not obvious from the code — see Sections 4.5, 6.2, and 7.
 
