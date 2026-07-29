@@ -1556,6 +1556,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
               version,
               status,
               pageSize,
+              effectiveDate: status === 'ACTIVE' ? (effectiveDate || (initialData as any)?.effectiveDate || (initialData as any)?.effective_date) : undefined,
               updatedAt: initialData?.updatedAt || (initialData as any)?.updated_at || new Date().toISOString(),
               layoutBlocks,
               revisionHistory
