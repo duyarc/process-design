@@ -434,7 +434,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                             return (
                               <div key={f.id} style={{ display: 'flex', alignItems: 'baseline', gap: '8px', fontSize: '0.85rem' }}>
                                 {cleanLabel && (
-                                  <span style={{ fontWeight: 'var(--pw-weight-medium)', color: '#0f172a', whiteSpace: 'nowrap' }}>{cleanLabel}</span>
+                                  <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap' }}>{cleanLabel}</span>
                                 )}
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', alignItems: 'center', maxWidth: '100%' }}>
                                   {options.map((opt: any) => (
@@ -460,7 +460,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                             const blankRows = f.subtableDefaultRows ?? 3;
                             return (
                               <div key={f.id} className="subtable-print-container print-field-full" style={{ fontSize: '0.82rem', width: '100%', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                                {cleanLabel && <div style={{ fontWeight: 'var(--pw-weight-medium)', color: '#0f172a', marginBottom: '6px', pageBreakAfter: 'avoid', breakAfter: 'avoid' }}>{cleanLabel}</div>}
+                                {cleanLabel && <div style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', marginBottom: '6px', pageBreakAfter: 'avoid', breakAfter: 'avoid' }}>{cleanLabel}</div>}
                                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                   <thead>
                                     <tr>
@@ -499,7 +499,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                           if (f.type === 'date') {
                             return (
                               <div key={f.id} style={{ display: 'flex', alignItems: 'baseline', gap: '8px', fontSize: '0.85rem' }}>
-                                {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-medium)', color: '#0f172a', whiteSpace: 'nowrap' }}>{cleanLabel}</span>}
+                                {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap' }}>{cleanLabel}</span>}
                                 <div style={{ fontSize: '0.85rem', color: '#0f172a', display: 'flex', alignItems: 'baseline', gap: '4px' }}>
                                   <span style={{ borderBottom: '1px dotted #cbd5e1', width: '36px', display: 'inline-block', minHeight: 'var(--pw-line-h)' }} />
                                   <span style={{ color: '#000000', fontWeight: 'var(--pw-weight-regular)' }}>/</span>
@@ -513,7 +513,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
 
                           return (
                             <div key={f.id} style={{ display: 'flex', alignItems: 'baseline', gap: '8px', fontSize: '0.85rem' }}>
-                              {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-medium)', color: '#0f172a', whiteSpace: 'nowrap' }}>{cleanLabel}</span>}
+                              {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap' }}>{cleanLabel}</span>}
                               {f.type === 'time' ? (
                                 f.timeMode === 'dual' ? (
                                   <div style={{ fontSize: '0.8rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '4px' }}>

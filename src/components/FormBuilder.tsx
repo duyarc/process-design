@@ -559,7 +559,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
       columns,
       title: type === 'TITLE' ? formTitle : type === 'INFO_GRID' ? 'Thông tin chung' : type === 'CHECKLIST_TABLE' ? 'Bảng kiểm tra' : type === 'MATRIX_TABLE' ? 'Bảng kiểm đếm số lượng' : type === 'TABLE' ? 'Bảng biểu mẫu động' : type === 'SECTION_LABEL' ? 'Tiêu đề danh mục' : 'Ký nhận',
       description: type === 'SECTION_LABEL' ? '' : undefined,
-      sectionFormat: type === 'SECTION_LABEL' ? 'H1' : undefined,
+      titleFormat: type === 'SECTION_LABEL' ? 'NONE' : undefined,
+      sectionFormat: undefined,
       fields: [],
       columnLabels: type === 'CHECKLIST_TABLE' ? {
         stt: 'STT',

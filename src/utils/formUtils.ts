@@ -14,7 +14,7 @@ export const sanitizeLabel = (label?: string): string => {
  */
 export const getEffectiveTitleFormat = (block: { type: string; titleFormat?: TitleFormatISO; sectionFormat?: 'H1' | 'H2' }): TitleFormatISO => {
   if (block.titleFormat) return block.titleFormat;
-  if (block.type === 'SECTION_LABEL') return block.sectionFormat || 'H1';
+  if (block.type === 'SECTION_LABEL') return block.sectionFormat || 'NONE';
   return 'NONE';
 };
 

@@ -755,7 +755,7 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
                     const inputStyle = { padding: '0.45rem 0.6rem', fontSize: '0.82rem', border: '1px solid #e2e8f0', borderRadius: '4px', width: '100%', height: '36px', backgroundColor: '#f8fafc' };
                     return (
                       <div key={field.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                        <label style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                        <label style={{ fontSize: '0.78rem', fontWeight: 400, color: 'var(--text-secondary)' }}>
                           {sanitizeLabel(field.checkItem)}
                         </label>
                         {field.type === 'date' ? (

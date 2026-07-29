@@ -551,7 +551,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                       const cols = matchedField.subtableColumns ?? [];
                       return (
                         <div key={f.id} className="subtable-print-container print-field-full" style={{ fontSize: '0.82rem', width: '100%', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                          {f.checkItem && <div style={{ fontWeight: 'var(--pw-weight-medium)', marginBottom: '6px', pageBreakAfter: 'avoid', breakAfter: 'avoid' }}>{f.checkItem}:</div>}
+                          {f.checkItem && <div style={{ fontWeight: 'var(--pw-weight-regular)', marginBottom: '6px', pageBreakAfter: 'avoid', breakAfter: 'avoid' }}>{f.checkItem}:</div>}
                           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                             <thead>
                               <tr>
@@ -598,7 +598,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
 
                     return (
                       <div key={f.id} style={{ display: 'flex', alignItems: 'baseline', gap: '8px', fontSize: '0.85rem' }}>
-                        <span style={{ fontWeight: 'var(--pw-weight-medium)', whiteSpace: 'nowrap' }}>{f.checkItem ? `${f.checkItem}:` : ''}</span>
+                        <span style={{ fontWeight: 'var(--pw-weight-regular)', whiteSpace: 'nowrap' }}>{f.checkItem ? `${f.checkItem}:` : ''}</span>
                         <span style={{ borderBottom: '1px solid #94a3b8', flex: 1, paddingBottom: '2px', fontWeight: 'var(--pw-weight-regular)' }}>
                           {f.value}
                         </span>
@@ -1102,7 +1102,9 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
 
       {/* SECTION LABEL RECORD BLOCK */}
       {layoutBlocks.filter(b => b.type === 'SECTION_LABEL').map((block: any) => {
-        const isH1 = block.sectionFormat === 'H1';
+        const titleFmt = getEffectiveTitleFormat(block);
+        if (titleFmt === 'NONE') return null;
+        const isH1 = titleFmt === 'H1';
         return (
           <div key={block.id} className="print-block print-block--section print-block-avoid">
             {isH1 ? (

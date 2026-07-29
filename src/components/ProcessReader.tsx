@@ -1350,7 +1350,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                                 const inputStyle = { padding: '0.4rem 0.5rem', fontSize: '0.8rem', border: '1px solid #e2e8f0', borderRadius: '4px', width: '100%', height: '34px', backgroundColor: '#f8fafc' };
                                 return (
                                   <div key={field.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                                    <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                                    <label style={{ fontSize: '0.75rem', fontWeight: 400, color: 'var(--text-secondary)' }}>
                                       {field.checkItem}
                                     </label>
                                     {field.type === 'date' ? (

@@ -9,7 +9,7 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | `6f985d8` (2026-07-29) — Standardized font-weights in `PrintBlankForm.tsx` against 4-tier CSS variables (`var(--pw-weight-*)`). |
+| **Verified At Commit** | `49a4f14` (2026-07-29) — Defaulted `SECTION_LABEL` Title Format to `NONE` in `FormBuilder.tsx` and `formUtils.ts`. |
 
 > **⚠️ Architectural note:** FormBuilder has no awareness of which process it belongs to. The `formName` prop is always identical to `formId`. See Section 6.1 and the Technical Debt table.
 
