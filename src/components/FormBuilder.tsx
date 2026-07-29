@@ -2608,68 +2608,119 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                 )}
                               </tbody>
                               {(() => {
-                                const footerRows: React.ReactNode[] = [];
-                                (block.tableColumns || []).forEach((col, colIdx) => {
-                                  if (col.type === 'number' && col.summaryRows && col.summaryRows.length > 0) {
-                                    const summaryRows = col.summaryRows;
-                                    const getDummySummaryVal = (row: any): number => {
-                                      if (row.type === 'sum') {
-                                        let sum = 0;
-                                        (block.tableRows || []).forEach((r: any) => {
-                                          const valStr = block.tableData?.[r.id]?.[col.id] || '';
-                                          const num = parseFloat(valStr.replace(/,/g, '')) || 0;
-                                          sum += num;
-                                        });
-                                        return sum;
-                                      }
-                                      if (row.type === 'percentage') {
-                                        if (!row.percentageOfId) return 0;
-                                        const parentRow = summaryRows.find((r: any) => r.id === row.percentageOfId);
-                                        if (!parentRow) return 0;
-                                        const parentVal = getDummySummaryVal(parentRow);
-                                        return parentVal * ((row.percentageValue || 0) / 100);
-                                      }
-                                      if (row.type === 'sum_all') {
-                                        let sum = 0;
-                                        (row.sumRowIds || []).forEach((id: string) => {
-                                          const targetRow = summaryRows.find((r: any) => r.id === id);
-                                          if (targetRow) {
-                                            sum += getDummySummaryVal(targetRow);
-                                          }
-                                        });
-                                        return sum;
-                                      }
-                                      return 0;
-                                    };
+                                const columns = block.tableColumns || [];
+                                const totalCols = columns.length;
+                                if (totalCols === 0) return null;
 
-                                    summaryRows.forEach((row) => {
-                                      const dummyVal = getDummySummaryVal(row);
-                                      const isManual = row.type === 'manual';
-                                      const displayStr = isManual ? '[Người điền tự nhập]' : dummyVal.toLocaleString('vi-VN') + ' VND';
-                                      
-                                      footerRows.push(
-                                        <tr key={`${col.id}_${row.id}`} style={{ background: '#f8fafc', fontWeight: 'bold', borderTop: '1.5px solid #cbd5e1' }}>
-                                          {colIdx > 0 && (
-                                            <td colSpan={colIdx} style={{ padding: '6px', borderRight: '1px solid #cbd5e1', textAlign: 'right', color: 'var(--text-secondary)' }}>
-                                              {row.label}
-                                            </td>
-                                          )}
-                                          <td style={{ padding: '6px', borderRight: '1px solid #cbd5e1', textAlign: 'right', color: 'var(--text-primary)' }}>
-                                            {displayStr}
-                                          </td>
-                                          {(block.tableColumns || []).length - 1 - colIdx > 0 && (
-                                            <td colSpan={(block.tableColumns || []).length - 1 - colIdx} style={{ padding: '6px' }} />
-                                          )}
-                                        </tr>
-                                      );
+                                const summaryTypes: { id: string; label: string }[] = [];
+                                const columnsWithSummaries: { col: any; colIdx: number; rowMap: Map<string, any> }[] = [];
+
+                                const getDummySummaryVal = (col: any, row: any): number => {
+                                  const summaryRows = col.summaryRows || [];
+                                  if (row.type === 'sum') {
+                                    let sum = 0;
+                                    (block.tableRows || []).forEach((r: any) => {
+                                      const valStr = block.tableData?.[r.id]?.[col.id] || '';
+                                      const num = parseFloat(valStr.replace(/,/g, '')) || 0;
+                                      sum += num;
                                     });
+                                    return sum;
+                                  }
+                                  if (row.type === 'percentage') {
+                                    if (!row.percentageOfId) return 0;
+                                    const parentRow = summaryRows.find((r: any) => r.id === row.percentageOfId);
+                                    if (!parentRow) return 0;
+                                    const parentVal = getDummySummaryVal(col, parentRow);
+                                    return parentVal * ((row.percentageValue || 0) / 100);
+                                  }
+                                  if (row.type === 'sum_all') {
+                                    let sum = 0;
+                                    (row.sumRowIds || []).forEach((id: string) => {
+                                      const targetRow = summaryRows.find((r: any) => r.id === id);
+                                      if (targetRow) {
+                                        sum += getDummySummaryVal(col, targetRow);
+                                      }
+                                    });
+                                    return sum;
+                                  }
+                                  return 0;
+                                };
+
+                                columns.forEach((col: any, colIdx: number) => {
+                                  if (col.type === 'number' && col.summaryRows && col.summaryRows.length > 0) {
+                                    const rowMap = new Map<string, any>();
+                                    col.summaryRows.forEach((row: any) => {
+                                      rowMap.set(row.id, row);
+                                      if (!summaryTypes.some(s => s.label === row.label)) {
+                                        summaryTypes.push({ id: row.id, label: row.label || 'Cộng:' });
+                                      }
+                                    });
+                                    columnsWithSummaries.push({ col, colIdx, rowMap });
                                   }
                                 });
-                                return footerRows.length > 0 ? (
+
+                                if (columnsWithSummaries.length === 0) return null;
+
+                                const firstSumColIdx = Math.min(...columnsWithSummaries.map(c => c.colIdx));
+
+                                return (
                                   <tfoot style={{ borderTop: '2px solid #94a3b8' }}>
-                                    {footerRows}
+                                    {summaryTypes.map((sumType, idx) => {
+                                      return (
+                                        <tr key={sumType.id || idx} style={{ background: '#f8fafc', fontWeight: 'bold' }}>
+                                          {firstSumColIdx > 0 && (
+                                            <td colSpan={firstSumColIdx} style={{
+                                              padding: '6px 8px',
+                                              borderRight: '1px solid #cbd5e1',
+                                              borderBottom: '1px solid #cbd5e1',
+                                              textAlign: 'right',
+                                              color: 'var(--text-secondary)',
+                                              fontSize: '0.8rem'
+                                            }}>
+                                              {sumType.label}
+                                            </td>
+                                          )}
+                                          {columns.slice(firstSumColIdx).map((col: any, offsetIdx: number) => {
+                                            const actualColIdx = firstSumColIdx + offsetIdx;
+                                            const colSumData = columnsWithSummaries.find(c => c.colIdx === actualColIdx);
+                                            const targetRow = colSumData ? (colSumData.rowMap.get(sumType.id) || Array.from(colSumData.rowMap.values()).find((r: any) => r.label === sumType.label)) : null;
+                                            const isLabelColIfFirst = actualColIdx === 0 && firstSumColIdx === 0;
+
+                                            if (!targetRow) {
+                                              return (
+                                                <td key={col.id} style={{
+                                                  padding: '6px 8px',
+                                                  borderRight: '1px solid #cbd5e1',
+                                                  borderBottom: '1px solid #cbd5e1',
+                                                  fontSize: '0.8rem'
+                                                }}>
+                                                  {isLabelColIfFirst ? sumType.label : ''}
+                                                </td>
+                                              );
+                                            }
+
+                                            const dummyVal = getDummySummaryVal(col, targetRow);
+                                            const isManual = targetRow.type === 'manual';
+                                            const displayStr = isManual ? '[Người điền tự nhập]' : dummyVal.toLocaleString('vi-VN');
+
+                                            return (
+                                              <td key={col.id} style={{
+                                                padding: '6px 8px',
+                                                borderRight: '1px solid #cbd5e1',
+                                                borderBottom: '1px solid #cbd5e1',
+                                                textAlign: 'right',
+                                                color: 'var(--text-primary)',
+                                                fontSize: '0.8rem'
+                                              }}>
+                                                {displayStr}
+                                              </td>
+                                            );
+                                          })}
+                                        </tr>
+                                      );
+                                    })}
                                   </tfoot>
-                                ) : null;
+                                );
                               })()}
                             </table>
                           </div>

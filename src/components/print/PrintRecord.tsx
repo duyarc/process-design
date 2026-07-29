@@ -1023,61 +1023,83 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                   )}
                 </tbody>
                 {(() => {
-                  const allFooterRows: { col: any; row: any; colIdx: number }[] = [];
-                  (block.tableColumns || []).forEach((col: any, colIdx: number) => {
+                  const columns = block.tableColumns || [];
+                  const totalCols = columns.length;
+                  if (totalCols === 0) return null;
+
+                  const summaryTypes: { id: string; label: string }[] = [];
+                  const columnsWithSummaries: { col: any; colIdx: number; rowMap: Map<string, any> }[] = [];
+
+                  columns.forEach((col: any, colIdx: number) => {
                     if (col.type === 'number' && col.summaryRows && col.summaryRows.length > 0) {
+                      const rowMap = new Map<string, any>();
                       col.summaryRows.forEach((row: any) => {
-                        allFooterRows.push({ col, row, colIdx });
+                        rowMap.set(row.id, row);
+                        if (!summaryTypes.some(s => s.label === row.label)) {
+                          summaryTypes.push({ id: row.id, label: row.label || 'Cộng:' });
+                        }
                       });
+                      columnsWithSummaries.push({ col, colIdx, rowMap });
                     }
                   });
-                  if (allFooterRows.length === 0) return null;
-                  const totalCols = (block.tableColumns || []).length;
+
+                  if (columnsWithSummaries.length === 0) return null;
+
+                  const firstSumColIdx = Math.min(...columnsWithSummaries.map(c => c.colIdx));
+
                   return (
                     <tfoot>
-                      {allFooterRows.map(({ col, row, colIdx }, idx) => {
-                        const cellKey = `${block.id}_summary_${col.id}_${row.id}`;
-                        const snapshotVal = submission.formData.find(f => f.id === cellKey)?.value || '0';
-                        const numVal = parseFloat(snapshotVal) || 0;
+                      {summaryTypes.map((sumType, idx) => {
                         const isFirst = idx === 0;
-                        const topBorder = isFirst ? '2px solid #000000' : '1px solid #e2e8f0';
+                        const topBorder = isFirst ? '2px solid #000000' : '1px solid #cbd5e1';
+
                         return (
-                          <tr key={`${col.id}_${row.id}`} style={{ background: '#ffffff', fontWeight: 'bold' }}>
-                            {colIdx > 0 && (
-                              <td colSpan={colIdx} style={{
+                          <tr key={sumType.id || idx} style={{ background: '#ffffff', fontWeight: 'bold' }}>
+                            {firstSumColIdx > 0 && (
+                              <td colSpan={firstSumColIdx} style={{
                                 borderTop: topBorder,
-                                borderBottom: 'none',
-                                borderLeft: 'none',
-                                borderRight: 'none',
+                                borderBottom: '1.5px solid #000000',
+                                borderLeft: '1px solid #cbd5e1',
+                                borderRight: '1px solid #cbd5e1',
                                 padding: '5px 8px',
                                 textAlign: 'right',
                                 fontSize: '0.82rem',
                                 color: '#000000'
                               }}>
-                                {row.label}
+                                {sumType.label}
                               </td>
                             )}
-                            <td style={{
-                              borderTop: topBorder,
-                              borderBottom: '1.5px solid #000000',
-                              borderLeft: 'none',
-                              borderRight: 'none',
-                              padding: '5px 8px',
-                              textAlign: 'right',
-                              fontSize: '0.82rem',
-                              color: '#000000'
-                            }}>
-                              {numVal.toLocaleString('vi-VN')} VND
-                            </td>
-                            {totalCols - 1 - colIdx > 0 && (
-                              <td colSpan={totalCols - 1 - colIdx} style={{
-                                borderTop: topBorder,
-                                borderBottom: 'none',
-                                borderLeft: 'none',
-                                borderRight: 'none',
-                                padding: '5px 8px'
-                              }} />
-                            )}
+                            {columns.slice(firstSumColIdx).map((col: any, offsetIdx: number) => {
+                              const actualColIdx = firstSumColIdx + offsetIdx;
+                              const colSumData = columnsWithSummaries.find(c => c.colIdx === actualColIdx);
+                              const targetRow = colSumData ? (colSumData.rowMap.get(sumType.id) || Array.from(colSumData.rowMap.values()).find((r: any) => r.label === sumType.label)) : null;
+                              const isLabelColIfFirst = actualColIdx === 0 && firstSumColIdx === 0;
+
+                              let cellContent = '';
+                              if (targetRow) {
+                                const cellKey = `${block.id}_summary_${col.id}_${targetRow.id}`;
+                                const snapshotVal = submission.formData?.find(f => f.id === cellKey)?.value || '0';
+                                const numVal = parseFloat(snapshotVal) || 0;
+                                cellContent = numVal.toLocaleString('vi-VN');
+                              } else if (isLabelColIfFirst) {
+                                cellContent = sumType.label;
+                              }
+
+                              return (
+                                <td key={col.id} style={{
+                                  borderTop: topBorder,
+                                  borderBottom: '1.5px solid #000000',
+                                  borderLeft: '1px solid #cbd5e1',
+                                  borderRight: '1px solid #cbd5e1',
+                                  padding: '5px 8px',
+                                  textAlign: 'right',
+                                  fontSize: '0.82rem',
+                                  color: '#000000'
+                                }}>
+                                  {cellContent}
+                                </td>
+                              );
+                            })}
                           </tr>
                         );
                       })}

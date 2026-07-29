@@ -802,59 +802,75 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                     )}
                   </tbody>
                   {(() => {
-                    const allFooterRows: { col: any; row: any; colIdx: number }[] = [];
-                    (block.tableColumns || []).forEach((col, colIdx) => {
+                    const columns = block.tableColumns || [];
+                    const totalCols = columns.length;
+                    if (totalCols === 0) return null;
+
+                    const summaryTypes: { id: string; label: string }[] = [];
+                    const columnsWithSummaries: { col: any; colIdx: number; rowMap: Map<string, any> }[] = [];
+
+                    columns.forEach((col, colIdx) => {
                       if (col.type === 'number' && col.summaryRows && col.summaryRows.length > 0) {
-                        col.summaryRows.forEach((row) => {
-                          allFooterRows.push({ col, row, colIdx });
+                        const rowMap = new Map<string, any>();
+                        col.summaryRows.forEach((row: any) => {
+                          rowMap.set(row.id, row);
+                          if (!summaryTypes.some(s => s.label === row.label)) {
+                            summaryTypes.push({ id: row.id, label: row.label || 'Cộng:' });
+                          }
                         });
+                        columnsWithSummaries.push({ col, colIdx, rowMap });
                       }
                     });
-                    if (allFooterRows.length === 0) return null;
-                    const totalCols = (block.tableColumns || []).length;
+
+                    if (columnsWithSummaries.length === 0) return null;
+
+                    const firstSumColIdx = Math.min(...columnsWithSummaries.map(c => c.colIdx));
+
                     return (
                       <tfoot>
-                        {allFooterRows.map(({ col, row, colIdx }, idx) => {
+                        {summaryTypes.map((sumType, idx) => {
                           const isFirst = idx === 0;
-                          const topBorder = isFirst ? '2px solid #000000' : '1px solid #e2e8f0';
+                          const topBorder = isFirst ? '2px solid #000000' : '1px solid #cbd5e1';
+
                           return (
-                            <tr key={`${col.id}_${row.id}`} style={{ background: '#ffffff', fontWeight: 'bold' }}>
-                              {colIdx > 0 && (
-                                <td colSpan={colIdx} style={{
+                            <tr key={sumType.id || idx} style={{ background: '#ffffff', fontWeight: 'bold' }}>
+                              {firstSumColIdx > 0 && (
+                                <td colSpan={firstSumColIdx} style={{
                                   borderTop: topBorder,
-                                  borderBottom: 'none',
-                                  borderLeft: 'none',
-                                  borderRight: 'none',
+                                  borderBottom: '1.5px solid #000000',
+                                  borderLeft: '1px solid #cbd5e1',
+                                  borderRight: '1px solid #cbd5e1',
                                   padding: '5px 8px',
                                   textAlign: 'right',
                                   fontSize: '0.82rem',
                                   color: '#000000'
                                 }}>
-                                  {row.label}
+                                  {sumType.label}
                                 </td>
                               )}
-                              <td style={{
-                                borderTop: topBorder,
-                                borderBottom: '1.5px solid #000000',
-                                borderLeft: 'none',
-                                borderRight: 'none',
-                                padding: '5px 8px',
-                                textAlign: 'right',
-                                fontSize: '0.82rem',
-                                color: '#000000',
-                                letterSpacing: '1px'
-                              }}>
-                                 
-                              </td>
-                              {totalCols - 1 - colIdx > 0 && (
-                                <td colSpan={totalCols - 1 - colIdx} style={{
-                                  borderTop: topBorder,
-                                  borderBottom: 'none',
-                                  borderLeft: 'none',
-                                  borderRight: 'none',
-                                  padding: '5px 8px'
-                                }} />
-                              )}
+                              {columns.slice(firstSumColIdx).map((col, offsetIdx) => {
+                                const actualColIdx = firstSumColIdx + offsetIdx;
+                                const colSumData = columnsWithSummaries.find(c => c.colIdx === actualColIdx);
+                                const hasSum = colSumData && (colSumData.rowMap.has(sumType.id) || Array.from(colSumData.rowMap.values()).some((r: any) => r.label === sumType.label));
+                                const isLabelColIfFirst = actualColIdx === 0 && firstSumColIdx === 0;
+
+                                return (
+                                  <td key={col.id} style={{
+                                    borderTop: topBorder,
+                                    borderBottom: '1.5px solid #000000',
+                                    borderLeft: '1px solid #cbd5e1',
+                                    borderRight: '1px solid #cbd5e1',
+                                    padding: '5px 8px',
+                                    textAlign: 'right',
+                                    fontSize: '0.82rem',
+                                    color: '#000000'
+                                  }}>
+                                    {hasSum ? (
+                                      <span style={{ borderBottom: '1px dotted #94a3b8', display: 'inline-block', width: '80%', minHeight: '14px' }} />
+                                    ) : isLabelColIfFirst ? sumType.label : ''}
+                                  </td>
+                                );
+                              })}
                             </tr>
                           );
                         })}

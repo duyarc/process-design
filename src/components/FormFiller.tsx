@@ -1300,47 +1300,97 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
                         )}
                       </tbody>
                       {(() => {
-                        const footerRows: React.ReactNode[] = [];
-                        (block.tableColumns || []).forEach((col: any, colIdx: number) => {
+                        const columns = block.tableColumns || [];
+                        const totalCols = columns.length;
+                        if (totalCols === 0) return null;
+
+                        const summaryTypes: { id: string; label: string }[] = [];
+                        const columnsWithSummaries: { col: any; colIdx: number; rowMap: Map<string, any> }[] = [];
+
+                        columns.forEach((col: any, colIdx: number) => {
                           if (col.type === 'number' && col.summaryRows && col.summaryRows.length > 0) {
+                            const rowMap = new Map<string, any>();
                             col.summaryRows.forEach((row: any) => {
-                              const cellKey = `${block.id}_summary_${col.id}_${row.id}`;
-                              const val = calculateSummaryValue(col, row, block, formValues);
-                              const isManual = row.type === 'manual';
-                              
-                              footerRows.push(
-                                <tr key={`${col.id}_${row.id}`} style={{ background: '#f8fafc', fontWeight: 'bold', borderTop: '1.5px solid var(--neutral-border)' }}>
-                                  {colIdx > 0 && (
-                                    <td colSpan={colIdx} style={{ padding: '6px', borderRight: '1px solid var(--neutral-border)', textAlign: 'right', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
-                                      {row.label}
-                                    </td>
-                                  )}
-                                  <td style={{ padding: '6px', borderRight: '1px solid var(--neutral-border)', textAlign: 'right', color: 'var(--text-primary)' }}>
-                                    {isManual ? (
-                                      <input
-                                        type="number"
-                                        value={formValues[cellKey] || ''}
-                                        onChange={(e) => setFormValues(prev => ({ ...prev, [cellKey]: e.target.value }))}
-                                        placeholder="Nhập..."
-                                        style={{ width: '100px', padding: '0.2rem 0.35rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', textAlign: 'right' }}
-                                      />
-                                    ) : (
-                                      <span style={{ fontSize: '0.8rem' }}>{val.toLocaleString('vi-VN')} VND</span>
-                                    )}
-                                  </td>
-                                  {(block.tableColumns || []).length - 1 - colIdx > 0 && (
-                                    <td colSpan={(block.tableColumns || []).length - 1 - colIdx} style={{ padding: '6px' }} />
-                                  )}
-                                </tr>
-                              );
+                              rowMap.set(row.id, row);
+                              if (!summaryTypes.some(s => s.label === row.label)) {
+                                summaryTypes.push({ id: row.id, label: row.label || 'Cộng:' });
+                              }
                             });
+                            columnsWithSummaries.push({ col, colIdx, rowMap });
                           }
                         });
-                        return footerRows.length > 0 ? (
+
+                        if (columnsWithSummaries.length === 0) return null;
+
+                        const firstSumColIdx = Math.min(...columnsWithSummaries.map(c => c.colIdx));
+
+                        return (
                           <tfoot style={{ borderTop: '2px solid var(--neutral-border)' }}>
-                            {footerRows}
+                            {summaryTypes.map((sumType, idx) => {
+                              return (
+                                <tr key={sumType.id || idx} style={{ background: '#f8fafc', fontWeight: 'bold' }}>
+                                  {firstSumColIdx > 0 && (
+                                    <td colSpan={firstSumColIdx} style={{
+                                      padding: '6px 8px',
+                                      borderRight: '1px solid var(--neutral-border)',
+                                      borderBottom: '1px solid var(--neutral-border)',
+                                      textAlign: 'right',
+                                      color: 'var(--text-secondary)',
+                                      fontSize: '0.8rem'
+                                    }}>
+                                      {sumType.label}
+                                    </td>
+                                  )}
+                                  {columns.slice(firstSumColIdx).map((col: any, offsetIdx: number) => {
+                                    const actualColIdx = firstSumColIdx + offsetIdx;
+                                    const colSumData = columnsWithSummaries.find(c => c.colIdx === actualColIdx);
+                                    const targetRow = colSumData ? (colSumData.rowMap.get(sumType.id) || Array.from(colSumData.rowMap.values()).find((r: any) => r.label === sumType.label)) : null;
+                                    const isLabelColIfFirst = actualColIdx === 0 && firstSumColIdx === 0;
+
+                                    if (!targetRow) {
+                                      return (
+                                        <td key={col.id} style={{
+                                          padding: '6px 8px',
+                                          borderRight: '1px solid var(--neutral-border)',
+                                          borderBottom: '1px solid var(--neutral-border)',
+                                          fontSize: '0.8rem'
+                                        }}>
+                                          {isLabelColIfFirst ? sumType.label : ''}
+                                        </td>
+                                      );
+                                    }
+
+                                    const cellKey = `${block.id}_summary_${col.id}_${targetRow.id}`;
+                                    const val = calculateSummaryValue(col, targetRow, block, formValues);
+                                    const isManual = targetRow.type === 'manual';
+
+                                    return (
+                                      <td key={col.id} style={{
+                                        padding: '6px 8px',
+                                        borderRight: '1px solid var(--neutral-border)',
+                                        borderBottom: '1px solid var(--neutral-border)',
+                                        textAlign: 'right',
+                                        color: 'var(--text-primary)'
+                                      }}>
+                                        {isManual ? (
+                                          <input
+                                            type="number"
+                                            value={formValues[cellKey] || ''}
+                                            onChange={(e) => setFormValues(prev => ({ ...prev, [cellKey]: e.target.value }))}
+                                            placeholder="Nhập..."
+                                            style={{ width: '100px', padding: '0.2rem 0.35rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', textAlign: 'right' }}
+                                          />
+                                        ) : (
+                                          <span style={{ fontSize: '0.8rem' }}>{val.toLocaleString('vi-VN')}</span>
+                                        )}
+                                      </td>
+                                    );
+                                  })}
+                                </tr>
+                              );
+                            })}
                           </tfoot>
-                        ) : null;
+                        );
                       })()}
                     </table>
                   </div>
