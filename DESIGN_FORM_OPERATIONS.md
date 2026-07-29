@@ -9,7 +9,7 @@
 | **Module Name** | Form Operations |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | `2fe6b85` (2026-07-29) — Standardized font-weights in `PrintRecord.tsx` against 4-tier CSS variables (`var(--pw-weight-*)`). |
+| **Verified At Commit** | `6f985d8` (2026-07-29) — Standardized font-weights in `PrintRecord.tsx` against 4-tier CSS variables (`var(--pw-weight-*)`). |
 
 ### Quick File Index
 
