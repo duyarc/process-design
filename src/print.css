@@ -1,5 +1,6 @@
 /* Screen utility for hiding print-only elements */
-.print-only {
+.print-only,
+.print-footer {
   display: none !important;
 }
 

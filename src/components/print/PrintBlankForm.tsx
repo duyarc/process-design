@@ -150,30 +150,22 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
           #root {
             display: none !important;
           }
-          html, body {
-            height: 100% !important;
-          }
           .print-container {
             position: static !important;
             width: 100% !important;
             height: auto !important;
-            min-height: 100% !important;
             overflow: visible !important;
-            padding: 0 0 48px 0 !important;
+            padding: 0 !important;
             margin: 0 !important;
             box-sizing: border-box !important;
           }
           @page {
             size: ${isA5 ? 'A5 landscape' : 'A4 portrait'};
-            margin: ${isA5 ? '8mm 10mm 8mm 10mm' : '15mm 15mm 20mm 15mm'};
-          }
-          .print-doc {
-            padding-bottom: 20px !important;
+            margin: ${isA5 ? '8mm 10mm 10mm 10mm' : '15mm 15mm 22mm 15mm'};
           }
           ${isA5 ? `
             .print-doc {
               gap: 0.4rem !important;
-              padding-bottom: 12px !important;
             }
             .print-block-avoid {
               margin-bottom: 0.35rem !important;
@@ -209,10 +201,10 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
           }
           .print-footer {
             position: fixed;
-            bottom: ${isA5 ? '-5mm' : '-10mm'};
+            bottom: 0;
             left: 0;
             right: 0;
-            display: flex;
+            display: flex !important;
             justify-content: space-between;
             font-size: 0.75rem;
             font-family: inherit;
@@ -829,17 +821,11 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                     return (
                       <tfoot>
                         {summaryTypes.map((sumType, idx) => {
-                          const isFirst = idx === 0;
-                          const topBorder = isFirst ? '2px solid #000000' : '1px solid #cbd5e1';
-
                           return (
                             <tr key={sumType.id || idx} style={{ background: '#ffffff', fontWeight: 'bold' }}>
                               {firstSumColIdx > 0 && (
                                 <td colSpan={firstSumColIdx} style={{
-                                  borderTop: topBorder,
-                                  borderBottom: '1.5px solid #000000',
-                                  borderLeft: '1px solid #cbd5e1',
-                                  borderRight: '1px solid #cbd5e1',
+                                  border: '1.5px solid #000000',
                                   padding: '5px 8px',
                                   textAlign: 'right',
                                   fontSize: '0.82rem',
@@ -850,24 +836,17 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                               )}
                               {columns.slice(firstSumColIdx).map((col, offsetIdx) => {
                                 const actualColIdx = firstSumColIdx + offsetIdx;
-                                const colSumData = columnsWithSummaries.find(c => c.colIdx === actualColIdx);
-                                const hasSum = colSumData && (colSumData.rowMap.has(sumType.id) || Array.from(colSumData.rowMap.values()).some((r: any) => r.label === sumType.label));
                                 const isLabelColIfFirst = actualColIdx === 0 && firstSumColIdx === 0;
 
                                 return (
                                   <td key={col.id} style={{
-                                    borderTop: topBorder,
-                                    borderBottom: '1.5px solid #000000',
-                                    borderLeft: '1px solid #cbd5e1',
-                                    borderRight: '1px solid #cbd5e1',
+                                    border: '1.5px solid #000000',
                                     padding: '5px 8px',
                                     textAlign: 'right',
                                     fontSize: '0.82rem',
                                     color: '#000000'
                                   }}>
-                                    {hasSum ? (
-                                      <span style={{ borderBottom: '1px dotted #94a3b8', display: 'inline-block', width: '80%', minHeight: '14px' }} />
-                                    ) : isLabelColIfFirst ? sumType.label : ''}
+                                    {isLabelColIfFirst ? sumType.label : ''}
                                   </td>
                                 );
                               })}
