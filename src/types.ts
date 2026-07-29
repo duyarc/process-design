@@ -192,6 +192,7 @@ export interface FormTemplateISO {
   status: 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
   effectiveDate?: string; // ISO date string "YYYY-MM-DD", set on publish
   updatedAt?: string; // ISO timestamp or simple date, set on save
+  pageSize?: 'A4' | 'A5_LANDSCAPE';
   layoutBlocks: LayoutBlockISO[];
   revisionHistory: FormRevisionEntry[];
 }

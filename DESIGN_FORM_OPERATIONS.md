@@ -9,7 +9,7 @@
 | **Module Name** | Form Operations |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | `62b1a98` (2026-07-28) — Flow H print-layout contract checked against `PrintRecord.tsx` (row-major INFO_GRID reading `block.columns`, `.print-field-full` subtables, no per-block inline margins). Sections 4 and 6 otherwise last checked at `001af74`. Print output not yet visually confirmed in a browser print preview. |
+| **Verified At Commit** | `f952e66` (2026-07-29) — Added `pageSize` support in `PrintRecord.tsx` and updated `@page` CSS rule to output A5 landscape layout when selected. |
 
 ### Quick File Index
 
@@ -407,3 +407,4 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 | 2026-07-27 | `001af74` | Table headers across FormFiller use the Executive Slate Header Bar treatment to separate headers from fillable input cells. |
 | 2026-07-27 | `cbace2b` | Added "In form trắng" (Print Blank Form) button in FormFiller header toolbar, triggering PrintBlankForm overlay for instant A4 paper template printing. |
 | 2026-07-28 | `62b1a98` | **Print whitespace normalization propagated to `PrintRecord`.** INFO_GRID renders row-major via `.print-info-grid` and reads its column count from the layout's `INFO_GRID` block instead of hardcoding 2. Subtables span the grid through `.print-field-full`. All per-block inline margins removed so `.print-block + .print-block` in `print.css` is the sole owner of inter-block spacing; the portal root carries `.print-doc`. Also fixed a latent type error: static-text subtable cells read `subtableStaticData` from the form-layout field, not from `SubmissionFieldSnapshot`, which never carried it. See Flow H and [DESIGN_UI_UX.md](DESIGN_UI_UX.md) §4.2. |
+| 2026-07-29 | `f952e66` | **A5 Landscape Print Support in Record Printout:** Updated `PrintRecord.tsx` to read `pageSize` from process forms data / form template API and dynamically output `@page { size: A5 landscape; margin: 8mm 10mm 8mm 10mm; }` for short form submissions. |

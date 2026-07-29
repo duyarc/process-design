@@ -151,6 +151,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
 
   const [layoutBlocks, setLayoutBlocks] = useState<any[]>([]);
   const [formTitle, setFormTitle] = useState<string>('');
+  const [pageSize, setPageSize] = useState<'A4' | 'A5_LANDSCAPE'>('A4');
 
   useEffect(() => {
     fetch(`/api/processes`)
@@ -161,9 +162,21 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
           const fData = proc.workflowFormsData[submission.formId];
           setLayoutBlocks(fData.layoutBlocks || []);
           setFormTitle(fData.formTitle || '');
+          if (fData.pageSize || fData.page_size) {
+            setPageSize(fData.pageSize || fData.page_size);
+          }
         }
       })
       .catch(err => console.error('Error fetching process blocks for PrintRecord:', err));
+
+    fetch(`/api/forms/${encodeURIComponent(submission.formId)}`)
+      .then(res => res.ok ? res.json() : null)
+      .then(formData => {
+        if (formData && (formData.page_size || formData.pageSize)) {
+          setPageSize(formData.page_size || formData.pageSize);
+        }
+      })
+      .catch(() => {});
   }, [submission.processId, submission.formId]);
 
   // Set document.title according to Digital 5S standard
@@ -344,9 +357,17 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
             box-sizing: border-box !important;
           }
           @page {
-            size: A4 portrait;
-            margin: 15mm 15mm 20mm 15mm;
+            size: ${pageSize === 'A5_LANDSCAPE' ? 'A5 landscape' : 'A4 portrait'};
+            margin: ${pageSize === 'A5_LANDSCAPE' ? '8mm 10mm 8mm 10mm' : '15mm 15mm 20mm 15mm'};
           }
+          ${pageSize === 'A5_LANDSCAPE' ? `
+            .print-doc {
+              gap: 0.4rem !important;
+            }
+            .print-block-avoid {
+              margin-bottom: 0.35rem !important;
+            }
+          ` : ''}
           body {
             background: #ffffff !important;
             color: #000000 !important;

@@ -143,6 +143,8 @@ const INITIALIZE_SCHEMA_QUERY = `
   ALTER TABLE process_forms ENABLE ROW LEVEL SECURITY;
   ALTER TABLE submissions ENABLE ROW LEVEL SECURITY;
   ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+
+  ALTER TABLE forms ADD COLUMN IF NOT EXISTS page_size TEXT DEFAULT 'A4';
 `;
 
 // ─── Sample Data for Fresh Seed ──────────────────────────────────────────────
@@ -777,7 +779,7 @@ app.delete('/api/forms/*formId', async (req, res) => {
 // POST /api/forms - Save or Update form template (upsert by form_id + version composite key)
 app.post('/api/forms', async (req, res) => {
   try {
-    const { formId, formName, formTitle, status, version, effectiveDate, layoutBlocks, revisionHistory, pdfName, pdfKey, pdfSize, oldFormId, oldVersion } = req.body;
+    const { formId, formName, formTitle, status, version, effectiveDate, layoutBlocks, revisionHistory, pdfName, pdfKey, pdfSize, pageSize, oldFormId, oldVersion } = req.body;
     
     if (!formId || !formName) {
       return res.status(400).json({ error: 'formId and formName are required' });
@@ -786,6 +788,7 @@ app.post('/api/forms', async (req, res) => {
     const blocks = Array.isArray(layoutBlocks) ? JSON.stringify(layoutBlocks) : (layoutBlocks || '[]');
     const history = Array.isArray(revisionHistory) ? JSON.stringify(revisionHistory) : (revisionHistory || '[]');
     const ver = version || 'v0.1';
+    const pSize = pageSize || 'A4';
 
     if (dbPool) {
       // If Form ID changed and it was a draft, delete the old draft record
@@ -816,8 +819,8 @@ app.post('/api/forms', async (req, res) => {
       // Upsert using composite PK (form_id, version) — each version is an independent snapshot
       const query = `
         INSERT INTO forms (
-          form_id, form_name, form_title, status, version, effective_date, layout_blocks, revision_history, pdf_name, pdf_key, pdf_size, updated_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
+          form_id, form_name, form_title, status, version, effective_date, layout_blocks, revision_history, pdf_name, pdf_key, pdf_size, page_size, updated_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
         ON CONFLICT (form_id, version) DO UPDATE SET
           form_name = EXCLUDED.form_name,
           form_title = EXCLUDED.form_title,
@@ -828,10 +831,11 @@ app.post('/api/forms', async (req, res) => {
           pdf_name = EXCLUDED.pdf_name,
           pdf_key = EXCLUDED.pdf_key,
           pdf_size = EXCLUDED.pdf_size,
+          page_size = EXCLUDED.page_size,
           updated_at = NOW()
         RETURNING *
       `;
-      const values = [formId, formName, formTitle || formName, status || 'DRAFT', ver, effectiveDate || null, blocks, history, pdfName || null, pdfKey || null, pdfSize || 0];
+      const values = [formId, formName, formTitle || formName, status || 'DRAFT', ver, effectiveDate || null, blocks, history, pdfName || null, pdfKey || null, pdfSize || 0, pSize];
       const result = await dbPool.query(query, values);
 
       // Fanout updated revision_history to ALL other rows of the same form_id
@@ -865,6 +869,7 @@ app.post('/api/forms', async (req, res) => {
         pdf_name: pdfName || null,
         pdf_key: pdfKey || null,
         pdf_size: pdfSize || 0,
+        page_size: pSize,
         updated_at: new Date().toISOString()
       };
       if (existingIdx >= 0) {

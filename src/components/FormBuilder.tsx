@@ -28,6 +28,7 @@ import {
   Eye,
   EyeOff,
   CheckSquare,
+  Printer,
   Table as TableIcon
 } from 'lucide-react';
 import PrintBlankForm from './print/PrintBlankForm';
@@ -40,6 +41,7 @@ interface FormBuilderProps {
     version?: string;
     status?: 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
     updatedAt?: string;
+    pageSize?: 'A4' | 'A5_LANDSCAPE';
     layoutBlocks?: LayoutBlockISO[];
     revisionHistory?: FormRevisionEntry[];
   };
@@ -190,6 +192,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     initialData?.version ? initialData.version.replace(/\s*\([^)]*\)/g, '').trim() : 'v0.1'
   );
   const [status, setStatus] = useState<'DRAFT' | 'ACTIVE' | 'ARCHIVED'>(initialData?.status || 'DRAFT');
+  const [pageSize, setPageSize] = useState<'A4' | 'A5_LANDSCAPE'>(
+    initialData?.pageSize || (initialData as any)?.page_size || 'A4'
+  );
   
   // Default blocks if none provided
   const defaultBlocks: LayoutBlockISO[] = [];
@@ -215,6 +220,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
             setEffectiveDate(data.effective_date.split('T')[0]);
           }
           setStatus(data.status);
+          if (data.page_size || data.pageSize) {
+            setPageSize(data.page_size || data.pageSize);
+          }
           
           if (data.layout_blocks) {
             setLayoutBlocks(typeof data.layout_blocks === 'string' ? JSON.parse(data.layout_blocks) : data.layout_blocks);
@@ -261,6 +269,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
         formTitle,
         status: activeStatus,
         version: activeVersion,
+        pageSize,
         effectiveDate: activeStatus === 'ACTIVE' ? (opts.effectiveDateOverride || effectiveDate) : null,
         layoutBlocks: opts.layoutBlocksOverride ?? layoutBlocks,
         revisionHistory: activeHistory,
@@ -1402,7 +1411,58 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
             </span>
           )}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          {/* Page size toggle */}
+          <div style={{ 
+            display: 'inline-flex', 
+            alignItems: 'center', 
+            background: '#f1f5f9', 
+            padding: '2px', 
+            borderRadius: '6px', 
+            border: '1px solid #cbd5e1',
+            marginRight: '0.25rem'
+          }}>
+            <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600, padding: '0 0.4rem' }}>Khổ in:</span>
+            <button
+              type="button"
+              onClick={() => setPageSize('A4')}
+              style={{
+                padding: '2px 8px',
+                fontSize: '0.75rem',
+                fontWeight: pageSize === 'A4' ? 600 : 400,
+                color: pageSize === 'A4' ? '#0f172a' : '#64748b',
+                background: pageSize === 'A4' ? '#ffffff' : 'transparent',
+                border: 'none',
+                borderRadius: '4px',
+                boxShadow: pageSize === 'A4' ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                cursor: 'pointer',
+                transition: 'all 0.15s'
+              }}
+              title="Khổ in A4 Dọc tiêu chuẩn (210mm x 297mm)"
+            >
+              A4 Dọc
+            </button>
+            <button
+              type="button"
+              onClick={() => setPageSize('A5_LANDSCAPE')}
+              style={{
+                padding: '2px 8px',
+                fontSize: '0.75rem',
+                fontWeight: pageSize === 'A5_LANDSCAPE' ? 600 : 400,
+                color: pageSize === 'A5_LANDSCAPE' ? '#0f172a' : '#64748b',
+                background: pageSize === 'A5_LANDSCAPE' ? '#ffffff' : 'transparent',
+                border: 'none',
+                borderRadius: '4px',
+                boxShadow: pageSize === 'A5_LANDSCAPE' ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                cursor: 'pointer',
+                transition: 'all 0.15s'
+              }}
+              title="Khổ in A5 Ngang (210mm x 148mm) cho biểu mẫu ngắn (Phiếu 3S, Nhập xuất kho)"
+            >
+              A5 Ngang
+            </button>
+          </div>
+
           {!isLocked ? (
             <>
               <button 
@@ -1440,7 +1500,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                 onMouseEnter={(e) => { e.currentTarget.style.color = '#ef4444'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.color = '#64748b'; }}
               >
-                Discard
+                Close
               </button>
             </>
           ) : (
@@ -1485,7 +1545,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
             </>
           )}
           
-          <div style={{ borderLeft: '1px solid var(--neutral-border)', height: '16px', margin: '0 0.5rem' }} />
+          <div style={{ borderLeft: '1px solid var(--neutral-border)', height: '16px', margin: '0 0.25rem' }} />
 
           <button 
             type="button"
@@ -1494,6 +1554,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
               formTitle,
               version,
               status,
+              pageSize,
               updatedAt: initialData?.updatedAt || (initialData as any)?.updated_at || new Date().toISOString(),
               layoutBlocks,
               revisionHistory
@@ -1507,6 +1568,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
               fontSize: '0.8rem',
               fontWeight: 500,
               cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem',
               transition: 'all 0.2s'
             }}
             onMouseEnter={(e) => {
@@ -1517,8 +1581,10 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
               e.currentTarget.style.background = 'none';
               e.currentTarget.style.borderColor = '#cbd5e1';
             }}
+            title="In thử hoặc xem trước biểu mẫu"
           >
-            Preview (A4)
+            <Printer size={13} />
+            <span>Print</span>
           </button>
         </div>
       </div>

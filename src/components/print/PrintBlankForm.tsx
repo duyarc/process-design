@@ -65,6 +65,9 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
   const [logoUrl, setLogoUrl] = React.useState<string>('');
   const [imgLoaded, setImgLoaded] = React.useState<boolean>(false);
 
+  const pageSize = template.pageSize || (template as any).page_size || 'A4';
+  const isA5 = pageSize === 'A5_LANDSCAPE';
+
   const titleBlock = template.layoutBlocks.find(b => b.type === 'TITLE');
   const titleBlockLogo = titleBlock?.logo;
 
@@ -161,9 +164,17 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
             box-sizing: border-box !important;
           }
           @page {
-            size: A4 portrait;
-            margin: 15mm 15mm 20mm 15mm;
+            size: ${isA5 ? 'A5 landscape' : 'A4 portrait'};
+            margin: ${isA5 ? '8mm 10mm 8mm 10mm' : '15mm 15mm 20mm 15mm'};
           }
+          ${isA5 ? `
+            .print-doc {
+              gap: 0.4rem !important;
+            }
+            .print-block-avoid {
+              margin-bottom: 0.35rem !important;
+            }
+          ` : ''}
           body {
             background: #ffffff !important;
             color: #000000 !important;
