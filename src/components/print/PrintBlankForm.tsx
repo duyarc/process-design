@@ -167,9 +167,13 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
             size: ${isA5 ? 'A5 landscape' : 'A4 portrait'};
             margin: ${isA5 ? '8mm 10mm 8mm 10mm' : '15mm 15mm 20mm 15mm'};
           }
+          .print-doc {
+            padding-bottom: 20px !important;
+          }
           ${isA5 ? `
             .print-doc {
               gap: 0.4rem !important;
+              padding-bottom: 12px !important;
             }
             .print-block-avoid {
               margin-bottom: 0.35rem !important;
@@ -205,7 +209,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
           }
           .print-footer {
             position: fixed;
-            bottom: 0px;
+            bottom: ${isA5 ? '-5mm' : '-10mm'};
             left: 0;
             right: 0;
             display: flex;
@@ -431,22 +435,21 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                           if (f.type === 'checkbox' || f.type === 'radio') {
                             const options = f.options ?? [{ label: 'Có', value: 'YES' }, { label: 'Không', value: 'NO' }];
                             return (
-                              <div key={f.id} style={{ display: 'flex', flexDirection: 'column', gap: '2px', fontSize: '0.85rem' }}>
+                              <div key={f.id} style={{ display: 'flex', alignItems: 'baseline', gap: '8px', fontSize: '0.85rem' }}>
                                 {cleanLabel && (
-                                  <span style={{ fontWeight: 700, color: '#0f172a' }}>{cleanLabel}</span>
+                                  <span style={{ fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap' }}>{cleanLabel}</span>
                                 )}
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 20px', alignItems: 'flex-start', maxWidth: '100%' }}>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', alignItems: 'center', maxWidth: '100%' }}>
                                   {options.map((opt: any) => (
-                                    <span key={opt.value} style={{ display: 'inline-flex', alignItems: 'flex-start', gap: '6px', fontSize: '0.8rem', whiteSpace: 'normal', wordBreak: 'break-word', maxWidth: '100%' }}>
+                                    <span key={opt.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.8rem', whiteSpace: 'normal', wordBreak: 'break-word', maxWidth: '100%' }}>
                                       <span style={{
                                         display: 'inline-block',
-                                        width: '14px',
-                                        height: '14px',
+                                        width: '13px',
+                                        height: '13px',
                                         border: '1.5px solid #000000',
                                         background: '#ffffff',
-                                        borderRadius: f.type === 'radio' ? '50%' : '2px',
-                                        flexShrink: 0,
-                                        marginTop: '2px'
+                                        borderRadius: '2px',
+                                        flexShrink: 0
                                       }} />
                                       <span style={{ lineHeight: '1.3' }}>{opt.label}</span>
                                     </span>

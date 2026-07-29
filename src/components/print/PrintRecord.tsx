@@ -360,9 +360,13 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
             size: ${pageSize === 'A5_LANDSCAPE' ? 'A5 landscape' : 'A4 portrait'};
             margin: ${pageSize === 'A5_LANDSCAPE' ? '8mm 10mm 8mm 10mm' : '15mm 15mm 20mm 15mm'};
           }
+          .print-doc {
+            padding-bottom: 20px !important;
+          }
           ${pageSize === 'A5_LANDSCAPE' ? `
             .print-doc {
               gap: 0.4rem !important;
+              padding-bottom: 12px !important;
             }
             .print-block-avoid {
               margin-bottom: 0.35rem !important;
@@ -398,7 +402,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
           }
           .print-footer {
             position: fixed;
-            bottom: 0px;
+            bottom: ${pageSize === 'A5_LANDSCAPE' ? '-5mm' : '-10mm'};
             left: 0;
             right: 0;
             display: flex;
