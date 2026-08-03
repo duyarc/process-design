@@ -1253,19 +1253,19 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                         if (titleFmt === 'NONE') return null;
                         return (
                           <div key={block.id} style={titleFmt === 'H1' ? {
-                            padding: '0.5rem 0',
-                            marginTop: '1.25rem',
-                            marginBottom: '0.75rem'
+                            padding: '0.25rem 0',
+                            marginTop: '1.5rem',
+                            marginBottom: '0.6rem'
                           } : titleFmt === 'H2' ? {
                             padding: '0.75rem 1rem',
                             background: '#f1f5f9',
                             borderLeft: '4px solid var(--primary)',
                             borderRadius: '0px',
-                            marginTop: '1.25rem',
-                            marginBottom: '0.5rem'
+                            marginTop: '1.5rem',
+                            marginBottom: '0.6rem'
                           } : {
                             padding: '0.25rem 0',
-                            marginTop: '1rem',
+                            marginTop: '1.25rem',
                             marginBottom: '0.5rem'
                           }}>
                             {titleFmt === 'H1' ? (

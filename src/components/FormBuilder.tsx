@@ -1862,7 +1862,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                     style={{
                       border: isBlockSelected ? '2px solid var(--primary)' : '1px dashed #cbd5e1',
                       borderRadius: '6px',
-                      padding: '1rem',
+                      padding: block.type === 'SECTION_LABEL' ? '0.5rem 0.85rem' : '1rem',
                       position: 'relative',
                       background: isBlockSelected ? 'rgba(16, 163, 163, 0.02)' : 'none',
                       cursor: 'pointer'
@@ -1920,8 +1920,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                         if (titleFmt === 'H1') {
                           return (
                             <div style={{
-                              padding: '0.25rem 0 0.5rem 0',
-                              marginBottom: '0.75rem'
+                              padding: '0.15rem 0 0.25rem 0',
+                              marginBottom: '0.25rem'
                             }}>
                               <h2 style={{
                                 display: 'inline-block',
@@ -1951,7 +1951,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                               background: '#f1f5f9',
                               borderLeft: '4px solid #0f172a',
                               borderRadius: '0px',
-                              marginBottom: '0.5rem'
+                              marginBottom: '0.25rem'
                             }}>
                               <h3 style={{ margin: '0 0 4px 0', fontSize: '0.95rem', fontWeight: 700, color: '#1e293b' }}>
                                 {block.title || 'Tiêu đề danh mục'}

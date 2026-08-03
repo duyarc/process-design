@@ -208,7 +208,9 @@
    ───────────────────────────────────────────────────────────── */
 .print-doc {
   --pw-block-gap: 16px;
-  --pw-section-gap: 20px;
+  --pw-section-top-gap: 24px;
+  --pw-section-bottom-gap: 10px;
+  --pw-section-gap: 24px;
   --pw-field-gap: 10px;
   --pw-title-gap: 8px;
   --pw-line-h: 22px;
@@ -217,14 +219,19 @@
 
 /* Khoảng cách giữa các block: chỉ định nghĩa ở đây, không ở inline style.
    Dùng selector anh-em nên block đầu tiên không có margin trên và margin
-   không cộng dồn. */
+   không cộng dồn.
+   Theo quy tắc 2:1 Proximity Rule: SECTION_LABEL cách xa block trước nó (24px)
+   và nép sát vào block sau nó (10px). */
 .print-doc .print-block + .print-block {
   margin-top: var(--pw-block-gap);
 }
 
-.print-doc .print-block--section + .print-block,
 .print-doc .print-block + .print-block--section {
-  margin-top: var(--pw-section-gap);
+  margin-top: var(--pw-section-top-gap);
+}
+
+.print-doc .print-block--section + .print-block {
+  margin-top: var(--pw-section-bottom-gap);
 }
 
 /* INFO_GRID: grid row-major khớp thứ tự canvas FormBuilder, baseline chung

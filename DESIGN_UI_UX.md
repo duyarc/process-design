@@ -119,7 +119,8 @@ The vertical rhythm of a printed form has exactly one source: the token block on
 | Token | Value | Role |
 |---|---|---|
 | `--pw-block-gap` | `16px` | Between two adjacent content blocks |
-| `--pw-section-gap` | `20px` | Either side of a `SECTION_LABEL` chapter marker |
+| `--pw-section-top-gap` | `24px` | Distance above a `SECTION_LABEL` chapter marker |
+| `--pw-section-bottom-gap` | `10px` | Distance below a `SECTION_LABEL` to its owned content |
 | `--pw-field-gap` | `10px` | Between fields inside one block |
 | `--pw-title-gap` | `8px` | Block title down to its content |
 | `--pw-line-h` | `22px` | Handwriting line height (ISO 7mm) |
