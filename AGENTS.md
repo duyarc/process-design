@@ -150,3 +150,53 @@ agent khác bỏ qua.
     và hướng đi chi tiết.
   - *Agent làm Trợ lý thực thi (The Assistant)*: viết mã, kiểm tra build, viết tài liệu và
     giải đáp thông tin dưới sự kiểm soát của Người dùng.
+- **Git Push Procedure**: Xem Mục 10 — áp dụng bắt buộc cho mọi lần push.
+
+---
+
+## 10. Quy trình Git Push (Git Push Procedure)
+
+Quy trình chuẩn gồm đúng **3 bước tuần tự**. Không được chạy song song bất kỳ lệnh git
+nào — git dùng file lock (`.git/index.lock`) và sẽ crash nếu có hai process cùng ghi.
+
+### Quy trình chuẩn
+
+```
+Bước 1  →  git commit -a -m "<message>"   # Stage tất cả file đã tracked + commit
+Bước 2  →  git push                        # Push lên remote
+Bước 3  →  git log -n 1 --oneline         # Xác nhận commit đã lên remote
+```
+
+> **Dùng `commit -a`** thay vì tách `add` + `commit` để giảm số lệnh và tránh
+> race condition giữa hai background task.
+
+### Ràng buộc bắt buộc
+
+1. **Chạy tuần tự, không song song**: Chờ lệnh trước hoàn thành (`DONE`) trước khi
+   chạy lệnh tiếp theo. Không dùng `WaitMsBeforeAsync` nhỏ rồi bỏ qua kết quả.
+2. **Không dùng `run_command` để chạy nhiều lệnh git trong cùng một batch** — mỗi
+   lệnh là một lần gọi `run_command` riêng.
+3. **Nếu gặp `index.lock` tồn tại**: Trước tiên kill tất cả background task git
+   đang chạy, sau đó xóa lock bằng:
+   ```
+   cmd /c "if exist .git\index.lock del /f /q .git\index.lock"
+   ```
+   Chỉ tiếp tục sau khi lệnh xóa trả về exit code 0 và stdout trống.
+4. **`WaitMsBeforeAsync` tối thiểu cho lệnh git**:
+   - `commit`: 10 000 ms
+   - `push`: 15 000 ms
+   - `log` / `status`: 5 000 ms
+
+### Trường hợp cần thêm file mới (untracked)
+
+Nếu có file **chưa tracked** (untracked) mà cần đưa vào commit:
+
+```
+Bước 1  →  git add <file cụ thể>          # Chỉ add đúng file cần thiết
+Bước 2  →  git commit -m "<message>"
+Bước 3  →  git push
+Bước 4  →  git log -n 1 --oneline
+```
+
+Không dùng `git add .` trừ khi thực sự muốn stage tất cả mọi thứ kể cả build artifact.
+
