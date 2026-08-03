@@ -154,49 +154,33 @@ agent khác bỏ qua.
 
 ---
 
-## 10. Quy trình Git Push (Git Push Procedure)
+## 10. Quy trình Git Push Tối ưu (Fast Single-Chain Git Push)
 
-Quy trình chuẩn gồm đúng **3 bước tuần tự**. Không được chạy song song bất kỳ lệnh git
-nào — git dùng file lock (`.git/index.lock`) và sẽ crash nếu có hai process cùng ghi.
+Quy trình chuẩn gộp toàn bộ các bước thành **đúng 1 lệnh duy nhất dạng chuỗi (`&&`)** trong 1 lần gọi `run_command` duy nhất. Việc này loại bỏ hoàn toàn độ trễ chờ giữa các lượt AI turn và triệt tiêu nguy cơ va chạm file lock (`.git/index.lock`).
 
-### Quy trình chuẩn
+### Quy trình chuẩn (Chỉnh sửa file đã tracked)
 
+Chạy 1 lệnh duy nhất trong 1 lần `run_command` (dùng `cmd /c '...'` tương thích 100% với Windows PowerShell):
+
+```bash
+cmd /c 'git commit -a -m "<message>" && git push origin main && git log -n 1 --oneline'
 ```
-Bước 1  →  git commit -a -m "<message>"   # Stage tất cả file đã tracked + commit
-Bước 2  →  git push                        # Push lên remote
-Bước 3  →  git log -n 1 --oneline         # Xác nhận commit đã lên remote
-```
 
-> **Dùng `commit -a`** thay vì tách `add` + `commit` để giảm số lệnh và tránh
-> race condition giữa hai background task.
+### Quy trình cho file mới (Chưa tracked)
+
+Nếu có file mới chưa được Git theo dõi:
+
+```bash
+cmd /c 'git add <file cụ thể> && git commit -m "<message>" && git push origin main && git log -n 1 --oneline'
+```
 
 ### Ràng buộc bắt buộc
 
-1. **Chạy tuần tự, không song song**: Chờ lệnh trước hoàn thành (`DONE`) trước khi
-   chạy lệnh tiếp theo. Không dùng `WaitMsBeforeAsync` nhỏ rồi bỏ qua kết quả.
-2. **Không dùng `run_command` để chạy nhiều lệnh git trong cùng một batch** — mỗi
-   lệnh là một lần gọi `run_command` riêng.
-3. **Nếu gặp `index.lock` tồn tại**: Trước tiên kill tất cả background task git
-   đang chạy, sau đó xóa lock bằng:
-   ```
+1. **Gộp lệnh bằng `&&` trong 1 lần `run_command` duy nhất** — không tách thành nhiều lần gọi tool riêng rẽ.
+2. **`WaitMsBeforeAsync`**: Set `25 000` ms (25 giây) cho lệnh gộp chuỗi để lệnh thực thi hoàn tất đồng bộ và trả về kết quả ngay lập tức.
+3. **Xử lý sự cố `index.lock` (nếu có)**: Nếu xảy ra lỗi lock do lệnh trước bị ngắt đột ngột, chạy lệnh tự động dọn lock:
+   ```bash
    cmd /c "if exist .git\index.lock del /f /q .git\index.lock"
    ```
-   Chỉ tiếp tục sau khi lệnh xóa trả về exit code 0 và stdout trống.
-4. **`WaitMsBeforeAsync` tối thiểu cho lệnh git**:
-   - `commit`: 10 000 ms
-   - `push`: 15 000 ms
-   - `log` / `status`: 5 000 ms
-
-### Trường hợp cần thêm file mới (untracked)
-
-Nếu có file **chưa tracked** (untracked) mà cần đưa vào commit:
-
-```
-Bước 1  →  git add <file cụ thể>          # Chỉ add đúng file cần thiết
-Bước 2  →  git commit -m "<message>"
-Bước 3  →  git push
-Bước 4  →  git log -n 1 --oneline
-```
-
-Không dùng `git add .` trừ khi thực sự muốn stage tất cả mọi thứ kể cả build artifact.
+   Sau đó thực thi lại lệnh chuỗi chuẩn ở trên.
 
