@@ -644,7 +644,7 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
                 padding: '0.75rem 1rem',
                 background: '#f1f5f9',
                 borderLeft: '4px solid var(--primary)',
-                borderRadius: '6px',
+                borderRadius: '0px',
                 marginTop: '1.25rem',
                 marginBottom: '0.5rem'
               } : {
@@ -654,13 +654,14 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
               }}>
                 {titleFmt === 'H1' ? (
                   <h2 style={{
+                    display: 'inline-block',
                     margin: '0 0 4px 0',
                     fontSize: '1.15rem',
                     fontWeight: 700,
                     color: 'var(--text-primary)',
                     textTransform: 'uppercase',
                     letterSpacing: '0.5px',
-                    borderBottom: '2px solid var(--text-primary)',
+                    borderBottom: '2.5px solid var(--text-primary)',
                     paddingBottom: '0.3rem'
                   }}>
                     {block.title}

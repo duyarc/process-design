@@ -1924,13 +1924,14 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                               marginBottom: '0.75rem'
                             }}>
                               <h2 style={{
+                                display: 'inline-block',
                                 margin: '0 0 4px 0',
                                 fontSize: '1.1rem',
                                 fontWeight: 700,
                                 color: '#0f172a',
                                 textTransform: 'uppercase',
                                 letterSpacing: '0.5px',
-                                borderBottom: '2px solid #0f172a',
+                                borderBottom: '2.5px solid #0f172a',
                                 paddingBottom: '0.25rem'
                               }}>
                                 {block.title || 'TIÊU ĐỀ DANH MỤC'}
@@ -1949,7 +1950,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                               padding: '0.5rem 0.75rem',
                               background: '#f1f5f9',
                               borderLeft: '4px solid #0f172a',
-                              borderRadius: '4px',
+                              borderRadius: '0px',
                               marginBottom: '0.5rem'
                             }}>
                               <h3 style={{ margin: '0 0 4px 0', fontSize: '0.95rem', fontWeight: 700, color: '#1e293b' }}>
@@ -2051,11 +2052,11 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                           <div>
                             {titleFmt !== 'NONE' && (
                               titleFmt === 'H1' ? (
-                                <h2 style={{ margin: '0 0 8px 0', fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', borderBottom: '2px solid var(--text-primary)', paddingBottom: '3px' }}>
+                                <h2 style={{ display: 'inline-block', margin: '0 0 8px 0', fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', borderBottom: '2.5px solid var(--text-primary)', paddingBottom: '3px' }}>
                                   {block.title}
                                 </h2>
                               ) : titleFmt === 'H2' ? (
-                                <div style={{ padding: '0.4rem 0.6rem', background: '#f1f5f9', borderLeft: '4px solid var(--primary)', borderRadius: '4px', marginBottom: '0.5rem', fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+                                <div style={{ padding: '0.4rem 0.6rem', background: '#f1f5f9', borderLeft: '4px solid var(--primary)', borderRadius: '0px', marginBottom: '0.5rem', fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
                                   {block.title}
                                 </div>
                               ) : (
@@ -2250,11 +2251,11 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                           <div>
                             {titleFmt !== 'NONE' && (
                               titleFmt === 'H1' ? (
-                                <h2 style={{ margin: '0 0 8px 0', fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', borderBottom: '2px solid var(--text-primary)', paddingBottom: '3px' }}>
+                                <h2 style={{ display: 'inline-block', margin: '0 0 8px 0', fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', borderBottom: '2.5px solid var(--text-primary)', paddingBottom: '3px' }}>
                                   {block.title}
                                 </h2>
                               ) : titleFmt === 'H2' ? (
-                                <div style={{ padding: '0.4rem 0.6rem', background: '#f1f5f9', borderLeft: '4px solid var(--primary)', borderRadius: '4px', marginBottom: '0.5rem', fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+                                <div style={{ padding: '0.4rem 0.6rem', background: '#f1f5f9', borderLeft: '4px solid var(--primary)', borderRadius: '0px', marginBottom: '0.5rem', fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
                                   {block.title}
                                 </div>
                               ) : (
@@ -2407,11 +2408,11 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                           <div>
                             {titleFmt !== 'NONE' && (
                               titleFmt === 'H1' ? (
-                                <h2 style={{ margin: '0 0 8px 0', fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', borderBottom: '2px solid var(--text-primary)', paddingBottom: '3px' }}>
+                                <h2 style={{ display: 'inline-block', margin: '0 0 8px 0', fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', borderBottom: '2.5px solid var(--text-primary)', paddingBottom: '3px' }}>
                                   {block.title}
                                 </h2>
                               ) : titleFmt === 'H2' ? (
-                                <div style={{ padding: '0.4rem 0.6rem', background: '#f1f5f9', borderLeft: '4px solid var(--primary)', borderRadius: '4px', marginBottom: '0.5rem', fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+                                <div style={{ padding: '0.4rem 0.6rem', background: '#f1f5f9', borderLeft: '4px solid var(--primary)', borderRadius: '0px', marginBottom: '0.5rem', fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
                                   {block.title}
                                 </div>
                               ) : (
@@ -2505,11 +2506,11 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                           <div>
                             {titleFmt !== 'NONE' && (
                               titleFmt === 'H1' ? (
-                                <h2 style={{ margin: '0 0 8px 0', fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', borderBottom: '2px solid var(--text-primary)', paddingBottom: '3px' }}>
+                                <h2 style={{ display: 'inline-block', margin: '0 0 8px 0', fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', borderBottom: '2.5px solid var(--text-primary)', paddingBottom: '3px' }}>
                                   {block.title}
                                 </h2>
                               ) : titleFmt === 'H2' ? (
-                                <div style={{ padding: '0.4rem 0.6rem', background: '#f1f5f9', borderLeft: '4px solid var(--primary)', borderRadius: '4px', marginBottom: '0.5rem', fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+                                <div style={{ padding: '0.4rem 0.6rem', background: '#f1f5f9', borderLeft: '4px solid var(--primary)', borderRadius: '0px', marginBottom: '0.5rem', fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
                                   {block.title}
                                 </div>
                               ) : (
@@ -2812,11 +2813,11 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                           <div>
                             {titleFmt !== 'NONE' && (
                               titleFmt === 'H1' ? (
-                                <h2 style={{ margin: '0 0 8px 0', fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', borderBottom: '2px solid var(--text-primary)', paddingBottom: '3px' }}>
+                                <h2 style={{ display: 'inline-block', margin: '0 0 8px 0', fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', borderBottom: '2.5px solid var(--text-primary)', paddingBottom: '3px' }}>
                                   {block.title}
                                 </h2>
                               ) : titleFmt === 'H2' ? (
-                                <div style={{ padding: '0.4rem 0.6rem', background: '#f1f5f9', borderLeft: '4px solid var(--primary)', borderRadius: '4px', marginBottom: '0.5rem', fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+                                <div style={{ padding: '0.4rem 0.6rem', background: '#f1f5f9', borderLeft: '4px solid var(--primary)', borderRadius: '0px', marginBottom: '0.5rem', fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
                                   {block.title}
                                 </div>
                               ) : (
