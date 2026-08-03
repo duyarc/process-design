@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { Process, FormTemplateISO, SubmissionFieldSnapshot } from '../types';
 import { formatFormVersion, getColStyleWidth } from '../types';
-import { sanitizeLabel, getEffectiveTitleFormat } from '../utils/formUtils';
+import { sanitizeLabel, getEffectiveTitleFormat, validateFormSubmission } from '../utils/formUtils';
 import PrintBlankForm from './print/PrintBlankForm';
 import { 
   ArrowLeft, 
@@ -269,13 +269,9 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
 
     const allFields = formTemplate.layoutBlocks?.flatMap((b: any) => b.fields) || [];
 
-    const missingFields = allFields.filter((field: any) => {
-      const val = formValues[field.id];
-      return val === undefined || val === '';
-    });
-
-    if (missingFields.length > 0) {
-      alert(`Please fill out all check items. (${missingFields.length} remaining).`);
+    const validationResult = validateFormSubmission(formTemplate, formValues);
+    if (!validationResult.isValid) {
+      alert(validationResult.errors.join('\n'));
       return;
     }
 
@@ -286,7 +282,11 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
         let fieldStatus: 'PASS' | 'FAIL' = 'PASS';
         let targetRange = '';
 
-        if (field.type === 'number') {
+        if (val === undefined || val === '') {
+          // Unfilled field: recorded as empty without triggering arbitrary FAIL status
+          fieldStatus = 'PASS';
+          targetRange = field.targetRange || (field.unit ? `Unit: ${field.unit}` : 'N/A');
+        } else if (field.type === 'number') {
           const numVal = parseFloat(val);
           const minVal = field.minSpec ?? -Infinity;
           const maxVal = field.maxSpec ?? Infinity;
@@ -309,10 +309,7 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
           targetRange = field.options ? field.options.filter((o: any) => o.isPass).map((o: any) => o.label).join(' / ') : (field.targetRange || 'Checked & Ok');
           if (field.type === 'checkbox') {
             const selectedVals = val ? val.split(',').filter(Boolean) : [];
-            if (selectedVals.length === 0) {
-              fieldStatus = 'FAIL';
-              isOverallPass = false;
-            } else {
+            if (selectedVals.length > 0) {
               const hasFail = selectedVals.some(v => {
                 const opt = field.options?.find((o: any) => o.value === v);
                 return opt && !opt.isPass;
@@ -324,13 +321,13 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
             }
           } else {
             const selectedOpt = field.options?.find((o: any) => o.value === val);
-            if (!selectedOpt?.isPass) {
+            if (selectedOpt && !selectedOpt.isPass) {
               fieldStatus = 'FAIL';
               isOverallPass = false;
             }
           }
         } else {
-          targetRange = field.targetRange || 'Required';
+          targetRange = field.targetRange || 'N/A';
         }
 
         if (fieldStatus === 'FAIL' && !fieldReactions[field.id]?.trim()) {
@@ -343,7 +340,7 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
           locationCode: field.locationCode || 'N/A',
           targetRange,
           reactionProtocol: field.reactionProtocol,
-          value: val + (fieldStatus === 'FAIL' ? ` (Action: ${fieldReactions[field.id]})` : ''),
+          value: (val || '') + (fieldStatus === 'FAIL' ? ` (Action: ${fieldReactions[field.id]})` : ''),
           status: fieldStatus
         };
       });

@@ -37,3 +37,28 @@ export function to5SFileName(title: string): string {
     .replace(/_+/g, '_'); // duplicate underscores to single
 }
 
+export interface FormValidationResult {
+  isValid: boolean;
+  errors: string[];
+}
+
+/**
+ * Modular Form Submission Validation Handler.
+ * 
+ * Note for future sessions:
+ * The hardcoded all-fields completion check ("Please fill out all check items") has been removed.
+ * Use this function as the central entry point to plug in domain-specific validation rules
+ * (e.g. required field flags, custom spec constraints, or step-based criteria).
+ */
+export const validateFormSubmission = (
+  _formTemplate: any,
+  _formValues: Record<string, any>
+): FormValidationResult => {
+  // Default: bypass arbitrary completion checks
+  return {
+    isValid: true,
+    errors: []
+  };
+};
+
+

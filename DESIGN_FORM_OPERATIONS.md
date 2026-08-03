@@ -9,7 +9,7 @@
 | **Module Name** | Form Operations |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | `5f44e34` (2026-07-29) — Removed redundant dotted placeholder lines from `CHECKLIST_TABLE` on `PrintBlankForm.tsx`. |
+| **Verified At Commit** | `36a2044` (2026-08-03) — Modularized form submission validation in formUtils.ts and removed hardcoded missingFields check. |
 
 ### Quick File Index
 
@@ -213,9 +213,9 @@ Operator fills in all fields in the canvas
 
 Operator clicks Submit
   └─ handleSubmitForm() runs
-       ├─ Validates: operatorId not empty
-       ├─ Validates: all fields have a value (missingFields check)
-       ├─ Evaluates each field against spec:
+       ├─ Validates: operatorId or mandatory signature not empty
+       ├─ Runs validateFormSubmission(formTemplate, formValues) in formUtils.ts (modular validation entry point)
+       ├─ Evaluates filled fields against spec:
        │    ├─ number: compares value vs minSpec/maxSpec → PASS or FAIL
        │    ├─ radio/checkbox: checks isPass flag on selected option → PASS or FAIL
        │    └─ text/date/time: always PASS
@@ -372,6 +372,12 @@ FormFiller supports direct URL access for operator distribution:
 
 `App.tsx` reads `window.location.search` on mount and routes to `page='fill-form'` if these params are present. This is the only deep-linking mechanism in the entire application.
 
+### 6.4 Modular Form Validation (`validateFormSubmission`)
+
+Form submission validation logic is modularized in `src/utils/formUtils.ts` under the exported function `validateFormSubmission()`.
+- **Arbitrary rule removal:** The legacy hardcoded mandatory fill check (`Please fill out all check items`) was removed to prevent blocking form submissions when operators leave optional or non-applicable fields blank. Unfilled fields record empty strings without throwing corrective action errors.
+- **Single Source of Truth for Validation:** `validateFormSubmission` accepts `(formTemplate, formValues)` and returns `{ isValid: boolean, errors: string[] }`. Future domain validation rules (e.g., field-level required flags, step-based criteria, or custom specification boundaries) must be added inside `validateFormSubmission()` rather than scattering ad-hoc alerts inside `FormFiller.tsx`.
+
 ---
 
 ## 7. Known Design Constraints & Technical Debt
@@ -410,3 +416,4 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 | 2026-07-29 | `f952e66` | **A5 Landscape Print Support in Record Printout:** Updated `PrintRecord.tsx` to read `pageSize` from process forms data / form template API and dynamically output `@page { size: A5 landscape; margin: 8mm 10mm 8mm 10mm; }` for short form submissions. |
 | 2026-07-29 | `9a6bb9aa` | **Fix Print Footer Overlap on A4 Paper:** Fixed `.print-footer` colliding with bottom table rows on A4 by setting negative bottom offset (`bottom: -10mm` for A4, `-5mm` for A5) to position footer into `@page` bottom margin zone, and adding `padding-bottom: 20px !important` to `.print-doc`. |
 | 2026-07-29 | `9a6bb9aa` | **Refactor Table Total Row Best Practices:** (1) Removed hardcoded `VND` suffix in `FormFiller` and `PrintRecord`. (2) Merged all preceding non-numeric columns (`colSpan = firstSumColIdx`) placing right-aligned `"Cộng:"` label directly adjacent to the first sum column. (3) Grouped all sum values on a single horizontal `<tr>` row and preserved vertical grid borders. |
+| 2026-08-03 | `CURRENT` | **Modular Form Validation & Arbitrary Rule Removal:** Removed hardcoded `missingFields` check from `FormFiller`; created modular `validateFormSubmission` in `formUtils.ts` as entry point for future custom validation rules. |
