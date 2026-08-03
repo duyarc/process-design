@@ -9,7 +9,7 @@
 | **Module Name** | Backend & Persistence |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | `28c684b` (2026-08-03) — Updated GET /api/submissions to map DB snake_case columns to camelCase Submission properties. |
+| **Verified At Commit** | `6c916fe` (2026-08-03) — Implemented PUT /api/submissions/:id to support admin overwrite mode. |
 
 ### Quick File Index
 
@@ -244,6 +244,7 @@ the middleware would have to be written first.
 |---|---|---|
 | `GET` | `/api/submissions` | Return **all** submissions; clients filter locally |
 | `POST` | `/api/submissions` | Save a completed submission |
+| `PUT` | `/api/submissions/:id` | Update/overwrite an existing submission record |
 | `POST` | `/api/submissions/:id/signoff` | Attach supervisor sign-off (no permission check) |
 
 ### Storage
@@ -292,3 +293,4 @@ Architectural changes only — schema, endpoints, invariants. UI polish lives in
 | 2026-07-09 | `c9a5696` | Fixed Supabase connection leaks and Vercel serverless cold-start timeouts. |
 | 2026-07-09 | `11902a5` | **Schema change:** dropped the `online_url` column from `process_forms` along with the online form link feature. |
 | 2026-07-27 | `9a555cb` | **New endpoints:** `POST /api/auth/check-email` and `POST /api/auth/register` for email-first progressive disclosure login; `/api/auth/login` now matches either email or username. |
+| 2026-08-03 | `CURRENT` | **Submissions update route:** Added `PUT /api/submissions/:id` to support overwriting submission records by admin. |

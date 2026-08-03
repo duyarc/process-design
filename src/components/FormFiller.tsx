@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { Process, FormTemplateISO, SubmissionFieldSnapshot } from '../types';
+import type { Process, FormTemplateISO, SubmissionFieldSnapshot, Submission } from '../types';
 import { formatFormVersion, getColStyleWidth } from '../types';
 import { sanitizeLabel, getEffectiveTitleFormat, validateFormSubmission } from '../utils/formUtils';
 import PrintBlankForm from './print/PrintBlankForm';
@@ -24,6 +24,8 @@ interface FormFillerProps {
   processId: string;
   formName: string;
   onBack: () => void;
+  initialSubmission?: Submission;
+  editSubmissionId?: string;
 }
 
 const getCheckboxGridTemplate = (options: any[]) => {
@@ -46,7 +48,13 @@ const getCheckboxGridTemplate = (options: any[]) => {
   return `${pct1}% ${pct2}%`;
 };
 
-export default function FormFiller({ processId, formName, onBack }: FormFillerProps) {
+export default function FormFiller({ 
+  processId, 
+  formName, 
+  onBack, 
+  initialSubmission, 
+  editSubmissionId 
+}: FormFillerProps) {
   const [process, setProcess] = useState<Process | null>(null);
   const [loading, setLoading] = useState(true);
   
@@ -62,6 +70,47 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
   const [submitting, setSubmitting] = useState(false);
   const [submittedId, setSubmittedId] = useState<string | null>(null);
   const [showPrintBlank, setShowPrintBlank] = useState(false);
+
+  // Load initial values if editing
+  useEffect(() => {
+    if (initialSubmission && process && formTemplate) {
+      const restoredValues: { [fieldId: string]: string } = {};
+      const restoredReactions: { [fieldId: string]: string } = {};
+      
+      initialSubmission.formData.forEach((snapshot: any) => {
+        let baseValue = snapshot.value;
+        const actionMatch = snapshot.value.match(/^(.*?) \(Action: (.*?)\)$/);
+        if (actionMatch) {
+          baseValue = actionMatch[1];
+          restoredReactions[snapshot.id] = actionMatch[2];
+        }
+        
+        restoredValues[snapshot.id] = baseValue;
+        
+        // Parse signatures if signature field
+        const signBlocks = formTemplate.layoutBlocks?.filter((b: any) => b.type === 'SIGN') || [];
+        const isSignField = signBlocks.some((b: any) => b.fields.some((f: any) => f.id === snapshot.id));
+        if (isSignField && baseValue) {
+          const signMatch = baseValue.match(/^(.*?) \[Xác thực: (.*?)\]$/);
+          if (signMatch) {
+            setSignValues(prev => ({
+              ...prev,
+              [snapshot.id]: { name: signMatch[1], confirmedAt: new Date().toISOString() }
+            }));
+          } else {
+            setSignValues(prev => ({
+              ...prev,
+              [snapshot.id]: { name: baseValue, confirmedAt: new Date().toISOString() }
+            }));
+          }
+        }
+      });
+      
+      setFormValues(restoredValues);
+      setFieldReactions(restoredReactions);
+      setOperatorId(initialSubmission.operatorId || '');
+    }
+  }, [initialSubmission, process]);
 
   const calculateSummaryValue = (
     col: any,
@@ -470,7 +519,7 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
       }
 
       setSubmitting(true);
-      const submissionId = `sub_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+      const submissionId = editSubmissionId || `sub_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
       
       const payload = {
         id: submissionId,
@@ -480,17 +529,22 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
         operatorId: effectiveOperatorId,
         status: isOverallPass ? 'PASS' : 'ABNORMALITY',
         formData: snapshots,
-        mediaUrls: allMediaKeys
+        mediaUrls: editSubmissionId ? (initialSubmission?.mediaUrls || []) : allMediaKeys
       };
 
-      const res = await fetch('/api/submissions', {
-        method: 'POST',
+      if (editSubmissionId && allMediaKeys.length > 0) {
+        const uniqueKeys = new Set([...(initialSubmission?.mediaUrls || []), ...allMediaKeys]);
+        payload.mediaUrls = Array.from(uniqueKeys);
+      }
+ 
+      const res = await fetch(editSubmissionId ? `/api/submissions/${editSubmissionId}` : '/api/submissions', {
+        method: editSubmissionId ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-
+ 
       if (!res.ok) throw new Error('Submission server error');
-      
+       
       setSubmittedId(submissionId);
       
       // Reset states
@@ -514,9 +568,14 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
     return (
       <div className="paper-card" style={{ padding: '3rem 2rem', textAlign: 'center', maxWidth: '600px', margin: '4rem auto', borderTop: '4px solid #10b981' }}>
         <CheckCircle2 size={56} style={{ color: '#10b981', marginBottom: '1.25rem' }} />
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 700, margin: '0 0 0.5rem 0' }}>Record Submitted Successfully!</h2>
+        <h2 style={{ fontSize: '1.5rem', fontWeight: 700, margin: '0 0 0.5rem 0' }}>
+          {editSubmissionId ? 'Record Updated Successfully!' : 'Record Submitted Successfully!'}
+        </h2>
         <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
-          Your check record has been securely uploaded and cataloged.<br />
+          {editSubmissionId 
+            ? 'Your changes have been saved and overwritten on the server.'
+            : 'Your check record has been securely uploaded and cataloged.'}
+          <br />
           Submission ID: <strong style={{ fontFamily: 'monospace' }}>{submittedId}</strong>
         </p>
         
@@ -548,6 +607,26 @@ export default function FormFiller({ processId, formName, onBack }: FormFillerPr
 
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      
+      {editSubmissionId && (
+        <div style={{
+          background: '#fff7ed',
+          border: '1px solid #ffedd5',
+          padding: '1rem 1.25rem',
+          borderRadius: '8px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem',
+          color: '#c2410c',
+          marginTop: '1rem'
+        }}>
+          <AlertTriangle size={20} style={{ color: '#ea580c', flexShrink: 0 }} />
+          <div style={{ fontSize: '0.88rem' }}>
+            <strong>Admin Edit Mode</strong> — Đang chỉnh sửa bản ghi <code style={{ background: '#ffedd5', padding: '0.1rem 0.3rem', borderRadius: '4px', fontFamily: 'monospace' }}>{editSubmissionId}</code>. 
+            Lưu lại sẽ <strong>ghi đè (overwrite)</strong> bản ghi gốc này.
+          </div>
+        </div>
+      )}
       
       {/* Standalone Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

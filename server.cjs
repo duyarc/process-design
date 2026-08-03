@@ -1976,6 +1976,51 @@ app.post('/api/submissions', async (req, res) => {
   }
 });
 
+// PUT /api/submissions/:id - Update/overwrite an existing form submission
+app.put('/api/submissions/:id', async (req, res) => {
+  try {
+    if (!dbPool) {
+      return res.status(503).json({ error: 'Database connection not available.' });
+    }
+    const { id } = req.params;
+    const { processId, formId, formVersion, operatorId, status, formData, mediaUrls } = req.body;
+    if (!processId || !formId || !operatorId || !status || !formData) {
+      return res.status(400).json({ error: 'Missing required submission fields.' });
+    }
+
+    const result = await dbPool.query(`
+      UPDATE submissions
+      SET process_id = $1,
+          form_id = $2,
+          form_version = $3,
+          operator_id = $4,
+          status = $5,
+          form_data = $6,
+          media_urls = $7
+      WHERE id = $8
+    `, [
+      processId,
+      formId,
+      formVersion,
+      operatorId,
+      status,
+      JSON.stringify(formData),
+      JSON.stringify(mediaUrls || []),
+      id
+    ]);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Submission record not found.' });
+    }
+
+    res.json({ success: true, id });
+  } catch (err) {
+    console.error('Error updating submission:', err);
+    res.status(500).json({ error: 'Failed to update submission record.' });
+  }
+});
+
+
 // POST /api/submissions/:id/signoff - Add supervisor sign-off to a submission
 app.post('/api/submissions/:id/signoff', async (req, res) => {
   try {

@@ -9,7 +9,7 @@
 | **Module Name** | Form Operations |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | `28c684b` (2026-08-03) — Normalized DB snake_case submission properties (form_id, operator_id, form_data) in FormManager and SubmissionManager. |
+| **Verified At Commit** | `6c916fe` (2026-08-03) — Implemented Admin Edit Mode in FormFiller and FormManager with PUT overwrite support. |
 
 ### Quick File Index
 
@@ -222,7 +222,9 @@ Operator clicks Submit
        ├─ For each FAIL field: validates fieldReactions[fieldId] is not empty (blocks submit if missing)
        ├─ Builds SubmissionFieldSnapshot[] including TABLE and MATRIX_TABLE composite keys
        ├─ Validates: if any FAIL field, at least one photo must be uploaded (QMS protocol)
-       ├─ POST /api/submissions  { id, processId, formId, formVersion, operatorId, status, formData, mediaUrls }
+       ├─ Branch on Edit Mode:
+       │    ├─ YES: PUT /api/submissions/:editSubmissionId  { id, processId, formId, formVersion, operatorId, status, formData, mediaUrls }
+       │    └─ NO: POST /api/submissions  { id, processId, formId, formVersion, operatorId, status, formData, mediaUrls }
        └─ On success: shows success screen with submissionId; resets all form state
 ```
 
@@ -417,3 +419,4 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 | 2026-07-29 | `9a6bb9aa` | **Fix Print Footer Overlap on A4 Paper:** Fixed `.print-footer` colliding with bottom table rows on A4 by setting negative bottom offset (`bottom: -10mm` for A4, `-5mm` for A5) to position footer into `@page` bottom margin zone, and adding `padding-bottom: 20px !important` to `.print-doc`. |
 | 2026-07-29 | `9a6bb9aa` | **Refactor Table Total Row Best Practices:** (1) Removed hardcoded `VND` suffix in `FormFiller` and `PrintRecord`. (2) Merged all preceding non-numeric columns (`colSpan = firstSumColIdx`) placing right-aligned `"Cộng:"` label directly adjacent to the first sum column. (3) Grouped all sum values on a single horizontal `<tr>` row and preserved vertical grid borders. |
 | 2026-08-03 | `CURRENT` | **Modular Form Validation & Arbitrary Rule Removal:** Removed hardcoded `missingFields` check from `FormFiller`; created modular `validateFormSubmission` in `formUtils.ts` as entry point for future custom validation rules. |
+| 2026-08-03 | `CURRENT` | **Admin Edit & Overwrite Mode:** Added Edit button for admin in FormManager and wired to FormFiller with PUT route support. |

@@ -13,9 +13,11 @@ import {
   CheckCircle2, 
   XCircle, 
   UserCheck, 
-  Share2 
+  Share2,
+  Pencil
 } from 'lucide-react';
 import PrintRecord from './print/PrintRecord';
+import FormFiller from './FormFiller';
 
 interface FormManagerProps {
   processId: string;
@@ -47,6 +49,9 @@ export default function FormManager({ processId, formName, onOpenFormFiller, onB
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'PASS' | 'ABNORMALITY'>('ALL');
   const [signoffFilter, setSignoffFilter] = useState<'ALL' | 'PENDING' | 'VERIFIED'>('ALL');
+  
+  // Edit State
+  const [editSubmission, setEditSubmission] = useState<Submission | null>(null);
 
   // Fetch process details and form submissions
   const fetchData = async () => {
@@ -213,6 +218,22 @@ export default function FormManager({ processId, formName, onOpenFormFiller, onB
         descriptionText={getProcessDescription()}
         columnLabels={getProcessColumnLabels()}
         onClose={() => setPrintSubmission(null)}
+      />
+    );
+  }
+
+  // Handle direct Edit mode transition
+  if (editSubmission) {
+    return (
+      <FormFiller
+        processId={processId}
+        formName={formName}
+        initialSubmission={editSubmission}
+        editSubmissionId={editSubmission.id}
+        onBack={() => {
+          setEditSubmission(null);
+          fetchData();
+        }}
       />
     );
   }
@@ -411,6 +432,17 @@ export default function FormManager({ processId, formName, onOpenFormFiller, onB
                             >
                               <Printer size={14} />
                             </button>
+                            {currentUser?.role_id === 'admin' && (
+                              <button
+                                type="button"
+                                className="btn btn-secondary btn-sm"
+                                title="Edit & Overwrite (Admin)"
+                                onClick={() => setEditSubmission(sub)}
+                                style={{ padding: '0.25rem', height: '28px', width: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                              >
+                                <Pencil size={14} style={{ color: '#ea580c' }} />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
