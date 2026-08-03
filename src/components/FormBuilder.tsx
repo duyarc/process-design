@@ -3512,7 +3512,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                       <input
                         type="text"
                         disabled={isLocked}
-                        value={activeBlock.fields[0]?.checkItem || ''}
+                        value={activeBlock.description || ''}
                         onChange={(e) => handleUpdateBlockDescription(activeBlockId!, e.target.value)}
                         placeholder="e.g. (kiểm tra trước khi load...)"
                         style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}

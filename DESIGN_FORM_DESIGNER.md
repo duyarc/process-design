@@ -9,7 +9,7 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | `f69d5e2` (2026-07-29) — Passed `effectiveDate` in `FormBuilder.tsx` print preview and updated `formatFormVersion` fallback in `types.ts`. |
+| **Verified At Commit** | `b8b3ed3` (2026-08-03) — Fixed TITLE block Description property input value binding to read from activeBlock.description. |
 
 > **⚠️ Architectural note:** FormBuilder has no awareness of which process it belongs to. The `formName` prop is always identical to `formId`. See Section 6.1 and the Technical Debt table.
 
