@@ -9,7 +9,7 @@
 | **Module Name** | Form Operations |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | `6c916fe` (2026-08-03) — Implemented Admin Edit Mode in FormFiller and FormManager with PUT overwrite support. |
+| **Verified At Commit** | `CURRENT` (2026-08-03) — Quick File Index and Flow E updated to reflect PrintFilledForm. |
 
 ### Quick File Index
 
@@ -18,7 +18,8 @@
 | [`src/components/FormFiller.tsx`](src/components/FormFiller.tsx) | Digital form fill-out UI for operators |
 | [`src/components/FormManager.tsx`](src/components/FormManager.tsx) | Per-form submission log + supervisor sign-off |
 | [`src/components/SubmissionManager.tsx`](src/components/SubmissionManager.tsx) | Cross-form global submission log (embedded in Dashboard) |
-| [`src/components/print/PrintRecord.tsx`](src/components/print/PrintRecord.tsx) | Completed submission print renderer (React Portal) |
+| [`src/components/print/PrintFilledForm.tsx`](src/components/print/PrintFilledForm.tsx) | **NEW** — Filled submission print renderer; layout mirrors blank form exactly; self-contained |
+| [`src/components/print/PrintRecord.tsx`](src/components/print/PrintRecord.tsx) | Legacy print renderer — deprecated; kept for rollback safety |
 | [`src/types.ts`](src/types.ts) | Shared types: `Submission`, `SubmissionFieldSnapshot` (owned by this doc) |
 
 > **Update rule:** Whenever any of the above files is modified in a session, update
@@ -420,3 +421,4 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 | 2026-07-29 | `9a6bb9aa` | **Refactor Table Total Row Best Practices:** (1) Removed hardcoded `VND` suffix in `FormFiller` and `PrintRecord`. (2) Merged all preceding non-numeric columns (`colSpan = firstSumColIdx`) placing right-aligned `"Cộng:"` label directly adjacent to the first sum column. (3) Grouped all sum values on a single horizontal `<tr>` row and preserved vertical grid borders. |
 | 2026-08-03 | `CURRENT` | **Modular Form Validation & Arbitrary Rule Removal:** Removed hardcoded `missingFields` check from `FormFiller`; created modular `validateFormSubmission` in `formUtils.ts` as entry point for future custom validation rules. |
 | 2026-08-03 | `CURRENT` | **Admin Edit & Overwrite Mode:** Added Edit button for admin in FormManager and wired to FormFiller with PUT route support. |
+| 2026-08-03 | `CURRENT` | **PrintFilledForm — Unified Print Renderer:** New `PrintFilledForm.tsx` replaces `PrintRecord.tsx` at both call sites (FormManager, SubmissionManager). Renders filled submissions using the same block-loop structure as `PrintBlankForm`. Key invariants: `valueMap` built once from `submission.formData`; TABLE rows reconstructed from snapshot keys (not `block.tableRows`); `isOptionSelected` helper used for radio/checkbox filled state; SIGN boxes show signer name + timestamp. `PrintRecord.tsx` retained unchanged for rollback. |

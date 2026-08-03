@@ -13,7 +13,7 @@ import {
   XCircle,
   UserCheck
 } from 'lucide-react';
-import PrintRecord from './print/PrintRecord';
+import PrintFilledForm from './print/PrintFilledForm';
 
 interface SubmissionManagerProps {
   onBack?: () => void;
@@ -105,40 +105,10 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Map process ID to title
+  // Map process ID to display title (used in filters and table display)
   const getProcessTitle = (procId: string) => {
     const found = processes.find(p => p.id === procId);
     return found ? found.title : `Process ID: ${procId}`;
-  };
-
-  // Map process ID to form logo
-  const getProcessLogo = (procId: string, formId?: string) => {
-    const found = processes.find(p => p.id === procId);
-    if (!found || !found.workflowFormsData || !formId) return '';
-    const formData = Object.values(found.workflowFormsData).find((f: any) => f.formId === formId) as any;
-    if (!formData || !formData.layoutBlocks) return '';
-    const titleBlock = formData.layoutBlocks.find((b: any) => b.type === 'TITLE');
-    return titleBlock?.logo || '';
-  };
-
-  // Map process ID to form description
-  const getProcessDescription = (procId: string, formId?: string) => {
-    const found = processes.find(p => p.id === procId);
-    if (!found || !found.workflowFormsData || !formId) return '';
-    const formData = Object.values(found.workflowFormsData).find((f: any) => f.formId === formId) as any;
-    if (!formData || !formData.layoutBlocks) return '';
-    const titleBlock = formData.layoutBlocks.find((b: any) => b.type === 'TITLE');
-    return titleBlock?.fields?.[0]?.checkItem || '';
-  };
-
-  // Map process ID to checklist table column labels
-  const getProcessColumnLabels = (procId: string, formId?: string) => {
-    const found = processes.find(p => p.id === procId);
-    if (!found || !found.workflowFormsData || !formId) return undefined;
-    const formData = Object.values(found.workflowFormsData).find((f: any) => f.formId === formId) as any;
-    if (!formData || !formData.layoutBlocks) return undefined;
-    const tableBlock = formData.layoutBlocks.find((b: any) => b.type === 'CHECKLIST_TABLE');
-    return tableBlock?.columnLabels;
   };
 
   // 2. Filter logic
@@ -202,13 +172,9 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
   // 4. Print Record render bypass
   if (printSubmission) {
     return (
-      <PrintRecord 
-        submission={printSubmission} 
-        processTitle={getProcessTitle(printSubmission.processId)} 
-        logoText={getProcessLogo(printSubmission.processId, printSubmission.formId)}
-        descriptionText={getProcessDescription(printSubmission.processId, printSubmission.formId)}
-        columnLabels={getProcessColumnLabels(printSubmission.processId, printSubmission.formId)}
-        onClose={() => setPrintSubmission(null)} 
+      <PrintFilledForm
+        submission={printSubmission}
+        onClose={() => setPrintSubmission(null)}
       />
     );
   }

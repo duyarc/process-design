@@ -16,7 +16,7 @@ import {
   Share2,
   Pencil
 } from 'lucide-react';
-import PrintRecord from './print/PrintRecord';
+import PrintFilledForm from './print/PrintFilledForm';
 import FormFiller from './FormFiller';
 
 interface FormManagerProps {
@@ -187,36 +187,14 @@ export default function FormManager({ processId, formName, onOpenFormFiller, onB
     }
   };
 
-  // Get process logo for print submission
-  const getProcessLogo = () => {
-    if (!process || !formTemplate.layoutBlocks) return '';
-    const titleBlock = formTemplate.layoutBlocks.find((b: any) => b.type === 'TITLE');
-    return titleBlock?.logo || '';
-  };
 
-  // Get process description for print submission
-  const getProcessDescription = () => {
-    if (!process || !formTemplate.layoutBlocks) return '';
-    const titleBlock = formTemplate.layoutBlocks.find((b: any) => b.type === 'TITLE');
-    return titleBlock?.fields?.[0]?.checkItem || '';
-  };
-
-  // Get checklist labels for print submission
-  const getProcessColumnLabels = () => {
-    if (!process || !formTemplate.layoutBlocks) return undefined;
-    const tableBlock = formTemplate.layoutBlocks.find((b: any) => b.type === 'CHECKLIST_TABLE');
-    return tableBlock?.columnLabels;
-  };
 
   // Handle direct print trigger closure
   if (printSubmission) {
     return (
-      <PrintRecord 
+      <PrintFilledForm
         submission={printSubmission}
-        processTitle={process.title}
-        logoText={getProcessLogo()}
-        descriptionText={getProcessDescription()}
-        columnLabels={getProcessColumnLabels()}
+        formTemplate={formTemplate}
         onClose={() => setPrintSubmission(null)}
       />
     );
