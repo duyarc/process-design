@@ -154,33 +154,32 @@ agent khác bỏ qua.
 
 ---
 
-## 10. Quy trình Git Push Tối ưu (Fast Single-Chain Git Push)
+## 10. Quy trình Git Push Chuẩn (Native Git Command Procedure)
 
-Quy trình chuẩn gộp toàn bộ các bước thành **đúng 1 lệnh duy nhất dạng chuỗi (`&&`)** trong 1 lần gọi `run_command` duy nhất. Việc này loại bỏ hoàn toàn độ trễ chờ giữa các lượt AI turn và triệt tiêu nguy cơ va chạm file lock (`.git/index.lock`).
+Sử dụng trực tiếp các lệnh `git` nguyên bản trong PowerShell (dùng dấu chấm phẩy `;` để phân tách lệnh trong 1 lần gọi `run_command` duy nhất). Việc này giúp câu lệnh gọn gàng, trực quan và không phụ thuộc vào `cmd /c`.
 
 ### Quy trình chuẩn (Chỉnh sửa file đã tracked)
 
-Chạy 1 lệnh duy nhất trong 1 lần `run_command` (dùng `cmd /c '...'` tương thích 100% với Windows PowerShell):
+Chạy 1 lần `run_command` duy nhất (WaitMsBeforeAsync: 25 000 ms):
 
-```bash
-cmd /c 'git commit -a -m "<message>" && git push origin main && git log -n 1 --oneline'
+```powershell
+git commit -a -m "<message>"; git push origin main; git log -n 1 --oneline
 ```
 
 ### Quy trình cho file mới (Chưa tracked)
 
 Nếu có file mới chưa được Git theo dõi:
 
-```bash
-cmd /c 'git add <file cụ thể> && git commit -m "<message>" && git push origin main && git log -n 1 --oneline'
+```powershell
+git add <file cụ thể>; git commit -m "<message>"; git push origin main; git log -n 1 --oneline
 ```
 
 ### Ràng buộc bắt buộc
 
-1. **Gộp lệnh bằng `&&` trong 1 lần `run_command` duy nhất** — không tách thành nhiều lần gọi tool riêng rẽ.
-2. **`WaitMsBeforeAsync`**: Set `25 000` ms (25 giây) cho lệnh gộp chuỗi để lệnh thực thi hoàn tất đồng bộ và trả về kết quả ngay lập tức.
-3. **Xử lý sự cố `index.lock` (nếu có)**: Nếu xảy ra lỗi lock do lệnh trước bị ngắt đột ngột, chạy lệnh tự động dọn lock:
-   ```bash
-   cmd /c "if exist .git\index.lock del /f /q .git\index.lock"
+1. **Phân tách lệnh bằng `;` (Semicolon):** Trong Windows PowerShell, dấu `;` cho phép thực thi chuỗi lệnh liên tiếp một cách an toàn và gọn gàng.
+2. **`WaitMsBeforeAsync`:** Set `25 000` ms (25 giây) cho lệnh gộp chuỗi để lệnh thực thi hoàn tất đồng bộ và trả về kết quả ngay lập tức.
+3. **Xử lý sự cố `index.lock` (nếu có):** Chạy lệnh tự động dọn lock nếu cần:
+   ```powershell
+   Remove-Item -Path .git\index.lock -Force -ErrorAction SilentlyContinue
    ```
-   Sau đó thực thi lại lệnh chuỗi chuẩn ở trên.
 

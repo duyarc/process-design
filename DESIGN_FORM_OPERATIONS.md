@@ -9,7 +9,7 @@
 | **Module Name** | Form Operations |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | `36a2044` (2026-08-03) — Modularized form submission validation in formUtils.ts and removed hardcoded missingFields check. |
+| **Verified At Commit** | `28c684b` (2026-08-03) — Normalized DB snake_case submission properties (form_id, operator_id, form_data) in FormManager and SubmissionManager. |
 
 ### Quick File Index
 

@@ -67,13 +67,23 @@ export default function FormManager({ processId, formName, onOpenFormFiller, onB
       if (!subRes.ok) throw new Error('Failed to fetch submissions');
       const subData: Submission[] = await subRes.json();
       
-      // Parse JSON columns in case they are returned as string from Supabase
-      const parsedSubs = subData.map(sub => {
+      // Parse JSON columns and normalize snake_case properties from DB
+      const parsedSubs: Submission[] = subData.map((sub: any) => {
+        const formDataRaw = sub.formData || sub.form_data;
+        const mediaUrlsRaw = sub.mediaUrls || sub.media_urls;
+        const signoffRaw = sub.supervisorSignoff || sub.supervisor_signoff;
+
         return {
-          ...sub,
-          formData: typeof sub.formData === 'string' ? JSON.parse(sub.formData) : sub.formData,
-          mediaUrls: typeof sub.mediaUrls === 'string' ? JSON.parse(sub.mediaUrls) : (sub.mediaUrls || []),
-          supervisorSignoff: typeof sub.supervisorSignoff === 'string' ? JSON.parse(sub.supervisorSignoff) : sub.supervisorSignoff
+          id: sub.id,
+          processId: sub.processId || sub.process_id,
+          formId: sub.formId || sub.form_id,
+          formVersion: sub.formVersion || sub.form_version,
+          operatorId: sub.operatorId || sub.operator_id || 'N/A',
+          status: sub.status,
+          submittedAt: sub.submittedAt || sub.submitted_at,
+          formData: typeof formDataRaw === 'string' ? JSON.parse(formDataRaw) : (formDataRaw || []),
+          mediaUrls: typeof mediaUrlsRaw === 'string' ? JSON.parse(mediaUrlsRaw) : (mediaUrlsRaw || []),
+          supervisorSignoff: typeof signoffRaw === 'string' ? JSON.parse(signoffRaw) : signoffRaw
         };
       });
       setSubmissions(parsedSubs);
@@ -113,12 +123,12 @@ export default function FormManager({ processId, formName, onOpenFormFiller, onB
 
   // Filter submissions for this specific form Id
   const formSubmissions = submissions.filter(sub => {
-    // Exact formId match
-    const isThisForm = sub.formId === formTemplate.formId;
+    const rawFormId = sub.formId;
+    const isThisForm = rawFormId === formTemplate.formId || rawFormId === formName;
     if (!isThisForm) return false;
 
     // Filter states
-    const matchSearch = sub.operatorId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchSearch = (sub.operatorId || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                         sub.id.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchStatus = statusFilter === 'ALL' || 

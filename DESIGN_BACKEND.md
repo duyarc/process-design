@@ -9,7 +9,7 @@
 | **Module Name** | Backend & Persistence |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | `001af74` (2026-07-27) — Sections 3, 4, 5 and 6 checked against source |
+| **Verified At Commit** | `28c684b` (2026-08-03) — Updated GET /api/submissions to map DB snake_case columns to camelCase Submission properties. |
 
 ### Quick File Index
 

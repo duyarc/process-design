@@ -1924,7 +1924,19 @@ app.get('/api/submissions', async (req, res) => {
       return res.status(503).json({ error: 'Database connection not available.' });
     }
     const result = await dbPool.query('SELECT * FROM submissions ORDER BY submitted_at DESC');
-    res.json(result.rows);
+    const mappedRows = result.rows.map(row => ({
+      id: row.id,
+      processId: row.process_id,
+      formId: row.form_id,
+      formVersion: row.form_version,
+      operatorId: row.operator_id,
+      status: row.status,
+      submittedAt: row.submitted_at,
+      formData: typeof row.form_data === 'string' ? JSON.parse(row.form_data) : row.form_data,
+      mediaUrls: typeof row.media_urls === 'string' ? JSON.parse(row.media_urls) : (row.media_urls || []),
+      supervisorSignoff: typeof row.supervisor_signoff === 'string' ? JSON.parse(row.supervisor_signoff) : row.supervisor_signoff
+    }));
+    res.json(mappedRows);
   } catch (err) {
     console.error('Error fetching submissions:', err);
     res.status(500).json({ error: 'Failed to retrieve submission records.' });
