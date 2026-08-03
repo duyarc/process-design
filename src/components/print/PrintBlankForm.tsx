@@ -365,7 +365,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                       {block.title}
                     </h1>
                     <p style={{ margin: 0, fontSize: '0.85rem', fontStyle: 'italic', color: '#475569' }}>
-                      {block.fields[0]?.checkItem || ''}
+                      {block.description || ''}
                     </p>
                     {block.showDate && (block.datePosition ?? 'B') === 'B' && (
                       <div style={{ marginTop: '6px', fontSize: '0.85rem', textAlign: 'center' }}>
@@ -394,7 +394,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                     {block.title}
                   </h1>
                   <p style={{ margin: 0, fontSize: '0.85rem', fontStyle: 'italic', color: '#475569' }}>
-                    {block.fields[0]?.checkItem || ''}
+                    {block.description || ''}
                   </p>
                   {block.showDate && (block.datePosition ?? 'B') === 'B' && (
                     <div style={{ marginTop: '6px', fontSize: '0.85rem', textAlign: 'center' }}>

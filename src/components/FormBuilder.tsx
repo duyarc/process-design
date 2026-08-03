@@ -2003,7 +2003,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                 {block.title || 'TÊN BIỂU MẪU'}
                               </h1>
                               <p style={{ margin: 0, fontSize: '0.8rem', fontStyle: 'italic', color: 'var(--text-secondary)' }}>
-                                {block.fields[0]?.checkItem || '(mô tả ngắn kiểm tra)'}
+                                {block.description || '(mô tả ngắn kiểm tra)'}
                               </p>
                               {block.showDate && (block.datePosition ?? 'B') === 'B' && (
                                 <div style={{ marginTop: '4px', fontSize: '0.78rem', color: 'var(--text-secondary)', textAlign: 'center' }}>
@@ -2033,7 +2033,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                               {block.title || 'TÊN BIỂU MẪU'}
                             </h1>
                             <p style={{ margin: 0, fontSize: '0.8rem', fontStyle: 'italic', color: 'var(--text-secondary)' }}>
-                              {block.fields[0]?.checkItem || '(mô tả ngắn kiểm tra)'}
+                              {block.description || '(mô tả ngắn kiểm tra)'}
                             </p>
                             {block.showDate && (block.datePosition ?? 'B') === 'B' && (
                               <div style={{ marginTop: '4px', fontSize: '0.78rem', color: 'var(--text-secondary)', textAlign: 'center' }}>
