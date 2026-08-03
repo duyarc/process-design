@@ -3,6 +3,7 @@ import type { Process, FormTemplateISO, SubmissionFieldSnapshot, Submission } fr
 import { formatFormVersion, getColStyleWidth } from '../types';
 import { sanitizeLabel, getEffectiveTitleFormat, validateFormSubmission } from '../utils/formUtils';
 import PrintBlankForm from './print/PrintBlankForm';
+import PrintFilledForm from './print/PrintFilledForm';
 import { 
   ArrowLeft, 
   CheckCircle2, 
@@ -70,6 +71,7 @@ export default function FormFiller({
   const [submitting, setSubmitting] = useState(false);
   const [submittedId, setSubmittedId] = useState<string | null>(null);
   const [showPrintBlank, setShowPrintBlank] = useState(false);
+  const [printCurrentSubmission, setPrintCurrentSubmission] = useState<Submission | null>(null);
 
   // Load initial values if editing
   useEffect(() => {
@@ -296,6 +298,200 @@ export default function FormFiller({
     }
   };
 
+  // Helper: Collect snapshots from UI state
+  const buildSubmissionSnapshots = (forPrint: boolean = false) => {
+    const allFields = formTemplate?.layoutBlocks?.flatMap((b: any) => b.fields || []) || [];
+    let isOverallPass = true;
+    const snapshots: SubmissionFieldSnapshot[] = [];
+
+    allFields.forEach((field: any) => {
+      const val = formValues[field.id];
+      let fieldStatus: 'PASS' | 'FAIL' = 'PASS';
+      let targetRange = '';
+
+      if (val === undefined || val === '') {
+        fieldStatus = 'PASS';
+        targetRange = field.targetRange || (field.unit ? `Unit: ${field.unit}` : 'N/A');
+      } else if (field.type === 'number') {
+        const numVal = parseFloat(val);
+        const minVal = field.minSpec ?? -Infinity;
+        const maxVal = field.maxSpec ?? Infinity;
+        const hasMin = field.minSpec !== undefined && field.minSpec !== null;
+        const hasMax = field.maxSpec !== undefined && field.maxSpec !== null;
+        if (hasMin && hasMax) {
+          targetRange = `${field.minSpec} - ${field.maxSpec} ${field.unit || ''}`;
+        } else if (hasMin) {
+          targetRange = `>= ${field.minSpec} ${field.unit || ''}`;
+        } else if (hasMax) {
+          targetRange = `<= ${field.maxSpec} ${field.unit || ''}`;
+        } else {
+          targetRange = field.unit ? `Unit: ${field.unit}` : '';
+        }
+        if (isNaN(numVal) || numVal < minVal || numVal > maxVal) {
+          fieldStatus = 'FAIL';
+          isOverallPass = false;
+        }
+      } else if (field.type === 'radio' || field.type === 'checkbox') {
+        targetRange = field.options ? field.options.filter((o: any) => o.isPass).map((o: any) => o.label).join(' / ') : (field.targetRange || 'Checked & Ok');
+        if (field.type === 'checkbox') {
+          const selectedVals = val ? val.split(',').filter(Boolean) : [];
+          if (selectedVals.length > 0) {
+            const hasFail = selectedVals.some(v => {
+              const opt = field.options?.find((o: any) => o.value === v);
+              return opt && !opt.isPass;
+            });
+            if (hasFail) {
+              fieldStatus = 'FAIL';
+              isOverallPass = false;
+            }
+          }
+        } else {
+          const selectedOpt = field.options?.find((o: any) => o.value === val);
+          if (selectedOpt && !selectedOpt.isPass) {
+            fieldStatus = 'FAIL';
+            isOverallPass = false;
+          }
+        }
+      } else {
+        targetRange = field.targetRange || 'N/A';
+      }
+
+      if (fieldStatus === 'FAIL' && !fieldReactions[field.id]?.trim() && !forPrint) {
+        throw new Error(`Corrective Action Containment log is required for failed check: "${field.checkItem}".`);
+      }
+
+      const actionText = fieldReactions[field.id]?.trim() ? ` (Action: ${fieldReactions[field.id]})` : '';
+
+      snapshots.push({
+        id: field.id,
+        checkItem: field.checkItem,
+        locationCode: field.locationCode || 'N/A',
+        targetRange,
+        reactionProtocol: field.reactionProtocol,
+        value: (val || '') + (fieldStatus === 'FAIL' ? actionText : ''),
+        status: fieldStatus
+      });
+    });
+
+    // Collect regular table values dynamically
+    formTemplate?.layoutBlocks?.forEach((block: any) => {
+      if (block.type === 'TABLE' && block.tableColumns && block.tableRows) {
+        block.tableRows.forEach((row: any, rIdx: number) => {
+          const staticCols = block.tableColumns.filter((c: any) => c.type === 'static_text');
+          const rowLabel = staticCols.length > 0 
+            ? staticCols.map((c: any) => block.tableData?.[row.id]?.[c.id] || '').join(' ') 
+            : `Dòng ${rIdx + 1}`;
+
+          block.tableColumns.forEach((col: any) => {
+            if (col.type !== 'static_text') {
+              const key = `${block.id}_${row.id}_${col.id}`;
+              const val = formValues[key] || '';
+              snapshots.push({
+                id: key,
+                checkItem: `${rowLabel} - ${col.label}`,
+                locationCode: 'N/A',
+                targetRange: 'Nhập liệu',
+                reactionProtocol: '',
+                value: val,
+                status: 'PASS'
+              });
+            }
+          });
+        });
+
+        // Collect summary row values
+        block.tableColumns.forEach((col: any) => {
+          if (col.type === 'number' && col.summaryRows) {
+            col.summaryRows.forEach((sRow: any) => {
+              const key = `${block.id}_summary_${col.id}_${sRow.id}`;
+              const val = calculateSummaryValue(col, sRow, block, formValues);
+              snapshots.push({
+                id: key,
+                checkItem: `Hàng cộng (${col.label}): ${sRow.label}`,
+                locationCode: 'N/A',
+                targetRange: 'Tính toán chân bảng',
+                reactionProtocol: '',
+                value: String(val),
+                status: 'PASS'
+              });
+            });
+          }
+        });
+      }
+    });
+
+    // Collect matrix table values dynamically
+    formTemplate?.layoutBlocks?.forEach((block: any) => {
+      if (block.type === 'MATRIX_TABLE' && block.matrixConfig) {
+        const config = block.matrixConfig;
+        for (let rIdx = 0; rIdx < config.rowCount; rIdx++) {
+          config.columns.forEach((colName: string, cIdx: number) => {
+            const key = `${block.id}_row_${rIdx}_col_${cIdx}`;
+            const val = formValues[key] || '';
+            snapshots.push({
+              id: key,
+              checkItem: `${config.rowHeader} ${rIdx + 1} - ${colName || `Cột ${cIdx + 1}`}`,
+              locationCode: 'N/A',
+              targetRange: 'Tally Count',
+              reactionProtocol: '',
+              value: val || '0',
+              status: 'PASS'
+            });
+          });
+          if (config.showNotesColumn) {
+            const noteKey = `${block.id}_row_${rIdx}_note`;
+            const noteVal = formValues[noteKey] || '';
+            if (noteVal.trim()) {
+              snapshots.push({
+                id: noteKey,
+                checkItem: `${config.rowHeader} ${rIdx + 1} - Ghi chú`,
+                locationCode: 'N/A',
+                targetRange: 'Ghi chú',
+                reactionProtocol: '',
+                value: noteVal,
+                status: 'PASS'
+              });
+            }
+          }
+        }
+      }
+    });
+
+    // Collect SIGN block signatures dynamically
+    const signBlocks = formTemplate?.layoutBlocks?.filter((b: any) => b.type === 'SIGN') || [];
+    signBlocks.forEach((block: any) => {
+      block.fields.forEach((f: any) => {
+        const sv = signValues[f.id];
+        if (sv) {
+          snapshots.push({
+            id: f.id,
+            checkItem: f.checkItem,
+            locationCode: `SIGN_${f.id}`,
+            targetRange: 'Chữ ký điện tử',
+            reactionProtocol: f.reactionProtocol || 'Ký và ghi rõ họ tên',
+            value: `${sv.name} [Xác thực: ${new Date(sv.confirmedAt).toLocaleString('vi-VN')}]`,
+            status: 'PASS'
+          });
+        }
+      });
+    });
+
+    const titleBlock = formTemplate?.layoutBlocks?.find((b: any) => b.type === 'TITLE' && b.showDate);
+    if (titleBlock) {
+      snapshots.push({
+        id: '__title_date__',
+        checkItem: 'Ngày',
+        locationCode: 'TITLE',
+        targetRange: 'Ngày kiểm tra',
+        reactionProtocol: '',
+        value: formValues['__title_date__'] || '',
+        status: 'PASS'
+      });
+    }
+
+    return { snapshots, isOverallPass };
+  };
+
   // Submit filled form
   const handleSubmitForm = async () => {
     const signBlocks = formTemplate.layoutBlocks?.filter((b: any) => b.type === 'SIGN' && b.fields.length > 0) || [];
@@ -316,8 +512,6 @@ export default function FormFiller({
       ? signValues[mandatorySignField.id]!.name
       : operatorId;
 
-    const allFields = formTemplate.layoutBlocks?.flatMap((b: any) => b.fields) || [];
-
     const validationResult = validateFormSubmission(formTemplate, formValues);
     if (!validationResult.isValid) {
       alert(validationResult.errors.join('\n'));
@@ -325,189 +519,7 @@ export default function FormFiller({
     }
 
     try {
-      let isOverallPass = true;
-      const snapshots: SubmissionFieldSnapshot[] = allFields.map((field: any) => {
-        const val = formValues[field.id];
-        let fieldStatus: 'PASS' | 'FAIL' = 'PASS';
-        let targetRange = '';
-
-        if (val === undefined || val === '') {
-          // Unfilled field: recorded as empty without triggering arbitrary FAIL status
-          fieldStatus = 'PASS';
-          targetRange = field.targetRange || (field.unit ? `Unit: ${field.unit}` : 'N/A');
-        } else if (field.type === 'number') {
-          const numVal = parseFloat(val);
-          const minVal = field.minSpec ?? -Infinity;
-          const maxVal = field.maxSpec ?? Infinity;
-          const hasMin = field.minSpec !== undefined && field.minSpec !== null;
-          const hasMax = field.maxSpec !== undefined && field.maxSpec !== null;
-          if (hasMin && hasMax) {
-            targetRange = `${field.minSpec} - ${field.maxSpec} ${field.unit || ''}`;
-          } else if (hasMin) {
-            targetRange = `>= ${field.minSpec} ${field.unit || ''}`;
-          } else if (hasMax) {
-            targetRange = `<= ${field.maxSpec} ${field.unit || ''}`;
-          } else {
-            targetRange = field.unit ? `Unit: ${field.unit}` : '';
-          }
-          if (isNaN(numVal) || numVal < minVal || numVal > maxVal) {
-            fieldStatus = 'FAIL';
-            isOverallPass = false;
-          }
-        } else if (field.type === 'radio' || field.type === 'checkbox') {
-          targetRange = field.options ? field.options.filter((o: any) => o.isPass).map((o: any) => o.label).join(' / ') : (field.targetRange || 'Checked & Ok');
-          if (field.type === 'checkbox') {
-            const selectedVals = val ? val.split(',').filter(Boolean) : [];
-            if (selectedVals.length > 0) {
-              const hasFail = selectedVals.some(v => {
-                const opt = field.options?.find((o: any) => o.value === v);
-                return opt && !opt.isPass;
-              });
-              if (hasFail) {
-                fieldStatus = 'FAIL';
-                isOverallPass = false;
-              }
-            }
-          } else {
-            const selectedOpt = field.options?.find((o: any) => o.value === val);
-            if (selectedOpt && !selectedOpt.isPass) {
-              fieldStatus = 'FAIL';
-              isOverallPass = false;
-            }
-          }
-        } else {
-          targetRange = field.targetRange || 'N/A';
-        }
-
-        if (fieldStatus === 'FAIL' && !fieldReactions[field.id]?.trim()) {
-          throw new Error(`Corrective Action Containment log is required for failed check: "${field.checkItem}".`);
-        }
-
-        return {
-          id: field.id,
-          checkItem: field.checkItem,
-          locationCode: field.locationCode || 'N/A',
-          targetRange,
-          reactionProtocol: field.reactionProtocol,
-          value: (val || '') + (fieldStatus === 'FAIL' ? ` (Action: ${fieldReactions[field.id]})` : ''),
-          status: fieldStatus
-        };
-      });
-
-      // Collect regular table values dynamically
-      formTemplate.layoutBlocks?.forEach((block: any) => {
-        if (block.type === 'TABLE' && block.tableColumns && block.tableRows) {
-          block.tableRows.forEach((row: any, rIdx: number) => {
-            const staticCols = block.tableColumns.filter((c: any) => c.type === 'static_text');
-            const rowLabel = staticCols.length > 0 
-              ? staticCols.map((c: any) => block.tableData?.[row.id]?.[c.id] || '').join(' ') 
-              : `Dòng ${rIdx + 1}`;
-
-            block.tableColumns.forEach((col: any) => {
-              if (col.type !== 'static_text') {
-                const key = `${block.id}_${row.id}_${col.id}`;
-                const val = formValues[key] || '';
-                snapshots.push({
-                  id: key,
-                  checkItem: `${rowLabel} - ${col.label}`,
-                  locationCode: 'N/A',
-                  targetRange: 'Nhập liệu',
-                  reactionProtocol: '',
-                  value: val,
-                  status: 'PASS'
-                });
-              }
-            });
-          });
-
-          // Collect summary row values
-          block.tableColumns.forEach((col: any) => {
-            if (col.type === 'number' && col.summaryRows) {
-              col.summaryRows.forEach((sRow: any) => {
-                const key = `${block.id}_summary_${col.id}_${sRow.id}`;
-                const val = calculateSummaryValue(col, sRow, block, formValues);
-                snapshots.push({
-                  id: key,
-                  checkItem: `Hàng cộng (${col.label}): ${sRow.label}`,
-                  locationCode: 'N/A',
-                  targetRange: 'Tính toán chân bảng',
-                  reactionProtocol: '',
-                  value: String(val),
-                  status: 'PASS'
-                });
-              });
-            }
-          });
-        }
-      });
-
-      // Collect matrix table values dynamically
-      formTemplate.layoutBlocks?.forEach((block: any) => {
-        if (block.type === 'MATRIX_TABLE' && block.matrixConfig) {
-          const config = block.matrixConfig;
-          for (let rIdx = 0; rIdx < config.rowCount; rIdx++) {
-            config.columns.forEach((colName: string, cIdx: number) => {
-              const key = `${block.id}_row_${rIdx}_col_${cIdx}`;
-              const val = formValues[key] || '';
-              snapshots.push({
-                id: key,
-                checkItem: `${config.rowHeader} ${rIdx + 1} - ${colName || `Cột ${cIdx + 1}`}`,
-                locationCode: 'N/A',
-                targetRange: 'Tally Count',
-                reactionProtocol: '',
-                value: val || '0',
-                status: 'PASS'
-              });
-            });
-            if (config.showNotesColumn) {
-              const noteKey = `${block.id}_row_${rIdx}_note`;
-              const noteVal = formValues[noteKey] || '';
-              if (noteVal.trim()) {
-                snapshots.push({
-                  id: noteKey,
-                  checkItem: `${config.rowHeader} ${rIdx + 1} - Ghi chú`,
-                  locationCode: 'N/A',
-                  targetRange: 'Ghi chú',
-                  reactionProtocol: '',
-                  value: noteVal,
-                  status: 'PASS'
-                });
-              }
-            }
-          }
-        }
-      });
-
-      // Collect SIGN block signatures dynamically
-      signBlocks.forEach((block: any) => {
-        block.fields.forEach((f: any) => {
-          const sv = signValues[f.id];
-          if (sv) {
-            snapshots.push({
-              id: f.id,
-              checkItem: f.checkItem,
-              locationCode: `SIGN_${f.id}`,
-              targetRange: 'Chữ ký điện tử',
-              reactionProtocol: f.reactionProtocol || 'Ký và ghi rõ họ tên',
-              value: `${sv.name} [Xác thực: ${new Date(sv.confirmedAt).toLocaleString('vi-VN')}]`,
-              status: 'PASS'
-            });
-          }
-        });
-      });
-
-      const titleBlock = formTemplate.layoutBlocks?.find((b: any) => b.type === 'TITLE' && b.showDate);
-      if (titleBlock) {
-        snapshots.push({
-          id: '__title_date__',
-          checkItem: 'Ngày',
-          locationCode: 'TITLE',
-          targetRange: 'Ngày kiểm tra',
-          reactionProtocol: '',
-          value: formValues['__title_date__'] || '',
-          status: 'PASS'
-        });
-      }
+      const { snapshots, isOverallPass } = buildSubmissionSnapshots(false);
 
       const allMediaKeys: string[] = [];
       Object.values(uploadedPhotos).forEach(keys => {
@@ -605,6 +617,17 @@ export default function FormFiller({
     );
   }
 
+  // Print draft current filled form overlay
+  if (printCurrentSubmission && formTemplate) {
+    return (
+      <PrintFilledForm
+        submission={printCurrentSubmission}
+        formTemplate={formTemplate}
+        onClose={() => setPrintCurrentSubmission(null)}
+      />
+    );
+  }
+
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       
@@ -645,6 +668,45 @@ export default function FormFiller({
           >
             <Printer size={13} />
             <span>In form trắng</span>
+          </button>
+
+          <button 
+            className="btn btn-secondary btn-sm" 
+            onClick={() => {
+              const signBlocks = formTemplate?.layoutBlocks?.filter((b: any) => b.type === 'SIGN' && b.fields.length > 0) || [];
+              const mandatorySignField = signBlocks[0]?.fields[0];
+              const effectiveOperatorId = mandatorySignField && signValues[mandatorySignField.id]
+                ? signValues[mandatorySignField.id]!.name
+                : operatorId;
+
+              const { snapshots, isOverallPass } = buildSubmissionSnapshots(true);
+              const allMediaKeys: string[] = [];
+              Object.values(uploadedPhotos).forEach(keys => {
+                allMediaKeys.push(...keys);
+              });
+
+              const draftSub: Submission = {
+                id: editSubmissionId || `draft_${Date.now()}`,
+                processId: processId,
+                formId: formTemplate.formId,
+                formVersion: formTemplate.version,
+                operatorId: effectiveOperatorId || 'DRAFT',
+                submittedAt: new Date().toISOString(),
+                status: isOverallPass ? 'PASS' : 'ABNORMALITY',
+                formData: snapshots,
+                mediaUrls: editSubmissionId ? (initialSubmission?.mediaUrls || []) : allMediaKeys
+              };
+              if (editSubmissionId && allMediaKeys.length > 0) {
+                const uniqueKeys = new Set([...(initialSubmission?.mediaUrls || []), ...allMediaKeys]);
+                draftSub.mediaUrls = Array.from(uniqueKeys);
+              }
+              setPrintCurrentSubmission(draftSub);
+            }}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.35rem 0.75rem' }}
+            title="In bản khai hiện tại cùng dữ liệu đang nhập"
+          >
+            <Printer size={13} style={{ color: '#0d9488' }} />
+            <span>In bản khai</span>
           </button>
 
           <button 

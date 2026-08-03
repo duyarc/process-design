@@ -9,7 +9,7 @@
 | **Module Name** | Form Operations |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | `CURRENT` (2026-08-03) — ConfirmModal integrated for admin deletion in FormManager & SubmissionManager. |
+| **Verified At Commit** | `CURRENT` (2026-08-03) — Added Print Draft current data feature to FormFiller toolbar using PrintFilledForm. |
 
 ### Quick File Index
 
@@ -424,3 +424,5 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 | 2026-08-03 | `CURRENT` | **Admin Edit & Overwrite Mode:** Added Edit button for admin in FormManager and wired to FormFiller with PUT route support. |
 | 2026-08-03 | `CURRENT` | **PrintFilledForm — Unified Print Renderer:** New `PrintFilledForm.tsx` replaces `PrintRecord.tsx` at both call sites (FormManager, SubmissionManager). Renders filled submissions using the same block-loop structure as `PrintBlankForm`. Key invariants: `valueMap` built once from `submission.formData`; TABLE rows reconstructed from snapshot keys (not `block.tableRows`); `isOptionSelected` helper used for radio/checkbox filled state; SIGN boxes show signer name + timestamp. `PrintRecord.tsx` retained unchanged for rollback. |
 | 2026-08-03 | `CURRENT` | **ConfirmModal & Admin Delete:** Integrated `ConfirmModal` for deleting records in `FormManager.tsx` and `SubmissionManager.tsx`. Hard delete is routed via backend endpoint `DELETE /api/submissions/:id`. Gated for admins (`role_id === 'admin'`). |
+| 2026-08-03 | `CURRENT` | **FormFiller Print Draft Data:** Added 'In bản khai' button to `FormFiller.tsx` toolbar. Constructs a transient draft `Submission` object from current UI `formValues` without requiring validation check blocks. Calls `PrintFilledForm.tsx` to preview/print draft. |
+
