@@ -14,10 +14,12 @@ import {
   XCircle, 
   UserCheck, 
   Share2,
-  Pencil
+  Pencil,
+  Trash2
 } from 'lucide-react';
 import PrintFilledForm from './print/PrintFilledForm';
 import FormFiller from './FormFiller';
+import ConfirmModal from './common/ConfirmModal';
 
 interface FormManagerProps {
   processId: string;
@@ -52,6 +54,10 @@ export default function FormManager({ processId, formName, onOpenFormFiller, onB
   
   // Edit State
   const [editSubmission, setEditSubmission] = useState<Submission | null>(null);
+
+  // Deletion States
+  const [submissionToDelete, setSubmissionToDelete] = useState<Submission | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Fetch process details and form submissions
   const fetchData = async () => {
@@ -184,6 +190,30 @@ export default function FormManager({ processId, formName, onOpenFormFiller, onB
       alert('Error signing off verification.');
     } finally {
       setSigningOff(false);
+    }
+  };
+
+  // Delete submission record handler
+  const handleDeleteSubmission = async () => {
+    if (!submissionToDelete) return;
+    try {
+      setDeleting(true);
+      const res = await fetch(`/api/submissions/${submissionToDelete.id}`, {
+        method: 'DELETE'
+      });
+      if (!res.ok) throw new Error('Failed to delete submission');
+
+      // Reset selected submission if it is the deleted one
+      if (selectedSubmission && selectedSubmission.id === submissionToDelete.id) {
+        setSelectedSubmission(null);
+      }
+      setSubmissionToDelete(null);
+      await fetchData();
+    } catch (err) {
+      console.error(err);
+      alert('Error deleting submission record.');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -411,15 +441,26 @@ export default function FormManager({ processId, formName, onOpenFormFiller, onB
                               <Printer size={14} />
                             </button>
                             {currentUser?.role_id === 'admin' && (
-                              <button
-                                type="button"
-                                className="btn btn-secondary btn-sm"
-                                title="Edit & Overwrite (Admin)"
-                                onClick={() => setEditSubmission(sub)}
-                                style={{ padding: '0.25rem', height: '28px', width: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                              >
-                                <Pencil size={14} style={{ color: '#ea580c' }} />
-                              </button>
+                              <>
+                                <button
+                                  type="button"
+                                  className="btn btn-secondary btn-sm"
+                                  title="Edit & Overwrite (Admin)"
+                                  onClick={() => setEditSubmission(sub)}
+                                  style={{ padding: '0.25rem', height: '28px', width: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                >
+                                  <Pencil size={14} style={{ color: '#ea580c' }} />
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn-secondary btn-sm"
+                                  title="Delete Record (Admin)"
+                                  onClick={() => setSubmissionToDelete(sub)}
+                                  style={{ padding: '0.25rem', height: '28px', width: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                >
+                                  <Trash2 size={14} style={{ color: '#ef4444' }} />
+                                </button>
+                              </>
                             )}
                           </div>
                         </td>
@@ -607,6 +648,30 @@ export default function FormManager({ processId, formName, onOpenFormFiller, onB
           )}
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={!!submissionToDelete}
+        title="Xác nhận xóa bản ghi"
+        message={
+          submissionToDelete ? (
+            <div>
+              Bạn có chắc chắn muốn xóa vĩnh viễn bản ghi này không?
+              <div style={{ marginTop: '0.5rem', fontSize: '0.78rem', padding: '0.5rem', background: '#f8fafc', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}>
+                <strong>ID:</strong> {submissionToDelete.id}<br />
+                <strong>Operator:</strong> {submissionToDelete.operatorId}<br />
+                <strong>Ngày gửi:</strong> {new Date(submissionToDelete.submittedAt).toLocaleString('vi-VN')}
+              </div>
+              <p style={{ margin: '0.5rem 0 0', color: 'var(--danger)', fontWeight: 500 }}>* Hành động này không thể hoàn tác.</p>
+            </div>
+          ) : ''
+        }
+        confirmText="Xóa vĩnh viễn"
+        cancelText="Hủy"
+        variant="danger"
+        loading={deleting}
+        onConfirm={handleDeleteSubmission}
+        onCancel={() => setSubmissionToDelete(null)}
+      />
     </div>
   );
 }

@@ -118,12 +118,16 @@ Change Log **không** phải là bản sao thứ hai của `git log`.
 - Khi tạo hoặc sửa UI, agent **bắt buộc** dùng CSS variables (`var(--primary)`,
   `var(--neutral-bg)`, …) và utility class lõi (`.paper-card`, `.btn`) đã định nghĩa
   trong `src/index.css`. Luôn tham chiếu [`DESIGN_UI_UX.md`](DESIGN_UI_UX.md).
+
 - **Cấm** inline style với mã màu hardcode (ví dụ `#10a3a3`) trừ trường hợp bất khả kháng.
+- **Nghiêm cấm dùng window.confirm() / alert()**: Nghiêm cấm viết mới `window.confirm()` hoặc `window.alert()`. Mọi xác nhận phải thông qua component dùng chung `ConfirmModal` (`src/components/common/ConfirmModal.tsx`).
+- **Chiến lược chuyển đổi lũy tiến (Progressive Adoption)**: Khi sửa đổi/cập nhật tính năng trong một component có sẵn code `window.confirm()` cũ, **bắt buộc** phải convert toàn bộ các lệnh `window.confirm()` trong component đó sang `ConfirmModal`.
 - **Evolution**: Nếu thêm CSS variable global mới, utility class mới, hoặc thay đổi đáng kể
   về thẩm mỹ, agent **bắt buộc** cập nhật `DESIGN_UI_UX.md` và ghi Change Log.
 - **Propagation**: Khi thay đổi **cấu trúc HTML / cách dùng class** của một UI pattern
   chuẩn (ví dụ cấu trúc thẻ của form group, hoặc class của button), agent **bắt buộc**
   quét toàn bộ mã nguồn và cập nhật cấu trúc mới cho tất cả component tương tự.
+
 
 ---
 

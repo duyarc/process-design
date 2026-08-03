@@ -9,7 +9,7 @@ This document is the **single source of truth** for the visual design language o
 
 | Field | Value |
 |---|---|
-| **Verified At Commit** | `62b1a98` (2026-07-28) — Section 4 checked against `src/print.css` (token scale, sibling-spacing rule, `:not(.print-doc *)` table exclusion, `@page` split). Section 2 design tokens last checked at `001af74` against `src/index.css`. Print output not yet visually confirmed in a browser print preview. |
+| **Verified At Commit** | `CURRENT` (2026-08-03) — Section 5 added for Standard Dialogs & Confirmations rule. |
 
 ## 1. Design Principles
 
@@ -152,9 +152,24 @@ exclusion, otherwise designed header tints are still forced to `#f0f0f0`.
 
 ---
 
-## 5. Change Log
+## 5. Standard Dialogs & Confirmations (Bắt buộc)
+
+Ứng dụng quy chuẩn hóa cách tương tác xác nhận của người dùng thông qua component dùng chung `src/components/common/ConfirmModal.tsx`.
+
+### Quy tắc tạo mới
+- **Nghiêm cấm** gọi trực tiếp các hàm `window.confirm()` hoặc `window.alert()` trong mã nguồn giao diện mới. 
+- Tất cả các luồng xác nhận hành động (ví dụ: Xoá bản ghi, Huỷ thay đổi, Reset trạng thái) bắt buộc phải sử dụng `ConfirmModal` component để đảm bảo tính đồng bộ về thẩm mỹ (Glassmorphism backdrop, icon, button layout) và không bị chặn bởi pop-up blockers của trình duyệt.
+
+### Quy tắc chuyển đổi lũy tiến (Progressive Adoption)
+- Để giảm thiểu rủi ro hồi quy (regression) và giữ ổn định cho hệ thống, chúng ta **không thực hiện nâng cấp hàng loạt** toàn bộ code cũ.
+- Tuy nhiên, mỗi khi cập nhật tính năng, sửa lỗi hoặc refactor một component mà có chứa lệnh `window.confirm()` cũ, nhà phát triển/agent **bắt buộc phải convert tiện tay** toàn bộ các lệnh confirm đó sang `ConfirmModal` trong component đó.
+
+---
+
+## 6. Change Log
 
 | Date | Commit | Change |
 |---|---|---|
 | 2026-07-09 | `8df2f3c` | Re-written to act as the strict Master Design Source of Truth, mapping exactly to `src/index.css` variables and classes. |
 | 2026-07-28 | `62b1a98` | **Print spacing invariant:** `print.css` gained the `.print-doc` token scale plus the `.print-block + .print-block` sibling rule, making block spacing single-source. Added `.print-info-grid` (row-major grid, baseline-aligned) and `.print-field-full`. Scoped the global `th` / `td` print overrides with `:not(.print-doc *)` so form print templates keep their inline cell geometry. Documented the deliberate two-`@page` orientation split. See §4.1–4.3. |
+| 2026-08-03 | `CURRENT` | **ConfirmModal Rules:** Added Section 5 detailing the mandatory `ConfirmModal` component and the progressive adoption rule for legacy `window.confirm()` calls. |

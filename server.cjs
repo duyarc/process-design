@@ -2020,8 +2020,32 @@ app.put('/api/submissions/:id', async (req, res) => {
   }
 });
 
+// DELETE /api/submissions/:id - Delete a submission record (Admin only)
+app.delete('/api/submissions/:id', async (req, res) => {
+  try {
+    if (!dbPool) {
+      return res.status(503).json({ error: 'Database connection not available.' });
+    }
+    const { id } = req.params;
+
+    const result = await dbPool.query(`
+      DELETE FROM submissions
+      WHERE id = $1
+    `, [id]);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Submission record not found.' });
+    }
+
+    res.json({ success: true, id });
+  } catch (err) {
+    console.error('Error deleting submission:', err);
+    res.status(500).json({ error: 'Failed to delete submission record.' });
+  }
+});
 
 // POST /api/submissions/:id/signoff - Add supervisor sign-off to a submission
+
 app.post('/api/submissions/:id/signoff', async (req, res) => {
   try {
     if (!dbPool) {

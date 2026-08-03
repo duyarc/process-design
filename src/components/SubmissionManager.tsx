@@ -11,9 +11,11 @@ import {
   Eye,
   CheckCircle2,
   XCircle,
-  UserCheck
+  UserCheck,
+  Trash2
 } from 'lucide-react';
 import PrintFilledForm from './print/PrintFilledForm';
+import ConfirmModal from './common/ConfirmModal';
 
 interface SubmissionManagerProps {
   onBack?: () => void;
@@ -45,6 +47,10 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
   const [searchTerm, setSearchTerm] = useState(initialFormFilter || '');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'PASS' | 'ABNORMALITY'>('ALL');
   const [signoffFilter, setSignoffFilter] = useState<'ALL' | 'PENDING' | 'VERIFIED'>('ALL');
+
+  // Deletion States
+  const [submissionToDelete, setSubmissionToDelete] = useState<Submission | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // 1. Fetch data from backend
   const fetchData = async () => {
@@ -166,6 +172,30 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
       alert('Error signing off verification.');
     } finally {
       setSigningOff(false);
+    }
+  };
+
+  // Delete submission record handler
+  const handleDeleteSubmission = async () => {
+    if (!submissionToDelete) return;
+    try {
+      setDeleting(true);
+      const res = await fetch(`/api/submissions/${submissionToDelete.id}`, {
+        method: 'DELETE'
+      });
+      if (!res.ok) throw new Error('Failed to delete submission');
+
+      // Clear selected submission if it is the deleted one
+      if (selectedSubmission && selectedSubmission.id === submissionToDelete.id) {
+        setSelectedSubmission(null);
+      }
+      setSubmissionToDelete(null);
+      await fetchData();
+    } catch (err) {
+      console.error(err);
+      alert('Error deleting submission record.');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -348,6 +378,17 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
                       >
                         <Printer size={13} />
                       </button>
+                      {currentUser?.role_id === 'admin' && (
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          title="Delete Record (Admin)"
+                          onClick={() => setSubmissionToDelete(sub)}
+                          style={{ padding: '0.25rem', height: '26px', width: '26px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: 0 }}
+                        >
+                          <Trash2 size={13} style={{ color: '#ef4444' }} />
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -667,6 +708,30 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={!!submissionToDelete}
+        title="Xác nhận xóa bản ghi"
+        message={
+          submissionToDelete ? (
+            <div>
+              Bạn có chắc chắn muốn xóa vĩnh viễn bản ghi này không?
+              <div style={{ marginTop: '0.5rem', fontSize: '0.78rem', padding: '0.5rem', background: '#f8fafc', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}>
+                <strong>ID:</strong> {submissionToDelete.id}<br />
+                <strong>Operator:</strong> {submissionToDelete.operatorId}<br />
+                <strong>Ngày gửi:</strong> {new Date(submissionToDelete.submittedAt).toLocaleString('vi-VN')}
+              </div>
+              <p style={{ margin: '0.5rem 0 0', color: 'var(--danger)', fontWeight: 500 }}>* Hành động này không thể hoàn tác.</p>
+            </div>
+          ) : ''
+        }
+        confirmText="Xóa vĩnh viễn"
+        cancelText="Hủy"
+        variant="danger"
+        loading={deleting}
+        onConfirm={handleDeleteSubmission}
+        onCancel={() => setSubmissionToDelete(null)}
+      />
     </div>
   );
 }

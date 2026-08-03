@@ -9,7 +9,7 @@
 | **Module Name** | Backend & Persistence |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | `6c916fe` (2026-08-03) — Implemented PUT /api/submissions/:id to support admin overwrite mode. |
+| **Verified At Commit** | `CURRENT` (2026-08-03) — Implemented DELETE /api/submissions/:id to support admin deletion. |
 
 ### Quick File Index
 
@@ -246,6 +246,7 @@ the middleware would have to be written first.
 | `POST` | `/api/submissions` | Save a completed submission |
 | `PUT` | `/api/submissions/:id` | Update/overwrite an existing submission record |
 | `POST` | `/api/submissions/:id/signoff` | Attach supervisor sign-off (no permission check) |
+| `DELETE` | `/api/submissions/:id` | Delete a submission record (Admin only) |
 
 ### Storage
 | Method | Endpoint | Purpose |
@@ -294,3 +295,4 @@ Architectural changes only — schema, endpoints, invariants. UI polish lives in
 | 2026-07-09 | `11902a5` | **Schema change:** dropped the `online_url` column from `process_forms` along with the online form link feature. |
 | 2026-07-27 | `9a555cb` | **New endpoints:** `POST /api/auth/check-email` and `POST /api/auth/register` for email-first progressive disclosure login; `/api/auth/login` now matches either email or username. |
 | 2026-08-03 | `CURRENT` | **Submissions update route:** Added `PUT /api/submissions/:id` to support overwriting submission records by admin. |
+| 2026-08-03 | `CURRENT` | **Submissions delete route:** Added `DELETE /api/submissions/:id` to support hard-deletion of submission records by admin. |
