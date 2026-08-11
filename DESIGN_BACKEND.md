@@ -9,7 +9,7 @@
 | **Module Name** | Backend & Persistence |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | `CURRENT` (2026-08-11) — Checked /api/cron-ping and vercel.json cron configuration against source |
+| **Verified At Commit** | `a12b0c9` (2026-08-11) — Checked /api/cron-ping and vercel.json cron configuration against source |
 
 ### Quick File Index
 
@@ -301,4 +301,4 @@ Architectural changes only — schema, endpoints, invariants. UI polish lives in
 | 2026-07-27 | `9a555cb` | **New endpoints:** `POST /api/auth/check-email` and `POST /api/auth/register` for email-first progressive disclosure login; `/api/auth/login` now matches either email or username. |
 | 2026-08-03 | `CURRENT` | **Submissions update route:** Added `PUT /api/submissions/:id` to support overwriting submission records by admin. |
 | 2026-08-03 | `CURRENT` | **Submissions delete route:** Added `DELETE /api/submissions/:id` to support hard-deletion of submission records by admin. |
-| 2026-08-11 | `CURRENT` | **Cron ping route & config:** Added `/api/cron-ping` endpoint and configured daily Vercel Cron Job in `vercel.json` to query the DB and prevent automatic pausing of Supabase free tier. |
+| 2026-08-11 | `a12b0c9` | **Cron ping route & config:** Added `/api/cron-ping` endpoint and configured daily Vercel Cron Job in `vercel.json` to query the DB and prevent automatic pausing of Supabase free tier. |
