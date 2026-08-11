@@ -2371,7 +2371,19 @@ app.delete('/api/users/:id', async (req, res) => {
   }
 });
 
-
+// GET /api/cron-ping - Database Keep-Alive route triggered by Cron/pinger
+app.get('/api/cron-ping', async (req, res) => {
+  try {
+    if (!dbPool) {
+      return res.status(503).json({ error: 'Database connection not available.' });
+    }
+    await dbPool.query('SELECT 1');
+    res.json({ success: true, message: 'Database is active and pinged successfully', timestamp: new Date() });
+  } catch (err) {
+    console.error('Error pinging database:', err);
+    res.status(500).json({ error: 'Failed to ping database.' });
+  }
+});
 
 // Serve static assets from Vite's build directory in production
 app.use(express.static(path.join(__dirname, 'dist')));
