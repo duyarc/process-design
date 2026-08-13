@@ -10,7 +10,7 @@ export async function exportFillablePdfFromDOM(
   template: FormTemplateISO
 ): Promise<void> {
   try {
-    const pageSize = template.pageSize || (template as Record<string, unknown>).page_size || 'A4';
+    const pageSize = template.pageSize || (template as unknown as Record<string, unknown>).page_size || 'A4';
     const isA5 = pageSize === 'A5_LANDSCAPE';
 
     // 1. Capture HTML DOM to canvas using html2canvas
