@@ -796,18 +796,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                                         </div>
                                       ))}
                                     </div>
-                                  ) : (
-                                    <div style={{ display: 'flex', justifyContent: 'center' }}>
-                                      <span style={{
-                                        display: 'inline-block',
-                                        width: '14px',
-                                        height: '14px',
-                                        border: '1.5px solid #000000',
-                                        background: '#ffffff',
-                                        borderRadius: col.type === 'radio' ? '50%' : '2px'
-                                      }} />
-                                    </div>
-                                  )
+                                  ) : null
                                 ) : null}
                               </td>
                             );
