@@ -445,7 +445,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                                 {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', fontSize: '0.82rem', marginBottom: '4px' }}>{cleanLabel}</span>}
                                 <div style={{ flex: 1, border: '1.5px dashed #000000', borderRadius: '3px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60px', padding: '6px' }}>
                                   <span style={{ fontSize: '0.78rem', color: '#000000', fontStyle: 'italic', textAlign: 'center' }}>
-                                    {f.checkItem ?? ''}
+                                    {f.placeholder ?? ''}
                                   </span>
                                 </div>
                               </div>

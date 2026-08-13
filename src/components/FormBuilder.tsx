@@ -850,7 +850,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     } else if (type === 'radio' || type === 'checkbox') {
       newField.options = [...DEFAULT_RADIO_OPTIONS];
     } else if (type === 'photo') {
-      newField.checkItem = '[photo]';
+      newField.checkItem = 'Ảnh bằng chứng';
+      newField.placeholder = '[photo]';
       newField.rowSpan = 3;
     } else if (type === 'subtable') {
       newField.subtableColumns = [
@@ -927,8 +928,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
       updates.unit = undefined;
     } else if (newType === 'photo') {
       updates.rowSpan = field?.rowSpan ?? 3;
-      if (!field?.checkItem || field.checkItem === 'Thông tin mới' || field.checkItem === '[Dán / Chụp 1 ảnh bằng chứng]') {
-        updates.checkItem = '[photo]';
+      updates.placeholder = field?.placeholder || '[photo]';
+      if (!field?.checkItem || field.checkItem === 'Thông tin mới' || field.checkItem === '[photo]') {
+        updates.checkItem = 'Ảnh bằng chứng';
       }
       updates.minSpec = undefined;
       updates.maxSpec = undefined;
@@ -2163,8 +2165,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                     }}
                                   >
                                     {/* Header row: label (left) + type badge + move controls (right) */}
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minHeight: f.type === 'photo' && !isFieldSelected ? '0' : undefined }}>
-                                      {f.type === 'photo' ? <div /> : <span style={{ fontWeight: 600 }}>{sanitizeLabel(f.checkItem)}</span>}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                      <span style={{ fontWeight: 600 }}>{sanitizeLabel(f.checkItem)}</span>
                                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                                         {isFieldSelected && !isLocked && (
                                           <div style={{ display: 'flex', alignItems: 'center', gap: '2px', marginRight: '4px' }}>
@@ -2194,19 +2196,19 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                             </button>
                                           </div>
                                         )}
-                                        <span style={{ color: 'var(--text-muted)' }}>[{f.type}]</span>
+                                        {f.type !== 'photo' && <span style={{ color: 'var(--text-muted)' }}>[{f.type}]</span>}
                                       </div>
                                     </div>
 
                                     {/* Photo editable tip box — rendered BELOW the header row */}
                                     {f.type === 'photo' && (
-                                      <div style={{ flex: 1, border: '1.5px dashed #cbd5e1', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px', background: '#fafafa' }}>
+                                      <div style={{ flex: 1, border: '1.5px dashed #cbd5e1', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px', background: '#fafafa', marginTop: '4px' }}>
                                         <input
                                           type="text"
-                                          value={f.checkItem}
+                                          value={f.placeholder ?? ''}
                                           disabled={isLocked}
                                           onClick={(e) => e.stopPropagation()}
-                                          onChange={(e) => handleUpdateField(block.id, f.id, { checkItem: e.target.value })}
+                                          onChange={(e) => handleUpdateField(block.id, f.id, { placeholder: e.target.value })}
                                           style={{
                                             border: 'none',
                                             background: 'transparent',
@@ -3192,6 +3194,21 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                     style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
                   />
                 </div>
+
+                {activeField.type === 'photo' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                    <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Văn bản gợi ý trong ô (Placeholder Text)</label>
+                    <input
+                      type="text"
+                      disabled={isLocked}
+                      value={activeField.placeholder ?? ''}
+                      onChange={(e) => handleUpdateField(activeBlockId!, activeFieldId!, { placeholder: e.target.value })}
+                      placeholder="Ví dụ: [photo]"
+                      style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
+                    />
+                    <span style={{ fontSize: '0.7rem', color: '#64748b' }}>Chữ này hiển thị căn giữa bên trong khung nét đứt. Nếu để trống sẽ hiển thị ô trắng.</span>
+                  </div>
+                )}
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
                   <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Field Type</label>
