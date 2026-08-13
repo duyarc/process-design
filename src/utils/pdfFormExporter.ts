@@ -33,7 +33,7 @@ export async function exportFillablePdfFromDOM(
     const printableWidthPt = pdfPageWidth - (marginX * 2);   // 523.28 pt
     const printableHeightPt = pdfPageHeight - (marginY * 2); // 769.89 pt
 
-    // DOM Target Width: Set exact 697.7px (which yields exactly 0.75 pt/px scaling for 523.28pt printable width)
+    // DOM Target Width: Set exact 697.7px (yields 0.75 pt/px scaling for 523.28pt printable width)
     const targetWidthPx = 697.7;
 
     // Save original inline styles to restore after capture
@@ -109,8 +109,6 @@ export async function exportFillablePdfFromDOM(
     fieldElements.forEach((el, index) => {
       const fieldId = el.getAttribute('data-field-id') || `field_${index}`;
       const fieldType = el.getAttribute('data-field-type') || 'text';
-      const radioGroup = el.getAttribute('data-field-radiogroup');
-      const radioValue = el.getAttribute('data-field-radiovalue');
 
       const elRect = el.getBoundingClientRect();
 
@@ -129,51 +127,45 @@ export async function exportFillablePdfFromDOM(
       const pageTopOffset = pageIdx * domPageHeight;
       const localTop = relTop - pageTopOffset;
 
-      // Calculate PDF Cartesian coordinates with MARGIN OFFSETS (marginX, marginY)
       const x = marginX + (relLeft * scaleFactor);
       const width = Math.max(elRect.width * scaleFactor, 10);
       const height = Math.max(elRect.height * scaleFactor, 10);
-      const y = pdfPageHeight - marginY - ((localTop + elRect.height) * scaleFactor);
-
-      // Clamp y coordinates within printable page
-      const clampedY = Math.max(marginY, Math.min(pdfPageHeight - marginY - height, y));
 
       try {
-        if (fieldType === 'checkbox') {
-          const cbName = `${fieldId}_cb_${index}`;
+        if (fieldType === 'checkbox' || fieldType === 'radio') {
+          // Discrete CheckBox widget for options to prevent ghost radio buttons on PDF margin
+          const cbName = `${fieldId}_opt_${index}`;
           const checkBox = form.createCheckBox(cbName);
+          const cbSize = Math.min(width, 13);
+          const cbY = pdfPageHeight - marginY - ((localTop * scaleFactor) + cbSize + 1);
+          const clampedCbY = Math.max(marginY, Math.min(pdfPageHeight - marginY - cbSize, cbY));
+
           checkBox.addToPage(page, {
             x,
-            y: clampedY,
-            width: Math.min(width, 13),
-            height: Math.min(height, 13),
-            borderWidth: 1,
-            borderColor: rgb(0, 0, 0),
-          });
-        } else if (fieldType === 'radio' && radioGroup && radioValue) {
-          let rg;
-          try {
-            rg = form.getRadioGroup(radioGroup);
-          } catch {
-            rg = form.createRadioGroup(radioGroup);
-          }
-          rg.addOptionToPage(radioValue, page, {
-            x,
-            y: clampedY,
-            width: Math.min(width, 13),
-            height: Math.min(height, 13),
+            y: clampedCbY,
+            width: cbSize,
+            height: cbSize,
             borderWidth: 1,
             borderColor: rgb(0, 0, 0),
           });
         } else {
           // Text / Number / Date / Time / Signature fields
+          const fieldHeight = Math.min(height, 13);
+          // Clamp right edge so it never exceeds (pdfPageWidth - marginX - 6pt)
+          const maxAllowedWidth = Math.max(20, (pdfPageWidth - marginX - 6) - x);
+          const fieldWidth = Math.min(width, maxAllowedWidth);
+
+          // Align Y to text baseline
+          const fieldY = pdfPageHeight - marginY - ((localTop * scaleFactor) + fieldHeight + 2);
+          const clampedY = Math.max(marginY, Math.min(pdfPageHeight - marginY - fieldHeight, fieldY));
+
           const tfName = `${fieldId}_tf_${index}`;
           const textField = form.createTextField(tfName);
           textField.addToPage(page, {
             x,
             y: clampedY,
-            width,
-            height,
+            width: fieldWidth,
+            height: fieldHeight,
             borderWidth: 0.5,
             borderColor: rgb(0.8, 0.8, 0.8),
           });
