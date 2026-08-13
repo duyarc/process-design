@@ -36,7 +36,7 @@ export async function exportFillablePdfFromDOM(
     // DOM Target Width: Set exact 697.7px (yields 0.75 pt/px scaling for 523.28pt printable width)
     const targetWidthPx = 697.7;
 
-    // Save original inline styles to restore after capture
+    // Save original inline styles to restore after capture & measurement
     const originalWidth = targetEl.style.width;
     const originalMaxWidth = targetEl.style.maxWidth;
     const originalPadding = targetEl.style.padding;
@@ -59,7 +59,38 @@ export async function exportFillablePdfFromDOM(
       windowWidth: targetWidthPx,
     });
 
-    // Restore original styles immediately
+    // 2. Scan and measure all field bounding boxes WHILE targetEl is still constrained to targetWidthPx (697.7px)!
+    const allFieldElements = Array.from(targetEl.querySelectorAll<HTMLElement>('[data-acroform-field="true"]'));
+    const fieldElements = allFieldElements.filter(el => {
+      const rect = el.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0 && getComputedStyle(el).display !== 'none';
+    });
+
+    const targetRect = targetEl.getBoundingClientRect();
+    const scaleFactor = printableWidthPt / targetWidthPx; // Exact 523.28 / 697.7 = 0.75 pt/px
+
+    // Pre-calculate field positions relative to targetRect at targetWidthPx
+    const scannedFields = fieldElements.map((el, index) => {
+      const fieldId = el.getAttribute('data-field-id') || `field_${index}`;
+      const fieldType = el.getAttribute('data-field-type') || 'text';
+      const elRect = el.getBoundingClientRect();
+
+      const relTop = elRect.top - targetRect.top;
+      const relLeft = elRect.left - targetRect.left;
+
+      return {
+        fieldId,
+        fieldType,
+        relTop,
+        relLeft,
+        elWidth: elRect.width,
+        elHeight: elRect.height,
+        targetHeight: targetRect.height,
+        index
+      };
+    });
+
+    // NOW restore original styles immediately after taking DOM measurements!
     targetEl.style.width = originalWidth;
     targetEl.style.maxWidth = originalMaxWidth;
     targetEl.style.padding = originalPadding;
@@ -96,29 +127,12 @@ export async function exportFillablePdfFromDOM(
     const pages = pdfDoc.getPages();
     const totalPages = pages.length;
 
-    // 4. Scan visible data-acroform-field elements in target element
-    const allFieldElements = Array.from(targetEl.querySelectorAll<HTMLElement>('[data-acroform-field="true"]'));
-    const fieldElements = allFieldElements.filter(el => {
-      const rect = el.getBoundingClientRect();
-      return rect.width > 0 && rect.height > 0 && getComputedStyle(el).display !== 'none';
-    });
-
-    const targetRect = targetEl.getBoundingClientRect();
-    const scaleFactor = printableWidthPt / targetWidthPx; // Exact 523.28 / 697.7 = 0.75 pt/px
-
-    fieldElements.forEach((el, index) => {
-      const fieldId = el.getAttribute('data-field-id') || `field_${index}`;
-      const fieldType = el.getAttribute('data-field-type') || 'text';
-
-      const elRect = el.getBoundingClientRect();
-
-      // Relative top position within target container
-      const relTop = elRect.top - targetRect.top;
-      const relLeft = elRect.left - targetRect.left;
+    // 4. Place AcroForm fields onto PDF pages using pre-calculated scannedFields
+    scannedFields.forEach((item) => {
+      const { fieldId, fieldType, relTop, relLeft, elWidth, elHeight, targetHeight, index } = item;
 
       // Determine which page this field belongs to
-      const totalDomHeight = targetRect.height;
-      const domPageHeight = totalDomHeight / totalPages;
+      const domPageHeight = targetHeight / totalPages;
       let pageIdx = Math.floor(relTop / domPageHeight);
       if (pageIdx >= totalPages) pageIdx = totalPages - 1;
       if (pageIdx < 0) pageIdx = 0;
@@ -128,8 +142,8 @@ export async function exportFillablePdfFromDOM(
       const localTop = relTop - pageTopOffset;
 
       const x = marginX + (relLeft * scaleFactor);
-      const width = Math.max(elRect.width * scaleFactor, 10);
-      const height = Math.max(elRect.height * scaleFactor, 10);
+      const width = Math.max(elWidth * scaleFactor, 10);
+      const height = Math.max(elHeight * scaleFactor, 10);
 
       try {
         if (fieldType === 'checkbox' || fieldType === 'radio') {
