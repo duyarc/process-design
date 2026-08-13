@@ -9,7 +9,7 @@ This document is the **single source of truth** for the visual design language o
 
 | Field | Value |
 |---|---|
-| **Verified At Commit** | `CURRENT` (2026-08-03) — Section 5 added for Standard Dialogs & Confirmations rule. |
+| **Verified At Commit** | `4eefc87` (2026-08-13) — Section 3 (Form Field Design System: Automated Checkbox/Radio Option A vs Option C layout pattern). |
 
 ## 1. Design Principles
 
@@ -173,3 +173,4 @@ exclusion, otherwise designed header tints are still forced to `#f0f0f0`.
 | 2026-07-09 | `8df2f3c` | Re-written to act as the strict Master Design Source of Truth, mapping exactly to `src/index.css` variables and classes. |
 | 2026-07-28 | `62b1a98` | **Print spacing invariant:** `print.css` gained the `.print-doc` token scale plus the `.print-block + .print-block` sibling rule, making block spacing single-source. Added `.print-info-grid` (row-major grid, baseline-aligned) and `.print-field-full`. Scoped the global `th` / `td` print overrides with `:not(.print-doc *)` so form print templates keep their inline cell geometry. Documented the deliberate two-`@page` orientation split. See §4.1–4.3. |
 | 2026-08-03 | `CURRENT` | **ConfirmModal Rules:** Added Section 5 detailing the mandatory `ConfirmModal` component and the progressive adoption rule for legacy `window.confirm()` calls. |
+| 2026-08-13 | `4eefc87` | **Automated Checkbox Layout Pattern (Option A vs Option C):** Documented dynamic layout engine. Standard fields use Option A (2-column fixed 35%/65% grid) to align checkbox icons vertically; detailed/long fields use Option C (Top-aligned label + 1rem indented options). |

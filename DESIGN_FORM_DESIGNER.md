@@ -9,7 +9,7 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | `CURRENT` (2026-08-13) — Update TABLE layout block default initial columns (STT 8% centered, Tên hạng mục 50%, Giá trị Auto, remove Đạt column). |
+| **Verified At Commit** | `4eefc87` (2026-08-13) — Section 4 (Data Models & Layout Rules: getAutoCheckboxLayoutMode Option A vs Option C automated layout engine). |
 
 > **⚠️ Architectural note:** FormBuilder has no awareness of which process it belongs to. The `formName` prop is always identical to `formId`. See Section 6.1 and the Technical Debt table.
 
@@ -504,5 +504,6 @@ full diff of any entry below.
 | 2026-08-13 | `CURRENT` | **INFO_GRID Photo Multi-Row Span & Single Photo Upload:** Added `rowSpan?: number` and `colSpan?: number` to `FormFieldISO`. Enabled `+ Photo` field button for `INFO_GRID` block. Added Right Panel rowSpan (1–4 rows) & colSpan controls. Enforced 1-photo upload constraint (overriding previous photo). Preserved 100% WYSIWYG consistency across FormBuilder, FormFiller, ProcessReader, PrintBlankForm, and PrintFilledForm. |
 | 2026-08-13 | `CURRENT` | **Photo Field WYSIWYG Inline Editable Tip & Icon Removal:** Removed camera icon from canvas placeholder and print blank forms. Made photo hint text directly editable inline inside the canvas placeholder (saved in `f.checkItem`). Propagated hint text to FormFiller, ProcessReader, and PrintBlankForm. |
 | 2026-08-13 | `CURRENT` | **TABLE Block Default Initial Columns Update:** Updated default `tableColumns` in `FormBuilder.tsx` for newly added `TABLE` blocks: `STT` (width: 8%, align: center), `Tên hạng mục` (width: 50%), `Giá trị` (width: auto/42%), and removed default `'Đạt'` column completely. |
+| 2026-08-13 | `4eefc87` | **Automated Checkbox Layout Engine (Option A vs Option C):** Implemented `getAutoCheckboxLayoutMode` in `formUtils.ts`. FormBuilder automatically selects Option A (2-column 35%/65%) for standard options and Option C (Top-aligned label + indented stacked options) when label >35 chars, option text >40 chars, or option density is high. |
 
 

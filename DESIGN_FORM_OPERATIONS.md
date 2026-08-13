@@ -9,7 +9,7 @@
 | **Module Name** | Form Operations |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | `CURRENT` (2026-08-13) — FormFiller, ProcessReader, and PrintBlankForm render photo hint text from checkItem without camera icon. |
+| **Verified At Commit** | `4eefc87` (2026-08-13) — Section 3 (Print & Operations Rendering: 1:1 Option A vs Option C automated checkbox layout matching). |
 
 ### Quick File Index
 
@@ -429,6 +429,7 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 | 2026-08-13 | `CURRENT` | **FormFiller Cell-Level Custom Options:** Updated `FormFiller.tsx` & `ProcessReader.tsx` TABLE cell rendering to resolve `cellOptionsMap` for both `checkbox` and `radio` types, allowing operators to select row-specific options seamlessly. |
 | 2026-08-13 | `CURRENT` | **FormFiller & Print Single Photo Upload:** Updated `FormFiller.tsx` & `ProcessReader.tsx` to enforce 1-photo upload limit per `photo` field, replacing previous photo keys upon new upload. Updated `PrintBlankForm.tsx` & `PrintFilledForm.tsx` to render single photo in `INFO_GRID` grid cells spanning `rowSpan` height. |
 | 2026-08-13 | `CURRENT` | **Photo Dropzone Hint Text Propagation:** Updated `FormFiller.tsx`, `ProcessReader.tsx`, and `PrintBlankForm.tsx` to render photo field hint text directly from `field.checkItem` without camera icon, preserving WYSIWYG consistency with canvas editor. |
+| 2026-08-13 | `4eefc87` | **Automated Checkbox Layout Engine (Option A vs Option C) 1:1 Operations & Print Alignment:** FormFiller, ProcessReader, and PrintBlankForm updated to evaluate `getAutoCheckboxLayoutMode(field)`. Renders Option A (2-column 35%/65%) for standard options and Option C (Top-aligned label + indented options) for long labels or descriptions. |
 
 
 

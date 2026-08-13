@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { FormFieldISO, FormRevisionEntry, FormTemplateISO, LayoutBlockISO, RadioOption, MatrixConfigISO, TableColumnConfig, TableRowConfig, ColumnSummaryRowConfig, TitleFormatISO, SubtableColumn } from '../types';
 import { formatFormVersion, getColStyleWidth } from '../types';
-import { sanitizeLabel, getEffectiveTitleFormat } from '../utils/formUtils';
+import { sanitizeLabel, getEffectiveTitleFormat, getAutoCheckboxLayoutMode } from '../utils/formUtils';
 import { 
   Plus, 
   Trash2, 
@@ -2227,8 +2227,20 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
 
                                     {(f.type === 'radio' || f.type === 'checkbox') && (() => {
                                       const options = f.options ?? [{ label: 'Đạt', value: 'PASS' }, { label: 'Không Đạt', value: 'FAIL' }];
+                                      const layoutMode = getAutoCheckboxLayoutMode(f);
+                                      const isOptionC = layoutMode === 'OPTION_C';
                                       return (
-                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 18px', alignItems: 'flex-start', marginTop: '4px', paddingTop: '2px', maxWidth: '100%' }}>
+                                        <div style={{
+                                          display: 'flex',
+                                          flexDirection: isOptionC ? 'column' : 'row',
+                                          flexWrap: isOptionC ? 'nowrap' : 'wrap',
+                                          gap: isOptionC ? '5px' : '6px 18px',
+                                          alignItems: 'flex-start',
+                                          marginTop: '4px',
+                                          paddingTop: '2px',
+                                          paddingLeft: isOptionC ? '1rem' : '0',
+                                          maxWidth: '100%'
+                                        }}>
                                           {options.map((opt: any) => (
                                             <span key={opt.value} style={{ display: 'inline-flex', alignItems: 'flex-start', gap: '6px', fontSize: '0.78rem', color: '#334155', whiteSpace: 'normal', wordBreak: 'break-word', maxWidth: '100%' }}>
                                               <span style={{

@@ -2,7 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import type { FormTemplateISO, LayoutBlockISO, TableColumnConfig } from '../../types';
 import { formatFormVersion, getColStyleWidth } from '../../types';
-import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName } from '../../utils/formUtils';
+import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, getAutoCheckboxLayoutMode } from '../../utils/formUtils';
 
 // Helper: derive CHECKLIST_TABLE columns — falls back to columnLabels for backward compat
 function getChecklistColumns(block: LayoutBlockISO): TableColumnConfig[] {
@@ -455,10 +455,39 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                           if (f.type === 'checkbox' || f.type === 'radio') {
                             const rawOptions = f.options ?? [{ label: 'Có', value: 'YES' }, { label: 'Không', value: 'NO' }];
                             const options = rawOptions.filter((opt: any) => opt.label && opt.label.trim() !== '');
+                            const layoutMode = getAutoCheckboxLayoutMode(f);
+
+                            if (layoutMode === 'OPTION_C') {
+                              return (
+                                <div key={f.id} style={{ ...gridItemStyle, display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.85rem' }}>
+                                  {cleanLabel && (
+                                    <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a' }}>{cleanLabel}</span>
+                                  )}
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingLeft: '1.25rem' }}>
+                                    {options.map((opt: any) => (
+                                      <span key={opt.value} style={{ display: 'inline-flex', alignItems: 'flex-start', gap: '6px', fontSize: '0.8rem', whiteSpace: 'normal', wordBreak: 'break-word', maxWidth: '100%' }}>
+                                        <span style={{
+                                          display: 'inline-block',
+                                          width: '13px',
+                                          height: '13px',
+                                          border: '1.5px solid #000000',
+                                          background: '#ffffff',
+                                          borderRadius: f.type === 'radio' ? '50%' : '2px',
+                                          flexShrink: 0,
+                                          marginTop: '2px'
+                                        }} />
+                                        <span style={{ lineHeight: '1.3' }}>{opt.label}</span>
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              );
+                            }
+
                             return (
-                              <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'baseline', gap: '8px', fontSize: '0.85rem' }}>
+                              <div key={f.id} style={{ ...gridItemStyle, display: 'grid', gridTemplateColumns: '35% 65%', gap: '8px', alignItems: 'baseline', fontSize: '0.85rem' }}>
                                 {cleanLabel && (
-                                  <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap' }}>{cleanLabel}</span>
+                                  <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a' }}>{cleanLabel}</span>
                                 )}
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', alignItems: 'center', maxWidth: '100%' }}>
                                   {options.map((opt: any) => (
@@ -469,7 +498,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                                         height: '13px',
                                         border: '1.5px solid #000000',
                                         background: '#ffffff',
-                                        borderRadius: '2px',
+                                        borderRadius: f.type === 'radio' ? '50%' : '2px',
                                         flexShrink: 0
                                       }} />
                                       <span style={{ lineHeight: '1.3' }}>{opt.label}</span>

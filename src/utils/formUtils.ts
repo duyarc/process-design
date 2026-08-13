@@ -1,4 +1,27 @@
-import type { TitleFormatISO } from '../types';
+import type { FormFieldISO, TitleFormatISO } from '../types';
+
+/**
+ * Automatically determines whether a checkbox or radio field should render using
+ * Option A (2-Column Fixed Grid with 35% left column) or Option C (Top-Aligned Label + Indented Options).
+ */
+export function getAutoCheckboxLayoutMode(field: FormFieldISO): 'OPTION_A' | 'OPTION_C' {
+  const labelLength = (field.checkItem || '').trim().length;
+  const options = field.options || [];
+
+  // 1. Long Label Rule: If label text exceeds 35 characters
+  if (labelLength > 35) return 'OPTION_C';
+
+  // 2. Long Option Text Rule: If any option description exceeds 40 characters
+  const hasLongOptionText = options.some(opt => (opt.label || '').length > 40);
+  if (hasLongOptionText) return 'OPTION_C';
+
+  // 3. High Option Density Rule: More than 4 stacked options with medium text length (>20 chars)
+  const isHighDensity = options.length >= 4 && options.some(opt => (opt.label || '').length > 20);
+  if (isHighDensity) return 'OPTION_C';
+
+  // Default to Option A (Clean 2-Column Grid)
+  return 'OPTION_A';
+}
 
 /**
  * Sanitizes field labels by stripping trailing colons and extra whitespace.

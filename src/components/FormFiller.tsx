@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { Process, FormTemplateISO, SubmissionFieldSnapshot, Submission } from '../types';
 import { formatFormVersion, getColStyleWidth } from '../types';
-import { sanitizeLabel, getEffectiveTitleFormat, validateFormSubmission } from '../utils/formUtils';
+import { sanitizeLabel, getEffectiveTitleFormat, validateFormSubmission, getAutoCheckboxLayoutMode } from '../utils/formUtils';
 import PrintBlankForm from './print/PrintBlankForm';
 import PrintFilledForm from './print/PrintFilledForm';
 import { 
@@ -960,33 +960,45 @@ export default function FormFiller({
                               style={inputStyle}
                             />
                           )
-                        ) : field.type === 'checkbox' ? (
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 16px', alignItems: 'center', padding: '4px 0' }}>
-                            {(field.options ?? [{ label: 'Có', value: 'YES' }, { label: 'Không', value: 'NO' }]).map((opt: any) => {
-                              const currentValues = value ? value.split(',').filter(Boolean) : [];
-                              const isChecked = currentValues.includes(opt.value || opt.label);
-                              return (
-                                <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', cursor: 'pointer', margin: 0 }}>
-                                  <input 
-                                    type="checkbox" 
-                                    checked={isChecked} 
-                                    onChange={(e) => {
-                                      const val = opt.value || opt.label;
-                                      let nextValues;
-                                      if (e.target.checked) {
-                                        nextValues = [...currentValues, val];
-                                      } else {
-                                        nextValues = currentValues.filter((v: string) => v !== val);
-                                      }
-                                      setFormValues(prev => ({ ...prev, [field.id]: nextValues.join(',') }));
-                                    }} 
-                                  />
-                                  <span>{opt.label}</span>
-                                </label>
-                              );
-                            })}
-                          </div>
-                        ) : field.type === 'radio' ? (
+                        ) : field.type === 'checkbox' ? (() => {
+                          const isOptionC = getAutoCheckboxLayoutMode(field) === 'OPTION_C';
+                          return (
+                            <div style={{
+                              display: 'flex',
+                              flexDirection: isOptionC ? 'column' : 'row',
+                              flexWrap: isOptionC ? 'nowrap' : 'wrap',
+                              gap: isOptionC ? '6px' : '6px 16px',
+                              alignItems: 'flex-start',
+                              padding: '4px 0',
+                              paddingLeft: isOptionC ? '1rem' : '0'
+                            }}>
+                              {(field.options ?? [{ label: 'Có', value: 'YES' }, { label: 'Không', value: 'NO' }]).map((opt: any) => {
+                                const currentValues = value ? value.split(',').filter(Boolean) : [];
+                                const isChecked = currentValues.includes(opt.value || opt.label);
+                                return (
+                                  <label key={opt.value} style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', fontSize: '0.8rem', cursor: 'pointer', margin: 0 }}>
+                                    <input 
+                                      type="checkbox" 
+                                      checked={isChecked}
+                                      style={{ marginTop: '2px', flexShrink: 0 }}
+                                      onChange={(e) => {
+                                        const val = opt.value || opt.label;
+                                        let nextValues;
+                                        if (e.target.checked) {
+                                          nextValues = [...currentValues, val];
+                                        } else {
+                                          nextValues = currentValues.filter((v: string) => v !== val);
+                                        }
+                                        setFormValues(prev => ({ ...prev, [field.id]: nextValues.join(',') }));
+                                      }} 
+                                    />
+                                    <span style={{ lineHeight: '1.3' }}>{opt.label}</span>
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          );
+                        })() : field.type === 'radio' ? (
                           <select
                             value={value}
                             onChange={(e) => setFormValues(prev => ({ ...prev, [field.id]: e.target.value }))}
