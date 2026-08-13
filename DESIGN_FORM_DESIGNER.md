@@ -15,11 +15,13 @@
 
 ### Quick File Index
 
-| File | Role |
-|---|---|
-| [`src/components/FormBuilder.tsx`](src/components/FormBuilder.tsx) | Primary authoring UI — block canvas + field editor + version management |
-| [`src/components/print/PrintBlankForm.tsx`](src/components/print/PrintBlankForm.tsx) | Blank form print renderer (React Portal) & AcroForm annotated layout |
-| [`src/utils/pdfFormExporter.ts`](src/utils/pdfFormExporter.ts) | Fillable PDF exporter engine: DOM bounding box measurement & pdf-lib AcroForm overlay |
+| [`src/utils/pdfFormExporter.ts`](src/utils/pdfFormExporter.ts) | Facade API entry point for Fillable PDF export |
+| [`src/utils/pdf/types.ts`](src/utils/pdf/types.ts) | Types for PDF export module (`ScannedAcroField`, `PdfPageConfig`) |
+| [`src/utils/pdf/textAnchorInjector.ts`](src/utils/pdf/textAnchorInjector.ts) | Helper functions for text anchor tags `{{acro:id:type:w:h}}` |
+| [`src/utils/pdf/domScanner.ts`](src/utils/pdf/domScanner.ts) | Scans DOM field annotations at exact A4 width `697.7px` |
+| [`src/utils/pdf/backgroundGenerator.ts`](src/utils/pdf/backgroundGenerator.ts) | Generates 300 DPI A4 background PDF via `html2canvas` & `jsPDF` |
+| [`src/utils/pdf/acroFormOverlay.ts`](src/utils/pdf/acroFormOverlay.ts) | Overlays interactive AcroForm fields onto PDF pages via `pdf-lib` |
+| [`src/utils/pdf/downloadHelper.ts`](src/utils/pdf/downloadHelper.ts) | Browser 5S PDF download helper |
 | [`src/types.ts`](src/types.ts) | Shared types: `FormTemplateISO`, `LayoutBlockISO`, `FormFieldISO`, `FormRevisionEntry`, `MatrixConfigISO`, `TableColumnConfig` (**owning doc** for these types) |
 
 > **Update rule:** Whenever any of the above files is modified in a session, update the
@@ -512,5 +514,6 @@ full diff of any entry below.
 | 2026-08-13 | `CURRENT` | **Ghost Radio Button Elimination & Text Field Baseline Math:** Updated `src/utils/pdfFormExporter.ts` to convert radio options to discrete `PDFCheckBox` widgets (eliminating ghost radio circles on right margin). Clamped text field height to 13pt single-line standard, aligned Y to text baseline, and clamped max width to `(pdfPageWidth - marginX - 6pt)` to prevent right margin overflow. |
 | 2026-08-13 | `CURRENT` | **Fix Infinite PDF Export Loop:** Added `hasAutoExportedRef` and `isExportingRef` locks in `PrintBlankForm.tsx` to prevent React state changes from re-triggering the `useEffect` download loop. Automatically closes modal on completion. |
 | 2026-08-13 | `CURRENT` | **Fix Horizontal Radio/Checkbox Alignment Race Condition:** Updated `src/utils/pdfFormExporter.ts` to pre-calculate all field coordinates via `getBoundingClientRect()` WHILE `targetEl` is still constrained to `697.7px` A4 target width, BEFORE restoring original DOM styles. Ensures horizontal flex options (`XK bị động`, `XK chủ động`, `FarmNet`, `Không`) align 100% with background image icons. |
+| 2026-08-14 | `CURRENT` | **Fillable PDF Modularization Refactoring:** Extracted monolithic `pdfFormExporter.ts` into a modular package `src/utils/pdf/` (`types.ts`, `domScanner.ts`, `backgroundGenerator.ts`, `acroFormOverlay.ts`, `textAnchorInjector.ts`, `downloadHelper.ts`). Retained `pdfFormExporter.ts` as facade API. Enforced clean single-responsibility architecture. |
 
 

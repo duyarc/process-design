@@ -1,0 +1,81 @@
+import { PDFDocument, rgb } from 'pdf-lib';
+import fontkit from '@pdf-lib/fontkit';
+import type { ScannedAcroField, PdfPageConfig } from './types';
+
+export async function overlayAcroFormFields(
+  pdfBuffer: ArrayBuffer,
+  scannedFields: ScannedAcroField[],
+  config: PdfPageConfig
+): Promise<Uint8Array> {
+  const pdfDoc = await PDFDocument.load(pdfBuffer);
+  pdfDoc.registerFontkit(fontkit);
+
+  const form = pdfDoc.getForm();
+  const pages = pdfDoc.getPages();
+  const totalPages = pages.length;
+
+  const { pdfPageWidth, pdfPageHeight, marginX, marginY, scaleFactor } = config;
+
+  scannedFields.forEach((item) => {
+    const { fieldId, fieldType, relTop, relLeft, elWidth, elHeight, targetHeight, index } = item;
+
+    // Determine which page this field belongs to
+    const domPageHeight = targetHeight / totalPages;
+    let pageIdx = Math.floor(relTop / domPageHeight);
+    if (pageIdx >= totalPages) pageIdx = totalPages - 1;
+    if (pageIdx < 0) pageIdx = 0;
+
+    const page = pages[pageIdx];
+    const pageTopOffset = pageIdx * domPageHeight;
+    const localTop = relTop - pageTopOffset;
+
+    const x = marginX + relLeft * scaleFactor;
+    const width = Math.max(elWidth * scaleFactor, 10);
+    const height = Math.max(elHeight * scaleFactor, 10);
+
+    try {
+      if (fieldType === 'checkbox' || fieldType === 'radio') {
+        // Discrete CheckBox widget for options to prevent ghost radio buttons on PDF margin
+        const cbName = `${fieldId}_opt_${index}`;
+        const checkBox = form.createCheckBox(cbName);
+        const cbSize = Math.min(width, 13);
+        const cbY = pdfPageHeight - marginY - (localTop * scaleFactor + cbSize + 1);
+        const clampedCbY = Math.max(marginY, Math.min(pdfPageHeight - marginY - cbSize, cbY));
+
+        checkBox.addToPage(page, {
+          x,
+          y: clampedCbY,
+          width: cbSize,
+          height: cbSize,
+          borderWidth: 1,
+          borderColor: rgb(0, 0, 0),
+        });
+      } else {
+        // Text / Number / Date / Time / Signature fields
+        const fieldHeight = Math.min(height, 13);
+        // Clamp right edge so it never exceeds (pdfPageWidth - marginX - 6pt)
+        const maxAllowedWidth = Math.max(20, pdfPageWidth - marginX - 6 - x);
+        const fieldWidth = Math.min(width, maxAllowedWidth);
+
+        // Align Y to text baseline
+        const fieldY = pdfPageHeight - marginY - (localTop * scaleFactor + fieldHeight + 2);
+        const clampedY = Math.max(marginY, Math.min(pdfPageHeight - marginY - fieldHeight, fieldY));
+
+        const tfName = `${fieldId}_tf_${index}`;
+        const textField = form.createTextField(tfName);
+        textField.addToPage(page, {
+          x,
+          y: clampedY,
+          width: fieldWidth,
+          height: fieldHeight,
+          borderWidth: 0.5,
+          borderColor: rgb(0.8, 0.8, 0.8),
+        });
+      }
+    } catch (err) {
+      console.warn(`Failed to create AcroForm field ${fieldId}:`, err);
+    }
+  });
+
+  return pdfDoc.save();
+}
