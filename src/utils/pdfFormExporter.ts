@@ -13,14 +13,43 @@ export async function exportFillablePdfFromDOM(
     const pageSize = template.pageSize || (template as unknown as Record<string, unknown>).page_size || 'A4';
     const isA5 = pageSize === 'A5_LANDSCAPE';
 
-    // 1. Capture HTML DOM to canvas using html2canvas
-    const canvas = await html2canvas(containerEl, {
-      scale: 2,
+    // Target the inner printable table if available, or the container
+    const targetEl = containerEl.querySelector<HTMLElement>('.print-outer-table') || containerEl;
+
+    // Save original inline styles to restore after capture
+    const originalWidth = targetEl.style.width;
+    const originalMaxWidth = targetEl.style.maxWidth;
+    const originalPadding = targetEl.style.padding;
+    const originalBoxSizing = targetEl.style.boxSizing;
+    const originalBg = targetEl.style.background;
+
+    // ISO 216 Dimensions at 96 DPI:
+    // A4 Portrait: 210mm = 793.7px wide. Padding matches @page margin (12mm top/bottom, 15mm left/right -> 45px 56px)
+    // A5 Landscape: 210mm = 793.7px wide
+    const targetWidthPx = 793.7;
+
+    targetEl.style.width = `${targetWidthPx}px`;
+    targetEl.style.maxWidth = `${targetWidthPx}px`;
+    targetEl.style.padding = isA5 ? '30px 38px' : '45px 56px';
+    targetEl.style.boxSizing = 'border-box';
+    targetEl.style.background = '#ffffff';
+
+    // 1. Capture HTML DOM to canvas using html2canvas at exact A4 width
+    const canvas = await html2canvas(targetEl, {
+      scale: 2, // 300 DPI high resolution
       useCORS: true,
       logging: false,
       backgroundColor: '#ffffff',
-      windowWidth: containerEl.scrollWidth || 794,
+      width: targetWidthPx,
+      windowWidth: targetWidthPx,
     });
+
+    // Restore original styles immediately
+    targetEl.style.width = originalWidth;
+    targetEl.style.maxWidth = originalMaxWidth;
+    targetEl.style.padding = originalPadding;
+    targetEl.style.boxSizing = originalBoxSizing;
+    targetEl.style.background = originalBg;
 
     const imgData = canvas.toDataURL('image/jpeg', 0.95);
 
@@ -31,8 +60,8 @@ export async function exportFillablePdfFromDOM(
       format: isA5 ? 'a5' : 'a4',
     });
 
-    const pdfPageWidth = pdfJs.internal.pageSize.getWidth();
-    const pdfPageHeight = pdfJs.internal.pageSize.getHeight();
+    const pdfPageWidth = pdfJs.internal.pageSize.getWidth();   // 595.28 pt for A4
+    const pdfPageHeight = pdfJs.internal.pageSize.getHeight(); // 841.89 pt for A4
 
     // Scale canvas image onto PDF page(s)
     const imgWidth = pdfPageWidth;
@@ -61,10 +90,10 @@ export async function exportFillablePdfFromDOM(
     const pages = pdfDoc.getPages();
     const totalPages = pages.length;
 
-    // 4. Scan data-acroform-field elements in DOM container
-    const fieldElements = containerEl.querySelectorAll<HTMLElement>('[data-acroform-field="true"]');
-    const containerRect = containerEl.getBoundingClientRect();
-    const scaleFactor = pdfPageWidth / containerRect.width;
+    // 4. Scan data-acroform-field elements in target element
+    const fieldElements = targetEl.querySelectorAll<HTMLElement>('[data-acroform-field="true"]');
+    const targetRect = targetEl.getBoundingClientRect();
+    const scaleFactor = pdfPageWidth / targetWidthPx; // Exact 595.28 / 793.7 = 0.75 pt/px
 
     fieldElements.forEach((el, index) => {
       const fieldId = el.getAttribute('data-field-id') || `field_${index}`;
@@ -75,11 +104,11 @@ export async function exportFillablePdfFromDOM(
       const elRect = el.getBoundingClientRect();
 
       // Relative top position within full container height
-      const relTop = elRect.top - containerRect.top;
-      const relLeft = elRect.left - containerRect.left;
+      const relTop = elRect.top - targetRect.top;
+      const relLeft = elRect.left - targetRect.left;
 
       // Determine which page this field belongs to
-      const totalDomHeight = containerRect.height;
+      const totalDomHeight = targetRect.height;
       const domPageHeight = totalDomHeight / totalPages;
       let pageIdx = Math.floor(relTop / domPageHeight);
       if (pageIdx >= totalPages) pageIdx = totalPages - 1;
@@ -91,8 +120,8 @@ export async function exportFillablePdfFromDOM(
 
       // Calculate PDF Cartesian coordinates (y from bottom of page)
       const x = relLeft * scaleFactor;
-      const width = Math.max(elRect.width * scaleFactor, 12);
-      const height = Math.max(elRect.height * scaleFactor, 12);
+      const width = Math.max(elRect.width * scaleFactor, 10);
+      const height = Math.max(elRect.height * scaleFactor, 10);
       const y = pdfPageHeight - ((localTop + elRect.height) * scaleFactor);
 
       // Clamp y coordinates within printable page
@@ -105,8 +134,8 @@ export async function exportFillablePdfFromDOM(
           checkBox.addToPage(page, {
             x,
             y: clampedY,
-            width: Math.min(width, 16),
-            height: Math.min(height, 16),
+            width: Math.min(width, 14),
+            height: Math.min(height, 14),
             borderWidth: 1,
             borderColor: rgb(0, 0, 0),
           });
@@ -120,8 +149,8 @@ export async function exportFillablePdfFromDOM(
           rg.addOptionToPage(radioValue, page, {
             x,
             y: clampedY,
-            width: Math.min(width, 16),
-            height: Math.min(height, 16),
+            width: Math.min(width, 14),
+            height: Math.min(height, 14),
             borderWidth: 1,
             borderColor: rgb(0, 0, 0),
           });
