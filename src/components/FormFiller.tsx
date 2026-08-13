@@ -1341,7 +1341,9 @@ export default function FormFiller({
                               {(block.tableColumns || []).map((col: any) => {
                                 const cellKey = `${block.id}_${row.id}_${col.id}`;
                                 const cellValue = formValues[cellKey] || '';
-                                const hasOptions = col.type === 'checkbox' && col.options && col.options.length > 0;
+                                const customCellOpts = block.cellOptionsMap?.[`${row.id}_${col.id}`];
+                                const effectiveOpts = customCellOpts !== undefined ? customCellOpts : (col.options || []);
+                                const hasOptions = (col.type === 'checkbox' || col.type === 'radio') && effectiveOpts.length > 0;
                                 const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? (hasOptions ? 'left' : 'center') : 'left'));
                                 return (
                                   <td key={col.id} style={{ padding: '6px', borderRight: '1px solid var(--neutral-border)', verticalAlign: 'middle', textAlign: cellAlign }}>
@@ -1351,14 +1353,14 @@ export default function FormFiller({
                                       hasOptions ? (
                                         <div style={{
                                           display: col.checkboxLayout === '2-column' ? 'grid' : 'flex',
-                                          gridTemplateColumns: col.checkboxLayout === '2-column' ? getCheckboxGridTemplate(col.options || []) : undefined,
+                                          gridTemplateColumns: col.checkboxLayout === '2-column' ? getCheckboxGridTemplate(effectiveOpts) : undefined,
                                           flexDirection: col.checkboxLayout === '2-column' ? undefined : 'column',
                                           gap: col.checkboxLayout === '2-column' ? '4px 12px' : '5px',
                                           alignItems: 'flex-start',
                                           padding: '4px',
                                           width: '100%'
                                         }}>
-                                          {(col.options || []).map((opt: any, oIdx: number) => {
+                                          {effectiveOpts.map((opt: any, oIdx: number) => {
                                             const currentValues = cellValue ? cellValue.split(',').filter(Boolean) : [];
                                             const isChecked = currentValues.includes(opt.value || opt.label);
                                             return (
@@ -1394,14 +1396,42 @@ export default function FormFiller({
                                         </div>
                                       )
                                     ) : col.type === 'radio' ? (
-                                      <div style={{ textAlign: 'center' }}>
-                                        <input 
-                                          type="radio" 
-                                          checked={cellValue === 'true'} 
-                                          onChange={() => setFormValues(prev => ({ ...prev, [cellKey]: 'true' }))} 
-                                          style={{ transform: 'scale(1.1)', cursor: 'pointer' }}
-                                        />
-                                      </div>
+                                      hasOptions ? (
+                                        <div style={{
+                                          display: 'flex',
+                                          flexDirection: 'column',
+                                          gap: '5px',
+                                          alignItems: 'flex-start',
+                                          padding: '4px',
+                                          width: '100%'
+                                        }}>
+                                          {effectiveOpts.map((opt: any, oIdx: number) => {
+                                            const val = opt.value || opt.label;
+                                            const isChecked = cellValue === val;
+                                            return (
+                                              <label key={oIdx} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: 'var(--text-primary)', cursor: 'pointer', margin: 0 }}>
+                                                <input 
+                                                  type="radio" 
+                                                  name={`radio_${cellKey}`}
+                                                  checked={isChecked} 
+                                                  onChange={() => setFormValues(prev => ({ ...prev, [cellKey]: val }))} 
+                                                  style={{ cursor: 'pointer' }}
+                                                />
+                                                <span>{opt.label}</span>
+                                              </label>
+                                            );
+                                          })}
+                                        </div>
+                                      ) : (
+                                        <div style={{ textAlign: 'center' }}>
+                                          <input 
+                                            type="radio" 
+                                            checked={cellValue === 'true'} 
+                                            onChange={() => setFormValues(prev => ({ ...prev, [cellKey]: 'true' }))} 
+                                            style={{ transform: 'scale(1.1)', cursor: 'pointer' }}
+                                          />
+                                        </div>
+                                      )
                                     ) : col.type === 'date' ? (
                                       <input 
                                         type="date" 

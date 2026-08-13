@@ -9,7 +9,7 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | `CURRENT` (2026-08-13) — CHECKLIST_TABLE block type retired for new form creation; 1-click migration helper added to FormBuilder. |
+| **Verified At Commit** | `CURRENT` (2026-08-13) — Support cell-level Radio & Checkbox options override in layout block TABLE. |
 
 > **⚠️ Architectural note:** FormBuilder has no awareness of which process it belongs to. The `formName` prop is always identical to `formId`. See Section 6.1 and the Technical Debt table.
 
@@ -500,4 +500,6 @@ full diff of any entry below.
 | 2026-07-29 | `019f88d` | **Fix Footer Page Overflow & Position:** (1) Removed `min-height: 100%` and `padding: 0 0 48px 0` on `.print-container` inside `@media print` to eliminate second blank page generation. (2) Added `.print-footer { display: none !important }` in `print.css` to hide footer on screen preview, preventing normal-flow vertical overflow. (3) Set negative bottom offset (`bottom: -10mm` for A4, `-5mm` for A5) on `.print-footer` to place footer safely into page margin area without colliding with the last table row or triggering extra pages. |
 | 2026-07-29 | `2fe6b85` | **Outer Table Wrapper Print Footer Refactor:** (1) Implemented industry-standard `.print-outer-table` with `display: table-footer-group` in `src/print.css`. (2) Wrapped content blocks inside `<tbody>` and moved `.print-footer` inside `<tfoot>` in `PrintBlankForm.tsx` & `PrintRecord.tsx`. (3) Removed `position: fixed` and negative bottom offset, guaranteeing ZERO table content overlap and ZERO extra blank pages. |
 | 2026-08-13 | `CURRENT` | **Retire CHECKLIST_TABLE Block Type:** Removed `+ Checklist Table` button from block palette in `FormBuilder.tsx` (`CHECKLIST_TABLE` superseded by `TABLE`). Retained full rendering support for legacy saved forms (100% backward compatibility) and added a 1-click **`[⚡ Chuyển đổi sang khối TABLE chuẩn]`** migration button in `FormBuilder.tsx` property inspector for active `CHECKLIST_TABLE` blocks. Annotated `@deprecated` in `src/types.ts`. |
+| 2026-08-13 | `CURRENT` | **Cell-Level Custom Options for TABLE Block (Radio & Checkbox):** Added `cellOptionsMap?: { [cellKey: string]: RadioOption[] }` to `LayoutBlockISO` in `src/types.ts`. Implemented inline canvas editing in `FormBuilder.tsx` (edit option label, add option, delete option, reset override button right in canvas table cell) and Right Panel property inspector card (*"Tùy biến Lựa chọn cho Ô này"*). Propagated `effectiveCellOptions` to `FormFiller.tsx`, `ProcessReader.tsx`, and `PrintBlankForm.tsx`. |
+
 

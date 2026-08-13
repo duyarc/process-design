@@ -186,6 +186,7 @@ export interface LayoutBlockISO {
   tableColumns?: TableColumnConfig[];
   tableRows?: TableRowConfig[];
   tableData?: { [rowId: string]: { [colId: string]: string } };
+  cellOptionsMap?: { [cellKey: string]: RadioOption[] };
   showDate?: boolean;
   datePosition?: 'A' | 'B';
   hideSTT?: boolean;

@@ -57,25 +57,7 @@ interface FormBuilderProps {
   onUnlinkFromProcess?: () => Promise<boolean>;
 }
 
-const getCheckboxGridTemplate = (options: any[]) => {
-  if (!options || options.length === 0) return '1fr 1fr';
-  let maxLen1 = 0;
-  let maxLen2 = 0;
-  options.forEach((opt, idx) => {
-    const len = opt && opt.label ? opt.label.length : 0;
-    if (idx % 2 === 0) {
-      if (len > maxLen1) maxLen1 = len;
-    } else {
-      if (len > maxLen2) maxLen2 = len;
-    }
-  });
-  if (maxLen1 === 0) maxLen1 = 10;
-  if (maxLen2 === 0) maxLen2 = 10;
-  const total = maxLen1 + maxLen2;
-  const pct1 = Math.max(30, Math.min(70, Math.round((maxLen1 / total) * 100)));
-  const pct2 = 100 - pct1;
-  return `${pct1}% ${pct2}%`;
-};
+
 
 const generateFormChangeSummary = (
   initialBlocks?: LayoutBlockISO[],
@@ -310,6 +292,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
   const [viewingRevisionVersion, setViewingRevisionVersion] = useState<string | null>(null);
   const [rightTab, setRightTab] = useState<'properties' | 'versions'>('properties');
   const [hoveredTableRowId, setHoveredTableRowId] = useState<string | null>(null);
+  const [activeCellKey, setActiveCellKey] = useState<string | null>(null);
 
   useEffect(() => {
     if (activeBlockId) {
@@ -714,6 +697,40 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
           tableData,
           fields: []
         };
+      }
+      return b;
+    }));
+  };
+
+  // Helper: Get effective options for a cell in a TABLE block (cell override or column default)
+  const getEffectiveCellOptions = (block: LayoutBlockISO, rowId: string, colId: string): RadioOption[] => {
+    const cellKey = `${rowId}_${colId}`;
+    const custom = block.cellOptionsMap?.[cellKey];
+    if (custom !== undefined) return custom;
+    const col = block.tableColumns?.find(c => c.id === colId);
+    return col?.options || [];
+  };
+
+  // Helper: Update cell options in a TABLE block
+  const handleUpdateCellOptions = (blockId: string, rowId: string, colId: string, options: RadioOption[]) => {
+    setLayoutBlocks(prev => prev.map(b => {
+      if (b.id === blockId) {
+        const cellKey = `${rowId}_${colId}`;
+        const cellOptionsMap = { ...b.cellOptionsMap || {}, [cellKey]: options };
+        return { ...b, cellOptionsMap };
+      }
+      return b;
+    }));
+  };
+
+  // Helper: Reset cell options back to column default
+  const handleResetCellOptions = (blockId: string, rowId: string, colId: string) => {
+    setLayoutBlocks(prev => prev.map(b => {
+      if (b.id === blockId && b.cellOptionsMap) {
+        const cellKey = `${rowId}_${colId}`;
+        const cellOptionsMap = { ...b.cellOptionsMap };
+        delete cellOptionsMap[cellKey];
+        return { ...b, cellOptionsMap };
       }
       return b;
     }));
@@ -2586,10 +2603,31 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                       onMouseLeave={() => setHoveredTableRowId(null)}
                                     >
                                        {(block.tableColumns || []).map((col) => {
-                                         const hasOptions = col.type === 'checkbox' && col.options && col.options.length > 0;
-                                         const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? (hasOptions ? 'left' : 'center') : 'left'));
+                                         const cellKey = `${row.id}_${col.id}`;
+                                         const cellOptions = getEffectiveCellOptions(block, row.id, col.id);
+                                         const isCustomCellOpts = block.cellOptionsMap?.[cellKey] !== undefined;
+                                         const hasOpts = (col.type === 'checkbox' || col.type === 'radio') && cellOptions.length > 0;
+                                         const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? (hasOpts ? 'left' : 'center') : 'left'));
+                                         const isCellSelected = activeCellKey === cellKey;
+
                                          return (
-                                           <td key={col.id} style={{ padding: '4px', borderRight: '1px solid #cbd5e1', verticalAlign: 'middle', textAlign: cellAlign }}>
+                                           <td 
+                                             key={col.id} 
+                                             onClick={(e) => {
+                                               e.stopPropagation();
+                                               setActiveBlockId(block.id);
+                                               setActiveCellKey(cellKey);
+                                             }}
+                                             style={{ 
+                                               padding: '4px', 
+                                               borderRight: '1px solid #cbd5e1', 
+                                               verticalAlign: 'middle', 
+                                               textAlign: cellAlign,
+                                               background: isCellSelected ? 'rgba(59, 130, 246, 0.08)' : isCustomCellOpts ? 'rgba(254, 215, 170, 0.15)' : 'none',
+                                               outline: isCellSelected ? '1.5px solid #3b82f6' : 'none',
+                                               cursor: 'pointer'
+                                             }}
+                                           >
                                              {col.type === 'static_text' ? (
                                                <input
                                                  type="text"
@@ -2609,29 +2647,70 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                  placeholder="Sửa nhãn..."
                                                  style={{ width: '100%', border: 'none', background: 'transparent', outline: 'none', padding: '2px', fontSize: '0.75rem', textAlign: cellAlign }}
                                                />
-                                             ) : col.type === 'checkbox' ? (
-                                               hasOptions ? (
-                                                 <div style={{
-                                                   display: col.checkboxLayout === '2-column' ? 'grid' : 'flex',
-                                                   gridTemplateColumns: col.checkboxLayout === '2-column' ? getCheckboxGridTemplate(col.options || []) : undefined,
-                                                   flexDirection: col.checkboxLayout === '2-column' ? undefined : 'column',
-                                                   gap: col.checkboxLayout === '2-column' ? '4px 12px' : '4px',
-                                                   alignItems: 'flex-start',
-                                                   padding: '4px 0',
-                                                   width: '100%'
-                                                 }}>
-                                                   {(col.options || []).map((opt, oIdx) => (
-                                                     <label key={oIdx} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: 'var(--text-primary)', cursor: 'not-allowed', margin: 0, whiteSpace: 'nowrap' }}>
-                                                       <input type="checkbox" disabled style={{ pointerEvents: 'none' }} />
-                                                       <span>{opt.label}</span>
-                                                     </label>
-                                                   ))}
-                                                 </div>
-                                               ) : (
-                                                 <div style={{ textAlign: 'center' }}><input type="checkbox" disabled /></div>
-                                               )
-                                             ) : col.type === 'radio' ? (
-                                               <div style={{ textAlign: 'center' }}><input type="radio" disabled /></div>
+                                             ) : (col.type === 'checkbox' || col.type === 'radio') ? (
+                                               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: '2px 0', width: '100%' }}>
+                                                 {isCustomCellOpts && (
+                                                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.62rem', color: '#c2410c', background: '#fff7ed', border: '1px solid #fed7aa', padding: '1px 4px', borderRadius: '3px', marginBottom: '2px' }}>
+                                                     <span>✨ Ô tùy biến</span>
+                                                     {!isLocked && (
+                                                       <button
+                                                         type="button"
+                                                         onClick={(e) => { e.stopPropagation(); handleResetCellOptions(block.id, row.id, col.id); }}
+                                                         style={{ background: 'none', border: 'none', color: '#c2410c', cursor: 'pointer', fontSize: '0.62rem', padding: 0 }}
+                                                         title="Khôi phục về dùng chung cấu hình Cột"
+                                                       >
+                                                         🔄 Reset
+                                                       </button>
+                                                     )}
+                                                   </div>
+                                                 )}
+                                                 
+                                                 {cellOptions.map((opt, oIdx) => (
+                                                   <div key={oIdx} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem' }}>
+                                                     <input type={col.type} disabled style={{ pointerEvents: 'none', flexShrink: 0 }} />
+                                                     <input 
+                                                       type="text" 
+                                                       disabled={isLocked}
+                                                       value={opt.label} 
+                                                       placeholder="Tùy chọn..."
+                                                       onChange={(e) => {
+                                                         const newOpts = [...cellOptions];
+                                                         newOpts[oIdx] = { ...newOpts[oIdx], label: e.target.value };
+                                                         handleUpdateCellOptions(block.id, row.id, col.id, newOpts);
+                                                       }}
+                                                       style={{ flex: 1, border: 'none', borderBottom: '1px dotted #cbd5e1', background: 'transparent', outline: 'none', fontSize: '0.75rem', padding: '1px 2px', minWidth: '60px' }}
+                                                     />
+                                                     {!isLocked && (
+                                                       <button 
+                                                         type="button" 
+                                                         onClick={(e) => { 
+                                                           e.stopPropagation(); 
+                                                           const newOpts = cellOptions.filter((_, i) => i !== oIdx); 
+                                                           handleUpdateCellOptions(block.id, row.id, col.id, newOpts); 
+                                                         }} 
+                                                         style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '0 2px', fontSize: '0.7rem', lineHeight: 1 }}
+                                                         title="Xóa lựa chọn này khỏi ô"
+                                                       >
+                                                         ✕
+                                                       </button>
+                                                     )}
+                                                   </div>
+                                                 ))}
+
+                                                 {!isLocked && (
+                                                   <button 
+                                                     type="button" 
+                                                     onClick={(e) => { 
+                                                       e.stopPropagation(); 
+                                                       const newOpts = [...cellOptions, { label: 'Lựa chọn mới', value: `OPT_${Date.now()}`, isPass: true }]; 
+                                                       handleUpdateCellOptions(block.id, row.id, col.id, newOpts); 
+                                                     }} 
+                                                     style={{ display: 'flex', alignItems: 'center', gap: '2px', padding: '1px 4px', fontSize: '0.65rem', borderRadius: '3px', border: '1px dashed #94a3b8', background: 'none', color: 'var(--text-secondary)', cursor: 'pointer', width: 'fit-content', marginTop: '2px' }}
+                                                   >
+                                                     + Thêm lựa chọn
+                                                   </button>
+                                                 )}
+                                               </div>
                                              ) : col.type === 'date' ? (
                                                <span style={{ color: '#cbd5e1', fontSize: '0.7rem', display: 'block', textAlign: 'center' }}>[Ngày]</span>
                                              ) : col.type === 'time' ? (
@@ -4224,6 +4303,90 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                         <Plus size={12} />
                         <span>Thêm Cột Mới</span>
                       </button>
+
+                      {/* Card tùy biến Lựa chọn cho Ô được chọn (Cell Options Override Inspector) */}
+                      {activeCellKey && activeBlock?.type === 'TABLE' && (() => {
+                        const [cellRowId, cellColId] = activeCellKey.split('_');
+                        const cellCol = activeBlock.tableColumns?.find(c => c.id === cellColId);
+                        if (!cellCol || (cellCol.type !== 'checkbox' && cellCol.type !== 'radio')) return null;
+
+                        const rowIdx = activeBlock.tableRows?.findIndex(r => r.id === cellRowId) ?? 0;
+                        const staticCol = activeBlock.tableColumns?.find(c => c.type === 'static_text');
+                        const rowLabel = staticCol ? (activeBlock.tableData?.[cellRowId]?.[staticCol.id] || `Dòng ${rowIdx + 1}`) : `Dòng ${rowIdx + 1}`;
+
+                        const isCustom = activeBlock.cellOptionsMap?.[activeCellKey] !== undefined;
+                        const currentCellOptions = getEffectiveCellOptions(activeBlock, cellRowId, cellColId);
+
+                        return (
+                          <div style={{ marginTop: '1rem', borderTop: '2px dashed #cbd5e1', paddingTop: '0.75rem' }}>
+                            <div style={{ background: isCustom ? '#eff6ff' : '#f8fafc', border: `1px solid ${isCustom ? '#93c5fd' : '#e2e8f0'}`, borderRadius: '6px', padding: '0.65rem' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                                <span style={{ fontWeight: 700, fontSize: '0.8rem', color: isCustom ? '#1e40af' : 'var(--text-primary)' }}>
+                                  ✨ Tùy biến Lựa chọn cho Ô này
+                                </span>
+                                {isCustom && (
+                                  <button
+                                    type="button"
+                                    disabled={isLocked}
+                                    onClick={() => handleResetCellOptions(activeBlock.id, cellRowId, cellColId)}
+                                    style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', fontSize: '0.7rem', textDecoration: 'underline', padding: 0 }}
+                                    title="Khôi phục về dùng chung cấu hình Cột"
+                                  >
+                                    🔄 Dùng lại Cột
+                                  </button>
+                                )}
+                              </div>
+                              <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
+                                Vị trí: <strong>{rowLabel}</strong> — Cột <strong>"{cellCol.label}"</strong> ({cellCol.type === 'checkbox' ? 'Checkbox' : 'Radio'})
+                              </div>
+                              
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', marginBottom: '0.5rem' }}>
+                                {currentCellOptions.map((opt, oIdx) => (
+                                  <div key={oIdx} style={{ display: 'flex', gap: '0.3rem', alignItems: 'center' }}>
+                                    <input
+                                      type="text"
+                                      disabled={isLocked}
+                                      placeholder="Nhãn lựa chọn"
+                                      value={opt.label}
+                                      onChange={(e) => {
+                                        const newOpts = [...currentCellOptions];
+                                        newOpts[oIdx] = { ...newOpts[oIdx], label: e.target.value };
+                                        handleUpdateCellOptions(activeBlock.id, cellRowId, cellColId, newOpts);
+                                      }}
+                                      style={{ flex: 1, padding: '0.2rem 0.3rem', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', backgroundColor: '#ffffff' }}
+                                    />
+                                    <button
+                                      type="button"
+                                      disabled={isLocked}
+                                      onClick={() => {
+                                        const newOpts = currentCellOptions.filter((_, i) => i !== oIdx);
+                                        handleUpdateCellOptions(activeBlock.id, cellRowId, cellColId, newOpts);
+                                      }}
+                                      style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '0 4px', fontSize: '0.8rem' }}
+                                      title="Xóa lựa chọn này khỏi ô"
+                                    >
+                                      ✕
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+
+                              {!isLocked && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const newOpts = [...currentCellOptions, { label: 'Lựa chọn mới', value: `OPT_${Date.now()}`, isPass: true }];
+                                    handleUpdateCellOptions(activeBlock.id, cellRowId, cellColId, newOpts);
+                                  }}
+                                  style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '0.25rem 0.5rem', fontSize: '0.72rem', borderRadius: '4px', border: '1px dashed #3b82f6', background: '#ffffff', color: '#1d4ed8', cursor: 'pointer', fontWeight: 500 }}
+                                >
+                                  <Plus size={11} /> Thêm tùy chọn cho Ô
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
                   );
                 })()}

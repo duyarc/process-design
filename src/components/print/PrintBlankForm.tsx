@@ -738,24 +738,26 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                       (block.tableRows || []).map((row) => (
                         <tr key={row.id} style={{ pageBreakInside: 'avoid' }}>
                           {(block.tableColumns || []).map((col) => {
-                            const hasOptions = col.type === 'checkbox' && col.options && col.options.length > 0;
+                            const customCellOpts = block.cellOptionsMap?.[`${row.id}_${col.id}`];
+                            const effectiveOpts = customCellOpts !== undefined ? customCellOpts : (col.options || []);
+                            const hasOptions = (col.type === 'checkbox' || col.type === 'radio') && effectiveOpts.length > 0;
                             const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? (hasOptions ? 'left' : 'center') : 'left'));
                             return (
                               <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'middle', height: '28px', textAlign: cellAlign }}>
                                 {col.type === 'static_text' ? (
                                   <span style={{ fontWeight: 'var(--pw-weight-regular)', display: 'block', textAlign: cellAlign }}>{block.tableData?.[row.id]?.[col.id] || ''}</span>
-                                ) : col.type === 'checkbox' ? (
+                                ) : (col.type === 'checkbox' || col.type === 'radio') ? (
                                   hasOptions ? (
                                     <div style={{
                                       display: col.checkboxLayout === '2-column' ? 'grid' : 'flex',
-                                      gridTemplateColumns: col.checkboxLayout === '2-column' ? getCheckboxGridTemplate(col.options || []) : undefined,
+                                      gridTemplateColumns: col.checkboxLayout === '2-column' ? getCheckboxGridTemplate(effectiveOpts) : undefined,
                                       flexDirection: col.checkboxLayout === '2-column' ? undefined : 'column',
                                       gap: col.checkboxLayout === '2-column' ? '4px 12px' : '5px',
                                       alignItems: 'flex-start',
                                       padding: '4px 0',
                                       width: '100%'
                                     }}>
-                                      {(col.options || []).map((opt, oIdx) => (
+                                      {effectiveOpts.map((opt, oIdx) => (
                                         <div key={oIdx} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#000000' }}>
                                           <span style={{
                                             display: 'inline-block',
@@ -763,7 +765,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                                             height: '12px',
                                             border: '1.5px solid #000000',
                                             background: '#ffffff',
-                                            borderRadius: '2px',
+                                            borderRadius: col.type === 'radio' ? '50%' : '2px',
                                             flexShrink: 0
                                           }} />
                                           <span>{opt.label}</span>
@@ -778,21 +780,10 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                                         height: '14px',
                                         border: '1.5px solid #000000',
                                         background: '#ffffff',
-                                        borderRadius: '2px'
+                                        borderRadius: col.type === 'radio' ? '50%' : '2px'
                                       }} />
                                     </div>
                                   )
-                                ) : col.type === 'radio' ? (
-                                  <div style={{ display: 'flex', justifyContent: 'center' }}>
-                                    <span style={{
-                                      display: 'inline-block',
-                                      width: '14px',
-                                      height: '14px',
-                                      border: '1.5px solid #000000',
-                                      background: '#ffffff',
-                                      borderRadius: '50%'
-                                    }} />
-                                  </div>
                                 ) : null}
                               </td>
                             );
