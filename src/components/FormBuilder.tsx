@@ -3244,8 +3244,10 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                       >
                         <option value={1}>1 dòng</option>
                         <option value={2}>2 dòng</option>
-                        <option value={3}>3 dòng (Khuyên dùng - Chuẩn 16:9)</option>
-                        <option value={4}>4 dòng (Chuẩn 4:3)</option>
+                        <option value={3}>3 dòng</option>
+                        <option value={4}>4 dòng</option>
+                        <option value={5}>5 dòng</option>
+                        <option value={6}>6 dòng</option>
                       </select>
                     </div>
 
