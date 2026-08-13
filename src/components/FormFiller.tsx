@@ -901,10 +901,11 @@ export default function FormFiller({
                         style={{ 
                           gridRow: rSpan && rSpan > 1 ? `span ${rSpan}` : undefined,
                           gridColumn: cSpan && cSpan > 1 ? `span ${cSpan}` : cSpan === -1 ? '1 / -1' : undefined,
+                          alignSelf: field.type === 'photo' ? 'stretch' : 'start',
+                          height: field.type === 'photo' ? '100%' : 'auto',
                           display: 'flex', 
                           flexDirection: 'column', 
                           gap: '0.35rem',
-                          height: field.type === 'photo' ? '100%' : undefined
                         }}
                       >
                         <label style={{ fontSize: '0.78rem', fontWeight: 400, color: 'var(--text-secondary)' }}>

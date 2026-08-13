@@ -435,13 +435,15 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                           const gridItemStyle: React.CSSProperties = {
                             gridRow: rSpan && rSpan > 1 ? `span ${rSpan}` : undefined,
                             gridColumn: cSpan && cSpan > 1 ? `span ${cSpan}` : cSpan === -1 ? '1 / -1' : undefined,
+                            alignSelf: f.type === 'photo' ? 'stretch' : 'start',
+                            height: f.type === 'photo' ? '100%' : 'auto',
                           };
 
                           if (f.type === 'photo') {
                             return (
                               <div key={f.id} style={{ ...gridItemStyle, display: 'flex', flexDirection: 'column', height: '100%', pageBreakInside: 'avoid' }}>
                                 {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', fontSize: '0.82rem', marginBottom: '4px' }}>{cleanLabel}</span>}
-                                <div style={{ flex: 1, border: '1.5px dashed #000000', borderRadius: '3px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: `${(f.rowSpan || 3) * 26}px`, padding: '6px' }}>
+                                <div style={{ flex: 1, border: '1.5px dashed #000000', borderRadius: '3px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60px', padding: '6px' }}>
                                   <span style={{ fontSize: '0.78rem', color: '#000000' }}>📷 [Dán / Chụp 1 ảnh bằng chứng]</span>
                                 </div>
                               </div>

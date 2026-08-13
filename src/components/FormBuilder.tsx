@@ -2138,6 +2138,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                     style={{
                                       gridRow: rSpan && rSpan > 1 ? `span ${rSpan}` : undefined,
                                       gridColumn: cSpan && cSpan > 1 ? `span ${cSpan}` : cSpan === -1 ? '1 / -1' : undefined,
+                                      alignSelf: f.type === 'photo' ? 'stretch' : 'start',
+                                      height: f.type === 'photo' ? '100%' : 'auto',
                                       border: isFieldSelected ? '2px solid var(--primary)' : '1px dotted #cbd5e1',
                                       borderRadius: '4px',
                                       padding: '6px',

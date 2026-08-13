@@ -240,7 +240,7 @@
   display: grid;
   column-gap: 40px;
   row-gap: var(--pw-field-gap);
-  align-items: baseline;
+  align-items: start;
 }
 
 /* Field chiếm hết chiều rộng (subtable). Cần grid thật ở cha mới có hiệu lực. */

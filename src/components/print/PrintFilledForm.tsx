@@ -395,6 +395,8 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                             const gridItemStyle: React.CSSProperties = {
                               gridRow: rSpan && rSpan > 1 ? `span ${rSpan}` : undefined,
                               gridColumn: cSpan && cSpan > 1 ? `span ${cSpan}` : cSpan === -1 ? '1 / -1' : undefined,
+                              alignSelf: f.type === 'photo' ? 'stretch' : 'start',
+                              height: f.type === 'photo' ? '100%' : 'auto',
                             };
 
                             if (f.type === 'photo') {
@@ -402,9 +404,9 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                               return (
                                 <div key={f.id} style={{ ...gridItemStyle, display: 'flex', flexDirection: 'column', height: '100%', pageBreakInside: 'avoid' }}>
                                   {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', fontSize: '0.82rem', marginBottom: '4px' }}>{cleanLabel}</span>}
-                                  <div style={{ flex: 1, border: '1px solid #cbd5e1', borderRadius: '3px', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: `${(f.rowSpan || 3) * 26}px`, padding: '4px', background: '#f8fafc' }}>
+                                  <div style={{ flex: 1, border: '1px solid #cbd5e1', borderRadius: '3px', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60px', padding: '4px', background: '#f8fafc' }}>
                                     {singleUrl ? (
-                                      <img src={singleUrl} alt="Evidence" style={{ maxWidth: '100%', maxHeight: `${(f.rowSpan || 3) * 26}px`, objectFit: 'contain' }} />
+                                      <img src={singleUrl} alt="Evidence" style={{ maxWidth: '100%', maxHeight: '160px', objectFit: 'contain' }} />
                                     ) : (
                                       <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontStyle: 'italic' }}>(Không có ảnh đính kèm)</span>
                                     )}

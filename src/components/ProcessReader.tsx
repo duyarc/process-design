@@ -1358,10 +1358,11 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                                     style={{ 
                                       gridRow: rSpan && rSpan > 1 ? `span ${rSpan}` : undefined,
                                       gridColumn: cSpan && cSpan > 1 ? `span ${cSpan}` : cSpan === -1 ? '1 / -1' : undefined,
+                                      alignSelf: field.type === 'photo' ? 'stretch' : 'start',
                                       display: 'flex', 
                                       flexDirection: 'column', 
                                       gap: '0.25rem',
-                                      height: field.type === 'photo' ? '100%' : undefined
+                                      height: field.type === 'photo' ? '100%' : 'auto'
                                     }}
                                   >
                                     <label style={{ fontSize: '0.75rem', fontWeight: 400, color: 'var(--text-secondary)' }}>
