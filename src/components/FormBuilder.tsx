@@ -850,6 +850,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     } else if (type === 'radio' || type === 'checkbox') {
       newField.options = [...DEFAULT_RADIO_OPTIONS];
     } else if (type === 'photo') {
+      newField.checkItem = '[Dán / Chụp 1 ảnh bằng chứng]';
       newField.rowSpan = 3;
     } else if (type === 'subtable') {
       newField.subtableColumns = [
@@ -2149,11 +2150,10 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                       justifyContent: 'space-between',
                                       gap: '4px',
                                       background: isFieldSelected ? 'rgba(16, 163, 163, 0.05)' : 'none',
-                                      minHeight: f.type === 'photo' ? `${(f.rowSpan || 3) * 52}px` : undefined,
                                     }}
                                   >
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                      <span style={{ fontWeight: 600 }}>{sanitizeLabel(f.checkItem)}</span>
+                                      {f.type === 'photo' ? <div /> : <span style={{ fontWeight: 600 }}>{sanitizeLabel(f.checkItem)}</span>}
                                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                                         {isFieldSelected && !isLocked && (
                                           <div style={{ display: 'flex', alignItems: 'center', gap: '2px', marginRight: '4px' }}>
@@ -2185,6 +2185,31 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                         )}
                                         <span style={{ color: 'var(--text-muted)' }}>[{f.type}]</span>
                                       </div>
+
+                                     {f.type === 'photo' && (
+                                       <div style={{ flex: 1, border: '1.5px dashed #cbd5e1', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px', marginTop: '4px', background: '#fafafa', minHeight: '70px' }}>
+                                         <input
+                                           type="text"
+                                           value={f.checkItem}
+                                           disabled={isLocked}
+                                           onClick={(e) => e.stopPropagation()}
+                                           onChange={(e) => handleUpdateField(block.id, f.id, { checkItem: e.target.value })}
+                                           style={{
+                                             border: 'none',
+                                             background: 'transparent',
+                                             textAlign: 'center',
+                                             color: '#475569',
+                                             fontStyle: 'italic',
+                                             fontSize: '0.78rem',
+                                             width: '100%',
+                                             outline: 'none',
+                                             cursor: isLocked ? 'default' : 'text',
+                                             fontWeight: 500
+                                           }}
+                                           placeholder="Gõ ghi chú/hướng dẫn ảnh (vd: [Dán / Chụp 1 ảnh bằng chứng])..."
+                                         />
+                                       </div>
+                                     )}
                                     </div>
 
                                     {(f.type === 'radio' || f.type === 'checkbox') && (() => {

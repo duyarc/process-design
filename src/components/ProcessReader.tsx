@@ -1503,13 +1503,12 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                                           ) : (
                                             <div
                                               onClick={() => !isUploading && document.getElementById(`reader_photo_input_${field.id}`)?.click()}
-                                              style={{ flex: 1, border: '1.5px dashed #cbd5e1', borderRadius: '4px', background: '#f8fafc', padding: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', minHeight: '100px' }}
+                                              style={{ flex: 1, border: '1.5px dashed #cbd5e1', borderRadius: '4px', background: '#f8fafc', padding: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', minHeight: '80px' }}
                                             >
-                                              <Camera size={22} style={{ color: '#94a3b8', marginBottom: '4px' }} />
-                                              <span style={{ fontSize: '0.75rem', color: '#475569', fontWeight: 500 }}>
-                                                {isUploading ? 'Đang tải ảnh...' : 'Bấm để chọn/chụp 1 ảnh bằng chứng'}
+                                              <span style={{ fontSize: '0.78rem', color: '#475569', fontWeight: 500, fontStyle: 'italic', textAlign: 'center' }}>
+                                                {isUploading ? 'Đang tải ảnh...' : (field.checkItem || '[Dán / Chụp 1 ảnh bằng chứng]')}
                                               </span>
-                                              <span style={{ fontSize: '0.68rem', color: '#94a3b8', marginTop: '2px' }}>
+                                              <span style={{ fontSize: '0.68rem', color: '#94a3b8', marginTop: '4px' }}>
                                                 (Hỗ trợ PNG, JPG, JPEG)
                                               </span>
                                             </div>

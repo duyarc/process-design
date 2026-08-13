@@ -9,7 +9,7 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | `CURRENT` (2026-08-13) — Support Photo field rowSpan and single-photo upload limit in INFO_GRID layout block. |
+| **Verified At Commit** | `CURRENT` (2026-08-13) — Inline editable WYSIWYG tip and camera icon removal for Photo fields in INFO_GRID. |
 
 > **⚠️ Architectural note:** FormBuilder has no awareness of which process it belongs to. The `formName` prop is always identical to `formId`. See Section 6.1 and the Technical Debt table.
 
@@ -502,5 +502,6 @@ full diff of any entry below.
 | 2026-08-13 | `CURRENT` | **Retire CHECKLIST_TABLE Block Type:** Removed `+ Checklist Table` button from block palette in `FormBuilder.tsx` (`CHECKLIST_TABLE` superseded by `TABLE`). Retained full rendering support for legacy saved forms (100% backward compatibility) and added a 1-click **`[⚡ Chuyển đổi sang khối TABLE chuẩn]`** migration button in `FormBuilder.tsx` property inspector for active `CHECKLIST_TABLE` blocks. Annotated `@deprecated` in `src/types.ts`. |
 | 2026-08-13 | `CURRENT` | **Cell-Level Custom Options for TABLE Block (Radio & Checkbox):** Added `cellOptionsMap?: { [cellKey: string]: RadioOption[] }` to `LayoutBlockISO` in `src/types.ts`. Implemented inline canvas editing in `FormBuilder.tsx` and Right Panel property inspector card. Propagated `effectiveCellOptions` to `FormFiller.tsx`, `ProcessReader.tsx`, and `PrintBlankForm.tsx`. |
 | 2026-08-13 | `CURRENT` | **INFO_GRID Photo Multi-Row Span & Single Photo Upload:** Added `rowSpan?: number` and `colSpan?: number` to `FormFieldISO`. Enabled `+ Photo` field button for `INFO_GRID` block. Added Right Panel rowSpan (1–4 rows) & colSpan controls. Enforced 1-photo upload constraint (overriding previous photo). Preserved 100% WYSIWYG consistency across FormBuilder, FormFiller, ProcessReader, PrintBlankForm, and PrintFilledForm. |
+| 2026-08-13 | `CURRENT` | **Photo Field WYSIWYG Inline Editable Tip & Icon Removal:** Removed camera icon from canvas placeholder and print blank forms. Made photo hint text directly editable inline inside the canvas placeholder (saved in `f.checkItem`). Propagated hint text to FormFiller, ProcessReader, and PrintBlankForm. |
 
 
