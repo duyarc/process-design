@@ -453,7 +453,8 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                           }
 
                           if (f.type === 'checkbox' || f.type === 'radio') {
-                            const options = f.options ?? [{ label: 'Có', value: 'YES' }, { label: 'Không', value: 'NO' }];
+                            const rawOptions = f.options ?? [{ label: 'Có', value: 'YES' }, { label: 'Không', value: 'NO' }];
+                            const options = rawOptions.filter((opt: any) => opt.label && opt.label.trim() !== '');
                             return (
                               <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'baseline', gap: '8px', fontSize: '0.85rem' }}>
                                 {cleanLabel && (
@@ -761,7 +762,8 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                         <tr key={row.id} style={{ pageBreakInside: 'avoid' }}>
                           {(block.tableColumns || []).map((col) => {
                             const customCellOpts = block.cellOptionsMap?.[`${row.id}_${col.id}`];
-                            const effectiveOpts = customCellOpts !== undefined ? customCellOpts : (col.options || []);
+                            const rawOpts = customCellOpts !== undefined ? customCellOpts : (col.options || []);
+                            const effectiveOpts = rawOpts.filter(opt => opt.label && opt.label.trim() !== '');
                             const hasOptions = (col.type === 'checkbox' || col.type === 'radio') && effectiveOpts.length > 0;
                             const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? (hasOptions ? 'left' : 'center') : 'left'));
                             return (

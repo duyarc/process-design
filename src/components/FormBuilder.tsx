@@ -2699,21 +2699,18 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                />
                                              ) : (col.type === 'checkbox' || col.type === 'radio') ? (
                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: '2px 0', width: '100%' }}>
-                                                 {isCustomCellOpts && (
-                                                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.62rem', color: '#c2410c', background: '#fff7ed', border: '1px solid #fed7aa', padding: '1px 4px', borderRadius: '3px', marginBottom: '2px' }}>
-                                                     <span>✨ Ô tùy biến</span>
-                                                     {!isLocked && (
-                                                       <button
-                                                         type="button"
-                                                         onClick={(e) => { e.stopPropagation(); handleResetCellOptions(block.id, row.id, col.id); }}
-                                                         style={{ background: 'none', border: 'none', color: '#c2410c', cursor: 'pointer', fontSize: '0.62rem', padding: 0 }}
-                                                         title="Khôi phục về dùng chung cấu hình Cột"
-                                                       >
-                                                         🔄 Reset
-                                                       </button>
-                                                     )}
-                                                   </div>
-                                                 )}
+                                                  {isCustomCellOpts && !isLocked && (
+                                                    <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '2px' }}>
+                                                      <button
+                                                        type="button"
+                                                        onClick={(e) => { e.stopPropagation(); handleResetCellOptions(block.id, row.id, col.id); }}
+                                                        style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '3px', color: '#c2410c', cursor: 'pointer', fontSize: '0.62rem', padding: '1px 5px' }}
+                                                        title="Khôi phục về dùng chung cấu hình Cột"
+                                                      >
+                                                        🔄 Reset
+                                                      </button>
+                                                    </div>
+                                                   )}
                                                  
                                                  {cellOptions.map((opt, oIdx) => (
                                                    <div key={oIdx} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem' }}>
