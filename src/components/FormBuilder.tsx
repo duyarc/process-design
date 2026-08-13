@@ -925,6 +925,14 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
       updates.minSpec = undefined;
       updates.maxSpec = undefined;
       updates.unit = undefined;
+    } else if (newType === 'photo') {
+      updates.rowSpan = field?.rowSpan ?? 3;
+      if (!field?.checkItem || field.checkItem === 'Thông tin mới') {
+        updates.checkItem = '[Dán / Chụp 1 ảnh bằng chứng]';
+      }
+      updates.minSpec = undefined;
+      updates.maxSpec = undefined;
+      updates.unit = undefined;
     } else {
       updates.minSpec = undefined;
       updates.maxSpec = undefined;
@@ -2121,7 +2129,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                             <div style={{
                               display: 'grid',
                               gridTemplateColumns: `repeat(${block.columns}, 1fr)`,
-                              gap: '0.75rem'
+                              columnGap: '0.75rem',
+                              rowGap: '0.5rem',
+                              gridAutoRows: 'minmax(38px, auto)',
                             }}>
                               {block.fields.map((f, fIdx, fArr) => {
                                 const isFieldSelected = activeFieldId === f.id;
@@ -2152,8 +2162,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                       background: isFieldSelected ? 'rgba(16, 163, 163, 0.05)' : 'none',
                                     }}
                                   >
+                                    {/* Header row: label (left) + type badge + move controls (right) */}
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                      {f.type === 'photo' ? <div /> : <span style={{ fontWeight: 600 }}>{sanitizeLabel(f.checkItem)}</span>}
+                                      {f.type === 'photo' ? <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>Ảnh bằng chứng</span> : <span style={{ fontWeight: 600 }}>{sanitizeLabel(f.checkItem)}</span>}
                                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                                         {isFieldSelected && !isLocked && (
                                           <div style={{ display: 'flex', alignItems: 'center', gap: '2px', marginRight: '4px' }}>
@@ -2185,32 +2196,33 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                         )}
                                         <span style={{ color: 'var(--text-muted)' }}>[{f.type}]</span>
                                       </div>
-
-                                     {f.type === 'photo' && (
-                                       <div style={{ flex: 1, border: '1.5px dashed #cbd5e1', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px', marginTop: '4px', background: '#fafafa', minHeight: '70px' }}>
-                                         <input
-                                           type="text"
-                                           value={f.checkItem}
-                                           disabled={isLocked}
-                                           onClick={(e) => e.stopPropagation()}
-                                           onChange={(e) => handleUpdateField(block.id, f.id, { checkItem: e.target.value })}
-                                           style={{
-                                             border: 'none',
-                                             background: 'transparent',
-                                             textAlign: 'center',
-                                             color: '#475569',
-                                             fontStyle: 'italic',
-                                             fontSize: '0.78rem',
-                                             width: '100%',
-                                             outline: 'none',
-                                             cursor: isLocked ? 'default' : 'text',
-                                             fontWeight: 500
-                                           }}
-                                           placeholder="Gõ ghi chú/hướng dẫn ảnh (vd: [Dán / Chụp 1 ảnh bằng chứng])..."
-                                         />
-                                       </div>
-                                     )}
                                     </div>
+
+                                    {/* Photo editable tip box — rendered BELOW the header row */}
+                                    {f.type === 'photo' && (
+                                      <div style={{ flex: 1, border: '1.5px dashed #cbd5e1', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px', background: '#fafafa' }}>
+                                        <input
+                                          type="text"
+                                          value={f.checkItem}
+                                          disabled={isLocked}
+                                          onClick={(e) => e.stopPropagation()}
+                                          onChange={(e) => handleUpdateField(block.id, f.id, { checkItem: e.target.value })}
+                                          style={{
+                                            border: 'none',
+                                            background: 'transparent',
+                                            textAlign: 'center',
+                                            color: '#475569',
+                                            fontStyle: 'italic',
+                                            fontSize: '0.78rem',
+                                            width: '100%',
+                                            outline: 'none',
+                                            cursor: isLocked ? 'default' : 'text',
+                                            fontWeight: 500
+                                          }}
+                                          placeholder="Gõ ghi chú/hướng dẫn ảnh..."
+                                        />
+                                      </div>
+                                    )}
 
                                     {(f.type === 'radio' || f.type === 'checkbox') && (() => {
                                       const options = f.options ?? [{ label: 'Đạt', value: 'PASS' }, { label: 'Không Đạt', value: 'FAIL' }];
