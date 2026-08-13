@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { FormFieldISO, FormRevisionEntry, FormTemplateISO, LayoutBlockISO, RadioOption, MatrixConfigISO, TableColumnConfig, ColumnSummaryRowConfig, TitleFormatISO, SubtableColumn } from '../types';
+import type { FormFieldISO, FormRevisionEntry, FormTemplateISO, LayoutBlockISO, RadioOption, MatrixConfigISO, TableColumnConfig, TableRowConfig, ColumnSummaryRowConfig, TitleFormatISO, SubtableColumn } from '../types';
 import { formatFormVersion, getColStyleWidth } from '../types';
 import { sanitizeLabel, getEffectiveTitleFormat } from '../utils/formUtils';
 import { 
@@ -670,6 +670,49 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
         return {
           ...b,
           matrixConfig: b.matrixConfig ? { ...b.matrixConfig, ...updates } : undefined
+        };
+      }
+      return b;
+    }));
+  };
+
+  const handleConvertChecklistToTable = (blockId: string) => {
+    setLayoutBlocks(prev => prev.map(b => {
+      if (b.id === blockId && b.type === 'CHECKLIST_TABLE') {
+        const tableColumns: TableColumnConfig[] = [
+          { id: 'col_stt', label: b.columnLabels?.stt || 'STT', width: '40px', type: 'static_text', locked: true, align: 'center' },
+          { id: 'col_item', label: b.columnLabels?.item || 'Chi tiết kiểm tra', width: 'auto', type: 'static_text', locked: true, align: 'left' },
+          { 
+            id: 'col_target', 
+            label: b.columnLabels?.target || 'Kết quả', 
+            width: '130px', 
+            type: 'radio', 
+            align: 'center',
+            options: [{ label: 'Đ', value: 'PASS', isPass: true }, { label: 'KĐ', value: 'FAIL', isPass: false }]
+          },
+          { id: 'col_reaction', label: b.columnLabels?.reaction || 'Mô tả cụ thể nếu Không đạt', width: '220px', type: 'text', align: 'left' }
+        ];
+
+        const tableRows: TableRowConfig[] = b.fields.map((f, idx) => ({
+          id: f.id || `row_${idx}_${Date.now()}`
+        }));
+
+        const tableData: { [rowId: string]: { [colId: string]: string } } = {};
+        b.fields.forEach((f, idx) => {
+          const rowId = f.id || `row_${idx}_${Date.now()}`;
+          tableData[rowId] = {
+            col_stt: (idx + 1).toString(),
+            col_item: f.checkItem || ''
+          };
+        });
+
+        return {
+          ...b,
+          type: 'TABLE' as const,
+          tableColumns,
+          tableRows,
+          tableData,
+          fields: []
         };
       }
       return b;
@@ -1642,16 +1685,6 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
               >
                 <Grid size={14} style={{ marginRight: '0.35rem' }} />
                 + Table
-              </button>
-              <button 
-                type="button" 
-                onClick={() => handleAddBlock('CHECKLIST_TABLE')}
-                disabled={isLocked}
-                className="btn btn-secondary" 
-                style={{ justifyContent: 'start', padding: '0.45rem 0.65rem', fontSize: '0.8rem', opacity: isLocked ? 0.6 : 1 }}
-              >
-                <Grid size={14} style={{ marginRight: '0.35rem' }} />
-                + Checklist Table
               </button>
               <button 
                 type="button" 
@@ -3571,6 +3604,36 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
 
                   return (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', borderTop: '1px solid var(--neutral-border)', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
+                      <div style={{
+                        background: '#fff7ed',
+                        border: '1px solid #fed7aa',
+                        padding: '0.75rem',
+                        borderRadius: '6px',
+                        marginBottom: '0.25rem',
+                        fontSize: '0.78rem',
+                        color: '#c2410c'
+                      }}>
+                        <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>⚠️ Khối cũ (Retired Block)</div>
+                        <div style={{ lineHeight: 1.4 }}>Khối <strong>CHECKLIST_TABLE</strong> đã ngưng hỗ trợ tạo mới. Bạn có thể tiếp tục sử dụng hoặc nâng cấp sang khối <strong>TABLE</strong> tiêu chuẩn.</div>
+                        <button
+                          type="button"
+                          disabled={isLocked}
+                          onClick={() => handleConvertChecklistToTable(activeBlock.id)}
+                          className="btn btn-secondary btn-sm"
+                          style={{
+                            marginTop: '0.6rem',
+                            width: '100%',
+                            color: '#c2410c',
+                            borderColor: '#fdba74',
+                            background: '#ffffff',
+                            fontWeight: 600,
+                            justifyContent: 'center'
+                          }}
+                        >
+                          ⚡ Chuyển đổi sang khối TABLE chuẩn
+                        </button>
+                      </div>
+
                       <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Cấu hình Cột</label>
 
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingRight: '4px' }}>

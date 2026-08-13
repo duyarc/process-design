@@ -163,7 +163,12 @@ export type TitleFormatISO = 'H1' | 'H2' | 'BODY' | 'NONE';
 
 export interface LayoutBlockISO {
   id: string;
+  /** 
+   * @deprecated 'CHECKLIST_TABLE' is retired for new form creation in FormBuilder (superseded by 'TABLE').
+   * Retained for backward compatibility with historical saved form templates.
+   */
   type: 'TITLE' | 'INFO_GRID' | 'CHECKLIST_TABLE' | 'MATRIX_TABLE' | 'SIGN' | 'TABLE' | 'SECTION_LABEL';
+
   columns: 1 | 2 | 3;
   title: string;
   fields: FormFieldISO[];

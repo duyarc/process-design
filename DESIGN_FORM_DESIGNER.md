@@ -9,7 +9,7 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | `b8b3ed3` (2026-08-03) — Fixed TITLE block Description property input value binding to read from activeBlock.description. |
+| **Verified At Commit** | `CURRENT` (2026-08-13) — CHECKLIST_TABLE block type retired for new form creation; 1-click migration helper added to FormBuilder. |
 
 > **⚠️ Architectural note:** FormBuilder has no awareness of which process it belongs to. The `formName` prop is always identical to `formId`. See Section 6.1 and the Technical Debt table.
 
@@ -58,7 +58,7 @@ FormBuilder renders as a three-panel layout inside a fixed fullscreen modal:
 |---|---|
 | **Form ID** | Editable identifier (e.g. `FM-QC-F01`) — primary key in the database |
 | **Form Title** | Human-readable name |
-| **Block type buttons** | Add TITLE, INFO_GRID, CHECKLIST_TABLE, MATRIX_TABLE, TABLE, SIGN, SECTION_LABEL blocks |
+| **Block type buttons** | Add TITLE, INFO_GRID, MATRIX_TABLE, TABLE, SIGN, SECTION_LABEL blocks (`CHECKLIST_TABLE` retired for new creation; superseded by `TABLE`) |
 | **Copy Block from another form** | Opens a modal to browse all processes and copy an existing block as a template |
 
 ### Center Panel — Block Canvas
@@ -149,7 +149,7 @@ interface LayoutBlockISO {
 |---|---|---|
 | `TITLE` | Form header: title, form ID, date, operator, logo | Optional INFO fields |
 | `INFO_GRID` | General info fields laid out in a grid | Yes (text/date/time) |
-| `CHECKLIST_TABLE` | Columnar check items with target and reaction | Yes (all types) |
+| `CHECKLIST_TABLE` | *(Retired / Deprecated)* Legacy check items — use `TABLE` for new forms | Yes (all types) |
 | `MATRIX_TABLE` | Tally count matrix (rows × product columns) | No — matrix config only |
 | `TABLE` | Freeform dynamic table (configurable columns + rows) | No — table config only |
 | `SIGN` | Signature/approval block | Yes (signature type) |
@@ -499,3 +499,5 @@ full diff of any entry below.
 | 2026-07-29 | `019f88d` | **Standardize Total Row Borders & Remove Blank Dashlines:** (1) Updated `tfoot` cell borders in `PrintBlankForm.tsx` & `PrintRecord.tsx` to `border: '1.5px solid #000000'`, matching the table body grid borders 100%. (2) Removed inner dotted dashlines (`<span style={{ borderBottom: '1px dotted #94a3b8' }} />`) in blank print forms, rendering clean, empty bordered boxes for manual handwriting. |
 | 2026-07-29 | `019f88d` | **Fix Footer Page Overflow & Position:** (1) Removed `min-height: 100%` and `padding: 0 0 48px 0` on `.print-container` inside `@media print` to eliminate second blank page generation. (2) Added `.print-footer { display: none !important }` in `print.css` to hide footer on screen preview, preventing normal-flow vertical overflow. (3) Set negative bottom offset (`bottom: -10mm` for A4, `-5mm` for A5) on `.print-footer` to place footer safely into page margin area without colliding with the last table row or triggering extra pages. |
 | 2026-07-29 | `2fe6b85` | **Outer Table Wrapper Print Footer Refactor:** (1) Implemented industry-standard `.print-outer-table` with `display: table-footer-group` in `src/print.css`. (2) Wrapped content blocks inside `<tbody>` and moved `.print-footer` inside `<tfoot>` in `PrintBlankForm.tsx` & `PrintRecord.tsx`. (3) Removed `position: fixed` and negative bottom offset, guaranteeing ZERO table content overlap and ZERO extra blank pages. |
+| 2026-08-13 | `CURRENT` | **Retire CHECKLIST_TABLE Block Type:** Removed `+ Checklist Table` button from block palette in `FormBuilder.tsx` (`CHECKLIST_TABLE` superseded by `TABLE`). Retained full rendering support for legacy saved forms (100% backward compatibility) and added a 1-click **`[⚡ Chuyển đổi sang khối TABLE chuẩn]`** migration button in `FormBuilder.tsx` property inspector for active `CHECKLIST_TABLE` blocks. Annotated `@deprecated` in `src/types.ts`. |
+
