@@ -107,25 +107,34 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
     }
   }, [titleBlockLogo]);
 
+  const hasAutoExportedRef = React.useRef(false);
+  const isExportingRef = React.useRef(false);
+
   const handleExportPdf = React.useCallback(async () => {
-    if (!printContainerRef.current || isExportingPdf) return;
+    if (!printContainerRef.current || isExportingRef.current) return;
     try {
+      isExportingRef.current = true;
       setIsExportingPdf(true);
       await exportFillablePdfFromDOM(printContainerRef.current, template);
     } catch (err) {
       console.error('Failed to export PDF:', err);
     } finally {
+      isExportingRef.current = false;
       setIsExportingPdf(false);
     }
-  }, [template, isExportingPdf]);
+  }, [template]);
 
   // Trigger print or auto-export dialog only after logo image is fully loaded in DOM
   React.useEffect(() => {
     if (!imgLoaded) return;
 
-    if (autoExportPdf) {
-      const timer = setTimeout(() => {
-        handleExportPdf();
+    if (autoExportPdf && !hasAutoExportedRef.current) {
+      hasAutoExportedRef.current = true;
+      const timer = setTimeout(async () => {
+        await handleExportPdf();
+        if (exportMode) {
+          onClose();
+        }
       }, 300);
       return () => clearTimeout(timer);
     }
