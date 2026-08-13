@@ -390,11 +390,33 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                           {block.fields.map((f) => {
                             const cleanLabel = sanitizeLabel(f.checkItem);
                             const val = getVal(f.id);
+                            const rSpan = f.type === 'subtable' ? undefined : f.rowSpan;
+                            const cSpan = f.type === 'subtable' ? -1 : f.colSpan;
+                            const gridItemStyle: React.CSSProperties = {
+                              gridRow: rSpan && rSpan > 1 ? `span ${rSpan}` : undefined,
+                              gridColumn: cSpan && cSpan > 1 ? `span ${cSpan}` : cSpan === -1 ? '1 / -1' : undefined,
+                            };
+
+                            if (f.type === 'photo') {
+                              const singleUrl = imageUrls[0];
+                              return (
+                                <div key={f.id} style={{ ...gridItemStyle, display: 'flex', flexDirection: 'column', height: '100%', pageBreakInside: 'avoid' }}>
+                                  {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', fontSize: '0.82rem', marginBottom: '4px' }}>{cleanLabel}</span>}
+                                  <div style={{ flex: 1, border: '1px solid #cbd5e1', borderRadius: '3px', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: `${(f.rowSpan || 3) * 26}px`, padding: '4px', background: '#f8fafc' }}>
+                                    {singleUrl ? (
+                                      <img src={singleUrl} alt="Evidence" style={{ maxWidth: '100%', maxHeight: `${(f.rowSpan || 3) * 26}px`, objectFit: 'contain' }} />
+                                    ) : (
+                                      <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontStyle: 'italic' }}>(Không có ảnh đính kèm)</span>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            }
 
                             if (f.type === 'checkbox' || f.type === 'radio') {
                               const options = f.options ?? [{ label: 'Có', value: 'YES' }, { label: 'Không', value: 'NO' }];
                               return (
-                                <div key={f.id} style={{ display: 'flex', alignItems: 'baseline', gap: '8px', fontSize: '0.85rem' }}>
+                                <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'baseline', gap: '8px', fontSize: '0.85rem' }}>
                                   {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap' }}>{cleanLabel}</span>}
                                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', alignItems: 'center' }}>
                                     {options.map((opt: any) => {
@@ -425,7 +447,7 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                               try { rows = JSON.parse(val || '[]'); } catch { /* fallback to blank rows */ }
                               const renderRows = rows.length > 0 ? rows : Array.from({ length: f.subtableDefaultRows ?? 3 }).map(() => ({}));
                               return (
-                                <div key={f.id} className="subtable-print-container print-field-full" style={{ fontSize: '0.82rem', width: '100%', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                                <div key={f.id} className="subtable-print-container print-field-full" style={{ ...gridItemStyle, fontSize: '0.82rem', width: '100%', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                                   {cleanLabel && <div style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', marginBottom: '6px' }}>{cleanLabel}</div>}
                                   <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                     <thead>
@@ -458,7 +480,7 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                             // date / time / text / number — render value with underline line preserved
                             if (f.type === 'date') {
                               return (
-                                <div key={f.id} style={{ display: 'flex', alignItems: 'baseline', gap: '8px', fontSize: '0.85rem' }}>
+                                <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'baseline', gap: '8px', fontSize: '0.85rem' }}>
                                   {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap' }}>{cleanLabel}</span>}
                                   <span style={{ fontWeight: 600, color: '#0f172a', minWidth: '80px', borderBottom: '1px dotted #cbd5e1' }}>{val || '\u00A0'}</span>
                                 </div>
@@ -467,7 +489,7 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
 
                             if (f.type === 'time') {
                               return (
-                                <div key={f.id} style={{ display: 'flex', alignItems: 'baseline', gap: '8px', fontSize: '0.85rem' }}>
+                                <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'baseline', gap: '8px', fontSize: '0.85rem' }}>
                                   {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap' }}>{cleanLabel}</span>}
                                   <span style={{ fontWeight: 600, color: '#0f172a', minWidth: '60px', borderBottom: '1px dotted #cbd5e1' }}>{val || '\u00A0'}</span>
                                 </div>
@@ -476,7 +498,7 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
 
                             // default: text / number
                             return (
-                              <div key={f.id} style={{ display: 'flex', alignItems: 'baseline', gap: '8px', fontSize: '0.85rem' }}>
+                              <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'baseline', gap: '8px', fontSize: '0.85rem' }}>
                                 {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap' }}>{cleanLabel}</span>}
                                 <div style={{ flex: 1, borderBottom: '1px dotted #cbd5e1', minHeight: 'var(--pw-line-h)', fontWeight: 600, color: '#0f172a' }}>{val || '\u00A0'}</div>
                               </div>

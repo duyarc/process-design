@@ -892,8 +892,21 @@ export default function FormFiller({
                   {block.fields.map((field: any) => {
                     const value = formValues[field.id] || '';
                     const inputStyle = { padding: '0.45rem 0.6rem', fontSize: '0.82rem', border: '1px solid #e2e8f0', borderRadius: '4px', width: '100%', height: '36px', backgroundColor: '#f8fafc' };
+                    const rSpan = field.type === 'subtable' ? undefined : field.rowSpan;
+                    const cSpan = field.type === 'subtable' ? -1 : field.colSpan;
+
                     return (
-                      <div key={field.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                      <div 
+                        key={field.id} 
+                        style={{ 
+                          gridRow: rSpan && rSpan > 1 ? `span ${rSpan}` : undefined,
+                          gridColumn: cSpan && cSpan > 1 ? `span ${cSpan}` : cSpan === -1 ? '1 / -1' : undefined,
+                          display: 'flex', 
+                          flexDirection: 'column', 
+                          gap: '0.35rem',
+                          height: field.type === 'photo' ? '100%' : undefined
+                        }}
+                      >
                         <label style={{ fontSize: '0.78rem', fontWeight: 400, color: 'var(--text-secondary)' }}>
                           {sanitizeLabel(field.checkItem)}
                         </label>
@@ -947,26 +960,27 @@ export default function FormFiller({
                             />
                           )
                         ) : field.type === 'checkbox' ? (
-                          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', minHeight: '36px', alignItems: 'center' }}>
-                            {(field.options ?? [{ label: 'Đạt', value: 'PASS', isPass: true }, { label: 'Không Đạt', value: 'FAIL', isPass: false }]).map((opt: any) => {
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 16px', alignItems: 'center', padding: '4px 0' }}>
+                            {(field.options ?? [{ label: 'Có', value: 'YES' }, { label: 'Không', value: 'NO' }]).map((opt: any) => {
                               const currentValues = value ? value.split(',').filter(Boolean) : [];
-                              const isChecked = currentValues.includes(opt.value);
+                              const isChecked = currentValues.includes(opt.value || opt.label);
                               return (
-                                <label key={opt.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.82rem', cursor: 'pointer', margin: 0 }}>
+                                <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', cursor: 'pointer', margin: 0 }}>
                                   <input 
                                     type="checkbox" 
-                                    checked={isChecked}
+                                    checked={isChecked} 
                                     onChange={(e) => {
+                                      const val = opt.value || opt.label;
                                       let nextValues;
                                       if (e.target.checked) {
-                                        nextValues = [...currentValues, opt.value];
+                                        nextValues = [...currentValues, val];
                                       } else {
-                                        nextValues = currentValues.filter((v: string) => v !== opt.value);
+                                        nextValues = currentValues.filter((v: string) => v !== val);
                                       }
                                       setFormValues(prev => ({ ...prev, [field.id]: nextValues.join(',') }));
-                                    }}
+                                    }} 
                                   />
-                                  {opt.label}
+                                  <span>{opt.label}</span>
                                 </label>
                               );
                             })}
@@ -982,7 +996,70 @@ export default function FormFiller({
                               <option key={opt.value} value={opt.value}>{opt.label}</option>
                             ))}
                           </select>
-                        ) : field.type === 'subtable' ? (() => {
+                        ) : field.type === 'photo' ? (() => {
+                          const photoKeys = uploadedPhotos[field.id] || [];
+                          const singleKey = photoKeys[0];
+                          const isUploading = isPhotoUploading[field.id];
+
+                          return (
+                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', minHeight: '100px' }}>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                id={`photo_input_${field.id}`}
+                                style={{ display: 'none' }}
+                                disabled={isUploading}
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) handlePhotoUpload(field.id, file);
+                                }}
+                              />
+                              {singleKey ? (
+                                <div style={{ flex: 1, border: '1px solid #cbd5e1', borderRadius: '4px', background: '#f8fafc', padding: '6px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+                                  <img
+                                    src={`/api/storage/download-url?key=${encodeURIComponent(singleKey)}`}
+                                    alt="Evidence"
+                                    style={{ maxWidth: '100%', maxHeight: '140px', objectFit: 'contain', borderRadius: '3px' }}
+                                  />
+                                  <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
+                                    <button
+                                      type="button"
+                                      onClick={() => document.getElementById(`photo_input_${field.id}`)?.click()}
+                                      disabled={isUploading}
+                                      style={{ fontSize: '0.7rem', padding: '2px 6px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '3px', cursor: 'pointer' }}
+                                    >
+                                      🔄 Thay ảnh
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setUploadedPhotos(prev => {
+                                        const next = { ...prev };
+                                        delete next[field.id];
+                                        return next;
+                                      })}
+                                      style={{ fontSize: '0.7rem', padding: '2px 6px', background: '#fff1f2', border: '1px solid #fecdd3', color: '#e11d48', borderRadius: '3px', cursor: 'pointer' }}
+                                    >
+                                      🗑️ Xóa
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div
+                                  onClick={() => !isUploading && document.getElementById(`photo_input_${field.id}`)?.click()}
+                                  style={{ flex: 1, border: '1.5px dashed #cbd5e1', borderRadius: '4px', background: '#f8fafc', padding: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', minHeight: '100px' }}
+                                >
+                                  <Camera size={22} style={{ color: '#94a3b8', marginBottom: '4px' }} />
+                                  <span style={{ fontSize: '0.75rem', color: '#475569', fontWeight: 500 }}>
+                                    {isUploading ? 'Đang tải ảnh...' : 'Bấm để chọn/chụp 1 ảnh bằng chứng'}
+                                  </span>
+                                  <span style={{ fontSize: '0.68rem', color: '#94a3b8', marginTop: '2px' }}>
+                                    (Hỗ trợ PNG, JPG, JPEG)
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })() : field.type === 'subtable' ? (() => {
                           const cols = field.subtableColumns ?? [];
                           const hasStaticCol = cols.some((c: any) => c.type === 'static_text');
                           let rows: Record<string, string>[] = parseSubtableValue(value);
@@ -1001,7 +1078,7 @@ export default function FormFiller({
                             rows = [{}];
                           }
                           const updateRows = (newRows: Record<string, string>[]) => {
-                    setFormValues(prev => ({ ...prev, [field.id]: stringifySubtableValue(newRows) }));
+                            setFormValues(prev => ({ ...prev, [field.id]: stringifySubtableValue(newRows) }));
                           };
                           return (
                             <div style={{ width: '100%' }}>
@@ -1050,7 +1127,10 @@ export default function FormFiller({
                                         <td style={{ border: '1px solid #e2e8f0', textAlign: 'center', padding: '1px', verticalAlign: 'middle' }}>
                                           <button
                                             type="button"
-                                            onClick={() => updateRows(rows.filter((_, i) => i !== rowIdx))}
+                                            onClick={() => {
+                                              const newRows = rows.filter((_, i) => i !== rowIdx);
+                                              updateRows(newRows.length === 0 ? [{}] : newRows);
+                                            }}
                                             style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '2px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                                             title="Xóa dòng này"
                                             onMouseEnter={(e) => e.currentTarget.style.color = '#ef4444'}

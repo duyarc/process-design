@@ -131,7 +131,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
 
       setUploadedPhotos(prev => ({
         ...prev,
-        [fieldId]: [...(prev[fieldId] || []), pdfKey]
+        [fieldId]: [pdfKey]
       }));
 
       alert('Photo evidence uploaded successfully!');
@@ -1349,8 +1349,21 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                               {block.fields.map((field: any) => {
                                 const value = formValues[field.id] || '';
                                 const inputStyle = { padding: '0.4rem 0.5rem', fontSize: '0.8rem', border: '1px solid #e2e8f0', borderRadius: '4px', width: '100%', height: '34px', backgroundColor: '#f8fafc' };
+                                const rSpan = field.type === 'subtable' ? undefined : field.rowSpan;
+                                const cSpan = field.type === 'subtable' ? -1 : field.colSpan;
+
                                 return (
-                                  <div key={field.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                  <div 
+                                    key={field.id} 
+                                    style={{ 
+                                      gridRow: rSpan && rSpan > 1 ? `span ${rSpan}` : undefined,
+                                      gridColumn: cSpan && cSpan > 1 ? `span ${cSpan}` : cSpan === -1 ? '1 / -1' : undefined,
+                                      display: 'flex', 
+                                      flexDirection: 'column', 
+                                      gap: '0.25rem',
+                                      height: field.type === 'photo' ? '100%' : undefined
+                                    }}
+                                  >
                                     <label style={{ fontSize: '0.75rem', fontWeight: 400, color: 'var(--text-secondary)' }}>
                                       {field.checkItem}
                                     </label>
@@ -1439,7 +1452,70 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                                           <option key={opt.value} value={opt.value}>{opt.label}</option>
                                         ))}
                                       </select>
-                                    ) : field.type === 'subtable' ? (() => {
+                                    ) : field.type === 'photo' ? (() => {
+                                      const photoKeys = uploadedPhotos[field.id] || [];
+                                      const singleKey = photoKeys[0];
+                                      const isUploading = isPhotoUploading[field.id];
+
+                                      return (
+                                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', minHeight: '100px' }}>
+                                          <input
+                                            type="file"
+                                            accept="image/*"
+                                            id={`reader_photo_input_${field.id}`}
+                                            style={{ display: 'none' }}
+                                            disabled={isUploading}
+                                            onChange={(e) => {
+                                              const file = e.target.files?.[0];
+                                              if (file) handlePhotoUpload(field.id, file);
+                                            }}
+                                          />
+                                          {singleKey ? (
+                                            <div style={{ flex: 1, border: '1px solid #cbd5e1', borderRadius: '4px', background: '#f8fafc', padding: '6px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+                                              <img
+                                                src={`/api/storage/download-url?key=${encodeURIComponent(singleKey)}`}
+                                                alt="Evidence"
+                                                style={{ maxWidth: '100%', maxHeight: '140px', objectFit: 'contain', borderRadius: '3px' }}
+                                              />
+                                              <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => document.getElementById(`reader_photo_input_${field.id}`)?.click()}
+                                                  disabled={isUploading}
+                                                  style={{ fontSize: '0.7rem', padding: '2px 6px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '3px', cursor: 'pointer' }}
+                                                >
+                                                  🔄 Thay ảnh
+                                                </button>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => setUploadedPhotos(prev => {
+                                                    const next = { ...prev };
+                                                    delete next[field.id];
+                                                    return next;
+                                                  })}
+                                                  style={{ fontSize: '0.7rem', padding: '2px 6px', background: '#fff1f2', border: '1px solid #fecdd3', color: '#e11d48', borderRadius: '3px', cursor: 'pointer' }}
+                                                >
+                                                  🗑️ Xóa
+                                                </button>
+                                              </div>
+                                            </div>
+                                          ) : (
+                                            <div
+                                              onClick={() => !isUploading && document.getElementById(`reader_photo_input_${field.id}`)?.click()}
+                                              style={{ flex: 1, border: '1.5px dashed #cbd5e1', borderRadius: '4px', background: '#f8fafc', padding: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', minHeight: '100px' }}
+                                            >
+                                              <Camera size={22} style={{ color: '#94a3b8', marginBottom: '4px' }} />
+                                              <span style={{ fontSize: '0.75rem', color: '#475569', fontWeight: 500 }}>
+                                                {isUploading ? 'Đang tải ảnh...' : 'Bấm để chọn/chụp 1 ảnh bằng chứng'}
+                                              </span>
+                                              <span style={{ fontSize: '0.68rem', color: '#94a3b8', marginTop: '2px' }}>
+                                                (Hỗ trợ PNG, JPG, JPEG)
+                                              </span>
+                                            </div>
+                                          )}
+                                        </div>
+                                      );
+                                    })() : field.type === 'subtable' ? (() => {
                                       const cols = field.subtableColumns ?? [];
                                       const hasStaticCol = cols.some((c: any) => c.type === 'static_text');
                                       let rows: Record<string, string>[] = parseSubtableValue(value);

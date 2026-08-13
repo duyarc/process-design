@@ -430,10 +430,28 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                   <div className="print-info-grid" style={{ gridTemplateColumns: `repeat(${block.columns}, 1fr)` }}>
                     {block.fields.map((f) => {
                           const cleanLabel = sanitizeLabel(f.checkItem);
+                          const rSpan = f.type === 'subtable' ? undefined : f.rowSpan;
+                          const cSpan = f.type === 'subtable' ? -1 : f.colSpan;
+                          const gridItemStyle: React.CSSProperties = {
+                            gridRow: rSpan && rSpan > 1 ? `span ${rSpan}` : undefined,
+                            gridColumn: cSpan && cSpan > 1 ? `span ${cSpan}` : cSpan === -1 ? '1 / -1' : undefined,
+                          };
+
+                          if (f.type === 'photo') {
+                            return (
+                              <div key={f.id} style={{ ...gridItemStyle, display: 'flex', flexDirection: 'column', height: '100%', pageBreakInside: 'avoid' }}>
+                                {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', fontSize: '0.82rem', marginBottom: '4px' }}>{cleanLabel}</span>}
+                                <div style={{ flex: 1, border: '1.5px dashed #000000', borderRadius: '3px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: `${(f.rowSpan || 3) * 26}px`, padding: '6px' }}>
+                                  <span style={{ fontSize: '0.78rem', color: '#000000' }}>📷 [Dán / Chụp 1 ảnh bằng chứng]</span>
+                                </div>
+                              </div>
+                            );
+                          }
+
                           if (f.type === 'checkbox' || f.type === 'radio') {
                             const options = f.options ?? [{ label: 'Có', value: 'YES' }, { label: 'Không', value: 'NO' }];
                             return (
-                              <div key={f.id} style={{ display: 'flex', alignItems: 'baseline', gap: '8px', fontSize: '0.85rem' }}>
+                              <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'baseline', gap: '8px', fontSize: '0.85rem' }}>
                                 {cleanLabel && (
                                   <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap' }}>{cleanLabel}</span>
                                 )}
@@ -460,7 +478,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                             const cols = f.subtableColumns ?? [];
                             const blankRows = f.subtableDefaultRows ?? 3;
                             return (
-                              <div key={f.id} className="subtable-print-container print-field-full" style={{ fontSize: '0.82rem', width: '100%', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                              <div key={f.id} className="subtable-print-container print-field-full" style={{ ...gridItemStyle, fontSize: '0.82rem', width: '100%', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                                 {cleanLabel && <div style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', marginBottom: '6px', pageBreakAfter: 'avoid', breakAfter: 'avoid' }}>{cleanLabel}</div>}
                                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                   <thead>
@@ -499,7 +517,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
 
                           if (f.type === 'date') {
                             return (
-                              <div key={f.id} style={{ display: 'flex', alignItems: 'baseline', gap: '8px', fontSize: '0.85rem' }}>
+                              <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'baseline', gap: '8px', fontSize: '0.85rem' }}>
                                 {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap' }}>{cleanLabel}</span>}
                                 <div style={{ fontSize: '0.85rem', color: '#0f172a', display: 'flex', alignItems: 'baseline', gap: '4px' }}>
                                   <span style={{ borderBottom: '1px dotted #cbd5e1', width: '36px', display: 'inline-block', minHeight: 'var(--pw-line-h)' }} />
@@ -513,7 +531,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                           }
 
                           return (
-                            <div key={f.id} style={{ display: 'flex', alignItems: 'baseline', gap: '8px', fontSize: '0.85rem' }}>
+                            <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'baseline', gap: '8px', fontSize: '0.85rem' }}>
                               {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap' }}>{cleanLabel}</span>}
                               {f.type === 'time' ? (
                                 f.timeMode === 'dual' ? (

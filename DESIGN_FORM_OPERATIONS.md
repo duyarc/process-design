@@ -9,7 +9,7 @@
 | **Module Name** | Form Operations |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | `CURRENT` (2026-08-13) — FormFiller & ProcessReader render cell-level Radio & Checkbox custom options from cellOptionsMap. |
+| **Verified At Commit** | `CURRENT` (2026-08-13) — FormFiller, ProcessReader, and PrintFilledForm render single photo in INFO_GRID photo rowSpan cell. |
 
 ### Quick File Index
 
@@ -427,6 +427,7 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 | 2026-08-03 | `CURRENT` | **FormFiller Print Draft Data:** Added 'In bản khai' button to `FormFiller.tsx` toolbar. Constructs a transient draft `Submission` object from current UI `formValues` without requiring validation check blocks. Calls `PrintFilledForm.tsx` to preview/print draft. |
 | 2026-08-13 | `CURRENT` | **CHECKLIST_TABLE Retirement Compatibility:** Retained all rendering, filling, and printing branches for `CHECKLIST_TABLE` in `FormFiller`, `PrintBlankForm`, `PrintFilledForm`, and `PrintRecord` to ensure 100% backward compatibility for historical forms and submissions. |
 | 2026-08-13 | `CURRENT` | **FormFiller Cell-Level Custom Options:** Updated `FormFiller.tsx` & `ProcessReader.tsx` TABLE cell rendering to resolve `cellOptionsMap` for both `checkbox` and `radio` types, allowing operators to select row-specific options seamlessly. |
+| 2026-08-13 | `CURRENT` | **FormFiller & Print Single Photo Upload:** Updated `FormFiller.tsx` & `ProcessReader.tsx` to enforce 1-photo upload limit per `photo` field, replacing previous photo keys upon new upload. Updated `PrintBlankForm.tsx` & `PrintFilledForm.tsx` to render single photo in `INFO_GRID` grid cells spanning `rowSpan` height. |
 
 
 

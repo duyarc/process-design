@@ -849,6 +849,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
       newField.timeMode = 'single';
     } else if (type === 'radio' || type === 'checkbox') {
       newField.options = [...DEFAULT_RADIO_OPTIONS];
+    } else if (type === 'photo') {
+      newField.rowSpan = 3;
     } else if (type === 'subtable') {
       newField.subtableColumns = [
         { id: `stcol_${Date.now()}_1`, label: 'Ngành hàng', type: 'text', width: '35%' },
@@ -1842,7 +1844,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                   <button 
                     type="button" 
                     onClick={() => handleAddField(activeBlockId, 'photo')}
-                    disabled={isLocked || activeBlock?.type !== 'CHECKLIST_TABLE'}
+                    disabled={isLocked || (activeBlock?.type !== 'INFO_GRID' && activeBlock?.type !== 'CHECKLIST_TABLE')}
                     className="btn btn-secondary" 
                     style={{ justifyContent: 'start', padding: '0.4rem 0.5rem', fontSize: '0.75rem' }}
                   >
@@ -2122,6 +2124,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                             }}>
                               {block.fields.map((f, fIdx, fArr) => {
                                 const isFieldSelected = activeFieldId === f.id;
+                                const rSpan = f.type === 'subtable' ? undefined : f.rowSpan;
+                                const cSpan = f.type === 'subtable' ? -1 : f.colSpan;
+
                                 return (
                                   <div 
                                     key={f.id} 
@@ -2131,13 +2136,18 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                       setActiveFieldId(f.id);
                                     }}
                                     style={{
-                                      borderBottom: isFieldSelected ? '2px solid var(--primary)' : '1px dotted #cbd5e1',
-                                      padding: '4px',
+                                      gridRow: rSpan && rSpan > 1 ? `span ${rSpan}` : undefined,
+                                      gridColumn: cSpan && cSpan > 1 ? `span ${cSpan}` : cSpan === -1 ? '1 / -1' : undefined,
+                                      border: isFieldSelected ? '2px solid var(--primary)' : '1px dotted #cbd5e1',
+                                      borderRadius: '4px',
+                                      padding: '6px',
                                       fontSize: '0.75rem',
                                       display: 'flex',
                                       flexDirection: 'column',
+                                      justifyContent: 'space-between',
                                       gap: '4px',
-                                      background: isFieldSelected ? 'rgba(16, 163, 163, 0.05)' : 'none'
+                                      background: isFieldSelected ? 'rgba(16, 163, 163, 0.05)' : 'none',
+                                      minHeight: f.type === 'photo' ? `${(f.rowSpan || 3) * 52}px` : undefined,
                                     }}
                                   >
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -3163,6 +3173,40 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                     <option value="subtable">Subtable</option>
                   </select>
                 </div>
+
+                {activeField.type === 'photo' && activeBlock?.type === 'INFO_GRID' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', padding: '0.6rem', border: '1px solid #cbd5e1', borderRadius: '6px', background: '#f8fafc' }}>
+                    <div style={{ fontWeight: 600, fontSize: '0.78rem', color: '#0f172a' }}>Cấu hình Kích thước Ảnh (INFO_GRID)</div>
+                    
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                      <label style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Chiều cao (Số dòng - rowSpan)</label>
+                      <select
+                        disabled={isLocked}
+                        value={activeField.rowSpan || 3}
+                        onChange={(e) => handleUpdateField(activeBlockId!, activeFieldId!, { rowSpan: parseInt(e.target.value, 10) })}
+                        style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', background: '#fff', fontSize: '0.75rem' }}
+                      >
+                        <option value={1}>1 dòng</option>
+                        <option value={2}>2 dòng</option>
+                        <option value={3}>3 dòng (Khuyên dùng - Chuẩn 16:9)</option>
+                        <option value={4}>4 dòng (Chuẩn 4:3)</option>
+                      </select>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                      <label style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Chiều rộng (Số cột - colSpan)</label>
+                      <select
+                        disabled={isLocked}
+                        value={activeField.colSpan || 1}
+                        onChange={(e) => handleUpdateField(activeBlockId!, activeFieldId!, { colSpan: parseInt(e.target.value, 10) })}
+                        style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', background: '#fff', fontSize: '0.75rem' }}
+                      >
+                        <option value={1}>1 cột</option>
+                        <option value={-1}>Tràn toàn bộ dòng (Full width)</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
 
                 {activeField.type === 'time' && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>

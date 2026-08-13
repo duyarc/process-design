@@ -110,6 +110,8 @@ export interface FormFieldISO {
   subtableColumns?: SubtableColumn[];
   subtableDefaultRows?: number;
   subtableStaticData?: Record<number, Record<string, string>>;
+  rowSpan?: number; // Row span in INFO_GRID (e.g. 1, 2, 3, 4)
+  colSpan?: number; // Column span in INFO_GRID (e.g. 1, 2, 3, or -1 for full width)
 }
 
 export interface FormRevisionEntry {
