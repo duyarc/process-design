@@ -571,10 +571,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
           options: [{ label: 'Đ', value: 'PASS', isPass: true }, { label: 'KĐ', value: 'FAIL', isPass: false }] },
         { id: 'col_reaction', label: 'Ghi chú',                      width: '15%',  type: 'text' }
       ] : type === 'TABLE' ? [
-        { id: 'col_1', label: 'STT', width: '10%', type: 'static_text' },
+        { id: 'col_1', label: 'STT', width: '8%', align: 'center', type: 'static_text' },
         { id: 'col_2', label: 'Tên hạng mục', width: '50%', type: 'static_text' },
-        { id: 'col_3', label: 'Trị số', width: '20%', type: 'number' },
-        { id: 'col_4', label: 'Đạt', width: '20%', type: 'checkbox' }
+        { id: 'col_3', label: 'Giá trị', width: '', type: 'number' }
       ] : undefined,
       tableRows: type === 'TABLE' ? [
         { id: 'row_1' },

@@ -9,7 +9,7 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | `CURRENT` (2026-08-13) — Inline editable WYSIWYG tip and camera icon removal for Photo fields in INFO_GRID. |
+| **Verified At Commit** | `CURRENT` (2026-08-13) — Update TABLE layout block default initial columns (STT 8% centered, Tên hạng mục 50%, Giá trị Auto, remove Đạt column). |
 
 > **⚠️ Architectural note:** FormBuilder has no awareness of which process it belongs to. The `formName` prop is always identical to `formId`. See Section 6.1 and the Technical Debt table.
 
@@ -503,5 +503,6 @@ full diff of any entry below.
 | 2026-08-13 | `CURRENT` | **Cell-Level Custom Options for TABLE Block (Radio & Checkbox):** Added `cellOptionsMap?: { [cellKey: string]: RadioOption[] }` to `LayoutBlockISO` in `src/types.ts`. Implemented inline canvas editing in `FormBuilder.tsx` and Right Panel property inspector card. Propagated `effectiveCellOptions` to `FormFiller.tsx`, `ProcessReader.tsx`, and `PrintBlankForm.tsx`. |
 | 2026-08-13 | `CURRENT` | **INFO_GRID Photo Multi-Row Span & Single Photo Upload:** Added `rowSpan?: number` and `colSpan?: number` to `FormFieldISO`. Enabled `+ Photo` field button for `INFO_GRID` block. Added Right Panel rowSpan (1–4 rows) & colSpan controls. Enforced 1-photo upload constraint (overriding previous photo). Preserved 100% WYSIWYG consistency across FormBuilder, FormFiller, ProcessReader, PrintBlankForm, and PrintFilledForm. |
 | 2026-08-13 | `CURRENT` | **Photo Field WYSIWYG Inline Editable Tip & Icon Removal:** Removed camera icon from canvas placeholder and print blank forms. Made photo hint text directly editable inline inside the canvas placeholder (saved in `f.checkItem`). Propagated hint text to FormFiller, ProcessReader, and PrintBlankForm. |
+| 2026-08-13 | `CURRENT` | **TABLE Block Default Initial Columns Update:** Updated default `tableColumns` in `FormBuilder.tsx` for newly added `TABLE` blocks: `STT` (width: 8%, align: center), `Tên hạng mục` (width: 50%), `Giá trị` (width: auto/42%), and removed default `'Đạt'` column completely. |
 
 
