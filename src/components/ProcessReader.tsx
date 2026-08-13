@@ -1506,7 +1506,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                                               style={{ flex: 1, border: '1.5px dashed #cbd5e1', borderRadius: '4px', background: '#f8fafc', padding: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', minHeight: '80px' }}
                                             >
                                               <span style={{ fontSize: '0.78rem', color: '#475569', fontWeight: 500, fontStyle: 'italic', textAlign: 'center' }}>
-                                                {isUploading ? 'Đang tải ảnh...' : (field.checkItem || '[Dán / Chụp 1 ảnh bằng chứng]')}
+                                                {isUploading ? 'Đang tải ảnh...' : (field.checkItem ?? '')}
                                               </span>
                                               <span style={{ fontSize: '0.68rem', color: '#94a3b8', marginTop: '4px' }}>
                                                 (Hỗ trợ PNG, JPG, JPEG)

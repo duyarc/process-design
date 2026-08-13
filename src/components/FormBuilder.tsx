@@ -850,7 +850,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     } else if (type === 'radio' || type === 'checkbox') {
       newField.options = [...DEFAULT_RADIO_OPTIONS];
     } else if (type === 'photo') {
-      newField.checkItem = '[Dán / Chụp 1 ảnh bằng chứng]';
+      newField.checkItem = '[photo]';
       newField.rowSpan = 3;
     } else if (type === 'subtable') {
       newField.subtableColumns = [
@@ -927,8 +927,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
       updates.unit = undefined;
     } else if (newType === 'photo') {
       updates.rowSpan = field?.rowSpan ?? 3;
-      if (!field?.checkItem || field.checkItem === 'Thông tin mới') {
-        updates.checkItem = '[Dán / Chụp 1 ảnh bằng chứng]';
+      if (!field?.checkItem || field.checkItem === 'Thông tin mới' || field.checkItem === '[Dán / Chụp 1 ảnh bằng chứng]') {
+        updates.checkItem = '[photo]';
       }
       updates.minSpec = undefined;
       updates.maxSpec = undefined;
@@ -2163,8 +2163,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                     }}
                                   >
                                     {/* Header row: label (left) + type badge + move controls (right) */}
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                      {f.type === 'photo' ? <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>Ảnh bằng chứng</span> : <span style={{ fontWeight: 600 }}>{sanitizeLabel(f.checkItem)}</span>}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', minHeight: f.type === 'photo' && !isFieldSelected ? '0' : undefined }}>
+                                      {f.type === 'photo' ? <div /> : <span style={{ fontWeight: 600 }}>{sanitizeLabel(f.checkItem)}</span>}
                                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                                         {isFieldSelected && !isLocked && (
                                           <div style={{ display: 'flex', alignItems: 'center', gap: '2px', marginRight: '4px' }}>
