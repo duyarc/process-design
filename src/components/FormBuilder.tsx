@@ -288,6 +288,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
   /** true = Form ID bị khoá vì đang liên kết với process (có thể đổi sang false sau khi unlink) */
   const [formIdLinked, setFormIdLinked] = useState(!!linkedProcessId);
   const [printPreviewData, setPrintPreviewData] = useState<FormTemplateISO | null>(null);
+  const [autoExportPdf, setAutoExportPdf] = useState<boolean>(false);
   const [currentDraftBackup, setCurrentDraftBackup] = useState<{ layoutBlocks: LayoutBlockISO[]; version: string; isLocked: boolean } | null>(null);
   const [viewingRevisionVersion, setViewingRevisionVersion] = useState<string | null>(null);
   const [rightTab, setRightTab] = useState<'properties' | 'versions'>('properties');
@@ -1373,7 +1374,12 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     return (
       <PrintBlankForm
         template={printPreviewData}
-        onClose={() => setPrintPreviewData(null)}
+        autoExportPdf={autoExportPdf}
+        exportMode={autoExportPdf}
+        onClose={() => {
+          setPrintPreviewData(null);
+          setAutoExportPdf(false);
+        }}
       />
     );
   }
@@ -1619,6 +1625,50 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
           )}
           
           <div style={{ borderLeft: '1px solid var(--neutral-border)', height: '16px', margin: '0 0.25rem' }} />
+
+          <button 
+            type="button"
+            onClick={() => {
+              setAutoExportPdf(true);
+              setPrintPreviewData({
+                formId,
+                formTitle,
+                version,
+                status,
+                pageSize,
+                effectiveDate: status === 'ACTIVE' ? (effectiveDate || (initialData as any)?.effectiveDate || (initialData as any)?.effective_date) : undefined,
+                updatedAt: initialData?.updatedAt || (initialData as any)?.updated_at || new Date().toISOString(),
+                layoutBlocks,
+                revisionHistory
+              });
+            }}
+            style={{
+              background: 'none',
+              border: '1px solid #cbd5e1',
+              color: '#334155',
+              padding: '4px 12px',
+              borderRadius: '4px',
+              fontSize: '0.8rem',
+              fontWeight: 500,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = '#f8fafc';
+              e.currentTarget.style.borderColor = '#94a3b8';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'none';
+              e.currentTarget.style.borderColor = '#cbd5e1';
+            }}
+            title="Xuất biểu mẫu dạng Fillable PDF tương tác"
+          >
+            <FileText size={13} />
+            <span>PDF</span>
+          </button>
 
           <button 
             type="button"

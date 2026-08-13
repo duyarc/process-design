@@ -4,6 +4,9 @@ import type { FormTemplateISO, LayoutBlockISO, TableColumnConfig } from '../../t
 import { formatFormVersion, getColStyleWidth } from '../../types';
 import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, getAutoCheckboxLayoutMode } from '../../utils/formUtils';
 
+import { exportFillablePdfFromDOM } from '../../utils/pdfFormExporter';
+import { FileText, Printer } from 'lucide-react';
+
 // Helper: derive CHECKLIST_TABLE columns — falls back to columnLabels for backward compat
 function getChecklistColumns(block: LayoutBlockISO): TableColumnConfig[] {
   let cols: TableColumnConfig[];
@@ -39,6 +42,8 @@ function getChecklistColumns(block: LayoutBlockISO): TableColumnConfig[] {
 interface PrintBlankFormProps {
   template: FormTemplateISO;
   onClose: () => void;
+  exportMode?: boolean;
+  autoExportPdf?: boolean;
 }
 
 const getCheckboxGridTemplate = (options: any[]) => {
@@ -61,9 +66,11 @@ const getCheckboxGridTemplate = (options: any[]) => {
   return `${pct1}% ${pct2}%`;
 };
 
-export default function PrintBlankForm({ template, onClose }: PrintBlankFormProps) {
+export default function PrintBlankForm({ template, onClose, exportMode = false, autoExportPdf = false }: PrintBlankFormProps) {
   const [logoUrl, setLogoUrl] = React.useState<string>('');
   const [imgLoaded, setImgLoaded] = React.useState<boolean>(false);
+  const [isExportingPdf, setIsExportingPdf] = React.useState<boolean>(false);
+  const printContainerRef = React.useRef<HTMLDivElement>(null);
 
   const pageSize = template.pageSize || (template as any).page_size || 'A4';
   const isA5 = pageSize === 'A5_LANDSCAPE';
@@ -100,9 +107,30 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
     }
   }, [titleBlockLogo]);
 
-  // Trigger print dialog only after logo image is fully loaded in DOM
+  const handleExportPdf = React.useCallback(async () => {
+    if (!printContainerRef.current || isExportingPdf) return;
+    try {
+      setIsExportingPdf(true);
+      await exportFillablePdfFromDOM(printContainerRef.current, template);
+    } catch (err) {
+      console.error('Failed to export PDF:', err);
+    } finally {
+      setIsExportingPdf(false);
+    }
+  }, [template, isExportingPdf]);
+
+  // Trigger print or auto-export dialog only after logo image is fully loaded in DOM
   React.useEffect(() => {
     if (!imgLoaded) return;
+
+    if (autoExportPdf) {
+      const timer = setTimeout(() => {
+        handleExportPdf();
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+
+    if (exportMode) return; // In export mode without autoExportPdf, don't trigger window.print()
 
     const handleAfterPrint = () => {
       onClose();
@@ -117,7 +145,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
       window.removeEventListener('afterprint', handleAfterPrint);
       clearTimeout(timer);
     };
-  }, [imgLoaded, onClose]);
+  }, [imgLoaded, onClose, exportMode, autoExportPdf, handleExportPdf]);
 
   // Set document.title according to Digital 5S standard
   React.useEffect(() => {
@@ -131,7 +159,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
   }, [template.formTitle]);
 
   return ReactDOM.createPortal(
-    <div className="print-container print-doc" style={{
+    <div ref={printContainerRef} className="print-container print-doc" style={{
       position: 'fixed',
       top: 0,
       left: 0,
@@ -235,10 +263,21 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button 
             type="button" 
+            className="btn btn-secondary"
+            onClick={handleExportPdf}
+            disabled={isExportingPdf}
+            style={{ padding: '0.4rem 1rem', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+          >
+            <FileText size={16} />
+            {isExportingPdf ? 'Đang xuất PDF...' : 'PDF'}
+          </button>
+          <button 
+            type="button" 
             className="btn btn-primary"
             onClick={() => window.print()}
-            style={{ padding: '0.4rem 1rem', fontSize: '0.85rem' }}
+            style={{ padding: '0.4rem 1rem', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
           >
+            <Printer size={16} />
             Print Form
           </button>
           <button 
@@ -465,7 +504,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                                   )}
                                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingLeft: '1.25rem' }}>
                                     {options.map((opt: any) => (
-                                      <span key={opt.value} style={{ display: 'inline-flex', alignItems: 'flex-start', gap: '6px', fontSize: '0.8rem', whiteSpace: 'normal', wordBreak: 'break-word', maxWidth: '100%' }}>
+                                      <span key={opt.value} data-acroform-field="true" data-field-id={f.id} data-field-type={f.type} data-field-name={cleanLabel} data-field-radiogroup={f.id} data-field-radiovalue={opt.value} style={{ display: 'inline-flex', alignItems: 'flex-start', gap: '6px', fontSize: '0.8rem', whiteSpace: 'normal', wordBreak: 'break-word', maxWidth: '100%' }}>
                                         <span style={{
                                           display: 'inline-block',
                                           width: '13px',
@@ -491,7 +530,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                                 )}
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', alignItems: 'center', maxWidth: '100%' }}>
                                   {options.map((opt: any) => (
-                                    <span key={opt.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.8rem', whiteSpace: 'normal', wordBreak: 'break-word', maxWidth: '100%' }}>
+                                    <span key={opt.value} data-acroform-field="true" data-field-id={f.id} data-field-type={f.type} data-field-name={cleanLabel} data-field-radiogroup={f.id} data-field-radiovalue={opt.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.8rem', whiteSpace: 'normal', wordBreak: 'break-word', maxWidth: '100%' }}>
                                       <span style={{
                                         display: 'inline-block',
                                         width: '13px',
@@ -539,7 +578,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                                                </td>
                                             );
                                           }
-                                          return <td key={col.id} style={{ border: '1px solid #cbd5e1', padding: '4px 6px', height: '28px' }} />;
+                                          return <td key={col.id} data-acroform-field="true" data-field-id={`${f.id}_r${rowIdx}_${col.id}`} data-field-type={col.type} data-field-name={col.label} style={{ border: '1px solid #cbd5e1', padding: '4px 6px', height: '28px' }} />;
                                         })}
                                       </tr>
                                     ))}
@@ -553,7 +592,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                             return (
                               <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'baseline', gap: '8px', fontSize: '0.85rem' }}>
                                 {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap' }}>{cleanLabel}</span>}
-                                <div style={{ fontSize: '0.85rem', color: '#0f172a', display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+                                <div data-acroform-field="true" data-field-id={f.id} data-field-type="date" data-field-name={cleanLabel} style={{ fontSize: '0.85rem', color: '#0f172a', display: 'flex', alignItems: 'baseline', gap: '4px', flex: 1 }}>
                                   <span style={{ borderBottom: '1px dotted #cbd5e1', width: '36px', display: 'inline-block', minHeight: 'var(--pw-line-h)' }} />
                                   <span style={{ color: '#000000', fontWeight: 'var(--pw-weight-regular)' }}>/</span>
                                   <span style={{ borderBottom: '1px dotted #cbd5e1', width: '36px', display: 'inline-block', minHeight: 'var(--pw-line-h)' }} />
@@ -569,16 +608,16 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                               {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap' }}>{cleanLabel}</span>}
                               {f.type === 'time' ? (
                                 f.timeMode === 'dual' ? (
-                                  <div style={{ fontSize: '0.8rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                  <div data-acroform-field="true" data-field-id={f.id} data-field-type="time" data-field-name={cleanLabel} style={{ fontSize: '0.8rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '4px', flex: 1 }}>
                                     Từ <span style={{ borderBottom: '1px dotted #cbd5e1', width: '32px', display: 'inline-block', minHeight: 'var(--pw-line-h)' }} /> : <span style={{ borderBottom: '1px dotted #cbd5e1', width: '32px', display: 'inline-block', minHeight: 'var(--pw-line-h)' }} /> đến <span style={{ borderBottom: '1px dotted #cbd5e1', width: '32px', display: 'inline-block', minHeight: 'var(--pw-line-h)' }} /> : <span style={{ borderBottom: '1px dotted #cbd5e1', width: '32px', display: 'inline-block', minHeight: 'var(--pw-line-h)' }} />
                                   </div>
                                 ) : (
-                                  <div style={{ fontSize: '0.8rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                  <div data-acroform-field="true" data-field-id={f.id} data-field-type="time" data-field-name={cleanLabel} style={{ fontSize: '0.8rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '4px', flex: 1 }}>
                                     <span style={{ borderBottom: '1px dotted #cbd5e1', width: '36px', display: 'inline-block', minHeight: 'var(--pw-line-h)' }} /> <span style={{ color: '#475569', fontWeight: 'var(--pw-weight-regular)' }}>:</span> <span style={{ borderBottom: '1px dotted #cbd5e1', width: '36px', display: 'inline-block', minHeight: 'var(--pw-line-h)' }} />
                                   </div>
                                 )
                               ) : (
-                                <div style={{ flex: 1, borderBottom: '1px dotted #cbd5e1', minHeight: 'var(--pw-line-h)' }} />
+                                <div data-acroform-field="true" data-field-id={f.id} data-field-type={f.type} data-field-name={cleanLabel} style={{ flex: 1, borderBottom: '1px dotted #cbd5e1', minHeight: 'var(--pw-line-h)' }} />
                               )}
                             </div>
                           );
@@ -704,7 +743,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                                   {(field.type === 'radio' || field.type === 'checkbox') ? (
                                     <div style={{ display: 'flex', justifyContent: 'center', gap: '15px', flexWrap: 'wrap', alignItems: 'center' }}>
                                       {(field.options ?? [{ label: 'Đ', value: 'PASS', isPass: true }, { label: 'KĐ', value: 'FAIL', isPass: false }]).map(opt => (
-                                        <span key={opt.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem' }}>
+                                        <span key={opt.value} data-acroform-field="true" data-field-id={field.id} data-field-type={field.type} data-field-name={displayTitle} data-field-radiogroup={field.id} data-field-radiovalue={opt.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem' }}>
                                           <span style={{ display: 'inline-block', width: '14px', height: '14px', border: '1.5px solid #000000', background: '#ffffff', borderRadius: '2px' }} />
                                           <span>{opt.label}</span>
                                         </span>
@@ -712,11 +751,11 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                                     </div>
                                   ) : field.type === 'time' ? (
                                     field.timeMode === 'dual' ? (
-                                      <div style={{ fontSize: '0.75rem', color: '#000000', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '2px' }}>
+                                      <div data-acroform-field="true" data-field-id={field.id} data-field-type="time" data-field-name={displayTitle} style={{ fontSize: '0.75rem', color: '#000000', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '2px' }}>
                                         Từ <span style={{ borderBottom: '1px solid #000000', width: '22px', display: 'inline-block', height: '12px' }} />:<span style={{ borderBottom: '1px solid #000000', width: '22px', display: 'inline-block', height: '12px' }} /> đến <span style={{ borderBottom: '1px solid #000000', width: '22px', display: 'inline-block', height: '12px' }} />:<span style={{ borderBottom: '1px solid #000000', width: '22px', display: 'inline-block', height: '12px' }} />
                                       </div>
                                     ) : (
-                                      <div style={{ fontSize: '0.75rem', color: '#000000', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '2px' }}>
+                                      <div data-acroform-field="true" data-field-id={field.id} data-field-type="time" data-field-name={displayTitle} style={{ fontSize: '0.75rem', color: '#000000', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '2px' }}>
                                         <span style={{ borderBottom: '1px solid #000000', width: '30px', display: 'inline-block', height: '12px' }} /> : <span style={{ borderBottom: '1px solid #000000', width: '30px', display: 'inline-block', height: '12px' }} />
                                       </div>
                                     )
@@ -725,7 +764,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                               );
                             }
                             if (col.id === 'col_reaction') {
-                              return <td key={col.id} style={{ ...commonStyle, color: '#64748b', fontSize: '0.75rem' }} />;
+                              return <td key={col.id} data-acroform-field="true" data-field-id={`${field.id}_reaction`} data-field-type="text" data-field-name="Ghi chú" style={{ ...commonStyle, color: '#64748b', fontSize: '0.75rem' }} />;
                             }
                             return <td key={col.id} style={commonStyle} />;
                           })}
@@ -960,13 +999,13 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                           {rIdx + 1}
                         </td>
                         {block.matrixConfig!.columns.map((_, cIdx) => (
-                          <td key={cIdx} style={{ border: '1.5px solid #000000', padding: '4px 6px', height: '28px' }}></td>
+                          <td key={cIdx} data-acroform-field="true" data-field-id={`matrix_r${rIdx}_c${cIdx}`} data-field-type="number" data-field-name={`Matrix Row ${rIdx + 1} Col ${cIdx + 1}`} style={{ border: '1.5px solid #000000', padding: '4px 6px', height: '28px' }}></td>
                         ))}
                         {block.matrixConfig!.showTotalColumn && (
-                          <td style={{ border: '1.5px solid #000000', padding: '4px 6px', height: '28px' }}></td>
+                          <td data-acroform-field="true" data-field-id={`matrix_r${rIdx}_total`} data-field-type="number" data-field-name={`Matrix Row ${rIdx + 1} Total`} style={{ border: '1.5px solid #000000', padding: '4px 6px', height: '28px' }}></td>
                         )}
                         {block.matrixConfig!.showNotesColumn && (
-                          <td style={{ border: '1.5px solid #000000', padding: '4px 6px', height: '28px' }}></td>
+                          <td data-acroform-field="true" data-field-id={`matrix_r${rIdx}_notes`} data-field-type="text" data-field-name={`Matrix Row ${rIdx + 1} Notes`} style={{ border: '1.5px solid #000000', padding: '4px 6px', height: '28px' }}></td>
                         )}
                       </tr>
                     ))}
@@ -1019,7 +1058,7 @@ export default function PrintBlankForm({ template, onClose }: PrintBlankFormProp
                     {block.fields.map((f) => {
                       const isBlank = !f.checkItem || f.checkItem.trim() === '';
                       return (
-                        <div key={f.id} style={{
+                        <div key={f.id} data-acroform-field="true" data-field-id={f.id} data-field-type="signature" data-field-name={f.checkItem} style={{
                           height: '80px',
                           display: 'flex',
                           flexDirection: 'column',

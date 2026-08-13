@@ -13,7 +13,8 @@ import {
   Link2,
   PenTool,
   Trash2,
-  Printer
+  Printer,
+  FileText
 } from 'lucide-react';
 
 const parseSubtableValue = (val: string): Record<string, string>[] => {
@@ -71,6 +72,7 @@ export default function FormFiller({
   const [submitting, setSubmitting] = useState(false);
   const [submittedId, setSubmittedId] = useState<string | null>(null);
   const [showPrintBlank, setShowPrintBlank] = useState(false);
+  const [autoExportPdf, setAutoExportPdf] = useState(false);
   const [printCurrentSubmission, setPrintCurrentSubmission] = useState<Submission | null>(null);
 
   // Load initial values if editing
@@ -612,7 +614,12 @@ export default function FormFiller({
     return (
       <PrintBlankForm
         template={formTemplate}
-        onClose={() => setShowPrintBlank(false)}
+        autoExportPdf={autoExportPdf}
+        exportMode={autoExportPdf}
+        onClose={() => {
+          setShowPrintBlank(false);
+          setAutoExportPdf(false);
+        }}
       />
     );
   }
@@ -660,6 +667,19 @@ export default function FormFiller({
         </div>
 
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <button 
+            className="btn btn-secondary btn-sm" 
+            onClick={() => {
+              setAutoExportPdf(true);
+              setShowPrintBlank(true);
+            }}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.35rem 0.75rem' }}
+            title="Tải biểu mẫu dạng Fillable PDF tương tác"
+          >
+            <FileText size={13} />
+            <span>PDF</span>
+          </button>
+
           <button 
             className="btn btn-secondary btn-sm" 
             onClick={() => setShowPrintBlank(true)}
