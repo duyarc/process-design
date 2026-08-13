@@ -135,8 +135,7 @@ export async function exportFillablePdfFromDOM(
             width,
             height,
             borderWidth: 0.5,
-            borderColor: rgb(0.6, 0.6, 0.6),
-            backgroundColor: rgb(0.98, 0.98, 0.98),
+            borderColor: rgb(0.8, 0.8, 0.8),
           });
         }
       } catch (err) {

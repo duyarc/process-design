@@ -504,17 +504,25 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                   )}
                                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingLeft: '1.25rem' }}>
                                     {options.map((opt: any) => (
-                                      <span key={opt.value} data-acroform-field="true" data-field-id={f.id} data-field-type={f.type} data-field-name={cleanLabel} data-field-radiogroup={f.id} data-field-radiovalue={opt.value} style={{ display: 'inline-flex', alignItems: 'flex-start', gap: '6px', fontSize: '0.8rem', whiteSpace: 'normal', wordBreak: 'break-word', maxWidth: '100%' }}>
-                                        <span style={{
-                                          display: 'inline-block',
-                                          width: '13px',
-                                          height: '13px',
-                                          border: '1.5px solid #000000',
-                                          background: '#ffffff',
-                                          borderRadius: f.type === 'radio' ? '50%' : '2px',
-                                          flexShrink: 0,
-                                          marginTop: '2px'
-                                        }} />
+                                      <span key={opt.value} style={{ display: 'inline-flex', alignItems: 'flex-start', gap: '6px', fontSize: '0.8rem', whiteSpace: 'normal', wordBreak: 'break-word', maxWidth: '100%' }}>
+                                        <span
+                                          data-acroform-field="true"
+                                          data-field-id={f.id}
+                                          data-field-type={f.type}
+                                          data-field-name={cleanLabel}
+                                          data-field-radiogroup={f.id}
+                                          data-field-radiovalue={opt.value}
+                                          style={{
+                                            display: 'inline-block',
+                                            width: '13px',
+                                            height: '13px',
+                                            border: '1.5px solid #000000',
+                                            background: '#ffffff',
+                                            borderRadius: f.type === 'radio' ? '50%' : '2px',
+                                            flexShrink: 0,
+                                            marginTop: '2px'
+                                          }}
+                                        />
                                         <span style={{ lineHeight: '1.3' }}>{opt.label}</span>
                                       </span>
                                     ))}
@@ -530,16 +538,24 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                 )}
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', alignItems: 'center', maxWidth: '100%' }}>
                                   {options.map((opt: any) => (
-                                    <span key={opt.value} data-acroform-field="true" data-field-id={f.id} data-field-type={f.type} data-field-name={cleanLabel} data-field-radiogroup={f.id} data-field-radiovalue={opt.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.8rem', whiteSpace: 'normal', wordBreak: 'break-word', maxWidth: '100%' }}>
-                                      <span style={{
-                                        display: 'inline-block',
-                                        width: '13px',
-                                        height: '13px',
-                                        border: '1.5px solid #000000',
-                                        background: '#ffffff',
-                                        borderRadius: f.type === 'radio' ? '50%' : '2px',
-                                        flexShrink: 0
-                                      }} />
+                                    <span key={opt.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.8rem', whiteSpace: 'normal', wordBreak: 'break-word', maxWidth: '100%' }}>
+                                      <span
+                                        data-acroform-field="true"
+                                        data-field-id={f.id}
+                                        data-field-type={f.type}
+                                        data-field-name={cleanLabel}
+                                        data-field-radiogroup={f.id}
+                                        data-field-radiovalue={opt.value}
+                                        style={{
+                                          display: 'inline-block',
+                                          width: '13px',
+                                          height: '13px',
+                                          border: '1.5px solid #000000',
+                                          background: '#ffffff',
+                                          borderRadius: f.type === 'radio' ? '50%' : '2px',
+                                          flexShrink: 0
+                                        }}
+                                      />
                                       <span style={{ lineHeight: '1.3' }}>{opt.label}</span>
                                     </span>
                                   ))}
@@ -743,8 +759,16 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                   {(field.type === 'radio' || field.type === 'checkbox') ? (
                                     <div style={{ display: 'flex', justifyContent: 'center', gap: '15px', flexWrap: 'wrap', alignItems: 'center' }}>
                                       {(field.options ?? [{ label: 'Đ', value: 'PASS', isPass: true }, { label: 'KĐ', value: 'FAIL', isPass: false }]).map(opt => (
-                                        <span key={opt.value} data-acroform-field="true" data-field-id={field.id} data-field-type={field.type} data-field-name={displayTitle} data-field-radiogroup={field.id} data-field-radiovalue={opt.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem' }}>
-                                          <span style={{ display: 'inline-block', width: '14px', height: '14px', border: '1.5px solid #000000', background: '#ffffff', borderRadius: '2px' }} />
+                                        <span key={opt.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem' }}>
+                                          <span
+                                            data-acroform-field="true"
+                                            data-field-id={field.id}
+                                            data-field-type={field.type}
+                                            data-field-name={displayTitle}
+                                            data-field-radiogroup={field.id}
+                                            data-field-radiovalue={opt.value}
+                                            style={{ display: 'inline-block', width: '14px', height: '14px', border: '1.5px solid #000000', background: '#ffffff', borderRadius: field.type === 'radio' ? '50%' : '2px' }}
+                                          />
                                           <span>{opt.label}</span>
                                         </span>
                                       ))}
