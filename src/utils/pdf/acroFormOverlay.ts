@@ -60,13 +60,16 @@ export async function overlayAcroFormFields(
           fieldId.endsWith('_hh') || fieldId.endsWith('_start_hh') || fieldId.endsWith('_start_mm') ||
           fieldId.endsWith('_end_hh') || fieldId.endsWith('_end_mm');
         
-        // Exact X for Date/Time Parts, +2pt shift for normal text fields
-        const textX = isDateOrTimePart ? (marginX + relLeft * scaleFactor) : (marginX + relLeft * scaleFactor + 2);
+        // Exact X for Date/Time Parts (+0), +1.5pt shift for normal text/table fields
+        const textX = isDateOrTimePart ? (marginX + relLeft * scaleFactor) : (marginX + relLeft * scaleFactor + 1.5);
         const fieldHeight = Math.min(Math.max(height, 14), 15);
         
+        // Subtract 4.5pt from outer width for normal fields so right edge stops 3pt inside right cell border line
+        const rawWidth = isDateOrTimePart ? width : Math.max(10, width - 4.5);
+        
         // Clamp right edge so it never exceeds (pdfPageWidth - marginX - 6pt)
-        const maxAllowedWidth = Math.max(12, pdfPageWidth - marginX - 6 - textX);
-        const fieldWidth = Math.min(width, maxAllowedWidth);
+        const maxAllowedWidth = Math.max(10, pdfPageWidth - marginX - 6 - textX);
+        const fieldWidth = Math.min(rawWidth, maxAllowedWidth);
 
         // Lower fieldY by 4.5pt so text baseline aligns 100% horizontally with label baseline
         const fieldY = pdfPageHeight - marginY - (localTop * scaleFactor + fieldHeight + 4.5);
