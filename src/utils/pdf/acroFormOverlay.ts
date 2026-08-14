@@ -36,8 +36,8 @@ export async function overlayAcroFormFields(
 
     try {
       if (fieldType === 'checkbox' || fieldType === 'radio') {
-        // Option X: Match exact background icon position (no +2pt shift)
-        const optionX = marginX + relLeft * scaleFactor - 0.5;
+        // Option X: Match exact layout placeholder position
+        const optionX = marginX + relLeft * scaleFactor;
         const cbName = `${fieldId}_opt_${index}`;
         const checkBox = form.createCheckBox(cbName);
         const cbSize = Math.min(width, 13);

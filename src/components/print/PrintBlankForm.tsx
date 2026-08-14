@@ -525,9 +525,8 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                             display: 'inline-block',
                                             width: '13px',
                                             height: '13px',
-                                            border: '1.5px solid #000000',
-                                            background: '#ffffff',
-                                            borderRadius: f.type === 'radio' ? '50%' : '2px',
+                                            border: 'none',
+                                            background: 'transparent',
                                             flexShrink: 0,
                                             marginTop: '2px'
                                           }}
@@ -559,9 +558,8 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                           display: 'inline-block',
                                           width: '13px',
                                           height: '13px',
-                                          border: '1.5px solid #000000',
-                                          background: '#ffffff',
-                                          borderRadius: f.type === 'radio' ? '50%' : '2px',
+                                          border: 'none',
+                                          background: 'transparent',
                                           flexShrink: 0
                                         }}
                                       />
@@ -776,7 +774,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                             data-field-name={displayTitle}
                                             data-field-radiogroup={field.id}
                                             data-field-radiovalue={opt.value}
-                                            style={{ display: 'inline-block', width: '14px', height: '14px', border: '1.5px solid #000000', background: '#ffffff', borderRadius: field.type === 'radio' ? '50%' : '2px' }}
+                                            style={{ display: 'inline-block', width: '14px', height: '14px', border: 'none', background: 'transparent' }}
                                           />
                                           <span>{opt.label}</span>
                                         </span>
