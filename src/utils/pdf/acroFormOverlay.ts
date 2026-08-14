@@ -1,4 +1,4 @@
-import { PDFDocument, PDFName, PDFBool, rgb, StandardFonts, TextAlignment } from 'pdf-lib';
+import { PDFDocument, PDFName, PDFBool, PDFDict, rgb, StandardFonts, TextAlignment } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import type { ScannedAcroField, PdfPageConfig } from './types';
 
@@ -43,11 +43,30 @@ export async function overlayAcroFormFields(
 
   const form = pdfDoc.getForm();
   
-  // Set NeedAppearances to true so PDF viewers always dynamically render appearances with full Unicode support
+  // Explicitly register fonts in the AcroForm Default Resources (/DR /Font) dictionary
+  // so PDF viewers (Acrobat, Chrome, Edge) can resolve the font name in /DA
   try {
-    form.acroForm.dict.set(PDFName.of('NeedAppearances'), PDFBool.True);
+    const acroFormDict = form.acroForm.dict;
+    let drDict = acroFormDict.lookup(PDFName.of('DR'));
+    if (!(drDict instanceof PDFDict)) {
+      drDict = pdfDoc.context.obj({});
+      acroFormDict.set(PDFName.of('DR'), drDict);
+    }
+    let fontDict = drDict.lookup(PDFName.of('Font'));
+    if (!(fontDict instanceof PDFDict)) {
+      fontDict = pdfDoc.context.obj({});
+      drDict.set(PDFName.of('Font'), fontDict);
+    }
+    
+    if (customFont) {
+      fontDict.set(PDFName.of(customFont.name), customFont.ref);
+    }
+    fontDict.set(PDFName.of('Helv'), helveticaFont.ref);
+
+    // Set NeedAppearances to true so PDF viewers always dynamically render appearances with full Unicode support
+    acroFormDict.set(PDFName.of('NeedAppearances'), PDFBool.True);
   } catch (e) {
-    console.warn('Could not set NeedAppearances flag:', e);
+    console.warn('Could not configure AcroForm /DR or NeedAppearances flag:', e);
   }
 
   const pages = pdfDoc.getPages();
@@ -191,6 +210,7 @@ export async function overlayAcroFormFields(
           height: finalFieldHeight,
           borderWidth: 0.5,
           borderColor: rgb(0.8, 0.8, 0.8),
+          font: activeFont,
         });
       }
 
@@ -199,5 +219,5 @@ export async function overlayAcroFormFields(
     }
   });
 
-  return pdfDoc.save();
+  return pdfDoc.save({ updateFieldAppearances: false });
 }
