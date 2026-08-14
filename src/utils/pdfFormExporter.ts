@@ -1,4 +1,4 @@
-import type { FormTemplateISO } from '../types';
+import { formatFormVersion, type FormTemplateISO } from '../types';
 import { getPdfPageConfig, scanDomAcroFields } from './pdf/domScanner';
 import { generatePdfBackgroundCanvas } from './pdf/backgroundGenerator';
 import { overlayAcroFormFields } from './pdf/acroFormOverlay';
@@ -22,9 +22,19 @@ export async function exportFillablePdfFromDOM(
     // 1. Scan DOM elements and measure field bounding boxes WHILE targetEl is constrained to targetWidthPx (697.7px)
     const { scannedFields, restoreStyles } = scanDomAcroFields(targetEl, config);
 
+    // Prepare vector footer info (DocCode and formatted Version)
+    const leftText = (template as any).formId || (template as any).form_id || (template as any).formName || (template as any).id || '';
+    const rightText = formatFormVersion(
+      template.version || (template as any).rawRecord?.version || 'v0.1',
+      template.status,
+      template.effectiveDate || (template as any).effective_date,
+      template.updatedAt || (template as any).updated_at
+    );
+    const footerInfo = { leftText, rightText };
+
     try {
-      // 2. Capture background PDF canvas via html2canvas & jsPDF
-      const backgroundPdfBuffer = await generatePdfBackgroundCanvas(targetEl, config);
+      // 2. Capture background PDF canvas via html2canvas & jsPDF with vector footer
+      const backgroundPdfBuffer = await generatePdfBackgroundCanvas(targetEl, config, footerInfo);
 
       // 3. Overlay interactive AcroForm fields via pdf-lib
       const finalPdfBytes = await overlayAcroFormFields(backgroundPdfBuffer, scannedFields, config);
