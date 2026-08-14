@@ -65,19 +65,43 @@ export async function overlayAcroFormFields(
         
         // Exact X for Date/Time Parts (+0), +2pt left-padding for normal text/table fields
         const textX = isDateOrTimePart ? (marginX + relLeft * scaleFactor) : (marginX + relLeft * scaleFactor + 2);
-        const fieldHeight = Math.min(Math.max(cellHeightPt - 4, 13), 15);
-        
+
         // Deduct 4pt from cell width — just enough breathing room from the right border.
-        // (Previously -16pt was compensating for inflated measurements in the wrong DOM layout;
-        //  now that the DOM is correctly 697.7px wide, the elWidth measurement is accurate.)
         const rawWidth = isDateOrTimePart ? cellWidthPt : Math.max(10, cellWidthPt - 4);
-        
-        // Clamp right edge so it never exceeds (pdfPageWidth - marginX - 10pt)
         const maxAllowedWidth = Math.max(10, pdfPageWidth - marginX - 10 - textX);
         const fieldWidth = Math.min(rawWidth, maxAllowedWidth);
 
-        // Center field vertically inside cell (Y-axis centering)
-        const fieldY = pdfPageHeight - marginY - (localTop * scaleFactor + (cellHeightPt + fieldHeight) / 2);
+        // ── Y-axis positioning ────────────────────────────────────────────────────
+        // Helvetica PostScript standard metrics at fontSize 10.5pt:
+        //   cap-height  = 71.8% of em → 7.539pt  (height of capital letters A-Z)
+        //   descender   = 20.7% of em → 2.174pt  (depth of g, p, y below baseline)
+        // Field height covers cap + descender with a small margin.
+        const FONT_SIZE = 10.5;
+        const CAP_HEIGHT = FONT_SIZE * 0.718; // 7.539pt
+        const DESCENDER  = FONT_SIZE * 0.207; // 2.174pt
+        const fieldHeight = Math.max(CAP_HEIGHT + DESCENDER + 2, 13); // ≈ 13pt
+
+        let fieldY: number;
+        // CSS `alignItems: baseline` in a flex container → an empty block-level element's
+        // first baseline is its bottom margin edge.  Therefore:
+        //   element bottom edge  ≡  label text baseline  in the DOM.
+        // Translating to PDF Y-coordinates (Y=0 at page bottom):
+        const baselineY = pdfPageHeight - marginY - (localTop * scaleFactor + cellHeightPt);
+
+        // For TALL containers (≥ 2× fieldHeight, e.g. table cells with explicit height)
+        // the element bottom is NOT the text baseline — use geometric centering instead.
+        if (cellHeightPt >= fieldHeight * 1.5) {
+          // Geometric center of the cell → works well for equally-padded table cells
+          fieldY = baselineY + (cellHeightPt - fieldHeight) / 2;
+        } else {
+          // Single-line form-block field: element bottom = label text baseline.
+          // Position field so the pdf-lib-rendered text aligns its visual center
+          // (cap-height midpoint) with the same baseline.
+          // pdf-lib centers text in the field → text_center = fieldY + fieldHeight/2
+          // We want: text_center = baselineY + CAP_HEIGHT/2
+          // → fieldY = baselineY + CAP_HEIGHT/2 − fieldHeight/2
+          fieldY = baselineY + CAP_HEIGHT / 2 - fieldHeight / 2;
+        }
         const clampedY = Math.max(marginY, Math.min(pdfPageHeight - marginY - fieldHeight, fieldY));
 
         const tfName = `${fieldId}_tf_${index}`;
