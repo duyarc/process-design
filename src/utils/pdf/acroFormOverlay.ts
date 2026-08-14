@@ -31,8 +31,8 @@ export async function overlayAcroFormFields(
     const pageTopOffset = pageIdx * domPageHeight;
     const localTop = relTop - pageTopOffset;
 
-    const width = Math.max(elWidth * scaleFactor, 10);
-    const height = Math.max(elHeight * scaleFactor, 10);
+    const cellWidthPt = Math.max(elWidth * scaleFactor, 10);
+    const cellHeightPt = Math.max(elHeight * scaleFactor, 10);
 
     try {
       if (fieldType === 'checkbox' || fieldType === 'radio') {
@@ -40,7 +40,7 @@ export async function overlayAcroFormFields(
         const optionX = marginX + relLeft * scaleFactor - 14;
         const cbName = `${fieldId}_opt_${index}`;
         const checkBox = form.createCheckBox(cbName);
-        const cbSize = Math.min(width, 13);
+        const cbSize = Math.min(cellWidthPt, 13);
         // Shift cbY UPWARDS by 2.5pt to vertically center checkbox with text
         const cbY = pdfPageHeight - marginY - (localTop * scaleFactor + cbSize - 1.5);
         const clampedCbY = Math.max(marginY, Math.min(pdfPageHeight - marginY - cbSize, cbY));
@@ -60,19 +60,19 @@ export async function overlayAcroFormFields(
           fieldId.endsWith('_hh') || fieldId.endsWith('_start_hh') || fieldId.endsWith('_start_mm') ||
           fieldId.endsWith('_end_hh') || fieldId.endsWith('_end_mm');
         
-        // Exact X for Date/Time Parts (+0), +2.5pt shift for normal text/table fields
-        const textX = isDateOrTimePart ? (marginX + relLeft * scaleFactor) : (marginX + relLeft * scaleFactor + 2.5);
-        const fieldHeight = Math.min(Math.max(height, 14), 15);
+        // Exact X for Date/Time Parts (+0), +2pt shift for normal text/table fields
+        const textX = isDateOrTimePart ? (marginX + relLeft * scaleFactor) : (marginX + relLeft * scaleFactor + 2);
+        const fieldHeight = Math.min(Math.max(cellHeightPt - 4, 13), 15);
         
-        // Subtract 10pt from outer width for normal fields so right edge stops ~7.5pt inside right cell border line
-        const rawWidth = isDateOrTimePart ? width : Math.max(10, width - 10);
+        // Deduct 16pt from cell width so right edge NEVER bleeds past column border
+        const rawWidth = isDateOrTimePart ? cellWidthPt : Math.max(10, cellWidthPt - 16);
         
-        // Clamp right edge so it never exceeds (pdfPageWidth - marginX - 8pt)
-        const maxAllowedWidth = Math.max(10, pdfPageWidth - marginX - 8 - textX);
+        // Clamp right edge so it never exceeds (pdfPageWidth - marginX - 10pt)
+        const maxAllowedWidth = Math.max(10, pdfPageWidth - marginX - 10 - textX);
         const fieldWidth = Math.min(rawWidth, maxAllowedWidth);
 
-        // Lower fieldY by 4.5pt so text baseline aligns 100% horizontally with label baseline
-        const fieldY = pdfPageHeight - marginY - (localTop * scaleFactor + fieldHeight + 4.5);
+        // Center field vertically inside cell (Y-axis centering)
+        const fieldY = pdfPageHeight - marginY - (localTop * scaleFactor + (cellHeightPt + fieldHeight) / 2);
         const clampedY = Math.max(marginY, Math.min(pdfPageHeight - marginY - fieldHeight, fieldY));
 
         const tfName = `${fieldId}_tf_${index}`;
