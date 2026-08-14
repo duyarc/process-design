@@ -47,13 +47,20 @@ export async function overlayAcroFormFields(
   // so PDF viewers (Acrobat, Chrome, Edge) can resolve the font name in /DA
   try {
     const acroFormDict = form.acroForm.dict;
-    let drDict = acroFormDict.lookup(PDFName.of('DR'));
-    if (!(drDict instanceof PDFDict)) {
+    const drRaw = acroFormDict.lookup(PDFName.of('DR'));
+    let drDict: PDFDict;
+    if (drRaw instanceof PDFDict) {
+      drDict = drRaw;
+    } else {
       drDict = pdfDoc.context.obj({});
       acroFormDict.set(PDFName.of('DR'), drDict);
     }
-    let fontDict = drDict.lookup(PDFName.of('Font'));
-    if (!(fontDict instanceof PDFDict)) {
+
+    const fontRaw = drDict.lookup(PDFName.of('Font'));
+    let fontDict: PDFDict;
+    if (fontRaw instanceof PDFDict) {
+      fontDict = fontRaw;
+    } else {
       fontDict = pdfDoc.context.obj({});
       drDict.set(PDFName.of('Font'), fontDict);
     }
