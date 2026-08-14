@@ -29,7 +29,8 @@ export async function overlayAcroFormFields(
     const pageTopOffset = pageIdx * domPageHeight;
     const localTop = relTop - pageTopOffset;
 
-    const x = marginX + relLeft * scaleFactor;
+    // Add 2pt gap offset from label right edge
+    const x = marginX + relLeft * scaleFactor + 2;
     const width = Math.max(elWidth * scaleFactor, 10);
     const height = Math.max(elHeight * scaleFactor, 10);
 
@@ -57,12 +58,13 @@ export async function overlayAcroFormFields(
         const maxAllowedWidth = Math.max(20, pdfPageWidth - marginX - 6 - x);
         const fieldWidth = Math.min(width, maxAllowedWidth);
 
-        // Align Y to text baseline
-        const fieldY = pdfPageHeight - marginY - (localTop * scaleFactor + fieldHeight + 2);
+        // Align Y so the baseline of Sample Text matches the baseline of the label 100%
+        const fieldY = pdfPageHeight - marginY - (localTop * scaleFactor + fieldHeight + 3.4);
         const clampedY = Math.max(marginY, Math.min(pdfPageHeight - marginY - fieldHeight, fieldY));
 
         const tfName = `${fieldId}_tf_${index}`;
         const textField = form.createTextField(tfName);
+        textField.setFontSize(9.5);
         textField.addToPage(page, {
           x,
           y: clampedY,
