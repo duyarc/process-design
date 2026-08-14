@@ -495,4 +495,21 @@ tr:last-child td {
   }
 }
 
+/* AcroForm Option Controls: Normal view & Paper printing (window.print()) */
+.acro-option-icon {
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  border: 1.5px solid #000000;
+  background: #ffffff;
+  flex-shrink: 0;
+}
+
+/* PDF Export Capture Mode (html2canvas): Hide static border so background PDF stays clean for pdf-lib */
+.exporting-pdf-mode .acro-option-icon {
+  border: none !important;
+  background: transparent !important;
+}
+
+
 

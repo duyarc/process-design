@@ -44,9 +44,11 @@ export function scanDomAcroFields(targetEl: HTMLElement, config: PdfPageConfig):
   targetEl.style.maxWidth = `${config.targetWidthPx}px`;
   targetEl.style.padding = '0px';
   targetEl.style.boxSizing = 'border-box';
-  targetEl.style.background = '#ffffff';
+  // Enable PDF export mode flag to temporarily hide static borders during html2canvas capture
+  targetEl.classList.add('exporting-pdf-mode');
 
   const restoreStyles = () => {
+    targetEl.classList.remove('exporting-pdf-mode');
     targetEl.style.width = originalWidth;
     targetEl.style.maxWidth = originalMaxWidth;
     targetEl.style.padding = originalPadding;

@@ -515,6 +515,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                     {options.map((opt: any) => (
                                       <span key={opt.value} style={{ display: 'inline-flex', alignItems: 'flex-start', gap: '6px', fontSize: '0.8rem', whiteSpace: 'normal', wordBreak: 'break-word', maxWidth: '100%' }}>
                                         <span
+                                          className="acro-option-icon"
                                           data-acroform-field="true"
                                           data-field-id={f.id}
                                           data-field-type={f.type}
@@ -522,12 +523,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                           data-field-radiogroup={f.id}
                                           data-field-radiovalue={opt.value}
                                           style={{
-                                            display: 'inline-block',
-                                            width: '13px',
-                                            height: '13px',
-                                            border: 'none',
-                                            background: 'transparent',
-                                            flexShrink: 0,
+                                            borderRadius: f.type === 'radio' ? '50%' : '2px',
                                             marginTop: '2px'
                                           }}
                                         />
@@ -548,6 +544,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                   {options.map((opt: any) => (
                                     <span key={opt.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.8rem', whiteSpace: 'normal', wordBreak: 'break-word', maxWidth: '100%' }}>
                                       <span
+                                        className="acro-option-icon"
                                         data-acroform-field="true"
                                         data-field-id={f.id}
                                         data-field-type={f.type}
@@ -555,12 +552,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                         data-field-radiogroup={f.id}
                                         data-field-radiovalue={opt.value}
                                         style={{
-                                          display: 'inline-block',
-                                          width: '13px',
-                                          height: '13px',
-                                          border: 'none',
-                                          background: 'transparent',
-                                          flexShrink: 0
+                                          borderRadius: f.type === 'radio' ? '50%' : '2px'
                                         }}
                                       />
                                       <span style={{ lineHeight: '1.3' }}>{opt.label}</span>
@@ -768,13 +760,14 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                       {(field.options ?? [{ label: 'Đ', value: 'PASS', isPass: true }, { label: 'KĐ', value: 'FAIL', isPass: false }]).map(opt => (
                                         <span key={opt.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem' }}>
                                           <span
+                                            className="acro-option-icon"
                                             data-acroform-field="true"
                                             data-field-id={field.id}
                                             data-field-type={field.type}
                                             data-field-name={displayTitle}
                                             data-field-radiogroup={field.id}
                                             data-field-radiovalue={opt.value}
-                                            style={{ display: 'inline-block', width: '14px', height: '14px', border: 'none', background: 'transparent' }}
+                                            style={{ borderRadius: field.type === 'radio' ? '50%' : '2px' }}
                                           />
                                           <span>{opt.label}</span>
                                         </span>
