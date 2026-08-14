@@ -10,6 +10,7 @@ export interface PdfFooterInfo {
 export async function generatePdfBackgroundCanvas(
   targetEl: HTMLElement,
   config: PdfPageConfig,
+  pageBreaks?: number[],
   footerInfo?: PdfFooterInfo
 ): Promise<ArrayBuffer> {
   // 1. Capture HTML DOM to canvas using html2canvas at exact DOM width
@@ -22,20 +23,12 @@ export async function generatePdfBackgroundCanvas(
     windowWidth: config.targetWidthPx,
   });
 
-  const imgData = canvas.toDataURL('image/jpeg', 0.95);
-
   // 2. Generate background PDF using jsPDF
   const pdfJs = new jsPDF({
     orientation: config.isA5 ? 'landscape' : 'portrait',
     unit: 'pt',
     format: config.isA5 ? 'a5' : 'a4',
   });
-
-  const imgWidth = config.printableWidthPt;
-  const imgHeight = (canvas.height * config.printableWidthPt) / canvas.width;
-
-  let heightLeft = imgHeight;
-  let position = 0;
 
   const renderFooter = () => {
     if (!footerInfo) return;
@@ -51,17 +44,38 @@ export async function generatePdfBackgroundCanvas(
     }
   };
 
-  // Render image inside marginX, marginY
-  pdfJs.addImage(imgData, 'JPEG', config.marginX, config.marginY + position, imgWidth, imgHeight);
-  renderFooter();
-  heightLeft -= config.printableHeightPt;
+  const breaks = (pageBreaks && pageBreaks.length >= 2) ? pageBreaks : [0, targetEl.getBoundingClientRect().height];
+  const totalPages = breaks.length - 1;
 
-  while (heightLeft > 5) {
-    position = heightLeft - imgHeight;
-    pdfJs.addPage();
-    pdfJs.addImage(imgData, 'JPEG', config.marginX, config.marginY + position, imgWidth, imgHeight);
+  for (let i = 0; i < totalPages; i++) {
+    if (i > 0) {
+      pdfJs.addPage();
+    }
+
+    const startPx = breaks[i];
+    const endPx = breaks[i + 1];
+    const segHeightPx = Math.max(1, endPx - startPx);
+
+    // Scale is 2 for html2canvas
+    const sy = Math.round(startPx * 2);
+    const sh = Math.round(segHeightPx * 2);
+    const sw = canvas.width;
+
+    const pageCanvas = document.createElement('canvas');
+    pageCanvas.width = sw;
+    pageCanvas.height = sh;
+    const ctx = pageCanvas.getContext('2d');
+    if (ctx) {
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, sw, sh);
+      ctx.drawImage(canvas, 0, sy, sw, sh, 0, 0, sw, sh);
+    }
+
+    const pageImgData = pageCanvas.toDataURL('image/jpeg', 0.95);
+    const segHeightPt = segHeightPx * config.scaleFactor;
+
+    pdfJs.addImage(pageImgData, 'JPEG', config.marginX, config.marginY, config.printableWidthPt, segHeightPt);
     renderFooter();
-    heightLeft -= config.printableHeightPt;
   }
 
   return pdfJs.output('arraybuffer');

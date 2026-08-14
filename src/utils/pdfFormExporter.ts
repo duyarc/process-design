@@ -19,8 +19,8 @@ export async function exportFillablePdfFromDOM(
     // Target the inner printable table or container
     const targetEl = containerEl.querySelector<HTMLElement>('.print-outer-table') || containerEl;
 
-    // 1. Scan DOM elements and measure field bounding boxes WHILE targetEl is constrained to targetWidthPx (697.7px)
-    const { scannedFields, restoreStyles } = scanDomAcroFields(targetEl, config);
+    // 1. Scan DOM elements and compute smart page break boundaries WHILE targetEl is constrained to targetWidthPx (697.7px)
+    const { scannedFields, pageBreaks, restoreStyles } = scanDomAcroFields(targetEl, config);
 
     // Prepare vector footer info (DocCode and formatted Version)
     const leftText = (template as any).formId || (template as any).form_id || (template as any).formName || (template as any).id || '';
@@ -33,11 +33,11 @@ export async function exportFillablePdfFromDOM(
     const footerInfo = { leftText, rightText };
 
     try {
-      // 2. Capture background PDF canvas via html2canvas & jsPDF with vector footer
-      const backgroundPdfBuffer = await generatePdfBackgroundCanvas(targetEl, config, footerInfo);
+      // 2. Capture background PDF canvas via html2canvas & jsPDF with smart pagination and vector footer
+      const backgroundPdfBuffer = await generatePdfBackgroundCanvas(targetEl, config, pageBreaks, footerInfo);
 
-      // 3. Overlay interactive AcroForm fields via pdf-lib
-      const finalPdfBytes = await overlayAcroFormFields(backgroundPdfBuffer, scannedFields, config);
+      // 3. Overlay interactive AcroForm fields via pdf-lib aligned to smart page boundaries
+      const finalPdfBytes = await overlayAcroFormFields(backgroundPdfBuffer, scannedFields, config, pageBreaks);
 
       // 4. Trigger browser download with 5S filename
       triggerBrowserDownload(finalPdfBytes, template.formTitle || 'ISO_Document');

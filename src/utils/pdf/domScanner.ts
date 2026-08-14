@@ -28,8 +28,68 @@ export function getPdfPageConfig(pageSizeInput?: string): PdfPageConfig {
   };
 }
 
+export function calculatePageBreaks(targetEl: HTMLElement, config: PdfPageConfig): number[] {
+  const targetRect = targetEl.getBoundingClientRect();
+  const maxPageHeightPx = config.printableHeightPt / config.scaleFactor;
+  // Reserve ~24px for bottom spacing (footer zone)
+  const effectiveMaxHeightPx = maxPageHeightPx - 24;
+
+  if (targetRect.height <= maxPageHeightPx) {
+    return [0, targetRect.height];
+  }
+
+  // Find all atomic candidate elements that should avoid breaking inside
+  const atomicElements = Array.from(
+    targetEl.querySelectorAll<HTMLElement>('.print-block-avoid, tr, .subtable-print-container, .print-title-block')
+  ).filter((el) => {
+    const r = el.getBoundingClientRect();
+    return r.height > 0 && getComputedStyle(el).display !== 'none';
+  });
+
+  // Sort by top offset
+  atomicElements.sort((a, b) => {
+    return a.getBoundingClientRect().top - b.getBoundingClientRect().top;
+  });
+
+  const rawBreaks: number[] = [0];
+  let currentPageTop = 0;
+
+  for (const el of atomicElements) {
+    const r = el.getBoundingClientRect();
+    const elTop = r.top - targetRect.top;
+    const elBottom = r.bottom - targetRect.top;
+
+    if (elBottom - currentPageTop > effectiveMaxHeightPx) {
+      // Element exceeds current page budget
+      // Place a page break at the start of this element if it's not at the very top of current page
+      if (elTop > currentPageTop + 30) {
+        rawBreaks.push(elTop);
+        currentPageTop = elTop;
+      }
+    }
+  }
+
+  rawBreaks.push(targetRect.height);
+
+  // Clean up and ensure minimum spacing between break points
+  const cleanBreaks: number[] = [0];
+  for (let i = 1; i < rawBreaks.length; i++) {
+    const brk = rawBreaks[i];
+    if (brk - cleanBreaks[cleanBreaks.length - 1] > 30) {
+      cleanBreaks.push(brk);
+    }
+  }
+
+  if (cleanBreaks[cleanBreaks.length - 1] < targetRect.height) {
+    cleanBreaks.push(targetRect.height);
+  }
+
+  return cleanBreaks;
+}
+
 export function scanDomAcroFields(targetEl: HTMLElement, config: PdfPageConfig): {
   scannedFields: ScannedAcroField[];
+  pageBreaks: number[];
   restoreStyles: () => void;
 } {
   // Constrain target DOM to A4 target width — must use setProperty(..., 'important') because
@@ -65,6 +125,7 @@ export function scanDomAcroFields(targetEl: HTMLElement, config: PdfPageConfig):
   });
 
   const targetRect = targetEl.getBoundingClientRect();
+  const pageBreaks = calculatePageBreaks(targetEl, config);
 
   const scannedFields: ScannedAcroField[] = fieldElements.map((el, index) => {
     const fieldId = el.getAttribute('data-field-id') || `field_${index}`;
@@ -90,5 +151,5 @@ export function scanDomAcroFields(targetEl: HTMLElement, config: PdfPageConfig):
     };
   });
 
-  return { scannedFields, restoreStyles };
+  return { scannedFields, pageBreaks, restoreStyles };
 }

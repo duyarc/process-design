@@ -22,7 +22,8 @@ async function getVietnameseFontBytes(): Promise<ArrayBuffer | null> {
 export async function overlayAcroFormFields(
   pdfBuffer: ArrayBuffer,
   scannedFields: ScannedAcroField[],
-  config: PdfPageConfig
+  config: PdfPageConfig,
+  pageBreaks?: number[]
 ): Promise<Uint8Array> {
   const pdfDoc = await PDFDocument.load(pdfBuffer);
   pdfDoc.registerFontkit(fontkit);
@@ -77,21 +78,26 @@ export async function overlayAcroFormFields(
   }
 
   const pages = pdfDoc.getPages();
-  const totalPages = pages.length;
 
   const { pdfPageWidth, pdfPageHeight, marginX, marginY, scaleFactor } = config;
 
   scannedFields.forEach((item) => {
     const { fieldId, fieldType, relTop, relLeft, elWidth, elHeight, targetHeight, index } = item;
 
-    // Determine which page this field belongs to
-    const domPageHeight = targetHeight / totalPages;
-    let pageIdx = Math.floor(relTop / domPageHeight);
-    if (pageIdx >= totalPages) pageIdx = totalPages - 1;
+    // Determine which page this field belongs to using smart DOM pageBreaks
+    const breaks = (pageBreaks && pageBreaks.length >= 2) ? pageBreaks : [0, targetHeight];
+    let pageIdx = 0;
+    for (let p = 0; p < breaks.length - 1; p++) {
+      if (relTop >= breaks[p] - 2 && relTop < breaks[p + 1]) {
+        pageIdx = p;
+        break;
+      }
+    }
+    if (pageIdx >= pages.length) pageIdx = pages.length - 1;
     if (pageIdx < 0) pageIdx = 0;
 
     const page = pages[pageIdx];
-    const pageTopOffset = pageIdx * domPageHeight;
+    const pageTopOffset = breaks[pageIdx];
     const localTop = relTop - pageTopOffset;
 
     const cellWidthPt = Math.max(elWidth * scaleFactor, 10);
