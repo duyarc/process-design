@@ -144,7 +144,7 @@ export async function overlayAcroFormFields(
 
         // Deduct 4pt from cell width for normal text fields; use exact cellWidthPt for date/time/signature
         const rawWidth = (isDateOrTimePart || isSignatureName) ? cellWidthPt : Math.max(10, cellWidthPt - 4);
-        const maxAllowedWidth = Math.max(10, pdfPageWidth - marginX - 10 - textX);
+        const maxAllowedWidth = Math.max(10, pdfPageWidth - marginX - textX);
         const fieldWidth = Math.min(rawWidth, maxAllowedWidth);
 
         // Helvetica PostScript metrics at 10.5pt:
