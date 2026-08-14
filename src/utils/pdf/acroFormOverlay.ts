@@ -36,12 +36,13 @@ export async function overlayAcroFormFields(
 
     try {
       if (fieldType === 'checkbox' || fieldType === 'radio') {
-        // Option X: Match exact layout placeholder position
-        const optionX = marginX + relLeft * scaleFactor;
+        // Shift optionX LEFT by 14pt so checkbox does NOT cover text
+        const optionX = marginX + relLeft * scaleFactor - 14;
         const cbName = `${fieldId}_opt_${index}`;
         const checkBox = form.createCheckBox(cbName);
         const cbSize = Math.min(width, 13);
-        const cbY = pdfPageHeight - marginY - (localTop * scaleFactor + cbSize + 1);
+        // Shift cbY UPWARDS by 2.5pt to vertically center checkbox with text
+        const cbY = pdfPageHeight - marginY - (localTop * scaleFactor + cbSize - 1.5);
         const clampedCbY = Math.max(marginY, Math.min(pdfPageHeight - marginY - cbSize, cbY));
 
         checkBox.addToPage(page, {
