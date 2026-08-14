@@ -31,14 +31,13 @@ export async function overlayAcroFormFields(
     const pageTopOffset = pageIdx * domPageHeight;
     const localTop = relTop - pageTopOffset;
 
-    // Shift X by 2pt to avoid overlapping label right edge
-    const x = marginX + relLeft * scaleFactor + 2;
     const width = Math.max(elWidth * scaleFactor, 10);
     const height = Math.max(elHeight * scaleFactor, 10);
 
     try {
       if (fieldType === 'checkbox' || fieldType === 'radio') {
-        // Discrete CheckBox widget for options to prevent ghost radio buttons on PDF margin
+        // Option X: Match exact background icon position (no +2pt shift)
+        const optionX = marginX + relLeft * scaleFactor - 0.5;
         const cbName = `${fieldId}_opt_${index}`;
         const checkBox = form.createCheckBox(cbName);
         const cbSize = Math.min(width, 13);
@@ -46,7 +45,7 @@ export async function overlayAcroFormFields(
         const clampedCbY = Math.max(marginY, Math.min(pdfPageHeight - marginY - cbSize, cbY));
 
         checkBox.addToPage(page, {
-          x,
+          x: optionX,
           y: clampedCbY,
           width: cbSize,
           height: cbSize,
@@ -55,9 +54,11 @@ export async function overlayAcroFormFields(
         });
       } else {
         // Text / Number / Date / Time / Signature fields
+        // Shift X by +2pt gap offset for text fields only
+        const textX = marginX + relLeft * scaleFactor + 2;
         const fieldHeight = Math.min(Math.max(height, 14), 15);
         // Clamp right edge so it never exceeds (pdfPageWidth - marginX - 6pt)
-        const maxAllowedWidth = Math.max(20, pdfPageWidth - marginX - 6 - x);
+        const maxAllowedWidth = Math.max(20, pdfPageWidth - marginX - 6 - textX);
         const fieldWidth = Math.min(width, maxAllowedWidth);
 
         // Lower fieldY by 4.5pt so the 10.5pt text baseline aligns 100% horizontally with label baseline
@@ -73,7 +74,7 @@ export async function overlayAcroFormFields(
         textField.updateAppearances(helveticaFont);
 
         textField.addToPage(page, {
-          x,
+          x: textX,
           y: clampedY,
           width: fieldWidth,
           height: fieldHeight,
