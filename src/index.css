@@ -505,7 +505,23 @@ tr:last-child td {
   flex-shrink: 0;
 }
 
-/* PDF Export Capture Mode (html2canvas): Hide static border so background PDF stays clean for pdf-lib */
+/* PDF Export Capture Mode (html2canvas): Hide static border & force 100% stretch without side margins */
+.exporting-pdf-mode {
+  padding: 0 !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.exporting-pdf-mode .print-outer-table,
+.exporting-pdf-mode .print-doc,
+.exporting-pdf-mode .print-container {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
+}
+
 .exporting-pdf-mode .acro-option-icon {
   border: none !important;
   background: transparent !important;
