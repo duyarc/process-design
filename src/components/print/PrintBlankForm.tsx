@@ -572,7 +572,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                       {cols.map((col: any) => {
                                         const headerAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'date' || col.type === 'time' ? 'center' : 'left'));
                                         return (
-                                          <th key={col.id} style={{ border: '1px solid #cbd5e1', padding: '5px 6px', background: '#f8fafc', fontWeight: 'var(--pw-weight-medium)', color: '#475569', textAlign: headerAlign as any, fontSize: '0.78rem', width: col.width }}>
+                                          <th key={col.id} style={{ border: '1px solid #cbd5e1', padding: '5px 6px', background: '#f8fafc', fontWeight: 'var(--pw-weight-medium)', color: '#475569', textAlign: headerAlign as any, fontSize: '0.78rem', width: getColStyleWidth(col.id, col.width, cols) }}>
                                             {col.label}
                                           </th>
                                         );
@@ -1122,15 +1122,14 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                             }
 
                             return (
-                              <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', height: '28px', verticalAlign: 'middle' }}>
-                                <span
-                                  data-acroform-field="true"
-                                  data-field-id={fieldId}
-                                  data-field-type={col.type || 'text'}
-                                  data-field-name={displayTitle}
-                                  style={{ display: 'block', width: '100%', height: '14px', boxSizing: 'border-box' }}
-                                />
-                              </td>
+                              <td
+                                key={col.id}
+                                data-acroform-field="true"
+                                data-field-id={fieldId}
+                                data-field-type={col.type || 'text'}
+                                data-field-name={displayTitle}
+                                style={{ border: '1.5px solid #000000', padding: '4px 6px', height: '28px' }}
+                              />
                             );
                           })}
                         </tr>

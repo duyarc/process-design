@@ -283,26 +283,33 @@ export function formatFormVersion(version: string, status?: string, effectiveDat
   return display; // ARCHIVED or unknown: "V0.1"
 }
 
-export function getColStyleWidth(colId: string, colWidth: string, tableColumns: any[]): string {
-  const cleanWidth = (colWidth || '').trim();
-  const isPercent = cleanWidth.endsWith('%') || !isNaN(parseFloat(cleanWidth));
-  if (!isPercent) return cleanWidth; // e.g. "120px"
-  
-  const index = (tableColumns || []).findIndex(c => c.id === colId);
-  const isLast = index !== -1 && index === tableColumns.length - 1;
-  
-  if (isLast && tableColumns.length > 1) {
-    // Calculate the sum of all columns BEFORE the last one
-    const sumOtherPercent = tableColumns
-      .slice(0, tableColumns.length - 1)
-      .filter(c => c.width && (c.width.endsWith('%') || !isNaN(parseFloat(c.width))))
-      .reduce((sum, c) => sum + parseFloat(c.width), 0);
-    
-    const remainder = 100 - sumOtherPercent;
-    return `${remainder > 0 ? remainder : 10}%`;
+export function getColStyleWidth(colId: string, _colWidth: string, tableColumns: any[]): string {
+  if (!tableColumns || tableColumns.length === 0) return 'auto';
+
+  // Parse all column widths into numeric values (either from % or px or raw numbers)
+  const parsedWidths = tableColumns.map(c => {
+    const wStr = (c.width || '').toString().trim();
+    const val = parseFloat(wStr);
+    return isNaN(val) || val <= 0 ? 100 / tableColumns.length : val;
+  });
+
+  const totalSum = parsedWidths.reduce((sum, v) => sum + v, 0);
+  const colIdx = tableColumns.findIndex(c => c.id === colId);
+  if (colIdx === -1) return 'auto';
+
+  if (totalSum <= 0) return `${(100 / tableColumns.length).toFixed(2)}%`;
+
+  // Convert each column to its exact proportional percentage of 100%
+  if (colIdx === tableColumns.length - 1) {
+    // For the last column, return 100 - sum of previous percentages to avoid rounding float drift
+    const prevSumPct = parsedWidths
+      .slice(0, colIdx)
+      .reduce((sum, v) => sum + (v / totalSum) * 100, 0);
+    const lastPct = Math.max(5, 100 - prevSumPct);
+    return `${lastPct.toFixed(2)}%`;
   }
-  
-  const val = parseFloat(cleanWidth);
-  return `${isNaN(val) ? 10 : val}%`;
+
+  const pct = (parsedWidths[colIdx] / totalSum) * 100;
+  return `${pct.toFixed(2)}%`;
 }
 
