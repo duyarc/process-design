@@ -956,20 +956,122 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                         </td>
                       </tr>
                     ) : (
-                      (block.tableRows || []).map((row) => (
+                      (block.tableRows || []).map((row, rIdx) => (
                         <tr key={row.id} style={{ pageBreakInside: 'avoid' }}>
                           {(block.tableColumns || []).map((col) => {
+                            const fieldId = `${block.id}_r${rIdx}_${col.id}`;
+                            const displayTitle = `${block.title || 'Table'} - Dòng ${rIdx + 1} - ${col.label}`;
                             const customCellOpts = block.cellOptionsMap?.[`${row.id}_${col.id}`];
                             const rawOpts = customCellOpts !== undefined ? customCellOpts : (col.options || []);
                             const effectiveOpts = rawOpts.filter(opt => opt.label && opt.label.trim() !== '');
                             const hasOptions = (col.type === 'checkbox' || col.type === 'radio') && effectiveOpts.length > 0;
                             const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? (hasOptions ? 'left' : 'center') : 'left'));
-                            return (
-                              <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'middle', height: '28px', textAlign: cellAlign }}>
-                                {col.type === 'static_text' ? (
+
+                            if (col.type === 'static_text') {
+                              return (
+                                <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'middle', height: '28px', textAlign: cellAlign }}>
                                   <span style={{ fontWeight: 'var(--pw-weight-regular)', display: 'block', textAlign: cellAlign }}>{block.tableData?.[row.id]?.[col.id] || ''}</span>
-                                ) : (col.type === 'checkbox' || col.type === 'radio') ? (
-                                  hasOptions ? (
+                                </td>
+                              );
+                            }
+
+                            if (col.type === 'date') {
+                              return (
+                                <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'middle', height: '28px', textAlign: 'center' }}>
+                                  <div style={{ fontSize: '0.78rem', color: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
+                                    <span
+                                      data-acroform-field="true"
+                                      data-field-id={`${fieldId}_dd`}
+                                      data-field-type="date_part"
+                                      data-field-name={`${displayTitle} (Ngày)`}
+                                      style={{ borderBottom: '1px solid #000000', width: '20px', display: 'inline-block', height: '12px' }}
+                                    />
+                                    /
+                                    <span
+                                      data-acroform-field="true"
+                                      data-field-id={`${fieldId}_mm`}
+                                      data-field-type="date_part"
+                                      data-field-name={`${displayTitle} (Tháng)`}
+                                      style={{ borderBottom: '1px solid #000000', width: '20px', display: 'inline-block', height: '12px' }}
+                                    />
+                                    /
+                                    <span
+                                      data-acroform-field="true"
+                                      data-field-id={`${fieldId}_yyyy`}
+                                      data-field-type="date_part"
+                                      data-field-name={`${displayTitle} (Năm)`}
+                                      style={{ borderBottom: '1px solid #000000', width: '32px', display: 'inline-block', height: '12px' }}
+                                    />
+                                  </div>
+                                </td>
+                              );
+                            }
+
+                            if (col.type === 'time') {
+                              return (
+                                <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'middle', height: '28px', textAlign: 'center' }}>
+                                  {col.timeMode === 'dual' ? (
+                                    <div style={{ fontSize: '0.75rem', color: '#000000', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '2px' }}>
+                                      Từ{' '}
+                                      <span
+                                        data-acroform-field="true"
+                                        data-field-id={`${fieldId}_start_hh`}
+                                        data-field-type="time_part"
+                                        data-field-name={`${displayTitle} (Giờ bắt đầu)`}
+                                        style={{ borderBottom: '1px solid #000000', width: '18px', display: 'inline-block', height: '12px' }}
+                                      />
+                                      :
+                                      <span
+                                        data-acroform-field="true"
+                                        data-field-id={`${fieldId}_start_mm`}
+                                        data-field-type="time_part"
+                                        data-field-name={`${displayTitle} (Phút bắt đầu)`}
+                                        style={{ borderBottom: '1px solid #000000', width: '18px', display: 'inline-block', height: '12px' }}
+                                      />
+                                      {' '}đến{' '}
+                                      <span
+                                        data-acroform-field="true"
+                                        data-field-id={`${fieldId}_end_hh`}
+                                        data-field-type="time_part"
+                                        data-field-name={`${displayTitle} (Giờ kết thúc)`}
+                                        style={{ borderBottom: '1px solid #000000', width: '18px', display: 'inline-block', height: '12px' }}
+                                      />
+                                      :
+                                      <span
+                                        data-acroform-field="true"
+                                        data-field-id={`${fieldId}_end_mm`}
+                                        data-field-type="time_part"
+                                        data-field-name={`${displayTitle} (Phút kết thúc)`}
+                                        style={{ borderBottom: '1px solid #000000', width: '18px', display: 'inline-block', height: '12px' }}
+                                      />
+                                    </div>
+                                  ) : (
+                                    <div style={{ fontSize: '0.75rem', color: '#000000', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '2px' }}>
+                                      <span
+                                        data-acroform-field="true"
+                                        data-field-id={`${fieldId}_hh`}
+                                        data-field-type="time_part"
+                                        data-field-name={`${displayTitle} (Giờ)`}
+                                        style={{ borderBottom: '1px solid #000000', width: '20px', display: 'inline-block', height: '12px' }}
+                                      />
+                                      {' '}:{' '}
+                                      <span
+                                        data-acroform-field="true"
+                                        data-field-id={`${fieldId}_mm`}
+                                        data-field-type="time_part"
+                                        data-field-name={`${displayTitle} (Phút)`}
+                                        style={{ borderBottom: '1px solid #000000', width: '20px', display: 'inline-block', height: '12px' }}
+                                      />
+                                    </div>
+                                  )}
+                                </td>
+                              );
+                            }
+
+                            if (col.type === 'checkbox' || col.type === 'radio') {
+                              return (
+                                <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'middle', height: '28px', textAlign: cellAlign }}>
+                                  {hasOptions ? (
                                     <div style={{
                                       display: col.checkboxLayout === '2-column' ? 'grid' : 'flex',
                                       gridTemplateColumns: col.checkboxLayout === '2-column' ? getCheckboxGridTemplate(effectiveOpts) : undefined,
@@ -981,22 +1083,53 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                     }}>
                                       {effectiveOpts.map((opt, oIdx) => (
                                         <div key={oIdx} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#000000' }}>
-                                          <span style={{
-                                            display: 'inline-block',
-                                            width: '12px',
-                                            height: '12px',
-                                            border: '1.5px solid #000000',
-                                            background: '#ffffff',
-                                            borderRadius: col.type === 'radio' ? '50%' : '2px',
-                                            flexShrink: 0
-                                          }} />
+                                          <span
+                                            className="acro-option-icon"
+                                            data-acroform-field="true"
+                                            data-field-id={fieldId}
+                                            data-field-type={col.type}
+                                            data-field-name={displayTitle}
+                                            data-field-radiogroup={fieldId}
+                                            data-field-radiovalue={opt.value}
+                                            style={{
+                                              borderRadius: col.type === 'radio' ? '50%' : '2px',
+                                              width: '12px',
+                                              height: '12px'
+                                            }}
+                                          />
                                           <span>{opt.label}</span>
                                         </div>
                                       ))}
                                     </div>
-                                  ) : null
-                                ) : null}
-                              </td>
+                                  ) : (
+                                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                      <span
+                                        className="acro-option-icon"
+                                        data-acroform-field="true"
+                                        data-field-id={fieldId}
+                                        data-field-type={col.type}
+                                        data-field-name={displayTitle}
+                                        style={{
+                                          borderRadius: col.type === 'radio' ? '50%' : '2px',
+                                          width: '13px',
+                                          height: '13px'
+                                        }}
+                                      />
+                                    </div>
+                                  )}
+                                </td>
+                              );
+                            }
+
+                            return (
+                              <td
+                                key={col.id}
+                                data-acroform-field="true"
+                                data-field-id={fieldId}
+                                data-field-type={col.type || 'text'}
+                                data-field-name={displayTitle}
+                                style={{ border: '1.5px solid #000000', padding: '4px 6px', height: '28px' }}
+                              />
                             );
                           })}
                         </tr>

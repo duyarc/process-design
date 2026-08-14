@@ -153,6 +153,7 @@ export interface TableColumnConfig {
   options?: RadioOption[];
   align?: 'left' | 'center' | 'right';
   checkboxLayout?: '1-column' | '2-column';
+  timeMode?: 'single' | 'dual';
   summaryRows?: ColumnSummaryRowConfig[];
   locked?: boolean; // If true: cannot delete or change type (used for structural cols in CHECKLIST_TABLE)
   hidden?: boolean; // If true: do not render in canvas/print layout
