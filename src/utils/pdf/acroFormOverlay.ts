@@ -36,13 +36,16 @@ export async function overlayAcroFormFields(
 
     try {
       if (fieldType === 'checkbox' || fieldType === 'radio') {
-        // Shift optionX LEFT by 14pt so checkbox does NOT cover text
-        const optionX = marginX + relLeft * scaleFactor - 14;
+        // X: place checkbox exactly at the visual icon's DOM position.
+        // With the correct 697.7px DOM layout, relLeft * scaleFactor maps directly to PDF pt.
+        // No manual X correction needed anymore (the old -14pt was compensating for wrong layout).
+        const optionX = marginX + relLeft * scaleFactor;
         const cbName = `${fieldId}_opt_${index}`;
         const checkBox = form.createCheckBox(cbName);
         const cbSize = Math.min(cellWidthPt, 13);
-        // Shift cbY UPWARDS by 2.5pt to vertically center checkbox with text
-        const cbY = pdfPageHeight - marginY - (localTop * scaleFactor + cbSize - 1.5);
+        // Y: align checkbox top edge with the anchor element's top edge.
+        // cbY is the BOTTOM-LEFT corner in pdf-lib's coordinate system (Y=0 at page bottom).
+        const cbY = pdfPageHeight - marginY - (localTop * scaleFactor + cbSize);
         const clampedCbY = Math.max(marginY, Math.min(pdfPageHeight - marginY - cbSize, cbY));
 
         checkBox.addToPage(page, {
@@ -60,12 +63,14 @@ export async function overlayAcroFormFields(
           fieldId.endsWith('_hh') || fieldId.endsWith('_start_hh') || fieldId.endsWith('_start_mm') ||
           fieldId.endsWith('_end_hh') || fieldId.endsWith('_end_mm');
         
-        // Exact X for Date/Time Parts (+0), +2pt shift for normal text/table fields
+        // Exact X for Date/Time Parts (+0), +2pt left-padding for normal text/table fields
         const textX = isDateOrTimePart ? (marginX + relLeft * scaleFactor) : (marginX + relLeft * scaleFactor + 2);
         const fieldHeight = Math.min(Math.max(cellHeightPt - 4, 13), 15);
         
-        // Deduct 16pt from cell width so right edge NEVER bleeds past column border
-        const rawWidth = isDateOrTimePart ? cellWidthPt : Math.max(10, cellWidthPt - 16);
+        // Deduct 4pt from cell width — just enough breathing room from the right border.
+        // (Previously -16pt was compensating for inflated measurements in the wrong DOM layout;
+        //  now that the DOM is correctly 697.7px wide, the elWidth measurement is accurate.)
+        const rawWidth = isDateOrTimePart ? cellWidthPt : Math.max(10, cellWidthPt - 4);
         
         // Clamp right edge so it never exceeds (pdfPageWidth - marginX - 10pt)
         const maxAllowedWidth = Math.max(10, pdfPageWidth - marginX - 10 - textX);
