@@ -30,31 +30,42 @@ export function getPdfPageConfig(pageSizeInput?: string): PdfPageConfig {
 
 export function calculatePageBreaks(targetEl: HTMLElement, config: PdfPageConfig): number[] {
   const targetRect = targetEl.getBoundingClientRect();
-  const maxPageHeightPx = config.printableHeightPt / config.scaleFactor;
-  // Reserve ~24px for bottom spacing (footer zone)
-  const effectiveMaxHeightPx = maxPageHeightPx - 24;
+  // Calibrated to match browser @page print margins (12mm/15mm for A4, 8mm/10mm for A5) and 20px footer spacer
+  const effectiveMaxHeightPx = config.isA5 ? 455 : 980;
 
-  if (targetRect.height <= maxPageHeightPx) {
+  if (targetRect.height <= effectiveMaxHeightPx) {
     return [0, targetRect.height];
   }
 
-  // Find all atomic candidate elements that should avoid breaking inside
-  const atomicElements = Array.from(
-    targetEl.querySelectorAll<HTMLElement>('.print-block-avoid, tr, .subtable-print-container, .print-title-block')
+  // Find all atomic candidate elements that define natural page break boundaries:
+  // - Outer block wrappers (.print-block, .print-block-avoid, .print-block--section)
+  // - Inner grid rows / items inside INFO_GRID ([style*="grid"] > div, .info-grid > div)
+  // - Table rows (tr), Subtable containers (.subtable-print-container)
+  // - Title blocks (.print-title-block, h1, h2)
+  // - Signature blocks (.print-signature-grid, .print-signature-card)
+  const candidateElements = Array.from(
+    targetEl.querySelectorAll<HTMLElement>(
+      '.print-block, .print-block-avoid, .print-block--section, [style*="grid"] > div, .info-grid > div, tr, .subtable-print-container, .print-title-block, .print-signature-grid, .print-signature-card'
+    )
   ).filter((el) => {
     const r = el.getBoundingClientRect();
-    return r.height > 0 && getComputedStyle(el).display !== 'none';
+    return r.width > 0 && r.height > 0 && getComputedStyle(el).display !== 'none';
   });
 
-  // Sort by top offset
-  atomicElements.sort((a, b) => {
-    return a.getBoundingClientRect().top - b.getBoundingClientRect().top;
+  // Sort strictly by top offset in ascending order, then by element height in descending order
+  candidateElements.sort((a, b) => {
+    const rA = a.getBoundingClientRect();
+    const rB = b.getBoundingClientRect();
+    if (Math.abs(rA.top - rB.top) > 1) {
+      return rA.top - rB.top;
+    }
+    return rB.height - rA.height;
   });
 
   const rawBreaks: number[] = [0];
   let currentPageTop = 0;
 
-  for (const el of atomicElements) {
+  for (const el of candidateElements) {
     const r = el.getBoundingClientRect();
     const elTop = r.top - targetRect.top;
     const elBottom = r.bottom - targetRect.top;
@@ -62,7 +73,7 @@ export function calculatePageBreaks(targetEl: HTMLElement, config: PdfPageConfig
     if (elBottom - currentPageTop > effectiveMaxHeightPx) {
       // Element exceeds current page budget
       // Place a page break at the start of this element if it's not at the very top of current page
-      if (elTop > currentPageTop + 30) {
+      if (elTop > currentPageTop + 25) {
         rawBreaks.push(elTop);
         currentPageTop = elTop;
       }
@@ -75,7 +86,7 @@ export function calculatePageBreaks(targetEl: HTMLElement, config: PdfPageConfig
   const cleanBreaks: number[] = [0];
   for (let i = 1; i < rawBreaks.length; i++) {
     const brk = rawBreaks[i];
-    if (brk - cleanBreaks[cleanBreaks.length - 1] > 30) {
+    if (brk - cleanBreaks[cleanBreaks.length - 1] > 25) {
       cleanBreaks.push(brk);
     }
   }
