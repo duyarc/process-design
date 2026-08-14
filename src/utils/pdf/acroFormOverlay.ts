@@ -1,6 +1,23 @@
-import { PDFDocument, rgb, StandardFonts, TextAlignment } from 'pdf-lib';
+import { PDFDocument, PDFName, PDFBool, rgb, StandardFonts, TextAlignment } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import type { ScannedAcroField, PdfPageConfig } from './types';
+
+// In-memory cache for Vietnamese Unicode font bytes
+let cachedFontBytes: ArrayBuffer | null = null;
+
+async function getVietnameseFontBytes(): Promise<ArrayBuffer | null> {
+  if (cachedFontBytes) return cachedFontBytes;
+  try {
+    const res = await fetch('/fonts/BeVietnamPro-Regular.ttf');
+    if (res.ok) {
+      cachedFontBytes = await res.arrayBuffer();
+      return cachedFontBytes;
+    }
+  } catch (e) {
+    console.warn('Could not load /fonts/BeVietnamPro-Regular.ttf:', e);
+  }
+  return null;
+}
 
 export async function overlayAcroFormFields(
   pdfBuffer: ArrayBuffer,
@@ -10,9 +27,29 @@ export async function overlayAcroFormFields(
   const pdfDoc = await PDFDocument.load(pdfBuffer);
   pdfDoc.registerFontkit(fontkit);
 
+  // Load and embed custom Vietnamese Unicode font (Be Vietnam Pro)
+  const fontBytes = await getVietnameseFontBytes();
+  let customFont: any = null;
+  if (fontBytes) {
+    try {
+      customFont = await pdfDoc.embedFont(fontBytes, { subset: false });
+    } catch (e) {
+      console.warn('Failed to embed custom font with fontkit:', e);
+    }
+  }
+
   const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const activeFont = customFont || helveticaFont;
 
   const form = pdfDoc.getForm();
+  
+  // Set NeedAppearances to true so PDF viewers always dynamically render appearances with full Unicode support
+  try {
+    form.acroForm.dict.set(PDFName.of('NeedAppearances'), PDFBool.True);
+  } catch (e) {
+    console.warn('Could not set NeedAppearances flag:', e);
+  }
+
   const pages = pdfDoc.getPages();
   const totalPages = pages.length;
 
@@ -125,7 +162,11 @@ export async function overlayAcroFormFields(
         const textField = form.createTextField(tfName);
 
         // Set default appearance string before setFontSize to prevent pdf-lib errors.
-        textField.acroField.setDefaultAppearance('/Helv 10.5 Tf 0 0 0 rg');
+        if (customFont) {
+          textField.acroField.setDefaultAppearance(`/${customFont.name} 10.5 Tf 0 0 0 rg`);
+        } else {
+          textField.acroField.setDefaultAppearance('/Helv 10.5 Tf 0 0 0 rg');
+        }
         textField.setFontSize(10.5);
 
         if (useMultiline) {
@@ -141,7 +182,7 @@ export async function overlayAcroFormFields(
           }
         }
 
-        textField.updateAppearances(helveticaFont);
+        textField.updateAppearances(activeFont);
 
         textField.addToPage(page, {
           x: textX,
