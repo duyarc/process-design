@@ -30,22 +30,22 @@ export function getPdfPageConfig(pageSizeInput?: string): PdfPageConfig {
 
 export function calculatePageBreaks(targetEl: HTMLElement, config: PdfPageConfig): number[] {
   const targetRect = targetEl.getBoundingClientRect();
-  // Calibrated to match browser @page print margins (12mm/15mm for A4, 8mm/10mm for A5) and 20px footer spacer
-  const effectiveMaxHeightPx = config.isA5 ? 455 : 980;
+  // Calibrated to exactly match browser @page print margins (12mm/15mm for A4 = 765.36pt -> 1020px, 8mm/10mm for A5 = 368.5pt -> 490px)
+  const effectiveMaxHeightPx = config.isA5 ? 490 : 1020;
 
   if (targetRect.height <= effectiveMaxHeightPx) {
     return [0, targetRect.height];
   }
 
   // Find all atomic candidate elements that define natural page break boundaries:
-  // - Outer block wrappers (.print-block, .print-block-avoid, .print-block--section)
+  // - Atomic block wrappers (.print-block-avoid, .print-block--section)
   // - Inner grid rows / items inside INFO_GRID ([style*="grid"] > div, .info-grid > div)
   // - Table rows (tr), Subtable containers (.subtable-print-container)
   // - Title blocks (.print-title-block, h1, h2)
   // - Signature blocks (.print-signature-grid, .print-signature-card)
   const candidateElements = Array.from(
     targetEl.querySelectorAll<HTMLElement>(
-      '.print-block, .print-block-avoid, .print-block--section, [style*="grid"] > div, .info-grid > div, tr, .subtable-print-container, .print-title-block, .print-signature-grid, .print-signature-card'
+      '.print-block-avoid, .print-block--section, [style*="grid"] > div, .info-grid > div, tr, .subtable-print-container, .print-title-block, .print-signature-grid, .print-signature-card'
     )
   ).filter((el) => {
     const r = el.getBoundingClientRect();
