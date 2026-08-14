@@ -619,11 +619,11 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
           <div className="print-block">
             {titleFmt !== 'NONE' && (
               titleFmt === 'H1' ? (
-                <h2 style={{ display: 'inline-block', margin: '0 0 8px 0', fontSize: '1.05rem', fontWeight: 'var(--pw-weight-heavy)', textTransform: 'uppercase', color: '#000000', borderBottom: '2.5px solid #000000', paddingBottom: '3px' }}>
+                <h2 style={{ display: 'inline-block', margin: '0 0 8px 0', fontSize: '1.05rem', fontWeight: 'var(--pw-weight-heavy)', textTransform: 'uppercase', color: '#000000', borderBottom: '2.5px solid #0d9488', paddingBottom: '3px' }}>
                   {titleText}
                 </h2>
               ) : titleFmt === 'H2' ? (
-                <div style={{ padding: '6px 10px', background: '#f1f5f9', borderLeft: '4px solid #000000', borderRadius: '0px', marginBottom: '8px', fontWeight: 'var(--pw-weight-heavy)', fontSize: '0.9rem', color: '#000000' }}>
+                <div style={{ padding: '6px 10px', background: '#f1f5f9', borderLeft: '4px solid #0d9488', borderRadius: '0px', marginBottom: '8px', fontWeight: 'var(--pw-weight-heavy)', fontSize: '0.9rem', color: '#000000' }}>
                   {titleText}
                 </div>
               ) : (
@@ -818,11 +818,11 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
               const titleFmt = matchedBlock ? getEffectiveTitleFormat(matchedBlock) : 'BODY';
               return titleFmt !== 'NONE' && (
                 titleFmt === 'H1' ? (
-                  <h2 style={{ display: 'inline-block', margin: '0 0 8px 0', fontSize: '1.05rem', fontWeight: 'var(--pw-weight-heavy)', textTransform: 'uppercase', color: '#000000', borderBottom: '2.5px solid #000000', paddingBottom: '3px' }}>
+                  <h2 style={{ display: 'inline-block', margin: '0 0 8px 0', fontSize: '1.05rem', fontWeight: 'var(--pw-weight-heavy)', textTransform: 'uppercase', color: '#000000', borderBottom: '2.5px solid #0d9488', paddingBottom: '3px' }}>
                     {titleText}
                   </h2>
                 ) : titleFmt === 'H2' ? (
-                  <div style={{ padding: '6px 10px', background: '#f1f5f9', borderLeft: '4px solid #000000', borderRadius: '0px', marginBottom: '8px', fontWeight: 'var(--pw-weight-heavy)', fontSize: '0.9rem', color: '#000000' }}>
+                  <div style={{ padding: '6px 10px', background: '#f1f5f9', borderLeft: '4px solid #0d9488', borderRadius: '0px', marginBottom: '8px', fontWeight: 'var(--pw-weight-heavy)', fontSize: '0.9rem', color: '#000000' }}>
                     {titleText}
                   </div>
                 ) : (
@@ -916,11 +916,11 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
           <div key={block.id} className="print-block">
             {titleFmt !== 'NONE' && (
               titleFmt === 'H1' ? (
-                <h2 style={{ display: 'inline-block', margin: '0 0 8px 0', fontSize: '1.05rem', fontWeight: 'var(--pw-weight-heavy)', textTransform: 'uppercase', color: '#000000', borderBottom: '2.5px solid #000000', paddingBottom: '3px' }}>
+                <h2 style={{ display: 'inline-block', margin: '0 0 8px 0', fontSize: '1.05rem', fontWeight: 'var(--pw-weight-heavy)', textTransform: 'uppercase', color: '#000000', borderBottom: '2.5px solid #0d9488', paddingBottom: '3px' }}>
                   {block.title || 'BẢNG THÔNG TIN'}
                 </h2>
               ) : titleFmt === 'H2' ? (
-                <div style={{ padding: '6px 10px', background: '#f1f5f9', borderLeft: '4px solid #000000', borderRadius: '0px', marginBottom: '8px', fontWeight: 'var(--pw-weight-heavy)', fontSize: '0.9rem', color: '#000000' }}>
+                <div style={{ padding: '6px 10px', background: '#f1f5f9', borderLeft: '4px solid #0d9488', borderRadius: '0px', marginBottom: '8px', fontWeight: 'var(--pw-weight-heavy)', fontSize: '0.9rem', color: '#000000' }}>
                   {block.title || 'BẢNG THÔNG TIN'}
                 </div>
               ) : (
@@ -1129,7 +1129,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                   color: '#000000',
                   textTransform: 'uppercase',
                   letterSpacing: '0.5px',
-                  borderBottom: '2.5px solid #000000',
+                  borderBottom: '2.5px solid #0d9488',
                   paddingBottom: '3px'
                 }}>
                   {block.title}
@@ -1144,7 +1144,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
               <div style={{
                 padding: '8px 12px',
                 background: '#f1f5f9',
-                borderLeft: '4px solid #000000',
+                borderLeft: '4px solid #0d9488',
                 borderRadius: '0px',
                 marginBottom: 'var(--pw-title-gap)',
                 pageBreakInside: 'avoid',
