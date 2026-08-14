@@ -60,15 +60,15 @@ export async function overlayAcroFormFields(
           fieldId.endsWith('_hh') || fieldId.endsWith('_start_hh') || fieldId.endsWith('_start_mm') ||
           fieldId.endsWith('_end_hh') || fieldId.endsWith('_end_mm');
         
-        // Exact X for Date/Time Parts (+0), +2pt shift for normal text/table fields
-        const textX = isDateOrTimePart ? (marginX + relLeft * scaleFactor) : (marginX + relLeft * scaleFactor + 2);
-        const fieldHeight = Math.min(Math.max(cellHeightPt - 4, 13), 15);
+        // Exact 1:1 mapping from measured inner <span> placeholder
+        const textX = isDateOrTimePart ? (marginX + relLeft * scaleFactor) : (marginX + relLeft * scaleFactor + 0.5);
+        const fieldHeight = Math.min(Math.max(cellHeightPt, 13), 15);
         
-        // Deduct 16pt from cell width so right edge NEVER bleeds past column border
-        const rawWidth = isDateOrTimePart ? cellWidthPt : Math.max(10, cellWidthPt - 16);
+        // Match 1:1 width of measured inner <span> placeholder
+        const rawWidth = isDateOrTimePart ? cellWidthPt : Math.max(10, cellWidthPt - 1);
         
-        // Clamp right edge so it never exceeds (pdfPageWidth - marginX - 10pt)
-        const maxAllowedWidth = Math.max(10, pdfPageWidth - marginX - 10 - textX);
+        // Clamp right edge so it never exceeds (pdfPageWidth - marginX - 6pt)
+        const maxAllowedWidth = Math.max(10, pdfPageWidth - marginX - 6 - textX);
         const fieldWidth = Math.min(rawWidth, maxAllowedWidth);
 
         // Center field vertically inside cell (Y-axis centering)

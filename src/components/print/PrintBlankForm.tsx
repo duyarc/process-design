@@ -1122,14 +1122,15 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                             }
 
                             return (
-                              <td
-                                key={col.id}
-                                data-acroform-field="true"
-                                data-field-id={fieldId}
-                                data-field-type={col.type || 'text'}
-                                data-field-name={displayTitle}
-                                style={{ border: '1.5px solid #000000', padding: '4px 6px', height: '28px' }}
-                              />
+                              <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', height: '28px', verticalAlign: 'middle' }}>
+                                <span
+                                  data-acroform-field="true"
+                                  data-field-id={fieldId}
+                                  data-field-type={col.type || 'text'}
+                                  data-field-name={displayTitle}
+                                  style={{ display: 'block', width: '100%', height: '14px', boxSizing: 'border-box' }}
+                                />
+                              </td>
                             );
                           })}
                         </tr>
