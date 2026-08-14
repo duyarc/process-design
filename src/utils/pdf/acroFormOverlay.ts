@@ -54,11 +54,14 @@ export async function overlayAcroFormFields(
           borderColor: rgb(0, 0, 0),
         });
       } else {
-        // Text / Number / Date Parts / Time / Signature fields
-        const isDatePart = fieldType === 'date_part' || fieldId.endsWith('_dd') || fieldId.endsWith('_mm') || fieldId.endsWith('_yyyy');
+        // Text / Number / Date Parts / Time Parts / Signature fields
+        const isDateOrTimePart = fieldType === 'date_part' || fieldType === 'time_part' ||
+          fieldId.endsWith('_dd') || fieldId.endsWith('_mm') || fieldId.endsWith('_yyyy') ||
+          fieldId.endsWith('_hh') || fieldId.endsWith('_start_hh') || fieldId.endsWith('_start_mm') ||
+          fieldId.endsWith('_end_hh') || fieldId.endsWith('_end_mm');
         
-        // Exact X for Date Parts, +2pt shift for normal text fields
-        const textX = isDatePart ? (marginX + relLeft * scaleFactor) : (marginX + relLeft * scaleFactor + 2);
+        // Exact X for Date/Time Parts, +2pt shift for normal text fields
+        const textX = isDateOrTimePart ? (marginX + relLeft * scaleFactor) : (marginX + relLeft * scaleFactor + 2);
         const fieldHeight = Math.min(Math.max(height, 14), 15);
         
         // Clamp right edge so it never exceeds (pdfPageWidth - marginX - 6pt)
@@ -76,12 +79,12 @@ export async function overlayAcroFormFields(
         textField.acroField.setDefaultAppearance('/Helv 10.5 Tf 0 0 0 rg');
         textField.setFontSize(10.5);
 
-        if (isDatePart) {
+        if (isDateOrTimePart) {
           textField.setAlignment(TextAlignment.Center);
-          if (fieldId.endsWith('_dd') || fieldId.endsWith('_mm')) {
-            textField.setMaxLength(2);
-          } else if (fieldId.endsWith('_yyyy')) {
+          if (fieldId.endsWith('_yyyy')) {
             textField.setMaxLength(4);
+          } else {
+            textField.setMaxLength(2);
           }
         }
 

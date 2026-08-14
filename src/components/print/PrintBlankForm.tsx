@@ -641,12 +641,57 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                               {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap' }}>{cleanLabel}</span>}
                               {f.type === 'time' ? (
                                 f.timeMode === 'dual' ? (
-                                  <div data-acroform-field="true" data-field-id={f.id} data-field-type="time" data-field-name={cleanLabel} style={{ fontSize: '0.8rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '4px', flex: 1 }}>
-                                    Từ <span style={{ borderBottom: '1px dotted #cbd5e1', width: '32px', display: 'inline-block', minHeight: 'var(--pw-line-h)' }} /> : <span style={{ borderBottom: '1px dotted #cbd5e1', width: '32px', display: 'inline-block', minHeight: 'var(--pw-line-h)' }} /> đến <span style={{ borderBottom: '1px dotted #cbd5e1', width: '32px', display: 'inline-block', minHeight: 'var(--pw-line-h)' }} /> : <span style={{ borderBottom: '1px dotted #cbd5e1', width: '32px', display: 'inline-block', minHeight: 'var(--pw-line-h)' }} />
+                                  <div style={{ fontSize: '0.8rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '4px', flex: 1 }}>
+                                    Từ{' '}
+                                    <span
+                                      data-acroform-field="true"
+                                      data-field-id={`${f.id}_start_hh`}
+                                      data-field-type="time_part"
+                                      data-field-name={`${cleanLabel} (Giờ bắt đầu)`}
+                                      style={{ borderBottom: '1px dotted #cbd5e1', width: '22px', display: 'inline-block', minHeight: 'var(--pw-line-h)' }}
+                                    />
+                                    :
+                                    <span
+                                      data-acroform-field="true"
+                                      data-field-id={`${f.id}_start_mm`}
+                                      data-field-type="time_part"
+                                      data-field-name={`${cleanLabel} (Phút bắt đầu)`}
+                                      style={{ borderBottom: '1px dotted #cbd5e1', width: '22px', display: 'inline-block', minHeight: 'var(--pw-line-h)' }}
+                                    />
+                                    {' '}đến{' '}
+                                    <span
+                                      data-acroform-field="true"
+                                      data-field-id={`${f.id}_end_hh`}
+                                      data-field-type="time_part"
+                                      data-field-name={`${cleanLabel} (Giờ kết thúc)`}
+                                      style={{ borderBottom: '1px dotted #cbd5e1', width: '22px', display: 'inline-block', minHeight: 'var(--pw-line-h)' }}
+                                    />
+                                    :
+                                    <span
+                                      data-acroform-field="true"
+                                      data-field-id={`${f.id}_end_mm`}
+                                      data-field-type="time_part"
+                                      data-field-name={`${cleanLabel} (Phút kết thúc)`}
+                                      style={{ borderBottom: '1px dotted #cbd5e1', width: '22px', display: 'inline-block', minHeight: 'var(--pw-line-h)' }}
+                                    />
                                   </div>
                                 ) : (
-                                  <div data-acroform-field="true" data-field-id={f.id} data-field-type="time" data-field-name={cleanLabel} style={{ fontSize: '0.8rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '4px', flex: 1 }}>
-                                    <span style={{ borderBottom: '1px dotted #cbd5e1', width: '36px', display: 'inline-block', minHeight: 'var(--pw-line-h)' }} /> <span style={{ color: '#475569', fontWeight: 'var(--pw-weight-regular)' }}>:</span> <span style={{ borderBottom: '1px dotted #cbd5e1', width: '36px', display: 'inline-block', minHeight: 'var(--pw-line-h)' }} />
+                                  <div style={{ fontSize: '0.8rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '4px', flex: 1 }}>
+                                    <span
+                                      data-acroform-field="true"
+                                      data-field-id={`${f.id}_hh`}
+                                      data-field-type="time_part"
+                                      data-field-name={`${cleanLabel} (Giờ)`}
+                                      style={{ borderBottom: '1px dotted #cbd5e1', width: '24px', display: 'inline-block', minHeight: 'var(--pw-line-h)' }}
+                                    />
+                                    <span style={{ color: '#475569', fontWeight: 'var(--pw-weight-regular)' }}>:</span>
+                                    <span
+                                      data-acroform-field="true"
+                                      data-field-id={`${f.id}_mm`}
+                                      data-field-type="time_part"
+                                      data-field-name={`${cleanLabel} (Phút)`}
+                                      style={{ borderBottom: '1px dotted #cbd5e1', width: '24px', display: 'inline-block', minHeight: 'var(--pw-line-h)' }}
+                                    />
                                   </div>
                                 )
                               ) : (
@@ -793,12 +838,57 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                     </div>
                                   ) : field.type === 'time' ? (
                                     field.timeMode === 'dual' ? (
-                                      <div data-acroform-field="true" data-field-id={field.id} data-field-type="time" data-field-name={displayTitle} style={{ fontSize: '0.75rem', color: '#000000', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '2px' }}>
-                                        Từ <span style={{ borderBottom: '1px solid #000000', width: '22px', display: 'inline-block', height: '12px' }} />:<span style={{ borderBottom: '1px solid #000000', width: '22px', display: 'inline-block', height: '12px' }} /> đến <span style={{ borderBottom: '1px solid #000000', width: '22px', display: 'inline-block', height: '12px' }} />:<span style={{ borderBottom: '1px solid #000000', width: '22px', display: 'inline-block', height: '12px' }} />
+                                      <div style={{ fontSize: '0.75rem', color: '#000000', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '2px' }}>
+                                        Từ{' '}
+                                        <span
+                                          data-acroform-field="true"
+                                          data-field-id={`${field.id}_start_hh`}
+                                          data-field-type="time_part"
+                                          data-field-name={`${displayTitle} (Giờ bắt đầu)`}
+                                          style={{ borderBottom: '1px solid #000000', width: '20px', display: 'inline-block', height: '12px' }}
+                                        />
+                                        :
+                                        <span
+                                          data-acroform-field="true"
+                                          data-field-id={`${field.id}_start_mm`}
+                                          data-field-type="time_part"
+                                          data-field-name={`${displayTitle} (Phút bắt đầu)`}
+                                          style={{ borderBottom: '1px solid #000000', width: '20px', display: 'inline-block', height: '12px' }}
+                                        />
+                                        {' '}đến{' '}
+                                        <span
+                                          data-acroform-field="true"
+                                          data-field-id={`${field.id}_end_hh`}
+                                          data-field-type="time_part"
+                                          data-field-name={`${displayTitle} (Giờ kết thúc)`}
+                                          style={{ borderBottom: '1px solid #000000', width: '20px', display: 'inline-block', height: '12px' }}
+                                        />
+                                        :
+                                        <span
+                                          data-acroform-field="true"
+                                          data-field-id={`${field.id}_end_mm`}
+                                          data-field-type="time_part"
+                                          data-field-name={`${displayTitle} (Phút kết thúc)`}
+                                          style={{ borderBottom: '1px solid #000000', width: '20px', display: 'inline-block', height: '12px' }}
+                                        />
                                       </div>
                                     ) : (
-                                      <div data-acroform-field="true" data-field-id={field.id} data-field-type="time" data-field-name={displayTitle} style={{ fontSize: '0.75rem', color: '#000000', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '2px' }}>
-                                        <span style={{ borderBottom: '1px solid #000000', width: '30px', display: 'inline-block', height: '12px' }} /> : <span style={{ borderBottom: '1px solid #000000', width: '30px', display: 'inline-block', height: '12px' }} />
+                                      <div style={{ fontSize: '0.75rem', color: '#000000', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '2px' }}>
+                                        <span
+                                          data-acroform-field="true"
+                                          data-field-id={`${field.id}_hh`}
+                                          data-field-type="time_part"
+                                          data-field-name={`${displayTitle} (Giờ)`}
+                                          style={{ borderBottom: '1px solid #000000', width: '22px', display: 'inline-block', height: '12px' }}
+                                        />
+                                        {' '}:{' '}
+                                        <span
+                                          data-acroform-field="true"
+                                          data-field-id={`${field.id}_mm`}
+                                          data-field-type="time_part"
+                                          data-field-name={`${displayTitle} (Phút)`}
+                                          style={{ borderBottom: '1px solid #000000', width: '22px', display: 'inline-block', height: '12px' }}
+                                        />
                                       </div>
                                     )
                                   ) : null}
