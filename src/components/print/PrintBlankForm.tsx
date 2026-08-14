@@ -984,7 +984,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                       data-field-id={`${fieldId}_dd`}
                                       data-field-type="date_part"
                                       data-field-name={`${displayTitle} (Ngày)`}
-                                      style={{ borderBottom: '1px solid #000000', width: '24px', display: 'inline-block', height: '12px' }}
+                                      style={{ width: '24px', display: 'inline-block', height: '12px' }}
                                     />
                                     /
                                     <span
@@ -992,7 +992,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                       data-field-id={`${fieldId}_mm`}
                                       data-field-type="date_part"
                                       data-field-name={`${displayTitle} (Tháng)`}
-                                      style={{ borderBottom: '1px solid #000000', width: '24px', display: 'inline-block', height: '12px' }}
+                                      style={{ width: '24px', display: 'inline-block', height: '12px' }}
                                     />
                                     /
                                     <span
@@ -1000,7 +1000,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                       data-field-id={`${fieldId}_yyyy`}
                                       data-field-type="date_part"
                                       data-field-name={`${displayTitle} (Năm)`}
-                                      style={{ borderBottom: '1px solid #000000', width: '40px', display: 'inline-block', height: '12px' }}
+                                      style={{ width: '40px', display: 'inline-block', height: '12px' }}
                                     />
                                   </div>
                                 </td>
