@@ -1128,12 +1128,8 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                 data-field-id={fieldId}
                                 data-field-type={col.type || 'text'}
                                 data-field-name={displayTitle}
-                                style={{ border: '1.5px solid #000000', padding: '0', verticalAlign: 'top' }}
-                              >
-                                {Array.from({ length: lc }).map((_, i) => (
-                                  <div key={i} style={{ height: '28px', borderTop: i > 0 ? '1px dotted #94a3b8' : 'none' }} />
-                                ))}
-                              </td>
+                                style={{ border: '1.5px solid #000000', padding: '4px 6px', height: `${28 * lc}px`, verticalAlign: 'top' }}
+                              />
                             );
                           })}
                         </tr>
