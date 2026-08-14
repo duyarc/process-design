@@ -62,20 +62,47 @@ export function calculatePageBreaks(targetEl: HTMLElement, config: PdfPageConfig
     return rB.height - rA.height;
   });
 
+  const isHeadingElement = (el: HTMLElement): boolean => {
+    return (
+      el.classList.contains('print-block--section') ||
+      el.classList.contains('print-title-block') ||
+      el.tagName === 'H1' ||
+      el.tagName === 'H2' ||
+      el.tagName === 'H3' ||
+      el.querySelector('h1, h2, h3, .print-block--section') !== null
+    );
+  };
+
   const rawBreaks: number[] = [0];
   let currentPageTop = 0;
 
-  for (const el of candidateElements) {
+  for (let i = 0; i < candidateElements.length; i++) {
+    const el = candidateElements[i];
     const r = el.getBoundingClientRect();
     const elTop = r.top - targetRect.top;
     const elBottom = r.bottom - targetRect.top;
 
-    if (elBottom - currentPageTop > effectiveMaxHeightPx) {
-      // Element exceeds current page budget
-      // Place a page break at the start of this element if it's not at the very top of current page
-      if (elTop > currentPageTop + 25) {
-        rawBreaks.push(elTop);
-        currentPageTop = elTop;
+    const isHeading = isHeadingElement(el);
+    // A heading must have at least 60px of space after it on the same page (emulating break-after: avoid)
+    const requiredBottom = isHeading ? elBottom + 60 : elBottom;
+
+    if (requiredBottom - currentPageTop > effectiveMaxHeightPx) {
+      // Determine the best break point
+      let breakPoint = elTop;
+
+      // If this is a normal element whose preceding sibling was an orphan heading within 80px, break before the heading
+      if (!isHeading && i > 0) {
+        const prevEl = candidateElements[i - 1];
+        const prevR = prevEl.getBoundingClientRect();
+        const prevTop = prevR.top - targetRect.top;
+        if (isHeadingElement(prevEl) && elTop - prevTop < 80 && prevTop > currentPageTop + 25) {
+          breakPoint = prevTop;
+        }
+      }
+
+      if (breakPoint > currentPageTop + 25) {
+        rawBreaks.push(breakPoint);
+        currentPageTop = breakPoint;
       }
     }
   }
