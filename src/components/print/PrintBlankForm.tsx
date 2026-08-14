@@ -132,9 +132,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
       hasAutoExportedRef.current = true;
       const timer = setTimeout(async () => {
         await handleExportPdf();
-        if (exportMode) {
-          onClose();
-        }
+        onClose();
       }, 300);
       return () => clearTimeout(timer);
     }

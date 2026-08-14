@@ -926,7 +926,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                 <button 
                                   className="btn btn-secondary btn-sm"
                                   style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', margin: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: '26px' }}
-                                  title="Export Fillable PDF"
+                                  title="Export PDF"
                                   onClick={() => {
                                     const raw = form.rawRecord || {};
                                     const fullTemplate = {
@@ -1145,7 +1145,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                           <button 
                             className="btn btn-secondary btn-sm"
                             style={{ flex: 1, padding: '0.3rem 0.4rem', fontSize: '0.75rem', margin: 0, gap: '0.2rem', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                            title="Export Fillable PDF"
+                            title="Export PDF"
                             onClick={() => {
                               const raw = form.rawRecord || {};
                               const fullTemplate = {
@@ -1368,6 +1368,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
       {printTemplateData && (
         <PrintBlankForm
           template={printTemplateData}
+          autoExportPdf={!!printTemplateData.autoExportPdf}
+          exportMode={!!printTemplateData.autoExportPdf}
           onClose={() => setPrintTemplateData(null)}
         />
       )}
