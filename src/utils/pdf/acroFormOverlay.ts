@@ -35,6 +35,12 @@ export async function overlayAcroFormFields(
     const cellHeightPt = Math.max(elHeight * scaleFactor, 10);
 
     try {
+      // Signature fields are intended for physical wet-ink signing after printing.
+      // The visual signature area (line, box) is already captured in the html2canvas background.
+      // Adding an AcroForm interactive field here would prompt users to type text — incorrect UX.
+      // Best practice (PDF spec): leave the area as a visual-only placeholder; user prints & signs.
+      if (fieldType === 'signature') return;
+
       if (fieldType === 'checkbox' || fieldType === 'radio') {
         // X: place checkbox exactly at the visual icon's DOM position.
         // With the correct 697.7px DOM layout, relLeft * scaleFactor maps directly to PDF pt.
