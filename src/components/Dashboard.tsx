@@ -1117,6 +1117,31 @@ export const Dashboard: React.FC<DashboardProps> = ({
                             <Printer size={13} style={{ flexShrink: 0 }} />
                             Print
                           </button>
+
+                          <button 
+                            className="btn btn-secondary btn-sm"
+                            style={{ flex: 1, padding: '0.3rem 0.4rem', fontSize: '0.75rem', margin: 0, gap: '0.2rem', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                            title="Export Fillable PDF"
+                            onClick={() => {
+                              const raw = form.rawRecord || {};
+                              const fullTemplate = {
+                                ...raw,
+                                formId: form.formId || form.formName || raw.form_id,
+                                formTitle: form.formTitle || raw.form_title || raw.form_name,
+                                layoutBlocks: typeof raw.layout_blocks === 'string' ? JSON.parse(raw.layout_blocks) : (raw.layout_blocks || []),
+                                revisionHistory: typeof raw.revision_history === 'string' ? JSON.parse(raw.revision_history) : (raw.revision_history || []),
+                                version: form.version || raw.version,
+                                status: form.status || raw.status,
+                                effectiveDate: raw.effective_date || raw.effectiveDate || raw.created_at,
+                                updatedAt: raw.updated_at || raw.updatedAt || raw.created_at,
+                                autoExportPdf: true
+                              };
+                              setPrintTemplateData(fullTemplate);
+                            }}
+                          >
+                            <FileText size={13} style={{ flexShrink: 0 }} />
+                            PDF
+                          </button>
                           
                           {hasPermission('design_document') && (
                             <button 
