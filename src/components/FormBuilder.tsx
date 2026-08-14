@@ -1005,6 +1005,16 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     }));
   };
 
+  const handleUpdateRowLineCount = (blockId: string, rowId: string, lineCount: number) => {
+    if (isLocked) return;
+    setLayoutBlocks(prev => prev.map(b => {
+      if (b.id !== blockId) return b;
+      return { ...b, tableRows: (b.tableRows || []).map(r =>
+        r.id === rowId ? { ...r, lineCount } : r
+      )};
+    }));
+  };
+
   // 4. Save and Publish
 
   const handlePublish = async () => {
@@ -2707,7 +2717,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                     </td>
                                   </tr>
                                 ) : (
-                                  (block.tableRows || []).map((row) => (
+                                  (block.tableRows || []).map((row) => {
+                                    const lc = row.lineCount ?? 1;
+                                    return (
                                     <tr
                                       key={row.id}
                                       style={{ borderBottom: '1px solid #cbd5e1' }}
@@ -2721,6 +2733,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                          const hasOpts = (col.type === 'checkbox' || col.type === 'radio') && cellOptions.length > 0;
                                          const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? (hasOpts ? 'left' : 'center') : 'left'));
                                          const isCellSelected = activeCellKey === cellKey;
+                                         const isOptionCell = col.type === 'checkbox' || col.type === 'radio';
 
                                          return (
                                            <td 
@@ -2731,35 +2744,17 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                setActiveCellKey(cellKey);
                                              }}
                                              style={{ 
-                                               padding: '4px', 
+                                               padding: isOptionCell ? '4px' : '0', 
                                                borderRight: '1px solid #cbd5e1', 
-                                               verticalAlign: 'middle', 
+                                               verticalAlign: 'top', 
                                                textAlign: cellAlign,
                                                background: isCellSelected ? 'rgba(59, 130, 246, 0.08)' : isCustomCellOpts ? 'rgba(254, 215, 170, 0.15)' : 'none',
                                                outline: isCellSelected ? '1.5px solid #3b82f6' : 'none',
                                                cursor: 'pointer'
                                              }}
                                            >
-                                             {col.type === 'static_text' ? (
-                                               <input
-                                                 type="text"
-                                                 disabled={isLocked}
-                                                 value={block.tableData?.[row.id]?.[col.id] || ''}
-                                                 onChange={(e) => {
-                                                   const val = e.target.value;
-                                                   setLayoutBlocks(prev => prev.map(b => {
-                                                     if (b.id === block.id) {
-                                                       const updatedData = { ...b.tableData || {} };
-                                                       updatedData[row.id] = { ...updatedData[row.id] || {}, [col.id]: val };
-                                                       return { ...b, tableData: updatedData };
-                                                     }
-                                                     return b;
-                                                   }));
-                                                 }}
-                                                 placeholder="Sửa nhãn..."
-                                                 style={{ width: '100%', border: 'none', background: 'transparent', outline: 'none', padding: '2px', fontSize: '0.75rem', textAlign: cellAlign }}
-                                               />
-                                             ) : (col.type === 'checkbox' || col.type === 'radio') ? (
+                                             {isOptionCell ? (
+                                               // Checkbox / radio: keep flexible height — not line-count aware
                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: '2px 0', width: '100%' }}>
                                                   {isCustomCellOpts && !isLocked && (
                                                     <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '2px' }}>
@@ -2820,21 +2815,50 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                    </button>
                                                  )}
                                                </div>
-                                             ) : col.type === 'date' ? (
-                                               <span style={{ color: '#cbd5e1', fontSize: '0.7rem', display: 'block', textAlign: 'center' }}>[Ngày]</span>
-                                             ) : col.type === 'time' ? (
-                                               <span style={{ color: '#cbd5e1', fontSize: '0.7rem', display: 'block', textAlign: 'center' }}>[Giờ]</span>
-                                             ) : col.type === 'number' ? (
-                                               <span style={{ color: '#cbd5e1', fontSize: '0.7rem', display: 'block', textAlign: 'right' }}>[Nhập số]</span>
                                              ) : (
-                                               <span style={{ color: '#cbd5e1', fontSize: '0.7rem', display: 'block', textAlign: 'left' }}>[Nhập chữ]</span>
+                                               // Text / number / date / time / static: multi-line layout
+                                               <>
+                                                 <div style={{ height: '28px', padding: '4px', display: 'flex', alignItems: 'center', boxSizing: 'border-box', overflow: 'hidden' }}>
+                                                   {col.type === 'static_text' ? (
+                                                     <input
+                                                       type="text"
+                                                       disabled={isLocked}
+                                                       value={block.tableData?.[row.id]?.[col.id] || ''}
+                                                       onChange={(e) => {
+                                                         const val = e.target.value;
+                                                         setLayoutBlocks(prev => prev.map(b => {
+                                                           if (b.id === block.id) {
+                                                             const updatedData = { ...b.tableData || {} };
+                                                             updatedData[row.id] = { ...updatedData[row.id] || {}, [col.id]: val };
+                                                             return { ...b, tableData: updatedData };
+                                                           }
+                                                           return b;
+                                                         }));
+                                                       }}
+                                                       placeholder="Sửa nhãn..."
+                                                       style={{ width: '100%', border: 'none', background: 'transparent', outline: 'none', padding: '2px', fontSize: '0.75rem', textAlign: cellAlign }}
+                                                     />
+                                                   ) : col.type === 'date' ? (
+                                                     <span style={{ color: '#cbd5e1', fontSize: '0.7rem', display: 'block', textAlign: 'center', width: '100%' }}>[Ngày]</span>
+                                                   ) : col.type === 'time' ? (
+                                                     <span style={{ color: '#cbd5e1', fontSize: '0.7rem', display: 'block', textAlign: 'center', width: '100%' }}>[Giờ]</span>
+                                                   ) : col.type === 'number' ? (
+                                                     <span style={{ color: '#cbd5e1', fontSize: '0.7rem', display: 'block', textAlign: 'right', width: '100%' }}>[Nhập số]</span>
+                                                   ) : (
+                                                     <span style={{ color: '#cbd5e1', fontSize: '0.7rem', display: 'block', textAlign: 'left', width: '100%' }}>[Nhập chữ]</span>
+                                                   )}
+                                                 </div>
+                                                 {lc > 1 && Array.from({ length: lc - 1 }).map((_, i) => (
+                                                   <div key={i} style={{ height: '28px', borderTop: '1px dashed #e2e8f0' }} />
+                                                 ))}
+                                               </>
                                              )}
                                            </td>
                                          );
                                        })}
                                       {!isLocked && (
                                          <td style={{ width: '75px', padding: '0 4px', border: 'none', textAlign: 'center' }}>
-                                           <div style={{ display: 'flex', gap: '2px', justifyContent: 'center', opacity: hoveredTableRowId === row.id ? 1 : 0, transition: 'opacity 0.15s ease' }}>
+                                           <div style={{ display: 'flex', gap: '2px', justifyContent: 'center', alignItems: 'center', opacity: hoveredTableRowId === row.id ? 1 : 0, transition: 'opacity 0.15s ease' }}>
                                              <button
                                                type="button"
                                                onClick={() => handleMoveRow(block.id, row.id, 'up')}
@@ -2851,6 +2875,15 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                              >
                                                <ArrowDown size={11} style={{ pointerEvents: 'none' }} />
                                              </button>
+                                             <select
+                                               value={lc}
+                                               onClick={(e) => e.stopPropagation()}
+                                               onChange={(e) => handleUpdateRowLineCount(block.id, row.id, Number(e.target.value))}
+                                               style={{ width: '34px', fontSize: '0.62rem', border: '1px solid #cbd5e1', borderRadius: '3px', padding: '1px 0', background: 'var(--neutral-bg)', color: 'var(--text-secondary)', cursor: 'pointer', textAlign: 'center' }}
+                                               title="Số dòng viết tay trong ô (1–5)"
+                                             >
+                                               {[1,2,3,4,5].map(n => <option key={n} value={n}>{n}↕</option>)}
+                                             </select>
                                              <button
                                                type="button"
                                                onClick={() => {
@@ -2874,7 +2907,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                          </td>
                                        )}
                                     </tr>
-                                  ))
+                                    );
+                                  })
                                 )}
                               </tbody>
                               {(() => {

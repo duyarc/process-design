@@ -956,7 +956,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                         </td>
                       </tr>
                     ) : (
-                      (block.tableRows || []).map((row, rIdx) => (
+                      (block.tableRows || []).map((row, rIdx) => { const lc = row.lineCount ?? 1; return (
                         <tr key={row.id} style={{ pageBreakInside: 'avoid' }}>
                           {(block.tableColumns || []).map((col) => {
                             const fieldId = `${block.id}_r${rIdx}_${col.id}`;
@@ -969,7 +969,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
 
                             if (col.type === 'static_text') {
                               return (
-                                <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'middle', height: '28px', textAlign: cellAlign }}>
+                                <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'top', height: `${28 * lc}px`, textAlign: cellAlign }}>
                                   <span style={{ fontWeight: 'var(--pw-weight-regular)', display: 'block', textAlign: cellAlign }}>{block.tableData?.[row.id]?.[col.id] || ''}</span>
                                 </td>
                               );
@@ -977,7 +977,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
 
                             if (col.type === 'date') {
                               return (
-                                <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'middle', height: '28px', textAlign: 'center' }}>
+                                <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'top', height: `${28 * lc}px`, textAlign: 'center' }}>
                                   <div style={{ fontSize: '0.78rem', color: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
                                     <span
                                       data-acroform-field="true"
@@ -1009,7 +1009,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
 
                             if (col.type === 'time') {
                               return (
-                                <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'middle', height: '28px', textAlign: 'center' }}>
+                                <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'top', height: `${28 * lc}px`, textAlign: 'center' }}>
                                   {col.timeMode === 'dual' ? (
                                     <div style={{ fontSize: '0.75rem', color: '#000000', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '2px' }}>
                                       Từ{' '}
@@ -1070,7 +1070,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
 
                             if (col.type === 'checkbox' || col.type === 'radio') {
                               return (
-                                <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'middle', height: '28px', textAlign: cellAlign }}>
+                                <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'top', minHeight: '28px', textAlign: cellAlign }}>
                                   {hasOptions ? (
                                     <div style={{
                                       display: col.checkboxLayout === '2-column' ? 'grid' : 'flex',
@@ -1128,12 +1128,16 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                 data-field-id={fieldId}
                                 data-field-type={col.type || 'text'}
                                 data-field-name={displayTitle}
-                                style={{ border: '1.5px solid #000000', padding: '4px 6px', height: '28px' }}
-                              />
+                                style={{ border: '1.5px solid #000000', padding: '0', verticalAlign: 'top' }}
+                              >
+                                {Array.from({ length: lc }).map((_, i) => (
+                                  <div key={i} style={{ height: '28px', borderTop: i > 0 ? '1px dotted #94a3b8' : 'none' }} />
+                                ))}
+                              </td>
                             );
                           })}
                         </tr>
-                      ))
+                      ); })
                     )}
                   </tbody>
                   {(() => {

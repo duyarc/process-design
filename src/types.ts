@@ -161,6 +161,7 @@ export interface TableColumnConfig {
 
 export interface TableRowConfig {
   id: string;
+  lineCount?: number; // Number of handwriting lines in this row. Default = 1. Range: 1–5.
 }
 
 export type TitleFormatISO = 'H1' | 'H2' | 'BODY' | 'NONE';

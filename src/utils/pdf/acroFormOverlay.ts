@@ -63,7 +63,7 @@ export async function overlayAcroFormFields(
           borderColor: rgb(0, 0, 0),
         });
       } else {
-        // Text / Number / Date Parts / Time Parts / Signature fields
+        // Text / Number / Date Parts / Time Parts fields
         const isDateOrTimePart = fieldType === 'date_part' || fieldType === 'time_part' ||
           fieldId.endsWith('_dd') || fieldId.endsWith('_mm') || fieldId.endsWith('_yyyy') ||
           fieldId.endsWith('_hh') || fieldId.endsWith('_start_hh') || fieldId.endsWith('_start_mm') ||
@@ -77,45 +77,59 @@ export async function overlayAcroFormFields(
         const maxAllowedWidth = Math.max(10, pdfPageWidth - marginX - 10 - textX);
         const fieldWidth = Math.min(rawWidth, maxAllowedWidth);
 
-        // ── Y-axis positioning ────────────────────────────────────────────────────
-        // Helvetica PostScript standard metrics at fontSize 10.5pt:
-        //   cap-height  = 71.8% of em → 7.539pt  (height of capital letters A-Z)
-        //   descender   = 20.7% of em → 2.174pt  (depth of g, p, y below baseline)
-        // Field height covers cap + descender with a small margin.
+        // Helvetica PostScript metrics at 10.5pt:
+        //   cap-height  = 71.8% of em → 7.539pt
+        //   descender   = 20.7% of em → 2.174pt
         const FONT_SIZE = 10.5;
         const CAP_HEIGHT = FONT_SIZE * 0.718; // 7.539pt
         const DESCENDER  = FONT_SIZE * 0.207; // 2.174pt
         const fieldHeight = Math.max(CAP_HEIGHT + DESCENDER + 2, 13); // ≈ 13pt
 
-        let fieldY: number;
-        // CSS `alignItems: baseline` in a flex container → an empty block-level element's
-        // first baseline is its bottom margin edge.  Therefore:
-        //   element bottom edge  ≡  label text baseline  in the DOM.
-        // Translating to PDF Y-coordinates (Y=0 at page bottom):
-        const baselineY = pdfPageHeight - marginY - (localTop * scaleFactor + cellHeightPt);
+        // ── Multi-line cell detection ─────────────────────────────────────────
+        // A single TABLE row is 28px DOM → ~23.9pt in PDF (28 * scaleFactor).
+        // Threshold 30pt catches any cell with lineCount ≥ 2 while ignoring
+        // the slightly-taller single-line INFO_GRID cells (≈ 22px → 18.8pt).
+        const isMultiLineCell = !isDateOrTimePart && cellHeightPt > 30;
 
-        // For TALL containers (≥ 2× fieldHeight, e.g. table cells with explicit height)
-        // the element bottom is NOT the text baseline — use geometric centering instead.
-        if (cellHeightPt >= fieldHeight * 1.5) {
-          // Geometric center of the cell → works well for equally-padded table cells
-          fieldY = baselineY + (cellHeightPt - fieldHeight) / 2;
+        let finalFieldHeight: number;
+        let fieldY: number;
+        let useMultiline: boolean;
+
+        if (isMultiLineCell) {
+          // Multiline: field fills the full cell with 2pt padding top & bottom.
+          finalFieldHeight = Math.max(cellHeightPt - 4, fieldHeight);
+          // PDF Y=0 is at the page bottom. Field bottom-left y:
+          //   = pageHeight - marginY - (localTop * scale + cellHeightPt) + 2
+          fieldY = pdfPageHeight - marginY - (localTop * scaleFactor + cellHeightPt - 2);
+          useMultiline = true;
         } else {
-          // Single-line form-block field: element bottom = label text baseline.
-          // Position field so the pdf-lib-rendered text aligns its visual center
-          // (cap-height midpoint) with the same baseline.
-          // pdf-lib centers text in the field → text_center = fieldY + fieldHeight/2
-          // We want: text_center = baselineY + CAP_HEIGHT/2
-          // → fieldY = baselineY + CAP_HEIGHT/2 − fieldHeight/2
-          fieldY = baselineY + CAP_HEIGHT / 2 - fieldHeight / 2;
+          // Single-line: existing baseline-anchored or geometric-center logic.
+          finalFieldHeight = fieldHeight;
+          const baselineY = pdfPageHeight - marginY - (localTop * scaleFactor + cellHeightPt);
+          // For TALL single-line containers (≥ 1.5× fieldHeight, e.g. INFO_GRID label rows)
+          // use geometric centering; otherwise use baseline alignment.
+          if (cellHeightPt >= fieldHeight * 1.5) {
+            fieldY = baselineY + (cellHeightPt - fieldHeight) / 2;
+          } else {
+            // pdf-lib centers text in the field → text_center = fieldY + fieldHeight/2
+            // We want: text_center = baselineY + CAP_HEIGHT/2
+            fieldY = baselineY + CAP_HEIGHT / 2 - fieldHeight / 2;
+          }
+          useMultiline = false;
         }
-        const clampedY = Math.max(marginY, Math.min(pdfPageHeight - marginY - fieldHeight, fieldY));
+
+        const clampedY = Math.max(marginY, Math.min(pdfPageHeight - marginY - finalFieldHeight, fieldY));
 
         const tfName = `${fieldId}_tf_${index}`;
         const textField = form.createTextField(tfName);
 
-        // Set default appearance string (/Helv 10.5 Tf) before calling setFontSize to prevent pdf-lib errors
+        // Set default appearance string before setFontSize to prevent pdf-lib errors.
         textField.acroField.setDefaultAppearance('/Helv 10.5 Tf 0 0 0 rg');
         textField.setFontSize(10.5);
+
+        if (useMultiline) {
+          textField.enableMultiline();
+        }
 
         if (isDateOrTimePart) {
           textField.setAlignment(TextAlignment.Center);
@@ -132,11 +146,12 @@ export async function overlayAcroFormFields(
           x: textX,
           y: clampedY,
           width: fieldWidth,
-          height: fieldHeight,
+          height: finalFieldHeight,
           borderWidth: 0.5,
           borderColor: rgb(0.8, 0.8, 0.8),
         });
       }
+
     } catch (err) {
       console.warn(`Failed to create AcroForm field ${fieldId}:`, err);
     }

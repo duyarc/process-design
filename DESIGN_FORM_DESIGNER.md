@@ -9,7 +9,7 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | `CURRENT` (2026-08-13) — Section 2, 3 & 4 (Fillable PDF export via pdfFormExporter.ts inheriting 100% PrintBlankForm layout). |
+| **Verified At Commit** | `PENDING` (2026-08-14) — Section 4 `TableRowConfig` updated to reflect new `lineCount` field. |
 
 > **⚠️ Architectural note:** FormBuilder has no awareness of which process it belongs to. The `formName` prop is always identical to `formId`. See Section 6.1 and the Technical Debt table.
 
@@ -128,6 +128,12 @@ interface FormTemplateISO {
 ### Layout Block: `LayoutBlockISO`
 
 ```typescript
+export interface TableRowConfig {
+  id: string;
+  lineCount?: number; // Number of handwriting lines per row. Default = 1. Range: 1–5.
+                     // Controls row height (28px × lineCount) in canvas, print, and PDF AcroForm.
+}
+
 interface LayoutBlockISO {
   id: string;
   type: 'TITLE' | 'INFO_GRID' | 'CHECKLIST_TABLE' | 'MATRIX_TABLE' | 'SIGN' | 'TABLE' | 'SECTION_LABEL';
@@ -508,6 +514,7 @@ full diff of any entry below.
 | 2026-08-13 | `CURRENT` | **Photo Field WYSIWYG Inline Editable Tip & Icon Removal:** Removed camera icon from canvas placeholder and print blank forms. Made photo hint text directly editable inline inside the canvas placeholder (saved in `f.checkItem`). Propagated hint text to FormFiller, ProcessReader, and PrintBlankForm. |
 | 2026-08-13 | `CURRENT` | **TABLE Block Default Initial Columns Update:** Updated default `tableColumns` in `FormBuilder.tsx` for newly added `TABLE` blocks: `STT` (width: 8%, align: center), `Tên hạng mục` (width: 50%), `Giá trị` (width: auto/42%), and removed default `'Đạt'` column completely. |
 | 2026-08-13 | `4eefc87` | **Automated Checkbox Layout Engine (Option A vs Option C):** Implemented `getAutoCheckboxLayoutMode` in `formUtils.ts`. FormBuilder automatically selects Option A (2-column 35%/65%) for standard options and Option C (Top-aligned label + indented stacked options) when label >35 chars, option text >40 chars, or option density is high. |
+| 2026-08-14 | `PENDING` | **Schema change:** added `lineCount?: number` to `TableRowConfig` (range 1–5, default 1). Controls row height in FormBuilder canvas, PrintBlankForm print, and fillable PDF AcroForm overlay (multiline text field when `lineCount > 1`). UI: inline `<select>` (1↕–5↕) in row hover action column. |
 | 2026-08-13 | `CURRENT` | **Fillable PDF Export (Interactive AcroForm):** Added client-side pure PDF exporter `exportFillablePdfFromDOM` in `src/utils/pdfFormExporter.ts`. Annotated `PrintBlankForm.tsx` placeholders with `data-acroform-field` attributes to overlay interactive `TextField`, `CheckBox`, `RadioGroup`, and `Signature` controls onto PDF background via `pdf-lib` and `@pdf-lib/fontkit`. Added **"PDF"** button in `FormBuilder.tsx` and `PrintBlankForm.tsx`. |
 | 2026-08-13 | `CURRENT` | **Strict A4 Layout Engine for Fillable PDF Export:** Updated `src/utils/pdfFormExporter.ts` to target printable inner table `.print-outer-table` directly, applying temporary strict A4 210mm (793.7px) width and 12mm/15mm padding during `html2canvas` capture. Guarantees 1:1 match between exported PDF and physical paper printouts. |
 | 2026-08-13 | `CURRENT` | **PDF Page Margin Offset & Field Precision Alignment:** Updated `src/utils/pdfFormExporter.ts` to implement strict PDF page margins (36pt / 12.7mm on all 4 sides). Field coordinates now map with margin offsets (`x = marginX + relLeft * scaleFactor`), eliminating edge cropping and aligning fillable text fields perfectly over HTML baselines. Filtered out hidden elements (`offsetWidth > 0 && offsetHeight > 0`). |
