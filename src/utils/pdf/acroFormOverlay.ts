@@ -1,4 +1,4 @@
-import { PDFDocument, rgb } from 'pdf-lib';
+import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import type { ScannedAcroField, PdfPageConfig } from './types';
 
@@ -9,6 +9,8 @@ export async function overlayAcroFormFields(
 ): Promise<Uint8Array> {
   const pdfDoc = await PDFDocument.load(pdfBuffer);
   pdfDoc.registerFontkit(fontkit);
+
+  const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
   const form = pdfDoc.getForm();
   const pages = pdfDoc.getPages();
@@ -29,7 +31,8 @@ export async function overlayAcroFormFields(
     const pageTopOffset = pageIdx * domPageHeight;
     const localTop = relTop - pageTopOffset;
 
-    const x = marginX + relLeft * scaleFactor;
+    // Shift X by 2pt to avoid overlapping label right edge
+    const x = marginX + relLeft * scaleFactor + 2;
     const width = Math.max(elWidth * scaleFactor, 10);
     const height = Math.max(elHeight * scaleFactor, 10);
 
@@ -52,17 +55,23 @@ export async function overlayAcroFormFields(
         });
       } else {
         // Text / Number / Date / Time / Signature fields
-        const fieldHeight = Math.min(height, 13);
+        const fieldHeight = Math.min(Math.max(height, 14), 15);
         // Clamp right edge so it never exceeds (pdfPageWidth - marginX - 6pt)
         const maxAllowedWidth = Math.max(20, pdfPageWidth - marginX - 6 - x);
         const fieldWidth = Math.min(width, maxAllowedWidth);
 
-        // Align Y to text baseline cleanly
-        const fieldY = pdfPageHeight - marginY - (localTop * scaleFactor + fieldHeight + 1.5);
+        // Lower fieldY by 4.5pt so the 10.5pt text baseline aligns 100% horizontally with label baseline
+        const fieldY = pdfPageHeight - marginY - (localTop * scaleFactor + fieldHeight + 4.5);
         const clampedY = Math.max(marginY, Math.min(pdfPageHeight - marginY - fieldHeight, fieldY));
 
         const tfName = `${fieldId}_tf_${index}`;
         const textField = form.createTextField(tfName);
+
+        // Set default appearance string (/Helv 10.5 Tf) before calling setFontSize to prevent pdf-lib errors
+        textField.acroField.setDefaultAppearance('/Helv 10.5 Tf 0 0 0 rg');
+        textField.setFontSize(10.5);
+        textField.updateAppearances(helveticaFont);
+
         textField.addToPage(page, {
           x,
           y: clampedY,
