@@ -63,17 +63,18 @@ export async function overlayAcroFormFields(
           borderColor: rgb(0, 0, 0),
         });
       } else {
-        // Text / Number / Date Parts / Time Parts fields
+        // Text / Number / Date Parts / Time Parts / Signature Name fields
         const isDateOrTimePart = fieldType === 'date_part' || fieldType === 'time_part' ||
           fieldId.endsWith('_dd') || fieldId.endsWith('_mm') || fieldId.endsWith('_yyyy') ||
           fieldId.endsWith('_hh') || fieldId.endsWith('_start_hh') || fieldId.endsWith('_start_mm') ||
           fieldId.endsWith('_end_hh') || fieldId.endsWith('_end_mm');
+        const isSignatureName = fieldType === 'signature_name';
         
-        // Exact X for Date/Time Parts (+0), +2pt left-padding for normal text/table fields
-        const textX = isDateOrTimePart ? (marginX + relLeft * scaleFactor) : (marginX + relLeft * scaleFactor + 2);
+        // Exact X for Date/Time Parts and Signature Names (+0), +2pt left-padding for normal text/table fields
+        const textX = (isDateOrTimePart || isSignatureName) ? (marginX + relLeft * scaleFactor) : (marginX + relLeft * scaleFactor + 2);
 
-        // Deduct 4pt from cell width — just enough breathing room from the right border.
-        const rawWidth = isDateOrTimePart ? cellWidthPt : Math.max(10, cellWidthPt - 4);
+        // Deduct 4pt from cell width for normal text fields; use exact cellWidthPt for date/time/signature
+        const rawWidth = (isDateOrTimePart || isSignatureName) ? cellWidthPt : Math.max(10, cellWidthPt - 4);
         const maxAllowedWidth = Math.max(10, pdfPageWidth - marginX - 10 - textX);
         const fieldWidth = Math.min(rawWidth, maxAllowedWidth);
 
@@ -89,7 +90,7 @@ export async function overlayAcroFormFields(
         // A single TABLE row is 28px DOM → ~23.9pt in PDF (28 * scaleFactor).
         // Threshold 30pt catches any cell with lineCount ≥ 2 while ignoring
         // the slightly-taller single-line INFO_GRID cells (≈ 22px → 18.8pt).
-        const isMultiLineCell = !isDateOrTimePart && cellHeightPt > 30;
+        const isMultiLineCell = !isDateOrTimePart && !isSignatureName && cellHeightPt > 30;
 
         let finalFieldHeight: number;
         let fieldY: number;
@@ -131,11 +132,11 @@ export async function overlayAcroFormFields(
           textField.enableMultiline();
         }
 
-        if (isDateOrTimePart) {
+        if (isDateOrTimePart || isSignatureName) {
           textField.setAlignment(TextAlignment.Center);
           if (fieldId.endsWith('_yyyy')) {
             textField.setMaxLength(4);
-          } else {
+          } else if (isDateOrTimePart) {
             textField.setMaxLength(2);
           }
         }

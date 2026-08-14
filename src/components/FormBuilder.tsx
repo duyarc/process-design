@@ -3134,11 +3134,12 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                   <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
                                     {f.checkItem}
                                   </div>
-                                  <div style={{ fontSize: '0.65rem', fontStyle: 'italic', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+                                  <div style={{ fontSize: '0.65rem', fontStyle: 'italic', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
                                     {f.reactionProtocol ? (f.reactionProtocol.startsWith('(') ? f.reactionProtocol : `(${f.reactionProtocol})`) : '(Ký và ghi rõ họ tên)'}
                                   </div>
-                                  <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', borderTop: '1px dotted #cbd5e1', paddingTop: '4px' }}>
-                                    Sign-off slot
+                                  <div style={{ height: '36px' }} />
+                                  <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', borderTop: '1px dotted #cbd5e1', paddingTop: '4px', width: '80%', margin: '0 auto' }}>
+                                    Họ và tên
                                   </div>
                                 </div>
                               );

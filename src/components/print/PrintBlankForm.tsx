@@ -1321,8 +1321,8 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                     {block.fields.map((f) => {
                       const isBlank = !f.checkItem || f.checkItem.trim() === '';
                       return (
-                        <div key={f.id} data-acroform-field="true" data-field-id={f.id} data-field-type="signature" data-field-name={f.checkItem} style={{
-                          height: '80px',
+                        <div key={f.id} style={{
+                          minHeight: '100px',
                           display: 'flex',
                           flexDirection: 'column',
                           alignItems: 'center',
@@ -1334,6 +1334,22 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                           <span style={{ fontSize: '0.75rem', fontStyle: 'italic', color: '#475569', textAlign: 'center' }}>
                             {f.reactionProtocol ? (f.reactionProtocol.startsWith('(') ? f.reactionProtocol : `(${f.reactionProtocol})`) : '(Ký và ghi rõ họ tên)'}
                           </span>
+                          {/* Reserved handwriting signature space */}
+                          <div style={{ flex: 1, minHeight: '48px' }} />
+                          {/* Acroform text field for typing signer's name */}
+                          <span
+                            data-acroform-field="true"
+                            data-field-id={`${f.id}_name`}
+                            data-field-type="signature_name"
+                            data-field-name={`${f.checkItem} (Họ và tên)`}
+                            style={{
+                              width: '80%',
+                              maxWidth: '180px',
+                              height: '14px',
+                              display: 'inline-block',
+                              borderBottom: '1px dotted #94a3b8'
+                            }}
+                          />
                         </div>
                       );
                     })}

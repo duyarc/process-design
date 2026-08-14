@@ -1,6 +1,6 @@
 export interface ScannedAcroField {
   fieldId: string;
-  fieldType: 'text' | 'checkbox' | 'radio' | 'date' | 'date_part' | 'time' | 'time_part' | 'signature' | 'number';
+  fieldType: 'text' | 'checkbox' | 'radio' | 'date' | 'date_part' | 'time' | 'time_part' | 'signature' | 'signature_name' | 'number';
   radioGroup?: string;
   radioValue?: string;
   relTop: number;
