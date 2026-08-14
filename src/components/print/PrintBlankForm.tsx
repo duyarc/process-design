@@ -836,14 +836,14 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                     </div>
                                   ) : field.type === 'time' ? (
                                     field.timeMode === 'dual' ? (
-                                      <div style={{ fontSize: '0.75rem', color: '#000000', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '2px' }}>
+                                      <div style={{ fontSize: '0.75rem', color: '#000000', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '4px' }}>
                                         Từ{' '}
                                         <span
                                           data-acroform-field="true"
                                           data-field-id={`${field.id}_start_hh`}
                                           data-field-type="time_part"
                                           data-field-name={`${displayTitle} (Giờ bắt đầu)`}
-                                          style={{ borderBottom: '1px solid #000000', width: '20px', display: 'inline-block', height: '12px' }}
+                                          style={{ borderBottom: '1px solid #000000', width: '22px', display: 'inline-block', height: '12px' }}
                                         />
                                         :
                                         <span
@@ -851,7 +851,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                           data-field-id={`${field.id}_start_mm`}
                                           data-field-type="time_part"
                                           data-field-name={`${displayTitle} (Phút bắt đầu)`}
-                                          style={{ borderBottom: '1px solid #000000', width: '20px', display: 'inline-block', height: '12px' }}
+                                          style={{ borderBottom: '1px solid #000000', width: '22px', display: 'inline-block', height: '12px' }}
                                         />
                                         {' '}đến{' '}
                                         <span
@@ -859,7 +859,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                           data-field-id={`${field.id}_end_hh`}
                                           data-field-type="time_part"
                                           data-field-name={`${displayTitle} (Giờ kết thúc)`}
-                                          style={{ borderBottom: '1px solid #000000', width: '20px', display: 'inline-block', height: '12px' }}
+                                          style={{ borderBottom: '1px solid #000000', width: '22px', display: 'inline-block', height: '12px' }}
                                         />
                                         :
                                         <span
@@ -867,11 +867,11 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                           data-field-id={`${field.id}_end_mm`}
                                           data-field-type="time_part"
                                           data-field-name={`${displayTitle} (Phút kết thúc)`}
-                                          style={{ borderBottom: '1px solid #000000', width: '20px', display: 'inline-block', height: '12px' }}
+                                          style={{ borderBottom: '1px solid #000000', width: '22px', display: 'inline-block', height: '12px' }}
                                         />
                                       </div>
                                     ) : (
-                                      <div style={{ fontSize: '0.75rem', color: '#000000', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '2px' }}>
+                                      <div style={{ fontSize: '0.75rem', color: '#000000', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '4px' }}>
                                         <span
                                           data-acroform-field="true"
                                           data-field-id={`${field.id}_hh`}
@@ -978,13 +978,13 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                             if (col.type === 'date') {
                               return (
                                 <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'top', height: `${28 * lc}px`, textAlign: 'center' }}>
-                                  <div style={{ fontSize: '0.78rem', color: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px' }}>
+                                  <div style={{ fontSize: '0.78rem', color: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
                                     <span
                                       data-acroform-field="true"
                                       data-field-id={`${fieldId}_dd`}
                                       data-field-type="date_part"
                                       data-field-name={`${displayTitle} (Ngày)`}
-                                      style={{ borderBottom: '1px solid #000000', width: '20px', display: 'inline-block', height: '12px' }}
+                                      style={{ borderBottom: '1px solid #000000', width: '24px', display: 'inline-block', height: '12px' }}
                                     />
                                     /
                                     <span
@@ -992,7 +992,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                       data-field-id={`${fieldId}_mm`}
                                       data-field-type="date_part"
                                       data-field-name={`${displayTitle} (Tháng)`}
-                                      style={{ borderBottom: '1px solid #000000', width: '20px', display: 'inline-block', height: '12px' }}
+                                      style={{ borderBottom: '1px solid #000000', width: '24px', display: 'inline-block', height: '12px' }}
                                     />
                                     /
                                     <span
@@ -1000,7 +1000,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                       data-field-id={`${fieldId}_yyyy`}
                                       data-field-type="date_part"
                                       data-field-name={`${displayTitle} (Năm)`}
-                                      style={{ borderBottom: '1px solid #000000', width: '32px', display: 'inline-block', height: '12px' }}
+                                      style={{ borderBottom: '1px solid #000000', width: '40px', display: 'inline-block', height: '12px' }}
                                     />
                                   </div>
                                 </td>
@@ -1011,14 +1011,14 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                               return (
                                 <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'top', height: `${28 * lc}px`, textAlign: 'center' }}>
                                   {col.timeMode === 'dual' ? (
-                                    <div style={{ fontSize: '0.75rem', color: '#000000', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '2px' }}>
+                                    <div style={{ fontSize: '0.75rem', color: '#000000', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '4px' }}>
                                       Từ{' '}
                                       <span
                                         data-acroform-field="true"
                                         data-field-id={`${fieldId}_start_hh`}
                                         data-field-type="time_part"
                                         data-field-name={`${displayTitle} (Giờ bắt đầu)`}
-                                        style={{ borderBottom: '1px solid #000000', width: '18px', display: 'inline-block', height: '12px' }}
+                                        style={{ borderBottom: '1px solid #000000', width: '22px', display: 'inline-block', height: '12px' }}
                                       />
                                       :
                                       <span
@@ -1026,7 +1026,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                         data-field-id={`${fieldId}_start_mm`}
                                         data-field-type="time_part"
                                         data-field-name={`${displayTitle} (Phút bắt đầu)`}
-                                        style={{ borderBottom: '1px solid #000000', width: '18px', display: 'inline-block', height: '12px' }}
+                                        style={{ borderBottom: '1px solid #000000', width: '22px', display: 'inline-block', height: '12px' }}
                                       />
                                       {' '}đến{' '}
                                       <span
@@ -1034,7 +1034,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                         data-field-id={`${fieldId}_end_hh`}
                                         data-field-type="time_part"
                                         data-field-name={`${displayTitle} (Giờ kết thúc)`}
-                                        style={{ borderBottom: '1px solid #000000', width: '18px', display: 'inline-block', height: '12px' }}
+                                        style={{ borderBottom: '1px solid #000000', width: '22px', display: 'inline-block', height: '12px' }}
                                       />
                                       :
                                       <span
@@ -1042,17 +1042,17 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                         data-field-id={`${fieldId}_end_mm`}
                                         data-field-type="time_part"
                                         data-field-name={`${displayTitle} (Phút kết thúc)`}
-                                        style={{ borderBottom: '1px solid #000000', width: '18px', display: 'inline-block', height: '12px' }}
+                                        style={{ borderBottom: '1px solid #000000', width: '22px', display: 'inline-block', height: '12px' }}
                                       />
                                     </div>
                                   ) : (
-                                    <div style={{ fontSize: '0.75rem', color: '#000000', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '2px' }}>
+                                    <div style={{ fontSize: '0.75rem', color: '#000000', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '4px' }}>
                                       <span
                                         data-acroform-field="true"
                                         data-field-id={`${fieldId}_hh`}
                                         data-field-type="time_part"
                                         data-field-name={`${displayTitle} (Giờ)`}
-                                        style={{ borderBottom: '1px solid #000000', width: '20px', display: 'inline-block', height: '12px' }}
+                                        style={{ borderBottom: '1px solid #000000', width: '22px', display: 'inline-block', height: '12px' }}
                                       />
                                       {' '}:{' '}
                                       <span
@@ -1060,7 +1060,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                         data-field-id={`${fieldId}_mm`}
                                         data-field-type="time_part"
                                         data-field-name={`${displayTitle} (Phút)`}
-                                        style={{ borderBottom: '1px solid #000000', width: '20px', display: 'inline-block', height: '12px' }}
+                                        style={{ borderBottom: '1px solid #000000', width: '22px', display: 'inline-block', height: '12px' }}
                                       />
                                     </div>
                                   )}

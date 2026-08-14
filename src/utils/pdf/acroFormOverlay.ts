@@ -187,13 +187,15 @@ export async function overlayAcroFormFields(
         const tfName = `${fieldId}_tf_${index}`;
         const textField = form.createTextField(tfName);
 
+        const fieldFontSize = isDateOrTimePart ? 10.0 : 10.5;
+
         // Set default appearance string before setFontSize to prevent pdf-lib errors.
         if (customFont) {
-          textField.acroField.setDefaultAppearance(`/${customFont.name} 10.5 Tf 0 0 0 rg`);
+          textField.acroField.setDefaultAppearance(`/${customFont.name} ${fieldFontSize} Tf 0 0 0 rg`);
         } else {
-          textField.acroField.setDefaultAppearance('/Helv 10.5 Tf 0 0 0 rg');
+          textField.acroField.setDefaultAppearance(`/Helv ${fieldFontSize} Tf 0 0 0 rg`);
         }
-        textField.setFontSize(10.5);
+        textField.setFontSize(fieldFontSize);
 
         if (useMultiline) {
           textField.enableMultiline();
