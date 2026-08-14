@@ -32,29 +32,27 @@ export function scanDomAcroFields(targetEl: HTMLElement, config: PdfPageConfig):
   scannedFields: ScannedAcroField[];
   restoreStyles: () => void;
 } {
-  // Save original inline styles to restore after scan
-  const originalWidth = targetEl.style.width;
-  const originalMaxWidth = targetEl.style.maxWidth;
-  const originalPadding = targetEl.style.padding;
-  const originalBoxSizing = targetEl.style.boxSizing;
-  const originalBg = targetEl.style.background;
-
-  // Constrain target DOM to A4 target width (697.7px)
-  targetEl.style.width = `${config.targetWidthPx}px`;
-  targetEl.style.maxWidth = `${config.targetWidthPx}px`;
-  targetEl.style.padding = '0px';
-  targetEl.style.margin = '0px';
-  targetEl.style.boxSizing = 'border-box';
+  // Constrain target DOM to A4 target width — must use setProperty(..., 'important') because
+  // print.css declares `width: 100% !important` on .print-outer-table, and a plain inline-style
+  // assignment would be overridden by that CSS !important rule.  An inline style with its own
+  // !important flag wins the cascade (higher specificity origin) and ensures the table actually
+  // renders at targetWidthPx during both getBoundingClientRect measurement and html2canvas capture.
+  targetEl.style.setProperty('width', `${config.targetWidthPx}px`, 'important');
+  targetEl.style.setProperty('max-width', `${config.targetWidthPx}px`, 'important');
+  targetEl.style.setProperty('padding', '0px', 'important');
+  targetEl.style.setProperty('margin', '0px', 'important');
+  targetEl.style.setProperty('box-sizing', 'border-box', 'important');
   // Enable PDF export mode flag to temporarily hide static borders during html2canvas capture
   targetEl.classList.add('exporting-pdf-mode');
 
   const restoreStyles = () => {
     targetEl.classList.remove('exporting-pdf-mode');
-    targetEl.style.width = originalWidth;
-    targetEl.style.maxWidth = originalMaxWidth;
-    targetEl.style.padding = originalPadding;
-    targetEl.style.boxSizing = originalBoxSizing;
-    targetEl.style.background = originalBg;
+    // Remove our forced !important inline properties so CSS rules take over again
+    targetEl.style.removeProperty('width');
+    targetEl.style.removeProperty('max-width');
+    targetEl.style.removeProperty('padding');
+    targetEl.style.removeProperty('margin');
+    targetEl.style.removeProperty('box-sizing');
   };
 
   const allFieldElements = Array.from(
