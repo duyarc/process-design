@@ -1,4 +1,4 @@
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import { PDFDocument, rgb, StandardFonts, TextAlignment } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import type { ScannedAcroField, PdfPageConfig } from './types';
 
@@ -54,15 +54,18 @@ export async function overlayAcroFormFields(
           borderColor: rgb(0, 0, 0),
         });
       } else {
-        // Text / Number / Date / Time / Signature fields
-        // Shift X by +2pt gap offset for text fields only
-        const textX = marginX + relLeft * scaleFactor + 2;
+        // Text / Number / Date Parts / Time / Signature fields
+        const isDatePart = fieldType === 'date_part' || fieldId.endsWith('_dd') || fieldId.endsWith('_mm') || fieldId.endsWith('_yyyy');
+        
+        // Exact X for Date Parts, +2pt shift for normal text fields
+        const textX = isDatePart ? (marginX + relLeft * scaleFactor) : (marginX + relLeft * scaleFactor + 2);
         const fieldHeight = Math.min(Math.max(height, 14), 15);
+        
         // Clamp right edge so it never exceeds (pdfPageWidth - marginX - 6pt)
-        const maxAllowedWidth = Math.max(20, pdfPageWidth - marginX - 6 - textX);
+        const maxAllowedWidth = Math.max(12, pdfPageWidth - marginX - 6 - textX);
         const fieldWidth = Math.min(width, maxAllowedWidth);
 
-        // Lower fieldY by 4.5pt so the 10.5pt text baseline aligns 100% horizontally with label baseline
+        // Lower fieldY by 4.5pt so text baseline aligns 100% horizontally with label baseline
         const fieldY = pdfPageHeight - marginY - (localTop * scaleFactor + fieldHeight + 4.5);
         const clampedY = Math.max(marginY, Math.min(pdfPageHeight - marginY - fieldHeight, fieldY));
 
@@ -72,6 +75,16 @@ export async function overlayAcroFormFields(
         // Set default appearance string (/Helv 10.5 Tf) before calling setFontSize to prevent pdf-lib errors
         textField.acroField.setDefaultAppearance('/Helv 10.5 Tf 0 0 0 rg');
         textField.setFontSize(10.5);
+
+        if (isDatePart) {
+          textField.setAlignment(TextAlignment.Center);
+          if (fieldId.endsWith('_dd') || fieldId.endsWith('_mm')) {
+            textField.setMaxLength(2);
+          } else if (fieldId.endsWith('_yyyy')) {
+            textField.setMaxLength(4);
+          }
+        }
+
         textField.updateAppearances(helveticaFont);
 
         textField.addToPage(page, {

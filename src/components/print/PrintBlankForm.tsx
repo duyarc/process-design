@@ -607,12 +607,30 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                             return (
                               <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'baseline', gap: '8px', fontSize: '0.85rem' }}>
                                 {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap' }}>{cleanLabel}</span>}
-                                <div data-acroform-field="true" data-field-id={f.id} data-field-type="date" data-field-name={cleanLabel} style={{ fontSize: '0.85rem', color: '#0f172a', display: 'flex', alignItems: 'baseline', gap: '4px', flex: 1 }}>
-                                  <span style={{ borderBottom: '1px dotted #cbd5e1', width: '36px', display: 'inline-block', minHeight: 'var(--pw-line-h)' }} />
+                                <div style={{ fontSize: '0.85rem', color: '#0f172a', display: 'flex', alignItems: 'baseline', gap: '4px', flex: 1 }}>
+                                  <span
+                                    data-acroform-field="true"
+                                    data-field-id={`${f.id}_dd`}
+                                    data-field-type="date_part"
+                                    data-field-name={`${cleanLabel} (Ngày)`}
+                                    style={{ borderBottom: '1px dotted #cbd5e1', width: '24px', display: 'inline-block', minHeight: 'var(--pw-line-h)' }}
+                                  />
                                   <span style={{ color: '#000000', fontWeight: 'var(--pw-weight-regular)' }}>/</span>
-                                  <span style={{ borderBottom: '1px dotted #cbd5e1', width: '36px', display: 'inline-block', minHeight: 'var(--pw-line-h)' }} />
+                                  <span
+                                    data-acroform-field="true"
+                                    data-field-id={`${f.id}_mm`}
+                                    data-field-type="date_part"
+                                    data-field-name={`${cleanLabel} (Tháng)`}
+                                    style={{ borderBottom: '1px dotted #cbd5e1', width: '24px', display: 'inline-block', minHeight: 'var(--pw-line-h)' }}
+                                  />
                                   <span style={{ color: '#000000', fontWeight: 'var(--pw-weight-regular)' }}>/</span>
-                                  <span style={{ borderBottom: '1px dotted #cbd5e1', width: '56px', display: 'inline-block', minHeight: 'var(--pw-line-h)' }} />
+                                  <span
+                                    data-acroform-field="true"
+                                    data-field-id={`${f.id}_yyyy`}
+                                    data-field-type="date_part"
+                                    data-field-name={`${cleanLabel} (Năm)`}
+                                    style={{ borderBottom: '1px dotted #cbd5e1', width: '40px', display: 'inline-block', minHeight: 'var(--pw-line-h)' }}
+                                  />
                                 </div>
                               </div>
                             );
