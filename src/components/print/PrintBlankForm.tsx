@@ -639,7 +639,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                               {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap' }}>{cleanLabel}</span>}
                               {f.type === 'time' ? (
                                 f.timeMode === 'dual' ? (
-                                  <div style={{ fontSize: '0.8rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '4px', flex: 1 }}>
+                                  <div style={{ fontSize: '0.8rem', color: '#1e293b', display: 'flex', alignItems: 'baseline', gap: '4px', flex: 1 }}>
                                     Từ{' '}
                                     <span
                                       data-acroform-field="true"
@@ -674,7 +674,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                     />
                                   </div>
                                 ) : (
-                                  <div style={{ fontSize: '0.8rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '4px', flex: 1 }}>
+                                  <div style={{ fontSize: '0.8rem', color: '#1e293b', display: 'flex', alignItems: 'baseline', gap: '4px', flex: 1 }}>
                                     <span
                                       data-acroform-field="true"
                                       data-field-id={`${f.id}_hh`}
