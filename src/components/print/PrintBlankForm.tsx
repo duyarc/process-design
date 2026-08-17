@@ -480,20 +480,20 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                   <div className="print-info-grid" style={{ gridTemplateColumns: `repeat(${block.columns}, 1fr)` }}>
                     {block.fields.map((f) => {
                           const cleanLabel = sanitizeLabel(f.checkItem);
-                          const rSpan = f.type === 'subtable' ? undefined : f.rowSpan;
-                          const cSpan = f.type === 'subtable' ? -1 : f.colSpan;
+                          const parsedRSpan = f.type === 'subtable' ? undefined : (f.rowSpan ? Number(f.rowSpan) : undefined);
+                          const rSpan = parsedRSpan && !isNaN(parsedRSpan) && parsedRSpan > 1 ? parsedRSpan : undefined;
+                          const cSpan = f.type === 'subtable' ? -1 : (f.colSpan ? Number(f.colSpan) : undefined);
                           const gridItemStyle: React.CSSProperties = {
-                            gridRow: rSpan && rSpan > 1 ? `span ${rSpan}` : undefined,
+                            gridRow: rSpan ? `span ${rSpan}` : undefined,
                             gridColumn: cSpan && cSpan > 1 ? `span ${cSpan}` : cSpan === -1 ? '1 / -1' : undefined,
                             alignSelf: f.type === 'photo' ? 'stretch' : 'start',
-                            height: f.type === 'photo' ? '100%' : 'auto',
                           };
 
                           if (f.type === 'photo') {
                             return (
-                              <div key={f.id} style={{ ...gridItemStyle, display: 'flex', flexDirection: 'column', height: '100%', pageBreakInside: 'avoid' }}>
+                              <div key={f.id} style={{ ...gridItemStyle, display: 'flex', flexDirection: 'column', width: '100%', pageBreakInside: 'avoid' }}>
                                 {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', fontSize: '0.82rem', marginBottom: '4px' }}>{cleanLabel}</span>}
-                                <div style={{ flex: 1, border: '1.5px dashed #000000', borderRadius: '3px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60px', padding: '6px' }}>
+                                <div style={{ flex: 1, width: '100%', border: '1.5px dashed #000000', borderRadius: '3px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60px', padding: '6px', boxSizing: 'border-box', background: '#fafafa' }}>
                                   <span style={{ fontSize: '0.78rem', color: '#000000', fontStyle: 'italic', textAlign: 'center' }}>
                                     {f.placeholder ?? ''}
                                   </span>

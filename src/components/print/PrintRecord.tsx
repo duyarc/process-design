@@ -596,8 +596,33 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                       );
                     }
 
+                    const parsedRSpan = matchedField?.rowSpan ? Number(matchedField.rowSpan) : undefined;
+                    const rSpan = parsedRSpan && !isNaN(parsedRSpan) && parsedRSpan > 1 ? parsedRSpan : undefined;
+                    const cSpan = matchedField?.colSpan ? Number(matchedField.colSpan) : undefined;
+                    const gridItemStyle: React.CSSProperties = {
+                      gridRow: rSpan ? `span ${rSpan}` : undefined,
+                      gridColumn: cSpan && cSpan > 1 ? `span ${cSpan}` : cSpan === -1 ? '1 / -1' : undefined,
+                      alignSelf: matchedField?.type === 'photo' ? 'stretch' : 'start',
+                    };
+
+                    if (matchedField?.type === 'photo') {
+                      const photoUrl = f.value || '';
+                      return (
+                        <div key={f.id} style={{ ...gridItemStyle, display: 'flex', flexDirection: 'column', width: '100%', pageBreakInside: 'avoid' }}>
+                          {f.checkItem && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', fontSize: '0.82rem', marginBottom: '4px' }}>{f.checkItem}:</span>}
+                          <div style={{ flex: 1, width: '100%', border: '1.5px solid #000000', borderRadius: '3px', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60px', padding: '4px', boxSizing: 'border-box', background: '#f8fafc' }}>
+                            {photoUrl ? (
+                              <img src={photoUrl} alt="Evidence" style={{ maxWidth: '100%', maxHeight: '200px', objectFit: 'contain' }} />
+                            ) : (
+                              <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontStyle: 'italic' }}>(Không có ảnh đính kèm)</span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    }
+
                     return (
-                      <div key={f.id} style={{ display: 'flex', alignItems: 'baseline', gap: '8px', fontSize: '0.85rem' }}>
+                      <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'baseline', gap: '8px', fontSize: '0.85rem' }}>
                         <span style={{ fontWeight: 'var(--pw-weight-regular)', whiteSpace: 'nowrap' }}>{f.checkItem ? `${f.checkItem}:` : ''}</span>
                         <span style={{ borderBottom: '1px solid #94a3b8', flex: 1, paddingBottom: '2px', fontWeight: 'var(--pw-weight-regular)' }}>
                           {f.value}

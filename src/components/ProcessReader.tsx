@@ -1349,14 +1349,15 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                               {block.fields.map((field: any) => {
                                 const value = formValues[field.id] || '';
                                 const inputStyle = { padding: '0.4rem 0.5rem', fontSize: '0.8rem', border: '1px solid #e2e8f0', borderRadius: '4px', width: '100%', height: '34px', backgroundColor: '#f8fafc' };
-                                const rSpan = field.type === 'subtable' ? undefined : field.rowSpan;
-                                const cSpan = field.type === 'subtable' ? -1 : field.colSpan;
+                                const parsedRSpan = field.type === 'subtable' ? undefined : (field.rowSpan ? Number(field.rowSpan) : undefined);
+                                const rSpan = parsedRSpan && !isNaN(parsedRSpan) && parsedRSpan > 1 ? parsedRSpan : undefined;
+                                const cSpan = field.type === 'subtable' ? -1 : (field.colSpan ? Number(field.colSpan) : undefined);
 
                                 return (
                                   <div 
                                     key={field.id} 
                                     style={{ 
-                                      gridRow: rSpan && rSpan > 1 ? `span ${rSpan}` : undefined,
+                                      gridRow: rSpan ? `span ${rSpan}` : undefined,
                                       gridColumn: cSpan && cSpan > 1 ? `span ${cSpan}` : cSpan === -1 ? '1 / -1' : undefined,
                                       alignSelf: field.type === 'photo' ? 'stretch' : 'start',
                                       display: 'flex', 

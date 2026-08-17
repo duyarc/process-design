@@ -2196,8 +2196,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                             }}>
                               {block.fields.map((f, fIdx, fArr) => {
                                 const isFieldSelected = activeFieldId === f.id;
-                                const rSpan = f.type === 'subtable' ? undefined : f.rowSpan;
-                                const cSpan = f.type === 'subtable' ? -1 : f.colSpan;
+                                const parsedRSpan = f.type === 'subtable' ? undefined : (f.rowSpan ? Number(f.rowSpan) : undefined);
+                                const rSpan = parsedRSpan && !isNaN(parsedRSpan) && parsedRSpan > 1 ? parsedRSpan : undefined;
+                                const cSpan = f.type === 'subtable' ? -1 : (f.colSpan ? Number(f.colSpan) : undefined);
 
                                 return (
                                   <div 
@@ -2208,7 +2209,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                       setActiveFieldId(f.id);
                                     }}
                                     style={{
-                                      gridRow: rSpan && rSpan > 1 ? `span ${rSpan}` : undefined,
+                                      gridRow: rSpan ? `span ${rSpan}` : undefined,
                                       gridColumn: cSpan && cSpan > 1 ? `span ${cSpan}` : cSpan === -1 ? '1 / -1' : undefined,
                                       alignSelf: f.type === 'photo' ? 'stretch' : 'start',
                                       height: f.type === 'photo' ? '100%' : 'auto',
