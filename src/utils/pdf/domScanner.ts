@@ -10,9 +10,9 @@ export function getPdfPageConfig(pageSizeInput?: string): PdfPageConfig {
   const printableWidthPt = pdfPageWidth - (marginX * 2);   // 523.28 pt
   const printableHeightPt = pdfPageHeight - (marginY * 2); // 769.89 pt
 
-  // DOM Target Width: Set exact 697.7px (yields 0.75 pt/px scaling for 523.28pt printable width)
-  const targetWidthPx = 697.7;
-  const scaleFactor = printableWidthPt / targetWidthPx; // 0.75 pt/px
+  // DOM Target Width: Set exact 698px (integer for crisp pixel-snapping and no subpixel seams)
+  const targetWidthPx = 698;
+  const scaleFactor = printableWidthPt / targetWidthPx; // ~0.74968 pt/px
 
   return {
     pageSize: isA5 ? 'A5_LANDSCAPE' : 'A4',

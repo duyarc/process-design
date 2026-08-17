@@ -527,5 +527,30 @@ tr:last-child td {
   background: transparent !important;
 }
 
+/* PDF Export Unified Table Borders: prevent html2canvas disjointed cell & double border rendering */
+.exporting-pdf-mode table.print-table,
+.exporting-pdf-mode .subtable-print-container table,
+.exporting-pdf-mode .print-header-table {
+  border-collapse: collapse !important;
+  border-spacing: 0 !important;
+  border: 1px solid #000000 !important;
+}
 
+.exporting-pdf-mode table.print-table th,
+.exporting-pdf-mode table.print-table td,
+.exporting-pdf-mode .subtable-print-container th,
+.exporting-pdf-mode .subtable-print-container td,
+.exporting-pdf-mode .print-header-table th,
+.exporting-pdf-mode .print-header-table td {
+  border: 1px solid #000000 !important;
+}
 
+.exporting-pdf-mode tbody.print-table-group {
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+}
+
+.exporting-pdf-mode tr[aria-hidden="true"] {
+  display: none !important;
+}
