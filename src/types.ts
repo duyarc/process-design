@@ -288,31 +288,59 @@ export function formatFormVersion(version: string, status?: string, effectiveDat
 
 export function getColStyleWidth(colId: string, _colWidth: string, tableColumns: any[]): string {
   if (!tableColumns || tableColumns.length === 0) return 'auto';
+  if (tableColumns.length === 1) return '100%';
 
-  // Parse all column widths into numeric values (either from % or px or raw numbers)
-  const parsedWidths = tableColumns.map(c => {
-    const wStr = (c.width || '').toString().trim();
-    const val = parseFloat(wStr);
-    return isNaN(val) || val <= 0 ? 100 / tableColumns.length : val;
-  });
-
-  const totalSum = parsedWidths.reduce((sum, v) => sum + v, 0);
   const colIdx = tableColumns.findIndex(c => c.id === colId);
   if (colIdx === -1) return 'auto';
 
-  if (totalSum <= 0) return `${(100 / tableColumns.length).toFixed(2)}%`;
+  const n = tableColumns.length;
+  const nonLastCols = tableColumns.slice(0, n - 1);
 
-  // Convert each column to its exact proportional percentage of 100%
-  if (colIdx === tableColumns.length - 1) {
-    // For the last column, return 100 - sum of previous percentages to avoid rounding float drift
-    const prevSumPct = parsedWidths
-      .slice(0, colIdx)
-      .reduce((sum, v) => sum + (v / totalSum) * 100, 0);
-    const lastPct = Math.max(5, 100 - prevSumPct);
-    return `${lastPct.toFixed(2)}%`;
+  // Check how many non-last columns have valid explicit numeric widths
+  const nonLastParsed = nonLastCols.map(c => {
+    const wStr = (c.width || '').toString().trim();
+    const val = parseFloat(wStr);
+    return isNaN(val) || val <= 0 ? null : val;
+  });
+
+  const hasAnyExplicit = nonLastParsed.some(v => v !== null);
+
+  if (!hasAnyExplicit) {
+    // If no non-last columns have explicit widths, divide equally
+    const eqPct = (100 / n).toFixed(2);
+    if (colIdx === n - 1) {
+      const rest = (100 - parseFloat(eqPct) * (n - 1)).toFixed(2);
+      return `${rest}%`;
+    }
+    return `${eqPct}%`;
   }
 
-  const pct = (parsedWidths[colIdx] / totalSum) * 100;
-  return `${pct.toFixed(2)}%`;
+  // Count unconfigured non-last columns
+  const unconfiguredCount = nonLastParsed.filter(v => v === null).length;
+  const explicitSum = nonLastParsed.reduce((acc: number, v) => acc + (v !== null ? v : 0), 0);
+
+  // Default width for unconfigured non-last columns if there's space left
+  const remainingForUnconfigured = Math.max(0, 100 - explicitSum);
+  const defaultPerUnconfigured = unconfiguredCount > 0 ? remainingForUnconfigured / (unconfiguredCount + 1) : 0;
+
+  const resolvedNonLastWidths = nonLastParsed.map(v => v !== null ? v : defaultPerUnconfigured);
+  const totalNonLastSum = resolvedNonLastWidths.reduce((acc, v) => acc + v, 0);
+
+  if (totalNonLastSum < 95) {
+    // Standard case: non-last columns have exact configured percentages,
+    // and the last column fills the remaining percentage (100 - totalNonLastSum)
+    if (colIdx === n - 1) {
+      const lastPct = Math.max(5, 100 - totalNonLastSum);
+      return `${lastPct.toFixed(2)}%`;
+    }
+    return `${resolvedNonLastWidths[colIdx].toFixed(2)}%`;
+  } else {
+    // Sum is >= 95%, normalize all columns proportionally to leave at least 5% for last column
+    const scaleFactor = 95 / totalNonLastSum;
+    if (colIdx === n - 1) {
+      return '5.00%';
+    }
+    return `${(resolvedNonLastWidths[colIdx] * scaleFactor).toFixed(2)}%`;
+  }
 }
 

@@ -935,6 +935,12 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                 borderCollapse: 'collapse',
                 tableLayout: 'fixed'
               }}>
+                <colgroup>
+                  {(block.tableColumns || []).map((col: any) => {
+                    const colWidth = getColStyleWidth(col.id, col.width, block.tableColumns || []);
+                    return <col key={col.id} style={{ width: colWidth }} />;
+                  })}
+                </colgroup>
                 <thead>
                   <tr>
                     {(block.tableColumns || []).map((col: any) => {
@@ -949,81 +955,165 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                     })}
                   </tr>
                 </thead>
-                <tbody>
-                  {(block.tableRows || []).length === 0 ? (
-                    <tr>
-                      <td colSpan={(block.tableColumns || []).length} style={{ border: '1.5px solid #000000', padding: '8px', textAlign: 'center', color: '#64748b', fontStyle: 'italic', fontSize: '0.8rem' }}>
-                        Không có dữ liệu.
-                      </td>
-                    </tr>
-                  ) : (
-                    (block.tableRows || []).map((row: any) => (
-                      <tr key={row.id} style={{ pageBreakInside: 'avoid' }}>
-                        {(block.tableColumns || []).map((col: any) => {
-                          const cellKey = `${block.id}_${row.id}_${col.id}`;
-                          const cellValue = submission.formData.find(f => f.id === cellKey)?.value || '';
-                          const hasOptions = col.type === 'checkbox' && col.options && col.options.length > 0;
-                          const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? (hasOptions ? 'left' : 'center') : 'left'));
+                {(() => {
+                  const rawRows = block.tableRows || [];
+                  const tableCols = block.tableColumns || [];
+                  if (rawRows.length === 0) {
+                    return (
+                      <tbody className="print-table-group" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                        <tr>
+                          <td colSpan={tableCols.length} style={{ border: '1.5px solid #000000', padding: '8px', textAlign: 'center', color: '#64748b', fontStyle: 'italic', fontSize: '0.8rem' }}>
+                            Không có dữ liệu.
+                          </td>
+                        </tr>
+                      </tbody>
+                    );
+                  }
+
+                  const groups: { groupHeaderRow?: any; rows: any[] }[] = [];
+                  let curGroup: { groupHeaderRow?: any; rows: any[] } = { rows: [] };
+
+                  rawRows.forEach((row: any) => {
+                    if (row.isGroupHeader) {
+                      if (curGroup.groupHeaderRow || curGroup.rows.length > 0) {
+                        groups.push(curGroup);
+                      }
+                      curGroup = { groupHeaderRow: row, rows: [] };
+                    } else {
+                      curGroup.rows.push(row);
+                    }
+                  });
+                  if (curGroup.groupHeaderRow || curGroup.rows.length > 0) {
+                    groups.push(curGroup);
+                  }
+
+                  return groups.map((grp, gIdx) => (
+                    <tbody key={grp.groupHeaderRow?.id || `grp_${gIdx}`} className="print-table-group" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                      <tr aria-hidden="true" style={{ height: 0, lineHeight: 0, overflow: 'hidden' }}>
+                        {tableCols.map((col: any) => {
+                          const colWidth = getColStyleWidth(col.id, col.width, tableCols);
                           return (
-                            <td key={col.id} style={{ border: '1.5px solid #000000', padding: '6px 8px', fontSize: '0.8rem', verticalAlign: 'middle', textAlign: cellAlign }}>
-                              {col.type === 'static_text' ? (
-                                <span style={{ fontWeight: 'var(--pw-weight-regular)', display: 'block', textAlign: cellAlign }}>{block.tableData?.[row.id]?.[col.id] || ''}</span>
-                              ) : col.type === 'checkbox' ? (
-                                hasOptions ? (
-                                   <div style={{
-                                     display: col.checkboxLayout === '2-column' ? 'grid' : 'flex',
-                                     gridTemplateColumns: col.checkboxLayout === '2-column' ? getCheckboxGridTemplate(col.options || []) : undefined,
-                                     flexDirection: col.checkboxLayout === '2-column' ? undefined : 'column',
-                                     gap: col.checkboxLayout === '2-column' ? '4px 12px' : '5px',
-                                     alignItems: 'flex-start',
-                                     padding: '4px 0',
-                                     width: '100%'
-                                   }}>
-                                     {(col.options || []).map((opt: any, oIdx: number) => {
-                                      const currentValues = cellValue ? cellValue.split(',').filter(Boolean) : [];
-                                      const isChecked = currentValues.includes(opt.value || opt.label);
-                                      return (
-                                        <div key={oIdx} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#000000' }}>
-                                          <span style={{
-                                            display: 'inline-flex',
-                                            justifyContent: 'center',
-                                            alignItems: 'center',
-                                            width: '12px',
-                                            height: '12px',
-                                            border: '1.5px solid #000000',
-                                            background: isChecked ? '#e2e8f0' : '#ffffff',
-                                            borderRadius: '2px',
-                                            flexShrink: 0,
-                                            fontSize: '9px',
-                                            fontWeight: 'var(--pw-weight-heavy)',
-                                            lineHeight: 1
-                                          }}>
-                                            {isChecked ? '✓' : ''}
-                                          </span>
-                                          <span style={{ color: isChecked ? '#000000' : '#64748b' }}>{opt.label}</span>
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                ) : (
-                                  <div style={{ display: 'flex', justifyContent: 'center' }}>
-                                    <input type="checkbox" checked={cellValue === 'true'} readOnly style={{ transform: 'scale(1.1)' }} />
-                                  </div>
-                                )
-                              ) : col.type === 'radio' ? (
-                                <div style={{ display: 'flex', justifyContent: 'center' }}>
-                                  <input type="radio" checked={cellValue === 'true'} readOnly style={{ transform: 'scale(1.1)' }} />
-                                </div>
-                              ) : (
-                                <span style={{ display: 'block', textAlign: cellAlign }}>{cellValue}</span>
-                              )}
-                            </td>
+                            <td
+                              key={`anchor_${col.id}`}
+                              style={{
+                                width: colWidth,
+                                maxWidth: colWidth,
+                                padding: 0,
+                                border: 'none',
+                                height: 0,
+                                fontSize: 0,
+                                lineHeight: 0,
+                                overflow: 'hidden',
+                                boxSizing: 'border-box'
+                              }}
+                            />
                           );
                         })}
                       </tr>
-                    ))
-                  )}
-                </tbody>
+                      {grp.groupHeaderRow && (
+                        <tr key={grp.groupHeaderRow.id} style={{ pageBreakInside: 'avoid', pageBreakAfter: 'avoid', breakAfter: 'avoid' }}>
+                          {tableCols.map((col: any, colIdx: number) => {
+                            const colWidth = getColStyleWidth(col.id, col.width, tableCols);
+                            const isFirst = colIdx === 0;
+                            const isLast = colIdx === tableCols.length - 1;
+                            return (
+                              <td
+                                key={col.id}
+                                style={{
+                                  width: colWidth,
+                                  maxWidth: colWidth,
+                                  boxSizing: 'border-box',
+                                  background: '#e5e7eb',
+                                  fontWeight: 'bold',
+                                  fontSize: '0.82rem',
+                                  color: '#000000',
+                                  borderTop: '1.5px solid #000000',
+                                  borderBottom: '1.5px solid #000000',
+                                  borderLeft: isFirst ? '1.5px solid #000000' : '1.5px solid #e5e7eb',
+                                  borderRight: isLast ? '1.5px solid #000000' : '1.5px solid #e5e7eb',
+                                  padding: isFirst ? '5px 8px' : '5px 0',
+                                  overflow: 'hidden',
+                                  whiteSpace: 'nowrap'
+                                }}
+                              >
+                                {isFirst
+                                  ? (grp.groupHeaderRow.groupTitle || block.tableData?.[grp.groupHeaderRow.id]?.['_groupTitle'] || '')
+                                  : null
+                                }
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      )}
+                      {grp.rows.map((row: any) => (
+                        <tr key={row.id} style={{ pageBreakInside: 'avoid' }}>
+                          {tableCols.map((col: any) => {
+                            const colWidth = getColStyleWidth(col.id, col.width, tableCols);
+                            const cellKey = `${block.id}_${row.id}_${col.id}`;
+                            const cellValue = submission.formData.find(f => f.id === cellKey)?.value || '';
+                            const hasOptions = col.type === 'checkbox' && col.options && col.options.length > 0;
+                            const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? (hasOptions ? 'left' : 'center') : 'left'));
+                            return (
+                              <td key={col.id} style={{ border: '1.5px solid #000000', padding: '6px 8px', fontSize: '0.8rem', verticalAlign: 'middle', textAlign: cellAlign, width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
+                                {col.type === 'static_text' ? (
+                                  <span style={{ fontWeight: 'var(--pw-weight-regular)', display: 'block', textAlign: cellAlign }}>{block.tableData?.[row.id]?.[col.id] || ''}</span>
+                                ) : col.type === 'checkbox' ? (
+                                  hasOptions ? (
+                                     <div style={{
+                                       display: col.checkboxLayout === '2-column' ? 'grid' : 'flex',
+                                       gridTemplateColumns: col.checkboxLayout === '2-column' ? getCheckboxGridTemplate(col.options || []) : undefined,
+                                       flexDirection: col.checkboxLayout === '2-column' ? undefined : 'column',
+                                       gap: col.checkboxLayout === '2-column' ? '4px 12px' : '5px',
+                                       alignItems: 'flex-start',
+                                       padding: '4px 0',
+                                       width: '100%'
+                                     }}>
+                                       {(col.options || []).map((opt: any, oIdx: number) => {
+                                        const currentValues = cellValue ? cellValue.split(',').filter(Boolean) : [];
+                                        const isChecked = currentValues.includes(opt.value || opt.label);
+                                        return (
+                                          <div key={oIdx} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#000000' }}>
+                                            <span style={{
+                                              display: 'inline-flex',
+                                              justifyContent: 'center',
+                                              alignItems: 'center',
+                                              width: '12px',
+                                              height: '12px',
+                                              border: '1.5px solid #000000',
+                                              background: isChecked ? '#e2e8f0' : '#ffffff',
+                                              borderRadius: '2px',
+                                              flexShrink: 0,
+                                              fontSize: '9px',
+                                              fontWeight: 'var(--pw-weight-heavy)',
+                                              lineHeight: 1
+                                            }}>
+                                              {isChecked ? '✓' : ''}
+                                            </span>
+                                            <span style={{ color: isChecked ? '#000000' : '#64748b' }}>{opt.label}</span>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  ) : (
+                                    <div style={{ display: 'flex', justifyContent: 'center' }}>
+                                      <input type="checkbox" checked={cellValue === 'true'} readOnly style={{ transform: 'scale(1.1)' }} />
+                                    </div>
+                                  )
+                                ) : col.type === 'radio' ? (
+                                  <div style={{ display: 'flex', justifyContent: 'center' }}>
+                                    <input type="radio" checked={cellValue === 'true'} readOnly style={{ transform: 'scale(1.1)' }} />
+                                  </div>
+                                ) : (
+                                  <span style={{ display: 'block', textAlign: cellAlign }}>{cellValue}</span>
+                                )}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  ));
+                })()}
                 {(() => {
                   const columns = block.tableColumns || [];
                   const totalCols = columns.length;
