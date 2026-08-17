@@ -9,7 +9,7 @@
 | **Module Name** | Form Operations |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | `ba97d0e` (2026-08-17) — Section 3 (Explicit width & maxWidth on all td cells across FormFiller, ProcessReader, and PrintFilledForm). |
+| **Verified At Commit** | `780b9fc` (2026-08-17) — Section 4 (Group header individual cells, anchor rows, and exact column width parity across FormFiller, PrintFilledForm, PrintRecord). |
 
 ### Quick File Index
 
