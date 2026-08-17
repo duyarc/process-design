@@ -694,6 +694,30 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
 
                             return groups.map((grp, gIdx) => (
                               <tbody key={grp.groupHeaderRow?.id || `grp_${gIdx}`} className="print-table-group" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                                {/* Anchor row: invisible zero-height row so Chrome uses individual
+                                    cell widths (not the colSpan group header) when this tbody
+                                    starts on a new print page. */}
+                                <tr aria-hidden="true" style={{ height: 0, lineHeight: 0, overflow: 'hidden' }}>
+                                  {tableCols.map((col) => {
+                                    const colWidth = getColStyleWidth(col.id, col.width, tableCols);
+                                    return (
+                                      <td
+                                        key={`anchor_${col.id}`}
+                                        style={{
+                                          width: colWidth,
+                                          maxWidth: colWidth,
+                                          padding: 0,
+                                          border: 'none',
+                                          height: 0,
+                                          fontSize: 0,
+                                          lineHeight: 0,
+                                          overflow: 'hidden',
+                                          boxSizing: 'border-box'
+                                        }}
+                                      />
+                                    );
+                                  })}
+                                </tr>
                                 {grp.groupHeaderRow && (
                                   <tr key={grp.groupHeaderRow.id} style={{ pageBreakInside: 'avoid', pageBreakAfter: 'avoid', breakAfter: 'avoid' }}>
                                     <td

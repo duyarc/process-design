@@ -992,6 +992,31 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
 
                     return groups.map((grp, gIdx) => (
                       <tbody key={grp.groupHeaderRow?.id || `grp_${gIdx}`} className="print-table-group" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                        {/* Anchor row: invisible zero-height row with individual cells.
+                            When this tbody starts on a new print page, Chrome uses this row
+                            (not the colSpan group-header row) to resolve column widths for
+                            table-layout:fixed, guaranteeing correct proportions. */}
+                        <tr aria-hidden="true" style={{ height: 0, lineHeight: 0, overflow: 'hidden' }}>
+                          {(block.tableColumns || []).map((col) => {
+                            const colWidth = getColStyleWidth(col.id, col.width, block.tableColumns || []);
+                            return (
+                              <td
+                                key={`anchor_${col.id}`}
+                                style={{
+                                  width: colWidth,
+                                  maxWidth: colWidth,
+                                  padding: 0,
+                                  border: 'none',
+                                  height: 0,
+                                  fontSize: 0,
+                                  lineHeight: 0,
+                                  overflow: 'hidden',
+                                  boxSizing: 'border-box'
+                                }}
+                              />
+                            );
+                          })}
+                        </tr>
                         {grp.groupHeaderRow && (
                           <tr key={grp.groupHeaderRow.id} style={{ pageBreakInside: 'avoid', pageBreakAfter: 'avoid', breakAfter: 'avoid' }}>
                             <td
