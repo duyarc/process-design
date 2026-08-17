@@ -661,23 +661,45 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                               (block.tableRows || []).length === 0 ? (
                                 <tr><td colSpan={tableCols.length} style={{ border: '1.5px solid #000000', padding: '8px', textAlign: 'center', color: '#64748b', fontStyle: 'italic', fontSize: '0.8rem' }}>Không có dữ liệu.</td></tr>
                               ) : (
-                                (block.tableRows || []).map(row => (
-                                  <tr key={row.id} style={{ pageBreakInside: 'avoid' }}>
-                                    {tableCols.map(col => {
-                                      const hasOptions = col.type === 'checkbox' && col.options && col.options.length > 0;
-                                      const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? (hasOptions ? 'left' : 'center') : 'left'));
-                                      const snapKey = `${block.id}_${row.id}_${col.id}`;
-                                      const cellVal = getVal(snapKey);
-                                      return (
-                                        <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'middle', height: '28px', textAlign: cellAlign as any }}>
-                                          {col.type === 'static_text' ? (
-                                            <span style={{ fontWeight: 'var(--pw-weight-regular)', display: 'block', textAlign: cellAlign as any }}>{block.tableData?.[row.id]?.[col.id] || ''}</span>
-                                          ) : cellVal}
+                                (block.tableRows || []).map(row => {
+                                  if (row.isGroupHeader) {
+                                    const groupTitle = row.groupTitle || block.tableData?.[row.id]?.['_groupTitle'] || '';
+                                    return (
+                                      <tr key={row.id} style={{ pageBreakInside: 'avoid' }}>
+                                        <td
+                                          colSpan={tableCols.length}
+                                          style={{
+                                            border: '1.5px solid #000000',
+                                            background: '#e5e7eb',
+                                            fontWeight: 'bold',
+                                            fontSize: '0.82rem',
+                                            padding: '5px 8px',
+                                            color: '#000000'
+                                          }}
+                                        >
+                                          {groupTitle}
                                         </td>
-                                      );
-                                    })}
-                                  </tr>
-                                ))
+                                      </tr>
+                                    );
+                                  }
+                                  return (
+                                    <tr key={row.id} style={{ pageBreakInside: 'avoid' }}>
+                                      {tableCols.map(col => {
+                                        const hasOptions = col.type === 'checkbox' && col.options && col.options.length > 0;
+                                        const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? (hasOptions ? 'left' : 'center') : 'left'));
+                                        const snapKey = `${block.id}_${row.id}_${col.id}`;
+                                        const cellVal = getVal(snapKey);
+                                        return (
+                                          <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'middle', height: '28px', textAlign: cellAlign as any }}>
+                                            {col.type === 'static_text' ? (
+                                              <span style={{ fontWeight: 'var(--pw-weight-regular)', display: 'block', textAlign: cellAlign as any }}>{block.tableData?.[row.id]?.[col.id] || ''}</span>
+                                            ) : cellVal}
+                                          </td>
+                                        );
+                                      })}
+                                    </tr>
+                                  );
+                                })
                               )
                             ) : (
                               reconstructedRows.map(({ rowId, cells }) => (

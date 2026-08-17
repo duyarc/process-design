@@ -1944,7 +1944,26 @@ setFormValues(prev => ({ ...prev, [field.id]: stringifySubtableValue(newRows) })
                                          </td>
                                        </tr>
                                      ) : (
-                                       (block.tableRows || []).map((row: any) => (
+                                       (block.tableRows || []).map((row: any) => {
+                                         if (row.isGroupHeader) {
+                                           const groupTitle = row.groupTitle || block.tableData?.[row.id]?.['_groupTitle'] || '';
+                                           return (
+                                             <tr key={row.id} style={{ background: '#e5e7eb', borderBottom: '1.5px solid #cbd5e1' }}>
+                                               <td
+                                                 colSpan={(block.tableColumns || []).length}
+                                                 style={{
+                                                   padding: '8px 10px',
+                                                   fontWeight: 700,
+                                                   fontSize: '0.85rem',
+                                                   color: '#0f172a'
+                                                 }}
+                                               >
+                                                 {groupTitle}
+                                               </td>
+                                             </tr>
+                                           );
+                                         }
+                                         return (
                                          <tr key={row.id} style={{ borderBottom: '1px solid var(--neutral-border)' }}>
                                            {(block.tableColumns || []).map((col: any) => {
                                              const cellKey = `${block.id}_${row.id}_${col.id}`;
@@ -2005,7 +2024,8 @@ setFormValues(prev => ({ ...prev, [field.id]: stringifySubtableValue(newRows) })
                                              );
                                            })}
                                          </tr>
-                                       ))
+                                       );
+                                      })
                                      )}
                                    </tbody>
                                  </table>

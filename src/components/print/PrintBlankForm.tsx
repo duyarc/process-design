@@ -956,7 +956,29 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                         </td>
                       </tr>
                     ) : (
-                      (block.tableRows || []).map((row, rIdx) => { const lc = row.lineCount ?? 1; return (
+                      (block.tableRows || []).map((row, rIdx) => {
+                        if (row.isGroupHeader) {
+                          const groupTitle = row.groupTitle || block.tableData?.[row.id]?.['_groupTitle'] || '';
+                          return (
+                            <tr key={row.id} style={{ pageBreakInside: 'avoid' }}>
+                              <td
+                                colSpan={(block.tableColumns || []).length}
+                                style={{
+                                  border: '1.5px solid #000000',
+                                  background: '#e5e7eb',
+                                  fontWeight: 'bold',
+                                  fontSize: '0.82rem',
+                                  padding: '5px 8px',
+                                  color: '#000000'
+                                }}
+                              >
+                                {groupTitle}
+                              </td>
+                            </tr>
+                          );
+                        }
+                        const lc = row.lineCount ?? 1;
+                        return (
                         <tr key={row.id} style={{ pageBreakInside: 'avoid' }}>
                           {(block.tableColumns || []).map((col) => {
                             const fieldId = `${block.id}_r${rIdx}_${col.id}`;

@@ -2718,6 +2718,124 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                   </tr>
                                 ) : (
                                   (block.tableRows || []).map((row) => {
+                                    if (row.isGroupHeader) {
+                                      const isSelected = activeCellKey === `${row.id}_group`;
+                                      const groupTitleVal = row.groupTitle !== undefined ? row.groupTitle : (block.tableData?.[row.id]?.['_groupTitle'] || '');
+                                      return (
+                                        <tr
+                                          key={row.id}
+                                          style={{ borderBottom: '1.5px solid #cbd5e1', background: '#e5e7eb' }}
+                                          onMouseEnter={() => !isLocked && setHoveredTableRowId(row.id)}
+                                          onMouseLeave={() => setHoveredTableRowId(null)}
+                                        >
+                                          <td
+                                            colSpan={(block.tableColumns || []).length}
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setActiveBlockId(block.id);
+                                              setActiveCellKey(`${row.id}_group`);
+                                            }}
+                                            style={{
+                                              padding: '6px 10px',
+                                              verticalAlign: 'middle',
+                                              fontWeight: 700,
+                                              fontSize: '0.85rem',
+                                              color: '#0f172a',
+                                              outline: isSelected ? '1.5px solid #3b82f6' : 'none'
+                                            }}
+                                          >
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                              <span style={{ color: '#64748b', fontSize: '0.8rem', userSelect: 'none' }}>📁</span>
+                                              <input
+                                                type="text"
+                                                disabled={isLocked}
+                                                value={groupTitleVal}
+                                                placeholder="Nhập tên phân nhóm (ví dụ: I. Bao bì và đóng gói)..."
+                                                onChange={(e) => {
+                                                  const val = e.target.value;
+                                                  setLayoutBlocks(prev => prev.map(b => {
+                                                    if (b.id === block.id) {
+                                                      const updatedRows = (b.tableRows || []).map(r => r.id === row.id ? { ...r, groupTitle: val } : r);
+                                                      const updatedData = { ...b.tableData || {} };
+                                                      updatedData[row.id] = { ...updatedData[row.id] || {}, _groupTitle: val };
+                                                      return { ...b, tableRows: updatedRows, tableData: updatedData };
+                                                    }
+                                                    return b;
+                                                  }));
+                                                }}
+                                                style={{
+                                                  width: '100%',
+                                                  border: 'none',
+                                                  background: 'transparent',
+                                                  outline: 'none',
+                                                  fontWeight: 700,
+                                                  fontSize: '0.85rem',
+                                                  color: '#0f172a'
+                                                }}
+                                              />
+                                            </div>
+                                          </td>
+                                          {!isLocked && (
+                                            <td style={{ width: '75px', padding: '0 4px', border: 'none', textAlign: 'center', background: '#e5e7eb' }}>
+                                              <div style={{ display: 'flex', gap: '2px', justifyContent: 'center', alignItems: 'center', opacity: hoveredTableRowId === row.id ? 1 : 0, transition: 'opacity 0.15s ease' }}>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => handleMoveRow(block.id, row.id, 'up')}
+                                                  style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}
+                                                  title="Di chuyển phân nhóm lên"
+                                                >
+                                                  <ArrowUp size={11} style={{ pointerEvents: 'none' }} />
+                                                </button>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => handleMoveRow(block.id, row.id, 'down')}
+                                                  style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}
+                                                  title="Di chuyển phân nhóm xuống"
+                                                >
+                                                  <ArrowDown size={11} style={{ pointerEvents: 'none' }} />
+                                                </button>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => {
+                                                    setLayoutBlocks(prev => prev.map(b => {
+                                                      if (b.id === block.id) {
+                                                        const updatedRows = (b.tableRows || []).map(r => r.id === row.id ? { ...r, isGroupHeader: false } : r);
+                                                        return { ...b, tableRows: updatedRows };
+                                                      }
+                                                      return b;
+                                                    }));
+                                                  }}
+                                                  style={{ background: 'none', border: 'none', color: '#475569', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center', fontSize: '0.65rem' }}
+                                                  title="Chuyển thành dòng dữ liệu thường"
+                                                >
+                                                  🔄
+                                                </button>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => {
+                                                    setLayoutBlocks(prev => prev.map(b => {
+                                                      if (b.id === block.id) {
+                                                        const updatedRows = (b.tableRows || []).filter(r => r.id !== row.id);
+                                                        const updatedData = { ...b.tableData || {} };
+                                                        delete updatedData[row.id];
+                                                        return { ...b, tableRows: updatedRows, tableData: updatedData };
+                                                      }
+                                                      return b;
+                                                    }));
+                                                    setHoveredTableRowId(null);
+                                                  }}
+                                                  style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                                  title="Xóa phân nhóm"
+                                                >
+                                                  <Trash2 size={11} />
+                                                </button>
+                                              </div>
+                                            </td>
+                                          )}
+                                        </tr>
+                                      );
+                                    }
+
                                     const lc = row.lineCount ?? 1;
                                     return (
                                     <tr
@@ -3029,33 +3147,59 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                             </table>
                           </div>
                           {!isLocked && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setLayoutBlocks(prev => prev.map(b => {
-                                  if (b.id === block.id) {
-                                    const nextRowId = `row_${Date.now()}`;
-                                    const updatedRows = [...(b.tableRows || []), { id: nextRowId }];
-                                    
-                                    // Prepopulate STT if first column is static_text
-                                    const updatedData = { ...b.tableData || {} };
-                                    const firstCol = b.tableColumns?.[0];
-                                    if (firstCol && firstCol.type === 'static_text') {
-                                      updatedData[nextRowId] = {
-                                        ...updatedData[nextRowId] || {},
-                                        [firstCol.id]: String(updatedRows.length)
-                                      };
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '0.5rem' }}>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setLayoutBlocks(prev => prev.map(b => {
+                                    if (b.id === block.id) {
+                                      const nextRowId = `row_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
+                                      const updatedRows = [...(b.tableRows || []), { id: nextRowId, lineCount: 1, isGroupHeader: false }];
+                                      
+                                      // Prepopulate STT if first column is static_text
+                                      const updatedData = { ...b.tableData || {} };
+                                      const firstCol = b.tableColumns?.[0];
+                                      if (firstCol && firstCol.type === 'static_text') {
+                                        const normalRows = updatedRows.filter(r => !r.isGroupHeader);
+                                        updatedData[nextRowId] = {
+                                          ...updatedData[nextRowId] || {},
+                                          [firstCol.id]: String(normalRows.length)
+                                        };
+                                      }
+                                      return { ...b, tableRows: updatedRows, tableData: updatedData };
                                     }
-                                    return { ...b, tableRows: updatedRows, tableData: updatedData };
-                                  }
-                                  return b;
-                                }));
-                              }}
-                              className="btn btn-secondary btn-sm"
-                              style={{ marginTop: '0.5rem', padding: '0.25rem 0.5rem', fontSize: '0.7rem' }}
-                            >
-                              + Thêm dòng
-                            </button>
+                                    return b;
+                                  }));
+                                }}
+                                className="btn btn-secondary btn-sm"
+                                style={{ padding: '0.25rem 0.5rem', fontSize: '0.7rem' }}
+                              >
+                                + Thêm dòng
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setLayoutBlocks(prev => prev.map(b => {
+                                    if (b.id === block.id) {
+                                      const nextRowId = `row_grp_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`;
+                                      const groupHeaderCount = (b.tableRows || []).filter(r => r.isGroupHeader).length + 1;
+                                      const romanNumerals = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+                                      const roman = romanNumerals[groupHeaderCount - 1] || `${groupHeaderCount}`;
+                                      const defaultGroupTitle = `${roman}. Nhóm chỉ tiêu mới`;
+                                      const updatedRows = [...(b.tableRows || []), { id: nextRowId, isGroupHeader: true, groupTitle: defaultGroupTitle }];
+                                      const updatedData = { ...b.tableData || {} };
+                                      updatedData[nextRowId] = { _groupTitle: defaultGroupTitle };
+                                      return { ...b, tableRows: updatedRows, tableData: updatedData };
+                                    }
+                                    return b;
+                                  }));
+                                }}
+                                className="btn btn-secondary btn-sm"
+                                style={{ padding: '0.25rem 0.5rem', fontSize: '0.7rem', background: '#f1f5f9', border: '1px dashed #94a3b8' }}
+                              >
+                                + Hàng phân nhóm
+                              </button>
+                            </div>
                           )}
                         </div>
                       );
@@ -4084,8 +4228,55 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                     : 0;
                   const lastColAdjusted = Math.max(0, 100 - sumOtherPercent);
 
+                  const activeGroupRow = (activeBlock.tableRows || []).find(r => `${r.id}_group` === activeCellKey);
+
                   return (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', borderTop: '1px solid var(--neutral-border)', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
+                      {activeGroupRow && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', border: '1.5px solid #cbd5e1', padding: '8px', borderRadius: '4px', background: '#f1f5f9', marginBottom: '0.25rem' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <label style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.75rem' }}>📁 Cấu hình Hàng Phân Nhóm</label>
+                            <span style={{ fontSize: '0.65rem', background: '#e2e8f0', padding: '1px 5px', borderRadius: '3px', color: '#475569' }}>Full Width</span>
+                          </div>
+                          <input
+                            type="text"
+                            disabled={isLocked}
+                            value={activeGroupRow.groupTitle || activeBlock.tableData?.[activeGroupRow.id]?.['_groupTitle'] || ''}
+                            placeholder="Tên phân nhóm..."
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setLayoutBlocks(prev => prev.map(b => {
+                                if (b.id === activeBlock.id) {
+                                  const updatedRows = (b.tableRows || []).map(r => r.id === activeGroupRow.id ? { ...r, groupTitle: val } : r);
+                                  const updatedData = { ...b.tableData || {} };
+                                  updatedData[activeGroupRow.id] = { ...updatedData[activeGroupRow.id] || {}, _groupTitle: val };
+                                  return { ...b, tableRows: updatedRows, tableData: updatedData };
+                                }
+                                return b;
+                              }));
+                            }}
+                            style={{ width: '100%', padding: '0.3rem 0.4rem', fontSize: '0.78rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', fontWeight: 600 }}
+                          />
+                          <button
+                            type="button"
+                            disabled={isLocked}
+                            onClick={() => {
+                              setLayoutBlocks(prev => prev.map(b => {
+                                if (b.id === activeBlock.id) {
+                                  const updatedRows = (b.tableRows || []).map(r => r.id === activeGroupRow.id ? { ...r, isGroupHeader: false } : r);
+                                  return { ...b, tableRows: updatedRows };
+                                }
+                                return b;
+                              }));
+                            }}
+                            className="btn btn-secondary btn-sm"
+                            style={{ padding: '0.2rem', fontSize: '0.68rem', marginTop: '2px' }}
+                          >
+                            🔄 Chuyển sang dòng dữ liệu thường
+                          </button>
+                        </div>
+                      )}
+
                       <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Cấu hình Cột</label>
                       
 

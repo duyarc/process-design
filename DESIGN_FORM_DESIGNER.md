@@ -9,7 +9,7 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | `PENDING` (2026-08-14) — Section 4 `TableRowConfig` updated to reflect new `lineCount` field. |
+| **Verified At Commit** | `CURRENT` (2026-08-17) — Section 4 (TableRowConfig updated with isGroupHeader & groupTitle for full-width table section header rows). |
 
 > **⚠️ Architectural note:** FormBuilder has no awareness of which process it belongs to. The `formName` prop is always identical to `formId`. See Section 6.1 and the Technical Debt table.
 
@@ -539,5 +539,6 @@ full diff of any entry below.
 | 2026-08-14 | `CURRENT` | **PDF Background Page Margin Balance Fix:** Updated `src/index.css` and `domScanner.ts`. Applied `.exporting-pdf-mode` container width and padding overrides (`width: 100% !important; padding: 0 !important; margin: 0 !important;`) on `.print-outer-table` and `.print-doc`, eliminating empty right space during canvas capture and making left and right PDF page margins 100% symmetric (36pt / 12.7mm). |
 | 2026-08-14 | `CURRENT` | **Dynamic Table Proportional Column Width Calculation (100% Stretch Fix):** Updated `getColStyleWidth` in `src/types.ts` and `PrintBlankForm.tsx`. Converted fixed pixel/percentage column widths into exact proportional percentages summing to 100% (`prevSumPct`, `lastPct`). Ensures dynamic tables always stretch 100% to fill the printable page width, completely resolving unequal PDF page margins. |
 | 2026-08-14 | `CURRENT` | **PDF AcroForm Baseline & Font Size Alignment Calibration:** Updated `src/utils/pdf/acroFormOverlay.ts` to calibrate `PDFTextField` Y-coordinate formula (`fieldY = pdfPageHeight - marginY - (localTop * scaleFactor + fieldHeight + 3.4)`), shifting text field down by ~1.5pt-2pt. Applied explicit `textField.setFontSize(9.5)` to lock font size so filled text (`Sample Text`) baseline aligns 100% horizontally with label baseline (`Số đơn hàng`). |
+| 2026-08-17 | `CURRENT` | **TABLE Full-Width Group Header Rows:** (1) Added `isGroupHeader?: boolean` and `groupTitle?: string` to `TableRowConfig` in `src/types.ts`. (2) Added `+ Hàng phân nhóm` button on TABLE canvas toolbar in `FormBuilder.tsx`. (3) Rendered full-width `colSpan={cols.length}` row with `#E5E7EB` background, bold font, and inline text editing. (4) Added Group Row Inspector in Right Panel. (5) Propagated 1:1 to `PrintBlankForm.tsx`, `PrintFilledForm.tsx`, `FormFiller.tsx`, and `ProcessReader.tsx`. |
 
 

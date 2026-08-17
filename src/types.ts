@@ -162,6 +162,8 @@ export interface TableColumnConfig {
 export interface TableRowConfig {
   id: string;
   lineCount?: number; // Number of handwriting lines in this row. Default = 1. Range: 1–5.
+  isGroupHeader?: boolean; // If true: full-width group header row spanning all columns
+  groupTitle?: string; // Title for the group header row (e.g. 'I. Bao bì và đóng gói')
 }
 
 export type TitleFormatISO = 'H1' | 'H2' | 'BODY' | 'NONE';
