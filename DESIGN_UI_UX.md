@@ -9,7 +9,7 @@ This document is the **single source of truth** for the visual design language o
 
 | Field | Value |
 |---|---|
-| **Verified At Commit** | `237f540` (2026-08-17) — Section 4 (<colgroup> pattern for strict dynamic table column width alignment). |
+| **Verified At Commit** | `ba97d0e` (2026-08-17) — Section 4 (Explicit width, maxWidth, and boxSizing on all td cells with table-layout fixed in print.css). |
 
 ## 1. Design Principles
 

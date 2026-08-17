@@ -9,7 +9,7 @@
 | **Module Name** | Form Operations |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | `237f540` (2026-08-17) — Section 3 (colgroup & col width enforcement in FormFiller, ProcessReader, and PrintFilledForm). |
+| **Verified At Commit** | `ba97d0e` (2026-08-17) — Section 3 (Explicit width & maxWidth on all td cells across FormFiller, ProcessReader, and PrintFilledForm). |
 
 ### Quick File Index
 

@@ -9,7 +9,7 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | `237f540` (2026-08-17) — Section 4 (colgroup & col strict dynamic column width enforcement across all TABLE renderers). |
+| **Verified At Commit** | `ba97d0e` (2026-08-17) — Section 4 (Explicit width & maxWidth on all td cells to strictly lock column widths across page-broken tbody groups). |
 
 > **⚠️ Architectural note:** FormBuilder has no awareness of which process it belongs to. The `formName` prop is always identical to `formId`. See Section 6.1 and the Technical Debt table.
 
