@@ -306,7 +306,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
               {/* Dynamic Blocks Rendering */}
               {template.layoutBlocks && template.layoutBlocks.map((block) => {
         return (
-          <div key={block.id} className={`print-block${block.type === 'SECTION_LABEL' ? ' print-block--section' : ''} ${block.type !== 'CHECKLIST_TABLE' && block.type !== 'INFO_GRID' ? 'print-block-avoid' : ''}`}>
+          <div key={block.id} className={`print-block${block.type === 'SECTION_LABEL' ? ' print-block--section' : ''} ${block.type !== 'CHECKLIST_TABLE' && block.type !== 'INFO_GRID' && block.type !== 'TABLE' ? 'print-block-avoid' : ''}`}>
             
             {/* 1.1 SECTION LABEL BLOCK */}
             {block.type === 'SECTION_LABEL' && (() => {
@@ -916,15 +916,15 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                 <div style={{ marginTop: '0' }}>
                   {titleFmt !== 'NONE' && (
                     titleFmt === 'H1' ? (
-                      <h2 style={{ display: 'inline-block', margin: '0 0 6px 0', fontSize: '1.05rem', fontWeight: 'var(--pw-weight-heavy)', color: '#000000', textTransform: 'uppercase', borderBottom: '2.5px solid #0d9488', paddingBottom: '3px' }}>
+                      <h2 style={{ display: 'inline-block', margin: '0 0 6px 0', fontSize: '1.05rem', fontWeight: 'var(--pw-weight-heavy)', color: '#000000', textTransform: 'uppercase', borderBottom: '2.5px solid #0d9488', paddingBottom: '3px', pageBreakAfter: 'avoid', breakAfter: 'avoid' }}>
                         {block.title}
                       </h2>
                     ) : titleFmt === 'H2' ? (
-                      <div style={{ padding: '6px 10px', background: '#f1f5f9', borderLeft: '4px solid #0d9488', borderRadius: '0px', marginBottom: '6px', fontWeight: 'var(--pw-weight-heavy)', fontSize: '0.9rem', color: '#000000' }}>
+                      <div style={{ padding: '6px 10px', background: '#f1f5f9', borderLeft: '4px solid #0d9488', borderRadius: '0px', marginBottom: '6px', fontWeight: 'var(--pw-weight-heavy)', fontSize: '0.9rem', color: '#000000', pageBreakAfter: 'avoid', breakAfter: 'avoid' }}>
                         {block.title}
                       </div>
                     ) : (
-                      <div style={{ fontSize: '0.85rem', fontWeight: 'var(--pw-weight-medium)', marginBottom: '6px', color: '#000000' }}>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 'var(--pw-weight-medium)', marginBottom: '6px', color: '#000000', pageBreakAfter: 'avoid', breakAfter: 'avoid' }}>
                         {block.title}
                       </div>
                     )
@@ -932,7 +932,8 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                   <table className="print-table" style={{
                     width: '100%',
                     borderCollapse: 'collapse',
-                    tableLayout: 'fixed'
+                    tableLayout: 'fixed',
+                    pageBreakInside: 'auto'
                   }}>
                   <thead>
                     <tr>
@@ -948,216 +949,223 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                       })}
                     </tr>
                   </thead>
-                  <tbody>
-                    {(block.tableRows || []).length === 0 ? (
-                      <tr>
-                        <td colSpan={(block.tableColumns || []).length} style={{ border: '1.5px solid #000000', padding: '8px', textAlign: 'center', color: '#64748b', fontStyle: 'italic', fontSize: '0.8rem' }}>
-                          Không có dòng nào.
-                        </td>
-                      </tr>
-                    ) : (
-                      (block.tableRows || []).map((row, rIdx) => {
-                        if (row.isGroupHeader) {
-                          const groupTitle = row.groupTitle || block.tableData?.[row.id]?.['_groupTitle'] || '';
-                          return (
-                            <tr key={row.id} style={{ pageBreakInside: 'avoid' }}>
-                              <td
-                                colSpan={(block.tableColumns || []).length}
-                                style={{
-                                  border: '1.5px solid #000000',
-                                  background: '#e5e7eb',
-                                  fontWeight: 'bold',
-                                  fontSize: '0.82rem',
-                                  padding: '5px 8px',
-                                  color: '#000000'
-                                }}
-                              >
-                                {groupTitle}
-                              </td>
-                            </tr>
-                          );
+                  {(() => {
+                    const rawRows = block.tableRows || [];
+                    if (rawRows.length === 0) {
+                      return (
+                        <tbody className="print-table-group" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                          <tr>
+                            <td colSpan={(block.tableColumns || []).length} style={{ border: '1.5px solid #000000', padding: '8px', textAlign: 'center', color: '#64748b', fontStyle: 'italic', fontSize: '0.8rem' }}>
+                              Không có dòng nào.
+                            </td>
+                          </tr>
+                        </tbody>
+                      );
+                    }
+
+                    const groups: { groupHeaderRow?: any; rows: { row: any; rIdx: number }[] }[] = [];
+                    let curGroup: { groupHeaderRow?: any; rows: { row: any; rIdx: number }[] } = { rows: [] };
+
+                    rawRows.forEach((row, rIdx) => {
+                      if (row.isGroupHeader) {
+                        if (curGroup.groupHeaderRow || curGroup.rows.length > 0) {
+                          groups.push(curGroup);
                         }
-                        const lc = row.lineCount ?? 1;
-                        return (
-                        <tr key={row.id} style={{ pageBreakInside: 'avoid' }}>
-                          {(block.tableColumns || []).map((col) => {
-                            const fieldId = `${block.id}_r${rIdx}_${col.id}`;
-                            const displayTitle = `${block.title || 'Table'} - Dòng ${rIdx + 1} - ${col.label}`;
-                            const customCellOpts = block.cellOptionsMap?.[`${row.id}_${col.id}`];
-                            const rawOpts = customCellOpts !== undefined ? customCellOpts : (col.options || []);
-                            const effectiveOpts = rawOpts.filter(opt => opt.label && opt.label.trim() !== '');
-                            const hasOptions = (col.type === 'checkbox' || col.type === 'radio') && effectiveOpts.length > 0;
-                            const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? (hasOptions ? 'left' : 'center') : 'left'));
+                        curGroup = { groupHeaderRow: row, rows: [] };
+                      } else {
+                        curGroup.rows.push({ row, rIdx });
+                      }
+                    });
+                    if (curGroup.groupHeaderRow || curGroup.rows.length > 0) {
+                      groups.push(curGroup);
+                    }
 
-                            if (col.type === 'static_text') {
-                              return (
-                                <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'top', height: `${28 * lc}px`, textAlign: cellAlign }}>
-                                  <span style={{ fontWeight: 'var(--pw-weight-regular)', display: 'block', textAlign: cellAlign }}>{block.tableData?.[row.id]?.[col.id] || ''}</span>
-                                </td>
-                              );
-                            }
+                    return groups.map((grp, gIdx) => (
+                      <tbody key={grp.groupHeaderRow?.id || `grp_${gIdx}`} className="print-table-group" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                        {grp.groupHeaderRow && (
+                          <tr key={grp.groupHeaderRow.id} style={{ pageBreakInside: 'avoid', pageBreakAfter: 'avoid', breakAfter: 'avoid' }}>
+                            <td
+                              colSpan={(block.tableColumns || []).length}
+                              style={{
+                                border: '1.5px solid #000000',
+                                background: '#e5e7eb',
+                                fontWeight: 'bold',
+                                fontSize: '0.82rem',
+                                padding: '5px 8px',
+                                color: '#000000'
+                              }}
+                            >
+                              {grp.groupHeaderRow.groupTitle || block.tableData?.[grp.groupHeaderRow.id]?.['_groupTitle'] || ''}
+                            </td>
+                          </tr>
+                        )}
+                        {grp.rows.map(({ row, rIdx }) => {
+                          const lc = row.lineCount ?? 1;
+                          const fieldId = `${block.id}_r${rIdx}_${row.id}`;
+                          const displayTitle = `${block.title || 'Table'} - Dòng ${rIdx + 1}`;
+                          return (
+                          <tr key={row.id} style={{ pageBreakInside: 'avoid' }}>
+                            {(block.tableColumns || []).map((col) => {
+                              const cellFieldId = `${fieldId}_${col.id}`;
+                              const customCellOpts = block.cellOptionsMap?.[`${row.id}_${col.id}`];
+                              const rawOpts = customCellOpts !== undefined ? customCellOpts : (col.options || []);
+                              const effectiveOpts = rawOpts.filter(opt => opt.label && opt.label.trim() !== '');
+                              const hasOptions = (col.type === 'checkbox' || col.type === 'radio') && effectiveOpts.length > 0;
+                              const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? (hasOptions ? 'left' : 'center') : 'left'));
 
-                            if (col.type === 'date') {
-                              return (
-                                <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'top', height: `${28 * lc}px`, textAlign: 'center' }}>
-                                  <div style={{ fontSize: '0.78rem', color: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                              if (col.type === 'static_text') {
+                                return (
+                                  <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'top', height: `${28 * lc}px`, textAlign: cellAlign }}>
+                                    <span style={{ fontWeight: 'var(--pw-weight-regular)', display: 'block', textAlign: cellAlign }}>{block.tableData?.[row.id]?.[col.id] || ''}</span>
+                                  </td>
+                                );
+                              }
+
+                              if (col.type === 'date') {
+                                return (
+                                  <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'top', height: `${28 * lc}px`, textAlign: 'center' }}>
+                                    <div style={{ fontSize: '0.78rem', color: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                                      <span data-acroform-field="true" data-field-id={`${cellFieldId}_dd`} data-field-type="date_part" style={{ width: '24px', display: 'inline-block', height: '12px' }} />
+                                      /
+                                      <span data-acroform-field="true" data-field-id={`${cellFieldId}_mm`} data-field-type="date_part" style={{ width: '24px', display: 'inline-block', height: '12px' }} />
+                                      /
+                                      <span data-acroform-field="true" data-field-id={`${cellFieldId}_yyyy`} data-field-type="date_part" style={{ width: '40px', display: 'inline-block', height: '12px' }} />
+                                    </div>
+                                  </td>
+                                );
+                              }
+
+                              if (col.type === 'time') {
+                                return (
+                                  <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'top', height: `${28 * lc}px`, textAlign: 'center' }}>
+                                    {col.timeMode === 'dual' ? (
+                                      <div style={{ fontSize: '0.75rem', color: '#000000', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '4px' }}>
+                                        Từ{' '}
+                                        <span
+                                          data-acroform-field="true"
+                                          data-field-id={`${cellFieldId}_start_hh`}
+                                          data-field-type="time_part"
+                                          data-field-name={`${displayTitle} (Giờ bắt đầu)`}
+                                          style={{ borderBottom: '1px solid #000000', width: '22px', display: 'inline-block', height: '12px' }}
+                                        />
+                                        :
+                                        <span
+                                          data-acroform-field="true"
+                                          data-field-id={`${cellFieldId}_start_mm`}
+                                          data-field-type="time_part"
+                                          data-field-name={`${displayTitle} (Phút bắt đầu)`}
+                                          style={{ borderBottom: '1px solid #000000', width: '22px', display: 'inline-block', height: '12px' }}
+                                        />
+                                        {' '}đến{' '}
+                                        <span
+                                          data-acroform-field="true"
+                                          data-field-id={`${cellFieldId}_end_hh`}
+                                          data-field-type="time_part"
+                                          data-field-name={`${displayTitle} (Giờ kết thúc)`}
+                                          style={{ borderBottom: '1px solid #000000', width: '22px', display: 'inline-block', height: '12px' }}
+                                        />
+                                        :
+                                        <span
+                                          data-acroform-field="true"
+                                          data-field-id={`${cellFieldId}_end_mm`}
+                                          data-field-type="time_part"
+                                          data-field-name={`${displayTitle} (Phút kết thúc)`}
+                                          style={{ borderBottom: '1px solid #000000', width: '22px', display: 'inline-block', height: '12px' }}
+                                        />
+                                      </div>
+                                    ) : (
+                                      <div style={{ fontSize: '0.75rem', color: '#000000', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '4px' }}>
+                                        <span
+                                          data-acroform-field="true"
+                                          data-field-id={`${cellFieldId}_hh`}
+                                          data-field-type="time_part"
+                                          data-field-name={`${displayTitle} (Giờ)`}
+                                          style={{ borderBottom: '1px solid #000000', width: '22px', display: 'inline-block', height: '12px' }}
+                                        />
+                                        {' '}:{' '}
+                                        <span
+                                          data-acroform-field="true"
+                                          data-field-id={`${cellFieldId}_mm`}
+                                          data-field-type="time_part"
+                                          data-field-name={`${displayTitle} (Phút)`}
+                                          style={{ borderBottom: '1px solid #000000', width: '22px', display: 'inline-block', height: '12px' }}
+                                        />
+                                      </div>
+                                    )}
+                                  </td>
+                                );
+                              }
+
+                              if (col.type === 'checkbox' || col.type === 'radio') {
+                                return (
+                                  <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'top', minHeight: '28px', textAlign: cellAlign }}>
+                                    {hasOptions ? (
+                                      <div style={{
+                                        display: col.checkboxLayout === '2-column' ? 'grid' : 'flex',
+                                        gridTemplateColumns: col.checkboxLayout === '2-column' ? getCheckboxGridTemplate(effectiveOpts) : undefined,
+                                        flexDirection: col.checkboxLayout === '2-column' ? undefined : 'column',
+                                        gap: col.checkboxLayout === '2-column' ? '3px 8px' : '3px',
+                                        alignItems: 'start'
+                                      }}>
+                                        {effectiveOpts.map((opt, oIdx) => (
+                                          <div key={oIdx} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: '#000000', textAlign: 'left', lineHeight: 1.2 }}>
+                                            <span
+                                              className="acro-option-icon"
+                                              data-acroform-field="true"
+                                              data-field-id={`${cellFieldId}_opt_${oIdx}`}
+                                              data-field-type={col.type}
+                                              data-field-name={`${displayTitle} (${opt.label})`}
+                                              style={{
+                                                display: 'inline-block',
+                                                width: '10px',
+                                                height: '10px',
+                                                borderRadius: col.type === 'radio' ? '50%' : '1px',
+                                                border: '1.2px solid #000000',
+                                                background: '#ffffff',
+                                                flexShrink: 0
+                                              }}
+                                            />
+                                            <span style={{ fontSize: '0.75rem' }}>{opt.label}</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    ) : null}
+                                  </td>
+                                );
+                              }
+
+                              if ((col.type as string) === 'signature') {
+                                return (
+                                  <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'middle', height: `${28 * lc}px`, textAlign: 'center' }}>
                                     <span
                                       data-acroform-field="true"
-                                      data-field-id={`${fieldId}_dd`}
-                                      data-field-type="date_part"
-                                      data-field-name={`${displayTitle} (Ngày)`}
-                                      style={{ width: '24px', display: 'inline-block', height: '12px' }}
+                                      data-field-id={cellFieldId}
+                                      data-field-type="signature"
+                                      data-field-name={displayTitle}
+                                      style={{ width: '100%', height: '24px', display: 'inline-block' }}
                                     />
-                                    /
-                                    <span
-                                      data-acroform-field="true"
-                                      data-field-id={`${fieldId}_mm`}
-                                      data-field-type="date_part"
-                                      data-field-name={`${displayTitle} (Tháng)`}
-                                      style={{ width: '24px', display: 'inline-block', height: '12px' }}
-                                    />
-                                    /
-                                    <span
-                                      data-acroform-field="true"
-                                      data-field-id={`${fieldId}_yyyy`}
-                                      data-field-type="date_part"
-                                      data-field-name={`${displayTitle} (Năm)`}
-                                      style={{ width: '40px', display: 'inline-block', height: '12px' }}
-                                    />
-                                  </div>
-                                </td>
-                              );
-                            }
+                                  </td>
+                                );
+                              }
 
-                            if (col.type === 'time') {
+                              // text / number (default)
                               return (
-                                <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'top', height: `${28 * lc}px`, textAlign: 'center' }}>
-                                  {col.timeMode === 'dual' ? (
-                                    <div style={{ fontSize: '0.75rem', color: '#000000', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '4px' }}>
-                                      Từ{' '}
-                                      <span
-                                        data-acroform-field="true"
-                                        data-field-id={`${fieldId}_start_hh`}
-                                        data-field-type="time_part"
-                                        data-field-name={`${displayTitle} (Giờ bắt đầu)`}
-                                        style={{ borderBottom: '1px solid #000000', width: '22px', display: 'inline-block', height: '12px' }}
-                                      />
-                                      :
-                                      <span
-                                        data-acroform-field="true"
-                                        data-field-id={`${fieldId}_start_mm`}
-                                        data-field-type="time_part"
-                                        data-field-name={`${displayTitle} (Phút bắt đầu)`}
-                                        style={{ borderBottom: '1px solid #000000', width: '22px', display: 'inline-block', height: '12px' }}
-                                      />
-                                      {' '}đến{' '}
-                                      <span
-                                        data-acroform-field="true"
-                                        data-field-id={`${fieldId}_end_hh`}
-                                        data-field-type="time_part"
-                                        data-field-name={`${displayTitle} (Giờ kết thúc)`}
-                                        style={{ borderBottom: '1px solid #000000', width: '22px', display: 'inline-block', height: '12px' }}
-                                      />
-                                      :
-                                      <span
-                                        data-acroform-field="true"
-                                        data-field-id={`${fieldId}_end_mm`}
-                                        data-field-type="time_part"
-                                        data-field-name={`${displayTitle} (Phút kết thúc)`}
-                                        style={{ borderBottom: '1px solid #000000', width: '22px', display: 'inline-block', height: '12px' }}
-                                      />
-                                    </div>
-                                  ) : (
-                                    <div style={{ fontSize: '0.75rem', color: '#000000', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '4px' }}>
-                                      <span
-                                        data-acroform-field="true"
-                                        data-field-id={`${fieldId}_hh`}
-                                        data-field-type="time_part"
-                                        data-field-name={`${displayTitle} (Giờ)`}
-                                        style={{ borderBottom: '1px solid #000000', width: '22px', display: 'inline-block', height: '12px' }}
-                                      />
-                                      {' '}:{' '}
-                                      <span
-                                        data-acroform-field="true"
-                                        data-field-id={`${fieldId}_mm`}
-                                        data-field-type="time_part"
-                                        data-field-name={`${displayTitle} (Phút)`}
-                                        style={{ borderBottom: '1px solid #000000', width: '22px', display: 'inline-block', height: '12px' }}
-                                      />
-                                    </div>
-                                  )}
-                                </td>
+                                <td
+                                  key={col.id}
+                                  data-acroform-field="true"
+                                  data-field-id={cellFieldId}
+                                  data-field-type={col.type || 'text'}
+                                  data-field-name={displayTitle}
+                                  style={{ border: '1.5px solid #000000', padding: '4px 6px', height: `${28 * lc}px`, verticalAlign: 'top' }}
+                                />
                               );
-                            }
-
-                            if (col.type === 'checkbox' || col.type === 'radio') {
-                              return (
-                                <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'top', minHeight: '28px', textAlign: cellAlign }}>
-                                  {hasOptions ? (
-                                    <div style={{
-                                      display: col.checkboxLayout === '2-column' ? 'grid' : 'flex',
-                                      gridTemplateColumns: col.checkboxLayout === '2-column' ? getCheckboxGridTemplate(effectiveOpts) : undefined,
-                                      flexDirection: col.checkboxLayout === '2-column' ? undefined : 'column',
-                                      gap: col.checkboxLayout === '2-column' ? '4px 12px' : '5px',
-                                      alignItems: 'flex-start',
-                                      padding: '4px 0',
-                                      width: '100%'
-                                    }}>
-                                      {effectiveOpts.map((opt, oIdx) => (
-                                        <div key={oIdx} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#000000' }}>
-                                          <span
-                                            className="acro-option-icon"
-                                            data-acroform-field="true"
-                                            data-field-id={fieldId}
-                                            data-field-type={col.type}
-                                            data-field-name={displayTitle}
-                                            data-field-radiogroup={fieldId}
-                                            data-field-radiovalue={opt.value}
-                                            style={{
-                                              borderRadius: col.type === 'radio' ? '50%' : '2px',
-                                              width: '12px',
-                                              height: '12px'
-                                            }}
-                                          />
-                                          <span>{opt.label}</span>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  ) : (
-                                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                                      <span
-                                        className="acro-option-icon"
-                                        data-acroform-field="true"
-                                        data-field-id={fieldId}
-                                        data-field-type={col.type}
-                                        data-field-name={displayTitle}
-                                        style={{
-                                          borderRadius: col.type === 'radio' ? '50%' : '2px',
-                                          width: '13px',
-                                          height: '13px'
-                                        }}
-                                      />
-                                    </div>
-                                  )}
-                                </td>
-                              );
-                            }
-
-                            return (
-                              <td
-                                key={col.id}
-                                data-acroform-field="true"
-                                data-field-id={fieldId}
-                                data-field-type={col.type || 'text'}
-                                data-field-name={displayTitle}
-                                style={{ border: '1.5px solid #000000', padding: '4px 6px', height: `${28 * lc}px`, verticalAlign: 'top' }}
-                              />
-                            );
-                          })}
-                        </tr>
-                      ); })
-                    )}
-                  </tbody>
+                            })}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  ));
+                })()}
                   {(() => {
                     const columns = block.tableColumns || [];
                     const totalCols = columns.length;

@@ -9,7 +9,7 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | `3504b80` (2026-08-17) — Section 4 (TableRowConfig updated with isGroupHeader & groupTitle for full-width table section header rows). |
+| **Verified At Commit** | `CURRENT` (2026-08-17) — Section 4 (Group-Level multi-tbody page breaking in PrintBlankForm and domScanner for fillable PDF export). |
 
 > **⚠️ Architectural note:** FormBuilder has no awareness of which process it belongs to. The `formName` prop is always identical to `formId`. See Section 6.1 and the Technical Debt table.
 
@@ -540,5 +540,6 @@ full diff of any entry below.
 | 2026-08-14 | `CURRENT` | **Dynamic Table Proportional Column Width Calculation (100% Stretch Fix):** Updated `getColStyleWidth` in `src/types.ts` and `PrintBlankForm.tsx`. Converted fixed pixel/percentage column widths into exact proportional percentages summing to 100% (`prevSumPct`, `lastPct`). Ensures dynamic tables always stretch 100% to fill the printable page width, completely resolving unequal PDF page margins. |
 | 2026-08-14 | `CURRENT` | **PDF AcroForm Baseline & Font Size Alignment Calibration:** Updated `src/utils/pdf/acroFormOverlay.ts` to calibrate `PDFTextField` Y-coordinate formula (`fieldY = pdfPageHeight - marginY - (localTop * scaleFactor + fieldHeight + 3.4)`), shifting text field down by ~1.5pt-2pt. Applied explicit `textField.setFontSize(9.5)` to lock font size so filled text (`Sample Text`) baseline aligns 100% horizontally with label baseline (`Số đơn hàng`). |
 | 2026-08-17 | `3504b80` | **TABLE Full-Width Group Header Rows:** (1) Added `isGroupHeader?: boolean` and `groupTitle?: string` to `TableRowConfig` in `src/types.ts`. (2) Added `+ Hàng phân nhóm` button on TABLE canvas toolbar in `FormBuilder.tsx`. (3) Rendered full-width `colSpan={cols.length}` row with `#E5E7EB` background, bold font, and inline text editing. (4) Added Group Row Inspector in Right Panel. (5) Propagated 1:1 to `PrintBlankForm.tsx`, `PrintFilledForm.tsx`, `FormFiller.tsx`, and `ProcessReader.tsx`. |
+| 2026-08-17 | `CURRENT` | **TABLE Group-Level Page Breaking (Print & PDF Export):** (1) Removed `print-block-avoid` wrapper from TABLE blocks. (2) Implemented multi-`<tbody>` group chunking (`.print-table-group` with `page-break-inside: avoid`), allowing tables to break cleanly between groups without dead whitespace on preceding pages. (3) Added `.print-table-group, tbody` to candidate elements in `domScanner.ts` for 1:1 PDF canvas slicing and interactive AcroForm field page mapping. |
 
 

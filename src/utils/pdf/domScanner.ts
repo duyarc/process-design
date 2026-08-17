@@ -39,13 +39,14 @@ export function calculatePageBreaks(targetEl: HTMLElement, config: PdfPageConfig
 
   // Find all atomic candidate elements that define natural page break boundaries:
   // - Atomic block wrappers (.print-block-avoid, .print-block--section)
+  // - Table groups (.print-table-group, tbody) & Table rows (tr)
   // - Inner grid rows / items inside INFO_GRID ([style*="grid"] > div, .info-grid > div)
-  // - Table rows (tr), Subtable containers (.subtable-print-container)
+  // - Subtable containers (.subtable-print-container)
   // - Title blocks (.print-title-block, h1, h2)
   // - Signature blocks (.print-signature-grid, .print-signature-card)
   const candidateElements = Array.from(
     targetEl.querySelectorAll<HTMLElement>(
-      '.print-block-avoid, .print-block--section, [style*="grid"] > div, .info-grid > div, tr, .subtable-print-container, .print-title-block, .print-signature-grid, .print-signature-card'
+      '.print-block-avoid, .print-block--section, .print-table-group, tbody, [style*="grid"] > div, .info-grid > div, tr, .subtable-print-container, .print-title-block, .print-signature-grid, .print-signature-card'
     )
   ).filter((el) => {
     const r = el.getBoundingClientRect();

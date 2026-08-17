@@ -278,7 +278,7 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
               {template.layoutBlocks && template.layoutBlocks.map(block => (
                 <div
                   key={block.id}
-                  className={`print-block${block.type === 'SECTION_LABEL' ? ' print-block--section' : ''} ${block.type !== 'CHECKLIST_TABLE' && block.type !== 'INFO_GRID' ? 'print-block-avoid' : ''}`}
+                  className={`print-block${block.type === 'SECTION_LABEL' ? ' print-block--section' : ''} ${block.type !== 'CHECKLIST_TABLE' && block.type !== 'INFO_GRID' && block.type !== 'TABLE' ? 'print-block-avoid' : ''}`}
                 >
 
                   {/* ── SECTION_LABEL ── */}
@@ -641,11 +641,11 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                     return (
                       <div style={{ marginTop: '0' }}>
                         {titleFmt !== 'NONE' && (
-                          titleFmt === 'H1' ? <h2 style={{ display: 'inline-block', margin: '0 0 6px 0', fontSize: '1.05rem', fontWeight: 'var(--pw-weight-heavy)', color: '#000000', textTransform: 'uppercase', borderBottom: '2.5px solid #0d9488', paddingBottom: '3px' }}>{block.title}</h2>
-                          : titleFmt === 'H2' ? <div style={{ padding: '6px 10px', background: '#f1f5f9', borderLeft: '4px solid #0d9488', marginBottom: '6px', fontWeight: 'var(--pw-weight-heavy)', fontSize: '0.9rem', color: '#000000' }}>{block.title}</div>
-                          : <div style={{ fontSize: '0.85rem', fontWeight: 'var(--pw-weight-medium)', marginBottom: '6px', color: '#000000' }}>{block.title}</div>
+                          titleFmt === 'H1' ? <h2 style={{ display: 'inline-block', margin: '0 0 6px 0', fontSize: '1.05rem', fontWeight: 'var(--pw-weight-heavy)', color: '#000000', textTransform: 'uppercase', borderBottom: '2.5px solid #0d9488', paddingBottom: '3px', pageBreakAfter: 'avoid', breakAfter: 'avoid' }}>{block.title}</h2>
+                          : titleFmt === 'H2' ? <div style={{ padding: '6px 10px', background: '#f1f5f9', borderLeft: '4px solid #0d9488', marginBottom: '6px', fontWeight: 'var(--pw-weight-heavy)', fontSize: '0.9rem', color: '#000000', pageBreakAfter: 'avoid', breakAfter: 'avoid' }}>{block.title}</div>
+                          : <div style={{ fontSize: '0.85rem', fontWeight: 'var(--pw-weight-medium)', marginBottom: '6px', color: '#000000', pageBreakAfter: 'avoid', breakAfter: 'avoid' }}>{block.title}</div>
                         )}
-                        <table className="print-table" style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+                        <table className="print-table" style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', pageBreakInside: 'auto' }}>
                           <thead>
                             <tr>
                               {tableCols.map(col => {
@@ -656,53 +656,74 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                               })}
                             </tr>
                           </thead>
-                          <tbody>
-                            {useTemplateRows ? (
-                              (block.tableRows || []).length === 0 ? (
-                                <tr><td colSpan={tableCols.length} style={{ border: '1.5px solid #000000', padding: '8px', textAlign: 'center', color: '#64748b', fontStyle: 'italic', fontSize: '0.8rem' }}>Không có dữ liệu.</td></tr>
-                              ) : (
-                                (block.tableRows || []).map(row => {
-                                  if (row.isGroupHeader) {
-                                    const groupTitle = row.groupTitle || block.tableData?.[row.id]?.['_groupTitle'] || '';
-                                    return (
-                                      <tr key={row.id} style={{ pageBreakInside: 'avoid' }}>
-                                        <td
-                                          colSpan={tableCols.length}
-                                          style={{
-                                            border: '1.5px solid #000000',
-                                            background: '#e5e7eb',
-                                            fontWeight: 'bold',
-                                            fontSize: '0.82rem',
-                                            padding: '5px 8px',
-                                            color: '#000000'
-                                          }}
-                                        >
-                                          {groupTitle}
+                          {useTemplateRows ? (() => {
+                            const rawRows = block.tableRows || [];
+                            if (rawRows.length === 0) {
+                              return (
+                                <tbody className="print-table-group" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                                  <tr><td colSpan={tableCols.length} style={{ border: '1.5px solid #000000', padding: '8px', textAlign: 'center', color: '#64748b', fontStyle: 'italic', fontSize: '0.8rem' }}>Không có dữ liệu.</td></tr>
+                                </tbody>
+                              );
+                            }
+
+                            const groups: { groupHeaderRow?: any; rows: any[] }[] = [];
+                            let curGroup: { groupHeaderRow?: any; rows: any[] } = { rows: [] };
+
+                            rawRows.forEach((row: any) => {
+                              if (row.isGroupHeader) {
+                                if (curGroup.groupHeaderRow || curGroup.rows.length > 0) {
+                                  groups.push(curGroup);
+                                }
+                                curGroup = { groupHeaderRow: row, rows: [] };
+                              } else {
+                                curGroup.rows.push(row);
+                              }
+                            });
+                            if (curGroup.groupHeaderRow || curGroup.rows.length > 0) {
+                              groups.push(curGroup);
+                            }
+
+                            return groups.map((grp, gIdx) => (
+                              <tbody key={grp.groupHeaderRow?.id || `grp_${gIdx}`} className="print-table-group" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                                {grp.groupHeaderRow && (
+                                  <tr key={grp.groupHeaderRow.id} style={{ pageBreakInside: 'avoid', pageBreakAfter: 'avoid', breakAfter: 'avoid' }}>
+                                    <td
+                                      colSpan={tableCols.length}
+                                      style={{
+                                        border: '1.5px solid #000000',
+                                        background: '#e5e7eb',
+                                        fontWeight: 'bold',
+                                        fontSize: '0.82rem',
+                                        padding: '5px 8px',
+                                        color: '#000000'
+                                      }}
+                                    >
+                                      {grp.groupHeaderRow.groupTitle || block.tableData?.[grp.groupHeaderRow.id]?.['_groupTitle'] || ''}
+                                    </td>
+                                  </tr>
+                                )}
+                                {grp.rows.map(row => (
+                                  <tr key={row.id} style={{ pageBreakInside: 'avoid' }}>
+                                    {tableCols.map(col => {
+                                      const hasOptions = col.type === 'checkbox' && col.options && col.options.length > 0;
+                                      const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? (hasOptions ? 'left' : 'center') : 'left'));
+                                      const snapKey = `${block.id}_${row.id}_${col.id}`;
+                                      const cellVal = getVal(snapKey);
+                                      return (
+                                        <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'middle', height: '28px', textAlign: cellAlign as any }}>
+                                          {col.type === 'static_text' ? (
+                                            <span style={{ fontWeight: 'var(--pw-weight-regular)', display: 'block', textAlign: cellAlign as any }}>{block.tableData?.[row.id]?.[col.id] || ''}</span>
+                                          ) : cellVal}
                                         </td>
-                                      </tr>
-                                    );
-                                  }
-                                  return (
-                                    <tr key={row.id} style={{ pageBreakInside: 'avoid' }}>
-                                      {tableCols.map(col => {
-                                        const hasOptions = col.type === 'checkbox' && col.options && col.options.length > 0;
-                                        const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? (hasOptions ? 'left' : 'center') : 'left'));
-                                        const snapKey = `${block.id}_${row.id}_${col.id}`;
-                                        const cellVal = getVal(snapKey);
-                                        return (
-                                          <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'middle', height: '28px', textAlign: cellAlign as any }}>
-                                            {col.type === 'static_text' ? (
-                                              <span style={{ fontWeight: 'var(--pw-weight-regular)', display: 'block', textAlign: cellAlign as any }}>{block.tableData?.[row.id]?.[col.id] || ''}</span>
-                                            ) : cellVal}
-                                          </td>
-                                        );
-                                      })}
-                                    </tr>
-                                  );
-                                })
-                              )
-                            ) : (
-                              reconstructedRows.map(({ rowId, cells }) => (
+                                      );
+                                    })}
+                                  </tr>
+                                ))}
+                              </tbody>
+                            ));
+                          })() : (
+                            <tbody className="print-table-group" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                              {reconstructedRows.map(({ rowId, cells }) => (
                                 <tr key={rowId} style={{ pageBreakInside: 'avoid' }}>
                                   {tableCols.map(col => {
                                     const hasOptions = col.type === 'checkbox' && col.options && col.options.length > 0;
@@ -718,9 +739,9 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                     return <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'middle', height: '28px', textAlign: cellAlign as any }}>{cellVal}</td>;
                                   })}
                                 </tr>
-                              ))
-                            )}
-                          </tbody>
+                              ))}
+                            </tbody>
+                          )}
                           {/* Summary footer rows — labels from template, values blank (not stored in snapshot) */}
                           {(() => {
                             const columns = block.tableColumns || [];
