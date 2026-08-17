@@ -9,7 +9,7 @@
 | **Module Name** | Form Operations |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | `780b9fc` (2026-08-17) — Section 4 (Group header individual cells, anchor rows, and exact column width parity across FormFiller, PrintFilledForm, PrintRecord). |
+| **Verified At Commit** | `76f1765` (2026-08-17) — Section 4 (Photo field rowSpan handling and styling in FormFiller, PrintFilledForm, and PrintRecord). |
 
 ### Quick File Index
 

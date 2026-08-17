@@ -9,7 +9,7 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | `8df64d6` (2026-08-17) — Section 4 (Group header row colSpan and exact column width integration). |
+| **Verified At Commit** | `76f1765` (2026-08-17) — Section 4 (Photo field rowSpan parsing and print grid rendering alignment). |
 
 > **⚠️ Architectural note:** FormBuilder has no awareness of which process it belongs to. The `formName` prop is always identical to `formId`. See Section 6.1 and the Technical Debt table.
 
@@ -542,5 +542,6 @@ full diff of any entry below.
 | 2026-08-17 | `3504b80` | **TABLE Full-Width Group Header Rows:** (1) Added `isGroupHeader?: boolean` and `groupTitle?: string` to `TableRowConfig` in `src/types.ts`. (2) Added `+ Hàng phân nhóm` button on TABLE canvas toolbar in `FormBuilder.tsx`. (3) Rendered full-width `colSpan={cols.length}` row with `#E5E7EB` background, bold font, and inline text editing. (4) Added Group Row Inspector in Right Panel. (5) Propagated 1:1 to `PrintBlankForm.tsx`, `PrintFilledForm.tsx`, `FormFiller.tsx`, and `ProcessReader.tsx`. |
 | 2026-08-17 | `f5e93b8` | **TABLE Group-Level Page Breaking (Print & PDF Export):** (1) Removed `print-block-avoid` wrapper from TABLE blocks. (2) Implemented multi-`<tbody>` group chunking (`.print-table-group` with `page-break-inside: avoid`), allowing tables to break cleanly between groups without dead whitespace on preceding pages. (3) Added `.print-table-group, tbody` to candidate elements in `domScanner.ts` for 1:1 PDF canvas slicing and interactive AcroForm field page mapping. |
 | 2026-08-17 | `237f540` | **TABLE `<colgroup>` & `<col>` Dynamic Width Enforcement:** Added `<colgroup>` with dynamic `<col style={{ width }} />` across `PrintBlankForm.tsx`, `PrintFilledForm.tsx`, `FormBuilder.tsx`, `FormFiller.tsx`, and `ProcessReader.tsx`. Prevents browser content-heuristic drift and aligns table columns 100% identically between tables with and without group headers. |
+| 2026-08-17 | `76f1765` | **INFO_GRID Photo Field `rowSpan` Print Parity:** (1) Added `grid-auto-rows: minmax(var(--pw-line-h), auto)` to `.print-info-grid` in `print.css`. (2) Ensured robust integer parsing `Number(f.rowSpan)` and `gridRow: span ${rSpan}` across all renderers. (3) Removed `height: 100%` on outer item and applied `alignSelf: stretch` with `flex: 1` inner dashed box so multi-row photo field spans all configured rows without premature truncation. |
 
 
