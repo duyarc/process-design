@@ -2854,6 +2854,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                       onMouseLeave={() => setHoveredTableRowId(null)}
                                     >
                                        {(block.tableColumns || []).map((col) => {
+                                         const colWidth = getColStyleWidth(col.id, col.width, block.tableColumns || []);
                                          const cellKey = `${row.id}_${col.id}`;
                                          const cellOptions = getEffectiveCellOptions(block, row.id, col.id);
                                          const isCustomCellOpts = block.cellOptionsMap?.[cellKey] !== undefined;
@@ -2875,6 +2876,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                borderRight: '1px solid #cbd5e1', 
                                                verticalAlign: 'top', 
                                                textAlign: cellAlign,
+                                                width: colWidth,
+                                                maxWidth: colWidth,
+                                                boxSizing: 'border-box',
                                                background: isCellSelected ? 'rgba(59, 130, 246, 0.08)' : isCustomCellOpts ? 'rgba(254, 215, 170, 0.15)' : 'none',
                                                outline: isCellSelected ? '1.5px solid #3b82f6' : 'none',
                                                cursor: 'pointer'

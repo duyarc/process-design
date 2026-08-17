@@ -229,7 +229,10 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
           .print-block-avoid { page-break-inside: avoid; break-inside: avoid; }
           thead { display: table-header-group; }
           tr { page-break-inside: avoid; break-inside: avoid; }
-          .subtable-print-container { page-break-inside: avoid; break-inside: avoid; }
+          .print-table {
+            table-layout: fixed !important;
+            width: 100% !important;
+          }
           .print-table tfoot td { background: transparent !important; }
           .print-footer {
             position: fixed; bottom: 0; left: 0; right: 0; height: 20px;
@@ -711,12 +714,13 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                 {grp.rows.map(row => (
                                   <tr key={row.id} style={{ pageBreakInside: 'avoid' }}>
                                     {tableCols.map(col => {
+                                      const colWidth = getColStyleWidth(col.id, col.width, tableCols);
                                       const hasOptions = col.type === 'checkbox' && col.options && col.options.length > 0;
                                       const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? (hasOptions ? 'left' : 'center') : 'left'));
                                       const snapKey = `${block.id}_${row.id}_${col.id}`;
                                       const cellVal = getVal(snapKey);
                                       return (
-                                        <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'middle', height: '28px', textAlign: cellAlign as any }}>
+                                        <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'middle', height: '28px', textAlign: cellAlign as any, width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
                                           {col.type === 'static_text' ? (
                                             <span style={{ fontWeight: 'var(--pw-weight-regular)', display: 'block', textAlign: cellAlign as any }}>{block.tableData?.[row.id]?.[col.id] || ''}</span>
                                           ) : cellVal}
@@ -732,17 +736,18 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                               {reconstructedRows.map(({ rowId, cells }) => (
                                 <tr key={rowId} style={{ pageBreakInside: 'avoid' }}>
                                   {tableCols.map(col => {
+                                    const colWidth = getColStyleWidth(col.id, col.width, tableCols);
                                     const hasOptions = col.type === 'checkbox' && col.options && col.options.length > 0;
                                     const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? (hasOptions ? 'left' : 'center') : 'left'));
                                     const cellVal = cells.get(col.id) ?? '';
                                     // static_text: try to find value from template tableData (static rows only)
                                     const templateRow = (block.tableRows || []).find((r: any) => r.id === rowId);
                                     if (col.type === 'static_text') {
-                                      return <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'middle', height: '28px', textAlign: cellAlign as any }}>
+                                      return <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'middle', height: '28px', textAlign: cellAlign as any, width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
                                         <span style={{ fontWeight: 'var(--pw-weight-regular)', display: 'block' }}>{templateRow ? (block.tableData?.[rowId]?.[col.id] || '') : cellVal}</span>
                                       </td>;
                                     }
-                                    return <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'middle', height: '28px', textAlign: cellAlign as any }}>{cellVal}</td>;
+                                    return <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'middle', height: '28px', textAlign: cellAlign as any, width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>{cellVal}</td>;
                                   })}
                                 </tr>
                               ))}

@@ -231,6 +231,10 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
             page-break-inside: avoid;
             break-inside: avoid;
           }
+          .print-table {
+            table-layout: fixed !important;
+            width: 100% !important;
+          }
           .print-table tfoot td {
             background: transparent !important;
           }
@@ -1012,6 +1016,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                           return (
                           <tr key={row.id} style={{ pageBreakInside: 'avoid' }}>
                             {(block.tableColumns || []).map((col) => {
+                              const colWidth = getColStyleWidth(col.id, col.width, block.tableColumns || []);
                               const cellFieldId = `${fieldId}_${col.id}`;
                               const customCellOpts = block.cellOptionsMap?.[`${row.id}_${col.id}`];
                               const rawOpts = customCellOpts !== undefined ? customCellOpts : (col.options || []);
@@ -1021,7 +1026,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
 
                               if (col.type === 'static_text') {
                                 return (
-                                  <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'top', height: `${28 * lc}px`, textAlign: cellAlign }}>
+                                  <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'top', height: `${28 * lc}px`, textAlign: cellAlign, width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
                                     <span style={{ fontWeight: 'var(--pw-weight-regular)', display: 'block', textAlign: cellAlign }}>{block.tableData?.[row.id]?.[col.id] || ''}</span>
                                   </td>
                                 );
@@ -1029,7 +1034,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
 
                               if (col.type === 'date') {
                                 return (
-                                  <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'top', height: `${28 * lc}px`, textAlign: 'center' }}>
+                                  <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'top', height: `${28 * lc}px`, textAlign: 'center', width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
                                     <div style={{ fontSize: '0.78rem', color: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
                                       <span data-acroform-field="true" data-field-id={`${cellFieldId}_dd`} data-field-type="date_part" style={{ width: '24px', display: 'inline-block', height: '12px' }} />
                                       /
@@ -1043,7 +1048,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
 
                               if (col.type === 'time') {
                                 return (
-                                  <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'top', height: `${28 * lc}px`, textAlign: 'center' }}>
+                                  <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'top', height: `${28 * lc}px`, textAlign: 'center', width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
                                     {col.timeMode === 'dual' ? (
                                       <div style={{ fontSize: '0.75rem', color: '#000000', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '4px' }}>
                                         Từ{' '}
@@ -1104,7 +1109,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
 
                               if (col.type === 'checkbox' || col.type === 'radio') {
                                 return (
-                                  <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'top', minHeight: '28px', textAlign: cellAlign }}>
+                                  <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'top', minHeight: '28px', textAlign: cellAlign, width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
                                     {hasOptions ? (
                                       <div style={{
                                         display: col.checkboxLayout === '2-column' ? 'grid' : 'flex',
@@ -1142,7 +1147,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
 
                               if ((col.type as string) === 'signature') {
                                 return (
-                                  <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'middle', height: `${28 * lc}px`, textAlign: 'center' }}>
+                                  <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'middle', height: `${28 * lc}px`, textAlign: 'center', width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
                                     <span
                                       data-acroform-field="true"
                                       data-field-id={cellFieldId}
@@ -1162,7 +1167,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                   data-field-id={cellFieldId}
                                   data-field-type={col.type || 'text'}
                                   data-field-name={displayTitle}
-                                  style={{ border: '1.5px solid #000000', padding: '4px 6px', height: `${28 * lc}px`, verticalAlign: 'top' }}
+                                  style={{ border: '1.5px solid #000000', padding: '4px 6px', height: `${28 * lc}px`, verticalAlign: 'top', width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}
                                 />
                               );
                             })}

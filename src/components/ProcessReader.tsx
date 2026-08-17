@@ -1972,11 +1972,12 @@ setFormValues(prev => ({ ...prev, [field.id]: stringifySubtableValue(newRows) })
                                          return (
                                          <tr key={row.id} style={{ borderBottom: '1px solid var(--neutral-border)' }}>
                                            {(block.tableColumns || []).map((col: any) => {
+                                             const colWidth = getColStyleWidth(col.id, col.width, block.tableColumns || []);
                                              const cellKey = `${block.id}_${row.id}_${col.id}`;
                                              const cellValue = formValues[cellKey] || '';
                                              const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? 'center' : 'left'));
                                              return (
-                                               <td key={col.id} style={{ padding: '6px', borderRight: '1px solid var(--neutral-border)', verticalAlign: 'middle', textAlign: cellAlign }}>
+                                               <td key={col.id} style={{ padding: '6px', borderRight: '1px solid var(--neutral-border)', verticalAlign: 'middle', textAlign: cellAlign, width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
                                                  {col.type === 'static_text' ? (
                                                    <span style={{ fontWeight: 500, display: 'block', textAlign: cellAlign }}>{block.tableData?.[row.id]?.[col.id] || ''}</span>
                                                  ) : col.type === 'checkbox' ? (
