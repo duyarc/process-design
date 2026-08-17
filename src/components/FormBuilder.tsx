@@ -2694,6 +2694,15 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                           
                           <div style={{ overflowX: 'auto', border: '1px solid #cbd5e1', borderRadius: '4px' }}>
                             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem', tableLayout: 'fixed' }}>
+                              <colgroup>
+                                {(block.tableColumns || []).map((col) => {
+                                  const colWidth = getColStyleWidth(col.id, col.width, block.tableColumns || []);
+                                  return <col key={col.id} style={{ width: colWidth }} />;
+                                })}
+                                {!isLocked && (
+                                  <col style={{ width: '75px' }} />
+                                )}
+                              </colgroup>
                               <thead>
                                 <tr style={{ background: '#e2e8f0', borderBottom: '2px solid var(--primary)' }}>
                                   {(block.tableColumns || []).map((col) => {

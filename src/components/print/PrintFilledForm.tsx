@@ -646,6 +646,12 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                           : <div style={{ fontSize: '0.85rem', fontWeight: 'var(--pw-weight-medium)', marginBottom: '6px', color: '#000000', pageBreakAfter: 'avoid', breakAfter: 'avoid' }}>{block.title}</div>
                         )}
                         <table className="print-table" style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', pageBreakInside: 'auto' }}>
+                          <colgroup>
+                            {tableCols.map(col => {
+                              const colWidth = getColStyleWidth(col.id, col.width, tableCols);
+                              return <col key={col.id} style={{ width: colWidth }} />;
+                            })}
+                          </colgroup>
                           <thead>
                             <tr>
                               {tableCols.map(col => {

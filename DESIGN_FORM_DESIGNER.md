@@ -9,7 +9,7 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | `f5e93b8` (2026-08-17) — Section 4 (Group-Level multi-tbody page breaking in PrintBlankForm and domScanner for fillable PDF export). |
+| **Verified At Commit** | `CURRENT` (2026-08-17) — Section 4 (colgroup & col strict dynamic column width enforcement across all TABLE renderers). |
 
 > **⚠️ Architectural note:** FormBuilder has no awareness of which process it belongs to. The `formName` prop is always identical to `formId`. See Section 6.1 and the Technical Debt table.
 
@@ -541,5 +541,6 @@ full diff of any entry below.
 | 2026-08-14 | `CURRENT` | **PDF AcroForm Baseline & Font Size Alignment Calibration:** Updated `src/utils/pdf/acroFormOverlay.ts` to calibrate `PDFTextField` Y-coordinate formula (`fieldY = pdfPageHeight - marginY - (localTop * scaleFactor + fieldHeight + 3.4)`), shifting text field down by ~1.5pt-2pt. Applied explicit `textField.setFontSize(9.5)` to lock font size so filled text (`Sample Text`) baseline aligns 100% horizontally with label baseline (`Số đơn hàng`). |
 | 2026-08-17 | `3504b80` | **TABLE Full-Width Group Header Rows:** (1) Added `isGroupHeader?: boolean` and `groupTitle?: string` to `TableRowConfig` in `src/types.ts`. (2) Added `+ Hàng phân nhóm` button on TABLE canvas toolbar in `FormBuilder.tsx`. (3) Rendered full-width `colSpan={cols.length}` row with `#E5E7EB` background, bold font, and inline text editing. (4) Added Group Row Inspector in Right Panel. (5) Propagated 1:1 to `PrintBlankForm.tsx`, `PrintFilledForm.tsx`, `FormFiller.tsx`, and `ProcessReader.tsx`. |
 | 2026-08-17 | `f5e93b8` | **TABLE Group-Level Page Breaking (Print & PDF Export):** (1) Removed `print-block-avoid` wrapper from TABLE blocks. (2) Implemented multi-`<tbody>` group chunking (`.print-table-group` with `page-break-inside: avoid`), allowing tables to break cleanly between groups without dead whitespace on preceding pages. (3) Added `.print-table-group, tbody` to candidate elements in `domScanner.ts` for 1:1 PDF canvas slicing and interactive AcroForm field page mapping. |
+| 2026-08-17 | `CURRENT` | **TABLE `<colgroup>` & `<col>` Dynamic Width Enforcement:** Added `<colgroup>` with dynamic `<col style={{ width }} />` across `PrintBlankForm.tsx`, `PrintFilledForm.tsx`, `FormBuilder.tsx`, `FormFiller.tsx`, and `ProcessReader.tsx`. Prevents browser content-heuristic drift and aligns table columns 100% identically between tables with and without group headers. |
 
 

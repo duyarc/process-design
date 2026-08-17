@@ -935,6 +935,12 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                     tableLayout: 'fixed',
                     pageBreakInside: 'auto'
                   }}>
+                  <colgroup>
+                    {(block.tableColumns || []).map((col) => {
+                      const colWidth = getColStyleWidth(col.id, col.width, block.tableColumns || []);
+                      return <col key={col.id} style={{ width: colWidth }} />;
+                    })}
+                  </colgroup>
                   <thead>
                     <tr>
                       {(block.tableColumns || []).map((col) => {

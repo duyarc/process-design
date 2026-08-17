@@ -1428,6 +1428,12 @@ export default function FormFiller({
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
                   <div style={{ overflowX: 'auto' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', background: '#ffffff', tableLayout: 'fixed', border: '1px solid var(--neutral-border)' }}>
+                      <colgroup>
+                        {(block.tableColumns || []).map((col: any) => {
+                          const colWidth = getColStyleWidth(col.id, col.width, block.tableColumns || []);
+                          return <col key={col.id} style={{ width: colWidth }} />;
+                        })}
+                      </colgroup>
                       <thead>
                         <tr style={{ background: '#e2e8f0', borderBottom: '2px solid var(--primary)' }}>
                           {(block.tableColumns || []).map((col: any) => {
