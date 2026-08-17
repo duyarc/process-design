@@ -1012,37 +1012,19 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                       </tr>
                       {grp.groupHeaderRow && (
                         <tr key={grp.groupHeaderRow.id} style={{ pageBreakInside: 'avoid', pageBreakAfter: 'avoid', breakAfter: 'avoid' }}>
-                          {tableCols.map((col: any, colIdx: number) => {
-                            const colWidth = getColStyleWidth(col.id, col.width, tableCols);
-                            const isFirst = colIdx === 0;
-                            const isLast = colIdx === tableCols.length - 1;
-                            return (
-                              <td
-                                key={col.id}
-                                style={{
-                                  width: colWidth,
-                                  maxWidth: colWidth,
-                                  boxSizing: 'border-box',
-                                  background: '#e5e7eb',
-                                  fontWeight: 'bold',
-                                  fontSize: '0.82rem',
-                                  color: '#000000',
-                                  borderTop: '1.5px solid #000000',
-                                  borderBottom: '1.5px solid #000000',
-                                  borderLeft: isFirst ? '1.5px solid #000000' : '1.5px solid #e5e7eb',
-                                  borderRight: isLast ? '1.5px solid #000000' : '1.5px solid #e5e7eb',
-                                  padding: isFirst ? '5px 8px' : '5px 0',
-                                  overflow: 'hidden',
-                                  whiteSpace: 'nowrap'
-                                }}
-                              >
-                                {isFirst
-                                  ? (grp.groupHeaderRow.groupTitle || block.tableData?.[grp.groupHeaderRow.id]?.['_groupTitle'] || '')
-                                  : null
-                                }
-                              </td>
-                            );
-                          })}
+                          <td
+                            colSpan={tableCols.length}
+                            style={{
+                              border: '1.5px solid #000000',
+                              background: '#e5e7eb',
+                              fontWeight: 'bold',
+                              fontSize: '0.82rem',
+                              padding: '5px 8px',
+                              color: '#000000'
+                            }}
+                          >
+                            {grp.groupHeaderRow.groupTitle || block.tableData?.[grp.groupHeaderRow.id]?.['_groupTitle'] || ''}
+                          </td>
                         </tr>
                       )}
                       {grp.rows.map((row: any) => (

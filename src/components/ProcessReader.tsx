@@ -1954,36 +1954,18 @@ setFormValues(prev => ({ ...prev, [field.id]: stringifySubtableValue(newRows) })
                                          if (row.isGroupHeader) {
                                            const groupTitle = row.groupTitle || block.tableData?.[row.id]?.['_groupTitle'] || '';
                                            return (
-                                             <tr key={row.id}>
-                                               {(block.tableColumns || []).map((col: any, colIdx: number) => {
-                                                 const cols = block.tableColumns || [];
-                                                 const colWidth = getColStyleWidth(col.id, col.width, cols);
-                                                 const isFirst = colIdx === 0;
-                                                 const isLast = colIdx === cols.length - 1;
-                                                 return (
-                                                   <td
-                                                     key={col.id}
-                                                     style={{
-                                                       width: colWidth,
-                                                       maxWidth: colWidth,
-                                                       boxSizing: 'border-box',
-                                                       background: '#e5e7eb',
-                                                       fontWeight: 700,
-                                                       fontSize: '0.85rem',
-                                                       color: '#0f172a',
-                                                       borderTop: '1.5px solid #cbd5e1',
-                                                       borderBottom: '1.5px solid #cbd5e1',
-                                                       borderLeft: isFirst ? '1px solid var(--neutral-border)' : '1.5px solid #e5e7eb',
-                                                       borderRight: isLast ? '1px solid var(--neutral-border)' : '1.5px solid #e5e7eb',
-                                                       padding: isFirst ? '8px 10px' : '8px 0',
-                                                       overflow: 'hidden',
-                                                       whiteSpace: 'nowrap'
-                                                     }}
-                                                   >
-                                                     {isFirst ? groupTitle : null}
-                                                   </td>
-                                                 );
-                                               })}
+                                             <tr key={row.id} style={{ background: '#e5e7eb', borderBottom: '1.5px solid #cbd5e1' }}>
+                                               <td
+                                                 colSpan={(block.tableColumns || []).length}
+                                                 style={{
+                                                   padding: '8px 10px',
+                                                   fontWeight: 700,
+                                                   fontSize: '0.85rem',
+                                                   color: '#0f172a'
+                                                 }}
+                                               >
+                                                 {groupTitle}
+                                               </td>
                                              </tr>
                                            );
                                          }

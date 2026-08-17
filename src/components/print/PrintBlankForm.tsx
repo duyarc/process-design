@@ -1019,42 +1019,19 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                         </tr>
                         {grp.groupHeaderRow && (
                           <tr key={grp.groupHeaderRow.id} style={{ pageBreakInside: 'avoid', pageBreakAfter: 'avoid', breakAfter: 'avoid' }}>
-                            {/* No colSpan — individual td per column so table-layout:fixed
-                                can anchor each column width independently.
-                                Inner borders set to background color to fake a spanning row. */}
-                            {(block.tableColumns || []).map((col, colIdx) => {
-                              const cols = block.tableColumns || [];
-                              const colWidth = getColStyleWidth(col.id, col.width, cols);
-                              const isFirst = colIdx === 0;
-                              const isLast = colIdx === cols.length - 1;
-                              return (
-                                <td
-                                  key={col.id}
-                                  style={{
-                                    width: colWidth,
-                                    maxWidth: colWidth,
-                                    boxSizing: 'border-box',
-                                    background: '#e5e7eb',
-                                    fontWeight: 'bold',
-                                    fontSize: '0.82rem',
-                                    color: '#000000',
-                                    // Outer borders solid; inner vertical borders transparent (same bg)
-                                    borderTop: '1.5px solid #000000',
-                                    borderBottom: '1.5px solid #000000',
-                                    borderLeft: isFirst ? '1.5px solid #000000' : '1.5px solid #e5e7eb',
-                                    borderRight: isLast ? '1.5px solid #000000' : '1.5px solid #e5e7eb',
-                                    padding: isFirst ? '5px 8px' : '5px 0',
-                                    overflow: 'hidden',
-                                    whiteSpace: 'nowrap'
-                                  }}
-                                >
-                                  {isFirst
-                                    ? (grp.groupHeaderRow.groupTitle || block.tableData?.[grp.groupHeaderRow.id]?.['_groupTitle'] || '')
-                                    : null
-                                  }
-                                </td>
-                              );
-                            })}
+                            <td
+                              colSpan={(block.tableColumns || []).length}
+                              style={{
+                                border: '1.5px solid #000000',
+                                background: '#e5e7eb',
+                                fontWeight: 'bold',
+                                fontSize: '0.82rem',
+                                padding: '5px 8px',
+                                color: '#000000'
+                              }}
+                            >
+                              {grp.groupHeaderRow.groupTitle || block.tableData?.[grp.groupHeaderRow.id]?.['_groupTitle'] || ''}
+                            </td>
                           </tr>
                         )}
                         {grp.rows.map(({ row, rIdx }) => {
