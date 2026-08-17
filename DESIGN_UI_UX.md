@@ -9,7 +9,7 @@ This document is the **single source of truth** for the visual design language o
 
 | Field | Value |
 |---|---|
-| **Verified At Commit** | `CURRENT` (2026-08-17) — Section 3 (Table Group Header Rows UI pattern: full-width colSpan, #E5E7EB, bold). |
+| **Verified At Commit** | `3504b80` (2026-08-17) — Section 3 (Table Group Header Rows UI pattern: full-width colSpan, #E5E7EB, bold). |
 
 ## 1. Design Principles
 
@@ -174,4 +174,4 @@ exclusion, otherwise designed header tints are still forced to `#f0f0f0`.
 | 2026-07-28 | `62b1a98` | **Print spacing invariant:** `print.css` gained the `.print-doc` token scale plus the `.print-block + .print-block` sibling rule, making block spacing single-source. Added `.print-info-grid` (row-major grid, baseline-aligned) and `.print-field-full`. Scoped the global `th` / `td` print overrides with `:not(.print-doc *)` so form print templates keep their inline cell geometry. Documented the deliberate two-`@page` orientation split. See §4.1–4.3. |
 | 2026-08-03 | `CURRENT` | **ConfirmModal Rules:** Added Section 5 detailing the mandatory `ConfirmModal` component and the progressive adoption rule for legacy `window.confirm()` calls. |
 | 2026-08-13 | `4eefc87` | **Automated Checkbox Layout Pattern (Option A vs Option C):** Documented dynamic layout engine. Standard fields use Option A (2-column fixed 35%/65% grid) to align checkbox icons vertically; detailed/long fields use Option C (Top-aligned label + 1rem indented options). |
-| 2026-08-17 | `CURRENT` | **Table Group Header Rows UI Pattern:** Documented category banner rows in tables. Full width (`colSpan=cols.length`), medium gray background (`#E5E7EB`), bold text (`fontWeight: 700`), saving 30–40% vertical whitespace. |
+| 2026-08-17 | `3504b80` | **Table Group Header Rows UI Pattern:** Documented category banner rows in tables. Full width (`colSpan=cols.length`), medium gray background (`#E5E7EB`), bold text (`fontWeight: 700`), saving 30–40% vertical whitespace. |

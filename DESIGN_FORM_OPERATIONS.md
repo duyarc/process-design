@@ -9,7 +9,7 @@
 | **Module Name** | Form Operations |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | `CURRENT` (2026-08-17) — Section 3 (PrintFilledForm, FormFiller, and ProcessReader render TABLE group header rows as full-width category banners). |
+| **Verified At Commit** | `3504b80` (2026-08-17) — Section 3 (PrintFilledForm, FormFiller, and ProcessReader render TABLE group header rows as full-width category banners). |
 
 ### Quick File Index
 
@@ -431,7 +431,7 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 | 2026-08-13 | `CURRENT` | **Photo Dropzone Hint Text Propagation:** Updated `FormFiller.tsx`, `ProcessReader.tsx`, and `PrintBlankForm.tsx` to render photo field hint text directly from `field.checkItem` without camera icon, preserving WYSIWYG consistency with canvas editor. |
 | 2026-08-13 | `4eefc87` | **Automated Checkbox Layout Engine (Option A vs Option C) 1:1 Operations & Print Alignment:** FormFiller, ProcessReader, and PrintBlankForm updated to evaluate `getAutoCheckboxLayoutMode(field)`. Renders Option A (2-column 35%/65%) for standard options and Option C (Top-aligned label + indented options) for long labels or descriptions. |
 | 2026-08-13 | `CURRENT` | **Fillable PDF Export Action in FormFiller:** Added **"PDF"** button to `FormFiller.tsx` header toolbar, enabling operators to download interactive blank Fillable PDF forms for offline field execution. |
-| 2026-08-17 | `CURRENT` | **TABLE Full-Width Group Header Rows Support:** Updated `PrintFilledForm.tsx`, `FormFiller.tsx`, and `ProcessReader.tsx` to render `row.isGroupHeader` rows as full-width category banners (`colSpan=cols.length`, `#E5E7EB`), preserving 100% visual parity with FormBuilder. |
+| 2026-08-17 | `3504b80` | **TABLE Full-Width Group Header Rows Support:** Updated `PrintFilledForm.tsx`, `FormFiller.tsx`, and `ProcessReader.tsx` to render `row.isGroupHeader` rows as full-width category banners (`colSpan=cols.length`, `#E5E7EB`), preserving 100% visual parity with FormBuilder. |
 
 
 
