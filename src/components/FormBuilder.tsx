@@ -3185,7 +3185,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                       const groupHeaderCount = (b.tableRows || []).filter(r => r.isGroupHeader).length + 1;
                                       const romanNumerals = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
                                       const roman = romanNumerals[groupHeaderCount - 1] || `${groupHeaderCount}`;
-                                      const defaultGroupTitle = `${roman}. Nhóm chỉ tiêu mới`;
+                                      const defaultGroupTitle = `${roman}. `;
                                       const updatedRows = [...(b.tableRows || []), { id: nextRowId, isGroupHeader: true, groupTitle: defaultGroupTitle }];
                                       const updatedData = { ...b.tableData || {} };
                                       updatedData[nextRowId] = { _groupTitle: defaultGroupTitle };
@@ -4233,47 +4233,120 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                   return (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', borderTop: '1px solid var(--neutral-border)', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
                       {activeGroupRow && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', border: '1.5px solid #cbd5e1', padding: '8px', borderRadius: '4px', background: '#f1f5f9', marginBottom: '0.25rem' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <label style={{ fontWeight: 700, color: '#0f172a', fontSize: '0.75rem' }}>📁 Cấu hình Hàng Phân Nhóm</label>
-                            <span style={{ fontSize: '0.65rem', background: '#e2e8f0', padding: '1px 5px', borderRadius: '3px', color: '#475569' }}>Full Width</span>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '0.25rem' }}>
+                          <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Cấu hình Dòng</label>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', border: '1px solid var(--neutral-border)', padding: '6px', borderRadius: '4px', background: '#f8fafc' }}>
+                            <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
+                              <input
+                                type="text"
+                                disabled={isLocked}
+                                value={activeGroupRow.groupTitle || activeBlock.tableData?.[activeGroupRow.id]?.['_groupTitle'] || ''}
+                                placeholder="Tên phân nhóm..."
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  setLayoutBlocks(prev => prev.map(b => {
+                                    if (b.id === activeBlock.id) {
+                                      const updatedRows = (b.tableRows || []).map(r => r.id === activeGroupRow.id ? { ...r, groupTitle: val } : r);
+                                      const updatedData = { ...b.tableData || {} };
+                                      updatedData[activeGroupRow.id] = { ...updatedData[activeGroupRow.id] || {}, _groupTitle: val };
+                                      return { ...b, tableRows: updatedRows, tableData: updatedData };
+                                    }
+                                    return b;
+                                  }));
+                                }}
+                                style={{ flex: 1, padding: '0.2rem 0.3rem', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', fontWeight: 600 }}
+                              />
+                              <button
+                                type="button"
+                                disabled={isLocked}
+                                onClick={() => handleMoveRow(activeBlock.id, activeGroupRow.id, 'up')}
+                                style={{
+                                  width: '24px',
+                                  height: '24px',
+                                  background: '#ffffff',
+                                  border: '1px solid #cbd5e1',
+                                  borderRadius: '4px',
+                                  cursor: isLocked ? 'not-allowed' : 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  padding: 0
+                                }}
+                                title="Di chuyển lên"
+                              >
+                                <ArrowUp size={13} style={{ color: '#0f172a' }} />
+                              </button>
+                              <button
+                                type="button"
+                                disabled={isLocked}
+                                onClick={() => handleMoveRow(activeBlock.id, activeGroupRow.id, 'down')}
+                                style={{
+                                  width: '24px',
+                                  height: '24px',
+                                  background: '#ffffff',
+                                  border: '1px solid #cbd5e1',
+                                  borderRadius: '4px',
+                                  cursor: isLocked ? 'not-allowed' : 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  padding: 0
+                                }}
+                                title="Di chuyển xuống"
+                              >
+                                <ArrowDown size={13} style={{ color: '#0f172a' }} />
+                              </button>
+                              <button
+                                type="button"
+                                disabled={isLocked}
+                                onClick={() => {
+                                  setLayoutBlocks(prev => prev.map(b => {
+                                    if (b.id === activeBlock.id) {
+                                      const updatedRows = (b.tableRows || []).filter(r => r.id !== activeGroupRow.id);
+                                      const updatedData = { ...b.tableData || {} };
+                                      delete updatedData[activeGroupRow.id];
+                                      return { ...b, tableRows: updatedRows, tableData: updatedData };
+                                    }
+                                    return b;
+                                  }));
+                                  setActiveCellKey(null);
+                                }}
+                                style={{
+                                  width: '24px',
+                                  height: '24px',
+                                  background: '#ffffff',
+                                  border: '1px solid #cbd5e1',
+                                  borderRadius: '4px',
+                                  cursor: isLocked ? 'not-allowed' : 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  padding: 0
+                                }}
+                                title="Xóa phân nhóm"
+                              >
+                                <Trash2 size={13} style={{ color: 'var(--danger)' }} />
+                              </button>
+                            </div>
+                            <button
+                              type="button"
+                              disabled={isLocked}
+                              onClick={() => {
+                                setLayoutBlocks(prev => prev.map(b => {
+                                  if (b.id === activeBlock.id) {
+                                    const updatedRows = (b.tableRows || []).map(r => r.id === activeGroupRow.id ? { ...r, isGroupHeader: false } : r);
+                                    return { ...b, tableRows: updatedRows };
+                                  }
+                                  return b;
+                                }));
+                                setActiveCellKey(null);
+                              }}
+                              className="btn btn-secondary btn-sm"
+                              style={{ padding: '0.2rem', fontSize: '0.68rem', marginTop: '2px' }}
+                            >
+                              🔄 Chuyển sang dòng dữ liệu thường
+                            </button>
                           </div>
-                          <input
-                            type="text"
-                            disabled={isLocked}
-                            value={activeGroupRow.groupTitle || activeBlock.tableData?.[activeGroupRow.id]?.['_groupTitle'] || ''}
-                            placeholder="Tên phân nhóm..."
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              setLayoutBlocks(prev => prev.map(b => {
-                                if (b.id === activeBlock.id) {
-                                  const updatedRows = (b.tableRows || []).map(r => r.id === activeGroupRow.id ? { ...r, groupTitle: val } : r);
-                                  const updatedData = { ...b.tableData || {} };
-                                  updatedData[activeGroupRow.id] = { ...updatedData[activeGroupRow.id] || {}, _groupTitle: val };
-                                  return { ...b, tableRows: updatedRows, tableData: updatedData };
-                                }
-                                return b;
-                              }));
-                            }}
-                            style={{ width: '100%', padding: '0.3rem 0.4rem', fontSize: '0.78rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', fontWeight: 600 }}
-                          />
-                          <button
-                            type="button"
-                            disabled={isLocked}
-                            onClick={() => {
-                              setLayoutBlocks(prev => prev.map(b => {
-                                if (b.id === activeBlock.id) {
-                                  const updatedRows = (b.tableRows || []).map(r => r.id === activeGroupRow.id ? { ...r, isGroupHeader: false } : r);
-                                  return { ...b, tableRows: updatedRows };
-                                }
-                                return b;
-                              }));
-                            }}
-                            className="btn btn-secondary btn-sm"
-                            style={{ padding: '0.2rem', fontSize: '0.68rem', marginTop: '2px' }}
-                          >
-                            🔄 Chuyển sang dòng dữ liệu thường
-                          </button>
                         </div>
                       )}
 
