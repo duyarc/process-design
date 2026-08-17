@@ -9,7 +9,7 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | `780b9fc` (2026-08-17) — Section 4 (getColStyleWidth exact percentage computation and elimination of colSpan distortion). |
+| **Verified At Commit** | `8df64d6` (2026-08-17) — Section 4 (Group header row colSpan and exact column width integration). |
 
 > **⚠️ Architectural note:** FormBuilder has no awareness of which process it belongs to. The `formName` prop is always identical to `formId`. See Section 6.1 and the Technical Debt table.
 
