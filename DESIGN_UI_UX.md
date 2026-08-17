@@ -9,7 +9,7 @@ This document is the **single source of truth** for the visual design language o
 
 | Field | Value |
 |---|---|
-| **Verified At Commit** | `CURRENT` (2026-08-17) — Section 4 (Group-level multi-tbody page breaking structure for tables). |
+| **Verified At Commit** | `f5e93b8` (2026-08-17) — Section 4 (Group-level multi-tbody page breaking structure for tables). |
 
 ## 1. Design Principles
 
@@ -175,4 +175,4 @@ exclusion, otherwise designed header tints are still forced to `#f0f0f0`.
 | 2026-08-03 | `CURRENT` | **ConfirmModal Rules:** Added Section 5 detailing the mandatory `ConfirmModal` component and the progressive adoption rule for legacy `window.confirm()` calls. |
 | 2026-08-13 | `4eefc87` | **Automated Checkbox Layout Pattern (Option A vs Option C):** Documented dynamic layout engine. Standard fields use Option A (2-column fixed 35%/65% grid) to align checkbox icons vertically; detailed/long fields use Option C (Top-aligned label + 1rem indented options). |
 | 2026-08-17 | `3504b80` | **Table Group Header Rows UI Pattern:** Documented category banner rows in tables. Full width (`colSpan=cols.length`), medium gray background (`#E5E7EB`), bold text (`fontWeight: 700`), saving 30–40% vertical whitespace. |
-| 2026-08-17 | `CURRENT` | **Table Group-Level Multi-`<tbody>` Page Break:** Documented `.print-table-group` pattern (`<tbody>` with `page-break-inside: avoid` per section), eliminating dead white space on preceding pages and preserving repeated `<thead>` on new pages. |
+| 2026-08-17 | `f5e93b8` | **Table Group-Level Multi-`<tbody>` Page Break:** Documented `.print-table-group` pattern (`<tbody>` with `page-break-inside: avoid` per section), eliminating dead white space on preceding pages and preserving repeated `<thead>` on new pages. |
