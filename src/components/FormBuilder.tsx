@@ -572,8 +572,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
           options: [{ label: 'Đ', value: 'PASS', isPass: true }, { label: 'KĐ', value: 'FAIL', isPass: false }] },
         { id: 'col_reaction', label: 'Ghi chú',                      width: '15%',  type: 'text' }
       ] : type === 'TABLE' ? [
-        { id: 'col_1', label: 'STT', width: '8%', align: 'center', type: 'static_text' },
-        { id: 'col_2', label: 'Tên hạng mục', width: '50%', type: 'static_text' },
+        { id: 'col_1', label: 'STT', width: '8%', align: 'center', type: 'text' },
+        { id: 'col_2', label: 'Tên hạng mục', width: '50%', type: 'text' },
         { id: 'col_3', label: 'Giá trị', width: '', type: 'number' }
       ] : undefined,
       tableRows: type === 'TABLE' ? [
@@ -2950,7 +2950,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                // Text / number / date / time / static: multi-line layout
                                                <>
                                                  <div style={{ height: '28px', padding: '4px', display: 'flex', alignItems: 'center', boxSizing: 'border-box', overflow: 'hidden' }}>
-                                                   {col.type === 'static_text' ? (
+                                                   {col.type === 'static_text' || col.type === 'text' ? (
                                                      <input
                                                        type="text"
                                                        disabled={isLocked}
@@ -2960,14 +2960,36 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                          setLayoutBlocks(prev => prev.map(b => {
                                                            if (b.id === block.id) {
                                                              const updatedData = { ...b.tableData || {} };
-                                                             updatedData[row.id] = { ...updatedData[row.id] || {}, [col.id]: val };
+                                                             if (val === '') {
+                                                               if (updatedData[row.id]) {
+                                                                 const newRowData = { ...updatedData[row.id] };
+                                                                 delete newRowData[col.id];
+                                                                 if (Object.keys(newRowData).length === 0) {
+                                                                   delete updatedData[row.id];
+                                                                 } else {
+                                                                   updatedData[row.id] = newRowData;
+                                                                 }
+                                                               }
+                                                             } else {
+                                                               updatedData[row.id] = { ...updatedData[row.id] || {}, [col.id]: val };
+                                                             }
                                                              return { ...b, tableData: updatedData };
                                                            }
                                                            return b;
                                                          }));
                                                        }}
-                                                       placeholder="Sửa nhãn..."
-                                                       style={{ width: '100%', border: 'none', background: 'transparent', outline: 'none', padding: '2px', fontSize: '0.75rem', textAlign: cellAlign }}
+                                                       placeholder="[Nhập chữ]"
+                                                       style={{
+                                                         width: '100%',
+                                                         border: 'none',
+                                                         background: 'transparent',
+                                                         outline: 'none',
+                                                         padding: '2px',
+                                                         fontSize: '0.75rem',
+                                                         textAlign: cellAlign,
+                                                         color: (block.tableData?.[row.id]?.[col.id] || '') !== '' ? '#0f172a' : undefined,
+                                                         fontWeight: (block.tableData?.[row.id]?.[col.id] || '') !== '' ? 500 : 400
+                                                       }}
                                                      />
                                                    ) : col.type === 'date' ? (
                                                      <span style={{ color: '#cbd5e1', fontSize: '0.7rem', display: 'block', textAlign: 'center', width: '100%' }}>[Ngày]</span>
@@ -3665,7 +3687,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                           const newOpts = [...(activeField.options ?? DEFAULT_RADIO_OPTIONS), { label: 'Lựa chọn mới', value: `OPT_${Date.now()}`, isPass: false }];
                           handleUpdateField(activeBlockId!, activeFieldId!, { options: newOpts });
                         }}
-                        style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '0.25rem 0.5rem', fontSize: '0.7rem', borderRadius: '4px', border: '1px dashed #94a3b8', background: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}
+                        style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '0.25rem 0.5rem', fontSize: '0.7rem', borderRadius: '4px', border: '1px dashed #94a3b8', background: 'none', color: 'var(--text-secondary)', cursor: 'pointer', } }
                       >
                         <Plus size={11} /> Thêm lựa chọn
                       </button>
@@ -4459,7 +4481,6 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                   }}
                                   style={{ flex: 1.0, padding: '0.2rem 0.3rem', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
                                 >
-                                  <option value="static_text">Nhãn</option>
                                   <option value="text">Chữ</option>
                                   <option value="number">Số</option>
                                   <option value="checkbox">Checkbox</option>

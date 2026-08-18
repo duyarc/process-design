@@ -1483,10 +1483,13 @@ export default function FormFiller({
                                 const effectiveOpts = customCellOpts !== undefined ? customCellOpts : (col.options || []);
                                 const hasOptions = (col.type === 'checkbox' || col.type === 'radio') && effectiveOpts.length > 0;
                                 const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? (hasOptions ? 'left' : 'center') : 'left'));
+                                const staticVal = block.tableData?.[row.id]?.[col.id];
+                                const isStaticLabel = (col.type === 'static_text' || col.type === 'text') && staticVal !== undefined && staticVal !== null && staticVal.toString().trim() !== '';
+
                                 return (
                                   <td key={col.id} style={{ padding: '6px', borderRight: '1px solid var(--neutral-border)', verticalAlign: 'middle', textAlign: cellAlign, width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
-                                    {col.type === 'static_text' ? (
-                                      <span style={{ fontWeight: 500, display: 'block', textAlign: cellAlign }}>{block.tableData?.[row.id]?.[col.id] || ''}</span>
+                                    {isStaticLabel ? (
+                                      <span style={{ fontWeight: 500, display: 'block', textAlign: cellAlign }}>{staticVal}</span>
                                     ) : col.type === 'checkbox' ? (
                                       hasOptions ? (
                                         <div style={{

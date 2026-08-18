@@ -743,10 +743,12 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                       const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? (hasOptions ? 'left' : 'center') : 'left'));
                                       const snapKey = `${block.id}_${row.id}_${col.id}`;
                                       const cellVal = getVal(snapKey);
+                                      const staticVal = block.tableData?.[row.id]?.[col.id];
+                                      const isStaticLabel = (col.type === 'static_text' || col.type === 'text') && staticVal !== undefined && staticVal !== null && staticVal.toString().trim() !== '';
                                       return (
                                         <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'middle', height: '28px', textAlign: cellAlign as any, width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
-                                          {col.type === 'static_text' ? (
-                                            <span style={{ fontWeight: 'var(--pw-weight-regular)', display: 'block', textAlign: cellAlign as any }}>{block.tableData?.[row.id]?.[col.id] || ''}</span>
+                                          {isStaticLabel ? (
+                                            <span style={{ fontWeight: 'var(--pw-weight-regular)', display: 'block', textAlign: cellAlign as any }}>{staticVal}</span>
                                           ) : cellVal}
                                         </td>
                                       );
