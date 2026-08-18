@@ -2754,8 +2754,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                               outline: isSelected ? '1.5px solid #3b82f6' : 'none'
                                             }}
                                           >
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                              <span style={{ color: '#64748b', fontSize: '0.8rem', userSelect: 'none' }}>📁</span>
+                                            <div style={{ display: 'flex', alignItems: 'center' }}>
                                               <input
                                                 type="text"
                                                 disabled={isLocked}
