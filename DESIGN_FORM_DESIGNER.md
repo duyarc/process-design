@@ -9,7 +9,7 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | `599e260` (2026-08-20) — Section 4 (Static non-input 'label' field type in INFO_GRID). |
+| **Verified At Commit** | `b431f46` (2026-08-20) — Section 4 (Auto-Grow multi-line text wrapping for INFO_GRID labels). |
 
 > **⚠️ Architectural note:** FormBuilder has no awareness of which process it belongs to. The `formName` prop is always identical to `formId`. See Section 6.1 and the Technical Debt table.
 
@@ -548,5 +548,6 @@ full diff of any entry below.
 | 2026-08-20 | `89323fc` | **WYSIWYG Multi-Line Auto-Wrapping Table Cells & Group Headers:** (1) Replaced single-line `<input>` and fixed `height: 28px` with zero-lag CSS Grid Auto-Grow Textarea mirror in `FormBuilder.tsx` table cells and group headers. (2) Text wraps reactively at column boundaries and supports manual `Enter` linebreaks, naturally expanding row height without horizontal scrollbars. (3) Added `white-space: pre-wrap; word-break: break-word;` across all print and form renderers. |
 | 2026-08-20 | `985ddfa` | **WYSIWYG Inline Field Label & Type Selector (INFO_GRID):** (1) Replaced static label text in `INFO_GRID` field cards with an inline editable `<input>` wired directly to `handleUpdateField`. (2) Replaced static `[type]` badge with an interactive inline `<select>` supporting all 9 field types wired to `handleChangeFieldType`. Enables direct on-canvas renaming and type switching without opening the right panel. |
 | 2026-08-20 | `599e260` | **Static Non-Input 'label' Field Type (INFO_GRID):** (1) Added `'label'` field type to `FormFieldISO`. (2) In `FormBuilder.tsx`, available via Canvas and Inspector dropdowns. (3) In `FormFiller.tsx` and `ProcessReader.tsx`, renders as pure static text with no input control. (4) In `PrintBlankForm.tsx`, `PrintFilledForm.tsx`, and `PrintRecord.tsx`, prints clean label text without dotted underlines or AcroForm widgets. |
+| 2026-08-20 | `b431f46` | **WYSIWYG Auto-Grow Multi-Line Wrapping for INFO_GRID Labels:** (1) Replaced single-line `<input>` for `f.checkItem` in `INFO_GRID` canvas cards with CSS Grid Auto-Grow Textarea mirror. (2) Labels wrap dynamically at column borders and support `Enter` linebreaks without horizontal clipping, naturally expanding card height. (3) Pinned move buttons and type selector to top-right with `alignItems: flex-start`. |
 
 
