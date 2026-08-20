@@ -2225,41 +2225,69 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                     }}
                                   >
                                     {/* Header row: editable label (left) + move controls & type selector (right) */}
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '6px', width: '100%' }}>
-                                      <input
-                                        type="text"
-                                        disabled={isLocked}
-                                        value={f.checkItem}
-                                        placeholder="Nhập tên trường..."
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setActiveBlockId(block.id);
-                                          setActiveFieldId(f.id);
-                                        }}
-                                        onChange={(e) => handleUpdateField(block.id, f.id, { checkItem: e.target.value })}
-                                        style={{
-                                          fontWeight: 600,
-                                          fontSize: '0.8rem',
-                                          color: 'var(--text-primary)',
-                                          border: '1px solid transparent',
-                                          borderRadius: '3px',
-                                          background: 'transparent',
-                                          outline: 'none',
-                                          flex: 1,
-                                          minWidth: '50px',
-                                          padding: '2px 4px',
-                                          cursor: isLocked ? 'default' : 'text'
-                                        }}
-                                        onFocus={(e) => {
-                                          e.target.style.borderColor = 'var(--primary)';
-                                          e.target.style.background = '#ffffff';
-                                        }}
-                                        onBlur={(e) => {
-                                          e.target.style.borderColor = 'transparent';
-                                          e.target.style.background = 'transparent';
-                                        }}
-                                      />
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '6px', width: '100%' }}>
+                                      {/* CSS Grid Auto-Grow Textarea mirror */}
+                                      <div style={{ display: 'grid', flex: 1, minWidth: '50px', minHeight: '24px', boxSizing: 'border-box' }}>
+                                        <span
+                                          aria-hidden="true"
+                                          style={{
+                                            gridArea: '1 / 1 / 2 / 2',
+                                            visibility: 'hidden',
+                                            whiteSpace: 'pre-wrap',
+                                            wordBreak: 'break-word',
+                                            fontSize: '0.8rem',
+                                            fontWeight: 600,
+                                            lineHeight: 1.4,
+                                            fontFamily: 'inherit',
+                                            padding: '2px 4px',
+                                            minHeight: '20px'
+                                          }}
+                                        >
+                                          {(f.checkItem || '') + ' '}
+                                        </span>
+                                        <textarea
+                                          disabled={isLocked}
+                                          rows={1}
+                                          value={f.checkItem}
+                                          placeholder="Nhập tên trường / nhãn..."
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setActiveBlockId(block.id);
+                                            setActiveFieldId(f.id);
+                                          }}
+                                          onChange={(e) => handleUpdateField(block.id, f.id, { checkItem: e.target.value })}
+                                          style={{
+                                            gridArea: '1 / 1 / 2 / 2',
+                                            width: '100%',
+                                            height: '100%',
+                                            fontWeight: 600,
+                                            fontSize: '0.8rem',
+                                            lineHeight: 1.4,
+                                            fontFamily: 'inherit',
+                                            color: 'var(--text-primary)',
+                                            border: '1px solid transparent',
+                                            borderRadius: '3px',
+                                            background: 'transparent',
+                                            outline: 'none',
+                                            padding: '2px 4px',
+                                            margin: 0,
+                                            resize: 'none',
+                                            overflow: 'hidden',
+                                            whiteSpace: 'pre-wrap',
+                                            wordBreak: 'break-word',
+                                            cursor: isLocked ? 'default' : 'text'
+                                          }}
+                                          onFocus={(e) => {
+                                            e.target.style.borderColor = 'var(--primary)';
+                                            e.target.style.background = '#ffffff';
+                                          }}
+                                          onBlur={(e) => {
+                                            e.target.style.borderColor = 'transparent';
+                                            e.target.style.background = 'transparent';
+                                          }}
+                                        />
+                                      </div>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0, marginTop: '2px' }}>
                                         {isFieldSelected && !isLocked && (
                                           <div style={{ display: 'flex', alignItems: 'center', gap: '2px', marginRight: '2px' }}>
                                             <button
