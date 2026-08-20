@@ -9,7 +9,7 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | `89323fc` (2026-08-20) — Section 4 (WYSIWYG Multi-line auto-wrapping textareas in table cells and group headers). |
+| **Verified At Commit** | `985ddfa` (2026-08-20) — Section 4 (WYSIWYG inline editable field label and type selector in INFO_GRID). |
 
 > **⚠️ Architectural note:** FormBuilder has no awareness of which process it belongs to. The `formName` prop is always identical to `formId`. See Section 6.1 and the Technical Debt table.
 
@@ -546,5 +546,6 @@ full diff of any entry below.
 | 2026-08-17 | `cc106a7` | **Fillable PDF Export Unified Table Borders:** (1) Updated `domScanner.ts` to integer `targetWidthPx = 698` (snapping subpixel canvas rounding). (2) Applied `.exporting-pdf-mode` table rules in `index.css`: `border: 1px solid #000000 !important`, `border-collapse: collapse !important`, `border-spacing: 0 !important` on table, th, td. (3) Hidden invisible anchor rows (`tr[aria-hidden="true"] { display: none !important }`) in PDF mode to eliminate disjointed cell gaps. |
 | 2026-08-18 | `62e77f9` | **Content-Driven Label/Text Cells & Column Type Simplification:** (1) Removed `static_text` ("Nhãn") option from column type dropdowns in `FormBuilder.tsx`. (2) In Canvas, text cells render an inline input with `placeholder="[Nhập chữ]"`; typing content marks the cell as a static template label, while clearing it returns the cell to an open input. (3) Propagated 1:1 to `FormFiller.tsx`, `PrintBlankForm.tsx`, `PrintFilledForm.tsx`, `PrintRecord.tsx`, and `ProcessReader.tsx`. |
 | 2026-08-20 | `89323fc` | **WYSIWYG Multi-Line Auto-Wrapping Table Cells & Group Headers:** (1) Replaced single-line `<input>` and fixed `height: 28px` with zero-lag CSS Grid Auto-Grow Textarea mirror in `FormBuilder.tsx` table cells and group headers. (2) Text wraps reactively at column boundaries and supports manual `Enter` linebreaks, naturally expanding row height without horizontal scrollbars. (3) Added `white-space: pre-wrap; word-break: break-word;` across all print and form renderers. |
+| 2026-08-20 | `985ddfa` | **WYSIWYG Inline Field Label & Type Selector (INFO_GRID):** (1) Replaced static label text in `INFO_GRID` field cards with an inline editable `<input>` wired directly to `handleUpdateField`. (2) Replaced static `[type]` badge with an interactive inline `<select>` supporting all 9 field types wired to `handleChangeFieldType`. Enables direct on-canvas renaming and type switching without opening the right panel. |
 
 
