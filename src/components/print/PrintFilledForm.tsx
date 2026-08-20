@@ -402,6 +402,14 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                               alignSelf: f.type === 'photo' ? 'stretch' : 'start',
                             };
 
+                            if (f.type === 'label') {
+                              return (
+                                <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'center', fontSize: '0.85rem', whiteSpace: 'pre-wrap', wordBreak: 'break-word', pageBreakInside: 'avoid' }}>
+                                  <span style={{ fontWeight: 'var(--pw-weight-medium)', color: '#0f172a' }}>{cleanLabel}</span>
+                                </div>
+                              );
+                            }
+
                             if (f.type === 'photo') {
                               const singleUrl = imageUrls[0];
                               return (

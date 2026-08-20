@@ -884,7 +884,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     }));
   };
 
-  const handleChangeFieldType = (blockId: string, fieldId: string, newType: 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo' | 'subtable') => {
+  const handleChangeFieldType = (blockId: string, fieldId: string, newType: 'label' | 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo' | 'subtable') => {
     if (isLocked) return;
     
     // Find current field to inspect its options
@@ -2313,6 +2313,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                           }}
                                           title="Đổi loại trường"
                                         >
+                                          <option value="label">label</option>
                                           <option value="text">text</option>
                                           <option value="number">number</option>
                                           <option value="date">date</option>
@@ -3608,6 +3609,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                     onChange={(e) => handleChangeFieldType(activeBlockId!, activeFieldId!, e.target.value as any)}
                     style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', background: '#fff' }}
                   >
+                    <option value="label">Nhãn (Label)</option>
                     <option value="text">Text</option>
                     <option value="number">Number</option>
                     <option value="date">Date</option>

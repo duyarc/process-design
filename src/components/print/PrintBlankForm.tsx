@@ -489,6 +489,14 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                             alignSelf: f.type === 'photo' ? 'stretch' : 'start',
                           };
 
+                          if (f.type === 'label') {
+                            return (
+                              <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'center', fontSize: '0.85rem', whiteSpace: 'pre-wrap', wordBreak: 'break-word', pageBreakInside: 'avoid' }}>
+                                <span style={{ fontWeight: 'var(--pw-weight-medium)', color: '#0f172a' }}>{cleanLabel}</span>
+                              </div>
+                            );
+                          }
+
                           if (f.type === 'photo') {
                             return (
                               <div key={f.id} style={{ ...gridItemStyle, display: 'flex', flexDirection: 'column', width: '100%', pageBreakInside: 'avoid' }}>

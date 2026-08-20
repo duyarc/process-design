@@ -605,6 +605,14 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                       alignSelf: matchedField?.type === 'photo' ? 'stretch' : 'start',
                     };
 
+                    if (matchedField?.type === 'label') {
+                      return (
+                        <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'center', fontSize: '0.85rem', whiteSpace: 'pre-wrap', wordBreak: 'break-word', pageBreakInside: 'avoid' }}>
+                          <span style={{ fontWeight: 'var(--pw-weight-medium)', color: '#0f172a' }}>{f.checkItem}</span>
+                        </div>
+                      );
+                    }
+
                     if (matchedField?.type === 'photo') {
                       const photoUrl = f.value || '';
                       return (

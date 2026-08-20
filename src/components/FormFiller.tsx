@@ -916,6 +916,25 @@ export default function FormFiller({
                     const rSpan = parsedRSpan && !isNaN(parsedRSpan) && parsedRSpan > 1 ? parsedRSpan : undefined;
                     const cSpan = field.type === 'subtable' ? -1 : (field.colSpan ? Number(field.colSpan) : undefined);
 
+                    if (field.type === 'label') {
+                      return (
+                        <div 
+                          key={field.id} 
+                          style={{ 
+                            gridRow: rSpan ? `span ${rSpan}` : undefined,
+                            gridColumn: cSpan && cSpan > 1 ? `span ${cSpan}` : cSpan === -1 ? '1 / -1' : undefined,
+                            display: 'flex', 
+                            alignItems: 'center',
+                            padding: '0.45rem 0',
+                          }}
+                        >
+                          <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                            {sanitizeLabel(field.checkItem)}
+                          </span>
+                        </div>
+                      );
+                    }
+
                     return (
                       <div 
                         key={field.id} 
