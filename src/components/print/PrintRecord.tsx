@@ -1045,7 +1045,9 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                               fontWeight: 'bold',
                               fontSize: '0.82rem',
                               padding: '5px 8px',
-                              color: '#000000'
+                              color: '#000000',
+                              whiteSpace: 'pre-wrap',
+                              wordBreak: 'break-word'
                             }}
                           >
                             {grp.groupHeaderRow.groupTitle || block.tableData?.[grp.groupHeaderRow.id]?.['_groupTitle'] || ''}
@@ -1065,7 +1067,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                             return (
                               <td key={col.id} style={{ border: '1.5px solid #000000', padding: '6px 8px', fontSize: '0.8rem', verticalAlign: 'middle', textAlign: cellAlign, width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
                                 {isStaticLabel ? (
-                                  <span style={{ fontWeight: 'var(--pw-weight-regular)', display: 'block', textAlign: cellAlign }}>{staticVal}</span>
+                                  <span style={{ fontWeight: 'var(--pw-weight-regular)', display: 'block', textAlign: cellAlign, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{staticVal}</span>
                                 ) : col.type === 'checkbox' ? (
                                   hasOptions ? (
                                      <div style={{

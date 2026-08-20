@@ -2754,10 +2754,26 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                               outline: isSelected ? '1.5px solid #3b82f6' : 'none'
                                             }}
                                           >
-                                            <div style={{ display: 'flex', alignItems: 'center' }}>
-                                              <input
-                                                type="text"
+                                            <div style={{ display: 'grid', width: '100%', minHeight: '28px', boxSizing: 'border-box' }}>
+                                              <span
+                                                aria-hidden="true"
+                                                style={{
+                                                  gridArea: '1 / 1 / 2 / 2',
+                                                  visibility: 'hidden',
+                                                  whiteSpace: 'pre-wrap',
+                                                  wordBreak: 'break-word',
+                                                  fontSize: '0.85rem',
+                                                  fontWeight: 700,
+                                                  lineHeight: 1.4,
+                                                  fontFamily: 'inherit',
+                                                  minHeight: '20px'
+                                                }}
+                                              >
+                                                {(groupTitleVal || '') + ' '}
+                                              </span>
+                                              <textarea
                                                 disabled={isLocked}
+                                                rows={1}
                                                 value={groupTitleVal}
                                                 placeholder="Nhập tên phân nhóm (ví dụ: I. Bao bì và đóng gói)..."
                                                 onChange={(e) => {
@@ -2773,13 +2789,23 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                   }));
                                                 }}
                                                 style={{
+                                                  gridArea: '1 / 1 / 2 / 2',
                                                   width: '100%',
+                                                  height: '100%',
                                                   border: 'none',
                                                   background: 'transparent',
                                                   outline: 'none',
+                                                  padding: 0,
+                                                  margin: 0,
                                                   fontWeight: 700,
                                                   fontSize: '0.85rem',
-                                                  color: '#0f172a'
+                                                  lineHeight: 1.4,
+                                                  fontFamily: 'inherit',
+                                                  color: '#0f172a',
+                                                  resize: 'none',
+                                                  overflow: 'hidden',
+                                                  whiteSpace: 'pre-wrap',
+                                                  wordBreak: 'break-word'
                                                 }}
                                               />
                                             </div>
@@ -2885,7 +2911,6 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                              }}
                                            >
                                              {isOptionCell ? (
-                                               // Checkbox / radio: keep flexible height — not line-count aware
                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: '2px 0', width: '100%' }}>
                                                   {isCustomCellOpts && !isLocked && (
                                                     <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '2px' }}>
@@ -2931,7 +2956,6 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                      )}
                                                    </div>
                                                  ))}
-
                                                  {!isLocked && (
                                                    <button 
                                                      type="button" 
@@ -2946,65 +2970,93 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                    </button>
                                                  )}
                                                </div>
-                                             ) : (
-                                               // Text / number / date / time / static: multi-line layout
-                                               <>
-                                                 <div style={{ height: '28px', padding: '4px', display: 'flex', alignItems: 'center', boxSizing: 'border-box', overflow: 'hidden' }}>
-                                                   {col.type === 'static_text' || col.type === 'text' ? (
-                                                     <input
-                                                       type="text"
-                                                       disabled={isLocked}
-                                                       value={block.tableData?.[row.id]?.[col.id] || ''}
-                                                       onChange={(e) => {
-                                                         const val = e.target.value;
-                                                         setLayoutBlocks(prev => prev.map(b => {
-                                                           if (b.id === block.id) {
-                                                             const updatedData = { ...b.tableData || {} };
-                                                             if (val === '') {
-                                                               if (updatedData[row.id]) {
-                                                                 const newRowData = { ...updatedData[row.id] };
-                                                                 delete newRowData[col.id];
-                                                                 if (Object.keys(newRowData).length === 0) {
-                                                                   delete updatedData[row.id];
-                                                                 } else {
-                                                                   updatedData[row.id] = newRowData;
-                                                                 }
-                                                               }
-                                                             } else {
-                                                               updatedData[row.id] = { ...updatedData[row.id] || {}, [col.id]: val };
-                                                             }
-                                                             return { ...b, tableData: updatedData };
-                                                           }
-                                                           return b;
-                                                         }));
-                                                       }}
-                                                       placeholder="[Nhập chữ]"
-                                                       style={{
-                                                         width: '100%',
-                                                         border: 'none',
-                                                         background: 'transparent',
-                                                         outline: 'none',
-                                                         padding: '2px',
-                                                         fontSize: '0.75rem',
-                                                         textAlign: cellAlign,
-                                                         color: (block.tableData?.[row.id]?.[col.id] || '') !== '' ? '#0f172a' : undefined,
-                                                         fontWeight: (block.tableData?.[row.id]?.[col.id] || '') !== '' ? 500 : 400
-                                                       }}
-                                                     />
-                                                   ) : col.type === 'date' ? (
-                                                     <span style={{ color: '#cbd5e1', fontSize: '0.7rem', display: 'block', textAlign: 'center', width: '100%' }}>[Ngày]</span>
-                                                   ) : col.type === 'time' ? (
-                                                     <span style={{ color: '#cbd5e1', fontSize: '0.7rem', display: 'block', textAlign: 'center', width: '100%' }}>[Giờ]</span>
-                                                   ) : col.type === 'number' ? (
-                                                     <span style={{ color: '#cbd5e1', fontSize: '0.7rem', display: 'block', textAlign: 'right', width: '100%' }}>[Nhập số]</span>
-                                                   ) : (
-                                                     <span style={{ color: '#cbd5e1', fontSize: '0.7rem', display: 'block', textAlign: 'left', width: '100%' }}>[Nhập chữ]</span>
-                                                   )}
-                                                 </div>
-                                                 {lc > 1 && Array.from({ length: lc - 1 }).map((_, i) => (
-                                                   <div key={i} style={{ height: '28px', borderTop: '1px dashed #e2e8f0' }} />
-                                                 ))}
-                                               </>
+                                              ) : (
+                                                <>
+                                                  {col.type === 'static_text' || col.type === 'text' ? (
+                                                    <div style={{ display: 'grid', width: '100%', minHeight: `${28 * lc}px`, padding: '4px 6px', boxSizing: 'border-box' }}>
+                                                      <span
+                                                        aria-hidden="true"
+                                                        style={{
+                                                          gridArea: '1 / 1 / 2 / 2',
+                                                          visibility: 'hidden',
+                                                          whiteSpace: 'pre-wrap',
+                                                          wordBreak: 'break-word',
+                                                          fontSize: '0.75rem',
+                                                          lineHeight: 1.4,
+                                                          fontFamily: 'inherit',
+                                                          textAlign: cellAlign,
+                                                          minHeight: `${Math.max(20, 28 * lc - 8)}px`
+                                                        }}
+                                                      >
+                                                        {(block.tableData?.[row.id]?.[col.id] || '') + ' '}
+                                                      </span>
+                                                      <textarea
+                                                        disabled={isLocked}
+                                                        rows={1}
+                                                        value={block.tableData?.[row.id]?.[col.id] || ''}
+                                                        onChange={(e) => {
+                                                          const val = e.target.value;
+                                                          setLayoutBlocks(prev => prev.map(b => {
+                                                            if (b.id === block.id) {
+                                                              const updatedData = { ...b.tableData || {} };
+                                                              if (val === '') {
+                                                                if (updatedData[row.id]) {
+                                                                  const newRowData = { ...updatedData[row.id] };
+                                                                  delete newRowData[col.id];
+                                                                  if (Object.keys(newRowData).length === 0) {
+                                                                    delete updatedData[row.id];
+                                                                  } else {
+                                                                    updatedData[row.id] = newRowData;
+                                                                  }
+                                                                }
+                                                              } else {
+                                                                updatedData[row.id] = { ...updatedData[row.id] || {}, [col.id]: val };
+                                                              }
+                                                              return { ...b, tableData: updatedData };
+                                                            }
+                                                            return b;
+                                                          }));
+                                                        }}
+                                                        placeholder="[Nhập chữ]"
+                                                        style={{
+                                                          gridArea: '1 / 1 / 2 / 2',
+                                                          width: '100%',
+                                                          height: '100%',
+                                                          border: 'none',
+                                                          background: 'transparent',
+                                                          outline: 'none',
+                                                          padding: 0,
+                                                          margin: 0,
+                                                          fontSize: '0.75rem',
+                                                          lineHeight: 1.4,
+                                                          fontFamily: 'inherit',
+                                                          textAlign: cellAlign,
+                                                          resize: 'none',
+                                                          overflow: 'hidden',
+                                                          whiteSpace: 'pre-wrap',
+                                                          wordBreak: 'break-word',
+                                                          color: (block.tableData?.[row.id]?.[col.id] || '') !== '' ? '#0f172a' : undefined,
+                                                          fontWeight: (block.tableData?.[row.id]?.[col.id] || '') !== '' ? 500 : 400
+                                                        }}
+                                                      />
+                                                    </div>
+                                                  ) : (
+                                                    <div style={{ height: `${28 * lc}px`, padding: '4px', display: 'flex', alignItems: 'center', boxSizing: 'border-box', overflow: 'hidden' }}>
+                                                      {col.type === 'date' ? (
+                                                        <span style={{ color: '#cbd5e1', fontSize: '0.7rem', display: 'block', textAlign: 'center', width: '100%' }}>[Ngày]</span>
+                                                      ) : col.type === 'time' ? (
+                                                        <span style={{ color: '#cbd5e1', fontSize: '0.7rem', display: 'block', textAlign: 'center', width: '100%' }}>[Giờ]</span>
+                                                      ) : col.type === 'number' ? (
+                                                        <span style={{ color: '#cbd5e1', fontSize: '0.7rem', display: 'block', textAlign: 'right', width: '100%' }}>[Nhập số]</span>
+                                                      ) : (
+                                                        <span style={{ color: '#cbd5e1', fontSize: '0.7rem', display: 'block', textAlign: 'left', width: '100%' }}>[Nhập chữ]</span>
+                                                      )}
+                                                    </div>
+                                                  )}
+                                                  {lc > 1 && Array.from({ length: lc - 1 }).map((_, i) => (
+                                                    <div key={i} style={{ height: '28px', borderTop: '1px dashed #e2e8f0' }} />
+                                                  ))}
+                                                </>
                                              )}
                                            </td>
                                          );

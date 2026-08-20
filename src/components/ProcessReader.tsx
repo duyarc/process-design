@@ -1962,7 +1962,9 @@ setFormValues(prev => ({ ...prev, [field.id]: stringifySubtableValue(newRows) })
                                                    padding: '8px 10px',
                                                    fontWeight: 700,
                                                    fontSize: '0.85rem',
-                                                   color: '#0f172a'
+                                                   color: '#0f172a',
+                                                   whiteSpace: 'pre-wrap',
+                                                   wordBreak: 'break-word'
                                                  }}
                                                >
                                                  {groupTitle}
@@ -1982,7 +1984,7 @@ setFormValues(prev => ({ ...prev, [field.id]: stringifySubtableValue(newRows) })
                                              return (
                                                <td key={col.id} style={{ padding: '6px', borderRight: '1px solid var(--neutral-border)', verticalAlign: 'middle', textAlign: cellAlign, width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
                                                  {isStaticLabel ? (
-                                                   <span style={{ fontWeight: 500, display: 'block', textAlign: cellAlign }}>{staticVal}</span>
+                                                   <span style={{ fontWeight: 500, display: 'block', textAlign: cellAlign, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{staticVal}</span>
                                                  ) : col.type === 'checkbox' ? (
                                                    <div style={{ textAlign: 'center' }}>
                                                      <input 

@@ -1465,7 +1465,9 @@ export default function FormFiller({
                                       padding: '8px 10px',
                                       fontWeight: 700,
                                       fontSize: '0.85rem',
-                                      color: '#0f172a'
+                                      color: '#0f172a',
+                                      whiteSpace: 'pre-wrap',
+                                      wordBreak: 'break-word'
                                     }}
                                   >
                                     {groupTitle}
@@ -1489,7 +1491,7 @@ export default function FormFiller({
                                 return (
                                   <td key={col.id} style={{ padding: '6px', borderRight: '1px solid var(--neutral-border)', verticalAlign: 'middle', textAlign: cellAlign, width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
                                     {isStaticLabel ? (
-                                      <span style={{ fontWeight: 500, display: 'block', textAlign: cellAlign }}>{staticVal}</span>
+                                      <span style={{ fontWeight: 500, display: 'block', textAlign: cellAlign, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{staticVal}</span>
                                     ) : col.type === 'checkbox' ? (
                                       hasOptions ? (
                                         <div style={{

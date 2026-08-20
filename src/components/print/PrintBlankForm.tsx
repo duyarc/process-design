@@ -1027,7 +1027,9 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                 fontWeight: 'bold',
                                 fontSize: '0.82rem',
                                 padding: '5px 8px',
-                                color: '#000000'
+                                color: '#000000',
+                                whiteSpace: 'pre-wrap',
+                                wordBreak: 'break-word'
                               }}
                             >
                               {grp.groupHeaderRow.groupTitle || block.tableData?.[grp.groupHeaderRow.id]?.['_groupTitle'] || ''}
@@ -1054,8 +1056,8 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
 
                               if (isStaticLabel) {
                                 return (
-                                  <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'top', height: `${28 * lc}px`, textAlign: cellAlign, width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
-                                    <span style={{ fontWeight: 'var(--pw-weight-regular)', display: 'block', textAlign: cellAlign }}>{staticVal}</span>
+                                  <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'top', minHeight: `${28 * lc}px`, textAlign: cellAlign, width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
+                                    <span style={{ fontWeight: 'var(--pw-weight-regular)', display: 'block', textAlign: cellAlign, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{staticVal}</span>
                                   </td>
                                 );
                               }
