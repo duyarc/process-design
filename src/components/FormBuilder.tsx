@@ -2224,12 +2224,44 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                       background: isFieldSelected ? 'rgba(16, 163, 163, 0.05)' : 'none',
                                     }}
                                   >
-                                    {/* Header row: label (left) + type badge + move controls (right) */}
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                      <span style={{ fontWeight: 600 }}>{sanitizeLabel(f.checkItem)}</span>
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    {/* Header row: editable label (left) + move controls & type selector (right) */}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '6px', width: '100%' }}>
+                                      <input
+                                        type="text"
+                                        disabled={isLocked}
+                                        value={f.checkItem}
+                                        placeholder="Nhập tên trường..."
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setActiveBlockId(block.id);
+                                          setActiveFieldId(f.id);
+                                        }}
+                                        onChange={(e) => handleUpdateField(block.id, f.id, { checkItem: e.target.value })}
+                                        style={{
+                                          fontWeight: 600,
+                                          fontSize: '0.8rem',
+                                          color: 'var(--text-primary)',
+                                          border: '1px solid transparent',
+                                          borderRadius: '3px',
+                                          background: 'transparent',
+                                          outline: 'none',
+                                          flex: 1,
+                                          minWidth: '50px',
+                                          padding: '2px 4px',
+                                          cursor: isLocked ? 'default' : 'text'
+                                        }}
+                                        onFocus={(e) => {
+                                          e.target.style.borderColor = 'var(--primary)';
+                                          e.target.style.background = '#ffffff';
+                                        }}
+                                        onBlur={(e) => {
+                                          e.target.style.borderColor = 'transparent';
+                                          e.target.style.background = 'transparent';
+                                        }}
+                                      />
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
                                         {isFieldSelected && !isLocked && (
-                                          <div style={{ display: 'flex', alignItems: 'center', gap: '2px', marginRight: '4px' }}>
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '2px', marginRight: '2px' }}>
                                             <button
                                               type="button"
                                               disabled={fIdx === 0}
@@ -2256,7 +2288,41 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                             </button>
                                           </div>
                                         )}
-                                        {f.type !== 'photo' && <span style={{ color: 'var(--text-muted)' }}>[{f.type}]</span>}
+                                        <select
+                                          disabled={isLocked}
+                                          value={f.type}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setActiveBlockId(block.id);
+                                            setActiveFieldId(f.id);
+                                          }}
+                                          onChange={(e) => {
+                                            e.stopPropagation();
+                                            handleChangeFieldType(block.id, f.id, e.target.value as any);
+                                          }}
+                                          style={{
+                                            fontSize: '0.68rem',
+                                            padding: '1px 3px',
+                                            borderRadius: '3px',
+                                            border: '1px solid #cbd5e1',
+                                            background: '#f8fafc',
+                                            color: 'var(--text-secondary)',
+                                            cursor: isLocked ? 'default' : 'pointer',
+                                            outline: 'none',
+                                            fontWeight: 500
+                                          }}
+                                          title="Đổi loại trường"
+                                        >
+                                          <option value="text">text</option>
+                                          <option value="number">number</option>
+                                          <option value="date">date</option>
+                                          <option value="time">time</option>
+                                          <option value="checkbox">checkbox</option>
+                                          <option value="radio">radio</option>
+                                          <option value="photo">photo</option>
+                                          <option value="signature">signature</option>
+                                          <option value="subtable">subtable</option>
+                                        </select>
                                       </div>
                                     </div>
 
