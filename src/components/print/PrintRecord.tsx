@@ -1068,7 +1068,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                             const colWidth = getColStyleWidth(col.id, col.width, tableCols);
                             const cellKey = `${block.id}_${row.id}_${col.id}`;
                             const cellValue = submission.formData.find(f => f.id === cellKey)?.value || '';
-                            const hasOptions = col.type === 'checkbox' && col.options && col.options.length > 0;
+                            const hasOptions = (col.type === 'checkbox' || col.type === 'radio') && col.options && col.options.length > 0;
                             const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? (hasOptions ? 'left' : 'center') : 'left'));
                             const staticVal = block.tableData?.[row.id]?.[col.id];
                             const isStaticLabel = (col.type === 'static_text' || col.type === 'text') && staticVal !== undefined && staticVal !== null && staticVal.toString().trim() !== '';
@@ -1091,7 +1091,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                                         const currentValues = cellValue ? cellValue.split(',').filter(Boolean) : [];
                                         const isChecked = currentValues.includes(opt.value || opt.label);
                                         return (
-                                          <div key={oIdx} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#000000' }}>
+                                          <div key={oIdx} style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', fontSize: '0.78rem', color: '#000000', width: '100%' }}>
                                             <span style={{
                                               display: 'inline-flex',
                                               justifyContent: 'center',
@@ -1104,11 +1104,12 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                                               flexShrink: 0,
                                               fontSize: '9px',
                                               fontWeight: 'var(--pw-weight-heavy)',
-                                              lineHeight: 1
+                                              lineHeight: 1,
+                                              marginTop: '2px'
                                             }}>
                                               {isChecked ? '✓' : ''}
                                             </span>
-                                            <span style={{ color: isChecked ? '#000000' : '#64748b' }}>{opt.label}</span>
+                                            <span style={{ color: isChecked ? '#000000' : '#64748b', lineHeight: 1.3, whiteSpace: 'pre-wrap', wordBreak: 'break-word', flex: 1 }}>{opt.label}</span>
                                           </div>
                                         );
                                       })}
@@ -1119,9 +1120,44 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                                     </div>
                                   )
                                 ) : col.type === 'radio' ? (
-                                  <div style={{ display: 'flex', justifyContent: 'center' }}>
-                                    <input type="radio" checked={cellValue === 'true'} readOnly style={{ transform: 'scale(1.1)' }} />
-                                  </div>
+                                  hasOptions ? (
+                                     <div style={{
+                                       display: col.checkboxLayout === '2-column' ? 'grid' : 'flex',
+                                       gridTemplateColumns: col.checkboxLayout === '2-column' ? getCheckboxGridTemplate(col.options || []) : undefined,
+                                       flexDirection: col.checkboxLayout === '2-column' ? undefined : 'column',
+                                       gap: col.checkboxLayout === '2-column' ? '4px 12px' : '5px',
+                                       alignItems: 'flex-start',
+                                       padding: '4px 0',
+                                       width: '100%'
+                                     }}>
+                                       {(col.options || []).map((opt: any, oIdx: number) => {
+                                        const isChecked = cellValue === (opt.value || opt.label);
+                                        return (
+                                          <div key={oIdx} style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', fontSize: '0.78rem', color: '#000000', width: '100%' }}>
+                                            <span style={{
+                                              display: 'inline-flex',
+                                              justifyContent: 'center',
+                                              alignItems: 'center',
+                                              width: '12px',
+                                              height: '12px',
+                                              border: '1.5px solid #000000',
+                                              background: isChecked ? '#000000' : '#ffffff',
+                                              borderRadius: '50%',
+                                              flexShrink: 0,
+                                              marginTop: '2px'
+                                            }}>
+                                              {isChecked && <span style={{ width: '4px', height: '4px', background: '#ffffff', borderRadius: '50%' }} />}
+                                            </span>
+                                            <span style={{ color: isChecked ? '#000000' : '#64748b', lineHeight: 1.3, whiteSpace: 'pre-wrap', wordBreak: 'break-word', flex: 1 }}>{opt.label}</span>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  ) : (
+                                    <div style={{ display: 'flex', justifyContent: 'center' }}>
+                                      <input type="radio" checked={cellValue === 'true'} readOnly style={{ transform: 'scale(1.1)' }} />
+                                    </div>
+                                  )
                                 ) : (
                                   <span style={{ display: 'block', textAlign: cellAlign }}>{cellValue}</span>
                                 )}

@@ -783,7 +783,11 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                         <span style={{ fontWeight: 'var(--pw-weight-regular)', display: 'block' }}>{templateRow ? (block.tableData?.[rowId]?.[col.id] || '') : cellVal}</span>
                                       </td>;
                                     }
-                                    return <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'middle', height: '28px', textAlign: cellAlign as any, width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>{cellVal}</td>;
+                                    return (
+                                      <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'middle', minHeight: '28px', textAlign: cellAlign as any, width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
+                                        <span style={{ display: 'block', whiteSpace: 'pre-wrap', wordBreak: 'break-word', textAlign: cellAlign as any }}>{cellVal}</span>
+                                      </td>
+                                    );
                                   })}
                                 </tr>
                               ))}

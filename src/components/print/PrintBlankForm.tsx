@@ -1157,7 +1157,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                         alignItems: 'start'
                                       }}>
                                         {effectiveOpts.map((opt, oIdx) => (
-                                          <div key={oIdx} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: '#000000', textAlign: 'left', lineHeight: 1.2 }}>
+                                          <div key={oIdx} style={{ display: 'flex', alignItems: 'flex-start', gap: '4px', fontSize: '0.75rem', color: '#000000', textAlign: 'left', lineHeight: 1.2, width: '100%' }}>
                                             <span
                                               className="acro-option-icon"
                                               data-acroform-field="true"
@@ -1171,10 +1171,11 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                                 borderRadius: col.type === 'radio' ? '50%' : '1px',
                                                 border: '1.2px solid #000000',
                                                 background: '#ffffff',
-                                                flexShrink: 0
+                                                flexShrink: 0,
+                                                marginTop: '2px'
                                               }}
                                             />
-                                            <span style={{ fontSize: '0.75rem' }}>{opt.label}</span>
+                                            <span style={{ fontSize: '0.75rem', lineHeight: 1.3, whiteSpace: 'pre-wrap', wordBreak: 'break-word', flex: 1 }}>{opt.label}</span>
                                           </div>
                                         ))}
                                       </div>

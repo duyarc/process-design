@@ -3091,20 +3091,67 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                    )}
                                                  
                                                  {cellOptions.map((opt, oIdx) => (
-                                                   <div key={oIdx} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem' }}>
-                                                     <input type={col.type} disabled style={{ pointerEvents: 'none', flexShrink: 0 }} />
-                                                     <input 
-                                                       type="text" 
-                                                       disabled={isLocked}
-                                                       value={opt.label} 
-                                                       placeholder="Tùy chọn..."
-                                                       onChange={(e) => {
-                                                         const newOpts = [...cellOptions];
-                                                         newOpts[oIdx] = { ...newOpts[oIdx], label: e.target.value };
-                                                         handleUpdateCellOptions(block.id, row.id, col.id, newOpts);
-                                                       }}
-                                                       style={{ flex: 1, border: 'none', borderBottom: '1px dotted #cbd5e1', background: 'transparent', outline: 'none', fontSize: '0.75rem', padding: '1px 2px', minWidth: '60px' }}
-                                                     />
+                                                   <div key={oIdx} style={{ display: 'flex', alignItems: 'flex-start', gap: '4px', fontSize: '0.75rem', width: '100%' }}>
+                                                     <input type={col.type} disabled style={{ pointerEvents: 'none', flexShrink: 0, marginTop: '3px' }} />
+                                                     <div style={{ display: 'grid', flex: 1, minWidth: 0, minHeight: '18px', boxSizing: 'border-box' }}>
+                                                       <span
+                                                         aria-hidden="true"
+                                                         style={{
+                                                           gridArea: '1 / 1 / 2 / 2',
+                                                           visibility: 'hidden',
+                                                           whiteSpace: 'pre-wrap',
+                                                           wordBreak: 'break-word',
+                                                           fontSize: '0.75rem',
+                                                           lineHeight: 1.35,
+                                                           fontFamily: 'inherit',
+                                                           padding: '1px 2px',
+                                                           minHeight: '16px'
+                                                         }}
+                                                       >
+                                                         {(opt.label || '') + ' '}
+                                                       </span>
+                                                       <textarea
+                                                         disabled={isLocked}
+                                                         rows={1}
+                                                         value={opt.label}
+                                                         placeholder="Tùy chọn..."
+                                                         onClick={(e) => e.stopPropagation()}
+                                                         onChange={(e) => {
+                                                           const newOpts = [...cellOptions];
+                                                           newOpts[oIdx] = { ...newOpts[oIdx], label: e.target.value };
+                                                           handleUpdateCellOptions(block.id, row.id, col.id, newOpts);
+                                                         }}
+                                                         style={{
+                                                           gridArea: '1 / 1 / 2 / 2',
+                                                           width: '100%',
+                                                           height: '100%',
+                                                           fontSize: '0.75rem',
+                                                           lineHeight: 1.35,
+                                                           fontFamily: 'inherit',
+                                                           color: 'var(--text-primary)',
+                                                           border: 'none',
+                                                           borderBottom: '1px dotted #cbd5e1',
+                                                           borderRadius: 0,
+                                                           background: 'transparent',
+                                                           outline: 'none',
+                                                           padding: '1px 2px',
+                                                           margin: 0,
+                                                           resize: 'none',
+                                                           overflow: 'hidden',
+                                                           whiteSpace: 'pre-wrap',
+                                                           wordBreak: 'break-word',
+                                                           cursor: isLocked ? 'default' : 'text'
+                                                         }}
+                                                         onFocus={(e) => {
+                                                           e.target.style.borderBottom = '1px solid var(--primary)';
+                                                           e.target.style.background = 'rgba(255, 255, 255, 0.8)';
+                                                         }}
+                                                         onBlur={(e) => {
+                                                           e.target.style.borderBottom = '1px dotted #cbd5e1';
+                                                           e.target.style.background = 'transparent';
+                                                         }}
+                                                       />
+                                                     </div>
                                                      {!isLocked && (
                                                        <button 
                                                          type="button" 
@@ -4786,7 +4833,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                   style={{ flex: 0.6, padding: '0.2rem 0.3rem', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', backgroundColor: isLast ? '#f1f5f9' : '#ffffff', color: isLast ? '#64748b' : 'inherit', cursor: isLast ? 'not-allowed' : 'text' }}
                                 />
                               </div>
-                              {col.type === 'checkbox' && (
+                              {(col.type === 'checkbox' || col.type === 'radio') && (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', marginTop: '0.2rem', padding: '0.4rem', borderTop: '1px dashed var(--neutral-border)' }}>
                                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                                     {(col.options || []).map((opt, oIdx) => (

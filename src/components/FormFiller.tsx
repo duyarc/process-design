@@ -1526,7 +1526,7 @@ export default function FormFiller({
                                             const currentValues = cellValue ? cellValue.split(',').filter(Boolean) : [];
                                             const isChecked = currentValues.includes(opt.value || opt.label);
                                             return (
-                                              <label key={oIdx} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: 'var(--text-primary)', cursor: 'pointer', margin: 0 }}>
+                                              <label key={oIdx} style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', fontSize: '0.8rem', color: 'var(--text-primary)', cursor: 'pointer', margin: 0, width: '100%' }}>
                                                 <input 
                                                   type="checkbox" 
                                                   checked={isChecked} 
@@ -1540,9 +1540,9 @@ export default function FormFiller({
                                                     }
                                                     setFormValues(prev => ({ ...prev, [cellKey]: nextValues.join(',') }));
                                                   }} 
-                                                  style={{ transform: 'scale(1.0)', cursor: 'pointer' }}
+                                                  style={{ transform: 'scale(1.0)', cursor: 'pointer', marginTop: '2px', flexShrink: 0 }}
                                                 />
-                                                <span>{opt.label}</span>
+                                                <span style={{ lineHeight: '1.35', whiteSpace: 'pre-wrap', wordBreak: 'break-word', flex: 1 }}>{opt.label}</span>
                                               </label>
                                             );
                                           })}
@@ -1560,9 +1560,10 @@ export default function FormFiller({
                                     ) : col.type === 'radio' ? (
                                       hasOptions ? (
                                         <div style={{
-                                          display: 'flex',
-                                          flexDirection: 'column',
-                                          gap: '5px',
+                                          display: col.checkboxLayout === '2-column' ? 'grid' : 'flex',
+                                          gridTemplateColumns: col.checkboxLayout === '2-column' ? getCheckboxGridTemplate(effectiveOpts) : undefined,
+                                          flexDirection: col.checkboxLayout === '2-column' ? undefined : 'column',
+                                          gap: col.checkboxLayout === '2-column' ? '4px 12px' : '5px',
                                           alignItems: 'flex-start',
                                           padding: '4px',
                                           width: '100%'
@@ -1571,15 +1572,15 @@ export default function FormFiller({
                                             const val = opt.value || opt.label;
                                             const isChecked = cellValue === val;
                                             return (
-                                              <label key={oIdx} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: 'var(--text-primary)', cursor: 'pointer', margin: 0 }}>
+                                              <label key={oIdx} style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', fontSize: '0.8rem', color: 'var(--text-primary)', cursor: 'pointer', margin: 0, width: '100%' }}>
                                                 <input 
                                                   type="radio" 
                                                   name={`radio_${cellKey}`}
                                                   checked={isChecked} 
                                                   onChange={() => setFormValues(prev => ({ ...prev, [cellKey]: val }))} 
-                                                  style={{ cursor: 'pointer' }}
+                                                  style={{ cursor: 'pointer', marginTop: '2px', flexShrink: 0 }}
                                                 />
-                                                <span>{opt.label}</span>
+                                                <span style={{ lineHeight: '1.35', whiteSpace: 'pre-wrap', wordBreak: 'break-word', flex: 1 }}>{opt.label}</span>
                                               </label>
                                             );
                                           })}
