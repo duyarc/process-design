@@ -2803,9 +2803,79 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                 <tr style={{ background: '#e2e8f0', borderBottom: '2px solid var(--primary)' }}>
                                   {(block.tableColumns || []).map((col) => {
                                     const colWidth = getColStyleWidth(col.id, col.width, block.tableColumns || []);
+                                    const headerAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'date' || col.type === 'time' ? 'center' : 'left'));
                                     return (
-                                      <th key={col.id} style={{ padding: '6px 8px', borderRight: '1px solid #cbd5e1', color: '#0f172a', textAlign: 'left', width: colWidth, fontWeight: 600, fontSize: '0.75rem' }}>
-                                        {col.label || '(Không có nhãn)'}
+                                      <th
+                                        key={col.id}
+                                        style={{
+                                          padding: '4px 6px',
+                                          borderRight: '1px solid #cbd5e1',
+                                          width: colWidth,
+                                          verticalAlign: 'top',
+                                          boxSizing: 'border-box'
+                                        }}
+                                      >
+                                        <div style={{ display: 'grid', width: '100%', minHeight: '22px', boxSizing: 'border-box' }}>
+                                          <span
+                                            aria-hidden="true"
+                                            style={{
+                                              gridArea: '1 / 1 / 2 / 2',
+                                              visibility: 'hidden',
+                                              whiteSpace: 'pre-wrap',
+                                              wordBreak: 'break-word',
+                                              fontSize: '0.75rem',
+                                              fontWeight: 600,
+                                              lineHeight: 1.35,
+                                              fontFamily: 'inherit',
+                                              textAlign: headerAlign as any,
+                                              padding: '2px 4px',
+                                              minHeight: '18px'
+                                            }}
+                                          >
+                                            {(col.label || '') + ' '}
+                                          </span>
+                                          <textarea
+                                            disabled={isLocked}
+                                            rows={1}
+                                            value={col.label || ''}
+                                            placeholder="Tên cột..."
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setActiveBlockId(block.id);
+                                            }}
+                                            onChange={(e) => handleUpdateTableColumn(block.id, col.id, { label: e.target.value })}
+                                            style={{
+                                              gridArea: '1 / 1 / 2 / 2',
+                                              width: '100%',
+                                              height: '100%',
+                                              fontWeight: 600,
+                                              fontSize: '0.75rem',
+                                              lineHeight: 1.35,
+                                              fontFamily: 'inherit',
+                                              color: '#0f172a',
+                                              textAlign: headerAlign as any,
+                                              border: '1px solid transparent',
+                                              borderRadius: '3px',
+                                              background: 'transparent',
+                                              outline: 'none',
+                                              padding: '2px 4px',
+                                              margin: 0,
+                                              resize: 'none',
+                                              overflow: 'hidden',
+                                              whiteSpace: 'pre-wrap',
+                                              wordBreak: 'break-word',
+                                              cursor: isLocked ? 'default' : 'text'
+                                            }}
+                                            onFocus={(e) => {
+                                              e.target.style.borderColor = 'var(--primary)';
+                                              e.target.style.background = '#ffffff';
+                                            }}
+                                            onBlur={(e) => {
+                                              e.target.style.borderColor = 'transparent';
+                                              e.target.style.background = 'transparent';
+                                            }}
+                                          />
+                                        </div>
                                       </th>
                                     );
                                   })}
