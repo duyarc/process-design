@@ -169,8 +169,8 @@ export function scanDomAcroFields(targetEl: HTMLElement, config: PdfPageConfig):
   const scannedFields: ScannedAcroField[] = fieldElements.map((el, index) => {
     const fieldId = el.getAttribute('data-field-id') || `field_${index}`;
     const fieldType = (el.getAttribute('data-field-type') as ScannedAcroField['fieldType']) || 'text';
-    const radioGroup = el.getAttribute('data-field-radiogroup') || undefined;
-    const radioValue = el.getAttribute('data-field-radiovalue') || undefined;
+    const radioGroup = el.getAttribute('data-field-radiogroup') || el.getAttribute('data-radio-group-id') || undefined;
+    const radioValue = el.getAttribute('data-field-radiovalue') || el.getAttribute('data-option-value') || undefined;
 
     const elRect = el.getBoundingClientRect();
     const relTop = elRect.top - targetRect.top;

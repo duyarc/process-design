@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
+import { Star } from 'lucide-react';
 import type { Submission, FormTemplateISO, LayoutBlockISO, TableColumnConfig } from '../../types';
 import { formatFormVersion, getColStyleWidth } from '../../types';
 import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName } from '../../utils/formUtils';
@@ -417,9 +418,19 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                 <div key={f.id} style={{ ...gridItemStyle, display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.85rem', pageBreakInside: 'avoid' }}>
                                   {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a' }}>{cleanLabel}</span>}
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px', minHeight: '22px' }}>
-                                    <span style={{ fontSize: '15px', color: '#000000', letterSpacing: '2px', lineHeight: 1 }}>
-                                      {'★'.repeat(currentRating) + '☆'.repeat(Math.max(0, scale - currentRating))}
-                                    </span>
+                                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+                                      {Array.from({ length: scale }).map((_, idx) => (
+                                        <Star
+                                          key={idx}
+                                          size={14}
+                                          style={{
+                                            color: '#000000',
+                                            fill: idx < currentRating ? '#000000' : 'none',
+                                            strokeWidth: 1.4
+                                          }}
+                                        />
+                                      ))}
+                                    </div>
                                     {currentRating > 0 && (
                                       <span style={{ fontSize: '0.8rem', fontWeight: 'var(--pw-weight-heavy)', color: '#000000', marginLeft: '4px' }}>
                                         ({currentRating}/{scale})
@@ -777,21 +788,33 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                       const isStaticLabel = (col.type === 'static_text' || col.type === 'text') && staticVal !== undefined && staticVal !== null && staticVal.toString().trim() !== '';
                                       
                                       if (col.type === 'rating') {
-                                       const scale = col.ratingScale === 3 ? 3 : 5;
-                                       const currentRating = parseInt(cellVal, 10) || 0;
-                                       return (
-                                         <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'middle', height: '28px', textAlign: 'center', width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
-                                           <span style={{ fontSize: '13px', color: '#000000', letterSpacing: '1px', lineHeight: 1 }}>
-                                             {'★'.repeat(currentRating) + '☆'.repeat(Math.max(0, scale - currentRating))}
-                                           </span>
-                                           {currentRating > 0 && (
-                                             <span style={{ fontSize: '0.72rem', fontWeight: 'var(--pw-weight-heavy)', marginLeft: '3px' }}>
-                                               ({currentRating}/{scale})
-                                             </span>
-                                           )}
-                                         </td>
-                                       );
-                                     }
+                                        const scale = col.ratingScale === 3 ? 3 : 5;
+                                        const currentRating = parseInt(cellVal, 10) || 0;
+                                        return (
+                                          <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'middle', height: '28px', textAlign: 'center', width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
+                                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+                                                {Array.from({ length: scale }).map((_, idx) => (
+                                                  <Star
+                                                    key={idx}
+                                                    size={13}
+                                                    style={{
+                                                      color: '#000000',
+                                                      fill: idx < currentRating ? '#000000' : 'none',
+                                                      strokeWidth: 1.4
+                                                    }}
+                                                  />
+                                                ))}
+                                              </div>
+                                              {currentRating > 0 && (
+                                                <span style={{ fontSize: '0.72rem', fontWeight: 'var(--pw-weight-heavy)', marginLeft: '3px' }}>
+                                                  ({currentRating}/{scale})
+                                                </span>
+                                              )}
+                                            </div>
+                                          </td>
+                                        );
+                                      }
                                      return (
                                         <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'middle', minHeight: '28px', textAlign: cellAlign as any, width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
                                           {isStaticLabel ? (
@@ -825,14 +848,26 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                       const currentRating = parseInt(cellVal, 10) || 0;
                                       return (
                                         <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'middle', height: '28px', textAlign: 'center', width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
-                                          <span style={{ fontSize: '13px', color: '#000000', letterSpacing: '1px', lineHeight: 1 }}>
-                                            {'★'.repeat(currentRating) + '☆'.repeat(Math.max(0, scale - currentRating))}
-                                          </span>
-                                          {currentRating > 0 && (
-                                            <span style={{ fontSize: '0.72rem', fontWeight: 'var(--pw-weight-heavy)', marginLeft: '3px' }}>
-                                              ({currentRating}/{scale})
-                                            </span>
-                                          )}
+                                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
+                                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+                                              {Array.from({ length: scale }).map((_, idx) => (
+                                                <Star
+                                                  key={idx}
+                                                  size={13}
+                                                  style={{
+                                                    color: '#000000',
+                                                    fill: idx < currentRating ? '#000000' : 'none',
+                                                    strokeWidth: 1.4
+                                                  }}
+                                                />
+                                              ))}
+                                            </div>
+                                            {currentRating > 0 && (
+                                              <span style={{ fontSize: '0.72rem', fontWeight: 'var(--pw-weight-heavy)', marginLeft: '3px' }}>
+                                                ({currentRating}/{scale})
+                                              </span>
+                                            )}
+                                          </div>
                                         </td>
                                       );
                                     }

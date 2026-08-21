@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Star } from 'lucide-react';
 import ReactDOM from 'react-dom';
 import type { Submission, LayoutBlockISO, TableColumnConfig } from '../../types';
 import { formatFormVersion, getColStyleWidth } from '../../types';
@@ -636,9 +637,19 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                         <div key={f.id} style={{ ...gridItemStyle, display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.85rem', pageBreakInside: 'avoid' }}>
                           {f.checkItem && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', fontSize: '0.82rem' }}>{f.checkItem}:</span>}
                           <div style={{ display: 'flex', alignItems: 'center', gap: '4px', minHeight: '22px' }}>
-                            <span style={{ fontSize: '15px', color: '#000000', letterSpacing: '2px', lineHeight: 1 }}>
-                              {'★'.repeat(currentRating) + '☆'.repeat(Math.max(0, scale - currentRating))}
-                            </span>
+                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+                              {Array.from({ length: scale }).map((_, idx) => (
+                                <Star
+                                  key={idx}
+                                  size={14}
+                                  style={{
+                                    color: '#000000',
+                                    fill: idx < currentRating ? '#000000' : 'none',
+                                    strokeWidth: 1.4
+                                  }}
+                                />
+                              ))}
+                            </div>
                             {currentRating > 0 && (
                               <span style={{ fontSize: '0.8rem', fontWeight: 'var(--pw-weight-heavy)', color: '#000000', marginLeft: '4px' }}>
                                 ({currentRating}/{scale})
@@ -1183,9 +1194,19 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                                   const currentRating = parseInt(cellValue, 10) || 0;
                                   return (
                                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
-                                      <span style={{ fontSize: '13px', color: '#000000', letterSpacing: '1px', lineHeight: 1 }}>
-                                        {'★'.repeat(currentRating) + '☆'.repeat(Math.max(0, scale - currentRating))}
-                                      </span>
+                                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+                                        {Array.from({ length: scale }).map((_, idx) => (
+                                          <Star
+                                            key={idx}
+                                            size={13}
+                                            style={{
+                                              color: '#000000',
+                                              fill: idx < currentRating ? '#000000' : 'none',
+                                              strokeWidth: 1.4
+                                            }}
+                                          />
+                                        ))}
+                                      </div>
                                       {currentRating > 0 && (
                                         <span style={{ fontSize: '0.72rem', fontWeight: 'var(--pw-weight-heavy)', marginLeft: '3px' }}>
                                           ({currentRating}/{scale})

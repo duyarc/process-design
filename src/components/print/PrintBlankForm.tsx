@@ -5,7 +5,7 @@ import { formatFormVersion, getColStyleWidth } from '../../types';
 import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, getAutoCheckboxLayoutMode } from '../../utils/formUtils';
 
 import { exportFillablePdfFromDOM } from '../../utils/pdfFormExporter';
-import { FileText, Printer } from 'lucide-react';
+import { FileText, Printer, Star } from 'lucide-react';
 
 // Helper: derive CHECKLIST_TABLE columns — falls back to columnLabels for backward compat
 function getChecklistColumns(block: LayoutBlockISO): TableColumnConfig[] {
@@ -506,19 +506,21 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                   {Array.from({ length: scale }).map((_, idx) => (
                                     <span
                                       key={idx}
-                                      className="acro-option-icon"
                                       data-acroform-field="true"
                                       data-field-id={`${f.id}_star_${idx + 1}`}
                                       data-field-type="rating"
+                                      data-field-radiogroup={f.id}
+                                      data-field-radiovalue={String(idx + 1)}
                                       data-field-name={`${cleanLabel || 'Rating'} (${idx + 1}/${scale} sao)`}
                                       style={{
-                                        fontSize: '16px',
-                                        color: '#000000',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
                                         lineHeight: 1,
                                         userSelect: 'none'
                                       }}
                                     >
-                                      ☆
+                                      <Star size={15} style={{ color: '#000000', fill: 'none', strokeWidth: 1.4 }} />
                                     </span>
                                   ))}
                                   <span style={{ fontSize: '0.72rem', color: '#64748b', marginLeft: '4px' }}>
@@ -1181,23 +1183,25 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                 const scale = col.ratingScale === 3 ? 3 : 5;
                                 return (
                                   <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'middle', height: `${28 * lc}px`, textAlign: 'center', width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
                                       {Array.from({ length: scale }).map((_, idx) => (
                                         <span
                                           key={idx}
-                                          className="acro-option-icon"
                                           data-acroform-field="true"
                                           data-field-id={`${cellFieldId}_star_${idx + 1}`}
                                           data-field-type="rating"
+                                          data-field-radiogroup={cellFieldId}
+                                          data-field-radiovalue={String(idx + 1)}
                                           data-field-name={`${displayTitle} - ${col.label || 'Rating'} (${idx + 1}/${scale} sao)`}
                                           style={{
-                                            fontSize: '15px',
-                                            color: '#000000',
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
                                             lineHeight: 1,
                                             userSelect: 'none'
                                           }}
                                         >
-                                          ☆
+                                          <Star size={14} style={{ color: '#000000', fill: 'none', strokeWidth: 1.4 }} />
                                         </span>
                                       ))}
                                     </div>

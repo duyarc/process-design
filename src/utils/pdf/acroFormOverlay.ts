@@ -82,7 +82,7 @@ export async function overlayAcroFormFields(
   const { pdfPageWidth, pdfPageHeight, marginX, marginY, scaleFactor } = config;
 
   scannedFields.forEach((item) => {
-    const { fieldId, fieldType, relTop, relLeft, elWidth, elHeight, targetHeight, index } = item;
+    const { fieldId, fieldType, radioGroup, radioValue, relTop, relLeft, elWidth, elHeight, targetHeight, index } = item;
 
     // Determine which page this field belongs to using smart DOM pageBreaks
     const breaks = (pageBreaks && pageBreaks.length >= 2) ? pageBreaks : [0, targetHeight];
@@ -110,27 +110,41 @@ export async function overlayAcroFormFields(
       // Best practice (PDF spec): leave the area as a visual-only placeholder; user prints & signs.
       if (fieldType === 'signature') return;
 
-      if (fieldType === 'checkbox' || fieldType === 'radio') {
-        // X: place checkbox exactly at the visual icon's DOM position.
-        // With the correct 697.7px DOM layout, relLeft * scaleFactor maps directly to PDF pt.
-        // No manual X correction needed anymore (the old -14pt was compensating for wrong layout).
+      if (fieldType === 'checkbox' || fieldType === 'radio' || fieldType === 'rating') {
+        // X: place checkbox/radio option exactly at the visual icon's DOM position.
         const optionX = marginX + relLeft * scaleFactor;
-        const cbName = `${fieldId}_opt_${index}`;
-        const checkBox = form.createCheckBox(cbName);
-        const cbSize = Math.min(cellWidthPt, 13);
-        // Y: align checkbox top edge with the anchor element's top edge.
-        // cbY is the BOTTOM-LEFT corner in pdf-lib's coordinate system (Y=0 at page bottom).
+        const cbSize = Math.min(cellWidthPt, 14);
+        // Y: align checkbox/radio top edge with the anchor element's top edge.
         const cbY = pdfPageHeight - marginY - (localTop * scaleFactor + cbSize);
         const clampedCbY = Math.max(marginY, Math.min(pdfPageHeight - marginY - cbSize, cbY));
 
-        checkBox.addToPage(page, {
-          x: optionX,
-          y: clampedCbY,
-          width: cbSize,
-          height: cbSize,
-          borderWidth: 1,
-          borderColor: rgb(0, 0, 0),
-        });
+        if (fieldType === 'rating' && radioGroup && radioValue) {
+          let radioField: any;
+          try {
+            radioField = form.getRadioGroup(radioGroup);
+          } catch {
+            radioField = form.createRadioGroup(radioGroup);
+          }
+          radioField.addOptionToPage(radioValue, page, {
+            x: optionX,
+            y: clampedCbY,
+            width: cbSize,
+            height: cbSize,
+            borderWidth: 1,
+            borderColor: rgb(0, 0, 0),
+          });
+        } else {
+          const cbName = `${fieldId}_opt_${index}`;
+          const checkBox = form.createCheckBox(cbName);
+          checkBox.addToPage(page, {
+            x: optionX,
+            y: clampedCbY,
+            width: cbSize,
+            height: cbSize,
+            borderWidth: 1,
+            borderColor: rgb(0, 0, 0),
+          });
+        }
       } else {
         // Text / Number / Date Parts / Time Parts / Signature Name fields
         const isDateOrTimePart = fieldType === 'date_part' || fieldType === 'time_part' ||
