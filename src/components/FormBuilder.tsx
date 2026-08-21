@@ -29,6 +29,7 @@ import {
   EyeOff,
   CheckSquare,
   Printer,
+  Star,
   Table as TableIcon
 } from 'lucide-react';
 import PrintBlankForm from './print/PrintBlankForm';
@@ -884,7 +885,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     }));
   };
 
-  const handleChangeFieldType = (blockId: string, fieldId: string, newType: 'label' | 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo' | 'subtable') => {
+  const handleChangeFieldType = (blockId: string, fieldId: string, newType: 'label' | 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo' | 'subtable' | 'rating') => {
     if (isLocked) return;
     
     // Find current field to inspect its options
@@ -899,6 +900,11 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
       updates.unit = '';
     } else if (newType === 'time') {
       updates.timeMode = 'single';
+      updates.minSpec = undefined;
+      updates.maxSpec = undefined;
+      updates.unit = undefined;
+    } else if (newType === 'rating') {
+      updates.ratingScale = field?.ratingScale || 5;
       updates.minSpec = undefined;
       updates.maxSpec = undefined;
       updates.unit = undefined;
@@ -2348,6 +2354,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                           <option value="time">time</option>
                                           <option value="checkbox">checkbox</option>
                                           <option value="radio">radio</option>
+                                          <option value="rating">rating</option>
                                           <option value="photo">photo</option>
                                           <option value="signature">signature</option>
                                           <option value="subtable">subtable</option>
@@ -2380,6 +2387,28 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                         />
                                       </div>
                                     )}
+
+                                    {f.type === 'rating' && (() => {
+                                      const scale = f.ratingScale === 3 ? 3 : 5;
+                                      return (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '6px', paddingTop: '2px' }}>
+                                          {Array.from({ length: scale }).map((_, idx) => (
+                                            <Star
+                                              key={idx}
+                                              size={18}
+                                              style={{
+                                                color: '#f59e0b',
+                                                fill: '#fef3c7',
+                                                strokeWidth: 1.5
+                                              }}
+                                            />
+                                          ))}
+                                          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginLeft: '4px', fontWeight: 500 }}>
+                                            ({scale} sao)
+                                          </span>
+                                        </div>
+                                      );
+                                    })()}
 
                                     {(f.type === 'radio' || f.type === 'checkbox') && (() => {
                                       const options = f.options ?? [{ label: 'Đạt', value: 'PASS' }, { label: 'Không Đạt', value: 'FAIL' }];
@@ -3253,8 +3282,14 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                       />
                                                     </div>
                                                   ) : (
-                                                    <div style={{ height: `${28 * lc}px`, padding: '4px', display: 'flex', alignItems: 'center', boxSizing: 'border-box', overflow: 'hidden' }}>
-                                                      {col.type === 'date' ? (
+                                                    <div style={{ height: `${28 * lc}px`, padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxSizing: 'border-box', overflow: 'hidden' }}>
+                                                      {col.type === 'rating' ? (
+                                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px', width: '100%' }}>
+                                                          {Array.from({ length: col.ratingScale === 3 ? 3 : 5 }).map((_, sIdx) => (
+                                                            <Star key={sIdx} size={14} style={{ color: '#f59e0b', fill: '#fef3c7', strokeWidth: 1.5 }} />
+                                                          ))}
+                                                        </div>
+                                                      ) : col.type === 'date' ? (
                                                         <span style={{ color: '#cbd5e1', fontSize: '0.7rem', display: 'block', textAlign: 'center', width: '100%' }}>[Ngày]</span>
                                                       ) : col.type === 'time' ? (
                                                         <span style={{ color: '#cbd5e1', fontSize: '0.7rem', display: 'block', textAlign: 'center', width: '100%' }}>[Giờ]</span>
@@ -3763,9 +3798,64 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                     <option value="radio">Radio</option>
                     <option value="signature">Sign-off</option>
                     <option value="photo">Photo</option>
+                    <option value="rating">Đánh giá sao (Rating)</option>
                     <option value="subtable">Subtable</option>
                   </select>
                 </div>
+
+                {activeField.type === 'rating' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', padding: '0.6rem', border: '1px solid #cbd5e1', borderRadius: '6px', background: '#f8fafc' }}>
+                    <label style={{ fontWeight: 600, fontSize: '0.78rem', color: '#0f172a' }}>Thang điểm Đánh giá (Rating Scale)</label>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button
+                        type="button"
+                        disabled={isLocked}
+                        onClick={() => handleUpdateField(activeBlockId!, activeFieldId!, { ratingScale: 5 })}
+                        style={{
+                          flex: 1,
+                          padding: '0.4rem',
+                          borderRadius: '4px',
+                          border: '1px solid var(--neutral-border)',
+                          background: (activeField.ratingScale || 5) === 5 ? 'var(--primary)' : '#ffffff',
+                          color: (activeField.ratingScale || 5) === 5 ? '#ffffff' : 'var(--text-primary)',
+                          cursor: isLocked ? 'default' : 'pointer',
+                          fontWeight: 600,
+                          fontSize: '0.75rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '4px'
+                        }}
+                      >
+                        <Star size={13} style={{ fill: (activeField.ratingScale || 5) === 5 ? '#ffffff' : '#f59e0b', color: (activeField.ratingScale || 5) === 5 ? '#ffffff' : '#f59e0b' }} />
+                        Scale 5 (5 Sao)
+                      </button>
+                      <button
+                        type="button"
+                        disabled={isLocked}
+                        onClick={() => handleUpdateField(activeBlockId!, activeFieldId!, { ratingScale: 3 })}
+                        style={{
+                          flex: 1,
+                          padding: '0.4rem',
+                          borderRadius: '4px',
+                          border: '1px solid var(--neutral-border)',
+                          background: activeField.ratingScale === 3 ? 'var(--primary)' : '#ffffff',
+                          color: activeField.ratingScale === 3 ? '#ffffff' : 'var(--text-primary)',
+                          cursor: isLocked ? 'default' : 'pointer',
+                          fontWeight: 600,
+                          fontSize: '0.75rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '4px'
+                        }}
+                      >
+                        <Star size={13} style={{ fill: activeField.ratingScale === 3 ? '#ffffff' : '#f59e0b', color: activeField.ratingScale === 3 ? '#ffffff' : '#f59e0b' }} />
+                        Scale 3 (3 Sao)
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {activeField.type === 'photo' && activeBlock?.type === 'INFO_GRID' && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', padding: '0.6rem', border: '1px solid #cbd5e1', borderRadius: '6px', background: '#f8fafc' }}>
@@ -4742,6 +4832,10 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                     if ((nextType === 'radio' || nextType === 'checkbox') && (!col.options || col.options.length === 0)) {
                                       updates.options = [{ label: 'Đạt', value: 'PASS', isPass: true }, { label: 'Không Đạt', value: 'FAIL', isPass: false }];
                                     }
+                                    if (nextType === 'rating') {
+                                      updates.ratingScale = col.ratingScale || 5;
+                                      updates.align = 'center';
+                                    }
                                     handleUpdateTableColumn(activeBlock.id, col.id, updates);
                                   }}
                                   style={{ flex: 1.0, padding: '0.2rem 0.3rem', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
@@ -4750,12 +4844,13 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                   <option value="number">Số</option>
                                   <option value="checkbox">Checkbox</option>
                                   <option value="radio">Radio</option>
+                                  <option value="rating">Đánh giá sao</option>
                                   <option value="date">Ngày</option>
                                   <option value="time">Giờ</option>
                                 </select>
                                 
                                 {(() => {
-                                  const currentAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? 'center' : 'left'));
+                                  const currentAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' || col.type === 'rating' ? 'center' : 'left'));
                                   return (
                                     <div style={{ display: 'flex', border: '1px solid var(--neutral-border)', borderRadius: '4px', overflow: 'hidden', flex: 0.6 }}>
                                       <button
@@ -4833,6 +4928,59 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                   style={{ flex: 0.6, padding: '0.2rem 0.3rem', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', backgroundColor: isLast ? '#f1f5f9' : '#ffffff', color: isLast ? '#64748b' : 'inherit', cursor: isLast ? 'not-allowed' : 'text' }}
                                 />
                               </div>
+                              {col.type === 'rating' && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', marginTop: '0.2rem', padding: '0.4rem', borderTop: '1px dashed var(--neutral-border)' }}>
+                                  <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Thang điểm (Rating Scale)</label>
+                                  <div style={{ display: 'flex', gap: '0.4rem' }}>
+                                    <button
+                                      type="button"
+                                      disabled={isLocked}
+                                      onClick={() => handleUpdateTableColumn(activeBlock.id, col.id, { ratingScale: 5 })}
+                                      style={{
+                                        flex: 1,
+                                        padding: '0.25rem',
+                                        borderRadius: '4px',
+                                        border: '1px solid var(--neutral-border)',
+                                        background: (col.ratingScale || 5) === 5 ? 'var(--primary)' : '#ffffff',
+                                        color: (col.ratingScale || 5) === 5 ? '#ffffff' : 'var(--text-primary)',
+                                        cursor: isLocked ? 'default' : 'pointer',
+                                        fontWeight: 600,
+                                        fontSize: '0.7rem',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '3px'
+                                      }}
+                                    >
+                                      <Star size={11} style={{ fill: (col.ratingScale || 5) === 5 ? '#ffffff' : '#f59e0b', color: (col.ratingScale || 5) === 5 ? '#ffffff' : '#f59e0b' }} />
+                                      Scale 5 (5 Sao)
+                                    </button>
+                                    <button
+                                      type="button"
+                                      disabled={isLocked}
+                                      onClick={() => handleUpdateTableColumn(activeBlock.id, col.id, { ratingScale: 3 })}
+                                      style={{
+                                        flex: 1,
+                                        padding: '0.25rem',
+                                        borderRadius: '4px',
+                                        border: '1px solid var(--neutral-border)',
+                                        background: col.ratingScale === 3 ? 'var(--primary)' : '#ffffff',
+                                        color: col.ratingScale === 3 ? '#ffffff' : 'var(--text-primary)',
+                                        cursor: isLocked ? 'default' : 'pointer',
+                                        fontWeight: 600,
+                                        fontSize: '0.7rem',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '3px'
+                                      }}
+                                    >
+                                      <Star size={11} style={{ fill: col.ratingScale === 3 ? '#ffffff' : '#f59e0b', color: col.ratingScale === 3 ? '#ffffff' : '#f59e0b' }} />
+                                      Scale 3 (3 Sao)
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
                               {(col.type === 'checkbox' || col.type === 'radio') && (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', marginTop: '0.2rem', padding: '0.4rem', borderTop: '1px dashed var(--neutral-border)' }}>
                                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>

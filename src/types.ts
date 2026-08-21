@@ -89,14 +89,15 @@ export interface Process {
 export interface SubtableColumn {
   id: string;
   label: string;
-  type: 'static_text' | 'text' | 'number' | 'date' | 'time';
+  type: 'static_text' | 'text' | 'number' | 'date' | 'time' | 'rating';
   width?: string;
   align?: 'left' | 'center' | 'right';
+  ratingScale?: 3 | 5;
 }
 
 export interface FormFieldISO {
   id: string;
-  type: 'label' | 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo' | 'subtable';
+  type: 'label' | 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo' | 'subtable' | 'rating';
   checkItem: string;
   placeholder?: string; // For input/photo placeholder or instruction text
   locationCode: string;
@@ -108,6 +109,7 @@ export interface FormFieldISO {
   frequency?: string;
   reactionProtocol: string;
   timeMode?: 'single' | 'dual';
+  ratingScale?: 3 | 5; // Rating scale: 3 or 5 stars (default: 5)
   subtableColumns?: SubtableColumn[];
   subtableDefaultRows?: number;
   subtableStaticData?: Record<number, Record<string, string>>;
@@ -149,11 +151,12 @@ export interface TableColumnConfig {
   id: string;
   label: string;
   width: string; // e.g. "20%" or "150px"
-  type: 'static_text' | 'text' | 'number' | 'checkbox' | 'radio' | 'date' | 'time';
+  type: 'static_text' | 'text' | 'number' | 'checkbox' | 'radio' | 'date' | 'time' | 'rating';
   options?: RadioOption[];
   align?: 'left' | 'center' | 'right';
   checkboxLayout?: '1-column' | '2-column';
   timeMode?: 'single' | 'dual';
+  ratingScale?: 3 | 5; // Rating scale: 3 or 5 stars (default: 5)
   summaryRows?: ColumnSummaryRowConfig[];
   locked?: boolean; // If true: cannot delete or change type (used for structural cols in CHECKLIST_TABLE)
   hidden?: boolean; // If true: do not render in canvas/print layout

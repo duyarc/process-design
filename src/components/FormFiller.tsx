@@ -14,6 +14,7 @@ import {
   PenTool,
   Trash2,
   Printer,
+  Star,
   FileText
 } from 'lucide-react';
 
@@ -1367,7 +1368,55 @@ export default function FormFiller({
                                   );
                                 })}
                               </div>
-                            ) : field.type === 'radio' ? (
+                            ) : field.type === 'rating' ? (() => {
+                          const scale = field.ratingScale === 3 ? 3 : 5;
+                          const currentRating = parseInt(value, 10) || 0;
+                          return (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 0', minHeight: '36px' }}>
+                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                {Array.from({ length: scale }).map((_, idx) => {
+                                  const starVal = idx + 1;
+                                  const isFilled = starVal <= currentRating;
+                                  return (
+                                    <button
+                                      key={idx}
+                                      type="button"
+                                      onClick={() => {
+                                        const nextVal = currentRating === starVal ? '' : String(starVal);
+                                        setFormValues(prev => ({ ...prev, [field.id]: nextVal }));
+                                      }}
+                                      style={{
+                                        background: 'none',
+                                        border: 'none',
+                                        padding: '2px',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        transition: 'transform 0.1s ease'
+                                      }}
+                                      title={`${starVal}/${scale} sao`}
+                                    >
+                                      <Star
+                                        size={22}
+                                        style={{
+                                          color: isFilled ? '#f59e0b' : '#cbd5e1',
+                                          fill: isFilled ? '#f59e0b' : '#ffffff',
+                                          strokeWidth: 1.5
+                                        }}
+                                      />
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                              {currentRating > 0 && (
+                                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#d97706', marginLeft: '4px' }}>
+                                  {currentRating}/{scale}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })() : field.type === 'radio' ? (
                               <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', maxWidth: '100%' }}>
                                 {(field.options ?? [{ label: 'Đạt', value: 'PASS', isPass: true }, { label: 'Không Đạt', value: 'FAIL', isPass: false }]).map((opt: any) => (
                                   <label key={opt.value} style={{ display: 'inline-flex', alignItems: 'flex-start', gap: '0.35rem', fontSize: '0.82rem', cursor: 'pointer', wordBreak: 'break-word', maxWidth: '100%' }}>
@@ -1595,7 +1644,47 @@ export default function FormFiller({
                                           />
                                         </div>
                                       )
-                                    ) : col.type === 'date' ? (
+                                    ) : col.type === 'rating' ? (() => {
+                                      const scale = col.ratingScale === 3 ? 3 : 5;
+                                      const currentRating = parseInt(cellValue, 10) || 0;
+                                      return (
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px', padding: '2px 0' }}>
+                                          {Array.from({ length: scale }).map((_, idx) => {
+                                            const starVal = idx + 1;
+                                            const isFilled = starVal <= currentRating;
+                                            return (
+                                              <button
+                                                key={idx}
+                                                type="button"
+                                                onClick={() => {
+                                                  const nextVal = currentRating === starVal ? '' : String(starVal);
+                                                  setFormValues(prev => ({ ...prev, [cellKey]: nextVal }));
+                                                }}
+                                                style={{
+                                                  background: 'none',
+                                                  border: 'none',
+                                                  padding: '1px',
+                                                  cursor: 'pointer',
+                                                  display: 'flex',
+                                                  alignItems: 'center',
+                                                  justifyContent: 'center'
+                                                }}
+                                                title={`${starVal}/${scale} sao`}
+                                              >
+                                                <Star
+                                                  size={18}
+                                                  style={{
+                                                    color: isFilled ? '#f59e0b' : '#cbd5e1',
+                                                    fill: isFilled ? '#f59e0b' : '#ffffff',
+                                                    strokeWidth: 1.5
+                                                  }}
+                                                />
+                                              </button>
+                                            );
+                                          })}
+                                        </div>
+                                      );
+                                    })() : col.type === 'date' ? (
                                       <input 
                                         type="date" 
                                         value={cellValue} 

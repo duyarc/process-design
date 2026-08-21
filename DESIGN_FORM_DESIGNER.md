@@ -9,7 +9,7 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | `2b5ea79` (2026-08-21) — Section 4 (Radio column options in Inspector and Auto-Grow text wrapping for table cell options). |
+| **Verified At Commit** | `CURRENT` (2026-08-21) — Section 3 & 4 (Rating Scale field type: types.ts, FormBuilder, FormFiller, ProcessReader, PrintBlankForm, PrintFilledForm, PrintRecord). |
 
 > **⚠️ Architectural note:** FormBuilder has no awareness of which process it belongs to. The `formName` prop is always identical to `formId`. See Section 6.1 and the Technical Debt table.
 
@@ -550,6 +550,6 @@ full diff of any entry below.
 | 2026-08-20 | `599e260` | **Static Non-Input 'label' Field Type (INFO_GRID):** (1) Added `'label'` field type to `FormFieldISO`. (2) In `FormBuilder.tsx`, available via Canvas and Inspector dropdowns. (3) In `FormFiller.tsx` and `ProcessReader.tsx`, renders as pure static text with no input control. (4) In `PrintBlankForm.tsx`, `PrintFilledForm.tsx`, and `PrintRecord.tsx`, prints clean label text without dotted underlines or AcroForm widgets. |
 | 2026-08-20 | `b431f46` | **WYSIWYG Auto-Grow Multi-Line Wrapping for INFO_GRID Labels:** (1) Replaced single-line `<input>` for `f.checkItem` in `INFO_GRID` canvas cards with CSS Grid Auto-Grow Textarea mirror. (2) Labels wrap dynamically at column borders and support `Enter` linebreaks without horizontal clipping, naturally expanding card height. (3) Pinned move buttons and type selector to top-right with `alignItems: flex-start`. |
 | 2026-08-21 | `509fb8a` | **WYSIWYG Inline Editable Column Titles (TABLE Block):** (1) Replaced static text in `<th>` of `TABLE` canvas header with CSS Grid Auto-Grow Textarea mirror. (2) Users can click and type column titles directly on the canvas. (3) Multi-line wrapping and manual `Enter` linebreaks automatically expand header row height. (4) Bidirectionally synchronized with `handleUpdateTableColumn` and Right Inspector Panel. |
-| 2026-08-21 | `2b5ea79` | **Radio Options Inspector & Auto-Grow Table Option Text-Wrapping:** (1) Enabled options list configuration for `radio` columns in `TABLE` Inspector panel (`col.type === 'radio'`). (2) Applied CSS Grid Auto-Grow Textarea mirror to table cell options on Canvas, allowing long labels to wrap reactively and expand cell height without horizontal truncation. (3) Propagated `pre-wrap` text wrapping across `FormFiller.tsx`, `PrintBlankForm.tsx`, `PrintFilledForm.tsx`, and `PrintRecord.tsx`. |
+| 2026-08-21 | `CURRENT` | **Rating Scale Field Type (INFO_GRID & TABLE):** (1) Added `'rating'` type and `ratingScale?: 3 | 5` to `FormFieldISO`, `TableColumnConfig`, and `SubtableColumn` in `src/types.ts`. (2) In `FormBuilder.tsx`, added rating selector on Canvas and Scale 5/3 toggle in Inspector. (3) In `FormFiller.tsx` & `ProcessReader.tsx`, implemented interactive star scoring (click to rate, re-click to clear, numerical score badge). (4) In `PrintBlankForm.tsx`, rendered hollow stars `☆☆☆☆☆` with AcroForm attributes. (5) In `PrintFilledForm.tsx` & `PrintRecord.tsx`, printed filled stars `★★★☆☆` and score `X/Y`. |
 
 

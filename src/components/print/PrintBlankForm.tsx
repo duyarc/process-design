@@ -497,6 +497,38 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                             );
                           }
 
+                          if (f.type === 'rating') {
+                            const scale = f.ratingScale === 3 ? 3 : 5;
+                            return (
+                              <div key={f.id} style={{ ...gridItemStyle, display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.85rem', pageBreakInside: 'avoid' }}>
+                                {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a' }}>{cleanLabel}</span>}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minHeight: '22px' }}>
+                                  {Array.from({ length: scale }).map((_, idx) => (
+                                    <span
+                                      key={idx}
+                                      className="acro-option-icon"
+                                      data-acroform-field="true"
+                                      data-field-id={`${f.id}_star_${idx + 1}`}
+                                      data-field-type="rating"
+                                      data-field-name={`${cleanLabel || 'Rating'} (${idx + 1}/${scale} sao)`}
+                                      style={{
+                                        fontSize: '16px',
+                                        color: '#000000',
+                                        lineHeight: 1,
+                                        userSelect: 'none'
+                                      }}
+                                    >
+                                      ☆
+                                    </span>
+                                  ))}
+                                  <span style={{ fontSize: '0.72rem', color: '#64748b', marginLeft: '4px' }}>
+                                    (Thang {scale} sao)
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          }
+
                           if (f.type === 'photo') {
                             return (
                               <div key={f.id} style={{ ...gridItemStyle, display: 'flex', flexDirection: 'column', width: '100%', pageBreakInside: 'avoid' }}>
@@ -1141,6 +1173,34 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                         />
                                       </div>
                                     )}
+                                  </td>
+                                );
+                              }
+
+                              if (col.type === 'rating') {
+                                const scale = col.ratingScale === 3 ? 3 : 5;
+                                return (
+                                  <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'middle', height: `${28 * lc}px`, textAlign: 'center', width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
+                                      {Array.from({ length: scale }).map((_, idx) => (
+                                        <span
+                                          key={idx}
+                                          className="acro-option-icon"
+                                          data-acroform-field="true"
+                                          data-field-id={`${cellFieldId}_star_${idx + 1}`}
+                                          data-field-type="rating"
+                                          data-field-name={`${displayTitle} - ${col.label || 'Rating'} (${idx + 1}/${scale} sao)`}
+                                          style={{
+                                            fontSize: '15px',
+                                            color: '#000000',
+                                            lineHeight: 1,
+                                            userSelect: 'none'
+                                          }}
+                                        >
+                                          ☆
+                                        </span>
+                                      ))}
+                                    </div>
                                   </td>
                                 );
                               }

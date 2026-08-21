@@ -629,6 +629,26 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                       );
                     }
 
+                    if (matchedField?.type === 'rating') {
+                      const scale = matchedField.ratingScale === 3 ? 3 : 5;
+                      const currentRating = parseInt(f.value || '', 10) || 0;
+                      return (
+                        <div key={f.id} style={{ ...gridItemStyle, display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.85rem', pageBreakInside: 'avoid' }}>
+                          {f.checkItem && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', fontSize: '0.82rem' }}>{f.checkItem}:</span>}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', minHeight: '22px' }}>
+                            <span style={{ fontSize: '15px', color: '#000000', letterSpacing: '2px', lineHeight: 1 }}>
+                              {'★'.repeat(currentRating) + '☆'.repeat(Math.max(0, scale - currentRating))}
+                            </span>
+                            {currentRating > 0 && (
+                              <span style={{ fontSize: '0.8rem', fontWeight: 'var(--pw-weight-heavy)', color: '#000000', marginLeft: '4px' }}>
+                                ({currentRating}/{scale})
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    }
+
                     return (
                       <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'baseline', gap: '8px', fontSize: '0.85rem' }}>
                         <span style={{ fontWeight: 'var(--pw-weight-regular)', whiteSpace: 'nowrap' }}>{f.checkItem ? `${f.checkItem}:` : ''}</span>
@@ -1158,7 +1178,22 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                                       <input type="radio" checked={cellValue === 'true'} readOnly style={{ transform: 'scale(1.1)' }} />
                                     </div>
                                   )
-                                ) : (
+                                ) : col.type === 'rating' ? (() => {
+                                  const scale = col.ratingScale === 3 ? 3 : 5;
+                                  const currentRating = parseInt(cellValue, 10) || 0;
+                                  return (
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
+                                      <span style={{ fontSize: '13px', color: '#000000', letterSpacing: '1px', lineHeight: 1 }}>
+                                        {'★'.repeat(currentRating) + '☆'.repeat(Math.max(0, scale - currentRating))}
+                                      </span>
+                                      {currentRating > 0 && (
+                                        <span style={{ fontSize: '0.72rem', fontWeight: 'var(--pw-weight-heavy)', marginLeft: '3px' }}>
+                                          ({currentRating}/{scale})
+                                        </span>
+                                      )}
+                                    </div>
+                                  );
+                                })() : (
                                   <span style={{ display: 'block', textAlign: cellAlign }}>{cellValue}</span>
                                 )}
                               </td>

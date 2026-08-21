@@ -410,6 +410,26 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                               );
                             }
 
+                            if (f.type === 'rating') {
+                              const scale = f.ratingScale === 3 ? 3 : 5;
+                              const currentRating = parseInt(val, 10) || 0;
+                              return (
+                                <div key={f.id} style={{ ...gridItemStyle, display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.85rem', pageBreakInside: 'avoid' }}>
+                                  {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a' }}>{cleanLabel}</span>}
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', minHeight: '22px' }}>
+                                    <span style={{ fontSize: '15px', color: '#000000', letterSpacing: '2px', lineHeight: 1 }}>
+                                      {'★'.repeat(currentRating) + '☆'.repeat(Math.max(0, scale - currentRating))}
+                                    </span>
+                                    {currentRating > 0 && (
+                                      <span style={{ fontSize: '0.8rem', fontWeight: 'var(--pw-weight-heavy)', color: '#000000', marginLeft: '4px' }}>
+                                        ({currentRating}/{scale})
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            }
+
                             if (f.type === 'photo') {
                               const singleUrl = imageUrls[0];
                               return (
@@ -755,7 +775,24 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                       const cellVal = getVal(snapKey);
                                       const staticVal = block.tableData?.[row.id]?.[col.id];
                                       const isStaticLabel = (col.type === 'static_text' || col.type === 'text') && staticVal !== undefined && staticVal !== null && staticVal.toString().trim() !== '';
-                                      return (
+                                      
+                                      if (col.type === 'rating') {
+                                       const scale = col.ratingScale === 3 ? 3 : 5;
+                                       const currentRating = parseInt(cellVal, 10) || 0;
+                                       return (
+                                         <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'middle', height: '28px', textAlign: 'center', width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
+                                           <span style={{ fontSize: '13px', color: '#000000', letterSpacing: '1px', lineHeight: 1 }}>
+                                             {'★'.repeat(currentRating) + '☆'.repeat(Math.max(0, scale - currentRating))}
+                                           </span>
+                                           {currentRating > 0 && (
+                                             <span style={{ fontSize: '0.72rem', fontWeight: 'var(--pw-weight-heavy)', marginLeft: '3px' }}>
+                                               ({currentRating}/{scale})
+                                             </span>
+                                           )}
+                                         </td>
+                                       );
+                                     }
+                                     return (
                                         <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'middle', minHeight: '28px', textAlign: cellAlign as any, width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
                                           {isStaticLabel ? (
                                             <span style={{ fontWeight: 'var(--pw-weight-regular)', display: 'block', textAlign: cellAlign as any, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{staticVal}</span>
@@ -782,6 +819,22 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                       return <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'middle', height: '28px', textAlign: cellAlign as any, width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
                                         <span style={{ fontWeight: 'var(--pw-weight-regular)', display: 'block' }}>{templateRow ? (block.tableData?.[rowId]?.[col.id] || '') : cellVal}</span>
                                       </td>;
+                                    }
+                                    if (col.type === 'rating') {
+                                      const scale = col.ratingScale === 3 ? 3 : 5;
+                                      const currentRating = parseInt(cellVal, 10) || 0;
+                                      return (
+                                        <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'middle', height: '28px', textAlign: 'center', width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
+                                          <span style={{ fontSize: '13px', color: '#000000', letterSpacing: '1px', lineHeight: 1 }}>
+                                            {'★'.repeat(currentRating) + '☆'.repeat(Math.max(0, scale - currentRating))}
+                                          </span>
+                                          {currentRating > 0 && (
+                                            <span style={{ fontSize: '0.72rem', fontWeight: 'var(--pw-weight-heavy)', marginLeft: '3px' }}>
+                                              ({currentRating}/{scale})
+                                            </span>
+                                          )}
+                                        </td>
+                                      );
                                     }
                                     return (
                                       <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'middle', minHeight: '28px', textAlign: cellAlign as any, width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
