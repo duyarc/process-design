@@ -2,7 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import type { FormTemplateISO, LayoutBlockISO, TableColumnConfig } from '../../types';
 import { formatFormVersion, getColStyleWidth } from '../../types';
-import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, getAutoCheckboxLayoutMode, hasLongOptions } from '../../utils/formUtils';
+import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, getCheckboxGridTemplate } from '../../utils/formUtils';
 import { renderFormattedText } from '../../utils/textFormatter';
 
 import { exportFillablePdfFromDOM } from '../../utils/pdfFormExporter';
@@ -47,25 +47,6 @@ interface PrintBlankFormProps {
   autoExportPdf?: boolean;
 }
 
-const getCheckboxGridTemplate = (options: any[]) => {
-  if (!options || options.length === 0) return '1fr 1fr';
-  let maxLen1 = 0;
-  let maxLen2 = 0;
-  options.forEach((opt, idx) => {
-    const len = opt && opt.label ? opt.label.length : 0;
-    if (idx % 2 === 0) {
-      if (len > maxLen1) maxLen1 = len;
-    } else {
-      if (len > maxLen2) maxLen2 = len;
-    }
-  });
-  if (maxLen1 === 0) maxLen1 = 10;
-  if (maxLen2 === 0) maxLen2 = 10;
-  const total = maxLen1 + maxLen2;
-  const pct1 = Math.max(30, Math.min(70, Math.round((maxLen1 / total) * 100)));
-  const pct2 = 100 - pct1;
-  return `${pct1}% ${pct2}%`;
-};
 
 export default function PrintBlankForm({ template, onClose, exportMode = false, autoExportPdf = false }: PrintBlankFormProps) {
   const [logoUrl, setLogoUrl] = React.useState<string>('');
@@ -1291,34 +1272,51 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                               if (col.type === 'checkbox' || col.type === 'radio') {
                                 return (
                                   <td key={col.id} style={{ border: cellBorder, borderBottom: cellBorderBottom, padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'top', minHeight: '28px', textAlign: cellAlign, width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
-                                    {hasOptions ? (
-                                      <div style={{
-                                        display: col.checkboxLayout === '2-column' ? 'grid' : 'flex',
-                                        gridTemplateColumns: col.checkboxLayout === '2-column' ? getCheckboxGridTemplate(effectiveOpts) : undefined,
-                                        flexDirection: col.checkboxLayout === '2-column' ? undefined : 'column',
-                                        gap: col.checkboxLayout === '2-column' ? '3px 8px' : '3px',
-                                        alignItems: 'start'
-                                      }}>
-                                        {effectiveOpts.map((opt, oIdx) => (
-                                          <div key={oIdx} style={{ display: 'flex', alignItems: 'flex-start', gap: '4px', fontSize: '0.75rem', color: '#000000', textAlign: 'left', lineHeight: 1.2, width: '100%' }}>
-                                            <span
-                                              className="acro-option-icon"
-                                              data-acroform-field="true"
-                                              data-field-id={`${cellFieldId}_opt_${oIdx}`}
-                                              data-field-type={col.type}
-                                              data-field-radiogroup={col.type === 'radio' ? cellFieldId : undefined}
-                                              data-field-radiovalue={col.type === 'radio' ? (opt.value || opt.label || String(oIdx)) : undefined}
-                                              data-field-name={`${displayTitle} (${opt.label})`}
-                                              style={{
-                                                borderRadius: col.type === 'radio' ? '50%' : '1px',
-                                                marginTop: '2px'
-                                              }}
-                                            />
-                                            <span style={{ fontSize: '0.75rem', lineHeight: 1.3, whiteSpace: 'pre-wrap', wordBreak: 'break-word', flex: 1 }}>{opt.label}</span>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    ) : null}
+                                    {hasOptions ? (() => {
+                                      const isInline = canTableOptionsFitInline(effectiveOpts, col.width, col.checkboxLayout);
+                                      return (
+                                        <div style={{
+                                          display: col.checkboxLayout === '2-column' ? 'grid' : 'flex',
+                                          gridTemplateColumns: col.checkboxLayout === '2-column' ? getCheckboxGridTemplate(effectiveOpts) : undefined,
+                                          flexDirection: col.checkboxLayout === '2-column' ? undefined : (isInline ? 'row' : 'column'),
+                                          flexWrap: isInline ? 'wrap' : undefined,
+                                          gap: col.checkboxLayout === '2-column' ? '3px 8px' : (isInline ? '4px 12px' : '3px'),
+                                          alignItems: isInline ? 'center' : 'start',
+                                          justifyContent: isInline ? (cellAlign === 'center' ? 'center' : cellAlign === 'right' ? 'flex-end' : 'flex-start') : undefined,
+                                          width: '100%'
+                                        }}>
+                                          {effectiveOpts.map((opt, oIdx) => (
+                                            <div key={oIdx} style={{
+                                              display: 'inline-flex',
+                                              alignItems: 'center',
+                                              gap: '4px',
+                                              fontSize: '0.80rem',
+                                              color: '#000000',
+                                              textAlign: 'left',
+                                              lineHeight: 1.2,
+                                              width: isInline ? 'auto' : '100%',
+                                              whiteSpace: isInline ? 'nowrap' : 'normal'
+                                            }}>
+                                              <span
+                                                className="acro-option-icon"
+                                                data-acroform-field="true"
+                                                data-field-id={`${cellFieldId}_opt_${oIdx}`}
+                                                data-field-type={col.type}
+                                                data-field-radiogroup={col.type === 'radio' ? cellFieldId : undefined}
+                                                data-field-radiovalue={col.type === 'radio' ? (opt.value || opt.label || String(oIdx)) : undefined}
+                                                data-field-name={`${displayTitle} (${opt.label})`}
+                                                style={{
+                                                  borderRadius: col.type === 'radio' ? '50%' : '1px',
+                                                  marginTop: isInline ? '0' : '2px',
+                                                  flexShrink: 0
+                                                }}
+                                              />
+                                              <span style={{ fontSize: '0.80rem', lineHeight: 1.3, whiteSpace: isInline ? 'nowrap' : 'pre-wrap', wordBreak: isInline ? 'normal' : 'break-word', flex: isInline ? undefined : 1 }}>{opt.label}</span>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      );
+                                    })() : null}
                                   </td>
                                 );
                               }

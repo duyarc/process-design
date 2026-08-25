@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import { Star } from 'lucide-react';
 import type { Submission, FormTemplateISO, LayoutBlockISO, TableColumnConfig } from '../../types';
 import { formatFormVersion, getColStyleWidth } from '../../types';
-import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, getAutoCheckboxLayoutMode, hasLongOptions } from '../../utils/formUtils';
+import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, getCheckboxGridTemplate } from '../../utils/formUtils';
 import { renderFormattedText } from '../../utils/textFormatter';
 
 // ─── Helpers (mirrored from PrintBlankForm) ───────────────────────────────────
@@ -939,6 +939,103 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                           </td>
                                         );
                                       }
+
+                                      if (col.type === 'radio') {
+                                        const customOpts = (block as any).cellOptionsMap?.[row.id]?.[col.id];
+                                        const opts = (customOpts && customOpts.length > 0) ? customOpts : (col.options || []);
+                                        if (opts.length > 0) {
+                                          const isInline = canTableOptionsFitInline(opts, col.width, col.checkboxLayout);
+                                          return (
+                                            <td key={col.id} style={{ border: cellBorder, borderBottom: cellBorderBottom, padding: '4px 6px', fontSize: '0.82rem', verticalAlign: 'middle', minHeight: '28px', textAlign: cellAlign as any, width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
+                                              <div style={{
+                                                display: col.checkboxLayout === '2-column' ? 'grid' : 'flex',
+                                                gridTemplateColumns: col.checkboxLayout === '2-column' ? getCheckboxGridTemplate(opts) : undefined,
+                                                flexDirection: col.checkboxLayout === '2-column' ? undefined : isInline ? 'row' : 'column',
+                                                flexWrap: isInline ? 'wrap' : undefined,
+                                                gap: col.checkboxLayout === '2-column' ? '4px 12px' : isInline ? '4px 12px' : '5px',
+                                                alignItems: 'center',
+                                                justifyContent: isInline ? (cellAlign === 'center' ? 'center' : cellAlign === 'right' ? 'flex-end' : 'flex-start') : undefined,
+                                                padding: '2px 0',
+                                                width: '100%'
+                                              }}>
+                                                {opts.map((opt: any, oIdx: number) => {
+                                                  const isChecked = cellVal === (opt.value || opt.label);
+                                                  return (
+                                                    <div key={oIdx} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', color: '#000000', width: isInline ? 'auto' : '100%', whiteSpace: isInline ? 'nowrap' : undefined }}>
+                                                      <span style={{
+                                                        display: 'inline-flex',
+                                                        justifyContent: 'center',
+                                                        alignItems: 'center',
+                                                        width: '12px',
+                                                        height: '12px',
+                                                        border: '1px solid #000000',
+                                                        background: isChecked ? '#000000' : '#ffffff',
+                                                        borderRadius: '50%',
+                                                        flexShrink: 0,
+                                                        marginTop: 0
+                                                      }}>
+                                                        {isChecked && <span style={{ width: '4px', height: '4px', background: '#ffffff', borderRadius: '50%' }} />}
+                                                      </span>
+                                                      <span style={{ color: isChecked ? '#000000' : '#64748b', lineHeight: 1.3, whiteSpace: isInline ? 'nowrap' : 'pre-wrap', wordBreak: isInline ? 'normal' : 'break-word', flex: isInline ? undefined : 1 }}>{opt.label}</span>
+                                                    </div>
+                                                  );
+                                                })}
+                                              </div>
+                                            </td>
+                                          );
+                                        }
+                                      }
+
+                                      if (col.type === 'checkbox') {
+                                        const customOpts = (block as any).cellOptionsMap?.[row.id]?.[col.id];
+                                        const opts = (customOpts && customOpts.length > 0) ? customOpts : (col.options || []);
+                                        if (opts.length > 0) {
+                                          const isInline = canTableOptionsFitInline(opts, col.width, col.checkboxLayout);
+                                          const currentValues = cellVal ? cellVal.split(',').filter(Boolean) : [];
+                                          return (
+                                            <td key={col.id} style={{ border: cellBorder, borderBottom: cellBorderBottom, padding: '4px 6px', fontSize: '0.82rem', verticalAlign: 'middle', minHeight: '28px', textAlign: cellAlign as any, width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
+                                              <div style={{
+                                                display: col.checkboxLayout === '2-column' ? 'grid' : 'flex',
+                                                gridTemplateColumns: col.checkboxLayout === '2-column' ? getCheckboxGridTemplate(opts) : undefined,
+                                                flexDirection: col.checkboxLayout === '2-column' ? undefined : isInline ? 'row' : 'column',
+                                                flexWrap: isInline ? 'wrap' : undefined,
+                                                gap: col.checkboxLayout === '2-column' ? '4px 12px' : isInline ? '4px 12px' : '5px',
+                                                alignItems: 'center',
+                                                justifyContent: isInline ? (cellAlign === 'center' ? 'center' : cellAlign === 'right' ? 'flex-end' : 'flex-start') : undefined,
+                                                padding: '2px 0',
+                                                width: '100%'
+                                              }}>
+                                                {opts.map((opt: any, oIdx: number) => {
+                                                  const isChecked = currentValues.includes(opt.value || opt.label);
+                                                  return (
+                                                    <div key={oIdx} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', color: '#000000', width: isInline ? 'auto' : '100%', whiteSpace: isInline ? 'nowrap' : undefined }}>
+                                                      <span style={{
+                                                        display: 'inline-flex',
+                                                        justifyContent: 'center',
+                                                        alignItems: 'center',
+                                                        width: '12px',
+                                                        height: '12px',
+                                                        border: '1px solid #000000',
+                                                        background: isChecked ? '#e2e8f0' : '#ffffff',
+                                                        borderRadius: '2px',
+                                                        flexShrink: 0,
+                                                        fontSize: '9px',
+                                                        fontWeight: 'var(--pw-weight-heavy)',
+                                                        lineHeight: 1,
+                                                        marginTop: 0
+                                                      }}>
+                                                        {isChecked ? '✓' : ''}
+                                                      </span>
+                                                      <span style={{ color: isChecked ? '#000000' : '#64748b', lineHeight: 1.3, whiteSpace: isInline ? 'nowrap' : 'pre-wrap', wordBreak: isInline ? 'normal' : 'break-word', flex: isInline ? undefined : 1 }}>{opt.label}</span>
+                                                    </div>
+                                                  );
+                                                })}
+                                              </div>
+                                            </td>
+                                          );
+                                        }
+                                      }
+
                                       return (
                                         <td key={col.id} style={{ border: cellBorder, borderBottom: cellBorderBottom, padding: '4px 6px', fontSize: '0.82rem', verticalAlign: 'middle', minHeight: '28px', textAlign: cellAlign as any, width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
                                           {isStaticLabel ? (
@@ -1025,6 +1122,94 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                                 ({currentRating}/{scale})
                                               </span>
                                             )}
+                                          </div>
+                                        </td>
+                                      );
+                                    }
+                                    if (col.type === 'radio' && col.options && col.options.length > 0) {
+                                      const opts = col.options;
+                                      const isInline = canTableOptionsFitInline(opts, col.width, col.checkboxLayout);
+                                      return (
+                                        <td key={col.id} style={{ border: cellBorder, borderBottom: cellBorderBottom, padding: '4px 6px', fontSize: '0.82rem', verticalAlign: 'middle', minHeight: '28px', textAlign: cellAlign as any, width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
+                                          <div style={{
+                                            display: col.checkboxLayout === '2-column' ? 'grid' : 'flex',
+                                            gridTemplateColumns: col.checkboxLayout === '2-column' ? getCheckboxGridTemplate(opts) : undefined,
+                                            flexDirection: col.checkboxLayout === '2-column' ? undefined : isInline ? 'row' : 'column',
+                                            flexWrap: isInline ? 'wrap' : undefined,
+                                            gap: col.checkboxLayout === '2-column' ? '4px 12px' : isInline ? '4px 12px' : '5px',
+                                            alignItems: 'center',
+                                            justifyContent: isInline ? (cellAlign === 'center' ? 'center' : cellAlign === 'right' ? 'flex-end' : 'flex-start') : undefined,
+                                            padding: '2px 0',
+                                            width: '100%'
+                                          }}>
+                                            {opts.map((opt: any, oIdx: number) => {
+                                              const isChecked = cellVal === (opt.value || opt.label);
+                                              return (
+                                                <div key={oIdx} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', color: '#000000', width: isInline ? 'auto' : '100%', whiteSpace: isInline ? 'nowrap' : undefined }}>
+                                                  <span style={{
+                                                    display: 'inline-flex',
+                                                    justifyContent: 'center',
+                                                    alignItems: 'center',
+                                                    width: '12px',
+                                                    height: '12px',
+                                                    border: '1px solid #000000',
+                                                    background: isChecked ? '#000000' : '#ffffff',
+                                                    borderRadius: '50%',
+                                                    flexShrink: 0,
+                                                    marginTop: 0
+                                                  }}>
+                                                    {isChecked && <span style={{ width: '4px', height: '4px', background: '#ffffff', borderRadius: '50%' }} />}
+                                                  </span>
+                                                  <span style={{ color: isChecked ? '#000000' : '#64748b', lineHeight: 1.3, whiteSpace: isInline ? 'nowrap' : 'pre-wrap', wordBreak: isInline ? 'normal' : 'break-word', flex: isInline ? undefined : 1 }}>{opt.label}</span>
+                                                </div>
+                                              );
+                                            })}
+                                          </div>
+                                        </td>
+                                      );
+                                    }
+                                    if (col.type === 'checkbox' && col.options && col.options.length > 0) {
+                                      const opts = col.options;
+                                      const isInline = canTableOptionsFitInline(opts, col.width, col.checkboxLayout);
+                                      const currentValues = cellVal ? cellVal.split(',').filter(Boolean) : [];
+                                      return (
+                                        <td key={col.id} style={{ border: cellBorder, borderBottom: cellBorderBottom, padding: '4px 6px', fontSize: '0.82rem', verticalAlign: 'middle', minHeight: '28px', textAlign: cellAlign as any, width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
+                                          <div style={{
+                                            display: col.checkboxLayout === '2-column' ? 'grid' : 'flex',
+                                            gridTemplateColumns: col.checkboxLayout === '2-column' ? getCheckboxGridTemplate(opts) : undefined,
+                                            flexDirection: col.checkboxLayout === '2-column' ? undefined : isInline ? 'row' : 'column',
+                                            flexWrap: isInline ? 'wrap' : undefined,
+                                            gap: col.checkboxLayout === '2-column' ? '4px 12px' : isInline ? '4px 12px' : '5px',
+                                            alignItems: 'center',
+                                            justifyContent: isInline ? (cellAlign === 'center' ? 'center' : cellAlign === 'right' ? 'flex-end' : 'flex-start') : undefined,
+                                            padding: '2px 0',
+                                            width: '100%'
+                                          }}>
+                                            {opts.map((opt: any, oIdx: number) => {
+                                              const isChecked = currentValues.includes(opt.value || opt.label);
+                                              return (
+                                                <div key={oIdx} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', color: '#000000', width: isInline ? 'auto' : '100%', whiteSpace: isInline ? 'nowrap' : undefined }}>
+                                                  <span style={{
+                                                    display: 'inline-flex',
+                                                    justifyContent: 'center',
+                                                    alignItems: 'center',
+                                                    width: '12px',
+                                                    height: '12px',
+                                                    border: '1px solid #000000',
+                                                    background: isChecked ? '#e2e8f0' : '#ffffff',
+                                                    borderRadius: '2px',
+                                                    flexShrink: 0,
+                                                    fontSize: '9px',
+                                                    fontWeight: 'var(--pw-weight-heavy)',
+                                                    lineHeight: 1,
+                                                    marginTop: 0
+                                                  }}>
+                                                    {isChecked ? '✓' : ''}
+                                                  </span>
+                                                  <span style={{ color: isChecked ? '#000000' : '#64748b', lineHeight: 1.3, whiteSpace: isInline ? 'nowrap' : 'pre-wrap', wordBreak: isInline ? 'normal' : 'break-word', flex: isInline ? undefined : 1 }}>{opt.label}</span>
+                                                </div>
+                                              );
+                                            })}
                                           </div>
                                         </td>
                                       );

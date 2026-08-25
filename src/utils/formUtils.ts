@@ -56,6 +56,80 @@ export function hasLongOptions(field: FormFieldISO): boolean {
 }
 
 /**
+ * Automatically determines whether options in a table column/cell can fit horizontally on a single line.
+ * Returns true if options are short enough to display inline side-by-side without overflowing.
+ */
+export function canTableOptionsFitInline(
+  options: { label?: string; value?: string }[] | undefined,
+  colWidth?: string,
+  checkboxLayout?: string
+): boolean {
+  if (!options || options.length === 0) return false;
+  if (checkboxLayout === '2-column') return false; // Explicit 2-column grid override
+
+  const count = options.length;
+  const maxLabelLen = Math.max(...options.map(o => (o.label || '').trim().length));
+  const totalLen = options.reduce((sum, o) => sum + (o.label || '').trim().length, 0);
+
+  // 1. If any single option is long (> 18 characters) -> vertical
+  if (maxLabelLen > 18) return false;
+
+  // 2. Parse column width if specified (in px or %)
+  let estimatedColWidthPx = 150; // default assumed minimum column width in table
+  if (colWidth) {
+    if (colWidth.endsWith('%')) {
+      const pct = parseFloat(colWidth);
+      if (!isNaN(pct)) {
+        estimatedColWidthPx = (pct / 100) * 700; // ~700px standard printable A4 table width
+      }
+    } else if (colWidth.endsWith('px')) {
+      const px = parseFloat(colWidth);
+      if (!isNaN(px)) {
+        estimatedColWidthPx = px;
+      }
+    }
+  }
+
+  const estimatedNeededWidth = (count * 25) + (totalLen * 7.5);
+
+  // 3. Short 2-option pairs (like Có/Không, Đạt/KĐ, Yes/No, Nam/Nữ) total <= 16 chars:
+  if (count <= 2 && totalLen <= 16 && estimatedColWidthPx >= 70) {
+    return true;
+  }
+
+  // 4. 3 to 4 short options (like A/B/C, Thấp/TB/Cao, etc.)
+  if (count <= 4 && maxLabelLen <= 12 && estimatedNeededWidth <= estimatedColWidthPx) {
+    return true;
+  }
+
+  // 5. General check against column width
+  return estimatedNeededWidth <= estimatedColWidthPx;
+}
+
+/**
+ * Calculates optimal 2-column grid template percentages based on option label lengths.
+ */
+export function getCheckboxGridTemplate(options: any[]): string {
+  if (!options || options.length === 0) return '1fr 1fr';
+  let maxLen1 = 0;
+  let maxLen2 = 0;
+  options.forEach((opt, idx) => {
+    const len = opt && opt.label ? opt.label.length : 0;
+    if (idx % 2 === 0) {
+      if (len > maxLen1) maxLen1 = len;
+    } else {
+      if (len > maxLen2) maxLen2 = len;
+    }
+  });
+  if (maxLen1 === 0) maxLen1 = 10;
+  if (maxLen2 === 0) maxLen2 = 10;
+  const total = maxLen1 + maxLen2;
+  const pct1 = Math.max(30, Math.min(70, Math.round((maxLen1 / total) * 100)));
+  const pct2 = 100 - pct1;
+  return `${pct1}% ${pct2}%`;
+}
+
+/**
  * Sanitizes field labels by stripping trailing colons and extra whitespace.
  */
 export const sanitizeLabel = (label?: string): string => {

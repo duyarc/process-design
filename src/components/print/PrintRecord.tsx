@@ -3,7 +3,7 @@ import { Star } from 'lucide-react';
 import ReactDOM from 'react-dom';
 import type { Submission, LayoutBlockISO, TableColumnConfig } from '../../types';
 import { formatFormVersion, getColStyleWidth } from '../../types';
-import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName } from '../../utils/formUtils';
+import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, canTableOptionsFitInline, getCheckboxGridTemplate } from '../../utils/formUtils';
 import { renderFormattedText } from '../../utils/textFormatter';
 
 // Helper: derive CHECKLIST_TABLE columns — falls back to columnLabels for backward compat
@@ -52,25 +52,6 @@ interface PrintRecordProps {
   onClose: () => void;
 }
 
-const getCheckboxGridTemplate = (options: any[]) => {
-  if (!options || options.length === 0) return '1fr 1fr';
-  let maxLen1 = 0;
-  let maxLen2 = 0;
-  options.forEach((opt, idx) => {
-    const len = opt && opt.label ? opt.label.length : 0;
-    if (idx % 2 === 0) {
-      if (len > maxLen1) maxLen1 = len;
-    } else {
-      if (len > maxLen2) maxLen2 = len;
-    }
-  });
-  if (maxLen1 === 0) maxLen1 = 10;
-  if (maxLen2 === 0) maxLen2 = 10;
-  const total = maxLen1 + maxLen2;
-  const pct1 = Math.max(30, Math.min(70, Math.round((maxLen1 / total) * 100)));
-  const pct2 = 100 - pct1;
-  return `${pct1}% ${pct2}%`;
-};
 
 export default function PrintRecord({ submission, processTitle, logoText, descriptionText, columnLabels, onClose }: PrintRecordProps) {
   const [imageUrls, setImageUrls] = useState<string[]>([]);
@@ -1184,64 +1165,75 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                                       })}
                                     </div>
                                   );
-                                })() : col.type === 'checkbox' ? (
+                                })() : col.type === 'checkbox' ? (() => {
+                                   const opts = col.options || [];
+                                   const isInline = canTableOptionsFitInline(opts, col.width, col.checkboxLayout);
+                                   return (
+                                   hasOptions ? (
+                                      <div style={{
+                                        display: col.checkboxLayout === '2-column' ? 'grid' : 'flex',
+                                        gridTemplateColumns: col.checkboxLayout === '2-column' ? getCheckboxGridTemplate(opts) : undefined,
+                                        flexDirection: col.checkboxLayout === '2-column' ? undefined : isInline ? 'row' : 'column',
+                                        flexWrap: isInline ? 'wrap' : undefined,
+                                        gap: col.checkboxLayout === '2-column' ? '4px 12px' : isInline ? '4px 12px' : '5px',
+                                        alignItems: 'center',
+                                        justifyContent: isInline ? (cellAlign === 'center' ? 'center' : cellAlign === 'right' ? 'flex-end' : 'flex-start') : undefined,
+                                        padding: '4px 0',
+                                        width: '100%'
+                                      }}>
+                                        {(col.options || []).map((opt: any, oIdx: number) => {
+                                         const currentValues = cellValue ? cellValue.split(',').filter(Boolean) : [];
+                                         const isChecked = currentValues.includes(opt.value || opt.label);
+                                         return (
+                                           <div key={oIdx} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#000000', width: isInline ? 'auto' : '100%', whiteSpace: isInline ? 'nowrap' : undefined }}>
+                                             <span style={{
+                                               display: 'inline-flex',
+                                               justifyContent: 'center',
+                                               alignItems: 'center',
+                                               width: '12px',
+                                               height: '12px',
+                                               border: '1px solid #000000',
+                                               background: isChecked ? '#e2e8f0' : '#ffffff',
+                                               borderRadius: '2px',
+                                               flexShrink: 0,
+                                               fontSize: '9px',
+                                               fontWeight: 'var(--pw-weight-heavy)',
+                                               lineHeight: 1,
+                                               marginTop: '2px'
+                                             }}>
+                                               {isChecked ? '✓' : ''}
+                                             </span>
+                                             <span style={{ color: isChecked ? '#000000' : '#64748b', lineHeight: 1.3, whiteSpace: isInline ? 'nowrap' : 'pre-wrap', wordBreak: isInline ? 'normal' : 'break-word', flex: isInline ? undefined : 1 }}>{opt.label}</span>
+                                           </div>
+                                         );
+                                       })}
+                                     </div>
+                                   ) : (
+                                     <div style={{ display: 'flex', justifyContent: 'center' }}>
+                                       <input type="checkbox" checked={cellValue === 'true'} readOnly style={{ transform: 'scale(1.1)' }} />
+                                     </div>
+                                   )
+                                 );
+                                })() : col.type === 'radio' ? (() => {
+                                  const opts = col.options || [];
+                                  const isInline = canTableOptionsFitInline(opts, col.width, col.checkboxLayout);
+                                  return (
                                   hasOptions ? (
                                      <div style={{
                                        display: col.checkboxLayout === '2-column' ? 'grid' : 'flex',
-                                       gridTemplateColumns: col.checkboxLayout === '2-column' ? getCheckboxGridTemplate(col.options || []) : undefined,
-                                       flexDirection: col.checkboxLayout === '2-column' ? undefined : 'column',
-                                       gap: col.checkboxLayout === '2-column' ? '4px 12px' : '5px',
-                                       alignItems: 'flex-start',
+                                       gridTemplateColumns: col.checkboxLayout === '2-column' ? getCheckboxGridTemplate(opts) : undefined,
+                                       flexDirection: col.checkboxLayout === '2-column' ? undefined : isInline ? 'row' : 'column',
+                                       flexWrap: isInline ? 'wrap' : undefined,
+                                       gap: col.checkboxLayout === '2-column' ? '4px 12px' : isInline ? '4px 12px' : '5px',
+                                       alignItems: 'center',
+                                       justifyContent: isInline ? (cellAlign === 'center' ? 'center' : cellAlign === 'right' ? 'flex-end' : 'flex-start') : undefined,
                                        padding: '4px 0',
                                        width: '100%'
                                      }}>
-                                       {(col.options || []).map((opt: any, oIdx: number) => {
-                                        const currentValues = cellValue ? cellValue.split(',').filter(Boolean) : [];
-                                        const isChecked = currentValues.includes(opt.value || opt.label);
-                                        return (
-                                          <div key={oIdx} style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', fontSize: '0.78rem', color: '#000000', width: '100%' }}>
-                                            <span style={{
-                                              display: 'inline-flex',
-                                              justifyContent: 'center',
-                                              alignItems: 'center',
-                                              width: '12px',
-                                              height: '12px',
-                                              border: '1px solid #000000',
-                                              background: isChecked ? '#e2e8f0' : '#ffffff',
-                                              borderRadius: '2px',
-                                              flexShrink: 0,
-                                              fontSize: '9px',
-                                              fontWeight: 'var(--pw-weight-heavy)',
-                                              lineHeight: 1,
-                                              marginTop: '2px'
-                                            }}>
-                                              {isChecked ? '✓' : ''}
-                                            </span>
-                                            <span style={{ color: isChecked ? '#000000' : '#64748b', lineHeight: 1.3, whiteSpace: 'pre-wrap', wordBreak: 'break-word', flex: 1 }}>{opt.label}</span>
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
-                                  ) : (
-                                    <div style={{ display: 'flex', justifyContent: 'center' }}>
-                                      <input type="checkbox" checked={cellValue === 'true'} readOnly style={{ transform: 'scale(1.1)' }} />
-                                    </div>
-                                  )
-                                ) : col.type === 'radio' ? (
-                                  hasOptions ? (
-                                     <div style={{
-                                       display: col.checkboxLayout === '2-column' ? 'grid' : 'flex',
-                                       gridTemplateColumns: col.checkboxLayout === '2-column' ? getCheckboxGridTemplate(col.options || []) : undefined,
-                                       flexDirection: col.checkboxLayout === '2-column' ? undefined : 'column',
-                                       gap: col.checkboxLayout === '2-column' ? '4px 12px' : '5px',
-                                       alignItems: 'flex-start',
-                                       padding: '4px 0',
-                                       width: '100%'
-                                     }}>
-                                       {(col.options || []).map((opt: any, oIdx: number) => {
+                                       {opts.map((opt: any, oIdx: number) => {
                                         const isChecked = cellValue === (opt.value || opt.label);
                                         return (
-                                          <div key={oIdx} style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', fontSize: '0.78rem', color: '#000000', width: '100%' }}>
+                                          <div key={oIdx} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', color: '#000000', width: isInline ? 'auto' : '100%', whiteSpace: isInline ? 'nowrap' : undefined }}>
                                             <span style={{
                                               display: 'inline-flex',
                                               justifyContent: 'center',
@@ -1252,11 +1244,11 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                                               background: isChecked ? '#000000' : '#ffffff',
                                               borderRadius: '50%',
                                               flexShrink: 0,
-                                              marginTop: '2px'
+                                              marginTop: 0
                                             }}>
                                               {isChecked && <span style={{ width: '4px', height: '4px', background: '#ffffff', borderRadius: '50%' }} />}
                                             </span>
-                                            <span style={{ color: isChecked ? '#000000' : '#64748b', lineHeight: 1.3, whiteSpace: 'pre-wrap', wordBreak: 'break-word', flex: 1 }}>{opt.label}</span>
+                                            <span style={{ color: isChecked ? '#000000' : '#64748b', lineHeight: 1.3, whiteSpace: isInline ? 'nowrap' : 'pre-wrap', wordBreak: isInline ? 'normal' : 'break-word', flex: isInline ? undefined : 1 }}>{opt.label}</span>
                                           </div>
                                         );
                                       })}
@@ -1266,7 +1258,8 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                                       <input type="radio" checked={cellValue === 'true'} readOnly style={{ transform: 'scale(1.1)' }} />
                                     </div>
                                   )
-                                ) : col.type === 'rating' ? (() => {
+                                  );
+                                })() : col.type === 'rating' ? (() => {
                                   const scale = col.ratingScale === 3 ? 3 : 5;
                                   const currentRating = parseInt(cellValue, 10) || 0;
                                   return (
