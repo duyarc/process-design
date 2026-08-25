@@ -9,7 +9,7 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | `CURRENT` (2026-08-25) — Sections 2, 3 & 4 (Table Block Border Styles Parity: FormBuilder.tsx, PrintBlankForm.tsx, PrintFilledForm.tsx, PrintRecord.tsx). |
+| **Verified At Commit** | `a18181b` (2026-08-25) — Sections 2, 3 & 4 (Table Block Border Styles Parity: FormBuilder.tsx, PrintBlankForm.tsx, PrintFilledForm.tsx, PrintRecord.tsx). |
 
 > **⚠️ Architectural note:** FormBuilder has no awareness of which process it belongs to. The `formName` prop is always identical to `formId`. See Section 6.1 and the Technical Debt table.
 
@@ -482,6 +482,6 @@ full diff of any entry below.
 | 2026-08-21 | `a3f2533` | **Rating Scale AcroForm PDFRadioGroup & Vector Star Parity:** (1) Removed `.acro-option-icon` class to eliminate square box artifact around rating stars. (2) Replaced unicode stars with vector `<Star />` from `lucide-react` across `PrintBlankForm.tsx`, `PrintFilledForm.tsx`, and `PrintRecord.tsx`. (3) Added `'rating'` to `ScannedAcroField['fieldType']` in `src/utils/pdf/types.ts` and scanned `radioGroup` / `radioValue` in `domScanner.ts`. (4) Implemented `PDFRadioGroup` overlay in `acroFormOverlay.ts`, enabling 1-of-N interactive rating choice on fillable PDF exports. |
 | 2026-08-25 | `4b1b0a4` | **Likert Scale Column Type & Borderless/Horizontal Table Style:** (1) Added `'likert_scale'` type and `scaleOptions?: string[]` to `TableColumnConfig` in `src/types.ts`. (2) Added `borderStyle?: 'grid' | 'borderless' | 'horizontal_only'` to `LayoutBlockISO`. (3) Added compact 3-icon button group (`[Grid]`, `[Horizontal]`, `[Borderless]`) under `Border Style` in `FormBuilder.tsx` Section Settings. (4) Added dynamic `scaleOptions` list editor in Column Inspector. (5) In Canvas, Filler, Reader, and Print templates (`PrintBlankForm`, `PrintFilledForm`, `PrintRecord`), rendered multi-level Likert scale headers with CSS grid and single-choice radio circles per row. (6) Added `.print-table--borderless` and `.print-table--horizontal` CSS rules in `src/index.css` for WYSIWYG, print, and PDF export parity. |
 | 2026-08-25 | `bd156ba` | **Contextual Block Insertion (Insert After Active Block):** Updated `handleAddBlock` and `handleExecuteCopy` in `FormBuilder.tsx`. When a block is currently selected (`activeBlockId`), newly added or copied blocks are inserted at `activeIdx + 1` (immediately following the active block), rather than unconditionally appending to the end of the canvas. |
-| 2026-08-25 | `CURRENT` | **Table Block Border Styles Parity & Bottom Row Border Fix:** Standardized `table`, `th`, and `td` border definitions across `FormBuilder.tsx`, `PrintBlankForm.tsx`, `PrintFilledForm.tsx`, and `PrintRecord.tsx`. Fixed missing bottom line on the last row and normalized top border and row borders for `horizontal_only` and `borderless` styles. |
+| 2026-08-25 | `a18181b` | **Table Block Border Styles Parity & Bottom Row Border Fix:** Standardized `table`, `th`, and `td` border definitions across `FormBuilder.tsx`, `PrintBlankForm.tsx`, `PrintFilledForm.tsx`, and `PrintRecord.tsx`. Fixed missing bottom line on the last row and normalized top border and row borders for `horizontal_only` and `borderless` styles. |
 
 
