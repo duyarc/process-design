@@ -640,6 +640,115 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     setActiveFieldId(null);
   };
 
+  const handleCloneBlock = (blockId: string) => {
+    if (isLocked) return;
+    const sourceBlock = layoutBlocks.find(b => b.id === blockId);
+    if (!sourceBlock || sourceBlock.type === 'TITLE') return;
+
+    // Generate new unique ID for the block
+    const newBlockId = `b_${sourceBlock.type.toLowerCase()}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+
+    // Regenerate unique IDs for all fields in the block
+    const newFields = (sourceBlock.fields || []).map(field => ({
+      ...field,
+      id: `field_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`
+    }));
+
+    // For TABLE blocks, regenerate unique row IDs and remap tableData and cellOptionsMap
+    const rowIdMap = new Map<string, string>();
+    const newRows = (sourceBlock.tableRows || []).map(row => {
+      const newRowId = `row_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+      rowIdMap.set(row.id, newRowId);
+      return {
+        ...row,
+        id: newRowId
+      };
+    });
+
+    const newTableData: { [rowId: string]: { [colId: string]: string } } = {};
+    if (sourceBlock.tableData) {
+      Object.entries(sourceBlock.tableData).forEach(([oldRowId, rowVals]) => {
+        const mappedRowId = rowIdMap.get(oldRowId) || oldRowId;
+        newTableData[mappedRowId] = { ...rowVals };
+      });
+    }
+
+    const newCellOptionsMap: { [cellKey: string]: RadioOption[] } = {};
+    if (sourceBlock.cellOptionsMap) {
+      Object.entries(sourceBlock.cellOptionsMap).forEach(([oldCellKey, opts]) => {
+        let mappedKey = oldCellKey;
+        for (const [oldRId, newRId] of rowIdMap.entries()) {
+          if (oldCellKey.startsWith(oldRId + '_')) {
+            mappedKey = newRId + oldCellKey.slice(oldRId.length);
+            break;
+          }
+        }
+        newCellOptionsMap[mappedKey] = [...opts];
+      });
+    }
+
+    const newCols = sourceBlock.tableColumns ? sourceBlock.tableColumns.map(c => ({
+      ...c,
+      options: c.options ? [...c.options] : undefined,
+      scaleOptions: c.scaleOptions ? [...c.scaleOptions] : undefined,
+      summaryRows: c.summaryRows ? [...c.summaryRows] : undefined
+    })) : undefined;
+
+    const newMatrixConfig = sourceBlock.matrixConfig ? {
+      ...sourceBlock.matrixConfig,
+      columns: [...sourceBlock.matrixConfig.columns]
+    } : undefined;
+
+    const newBlock: LayoutBlockISO = {
+      ...sourceBlock,
+      id: newBlockId,
+      fields: newFields,
+      tableRows: sourceBlock.type === 'TABLE' ? newRows : sourceBlock.tableRows,
+      tableColumns: sourceBlock.type === 'TABLE' ? newCols : sourceBlock.tableColumns,
+      tableData: sourceBlock.type === 'TABLE' ? newTableData : sourceBlock.tableData,
+      cellOptionsMap: sourceBlock.type === 'TABLE' ? newCellOptionsMap : sourceBlock.cellOptionsMap,
+      matrixConfig: sourceBlock.type === 'MATRIX_TABLE' ? newMatrixConfig : sourceBlock.matrixConfig
+    };
+
+    // Insert contextually immediately after the source block
+    const sourceIdx = layoutBlocks.findIndex(b => b.id === blockId);
+    const insertIdx = sourceIdx !== -1 ? sourceIdx + 1 : layoutBlocks.length;
+    setLayoutBlocks(prev => {
+      const next = [...prev];
+      next.splice(insertIdx, 0, newBlock);
+      return next;
+    });
+
+    setActiveBlockId(newBlockId);
+    setActiveFieldId(null);
+  };
+
+  // Keyboard Shortcut: Ctrl+D / Cmd+D to clone currently active layout block
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd') {
+        if (!isLocked && activeBlockId) {
+          const target = e.target as HTMLElement | null;
+          const isEditingText = target && (
+            target.tagName === 'INPUT' ||
+            target.tagName === 'TEXTAREA' ||
+            target.tagName === 'SELECT' ||
+            target.isContentEditable
+          );
+          if (!isEditingText) {
+            const activeBlk = layoutBlocks.find(b => b.id === activeBlockId);
+            if (activeBlk && activeBlk.type !== 'TITLE') {
+              e.preventDefault();
+              handleCloneBlock(activeBlockId);
+            }
+          }
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeBlockId, isLocked, layoutBlocks]);
+
   const handleUpdateBlockTitle = (blockId: string, newTitle: string) => {
     setLayoutBlocks(prev => prev.map(b => b.id === blockId ? { ...b, title: newTitle } : b));
     // Sync to formTitle if this is the TITLE block
@@ -2041,7 +2150,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                         type="button" 
                         disabled={index === 0 || isLocked}
                         onClick={(e) => { e.stopPropagation(); handleMoveBlock(index, 'up'); }}
-                        style={{ border: '1px solid #cbd5e1', borderRadius: '2px', background: '#ffffff', padding: '1px 3px', cursor: 'pointer' }}
+                        style={{ border: '1px solid #cbd5e1', borderRadius: '2px', background: '#ffffff', padding: '1px 3px', cursor: (index === 0 || isLocked) ? 'not-allowed' : 'pointer' }}
+                        title="Di chuyển lên"
                       >
                         <ArrowUp size={10} />
                       </button>
@@ -2049,15 +2159,26 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                         type="button" 
                         disabled={index === layoutBlocks.length - 1 || isLocked}
                         onClick={(e) => { e.stopPropagation(); handleMoveBlock(index, 'down'); }}
-                        style={{ border: '1px solid #cbd5e1', borderRadius: '2px', background: '#ffffff', padding: '1px 3px', cursor: 'pointer' }}
+                        style={{ border: '1px solid #cbd5e1', borderRadius: '2px', background: '#ffffff', padding: '1px 3px', cursor: (index === layoutBlocks.length - 1 || isLocked) ? 'not-allowed' : 'pointer' }}
+                        title="Di chuyển xuống"
                       >
                         <ArrowDown size={10} />
                       </button>
                       <button 
                         type="button" 
-                        disabled={isLocked}
+                        disabled={isLocked || block.type === 'TITLE'}
+                        onClick={(e) => { e.stopPropagation(); handleCloneBlock(block.id); }}
+                        style={{ border: '1px solid #cbd5e1', borderRadius: '2px', background: '#ffffff', padding: '1px 3px', cursor: (isLocked || block.type === 'TITLE') ? 'not-allowed' : 'pointer', color: 'var(--text-secondary)' }}
+                        title="Nhân bản khối này (Ctrl+D)"
+                      >
+                        <Copy size={10} />
+                      </button>
+                      <button 
+                        type="button" 
+                        disabled={isLocked || block.type === 'TITLE'}
                         onClick={(e) => { e.stopPropagation(); handleDeleteBlock(block.id); }}
-                        style={{ border: '1px solid #cbd5e1', borderRadius: '2px', background: '#ffffff', padding: '1px 3px', cursor: 'pointer', color: 'var(--danger)' }}
+                        style={{ border: '1px solid #cbd5e1', borderRadius: '2px', background: '#ffffff', padding: '1px 3px', cursor: (isLocked || block.type === 'TITLE') ? 'not-allowed' : 'pointer', color: 'var(--danger)' }}
+                        title="Xóa khối"
                       >
                         <Trash2 size={10} />
                       </button>
@@ -4255,14 +4376,26 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                 <h3 style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-primary)' }}>
                   Section Settings
                 </h3>
-                <button 
-                  type="button" 
-                  disabled={isLocked || activeBlock.type === 'TITLE'}
-                  onClick={() => handleDeleteBlock(activeBlockId!)}
-                  style={{ border: 'none', background: 'none', color: 'var(--danger)', cursor: (isLocked || activeBlock.type === 'TITLE') ? 'not-allowed' : 'pointer' }}
-                >
-                  <Trash2 size={14} />
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <button 
+                    type="button" 
+                    disabled={isLocked || activeBlock.type === 'TITLE'}
+                    onClick={() => handleCloneBlock(activeBlockId!)}
+                    style={{ border: 'none', background: 'none', color: (isLocked || activeBlock.type === 'TITLE') ? 'var(--text-muted)' : 'var(--text-secondary)', cursor: (isLocked || activeBlock.type === 'TITLE') ? 'not-allowed' : 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}
+                    title="Nhân bản khối này (Ctrl+D)"
+                  >
+                    <Copy size={14} />
+                  </button>
+                  <button 
+                    type="button" 
+                    disabled={isLocked || activeBlock.type === 'TITLE'}
+                    onClick={() => handleDeleteBlock(activeBlockId!)}
+                    style={{ border: 'none', background: 'none', color: (isLocked || activeBlock.type === 'TITLE') ? 'var(--text-muted)' : 'var(--danger)', cursor: (isLocked || activeBlock.type === 'TITLE') ? 'not-allowed' : 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}
+                    title="Xóa khối"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.8rem' }}>
@@ -5635,6 +5768,22 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                       <option value={2}>2 Columns</option>
                       <option value={3}>3 Columns</option>
                     </select>
+                  </div>
+                )}
+
+                {activeBlock.type !== 'TITLE' && (
+                  <div style={{ borderTop: '1px solid var(--neutral-border)', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
+                    <button
+                      type="button"
+                      disabled={isLocked}
+                      onClick={() => handleCloneBlock(activeBlockId!)}
+                      className="btn btn-secondary btn-sm"
+                      style={{ width: '100%', justifyContent: 'center', display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', padding: '0.45rem 0.6rem' }}
+                      title="Nhân bản khối này (Ctrl+D)"
+                    >
+                      <Copy size={13} />
+                      <span>Nhân bản khối này (Duplicate)</span>
+                    </button>
                   </div>
                 )}
               </div>
