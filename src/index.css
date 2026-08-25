@@ -522,8 +522,11 @@ tr:last-child td {
   box-sizing: border-box !important;
 }
 
-.exporting-pdf-mode .acro-option-icon {
-  border: none !important;
+.exporting-pdf-mode .acro-option-icon,
+.exporting-pdf-mode [data-field-type="checkbox"],
+.exporting-pdf-mode [data-field-type="radio"],
+.exporting-pdf-mode [data-field-type="rating"] {
+  border-color: transparent !important;
   background: transparent !important;
 }
 

@@ -1221,6 +1221,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                       {scaleOptions.map((opt, sIdx) => (
                                         <div key={sIdx} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                                           <span
+                                            className="acro-option-icon"
                                             data-acroform-field="true"
                                             data-field-id={`${cellFieldId}_opt_${sIdx}`}
                                             data-field-type="radio"
@@ -1228,15 +1229,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                             data-field-radiovalue={opt}
                                             data-field-name={`${displayTitle} - ${col.label || 'Likert'} (${opt})`}
                                             style={{
-                                              display: 'inline-flex',
-                                              alignItems: 'center',
-                                              justifyContent: 'center',
-                                              width: '13px',
-                                              height: '13px',
-                                              borderRadius: '50%',
-                                              border: '1.5px solid #000000',
-                                              background: '#ffffff',
-                                              userSelect: 'none'
+                                              borderRadius: '50%'
                                             }}
                                           />
                                         </div>
@@ -1294,15 +1287,11 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                               data-acroform-field="true"
                                               data-field-id={`${cellFieldId}_opt_${oIdx}`}
                                               data-field-type={col.type}
+                                              data-field-radiogroup={col.type === 'radio' ? cellFieldId : undefined}
+                                              data-field-radiovalue={col.type === 'radio' ? (opt.value || opt.label || String(oIdx)) : undefined}
                                               data-field-name={`${displayTitle} (${opt.label})`}
                                               style={{
-                                                display: 'inline-block',
-                                                width: '10px',
-                                                height: '10px',
                                                 borderRadius: col.type === 'radio' ? '50%' : '1px',
-                                                border: '1.2px solid #000000',
-                                                background: '#ffffff',
-                                                flexShrink: 0,
                                                 marginTop: '2px'
                                               }}
                                             />

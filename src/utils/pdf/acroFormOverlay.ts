@@ -111,25 +111,30 @@ export async function overlayAcroFormFields(
       if (fieldType === 'signature') return;
 
       if (fieldType === 'checkbox' || fieldType === 'radio' || fieldType === 'rating') {
-        // X: place checkbox/radio option exactly at the visual icon's DOM position.
-        const optionX = marginX + relLeft * scaleFactor;
-        const cbSize = Math.min(cellWidthPt, 14);
-        // Y: align checkbox/radio top edge with the anchor element's top edge.
-        const cbY = pdfPageHeight - marginY - (localTop * scaleFactor + cbSize);
-        const clampedCbY = Math.max(marginY, Math.min(pdfPageHeight - marginY - cbSize, cbY));
+        // Compute exact concentric geometric center in PDF point space
+        const centerX = marginX + (relLeft + elWidth / 2) * scaleFactor;
+        const centerY = pdfPageHeight - marginY - (localTop + elHeight / 2) * scaleFactor;
+        
+        // Widget size matches actual DOM dimension in PDF points (clamped to sensible bounds)
+        const widgetSize = Math.max(8, Math.min(elWidth, elHeight) * scaleFactor);
+        const optionX = centerX - widgetSize / 2;
+        const optionY = centerY - widgetSize / 2;
+        const clampedOptionY = Math.max(marginY, Math.min(pdfPageHeight - marginY - widgetSize, optionY));
 
-        if (fieldType === 'rating' && radioGroup && radioValue) {
+        if (fieldType === 'radio' || fieldType === 'rating') {
+          const group = radioGroup || fieldId;
+          const val = radioValue || String(index);
           let radioField: any;
           try {
-            radioField = form.getRadioGroup(radioGroup);
+            radioField = form.getRadioGroup(group);
           } catch {
-            radioField = form.createRadioGroup(radioGroup);
+            radioField = form.createRadioGroup(group);
           }
-          radioField.addOptionToPage(radioValue, page, {
+          radioField.addOptionToPage(val, page, {
             x: optionX,
-            y: clampedCbY,
-            width: cbSize,
-            height: cbSize,
+            y: clampedOptionY,
+            width: widgetSize,
+            height: widgetSize,
             borderWidth: 1,
             borderColor: rgb(0, 0, 0),
           });
@@ -138,9 +143,9 @@ export async function overlayAcroFormFields(
           const checkBox = form.createCheckBox(cbName);
           checkBox.addToPage(page, {
             x: optionX,
-            y: clampedCbY,
-            width: cbSize,
-            height: cbSize,
+            y: clampedOptionY,
+            width: widgetSize,
+            height: widgetSize,
             borderWidth: 1,
             borderColor: rgb(0, 0, 0),
           });
