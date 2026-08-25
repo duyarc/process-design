@@ -9,7 +9,7 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | `CURRENT` (2026-08-25) — Sections 2 & 4 (INFO_GRID Horizontal Alignment & Label Typography Refinement in FormBuilder, PrintBlankForm, PrintFilledForm). |
+| **Verified At Commit** | `3bd2477` (2026-08-25) — Sections 2 & 4 (INFO_GRID Horizontal Alignment & Label Typography Refinement in FormBuilder, PrintBlankForm, PrintFilledForm). |
 
 > **⚠️ Architectural note:** FormBuilder has no awareness of which process it belongs to. The `formName` prop is always identical to `formId`. See Section 6.1 and the Technical Debt table.
 
@@ -482,6 +482,6 @@ full diff of any entry below.
 | 2026-08-25 | `bd156ba` | **Contextual Block Insertion (Insert After Active Block):** Updated `handleAddBlock` and `handleExecuteCopy` in `FormBuilder.tsx`. When a block is currently selected (`activeBlockId`), newly added or copied blocks are inserted at `activeIdx + 1` (immediately following the active block), rather than unconditionally appending to the end of the canvas. |
 | 2026-08-25 | `a18181b` | **Table Block Border Styles Parity & Bottom Row Border Fix:** Standardized `table`, `th`, and `td` border definitions across `FormBuilder.tsx`, `PrintBlankForm.tsx`, `PrintFilledForm.tsx`, and `PrintRecord.tsx`. Fixed missing bottom line on the last row and normalized top border and row borders for `horizontal_only` and `borderless` styles. |
 | 2026-08-25 | `755edc5` | **1-Click Layout Block Cloning (Duplicate Block):** (1) Implemented `handleCloneBlock` in `FormBuilder.tsx` with deep-cloning routine (regenerating unique field IDs, table row IDs, remapping tableData and cellOptionsMap, cloning matrixConfig). (2) Added quick-action duplicate icon `<Copy size={10} />` to canvas block headers and Section Settings header. (3) Added dedicated `[Nhân bản khối này]` action button in Right Inspector Panel. (4) Added `Ctrl+D` / `Cmd+D` keyboard shortcut with focus detection. (5) Auto-activates and contextually splices cloned block immediately after source block (`sourceIdx + 1`). |
-| 2026-08-25 | `CURRENT` | **INFO_GRID Horizontal Alignment & Label Typography Refinement:** (1) Standardized `alignItems: 'center'`, `minHeight: 'var(--pw-line-h)'`, and `lineHeight: 1.4` on all INFO_GRID fields across `PrintBlankForm.tsx`, `PrintFilledForm.tsx`, and `PrintRecord.tsx`, eliminating baseline synthesis drift between Checkbox (Option A) and Text/Date/Time fields. (2) Adjusted `label` field font weight from medium/semi-bold (600) to regular (400) with `lineHeight: 1.5` across Canvas, Filler, Reader, and Print templates. |
+| 2026-08-25 | `3bd2477` | **INFO_GRID Horizontal Alignment & Label Typography Refinement:** (1) Standardized `alignItems: 'center'`, `minHeight: 'var(--pw-line-h)'`, and `lineHeight: 1.4` on all INFO_GRID fields across `PrintBlankForm.tsx`, `PrintFilledForm.tsx`, and `PrintRecord.tsx`, eliminating baseline synthesis drift between Checkbox (Option A) and Text/Date/Time fields. (2) Adjusted `label` field font weight from medium/semi-bold (600) to regular (400) with `lineHeight: 1.5` across Canvas, Filler, Reader, and Print templates. |
 
 
