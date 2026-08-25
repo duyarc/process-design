@@ -1143,7 +1143,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                                   border: cellBorder,
                                   borderBottom: cellBorderBottom,
                                   padding: '6px 8px',
-                                  fontSize: '0.8rem',
+                                  fontSize: '0.82rem',
                                   verticalAlign: 'middle',
                                   textAlign: cellAlign,
                                   width: colWidth,
@@ -1152,7 +1152,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                                 }}
                               >
                                 {isStaticLabel ? (
-                                  <span style={{ fontWeight: 'var(--pw-weight-regular)', display: 'block', textAlign: cellAlign, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{staticVal}</span>
+                                  <span style={{ fontWeight: 'var(--pw-weight-regular)', display: 'block', textAlign: cellAlign, whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: '0.82rem', lineHeight: 1.4 }}>{renderFormattedText(staticVal)}</span>
                                 ) : col.type === 'likert_scale' ? (() => {
                                   const scaleOptions = col.scaleOptions || ['Easy to Answer', 'Could Answer', 'Difficult to Answer'];
                                   return (

@@ -492,7 +492,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
 
                           if (f.type === 'label') {
                             return (
-                              <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'center', fontSize: '0.85rem', whiteSpace: 'pre-wrap', wordBreak: 'break-word', pageBreakInside: 'avoid', lineHeight: 1.5 }}>
+                              <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'center', fontSize: '0.82rem', whiteSpace: 'pre-wrap', wordBreak: 'break-word', pageBreakInside: 'avoid', lineHeight: 1.5 }}>
                                 <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a' }}>{renderFormattedText(cleanLabel)}</span>
                               </div>
                             );
@@ -501,7 +501,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                           if (f.type === 'rating') {
                             const scale = f.ratingScale === 3 ? 3 : 5;
                             return (
-                              <div key={f.id} style={{ ...gridItemStyle, display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.85rem', pageBreakInside: 'avoid' }}>
+                              <div key={f.id} style={{ ...gridItemStyle, display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.82rem', pageBreakInside: 'avoid' }}>
                                 {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a' }}>{renderFormattedText(cleanLabel)}</span>}
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minHeight: '22px' }}>
                                   {Array.from({ length: scale }).map((_, idx) => (
@@ -668,9 +668,9 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
 
                           if (f.type === 'date') {
                             return (
-                              <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'center', minHeight: 'var(--pw-line-h)', gap: '8px', fontSize: '0.85rem' }}>
+                              <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'center', minHeight: 'var(--pw-line-h)', gap: '8px', fontSize: '0.82rem' }}>
                                 {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap', lineHeight: 1.4 }}>{renderFormattedText(cleanLabel)}</span>}
-                                <div style={{ fontSize: '0.85rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '4px', flex: 1 }}>
+                                <div style={{ fontSize: '0.82rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '4px', flex: 1 }}>
                                   <span
                                     data-acroform-field="true"
                                     data-field-id={`${f.id}_dd`}
@@ -700,7 +700,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                           }
 
                           return (
-                            <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'center', minHeight: 'var(--pw-line-h)', gap: '8px', fontSize: '0.85rem' }}>
+                            <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'center', minHeight: 'var(--pw-line-h)', gap: '8px', fontSize: '0.82rem' }}>
                               {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap', lineHeight: 1.4 }}>{renderFormattedText(cleanLabel)}</span>}
                               {f.type === 'time' ? (
                                 f.timeMode === 'dual' ? (
@@ -1038,7 +1038,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                             {col.type === 'likert_scale' ? (
                               <div style={{ display: 'grid', gridTemplateColumns: `repeat(${(col.scaleOptions || []).length || 3}, 1fr)`, gap: '4px', textAlign: 'center', width: '100%' }}>
                                 {(col.scaleOptions || ['Easy to Answer', 'Could Answer', 'Difficult to Answer']).map((opt, sIdx) => (
-                                  <div key={sIdx} style={{ fontSize: '0.78rem', fontWeight: 'var(--pw-weight-medium)', color: '#000000', padding: '2px 4px', wordBreak: 'break-word', textAlign: 'center' }}>
+                                  <div key={sIdx} style={{ fontSize: '0.82rem', fontWeight: 'var(--pw-weight-heavy)', color: '#000000', padding: '2px 4px', wordBreak: 'break-word', textAlign: 'center' }}>
                                     {opt}
                                   </div>
                                 ))}
@@ -1147,8 +1147,10 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
 
                               if (isStaticLabel) {
                                 return (
-                                  <td key={col.id} style={{ border: cellBorder, borderBottom: cellBorderBottom, padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'top', minHeight: `${28 * lc}px`, textAlign: cellAlign, width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
-                                    <span style={{ fontWeight: 'var(--pw-weight-regular)', display: 'block', textAlign: cellAlign, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{staticVal}</span>
+                                  <td key={col.id} style={{ border: cellBorder, borderBottom: cellBorderBottom, padding: '4px 6px', fontSize: '0.82rem', verticalAlign: 'top', minHeight: `${28 * lc}px`, textAlign: cellAlign, width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
+                                    <span style={{ fontWeight: 'var(--pw-weight-regular)', display: 'block', textAlign: cellAlign, whiteSpace: 'pre-wrap', wordBreak: 'break-word', color: '#000000', fontSize: '0.82rem', lineHeight: 1.4 }}>
+                                      {renderFormattedText(staticVal)}
+                                    </span>
                                   </td>
                                 );
                               }

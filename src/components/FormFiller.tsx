@@ -930,7 +930,7 @@ export default function FormFiller({
                             padding: '0.45rem 0',
                           }}
                         >
-                          <span style={{ fontSize: '0.85rem', fontWeight: 400, color: 'var(--text-primary)', whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.5 }}>
+                          <span style={{ fontSize: '0.82rem', fontWeight: 400, color: 'var(--text-primary)', whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.5 }}>
                             {renderFormattedText(sanitizeLabel(field.checkItem))}
                           </span>
                         </div>
@@ -1609,7 +1609,7 @@ export default function FormFiller({
                                     }}
                                   >
                                     {isStaticLabel ? (
-                                      <span style={{ fontWeight: 500, display: 'block', textAlign: cellAlign, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{staticVal}</span>
+                                      <span style={{ fontWeight: 500, display: 'block', textAlign: cellAlign, whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: '0.82rem', lineHeight: 1.4 }}>{renderFormattedText(staticVal)}</span>
                                     ) : col.type === 'checkbox' ? (
                                       hasOptions ? (
                                         <div style={{

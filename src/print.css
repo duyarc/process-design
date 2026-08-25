@@ -4,6 +4,14 @@
   --pw-weight-heavy:   700;   /* Group 1: Major Headings, Totals, Signer Roles */
   --pw-weight-medium:  600;   /* Group 2: Sub-headings, Column <th>, Field Labels */
   --pw-weight-regular: 400;   /* Group 3: Data, STT numbers, Punctuation */
+
+  /* Form Engine Typography Size Tokens */
+  --pw-font-banner: 1.35rem;  /* Main Form Banner Title */
+  --pw-font-h1: 1.05rem;      /* Section H1 */
+  --pw-font-h2: 0.90rem;      /* Section H2 */
+  --pw-font-body: 0.82rem;    /* Unified Body: INFO_GRID labels/questions, TABLE row cells/data, Checklist items */
+  --pw-font-sub: 0.80rem;     /* Group separator rows (isGroupHeader), sub-labels */
+  --pw-font-xs: 0.75rem;      /* Footnotes, small metadata */
 }
 
 /* Screen utility for hiding print-only elements */

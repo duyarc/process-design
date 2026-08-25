@@ -406,7 +406,7 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
 
                             if (f.type === 'label') {
                               return (
-                                <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'center', fontSize: '0.85rem', whiteSpace: 'pre-wrap', wordBreak: 'break-word', pageBreakInside: 'avoid', lineHeight: 1.5 }}>
+                                <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'center', fontSize: '0.82rem', whiteSpace: 'pre-wrap', wordBreak: 'break-word', pageBreakInside: 'avoid', lineHeight: 1.5 }}>
                                   <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a' }}>{renderFormattedText(cleanLabel)}</span>
                                 </div>
                               );
@@ -416,7 +416,7 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                               const scale = f.ratingScale === 3 ? 3 : 5;
                               const currentRating = parseInt(val, 10) || 0;
                               return (
-                                <div key={f.id} style={{ ...gridItemStyle, display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.85rem', pageBreakInside: 'avoid' }}>
+                                <div key={f.id} style={{ ...gridItemStyle, display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.82rem', pageBreakInside: 'avoid' }}>
                                   {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a' }}>{renderFormattedText(cleanLabel)}</span>}
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px', minHeight: '22px' }}>
                                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
@@ -879,7 +879,7 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                       if (col.type === 'likert_scale') {
                                         const scaleOptions = col.scaleOptions || ['Easy to Answer', 'Could Answer', 'Difficult to Answer'];
                                         return (
-                                          <td key={col.id} style={{ border: cellBorder, borderBottom: cellBorderBottom, padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'middle', height: '28px', textAlign: 'center', width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
+                                          <td key={col.id} style={{ border: cellBorder, borderBottom: cellBorderBottom, padding: '4px 6px', fontSize: '0.82rem', verticalAlign: 'middle', height: '28px', textAlign: 'center', width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
                                             <div style={{ display: 'grid', gridTemplateColumns: `repeat(${scaleOptions.length}, 1fr)`, gap: '4px', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
                                               {scaleOptions.map((opt, sIdx) => {
                                                 const isSelected = cellVal === opt;
@@ -913,7 +913,7 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                         const scale = col.ratingScale === 3 ? 3 : 5;
                                         const currentRating = parseInt(cellVal, 10) || 0;
                                         return (
-                                          <td key={col.id} style={{ border: cellBorder, borderBottom: cellBorderBottom, padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'middle', height: '28px', textAlign: 'center', width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
+                                          <td key={col.id} style={{ border: cellBorder, borderBottom: cellBorderBottom, padding: '4px 6px', fontSize: '0.82rem', verticalAlign: 'middle', height: '28px', textAlign: 'center', width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
                                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
                                               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
                                                 {Array.from({ length: scale }).map((_, idx) => (
@@ -938,9 +938,11 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                         );
                                       }
                                       return (
-                                        <td key={col.id} style={{ border: cellBorder, borderBottom: cellBorderBottom, padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'middle', minHeight: '28px', textAlign: cellAlign as any, width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
+                                        <td key={col.id} style={{ border: cellBorder, borderBottom: cellBorderBottom, padding: '4px 6px', fontSize: '0.82rem', verticalAlign: 'middle', minHeight: '28px', textAlign: cellAlign as any, width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
                                           {isStaticLabel ? (
-                                            <span style={{ fontWeight: 'var(--pw-weight-regular)', display: 'block', textAlign: cellAlign as any, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{staticVal}</span>
+                                            <span style={{ fontWeight: 'var(--pw-weight-regular)', display: 'block', textAlign: cellAlign as any, whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: '0.82rem', lineHeight: 1.4 }}>
+                                              {renderFormattedText(staticVal)}
+                                            </span>
                                           ) : cellVal}
                                         </td>
                                       );
