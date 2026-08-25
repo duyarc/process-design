@@ -995,8 +995,10 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
             )}
             {(() => {
               const bStyle = block.borderStyle || 'grid';
+              const tableBorder = bStyle === 'borderless' ? 'none' : bStyle === 'horizontal_only' ? 'none' : '1.5px solid #000000';
+              const tableBorderTop = bStyle === 'horizontal_only' ? '1.5px solid #000000' : undefined;
               const cellBorder = bStyle === 'borderless' ? 'none' : bStyle === 'horizontal_only' ? 'none' : '1.5px solid #000000';
-              const cellBorderBottom = bStyle === 'horizontal_only' ? '1.5px solid #000000' : undefined;
+              const cellBorderBottom = bStyle === 'horizontal_only' ? '1.5px solid #000000' : (bStyle === 'borderless' ? 'none' : '1.5px solid #000000');
 
               return (
               <div style={{ overflowX: 'auto' }}>
@@ -1006,7 +1008,8 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                     width: '100%',
                     borderCollapse: 'collapse',
                     tableLayout: 'fixed',
-                    border: bStyle === 'borderless' ? 'none' : undefined
+                    border: tableBorder,
+                    borderTop: tableBorderTop
                   }}
                 >
                 <colgroup>

@@ -959,8 +959,10 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
             {block.type === 'TABLE' && (() => {
               const bStyle = block.borderStyle || 'grid';
               const titleFmt = getEffectiveTitleFormat(block);
+              const tableBorder = bStyle === 'borderless' ? 'none' : bStyle === 'horizontal_only' ? 'none' : '1.5px solid #000000';
+              const tableBorderTop = bStyle === 'horizontal_only' ? '1.5px solid #000000' : undefined;
               const cellBorder = bStyle === 'borderless' ? 'none' : bStyle === 'horizontal_only' ? 'none' : '1.5px solid #000000';
-              const cellBorderBottom = bStyle === 'horizontal_only' ? '1.5px solid #000000' : undefined;
+              const cellBorderBottom = bStyle === 'horizontal_only' ? '1.5px solid #000000' : (bStyle === 'borderless' ? 'none' : '1.5px solid #000000');
 
               return (
                 <div style={{ marginTop: '0' }}>
@@ -986,7 +988,8 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                       borderCollapse: 'collapse',
                       tableLayout: 'fixed',
                       pageBreakInside: 'auto',
-                      border: bStyle === 'borderless' ? 'none' : undefined
+                      border: tableBorder,
+                      borderTop: tableBorderTop
                     }}
                   >
                   <colgroup>

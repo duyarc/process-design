@@ -558,12 +558,26 @@ tr:last-child td {
 /* Table Border Styles: Normal & Print */
 table.print-table--borderless,
 table.print-table--borderless th,
-table.print-table--borderless td {
+table.print-table--borderless td,
+table.print-table--borderless tr {
   border: none !important;
 }
 
-table.print-table--horizontal,
-table.print-table--horizontal th,
+table.print-table--horizontal {
+  border-collapse: collapse !important;
+  border-top: 1.5px solid #cbd5e1 !important;
+  border-bottom: none !important;
+  border-left: none !important;
+  border-right: none !important;
+}
+
+table.print-table--horizontal th {
+  border-top: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-bottom: 1.5px solid #cbd5e1 !important;
+}
+
 table.print-table--horizontal td {
   border-top: none !important;
   border-left: none !important;
@@ -574,15 +588,30 @@ table.print-table--horizontal td {
 /* Table Border Styles: PDF Export Capture Mode (html2canvas) overrides */
 .exporting-pdf-mode table.print-table.print-table--borderless,
 .exporting-pdf-mode table.print-table.print-table--borderless th,
-.exporting-pdf-mode table.print-table.print-table--borderless td {
+.exporting-pdf-mode table.print-table.print-table--borderless td,
+.exporting-pdf-mode table.print-table.print-table--borderless tr {
   border: none !important;
 }
 
-.exporting-pdf-mode table.print-table.print-table--horizontal,
-.exporting-pdf-mode table.print-table.print-table--horizontal th,
+.exporting-pdf-mode table.print-table.print-table--horizontal {
+  border-collapse: collapse !important;
+  border-top: 1.5px solid #000000 !important;
+  border-bottom: none !important;
+  border-left: none !important;
+  border-right: none !important;
+}
+
+.exporting-pdf-mode table.print-table.print-table--horizontal th {
+  border-top: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-bottom: 1.5px solid #000000 !important;
+}
+
 .exporting-pdf-mode table.print-table.print-table--horizontal td {
   border-top: none !important;
   border-left: none !important;
   border-right: none !important;
-  border-bottom: 1px solid #000000 !important;
+  border-bottom: 1.5px solid #000000 !important;
 }
+

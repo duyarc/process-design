@@ -3131,7 +3131,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                              style={{ 
                                                padding: isOptionCell ? '4px' : '0', 
                                                borderRight: bStyle === 'grid' ? '1px solid #cbd5e1' : 'none',
-                                               borderBottom: bStyle === 'horizontal_only' ? '1px solid #cbd5e1' : 'none',
+                                               borderBottom: bStyle === 'borderless' ? 'none' : '1px solid #cbd5e1',
                                                verticalAlign: 'top', 
                                                textAlign: cellAlign,
                                                 width: colWidth,

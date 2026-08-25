@@ -9,7 +9,7 @@ This document is the **single source of truth** for the visual design language o
 
 | Field | Value |
 |---|---|
-| **Verified At Commit** | `ba97d0e` (2026-08-17) — Section 4 (Explicit width, maxWidth, and boxSizing on all td cells with table-layout fixed in print.css). |
+| **Verified At Commit** | `CURRENT` (2026-08-25) — Section 2 & 4 (Table Border Styles: .print-table--horizontal & .print-table--borderless in index.css). |
 
 ## 1. Design Principles
 
@@ -177,3 +177,4 @@ exclusion, otherwise designed header tints are still forced to `#f0f0f0`.
 | 2026-08-17 | `3504b80` | **Table Group Header Rows UI Pattern:** Documented category banner rows in tables. Full width (`colSpan=cols.length`), medium gray background (`#E5E7EB`), bold text (`fontWeight: 700`), saving 30–40% vertical whitespace. |
 | 2026-08-17 | `f5e93b8` | **Table Group-Level Multi-`<tbody>` Page Break:** Documented `.print-table-group` pattern (`<tbody>` with `page-break-inside: avoid` per section), eliminating dead white space on preceding pages and preserving repeated `<thead>` on new pages. |
 | 2026-08-17 | `237f540` | **`<colgroup>` & `<col>` Dynamic Table Width Standardization:** Standardized `<colgroup>` with dynamic `<col>` tags across all table renderers to guarantee 100% strict column width alignment across all browsers and printouts. |
+| 2026-08-25 | `CURRENT` | **Table Border Styles Parity (`.print-table--horizontal` & `.print-table--borderless`):** Standardized horizontal-only table styles with top border on `<table>`, bottom border on `<th>` and `<td>`, and elimination of vertical borders across screen, print media, and PDF export modes. |

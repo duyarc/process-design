@@ -1995,7 +1995,15 @@ setFormValues(prev => ({ ...prev, [field.id]: stringifySubtableValue(newRows) })
                                <div style={{ overflowX: 'auto' }}>
                                  <table
                                    className={bStyle === 'borderless' ? 'print-table--borderless' : bStyle === 'horizontal_only' ? 'print-table--horizontal' : ''}
-                                   style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', background: '#ffffff', tableLayout: 'fixed', border: bStyle === 'grid' ? '1px solid var(--neutral-border)' : 'none' }}
+                                   style={{ 
+                                     width: '100%', 
+                                     borderCollapse: 'collapse', 
+                                     fontSize: '0.8rem', 
+                                     background: '#ffffff', 
+                                     tableLayout: 'fixed', 
+                                     border: bStyle === 'grid' ? '1px solid var(--neutral-border)' : 'none',
+                                     borderTop: bStyle === 'horizontal_only' ? '1.5px solid #cbd5e1' : undefined
+                                   }}
                                  >
                                    <colgroup>
                                      {(block.tableColumns || []).map((col: any) => {
@@ -2014,7 +2022,7 @@ setFormValues(prev => ({ ...prev, [field.id]: stringifySubtableValue(newRows) })
                                              style={{
                                                padding: '8px 10px',
                                                borderRight: bStyle === 'grid' ? '1px solid #cbd5e1' : 'none',
-                                               borderBottom: bStyle === 'horizontal_only' ? '1.5px solid #cbd5e1' : 'none',
+                                               borderBottom: bStyle === 'horizontal_only' ? '1.5px solid #cbd5e1' : (bStyle === 'borderless' ? 'none' : '2px solid var(--primary)'),
                                                color: '#0f172a',
                                                textAlign: headerAlign as any,
                                                width: colWidth,
@@ -2082,7 +2090,7 @@ setFormValues(prev => ({ ...prev, [field.id]: stringifySubtableValue(newRows) })
                                                  style={{
                                                    padding: '6px',
                                                    borderRight: bStyle === 'grid' ? '1px solid var(--neutral-border)' : 'none',
-                                                   borderBottom: bStyle === 'horizontal_only' ? '1px solid var(--neutral-border)' : 'none',
+                                                   borderBottom: bStyle === 'borderless' ? 'none' : '1px solid var(--neutral-border)',
                                                    verticalAlign: 'middle',
                                                    textAlign: cellAlign,
                                                    width: colWidth,

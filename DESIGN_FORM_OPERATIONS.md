@@ -9,7 +9,7 @@
 | **Module Name** | Form Operations |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | `76f1765` (2026-08-17) — Section 4 (Photo field rowSpan handling and styling in FormFiller, PrintFilledForm, and PrintRecord). |
+| **Verified At Commit** | `CURRENT` (2026-08-25) — Sections 2 & 4 (Table Block Border Styles Parity: FormFiller.tsx, ProcessReader.tsx, PrintFilledForm.tsx, PrintRecord.tsx). |
 
 ### Quick File Index
 
@@ -434,6 +434,7 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 | 2026-08-17 | `3504b80` | **TABLE Full-Width Group Header Rows Support:** Updated `PrintFilledForm.tsx`, `FormFiller.tsx`, and `ProcessReader.tsx` to render `row.isGroupHeader` rows as full-width category banners (`colSpan=cols.length`, `#E5E7EB`), preserving 100% visual parity with FormBuilder. |
 | 2026-08-17 | `f5e93b8` | **PrintFilledForm Multi-`<tbody>` Group Page Breaking:** Updated `PrintFilledForm.tsx` to group rows into `.print-table-group` (`<tbody>` with `page-break-inside: avoid`), allowing filled forms to break cleanly across pages by group unit. |
 | 2026-08-17 | `237f540` | **`<colgroup>` Dynamic Column Width Enforcement:** Added `<colgroup>` and `<col>` elements across `FormFiller.tsx`, `ProcessReader.tsx`, and `PrintFilledForm.tsx` to ensure 100% stable column alignments. |
+| 2026-08-25 | `CURRENT` | **Table Block Border Styles Parity & Bottom Row Border Fix:** Updated `FormFiller.tsx`, `ProcessReader.tsx`, `PrintFilledForm.tsx`, and `PrintRecord.tsx` with explicit `borderBottom` definitions on `td` and `borderTop` on `horizontal_only` tables. |
 
 
 

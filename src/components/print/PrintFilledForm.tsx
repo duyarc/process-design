@@ -676,8 +676,10 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                   {block.type === 'TABLE' && (() => {
                     const bStyle = block.borderStyle || 'grid';
                     const titleFmt = getEffectiveTitleFormat(block);
+                    const tableBorder = bStyle === 'borderless' ? 'none' : bStyle === 'horizontal_only' ? 'none' : '1.5px solid #000000';
+                    const tableBorderTop = bStyle === 'horizontal_only' ? '1.5px solid #000000' : undefined;
                     const cellBorder = bStyle === 'borderless' ? 'none' : bStyle === 'horizontal_only' ? 'none' : '1.5px solid #000000';
-                    const cellBorderBottom = bStyle === 'horizontal_only' ? '1.5px solid #000000' : undefined;
+                    const cellBorderBottom = bStyle === 'horizontal_only' ? '1.5px solid #000000' : (bStyle === 'borderless' ? 'none' : '1.5px solid #000000');
                     const tableCols: TableColumnConfig[] = block.tableColumns || [];
                     const reconstructedRows = buildTableRowMap(block.id, submission.formData, tableCols);
                     // Fall back to template rows (static) if no snapshot rows found
@@ -696,7 +698,8 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                             borderCollapse: 'collapse',
                             tableLayout: 'fixed',
                             pageBreakInside: 'auto',
-                            border: bStyle === 'borderless' ? 'none' : undefined
+                            border: tableBorder,
+                            borderTop: tableBorderTop
                           }}
                         >
                           <colgroup>
