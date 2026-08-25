@@ -2,7 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import type { FormTemplateISO, LayoutBlockISO, TableColumnConfig } from '../../types';
 import { formatFormVersion, getColStyleWidth } from '../../types';
-import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, getAutoCheckboxLayoutMode } from '../../utils/formUtils';
+import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, getAutoCheckboxLayoutMode, hasLongOptions } from '../../utils/formUtils';
 import { renderFormattedText } from '../../utils/textFormatter';
 
 import { exportFillablePdfFromDOM } from '../../utils/pdfFormExporter';
@@ -548,17 +548,25 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                           if (f.type === 'checkbox' || f.type === 'radio') {
                             const rawOptions = f.options ?? [{ label: 'Có', value: 'YES' }, { label: 'Không', value: 'NO' }];
                             const options = rawOptions.filter((opt: any) => opt.label && opt.label.trim() !== '');
-                            const layoutMode = getAutoCheckboxLayoutMode(f);
+                            const layoutMode = getAutoCheckboxLayoutMode(f, block.columns);
+                            const isLongOpt = hasLongOptions(f);
 
                             if (layoutMode === 'OPTION_C') {
                               return (
-                                <div key={f.id} style={{ ...gridItemStyle, display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.85rem' }}>
+                                <div key={f.id} style={{ ...gridItemStyle, display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.82rem' }}>
                                   {cleanLabel && (
                                     <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a' }}>{renderFormattedText(cleanLabel)}</span>
                                   )}
-                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingLeft: '1.25rem' }}>
+                                  <div style={{
+                                    display: 'flex',
+                                    flexDirection: isLongOpt ? 'column' : 'row',
+                                    flexWrap: isLongOpt ? 'nowrap' : 'wrap',
+                                    gap: isLongOpt ? '4px' : '4px 20px',
+                                    paddingLeft: '1.25rem',
+                                    alignItems: isLongOpt ? 'flex-start' : 'center'
+                                  }}>
                                     {options.map((opt: any) => (
-                                      <span key={opt.value} style={{ display: 'inline-flex', alignItems: 'flex-start', gap: '6px', fontSize: '0.8rem', whiteSpace: 'normal', wordBreak: 'break-word', maxWidth: '100%' }}>
+                                      <span key={opt.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', whiteSpace: 'normal', wordBreak: 'break-word', maxWidth: '100%' }}>
                                         <span
                                           className="acro-option-icon"
                                           data-acroform-field="true"
@@ -569,7 +577,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                           data-field-radiovalue={opt.value}
                                           style={{
                                             borderRadius: f.type === 'radio' ? '50%' : '2px',
-                                            marginTop: '2px'
+                                            marginTop: isLongOpt ? '2px' : '0'
                                           }}
                                         />
                                         <span style={{ lineHeight: '1.3' }}>{opt.label}</span>
@@ -581,11 +589,21 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                             }
 
                             return (
-                              <div key={f.id} style={{ ...gridItemStyle, display: 'grid', gridTemplateColumns: '35% 65%', gap: '8px', alignItems: 'center', minHeight: 'var(--pw-line-h)', fontSize: '0.85rem' }}>
+                              <div key={f.id} style={{
+                                ...gridItemStyle,
+                                display: 'grid',
+                                gridTemplateColumns: block.columns === 1 ? 'auto 1fr' : '35% 65%',
+                                gap: '8px 20px',
+                                alignItems: 'center',
+                                minHeight: 'var(--pw-line-h)',
+                                fontSize: '0.82rem'
+                              }}>
                                 {cleanLabel && (
-                                  <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', lineHeight: 1.4 }}>{renderFormattedText(cleanLabel)}</span>
+                                  <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', lineHeight: 1.4, whiteSpace: block.columns === 1 ? 'nowrap' : 'normal' }}>
+                                    {renderFormattedText(cleanLabel)}
+                                  </span>
                                 )}
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', alignItems: 'center', maxWidth: '100%' }}>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 20px', alignItems: 'center', maxWidth: '100%' }}>
                                   {options.map((opt: any) => (
                                     <span key={opt.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.8rem', whiteSpace: 'normal', wordBreak: 'break-word', maxWidth: '100%' }}>
                                       <span

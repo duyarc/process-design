@@ -2,25 +2,57 @@ import type { FormFieldISO, TitleFormatISO } from '../types';
 
 /**
  * Automatically determines whether a checkbox or radio field should render using
- * Option A (2-Column Fixed Grid with 35% left column) or Option C (Top-Aligned Label + Indented Options).
+ * Option A (Inline 1-line or 2-Column Grid) or Option C (Top-Aligned Label + Options underneath).
+ * Takes into account the number of columns in the parent layout block (blockColumns) or field colSpan.
  */
-export function getAutoCheckboxLayoutMode(field: FormFieldISO): 'OPTION_A' | 'OPTION_C' {
+export function getAutoCheckboxLayoutMode(field: FormFieldISO, blockColumns: number = 2): 'OPTION_A' | 'OPTION_C' {
   const labelLength = (field.checkItem || '').trim().length;
   const options = field.options || [];
 
-  // 1. Long Label Rule: If label text exceeds 35 characters
-  if (labelLength > 35) return 'OPTION_C';
+  // Effective columns: if field has colSpan spanning full width, treat as 1 column
+  const effectiveCols = (field.colSpan && field.colSpan >= blockColumns) ? 1 : blockColumns;
 
-  // 2. Long Option Text Rule: If any option description exceeds 40 characters
+  // 1. Long Option Text Rule: If any option description exceeds 40 characters -> must be Option C
   const hasLongOptionText = options.some(opt => (opt.label || '').length > 40);
   if (hasLongOptionText) return 'OPTION_C';
 
-  // 3. High Option Density Rule: More than 4 stacked options with medium text length (>20 chars)
+  // 2. High Option Density Rule: More than 4 stacked options with medium text length (>20 chars)
   const isHighDensity = options.length >= 4 && options.some(opt => (opt.label || '').length > 20);
   if (isHighDensity) return 'OPTION_C';
 
-  // Default to Option A (Clean 2-Column Grid)
+  // 3. Context-Aware Label & Total Length Thresholds:
+  const totalOptionsLength = options.reduce((sum, opt) => sum + (opt.label || '').length, 0);
+
+  if (effectiveCols === 1) {
+    // In 1-column layout (~698px width), questions up to 65 chars with short options easily fit on 1 line.
+    // Also if label + options total <= 85 characters, stay Option A (Inline).
+    if (labelLength > 65 && totalOptionsLength > 25) return 'OPTION_C';
+    if (labelLength > 75) return 'OPTION_C';
+    return 'OPTION_A';
+  }
+
+  if (effectiveCols === 2) {
+    // In 2-column layout (~340px width)
+    if (labelLength > 45 && totalOptionsLength > 15) return 'OPTION_C';
+    if (labelLength > 55) return 'OPTION_C';
+    return 'OPTION_A';
+  }
+
+  // In 3+ column layout (~220px width)
+  if (labelLength > 30) return 'OPTION_C';
   return 'OPTION_A';
+}
+
+/**
+ * Checks whether options within a field are long or dense, requiring vertical stacking (column).
+ * If false, options can be displayed horizontally inline with flex-direction: row.
+ */
+export function hasLongOptions(field: FormFieldISO): boolean {
+  const options = field.options || [];
+  if (options.some(opt => (opt.label || '').length > 30)) return true;
+  if (options.length >= 4 && options.some(opt => (opt.label || '').length > 15)) return true;
+  if (options.length > 5) return true;
+  return false;
 }
 
 /**

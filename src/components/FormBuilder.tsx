@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import type { FormFieldISO, FormRevisionEntry, FormTemplateISO, LayoutBlockISO, RadioOption, MatrixConfigISO, TableColumnConfig, TableRowConfig, ColumnSummaryRowConfig, TitleFormatISO, SubtableColumn } from '../types';
 import { formatFormVersion, getColStyleWidth } from '../types';
-import { sanitizeLabel, getEffectiveTitleFormat, getAutoCheckboxLayoutMode } from '../utils/formUtils';
+import { sanitizeLabel, getEffectiveTitleFormat, getAutoCheckboxLayoutMode, hasLongOptions } from '../utils/formUtils';
 import { applyTextFormat, handleFormatKeyDown } from '../utils/textFormatter';
 import { 
   Plus, 
@@ -2561,22 +2561,23 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
 
                                     {(f.type === 'radio' || f.type === 'checkbox') && (() => {
                                       const options = f.options ?? [{ label: 'Đạt', value: 'PASS' }, { label: 'Không Đạt', value: 'FAIL' }];
-                                      const layoutMode = getAutoCheckboxLayoutMode(f);
+                                      const layoutMode = getAutoCheckboxLayoutMode(f, block.columns);
                                       const isOptionC = layoutMode === 'OPTION_C';
+                                      const isLongOpt = hasLongOptions(f);
                                       return (
                                         <div style={{
                                           display: 'flex',
-                                          flexDirection: isOptionC ? 'column' : 'row',
-                                          flexWrap: isOptionC ? 'nowrap' : 'wrap',
-                                          gap: isOptionC ? '5px' : '6px 18px',
-                                          alignItems: 'flex-start',
+                                          flexDirection: isOptionC && isLongOpt ? 'column' : 'row',
+                                          flexWrap: isOptionC && isLongOpt ? 'nowrap' : 'wrap',
+                                          gap: isOptionC && isLongOpt ? '5px' : '6px 18px',
+                                          alignItems: isOptionC && isLongOpt ? 'flex-start' : 'center',
                                           marginTop: '4px',
                                           paddingTop: '2px',
                                           paddingLeft: isOptionC ? '1rem' : '0',
                                           maxWidth: '100%'
                                         }}>
                                           {options.map((opt: any) => (
-                                            <span key={opt.value} style={{ display: 'inline-flex', alignItems: 'flex-start', gap: '6px', fontSize: '0.78rem', color: '#334155', whiteSpace: 'normal', wordBreak: 'break-word', maxWidth: '100%' }}>
+                                            <span key={opt.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#334155', whiteSpace: 'normal', wordBreak: 'break-word', maxWidth: '100%' }}>
                                               <span style={{
                                                 display: 'inline-block',
                                                 width: '12px',
@@ -2585,7 +2586,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                 borderRadius: f.type === 'radio' ? '50%' : '2px',
                                                 background: '#ffffff',
                                                 flexShrink: 0,
-                                                marginTop: '2px'
+                                                marginTop: isOptionC && isLongOpt ? '2px' : '0'
                                               }} />
                                               <span style={{ lineHeight: '1.3' }}>{opt.label}</span>
                                             </span>

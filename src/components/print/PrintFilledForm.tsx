@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import { Star } from 'lucide-react';
 import type { Submission, FormTemplateISO, LayoutBlockISO, TableColumnConfig } from '../../types';
 import { formatFormVersion, getColStyleWidth } from '../../types';
-import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName } from '../../utils/formUtils';
+import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, getAutoCheckboxLayoutMode, hasLongOptions } from '../../utils/formUtils';
 import { renderFormattedText } from '../../utils/textFormatter';
 
 // ─── Helpers (mirrored from PrintBlankForm) ───────────────────────────────────
@@ -460,19 +460,69 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
 
                             if (f.type === 'checkbox' || f.type === 'radio') {
                               const options = f.options ?? [{ label: 'Có', value: 'YES' }, { label: 'Không', value: 'NO' }];
+                              const layoutMode = getAutoCheckboxLayoutMode(f, block.columns);
+                              const isLongOpt = hasLongOptions(f);
+
+                              if (layoutMode === 'OPTION_C') {
+                                return (
+                                  <div key={f.id} style={{ ...gridItemStyle, display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.82rem' }}>
+                                    {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a' }}>{renderFormattedText(cleanLabel)}</span>}
+                                    <div style={{
+                                      display: 'flex',
+                                      flexDirection: isLongOpt ? 'column' : 'row',
+                                      flexWrap: isLongOpt ? 'nowrap' : 'wrap',
+                                      gap: isLongOpt ? '4px' : '4px 20px',
+                                      paddingLeft: '1.25rem',
+                                      alignItems: isLongOpt ? 'flex-start' : 'center'
+                                    }}>
+                                      {options.map((opt: any) => {
+                                        const selected = isOptionSelected(val, opt.value, f.type as 'radio' | 'checkbox');
+                                        return (
+                                          <span key={opt.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', whiteSpace: 'normal', wordBreak: 'break-word', maxWidth: '100%' }}>
+                                            <span style={{
+                                              display: 'inline-block', width: '13px', height: '13px',
+                                              border: '1px solid #000000',
+                                              background: selected ? '#000000' : '#ffffff',
+                                              borderRadius: f.type === 'radio' ? '50%' : '2px', flexShrink: 0,
+                                              color: '#ffffff', fontSize: '10px', lineHeight: '13px', textAlign: 'center',
+                                              marginTop: isLongOpt ? '2px' : '0'
+                                            }}>
+                                              {selected ? '✓' : ''}
+                                            </span>
+                                            <span style={{ lineHeight: '1.3' }}>{opt.label}</span>
+                                          </span>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                );
+                              }
+
                               return (
-                                <div key={f.id} style={{ ...gridItemStyle, display: 'grid', gridTemplateColumns: '35% 65%', gap: '8px', alignItems: 'center', minHeight: 'var(--pw-line-h)', fontSize: '0.85rem' }}>
-                                  {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', lineHeight: 1.4 }}>{renderFormattedText(cleanLabel)}</span>}
-                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', alignItems: 'center', maxWidth: '100%' }}>
+                                <div key={f.id} style={{
+                                  ...gridItemStyle,
+                                  display: 'grid',
+                                  gridTemplateColumns: block.columns === 1 ? 'auto 1fr' : '35% 65%',
+                                  gap: '8px 20px',
+                                  alignItems: 'center',
+                                  minHeight: 'var(--pw-line-h)',
+                                  fontSize: '0.82rem'
+                                }}>
+                                  {cleanLabel && (
+                                    <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', lineHeight: 1.4, whiteSpace: block.columns === 1 ? 'nowrap' : 'normal' }}>
+                                      {renderFormattedText(cleanLabel)}
+                                    </span>
+                                  )}
+                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 20px', alignItems: 'center', maxWidth: '100%' }}>
                                     {options.map((opt: any) => {
                                       const selected = isOptionSelected(val, opt.value, f.type as 'radio' | 'checkbox');
                                       return (
-                                        <span key={opt.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.8rem' }}>
+                                        <span key={opt.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.8rem', whiteSpace: 'normal', wordBreak: 'break-word', maxWidth: '100%' }}>
                                           <span style={{
                                             display: 'inline-block', width: '13px', height: '13px',
                                             border: '1px solid #000000',
                                             background: selected ? '#000000' : '#ffffff',
-                                            borderRadius: '2px', flexShrink: 0,
+                                            borderRadius: f.type === 'radio' ? '50%' : '2px', flexShrink: 0,
                                             color: '#ffffff', fontSize: '10px', lineHeight: '13px', textAlign: 'center'
                                           }}>
                                             {selected ? '✓' : ''}

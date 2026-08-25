@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { Process, FormTemplateISO, SubmissionFieldSnapshot, Submission } from '../types';
 import { formatFormVersion, getColStyleWidth } from '../types';
-import { sanitizeLabel, getEffectiveTitleFormat, validateFormSubmission, getAutoCheckboxLayoutMode } from '../utils/formUtils';
+import { sanitizeLabel, getEffectiveTitleFormat, validateFormSubmission, getAutoCheckboxLayoutMode, hasLongOptions } from '../utils/formUtils';
 import { renderFormattedText } from '../utils/textFormatter';
 import PrintBlankForm from './print/PrintBlankForm';
 import PrintFilledForm from './print/PrintFilledForm';
@@ -1002,14 +1002,15 @@ export default function FormFiller({
                             />
                           )
                         ) : field.type === 'checkbox' ? (() => {
-                          const isOptionC = getAutoCheckboxLayoutMode(field) === 'OPTION_C';
+                          const isOptionC = getAutoCheckboxLayoutMode(field, block.columns) === 'OPTION_C';
+                          const isLongOpt = hasLongOptions(field);
                           return (
                             <div style={{
                               display: 'flex',
-                              flexDirection: isOptionC ? 'column' : 'row',
-                              flexWrap: isOptionC ? 'nowrap' : 'wrap',
-                              gap: isOptionC ? '6px' : '6px 16px',
-                              alignItems: 'flex-start',
+                              flexDirection: isOptionC && isLongOpt ? 'column' : 'row',
+                              flexWrap: isOptionC && isLongOpt ? 'nowrap' : 'wrap',
+                              gap: isOptionC && isLongOpt ? '6px' : '6px 20px',
+                              alignItems: isOptionC && isLongOpt ? 'flex-start' : 'center',
                               padding: '4px 0',
                               paddingLeft: isOptionC ? '1rem' : '0'
                             }}>
