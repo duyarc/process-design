@@ -30,6 +30,7 @@ import {
   CheckSquare,
   Printer,
   Star,
+  SquareDashed,
   Table as TableIcon
 } from 'lucide-react';
 import PrintBlankForm from './print/PrintBlankForm';
@@ -644,6 +645,10 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
 
   const handleUpdateBlockTitleFormat = (blockId: string, format: TitleFormatISO) => {
     setLayoutBlocks(prev => prev.map(b => b.id === blockId ? { ...b, titleFormat: format, sectionFormat: format === 'H1' || format === 'H2' ? format : b.sectionFormat } : b));
+  };
+
+  const handleUpdateBlockBorderStyle = (blockId: string, borderStyle: 'grid' | 'borderless' | 'horizontal_only') => {
+    setLayoutBlocks(prev => prev.map(b => b.id === blockId ? { ...b, borderStyle } : b));
   };
 
 
@@ -2798,6 +2803,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                       
                       {/* 3.2 DYNAMIC TABLE BLOCK */}
                       {block.type === 'TABLE' && (() => {
+                        const bStyle = block.borderStyle || 'grid';
                         const titleFmt = getEffectiveTitleFormat(block);
                         return (
                           <div>
@@ -2817,7 +2823,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                               )
                             )}
                           
-                          <div style={{ overflowX: 'auto', border: '1px solid #cbd5e1', borderRadius: '4px' }}>
+                          <div style={{ overflowX: 'auto', border: bStyle === 'borderless' ? '1px dashed #e2e8f0' : '1px solid #cbd5e1', borderRadius: '4px', background: bStyle === 'borderless' ? '#ffffff' : 'inherit' }}>
                             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem', tableLayout: 'fixed' }}>
                               <colgroup>
                                 {(block.tableColumns || []).map((col) => {
@@ -2829,82 +2835,93 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                 )}
                               </colgroup>
                               <thead>
-                                <tr style={{ background: '#e2e8f0', borderBottom: '2px solid var(--primary)' }}>
+                                <tr style={{ background: bStyle === 'borderless' ? 'transparent' : '#e2e8f0', borderBottom: bStyle === 'borderless' ? 'none' : bStyle === 'horizontal_only' ? '1.5px solid #cbd5e1' : '2px solid var(--primary)' }}>
                                   {(block.tableColumns || []).map((col) => {
                                     const colWidth = getColStyleWidth(col.id, col.width, block.tableColumns || []);
-                                    const headerAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'date' || col.type === 'time' ? 'center' : 'left'));
+                                    const headerAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'date' || col.type === 'time' || col.type === 'likert_scale' ? 'center' : 'left'));
                                     return (
                                       <th
                                         key={col.id}
                                         style={{
                                           padding: '4px 6px',
-                                          borderRight: '1px solid #cbd5e1',
+                                          borderRight: bStyle === 'grid' ? '1px solid #cbd5e1' : 'none',
+                                          borderBottom: bStyle === 'horizontal_only' ? '1.5px solid #cbd5e1' : 'none',
                                           width: colWidth,
                                           verticalAlign: 'top',
                                           boxSizing: 'border-box'
                                         }}
                                       >
-                                        <div style={{ display: 'grid', width: '100%', minHeight: '22px', boxSizing: 'border-box' }}>
-                                          <span
-                                            aria-hidden="true"
-                                            style={{
-                                              gridArea: '1 / 1 / 2 / 2',
-                                              visibility: 'hidden',
-                                              whiteSpace: 'pre-wrap',
-                                              wordBreak: 'break-word',
-                                              fontSize: '0.75rem',
-                                              fontWeight: 600,
-                                              lineHeight: 1.35,
-                                              fontFamily: 'inherit',
-                                              textAlign: headerAlign as any,
-                                              padding: '2px 4px',
-                                              minHeight: '18px'
-                                            }}
-                                          >
-                                            {(col.label || '') + ' '}
-                                          </span>
-                                          <textarea
-                                            disabled={isLocked}
-                                            rows={1}
-                                            value={col.label || ''}
-                                            placeholder="Tên cột..."
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              setActiveBlockId(block.id);
-                                            }}
-                                            onChange={(e) => handleUpdateTableColumn(block.id, col.id, { label: e.target.value })}
-                                            style={{
-                                              gridArea: '1 / 1 / 2 / 2',
-                                              width: '100%',
-                                              height: '100%',
-                                              fontWeight: 600,
-                                              fontSize: '0.75rem',
-                                              lineHeight: 1.35,
-                                              fontFamily: 'inherit',
-                                              color: '#0f172a',
-                                              textAlign: headerAlign as any,
-                                              border: '1px solid transparent',
-                                              borderRadius: '3px',
-                                              background: 'transparent',
-                                              outline: 'none',
-                                              padding: '2px 4px',
-                                              margin: 0,
-                                              resize: 'none',
-                                              overflow: 'hidden',
-                                              whiteSpace: 'pre-wrap',
-                                              wordBreak: 'break-word',
-                                              cursor: isLocked ? 'default' : 'text'
-                                            }}
-                                            onFocus={(e) => {
-                                              e.target.style.borderColor = 'var(--primary)';
-                                              e.target.style.background = '#ffffff';
-                                            }}
-                                            onBlur={(e) => {
-                                              e.target.style.borderColor = 'transparent';
-                                              e.target.style.background = 'transparent';
-                                            }}
-                                          />
-                                        </div>
+                                        {col.type === 'likert_scale' ? (
+                                          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${(col.scaleOptions || []).length || 3}, 1fr)`, gap: '4px', textAlign: 'center', width: '100%', minHeight: '22px' }}>
+                                            {(col.scaleOptions || ['Easy to Answer', 'Could Answer', 'Difficult to Answer']).map((opt, sIdx) => (
+                                              <div key={sIdx} style={{ fontSize: '0.72rem', fontWeight: 600, color: '#0f172a', padding: '2px 2px', wordBreak: 'break-word', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                {opt}
+                                              </div>
+                                            ))}
+                                          </div>
+                                        ) : (
+                                          <div style={{ display: 'grid', width: '100%', minHeight: '22px', boxSizing: 'border-box' }}>
+                                            <span
+                                              aria-hidden="true"
+                                              style={{
+                                                gridArea: '1 / 1 / 2 / 2',
+                                                visibility: 'hidden',
+                                                whiteSpace: 'pre-wrap',
+                                                wordBreak: 'break-word',
+                                                fontSize: '0.75rem',
+                                                fontWeight: 600,
+                                                lineHeight: 1.35,
+                                                fontFamily: 'inherit',
+                                                textAlign: headerAlign as any,
+                                                padding: '2px 4px',
+                                                minHeight: '18px'
+                                              }}
+                                            >
+                                              {(col.label || '') + ' '}
+                                            </span>
+                                            <textarea
+                                              disabled={isLocked}
+                                              rows={1}
+                                              value={col.label || ''}
+                                              placeholder="Tên cột..."
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                setActiveBlockId(block.id);
+                                              }}
+                                              onChange={(e) => handleUpdateTableColumn(block.id, col.id, { label: e.target.value })}
+                                              style={{
+                                                gridArea: '1 / 1 / 2 / 2',
+                                                width: '100%',
+                                                height: '100%',
+                                                fontWeight: 600,
+                                                fontSize: '0.75rem',
+                                                lineHeight: 1.35,
+                                                fontFamily: 'inherit',
+                                                color: '#0f172a',
+                                                textAlign: headerAlign as any,
+                                                border: '1px solid transparent',
+                                                borderRadius: '3px',
+                                                background: 'transparent',
+                                                outline: 'none',
+                                                padding: '2px 4px',
+                                                margin: 0,
+                                                resize: 'none',
+                                                overflow: 'hidden',
+                                                whiteSpace: 'pre-wrap',
+                                                wordBreak: 'break-word',
+                                                cursor: isLocked ? 'default' : 'text'
+                                              }}
+                                              onFocus={(e) => {
+                                                e.target.style.borderColor = 'var(--primary)';
+                                                e.target.style.background = '#ffffff';
+                                              }}
+                                              onBlur={(e) => {
+                                                e.target.style.borderColor = 'transparent';
+                                                e.target.style.background = 'transparent';
+                                              }}
+                                            />
+                                          </div>
+                                        )}
                                       </th>
                                     );
                                   })}
@@ -2928,7 +2945,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                       return (
                                         <tr
                                           key={row.id}
-                                          style={{ borderBottom: '1.5px solid #cbd5e1', background: '#e5e7eb' }}
+                                          style={{ borderBottom: bStyle === 'borderless' ? 'none' : '1.5px solid #cbd5e1', background: bStyle === 'borderless' ? 'transparent' : '#e5e7eb' }}
                                           onMouseEnter={() => !isLocked && setHoveredTableRowId(row.id)}
                                           onMouseLeave={() => setHoveredTableRowId(null)}
                                         >
@@ -3079,7 +3096,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                          const cellOptions = getEffectiveCellOptions(block, row.id, col.id);
                                          const isCustomCellOpts = block.cellOptionsMap?.[cellKey] !== undefined;
                                          const hasOpts = (col.type === 'checkbox' || col.type === 'radio') && cellOptions.length > 0;
-                                         const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? (hasOpts ? 'left' : 'center') : 'left'));
+                                         const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? (hasOpts ? 'left' : 'center') : col.type === 'likert_scale' ? 'center' : 'left'));
                                          const isCellSelected = activeCellKey === cellKey;
                                          const isOptionCell = col.type === 'checkbox' || col.type === 'radio';
 
@@ -3093,7 +3110,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                              }}
                                              style={{ 
                                                padding: isOptionCell ? '4px' : '0', 
-                                               borderRight: '1px solid #cbd5e1', 
+                                               borderRight: bStyle === 'grid' ? '1px solid #cbd5e1' : 'none',
+                                               borderBottom: bStyle === 'horizontal_only' ? '1px solid #cbd5e1' : 'none',
                                                verticalAlign: 'top', 
                                                textAlign: cellAlign,
                                                 width: colWidth,
@@ -3287,6 +3305,14 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px', width: '100%' }}>
                                                           {Array.from({ length: col.ratingScale === 3 ? 3 : 5 }).map((_, sIdx) => (
                                                             <Star key={sIdx} size={14} style={{ color: '#f59e0b', fill: '#fef3c7', strokeWidth: 1.5 }} />
+                                                          ))}
+                                                        </div>
+                                                      ) : col.type === 'likert_scale' ? (
+                                                        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${(col.scaleOptions || []).length || 3}, 1fr)`, gap: '4px', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%' }}>
+                                                          {(col.scaleOptions || ['Easy to Answer', 'Could Answer', 'Difficult to Answer']).map((_, sIdx) => (
+                                                            <div key={sIdx} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                                              <span style={{ display: 'inline-block', width: '13px', height: '13px', borderRadius: '50%', border: '1.5px solid #64748b', background: '#ffffff' }} />
+                                                            </div>
                                                           ))}
                                                         </div>
                                                       ) : col.type === 'date' ? (
@@ -4266,6 +4292,68 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                   </div>
                 )}
 
+                {activeBlock.type === 'TABLE' && (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.1rem' }}>
+                    <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.8rem' }}>Border Style</label>
+                    <div style={{ display: 'flex', border: '1px solid var(--neutral-border)', borderRadius: '4px', overflow: 'hidden', height: '24px' }}>
+                      <button
+                        type="button"
+                        disabled={isLocked}
+                        onClick={() => handleUpdateBlockBorderStyle(activeBlockId!, 'grid')}
+                        style={{
+                          padding: '0 8px',
+                          background: (activeBlock.borderStyle || 'grid') === 'grid' ? '#cbd5e1' : '#ffffff',
+                          border: 'none',
+                          cursor: isLocked ? 'not-allowed' : 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                        title="Full Grid"
+                      >
+                        <Grid size={13} style={{ color: (activeBlock.borderStyle || 'grid') === 'grid' ? 'var(--text-primary)' : 'var(--text-muted)' }} />
+                      </button>
+                      <button
+                        type="button"
+                        disabled={isLocked}
+                        onClick={() => handleUpdateBlockBorderStyle(activeBlockId!, 'horizontal_only')}
+                        style={{
+                          padding: '0 8px',
+                          background: activeBlock.borderStyle === 'horizontal_only' ? '#cbd5e1' : '#ffffff',
+                          borderLeft: '1px solid var(--neutral-border)',
+                          borderRight: '1px solid var(--neutral-border)',
+                          borderTop: 'none',
+                          borderBottom: 'none',
+                          cursor: isLocked ? 'not-allowed' : 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                        title="Horizontal Only"
+                      >
+                        <Rows2 size={13} style={{ color: activeBlock.borderStyle === 'horizontal_only' ? 'var(--text-primary)' : 'var(--text-muted)' }} />
+                      </button>
+                      <button
+                        type="button"
+                        disabled={isLocked}
+                        onClick={() => handleUpdateBlockBorderStyle(activeBlockId!, 'borderless')}
+                        style={{
+                          padding: '0 8px',
+                          background: activeBlock.borderStyle === 'borderless' ? '#cbd5e1' : '#ffffff',
+                          border: 'none',
+                          cursor: isLocked ? 'not-allowed' : 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                        title="Borderless"
+                      >
+                        <SquareDashed size={13} style={{ color: activeBlock.borderStyle === 'borderless' ? 'var(--text-primary)' : 'var(--text-muted)' }} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {activeBlock.type === 'SECTION_LABEL' && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', borderTop: '1px solid var(--neutral-border)', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
                     <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Description</label>
@@ -4836,6 +4924,10 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                       updates.ratingScale = col.ratingScale || 5;
                                       updates.align = 'center';
                                     }
+                                    if (nextType === 'likert_scale') {
+                                      updates.scaleOptions = col.scaleOptions && col.scaleOptions.length > 0 ? col.scaleOptions : ['Easy to Answer', 'Could Answer', 'Difficult to Answer'];
+                                      updates.align = 'center';
+                                    }
                                     handleUpdateTableColumn(activeBlock.id, col.id, updates);
                                   }}
                                   style={{ flex: 1.0, padding: '0.2rem 0.3rem', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
@@ -4845,12 +4937,13 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                   <option value="checkbox">Checkbox</option>
                                   <option value="radio">Radio</option>
                                   <option value="rating">Đánh giá sao</option>
+                                  <option value="likert_scale">Thang đo Likert</option>
                                   <option value="date">Ngày</option>
                                   <option value="time">Giờ</option>
                                 </select>
                                 
                                 {(() => {
-                                  const currentAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' || col.type === 'rating' ? 'center' : 'left'));
+                                  const currentAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' || col.type === 'rating' || col.type === 'likert_scale' ? 'center' : 'left'));
                                   return (
                                     <div style={{ display: 'flex', border: '1px solid var(--neutral-border)', borderRadius: '4px', overflow: 'hidden', flex: 0.6 }}>
                                       <button
@@ -4979,6 +5072,55 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                       Scale 3 (3 Sao)
                                     </button>
                                   </div>
+                                </div>
+                              )}
+                              {col.type === 'likert_scale' && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', marginTop: '0.2rem', padding: '0.4rem', borderTop: '1px dashed var(--neutral-border)' }}>
+                                  <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Mức độ thang đo (Scale Options)</label>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                    {(col.scaleOptions || ['Easy to Answer', 'Could Answer', 'Difficult to Answer']).map((opt, sIdx) => (
+                                      <div key={sIdx} style={{ display: 'flex', gap: '0.2rem', alignItems: 'center' }}>
+                                        <input
+                                          type="text"
+                                          disabled={isLocked}
+                                          placeholder={`Mức ${sIdx + 1}`}
+                                          value={opt}
+                                          onChange={(e) => {
+                                            const currentScales = col.scaleOptions || ['Easy to Answer', 'Could Answer', 'Difficult to Answer'];
+                                            const newScales = [...currentScales];
+                                            newScales[sIdx] = e.target.value;
+                                            handleUpdateTableColumn(activeBlock.id, col.id, { scaleOptions: newScales });
+                                          }}
+                                          style={{ flex: 1, padding: '0.15rem 0.25rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', fontSize: '0.7rem' }}
+                                        />
+                                        <button
+                                          type="button"
+                                          disabled={isLocked || (col.scaleOptions || []).length <= 2}
+                                          onClick={() => {
+                                            const currentScales = col.scaleOptions || ['Easy to Answer', 'Could Answer', 'Difficult to Answer'];
+                                            const newScales = currentScales.filter((_, i) => i !== sIdx);
+                                            handleUpdateTableColumn(activeBlock.id, col.id, { scaleOptions: newScales });
+                                          }}
+                                          style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: isLocked || (col.scaleOptions || []).length <= 2 ? 'not-allowed' : 'pointer', padding: '0 2px', fontSize: '0.75rem', lineHeight: 1, opacity: isLocked || (col.scaleOptions || []).length <= 2 ? 0.3 : 1 }}
+                                        >
+                                          ✕
+                                        </button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                  {!isLocked && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const currentScales = col.scaleOptions || ['Easy to Answer', 'Could Answer', 'Difficult to Answer'];
+                                        const newScales = [...currentScales, `Mức ${currentScales.length + 1}`];
+                                        handleUpdateTableColumn(activeBlock.id, col.id, { scaleOptions: newScales });
+                                      }}
+                                      style={{ display: 'flex', alignItems: 'center', gap: '2px', padding: '0.15rem 0.3rem', fontSize: '0.65rem', borderRadius: '4px', border: '1px dashed #94a3b8', background: 'none', color: 'var(--text-secondary)', cursor: 'pointer', width: 'fit-content' }}
+                                    >
+                                      <Plus size={10} /> Thêm mức độ
+                                    </button>
+                                  )}
                                 </div>
                               )}
                               {(col.type === 'checkbox' || col.type === 'radio') && (

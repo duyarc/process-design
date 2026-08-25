@@ -1492,10 +1492,15 @@ export default function FormFiller({
               )}
 
               {/* 3.1 DYNAMIC TABLE BLOCK */}
-              {block.type === 'TABLE' && (
+              {block.type === 'TABLE' && (() => {
+                const bStyle = block.borderStyle || 'grid';
+                return (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
                   <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', background: '#ffffff', tableLayout: 'fixed', border: '1px solid var(--neutral-border)' }}>
+                    <table
+                      className={bStyle === 'borderless' ? 'print-table--borderless' : bStyle === 'horizontal_only' ? 'print-table--horizontal' : ''}
+                      style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem', background: '#ffffff', tableLayout: 'fixed', border: bStyle === 'grid' ? '1px solid var(--neutral-border)' : 'none' }}
+                    >
                       <colgroup>
                         {(block.tableColumns || []).map((col: any) => {
                           const colWidth = getColStyleWidth(col.id, col.width, block.tableColumns || []);
@@ -1503,12 +1508,35 @@ export default function FormFiller({
                         })}
                       </colgroup>
                       <thead>
-                        <tr style={{ background: '#e2e8f0', borderBottom: '2px solid var(--primary)' }}>
+                        <tr style={{ background: bStyle === 'borderless' ? 'transparent' : '#e2e8f0', borderBottom: bStyle === 'borderless' ? 'none' : bStyle === 'horizontal_only' ? '1.5px solid #cbd5e1' : '2px solid var(--primary)' }}>
                           {(block.tableColumns || []).map((col: any) => {
                             const colWidth = getColStyleWidth(col.id, col.width, block.tableColumns || []);
+                            const headerAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'date' || col.type === 'time' || col.type === 'likert_scale' ? 'center' : 'left'));
                             return (
-                              <th key={col.id} style={{ padding: '8px 10px', borderRight: '1px solid #cbd5e1', color: '#0f172a', textAlign: 'left', width: colWidth, fontWeight: 600, fontSize: '0.8rem' }}>
-                                {col.label}
+                              <th
+                                key={col.id}
+                                style={{
+                                  padding: '8px 10px',
+                                  borderRight: bStyle === 'grid' ? '1px solid #cbd5e1' : 'none',
+                                  borderBottom: bStyle === 'horizontal_only' ? '1.5px solid #cbd5e1' : 'none',
+                                  color: '#0f172a',
+                                  textAlign: headerAlign as any,
+                                  width: colWidth,
+                                  fontWeight: 600,
+                                  fontSize: '0.8rem'
+                                }}
+                              >
+                                {col.type === 'likert_scale' ? (
+                                  <div style={{ display: 'grid', gridTemplateColumns: `repeat(${(col.scaleOptions || []).length || 3}, 1fr)`, gap: '4px', textAlign: 'center', width: '100%' }}>
+                                    {(col.scaleOptions || ['Easy to Answer', 'Could Answer', 'Difficult to Answer']).map((opt: string, sIdx: number) => (
+                                      <div key={sIdx} style={{ fontSize: '0.78rem', fontWeight: 600, color: '#0f172a', padding: '2px 4px', wordBreak: 'break-word', textAlign: 'center' }}>
+                                        {opt}
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  col.label
+                                )}
                               </th>
                             );
                           })}
@@ -1526,7 +1554,7 @@ export default function FormFiller({
                             if (row.isGroupHeader) {
                               const groupTitle = row.groupTitle || block.tableData?.[row.id]?.['_groupTitle'] || '';
                               return (
-                                <tr key={row.id} style={{ background: '#e5e7eb', borderBottom: '1.5px solid #cbd5e1' }}>
+                                <tr key={row.id} style={{ background: bStyle === 'borderless' ? 'transparent' : '#e5e7eb', borderBottom: bStyle === 'borderless' ? 'none' : '1.5px solid #cbd5e1' }}>
                                   <td
                                     colSpan={(block.tableColumns || []).length}
                                     style={{
@@ -1544,7 +1572,7 @@ export default function FormFiller({
                               );
                             }
                             return (
-                            <tr key={row.id} style={{ borderBottom: '1px solid var(--neutral-border)' }}>
+                            <tr key={row.id} style={{ borderBottom: bStyle === 'borderless' ? 'none' : '1px solid var(--neutral-border)' }}>
                               {(block.tableColumns || []).map((col: any) => {
                                 const colWidth = getColStyleWidth(col.id, col.width, block.tableColumns || []);
                                 const cellKey = `${block.id}_${row.id}_${col.id}`;
@@ -1552,12 +1580,24 @@ export default function FormFiller({
                                 const customCellOpts = block.cellOptionsMap?.[`${row.id}_${col.id}`];
                                 const effectiveOpts = customCellOpts !== undefined ? customCellOpts : (col.options || []);
                                 const hasOptions = (col.type === 'checkbox' || col.type === 'radio') && effectiveOpts.length > 0;
-                                const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? (hasOptions ? 'left' : 'center') : 'left'));
+                                const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? (hasOptions ? 'left' : 'center') : col.type === 'likert_scale' ? 'center' : 'left'));
                                 const staticVal = block.tableData?.[row.id]?.[col.id];
                                 const isStaticLabel = (col.type === 'static_text' || col.type === 'text') && staticVal !== undefined && staticVal !== null && staticVal.toString().trim() !== '';
 
                                 return (
-                                  <td key={col.id} style={{ padding: '6px', borderRight: '1px solid var(--neutral-border)', verticalAlign: 'middle', textAlign: cellAlign, width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
+                                  <td
+                                    key={col.id}
+                                    style={{
+                                      padding: '6px',
+                                      borderRight: bStyle === 'grid' ? '1px solid var(--neutral-border)' : 'none',
+                                      borderBottom: bStyle === 'horizontal_only' ? '1px solid var(--neutral-border)' : 'none',
+                                      verticalAlign: 'middle',
+                                      textAlign: cellAlign,
+                                      width: colWidth,
+                                      maxWidth: colWidth,
+                                      boxSizing: 'border-box'
+                                    }}
+                                  >
                                     {isStaticLabel ? (
                                       <span style={{ fontWeight: 500, display: 'block', textAlign: cellAlign, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{staticVal}</span>
                                     ) : col.type === 'checkbox' ? (
@@ -1644,7 +1684,55 @@ export default function FormFiller({
                                           />
                                         </div>
                                       )
-                                    ) : col.type === 'rating' ? (() => {
+                                    ) : col.type === 'likert_scale' ? (() => {
+                                      const scaleOptions = col.scaleOptions || ['Easy to Answer', 'Could Answer', 'Difficult to Answer'];
+                                      return (
+                                        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${scaleOptions.length}, 1fr)`, gap: '4px', alignItems: 'center', justifyContent: 'center', width: '100%', padding: '2px 0' }}>
+                                          {scaleOptions.map((opt: string, sIdx: number) => {
+                                            const isSelected = cellValue === opt;
+                                            return (
+                                              <div key={sIdx} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => {
+                                                    const nextVal = isSelected ? '' : opt;
+                                                    setFormValues(prev => ({ ...prev, [cellKey]: nextVal }));
+                                                  }}
+                                                  style={{
+                                                    background: 'none',
+                                                    border: 'none',
+                                                    padding: '2px',
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center'
+                                                  }}
+                                                  title={opt}
+                                                >
+                                                  <span
+                                                    style={{
+                                                      display: 'inline-flex',
+                                                      alignItems: 'center',
+                                                      justifyContent: 'center',
+                                                      width: '16px',
+                                                      height: '16px',
+                                                      borderRadius: '50%',
+                                                      border: isSelected ? '2px solid var(--primary)' : '1.5px solid #94a3b8',
+                                                      background: '#ffffff',
+                                                      transition: 'all 0.15s ease'
+                                                    }}
+                                                  >
+                                                    {isSelected && (
+                                                      <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--primary)' }} />
+                                                    )}
+                                                  </span>
+                                                </button>
+                                              </div>
+                                            );
+                                          })}
+                                        </div>
+                                      );
+                                    })() : col.type === 'rating' ? (() => {
                                       const scale = col.ratingScale === 3 ? 3 : 5;
                                       const currentRating = parseInt(cellValue, 10) || 0;
                                       return (
@@ -1817,7 +1905,8 @@ export default function FormFiller({
                     </table>
                   </div>
                 </div>
-              )}
+                );
+              })()}
 
               {/* 4. MATRIX TABLE BLOCK */}
               {block.type === 'MATRIX_TABLE' && block.matrixConfig && (

@@ -957,7 +957,11 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
 
             {/* 3.2 DYNAMIC TABLE BLOCK */}
             {block.type === 'TABLE' && (() => {
+              const bStyle = block.borderStyle || 'grid';
               const titleFmt = getEffectiveTitleFormat(block);
+              const cellBorder = bStyle === 'borderless' ? 'none' : bStyle === 'horizontal_only' ? 'none' : '1.5px solid #000000';
+              const cellBorderBottom = bStyle === 'horizontal_only' ? '1.5px solid #000000' : undefined;
+
               return (
                 <div style={{ marginTop: '0' }}>
                   {titleFmt !== 'NONE' && (
@@ -975,12 +979,16 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                       </div>
                     )
                   )}
-                  <table className="print-table" style={{
-                    width: '100%',
-                    borderCollapse: 'collapse',
-                    tableLayout: 'fixed',
-                    pageBreakInside: 'auto'
-                  }}>
+                  <table
+                    className={`print-table ${bStyle === 'borderless' ? 'print-table--borderless' : bStyle === 'horizontal_only' ? 'print-table--horizontal' : ''}`}
+                    style={{
+                      width: '100%',
+                      borderCollapse: 'collapse',
+                      tableLayout: 'fixed',
+                      pageBreakInside: 'auto',
+                      border: bStyle === 'borderless' ? 'none' : undefined
+                    }}
+                  >
                   <colgroup>
                     {(block.tableColumns || []).map((col) => {
                       const colWidth = getColStyleWidth(col.id, col.width, block.tableColumns || []);
@@ -988,14 +996,36 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                     })}
                   </colgroup>
                   <thead>
-                    <tr>
+                    <tr style={{ background: bStyle === 'borderless' ? 'transparent' : '#f1f5f9' }}>
                       {(block.tableColumns || []).map((col) => {
                         const colWidth = getColStyleWidth(col.id, col.width, block.tableColumns || []);
                         const hasOptions = col.type === 'checkbox' && col.options && col.options.length > 0;
-                        const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? (hasOptions ? 'left' : 'center') : 'left'));
+                        const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? (hasOptions ? 'left' : 'center') : col.type === 'likert_scale' ? 'center' : 'left'));
                         return (
-                          <th key={col.id} style={{ border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'var(--pw-weight-medium)', fontSize: '0.8rem', textAlign: cellAlign, width: colWidth }}>
-                            {col.label}
+                          <th
+                            key={col.id}
+                            style={{
+                              border: cellBorder,
+                              borderBottom: cellBorderBottom,
+                              padding: '6px',
+                              background: bStyle === 'borderless' ? 'transparent' : '#f1f5f9',
+                              fontWeight: 'var(--pw-weight-medium)',
+                              fontSize: '0.8rem',
+                              textAlign: cellAlign,
+                              width: colWidth
+                            }}
+                          >
+                            {col.type === 'likert_scale' ? (
+                              <div style={{ display: 'grid', gridTemplateColumns: `repeat(${(col.scaleOptions || []).length || 3}, 1fr)`, gap: '4px', textAlign: 'center', width: '100%' }}>
+                                {(col.scaleOptions || ['Easy to Answer', 'Could Answer', 'Difficult to Answer']).map((opt, sIdx) => (
+                                  <div key={sIdx} style={{ fontSize: '0.78rem', fontWeight: 'var(--pw-weight-medium)', color: '#000000', padding: '2px 4px', wordBreak: 'break-word', textAlign: 'center' }}>
+                                    {opt}
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              col.label
+                            )}
                           </th>
                         );
                       })}
@@ -1007,7 +1037,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                       return (
                         <tbody className="print-table-group" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                           <tr>
-                            <td colSpan={(block.tableColumns || []).length} style={{ border: '1.5px solid #000000', padding: '8px', textAlign: 'center', color: '#64748b', fontStyle: 'italic', fontSize: '0.8rem' }}>
+                            <td colSpan={(block.tableColumns || []).length} style={{ border: cellBorder, padding: '8px', textAlign: 'center', color: '#64748b', fontStyle: 'italic', fontSize: '0.8rem' }}>
                               Không có dòng nào.
                             </td>
                           </tr>
@@ -1064,8 +1094,9 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                             <td
                               colSpan={(block.tableColumns || []).length}
                               style={{
-                                border: '1.5px solid #000000',
-                                background: '#e5e7eb',
+                                border: cellBorder,
+                                borderBottom: cellBorderBottom,
+                                background: bStyle === 'borderless' ? 'transparent' : '#e5e7eb',
                                 fontWeight: 'bold',
                                 fontSize: '0.82rem',
                                 padding: '5px 8px',
@@ -1091,14 +1122,14 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                               const rawOpts = customCellOpts !== undefined ? customCellOpts : (col.options || []);
                               const effectiveOpts = rawOpts.filter(opt => opt.label && opt.label.trim() !== '');
                               const hasOptions = (col.type === 'checkbox' || col.type === 'radio') && effectiveOpts.length > 0;
-                              const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? (hasOptions ? 'left' : 'center') : 'left'));
+                              const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? (hasOptions ? 'left' : 'center') : col.type === 'likert_scale' ? 'center' : 'left'));
 
                               const staticVal = block.tableData?.[row.id]?.[col.id];
                               const isStaticLabel = (col.type === 'static_text' || col.type === 'text') && staticVal !== undefined && staticVal !== null && staticVal.toString().trim() !== '';
 
                               if (isStaticLabel) {
                                 return (
-                                  <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'top', minHeight: `${28 * lc}px`, textAlign: cellAlign, width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
+                                  <td key={col.id} style={{ border: cellBorder, borderBottom: cellBorderBottom, padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'top', minHeight: `${28 * lc}px`, textAlign: cellAlign, width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
                                     <span style={{ fontWeight: 'var(--pw-weight-regular)', display: 'block', textAlign: cellAlign, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{staticVal}</span>
                                   </td>
                                 );
@@ -1106,7 +1137,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
 
                               if (col.type === 'date') {
                                 return (
-                                  <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'top', height: `${28 * lc}px`, textAlign: 'center', width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
+                                  <td key={col.id} style={{ border: cellBorder, borderBottom: cellBorderBottom, padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'top', height: `${28 * lc}px`, textAlign: 'center', width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
                                     <div style={{ fontSize: '0.78rem', color: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
                                       <span data-acroform-field="true" data-field-id={`${cellFieldId}_dd`} data-field-type="date_part" style={{ width: '24px', display: 'inline-block', height: '12px' }} />
                                       /
@@ -1120,7 +1151,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
 
                               if (col.type === 'time') {
                                 return (
-                                  <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'top', height: `${28 * lc}px`, textAlign: 'center', width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
+                                  <td key={col.id} style={{ border: cellBorder, borderBottom: cellBorderBottom, padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'top', height: `${28 * lc}px`, textAlign: 'center', width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
                                     {col.timeMode === 'dual' ? (
                                       <div style={{ fontSize: '0.75rem', color: '#000000', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '4px' }}>
                                         Từ{' '}
@@ -1179,10 +1210,43 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                 );
                               }
 
+                              if (col.type === 'likert_scale') {
+                                const scaleOptions = col.scaleOptions || ['Easy to Answer', 'Could Answer', 'Difficult to Answer'];
+                                return (
+                                  <td key={col.id} style={{ border: cellBorder, borderBottom: cellBorderBottom, padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'middle', height: `${28 * lc}px`, textAlign: 'center', width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${scaleOptions.length}, 1fr)`, gap: '4px', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+                                      {scaleOptions.map((opt, sIdx) => (
+                                        <div key={sIdx} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                          <span
+                                            data-acroform-field="true"
+                                            data-field-id={`${cellFieldId}_opt_${sIdx}`}
+                                            data-field-type="radio"
+                                            data-field-radiogroup={cellFieldId}
+                                            data-field-radiovalue={opt}
+                                            data-field-name={`${displayTitle} - ${col.label || 'Likert'} (${opt})`}
+                                            style={{
+                                              display: 'inline-flex',
+                                              alignItems: 'center',
+                                              justifyContent: 'center',
+                                              width: '13px',
+                                              height: '13px',
+                                              borderRadius: '50%',
+                                              border: '1.5px solid #000000',
+                                              background: '#ffffff',
+                                              userSelect: 'none'
+                                            }}
+                                          />
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </td>
+                                );
+                              }
+
                               if (col.type === 'rating') {
                                 const scale = col.ratingScale === 3 ? 3 : 5;
                                 return (
-                                  <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'middle', height: `${28 * lc}px`, textAlign: 'center', width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
+                                  <td key={col.id} style={{ border: cellBorder, borderBottom: cellBorderBottom, padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'middle', height: `${28 * lc}px`, textAlign: 'center', width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
                                       {Array.from({ length: scale }).map((_, idx) => (
                                         <span
@@ -1211,7 +1275,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
 
                               if (col.type === 'checkbox' || col.type === 'radio') {
                                 return (
-                                  <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'top', minHeight: '28px', textAlign: cellAlign, width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
+                                  <td key={col.id} style={{ border: cellBorder, borderBottom: cellBorderBottom, padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'top', minHeight: '28px', textAlign: cellAlign, width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
                                     {hasOptions ? (
                                       <div style={{
                                         display: col.checkboxLayout === '2-column' ? 'grid' : 'flex',
@@ -1250,7 +1314,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
 
                               if ((col.type as string) === 'signature') {
                                 return (
-                                  <td key={col.id} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'middle', height: `${28 * lc}px`, textAlign: 'center', width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
+                                  <td key={col.id} style={{ border: cellBorder, borderBottom: cellBorderBottom, padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'middle', height: `${28 * lc}px`, textAlign: 'center', width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
                                     <span
                                       data-acroform-field="true"
                                       data-field-id={cellFieldId}
@@ -1270,7 +1334,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                   data-field-id={cellFieldId}
                                   data-field-type={col.type || 'text'}
                                   data-field-name={displayTitle}
-                                  style={{ border: '1.5px solid #000000', padding: '4px 6px', height: `${28 * lc}px`, verticalAlign: 'top', width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}
+                                  style={{ border: cellBorder, borderBottom: cellBorderBottom, padding: '4px 6px', height: `${28 * lc}px`, verticalAlign: 'top', width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}
                                 />
                               );
                             })}

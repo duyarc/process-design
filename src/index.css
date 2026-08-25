@@ -554,3 +554,35 @@ tr:last-child td {
 .exporting-pdf-mode tr[aria-hidden="true"] {
   display: none !important;
 }
+
+/* Table Border Styles: Normal & Print */
+table.print-table--borderless,
+table.print-table--borderless th,
+table.print-table--borderless td {
+  border: none !important;
+}
+
+table.print-table--horizontal,
+table.print-table--horizontal th,
+table.print-table--horizontal td {
+  border-top: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-bottom: 1px solid #cbd5e1 !important;
+}
+
+/* Table Border Styles: PDF Export Capture Mode (html2canvas) overrides */
+.exporting-pdf-mode table.print-table.print-table--borderless,
+.exporting-pdf-mode table.print-table.print-table--borderless th,
+.exporting-pdf-mode table.print-table.print-table--borderless td {
+  border: none !important;
+}
+
+.exporting-pdf-mode table.print-table.print-table--horizontal,
+.exporting-pdf-mode table.print-table.print-table--horizontal th,
+.exporting-pdf-mode table.print-table.print-table--horizontal td {
+  border-top: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-bottom: 1px solid #000000 !important;
+}

@@ -151,12 +151,13 @@ export interface TableColumnConfig {
   id: string;
   label: string;
   width: string; // e.g. "20%" or "150px"
-  type: 'static_text' | 'text' | 'number' | 'checkbox' | 'radio' | 'date' | 'time' | 'rating';
+  type: 'static_text' | 'text' | 'number' | 'checkbox' | 'radio' | 'date' | 'time' | 'rating' | 'likert_scale';
   options?: RadioOption[];
   align?: 'left' | 'center' | 'right';
   checkboxLayout?: '1-column' | '2-column';
   timeMode?: 'single' | 'dual';
   ratingScale?: 3 | 5; // Rating scale: 3 or 5 stars (default: 5)
+  scaleOptions?: string[]; // For 'likert_scale': list of scale labels, e.g. ['Easy to Answer', 'Could Answer', 'Difficult to Answer']
   summaryRows?: ColumnSummaryRowConfig[];
   locked?: boolean; // If true: cannot delete or change type (used for structural cols in CHECKLIST_TABLE)
   hidden?: boolean; // If true: do not render in canvas/print layout
@@ -186,6 +187,7 @@ export interface LayoutBlockISO {
   description?: string;
   sectionFormat?: 'H1' | 'H2';
   titleFormat?: TitleFormatISO;
+  borderStyle?: 'grid' | 'borderless' | 'horizontal_only'; // Table border style: default 'grid'
   columnLabels?: {
     stt: string;
     item: string;

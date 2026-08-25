@@ -993,12 +993,22 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                 </div>
               )
             )}
-            <div style={{ overflowX: 'auto' }}>
-              <table className="print-table" style={{
-                width: '100%',
-                borderCollapse: 'collapse',
-                tableLayout: 'fixed'
-              }}>
+            {(() => {
+              const bStyle = block.borderStyle || 'grid';
+              const cellBorder = bStyle === 'borderless' ? 'none' : bStyle === 'horizontal_only' ? 'none' : '1.5px solid #000000';
+              const cellBorderBottom = bStyle === 'horizontal_only' ? '1.5px solid #000000' : undefined;
+
+              return (
+              <div style={{ overflowX: 'auto' }}>
+                <table
+                  className={`print-table ${bStyle === 'borderless' ? 'print-table--borderless' : bStyle === 'horizontal_only' ? 'print-table--horizontal' : ''}`}
+                  style={{
+                    width: '100%',
+                    borderCollapse: 'collapse',
+                    tableLayout: 'fixed',
+                    border: bStyle === 'borderless' ? 'none' : undefined
+                  }}
+                >
                 <colgroup>
                   {(block.tableColumns || []).map((col: any) => {
                     const colWidth = getColStyleWidth(col.id, col.width, block.tableColumns || []);
@@ -1006,14 +1016,36 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                   })}
                 </colgroup>
                 <thead>
-                  <tr>
+                  <tr style={{ background: bStyle === 'borderless' ? 'transparent' : '#f1f5f9' }}>
                     {(block.tableColumns || []).map((col: any) => {
                       const colWidth = getColStyleWidth(col.id, col.width, block.tableColumns || []);
                       const hasOptions = col.type === 'checkbox' && col.options && col.options.length > 0;
-                      const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? (hasOptions ? 'left' : 'center') : 'left'));
+                      const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? (hasOptions ? 'left' : 'center') : col.type === 'likert_scale' ? 'center' : 'left'));
                       return (
-                        <th key={col.id} style={{ border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'var(--pw-weight-medium)', fontSize: '0.8rem', textAlign: cellAlign, width: colWidth }}>
-                          {col.label}
+                        <th
+                          key={col.id}
+                          style={{
+                            border: cellBorder,
+                            borderBottom: cellBorderBottom,
+                            padding: '6px',
+                            background: bStyle === 'borderless' ? 'transparent' : '#f1f5f9',
+                            fontWeight: 'var(--pw-weight-medium)',
+                            fontSize: '0.8rem',
+                            textAlign: cellAlign,
+                            width: colWidth
+                          }}
+                        >
+                          {col.type === 'likert_scale' ? (
+                            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${(col.scaleOptions || []).length || 3}, 1fr)`, gap: '4px', textAlign: 'center', width: '100%' }}>
+                              {(col.scaleOptions || ['Easy to Answer', 'Could Answer', 'Difficult to Answer']).map((opt: string, sIdx: number) => (
+                                <div key={sIdx} style={{ fontSize: '0.78rem', fontWeight: 'var(--pw-weight-medium)', color: '#000000', padding: '2px 4px', wordBreak: 'break-word', textAlign: 'center' }}>
+                                  {opt}
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            col.label
+                          )}
                         </th>
                       );
                     })}
@@ -1026,7 +1058,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                     return (
                       <tbody className="print-table-group" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                         <tr>
-                          <td colSpan={tableCols.length} style={{ border: '1.5px solid #000000', padding: '8px', textAlign: 'center', color: '#64748b', fontStyle: 'italic', fontSize: '0.8rem' }}>
+                          <td colSpan={tableCols.length} style={{ border: cellBorder, padding: '8px', textAlign: 'center', color: '#64748b', fontStyle: 'italic', fontSize: '0.8rem' }}>
                             Không có dữ liệu.
                           </td>
                         </tr>
@@ -1079,8 +1111,9 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                           <td
                             colSpan={tableCols.length}
                             style={{
-                              border: '1.5px solid #000000',
-                              background: '#e5e7eb',
+                              border: cellBorder,
+                              borderBottom: cellBorderBottom,
+                              background: bStyle === 'borderless' ? 'transparent' : '#e5e7eb',
                               fontWeight: 'bold',
                               fontSize: '0.82rem',
                               padding: '5px 8px',
@@ -1100,14 +1133,56 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                             const cellKey = `${block.id}_${row.id}_${col.id}`;
                             const cellValue = submission.formData.find(f => f.id === cellKey)?.value || '';
                             const hasOptions = (col.type === 'checkbox' || col.type === 'radio') && col.options && col.options.length > 0;
-                            const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? (hasOptions ? 'left' : 'center') : 'left'));
+                            const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? (hasOptions ? 'left' : 'center') : col.type === 'likert_scale' ? 'center' : 'left'));
                             const staticVal = block.tableData?.[row.id]?.[col.id];
                             const isStaticLabel = (col.type === 'static_text' || col.type === 'text') && staticVal !== undefined && staticVal !== null && staticVal.toString().trim() !== '';
                             return (
-                              <td key={col.id} style={{ border: '1.5px solid #000000', padding: '6px 8px', fontSize: '0.8rem', verticalAlign: 'middle', textAlign: cellAlign, width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
+                              <td
+                                key={col.id}
+                                style={{
+                                  border: cellBorder,
+                                  borderBottom: cellBorderBottom,
+                                  padding: '6px 8px',
+                                  fontSize: '0.8rem',
+                                  verticalAlign: 'middle',
+                                  textAlign: cellAlign,
+                                  width: colWidth,
+                                  maxWidth: colWidth,
+                                  boxSizing: 'border-box'
+                                }}
+                              >
                                 {isStaticLabel ? (
                                   <span style={{ fontWeight: 'var(--pw-weight-regular)', display: 'block', textAlign: cellAlign, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{staticVal}</span>
-                                ) : col.type === 'checkbox' ? (
+                                ) : col.type === 'likert_scale' ? (() => {
+                                  const scaleOptions = col.scaleOptions || ['Easy to Answer', 'Could Answer', 'Difficult to Answer'];
+                                  return (
+                                    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${scaleOptions.length}, 1fr)`, gap: '4px', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+                                      {scaleOptions.map((opt: string, sIdx: number) => {
+                                        const isSelected = cellValue === opt;
+                                        return (
+                                          <div key={sIdx} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                            <span
+                                              style={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                width: '13px',
+                                                height: '13px',
+                                                borderRadius: '50%',
+                                                border: '1.5px solid #000000',
+                                                background: '#ffffff'
+                                              }}
+                                            >
+                                              {isSelected && (
+                                                <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#000000' }} />
+                                              )}
+                                            </span>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  );
+                                })() : col.type === 'checkbox' ? (
                                   hasOptions ? (
                                      <div style={{
                                        display: col.checkboxLayout === '2-column' ? 'grid' : 'flex',
@@ -1302,6 +1377,8 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                 })()}
               </table>
             </div>
+            );
+          })()}
           </div>
         );
       })}
