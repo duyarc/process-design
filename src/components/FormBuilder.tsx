@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { FormFieldISO, FormRevisionEntry, FormTemplateISO, LayoutBlockISO, RadioOption, MatrixConfigISO, TableColumnConfig, TableRowConfig, ColumnSummaryRowConfig, TitleFormatISO, SubtableColumn } from '../types';
 import { formatFormVersion, getColStyleWidth } from '../types';
 import { sanitizeLabel, getEffectiveTitleFormat, getAutoCheckboxLayoutMode } from '../utils/formUtils';
+import { applyTextFormat, handleFormatKeyDown } from '../utils/textFormatter';
 import { 
   Plus, 
   Trash2, 
@@ -186,6 +187,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
   const [layoutBlocks, setLayoutBlocks] = useState<LayoutBlockISO[]>(initialData?.layoutBlocks || defaultBlocks);
   const [revisionHistory, setRevisionHistory] = useState<FormRevisionEntry[]>(initialData?.revisionHistory || []);
   const [loading, setLoading] = useState(false);
+  const inspectorLabelRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     const fetchFormTemplate = async () => {
@@ -2407,6 +2409,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                             setActiveBlockId(block.id);
                                             setActiveFieldId(f.id);
                                           }}
+                                          onKeyDown={(e) => handleFormatKeyDown(e, f.checkItem, (val) => handleUpdateField(block.id, f.id, { checkItem: val }))}
                                           onChange={(e) => handleUpdateField(block.id, f.id, { checkItem: e.target.value })}
                                           style={{
                                             gridArea: '1 / 1 / 2 / 2',
@@ -3922,15 +3925,49 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.8rem' }}>
                 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                  <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Label / Check Item</label>
-                  <input
-                    type="text"
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Label / Check Item</label>
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      <button
+                        type="button"
+                        title="In đậm (Ctrl+B)"
+                        disabled={isLocked}
+                        onClick={() => applyTextFormat(inspectorLabelRef.current, 'bold', activeField.checkItem, (val) => handleUpdateField(activeBlockId!, activeFieldId!, { checkItem: val }))}
+                        style={{ width: '22px', height: '22px', border: '1px solid #cbd5e1', borderRadius: '3px', background: '#ffffff', fontWeight: 'bold', fontSize: '0.75rem', cursor: isLocked ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      >
+                        B
+                      </button>
+                      <button
+                        type="button"
+                        title="In nghiêng (Ctrl+I)"
+                        disabled={isLocked}
+                        onClick={() => applyTextFormat(inspectorLabelRef.current, 'italic', activeField.checkItem, (val) => handleUpdateField(activeBlockId!, activeFieldId!, { checkItem: val }))}
+                        style={{ width: '22px', height: '22px', border: '1px solid #cbd5e1', borderRadius: '3px', background: '#ffffff', fontStyle: 'italic', fontSize: '0.75rem', cursor: isLocked ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      >
+                        I
+                      </button>
+                      <button
+                        type="button"
+                        title="Gạch chân (Ctrl+U)"
+                        disabled={isLocked}
+                        onClick={() => applyTextFormat(inspectorLabelRef.current, 'underline', activeField.checkItem, (val) => handleUpdateField(activeBlockId!, activeFieldId!, { checkItem: val }))}
+                        style={{ width: '22px', height: '22px', border: '1px solid #cbd5e1', borderRadius: '3px', background: '#ffffff', textDecoration: 'underline', fontSize: '0.75rem', cursor: isLocked ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      >
+                        U
+                      </button>
+                    </div>
+                  </div>
+                  <textarea
+                    ref={inspectorLabelRef}
+                    rows={activeField.type === 'label' ? 3 : 2}
                     disabled={isLocked}
                     value={activeField.checkItem}
+                    onKeyDown={(e) => handleFormatKeyDown(e, activeField.checkItem, (val) => handleUpdateField(activeBlockId!, activeFieldId!, { checkItem: val }))}
                     onChange={(e) => handleUpdateField(activeBlockId!, activeFieldId!, { checkItem: e.target.value })}
-                    style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
+                    style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', resize: 'vertical', fontSize: '0.8rem', fontFamily: 'inherit', lineHeight: 1.4 }}
                   />
+                  <span style={{ fontSize: '0.68rem', color: '#64748b' }}>Hỗ trợ <code>**đậm**</code>, <code>*nghiêng*</code>, <code>&lt;u&gt;gạch chân&lt;/u&gt;</code> hoặc phím tắt <code>Ctrl+B / I / U</code></span>
                 </div>
 
                 {activeField.type === 'photo' && (

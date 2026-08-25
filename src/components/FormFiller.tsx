@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import type { Process, FormTemplateISO, SubmissionFieldSnapshot, Submission } from '../types';
 import { formatFormVersion, getColStyleWidth } from '../types';
 import { sanitizeLabel, getEffectiveTitleFormat, validateFormSubmission, getAutoCheckboxLayoutMode } from '../utils/formUtils';
+import { renderFormattedText } from '../utils/textFormatter';
 import PrintBlankForm from './print/PrintBlankForm';
 import PrintFilledForm from './print/PrintFilledForm';
 import { 
@@ -930,7 +931,7 @@ export default function FormFiller({
                           }}
                         >
                           <span style={{ fontSize: '0.85rem', fontWeight: 400, color: 'var(--text-primary)', whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.5 }}>
-                            {sanitizeLabel(field.checkItem)}
+                            {renderFormattedText(sanitizeLabel(field.checkItem))}
                           </span>
                         </div>
                       );
@@ -949,7 +950,7 @@ export default function FormFiller({
                         }}
                       >
                         <label style={{ fontSize: '0.78rem', fontWeight: 400, color: 'var(--text-secondary)' }}>
-                          {sanitizeLabel(field.checkItem)}
+                          {renderFormattedText(sanitizeLabel(field.checkItem))}
                         </label>
                         {field.type === 'date' ? (
                           <input

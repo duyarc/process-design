@@ -4,6 +4,7 @@ import { Star } from 'lucide-react';
 import type { Submission, FormTemplateISO, LayoutBlockISO, TableColumnConfig } from '../../types';
 import { formatFormVersion, getColStyleWidth } from '../../types';
 import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName } from '../../utils/formUtils';
+import { renderFormattedText } from '../../utils/textFormatter';
 
 // ─── Helpers (mirrored from PrintBlankForm) ───────────────────────────────────
 
@@ -406,7 +407,7 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                             if (f.type === 'label') {
                               return (
                                 <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'center', fontSize: '0.85rem', whiteSpace: 'pre-wrap', wordBreak: 'break-word', pageBreakInside: 'avoid', lineHeight: 1.5 }}>
-                                  <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a' }}>{cleanLabel}</span>
+                                  <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a' }}>{renderFormattedText(cleanLabel)}</span>
                                 </div>
                               );
                             }
@@ -416,7 +417,7 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                               const currentRating = parseInt(val, 10) || 0;
                               return (
                                 <div key={f.id} style={{ ...gridItemStyle, display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.85rem', pageBreakInside: 'avoid' }}>
-                                  {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a' }}>{cleanLabel}</span>}
+                                  {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a' }}>{renderFormattedText(cleanLabel)}</span>}
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px', minHeight: '22px' }}>
                                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
                                       {Array.from({ length: scale }).map((_, idx) => (
@@ -445,7 +446,7 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                               const singleUrl = imageUrls[0];
                               return (
                                 <div key={f.id} style={{ ...gridItemStyle, display: 'flex', flexDirection: 'column', width: '100%', pageBreakInside: 'avoid' }}>
-                                  {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', fontSize: '0.82rem', marginBottom: '4px' }}>{cleanLabel}</span>}
+                                  {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', fontSize: '0.82rem', marginBottom: '4px' }}>{renderFormattedText(cleanLabel)}</span>}
                                   <div style={{ flex: 1, width: '100%', border: '1px solid #cbd5e1', borderRadius: '3px', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60px', padding: '4px', boxSizing: 'border-box', background: '#f8fafc' }}>
                                     {singleUrl ? (
                                       <img src={singleUrl} alt="Evidence" style={{ maxWidth: '100%', maxHeight: '200px', objectFit: 'contain' }} />
@@ -461,7 +462,7 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                               const options = f.options ?? [{ label: 'Có', value: 'YES' }, { label: 'Không', value: 'NO' }];
                               return (
                                 <div key={f.id} style={{ ...gridItemStyle, display: 'grid', gridTemplateColumns: '35% 65%', gap: '8px', alignItems: 'center', minHeight: 'var(--pw-line-h)', fontSize: '0.85rem' }}>
-                                  {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', lineHeight: 1.4 }}>{cleanLabel}</span>}
+                                  {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', lineHeight: 1.4 }}>{renderFormattedText(cleanLabel)}</span>}
                                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', alignItems: 'center', maxWidth: '100%' }}>
                                     {options.map((opt: any) => {
                                       const selected = isOptionSelected(val, opt.value, f.type as 'radio' | 'checkbox');
@@ -492,7 +493,7 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                               const renderRows = rows.length > 0 ? rows : Array.from({ length: f.subtableDefaultRows ?? 3 }).map(() => ({}));
                               return (
                                 <div key={f.id} className="subtable-print-container print-field-full" style={{ ...gridItemStyle, fontSize: '0.82rem', width: '100%', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                                  {cleanLabel && <div style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', marginBottom: '6px' }}>{cleanLabel}</div>}
+                                  {cleanLabel && <div style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', marginBottom: '6px' }}>{renderFormattedText(cleanLabel)}</div>}
                                   <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                     <thead>
                                       <tr>
@@ -525,7 +526,7 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                             if (f.type === 'date') {
                               return (
                                 <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'center', minHeight: 'var(--pw-line-h)', gap: '8px', fontSize: '0.85rem' }}>
-                                  {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap', lineHeight: 1.4 }}>{cleanLabel}</span>}
+                                  {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap', lineHeight: 1.4 }}>{renderFormattedText(cleanLabel)}</span>}
                                   <span style={{ fontWeight: 600, color: '#0f172a', minWidth: '80px', borderBottom: '1px dotted #cbd5e1' }}>{val || '\u00A0'}</span>
                                 </div>
                               );
@@ -534,7 +535,7 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                             if (f.type === 'time') {
                               return (
                                 <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'center', minHeight: 'var(--pw-line-h)', gap: '8px', fontSize: '0.85rem' }}>
-                                  {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap', lineHeight: 1.4 }}>{cleanLabel}</span>}
+                                  {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap', lineHeight: 1.4 }}>{renderFormattedText(cleanLabel)}</span>}
                                   <span style={{ fontWeight: 600, color: '#0f172a', minWidth: '60px', borderBottom: '1px dotted #cbd5e1' }}>{val || '\u00A0'}</span>
                                 </div>
                               );
@@ -543,7 +544,7 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                             // default: text / number
                             return (
                               <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'center', minHeight: 'var(--pw-line-h)', gap: '8px', fontSize: '0.85rem' }}>
-                                {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap', lineHeight: 1.4 }}>{cleanLabel}</span>}
+                                {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap', lineHeight: 1.4 }}>{renderFormattedText(cleanLabel)}</span>}
                                 <div style={{ flex: 1, borderBottom: '1px dotted #cbd5e1', minHeight: '16px', fontWeight: 600, color: '#0f172a' }}>{val || '\u00A0'}</div>
                               </div>
                             );

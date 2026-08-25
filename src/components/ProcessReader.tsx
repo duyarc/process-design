@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import type { Process, SubmissionFieldSnapshot } from '../types';
 import { formatFormVersion, getColStyleWidth } from '../types';
 import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName } from '../utils/formUtils';
+import { renderFormattedText } from '../utils/textFormatter';
 import { useAuth } from '../context/AuthContext';
 import { Printer, Edit2, Camera, AlertTriangle, X, PenTool, GitBranch, Eye, ArrowLeft, Trash2, Star } from 'lucide-react';
 
@@ -1366,7 +1367,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                                       }}
                                     >
                                       <span style={{ fontSize: '0.85rem', fontWeight: 400, color: 'var(--text-primary)', whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.5 }}>
-                                        {field.checkItem}
+                                        {renderFormattedText(field.checkItem)}
                                       </span>
                                     </div>
                                   );
@@ -1386,7 +1387,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                                     }}
                                   >
                                     <label style={{ fontSize: '0.75rem', fontWeight: 400, color: 'var(--text-secondary)' }}>
-                                      {field.checkItem}
+                                      {renderFormattedText(field.checkItem)}
                                     </label>
                                     {field.type === 'date' ? (
                                       <input

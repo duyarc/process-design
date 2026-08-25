@@ -4,6 +4,7 @@ import ReactDOM from 'react-dom';
 import type { Submission, LayoutBlockISO, TableColumnConfig } from '../../types';
 import { formatFormVersion, getColStyleWidth } from '../../types';
 import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName } from '../../utils/formUtils';
+import { renderFormattedText } from '../../utils/textFormatter';
 
 // Helper: derive CHECKLIST_TABLE columns — falls back to columnLabels for backward compat
 function getChecklistColumns(block: LayoutBlockISO | undefined, fallbackLabels?: { stt?: string; item?: string; target?: string; reaction?: string }): TableColumnConfig[] {
@@ -609,7 +610,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                     if (matchedField?.type === 'label') {
                       return (
                         <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'center', fontSize: '0.85rem', whiteSpace: 'pre-wrap', wordBreak: 'break-word', pageBreakInside: 'avoid', lineHeight: 1.5 }}>
-                          <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a' }}>{f.checkItem}</span>
+                          <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a' }}>{renderFormattedText(f.checkItem)}</span>
                         </div>
                       );
                     }
@@ -618,7 +619,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                       const photoUrl = f.value || '';
                       return (
                         <div key={f.id} style={{ ...gridItemStyle, display: 'flex', flexDirection: 'column', width: '100%', pageBreakInside: 'avoid' }}>
-                          {f.checkItem && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', fontSize: '0.82rem', marginBottom: '4px' }}>{f.checkItem}:</span>}
+                          {f.checkItem && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', fontSize: '0.82rem', marginBottom: '4px' }}>{renderFormattedText(f.checkItem)}:</span>}
                           <div style={{ flex: 1, width: '100%', border: '1.5px solid #000000', borderRadius: '3px', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60px', padding: '4px', boxSizing: 'border-box', background: '#f8fafc' }}>
                             {photoUrl ? (
                               <img src={photoUrl} alt="Evidence" style={{ maxWidth: '100%', maxHeight: '200px', objectFit: 'contain' }} />
@@ -635,7 +636,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                       const currentRating = parseInt(f.value || '', 10) || 0;
                       return (
                         <div key={f.id} style={{ ...gridItemStyle, display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.85rem', pageBreakInside: 'avoid' }}>
-                          {f.checkItem && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', fontSize: '0.82rem' }}>{f.checkItem}:</span>}
+                          {f.checkItem && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', fontSize: '0.82rem' }}>{renderFormattedText(f.checkItem)}:</span>}
                           <div style={{ display: 'flex', alignItems: 'center', gap: '4px', minHeight: '22px' }}>
                             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
                               {Array.from({ length: scale }).map((_, idx) => (
@@ -662,7 +663,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
 
                     return (
                       <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'center', minHeight: 'var(--pw-line-h)', gap: '8px', fontSize: '0.85rem' }}>
-                        <span style={{ fontWeight: 'var(--pw-weight-regular)', whiteSpace: 'nowrap', lineHeight: 1.4 }}>{f.checkItem ? `${f.checkItem}:` : ''}</span>
+                        <span style={{ fontWeight: 'var(--pw-weight-regular)', whiteSpace: 'nowrap', lineHeight: 1.4 }}>{f.checkItem ? <>{renderFormattedText(f.checkItem)}:</> : ''}</span>
                         <span style={{ borderBottom: '1px solid #94a3b8', flex: 1, paddingBottom: '2px', fontWeight: 'var(--pw-weight-regular)' }}>
                           {f.value}
                         </span>
