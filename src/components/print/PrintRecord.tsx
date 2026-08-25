@@ -1018,41 +1018,43 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                     return <col key={col.id} style={{ width: colWidth }} />;
                   })}
                 </colgroup>
-                <thead>
-                  <tr style={{ background: bStyle === 'borderless' ? 'transparent' : '#f1f5f9' }}>
-                    {(block.tableColumns || []).map((col: any) => {
-                      const colWidth = getColStyleWidth(col.id, col.width, block.tableColumns || []);
-                      const hasOptions = col.type === 'checkbox' && col.options && col.options.length > 0;
-                      const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? (hasOptions ? 'left' : 'center') : col.type === 'likert_scale' ? 'center' : 'left'));
-                      return (
-                        <th
-                          key={col.id}
-                          style={{
-                            border: cellBorder,
-                            borderBottom: cellBorderBottom,
-                            padding: '6px',
-                            background: bStyle === 'borderless' ? 'transparent' : '#f1f5f9',
-                            fontWeight: 'var(--pw-weight-heavy)', fontSize: '0.82rem', color: '#000000',
-                            textAlign: cellAlign,
-                            width: colWidth
-                          }}
-                        >
-                          {col.type === 'likert_scale' ? (
-                            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${(col.scaleOptions || []).length || 3}, 1fr)`, gap: '4px', textAlign: 'center', width: '100%' }}>
-                              {(col.scaleOptions || ['Easy to Answer', 'Could Answer', 'Difficult to Answer']).map((opt: string, sIdx: number) => (
-                                <div key={sIdx} style={{ fontSize: '0.78rem', fontWeight: 'var(--pw-weight-medium)', color: '#000000', padding: '2px 4px', wordBreak: 'break-word', textAlign: 'center' }}>
-                                  {opt}
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            col.label
-                          )}
-                        </th>
-                      );
-                    })}
-                  </tr>
-                </thead>
+                {!block.hideHeader && (
+                  <thead>
+                    <tr style={{ background: bStyle === 'borderless' ? 'transparent' : '#f1f5f9' }}>
+                      {(block.tableColumns || []).map((col: any) => {
+                        const colWidth = getColStyleWidth(col.id, col.width, block.tableColumns || []);
+                        const hasOptions = col.type === 'checkbox' && col.options && col.options.length > 0;
+                        const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? (hasOptions ? 'left' : 'center') : col.type === 'likert_scale' ? 'center' : 'left'));
+                        return (
+                          <th
+                            key={col.id}
+                            style={{
+                              border: cellBorder,
+                              borderBottom: cellBorderBottom,
+                              padding: '6px',
+                              background: bStyle === 'borderless' ? 'transparent' : '#f1f5f9',
+                              fontWeight: 'var(--pw-weight-heavy)', fontSize: '0.82rem', color: '#000000',
+                              textAlign: cellAlign,
+                              width: colWidth
+                            }}
+                          >
+                            {col.type === 'likert_scale' ? (
+                              <div style={{ display: 'grid', gridTemplateColumns: `repeat(${(col.scaleOptions || []).length || 3}, 1fr)`, gap: '4px', textAlign: 'center', width: '100%' }}>
+                                {(col.scaleOptions || ['Easy to Answer', 'Could Answer', 'Difficult to Answer']).map((opt: string, sIdx: number) => (
+                                  <div key={sIdx} style={{ fontSize: '0.82rem', fontWeight: 'var(--pw-weight-heavy)', color: '#000000', padding: '2px 4px', wordBreak: 'break-word', textAlign: 'center' }}>
+                                    {opt}
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              col.label
+                            )}
+                          </th>
+                        );
+                      })}
+                    </tr>
+                  </thead>
+                )}
                 {(() => {
                   const rawRows = block.tableRows || [];
                   const tableCols = block.tableColumns || [];

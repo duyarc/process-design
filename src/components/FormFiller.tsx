@@ -1517,41 +1517,43 @@ export default function FormFiller({
                           return <col key={col.id} style={{ width: colWidth }} />;
                         })}
                       </colgroup>
-                      <thead>
-                        <tr style={{ background: bStyle === 'borderless' ? 'transparent' : '#f1f5f9', borderBottom: bStyle === 'borderless' ? 'none' : '1px solid #cbd5e1' }}>
-                          {(block.tableColumns || []).map((col: any) => {
-                            const colWidth = getColStyleWidth(col.id, col.width, block.tableColumns || []);
-                            const headerAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'date' || col.type === 'time' || col.type === 'likert_scale' ? 'center' : 'left'));
-                            return (
-                              <th
-                                key={col.id}
-                                style={{
-                                  padding: '8px 10px',
-                                  borderRight: bStyle === 'grid' ? '1px solid #cbd5e1' : 'none',
-                                  borderBottom: bStyle === 'borderless' ? 'none' : '1px solid #cbd5e1',
-                                  color: '#0f172a',
-                                  textAlign: headerAlign as any,
-                                  width: colWidth,
-                                  fontWeight: 700,
-                                  fontSize: '0.82rem'
-                                }}
-                              >
-                                {col.type === 'likert_scale' ? (
-                                  <div style={{ display: 'grid', gridTemplateColumns: `repeat(${(col.scaleOptions || []).length || 3}, 1fr)`, gap: '4px', textAlign: 'center', width: '100%' }}>
-                                    {(col.scaleOptions || ['Easy to Answer', 'Could Answer', 'Difficult to Answer']).map((opt: string, sIdx: number) => (
-                                      <div key={sIdx} style={{ fontSize: '0.78rem', fontWeight: 600, color: '#0f172a', padding: '2px 4px', wordBreak: 'break-word', textAlign: 'center' }}>
-                                        {opt}
-                                      </div>
-                                    ))}
-                                  </div>
-                                ) : (
-                                  col.label
-                                )}
-                              </th>
-                            );
-                          })}
-                        </tr>
-                      </thead>
+                      {!block.hideHeader && (
+                        <thead>
+                          <tr style={{ background: bStyle === 'borderless' ? 'transparent' : '#f1f5f9', borderBottom: bStyle === 'borderless' ? 'none' : '1px solid #cbd5e1' }}>
+                            {(block.tableColumns || []).map((col: any) => {
+                              const colWidth = getColStyleWidth(col.id, col.width, block.tableColumns || []);
+                              const headerAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'date' || col.type === 'time' || col.type === 'likert_scale' ? 'center' : 'left'));
+                              return (
+                                <th
+                                  key={col.id}
+                                  style={{
+                                    padding: '8px 10px',
+                                    borderRight: bStyle === 'grid' ? '1px solid #cbd5e1' : 'none',
+                                    borderBottom: bStyle === 'borderless' ? 'none' : '1px solid #cbd5e1',
+                                    color: '#0f172a',
+                                    textAlign: headerAlign as any,
+                                    width: colWidth,
+                                    fontWeight: 700,
+                                    fontSize: '0.82rem'
+                                  }}
+                                >
+                                  {col.type === 'likert_scale' ? (
+                                    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${(col.scaleOptions || []).length || 3}, 1fr)`, gap: '4px', textAlign: 'center', width: '100%' }}>
+                                      {(col.scaleOptions || ['Easy to Answer', 'Could Answer', 'Difficult to Answer']).map((opt: string, sIdx: number) => (
+                                        <div key={sIdx} style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0f172a', padding: '2px 4px', wordBreak: 'break-word', textAlign: 'center' }}>
+                                          {opt}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    col.label
+                                  )}
+                                </th>
+                              );
+                            })}
+                          </tr>
+                        </thead>
+                      )}
                       <tbody>
                         {(block.tableRows || []).length === 0 ? (
                           <tr>

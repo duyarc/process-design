@@ -782,6 +782,10 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     setLayoutBlocks(prev => prev.map(b => b.id === blockId ? { ...b, borderStyle } : b));
   };
 
+  const handleToggleBlockHideHeader = (blockId: string) => {
+    setLayoutBlocks(prev => prev.map(b => b.id === blockId ? { ...b, hideHeader: !b.hideHeader } : b));
+  };
+
 
 
   const handleUpdateBlockMatrixConfig = (blockId: string, updates: Partial<MatrixConfigISO>) => {
@@ -2979,8 +2983,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                   <col style={{ width: '75px' }} />
                                 )}
                               </colgroup>
-                              <thead>
-                                <tr style={{ background: bStyle === 'borderless' ? 'transparent' : '#f1f5f9', borderBottom: bStyle === 'borderless' ? 'none' : '1px solid #cbd5e1' }}>
+                              <thead style={{ opacity: block.hideHeader ? 0.45 : 1, transition: 'opacity 0.2s ease' }} title={block.hideHeader ? 'Tiêu đề đang ẨN trên bản in & biểu mẫu' : undefined}>
+                                <tr style={{ background: bStyle === 'borderless' ? (block.hideHeader ? '#f8fafc' : 'transparent') : '#f1f5f9', borderBottom: bStyle === 'borderless' ? (block.hideHeader ? '1px dashed #cbd5e1' : 'none') : (block.hideHeader ? '1px dashed #94a3b8' : '1px solid #cbd5e1') }}>
                                   {(block.tableColumns || []).map((col) => {
                                     const colWidth = getColStyleWidth(col.id, col.width, block.tableColumns || []);
                                     const headerAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'date' || col.type === 'time' || col.type === 'likert_scale' ? 'center' : 'left'));
@@ -4483,62 +4487,103 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                 )}
 
                 {activeBlock.type === 'TABLE' && (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.1rem' }}>
-                    <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.8rem' }}>Border Style</label>
-                    <div style={{ display: 'flex', border: '1px solid var(--neutral-border)', borderRadius: '4px', overflow: 'hidden', height: '24px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginTop: '0.1rem', padding: '2px 0' }}>
+                    {/* Border Option Group */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.75rem', margin: 0 }}>Border</label>
+                      <div style={{ display: 'flex', border: '1px solid var(--neutral-border)', borderRadius: '4px', overflow: 'hidden', height: '22px' }}>
+                        <button
+                          type="button"
+                          disabled={isLocked}
+                          onClick={() => handleUpdateBlockBorderStyle(activeBlockId!, 'grid')}
+                          style={{
+                            padding: '0 6px',
+                            background: (activeBlock.borderStyle || 'grid') === 'grid' ? '#cbd5e1' : '#ffffff',
+                            border: 'none',
+                            cursor: isLocked ? 'not-allowed' : 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                          title="Lưới đầy đủ (Full Grid)"
+                        >
+                          <Grid size={12} style={{ color: (activeBlock.borderStyle || 'grid') === 'grid' ? 'var(--text-primary)' : 'var(--text-muted)' }} />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={isLocked}
+                          onClick={() => handleUpdateBlockBorderStyle(activeBlockId!, 'horizontal_only')}
+                          style={{
+                            padding: '0 6px',
+                            background: activeBlock.borderStyle === 'horizontal_only' ? '#cbd5e1' : '#ffffff',
+                            borderLeft: '1px solid var(--neutral-border)',
+                            borderRight: '1px solid var(--neutral-border)',
+                            borderTop: 'none',
+                            borderBottom: 'none',
+                            cursor: isLocked ? 'not-allowed' : 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                          title="Chỉ đường ngang (Horizontal Only)"
+                        >
+                          <Rows2 size={12} style={{ color: activeBlock.borderStyle === 'horizontal_only' ? 'var(--text-primary)' : 'var(--text-muted)' }} />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={isLocked}
+                          onClick={() => handleUpdateBlockBorderStyle(activeBlockId!, 'borderless')}
+                          style={{
+                            padding: '0 6px',
+                            background: activeBlock.borderStyle === 'borderless' ? '#cbd5e1' : '#ffffff',
+                            border: 'none',
+                            cursor: isLocked ? 'not-allowed' : 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                          title="Không viền (Borderless)"
+                        >
+                          <SquareDashed size={12} style={{ color: activeBlock.borderStyle === 'borderless' ? 'var(--text-primary)' : 'var(--text-muted)' }} />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Header Minimalist Toggle Switch */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.75rem', margin: 0 }}>Header</label>
                       <button
                         type="button"
                         disabled={isLocked}
-                        onClick={() => handleUpdateBlockBorderStyle(activeBlockId!, 'grid')}
+                        onClick={() => handleToggleBlockHideHeader(activeBlockId!)}
                         style={{
-                          padding: '0 8px',
-                          background: (activeBlock.borderStyle || 'grid') === 'grid' ? '#cbd5e1' : '#ffffff',
+                          width: '32px',
+                          height: '18px',
+                          borderRadius: '9px',
+                          background: activeBlock.hideHeader ? '#cbd5e1' : 'var(--primary)',
                           border: 'none',
                           cursor: isLocked ? 'not-allowed' : 'pointer',
+                          position: 'relative',
+                          padding: '2px',
                           display: 'flex',
                           alignItems: 'center',
-                          justifyContent: 'center'
+                          transition: 'background-color 0.2s ease',
+                          outline: 'none'
                         }}
-                        title="Full Grid"
+                        title={activeBlock.hideHeader ? 'Tiêu đề đang Tắt (Click để Bật)' : 'Tiêu đề đang Bật (Click để Tắt)'}
                       >
-                        <Grid size={13} style={{ color: (activeBlock.borderStyle || 'grid') === 'grid' ? 'var(--text-primary)' : 'var(--text-muted)' }} />
-                      </button>
-                      <button
-                        type="button"
-                        disabled={isLocked}
-                        onClick={() => handleUpdateBlockBorderStyle(activeBlockId!, 'horizontal_only')}
-                        style={{
-                          padding: '0 8px',
-                          background: activeBlock.borderStyle === 'horizontal_only' ? '#cbd5e1' : '#ffffff',
-                          borderLeft: '1px solid var(--neutral-border)',
-                          borderRight: '1px solid var(--neutral-border)',
-                          borderTop: 'none',
-                          borderBottom: 'none',
-                          cursor: isLocked ? 'not-allowed' : 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}
-                        title="Horizontal Only"
-                      >
-                        <Rows2 size={13} style={{ color: activeBlock.borderStyle === 'horizontal_only' ? 'var(--text-primary)' : 'var(--text-muted)' }} />
-                      </button>
-                      <button
-                        type="button"
-                        disabled={isLocked}
-                        onClick={() => handleUpdateBlockBorderStyle(activeBlockId!, 'borderless')}
-                        style={{
-                          padding: '0 8px',
-                          background: activeBlock.borderStyle === 'borderless' ? '#cbd5e1' : '#ffffff',
-                          border: 'none',
-                          cursor: isLocked ? 'not-allowed' : 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}
-                        title="Borderless"
-                      >
-                        <SquareDashed size={13} style={{ color: activeBlock.borderStyle === 'borderless' ? 'var(--text-primary)' : 'var(--text-muted)' }} />
+                        <span
+                          style={{
+                            width: '14px',
+                            height: '14px',
+                            borderRadius: '50%',
+                            background: '#ffffff',
+                            boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                            transform: activeBlock.hideHeader ? 'translateX(0px)' : 'translateX(14px)',
+                            transition: 'transform 0.2s ease',
+                            display: 'block'
+                          }}
+                        />
                       </button>
                     </div>
                   </div>

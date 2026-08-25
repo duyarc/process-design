@@ -202,6 +202,7 @@ export interface LayoutBlockISO {
   showDate?: boolean;
   datePosition?: 'A' | 'B';
   hideSTT?: boolean;
+  hideHeader?: boolean;
 }
 
 export interface FormTemplateISO {
