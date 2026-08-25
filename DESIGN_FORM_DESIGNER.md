@@ -9,7 +9,7 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | `755edc5` (2026-08-25) — Sections 2 & 3 (1-Click Block Cloning: handleCloneBlock, Canvas toolbar, Section Settings, Ctrl+D shortcut in FormBuilder.tsx). |
+| **Verified At Commit** | `CURRENT` (2026-08-25) — Sections 2 & 4 (INFO_GRID Horizontal Alignment & Label Typography Refinement in FormBuilder, PrintBlankForm, PrintFilledForm). |
 
 > **⚠️ Architectural note:** FormBuilder has no awareness of which process it belongs to. The `formName` prop is always identical to `formId`. See Section 6.1 and the Technical Debt table.
 
@@ -468,7 +468,6 @@ full diff of any entry below.
 
 | Date | Commit | Change |
 |---|---|---|
-| 2026-08-17 | `237f540` | **TABLE `<colgroup>` & `<col>` Dynamic Width Enforcement:** Added `<colgroup>` with dynamic `<col style={{ width }} />` across `PrintBlankForm.tsx`, `PrintFilledForm.tsx`, `FormBuilder.tsx`, `FormFiller.tsx`, and `ProcessReader.tsx`. Prevents browser content-heuristic drift and aligns table columns 100% identically between tables with and without group headers. |
 | 2026-08-17 | `76f1765` | **INFO_GRID Photo Field `rowSpan` Print Parity:** (1) Added `grid-auto-rows: minmax(var(--pw-line-h), auto)` to `.print-info-grid` in `print.css`. (2) Ensured robust integer parsing `Number(f.rowSpan)` and `gridRow: span ${rSpan}` across all renderers. (3) Removed `height: 100%` on outer item and applied `alignSelf: stretch` with `flex: 1` inner dashed box so multi-row photo field spans all configured rows without premature truncation. |
 | 2026-08-17 | `cc106a7` | **Fillable PDF Export Unified Table Borders:** (1) Updated `domScanner.ts` to integer `targetWidthPx = 698` (snapping subpixel canvas rounding). (2) Applied `.exporting-pdf-mode` table rules in `index.css`: `border: 1px solid #000000 !important`, `border-collapse: collapse !important`, `border-spacing: 0 !important` on table, th, td. (3) Hidden invisible anchor rows (`tr[aria-hidden="true"] { display: none !important }`) in PDF mode to eliminate disjointed cell gaps. |
 | 2026-08-18 | `62e77f9` | **Content-Driven Label/Text Cells & Column Type Simplification:** (1) Removed `static_text` ("Nhãn") option from column type dropdowns in `FormBuilder.tsx`. (2) In Canvas, text cells render an inline input with `placeholder="[Nhập chữ]"`; typing content marks the cell as a static template label, while clearing it returns the cell to an open input. (3) Propagated 1:1 to `FormFiller.tsx`, `PrintBlankForm.tsx`, `PrintFilledForm.tsx`, `PrintRecord.tsx`, and `ProcessReader.tsx`. |
@@ -483,5 +482,6 @@ full diff of any entry below.
 | 2026-08-25 | `bd156ba` | **Contextual Block Insertion (Insert After Active Block):** Updated `handleAddBlock` and `handleExecuteCopy` in `FormBuilder.tsx`. When a block is currently selected (`activeBlockId`), newly added or copied blocks are inserted at `activeIdx + 1` (immediately following the active block), rather than unconditionally appending to the end of the canvas. |
 | 2026-08-25 | `a18181b` | **Table Block Border Styles Parity & Bottom Row Border Fix:** Standardized `table`, `th`, and `td` border definitions across `FormBuilder.tsx`, `PrintBlankForm.tsx`, `PrintFilledForm.tsx`, and `PrintRecord.tsx`. Fixed missing bottom line on the last row and normalized top border and row borders for `horizontal_only` and `borderless` styles. |
 | 2026-08-25 | `755edc5` | **1-Click Layout Block Cloning (Duplicate Block):** (1) Implemented `handleCloneBlock` in `FormBuilder.tsx` with deep-cloning routine (regenerating unique field IDs, table row IDs, remapping tableData and cellOptionsMap, cloning matrixConfig). (2) Added quick-action duplicate icon `<Copy size={10} />` to canvas block headers and Section Settings header. (3) Added dedicated `[Nhân bản khối này]` action button in Right Inspector Panel. (4) Added `Ctrl+D` / `Cmd+D` keyboard shortcut with focus detection. (5) Auto-activates and contextually splices cloned block immediately after source block (`sourceIdx + 1`). |
+| 2026-08-25 | `CURRENT` | **INFO_GRID Horizontal Alignment & Label Typography Refinement:** (1) Standardized `alignItems: 'center'`, `minHeight: 'var(--pw-line-h)'`, and `lineHeight: 1.4` on all INFO_GRID fields across `PrintBlankForm.tsx`, `PrintFilledForm.tsx`, and `PrintRecord.tsx`, eliminating baseline synthesis drift between Checkbox (Option A) and Text/Date/Time fields. (2) Adjusted `label` field font weight from medium/semi-bold (600) to regular (400) with `lineHeight: 1.5` across Canvas, Filler, Reader, and Print templates. |
 
 

@@ -1365,7 +1365,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                                         padding: '0.45rem 0',
                                       }}
                                     >
-                                      <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                                      <span style={{ fontSize: '0.85rem', fontWeight: 400, color: 'var(--text-primary)', whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.5 }}>
                                         {field.checkItem}
                                       </span>
                                     </div>

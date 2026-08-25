@@ -491,8 +491,8 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
 
                           if (f.type === 'label') {
                             return (
-                              <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'center', fontSize: '0.85rem', whiteSpace: 'pre-wrap', wordBreak: 'break-word', pageBreakInside: 'avoid' }}>
-                                <span style={{ fontWeight: 'var(--pw-weight-medium)', color: '#0f172a' }}>{cleanLabel}</span>
+                              <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'center', fontSize: '0.85rem', whiteSpace: 'pre-wrap', wordBreak: 'break-word', pageBreakInside: 'avoid', lineHeight: 1.5 }}>
+                                <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a' }}>{cleanLabel}</span>
                               </div>
                             );
                           }
@@ -580,9 +580,9 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                             }
 
                             return (
-                              <div key={f.id} style={{ ...gridItemStyle, display: 'grid', gridTemplateColumns: '35% 65%', gap: '8px', alignItems: 'baseline', fontSize: '0.85rem' }}>
+                              <div key={f.id} style={{ ...gridItemStyle, display: 'grid', gridTemplateColumns: '35% 65%', gap: '8px', alignItems: 'center', minHeight: 'var(--pw-line-h)', fontSize: '0.85rem' }}>
                                 {cleanLabel && (
-                                  <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a' }}>{cleanLabel}</span>
+                                  <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', lineHeight: 1.4 }}>{cleanLabel}</span>
                                 )}
                                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', alignItems: 'center', maxWidth: '100%' }}>
                                   {options.map((opt: any) => (
@@ -649,15 +649,15 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
 
                           if (f.type === 'date') {
                             return (
-                              <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'baseline', gap: '8px', fontSize: '0.85rem' }}>
-                                {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap' }}>{cleanLabel}</span>}
-                                <div style={{ fontSize: '0.85rem', color: '#0f172a', display: 'flex', alignItems: 'baseline', gap: '4px', flex: 1 }}>
+                              <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'center', minHeight: 'var(--pw-line-h)', gap: '8px', fontSize: '0.85rem' }}>
+                                {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap', lineHeight: 1.4 }}>{cleanLabel}</span>}
+                                <div style={{ fontSize: '0.85rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '4px', flex: 1 }}>
                                   <span
                                     data-acroform-field="true"
                                     data-field-id={`${f.id}_dd`}
                                     data-field-type="date_part"
                                     data-field-name={`${cleanLabel} (Ngày)`}
-                                    style={{ borderBottom: '1px dotted #cbd5e1', width: '24px', display: 'inline-block', minHeight: 'var(--pw-line-h)' }}
+                                    style={{ borderBottom: '1px dotted #cbd5e1', width: '24px', display: 'inline-block', height: '16px' }}
                                   />
                                   <span style={{ color: '#000000', fontWeight: 'var(--pw-weight-regular)' }}>/</span>
                                   <span
@@ -665,7 +665,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                     data-field-id={`${f.id}_mm`}
                                     data-field-type="date_part"
                                     data-field-name={`${cleanLabel} (Tháng)`}
-                                    style={{ borderBottom: '1px dotted #cbd5e1', width: '24px', display: 'inline-block', minHeight: 'var(--pw-line-h)' }}
+                                    style={{ borderBottom: '1px dotted #cbd5e1', width: '24px', display: 'inline-block', height: '16px' }}
                                   />
                                   <span style={{ color: '#000000', fontWeight: 'var(--pw-weight-regular)' }}>/</span>
                                   <span
@@ -673,7 +673,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                     data-field-id={`${f.id}_yyyy`}
                                     data-field-type="date_part"
                                     data-field-name={`${cleanLabel} (Năm)`}
-                                    style={{ borderBottom: '1px dotted #cbd5e1', width: '40px', display: 'inline-block', minHeight: 'var(--pw-line-h)' }}
+                                    style={{ borderBottom: '1px dotted #cbd5e1', width: '40px', display: 'inline-block', height: '16px' }}
                                   />
                                 </div>
                               </div>
@@ -681,18 +681,18 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                           }
 
                           return (
-                            <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'baseline', gap: '8px', fontSize: '0.85rem' }}>
-                              {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap' }}>{cleanLabel}</span>}
+                            <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'center', minHeight: 'var(--pw-line-h)', gap: '8px', fontSize: '0.85rem' }}>
+                              {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap', lineHeight: 1.4 }}>{cleanLabel}</span>}
                               {f.type === 'time' ? (
                                 f.timeMode === 'dual' ? (
-                                  <div style={{ fontSize: '0.8rem', color: '#1e293b', display: 'flex', alignItems: 'baseline', gap: '4px', flex: 1 }}>
+                                  <div style={{ fontSize: '0.8rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '4px', flex: 1 }}>
                                     Từ{' '}
                                     <span
                                       data-acroform-field="true"
                                       data-field-id={`${f.id}_start_hh`}
                                       data-field-type="time_part"
                                       data-field-name={`${cleanLabel} (Giờ bắt đầu)`}
-                                      style={{ borderBottom: '1px dotted #cbd5e1', width: '22px', display: 'inline-block', minHeight: 'var(--pw-line-h)' }}
+                                      style={{ borderBottom: '1px dotted #cbd5e1', width: '22px', display: 'inline-block', height: '16px' }}
                                     />
                                     :
                                     <span
@@ -700,7 +700,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                       data-field-id={`${f.id}_start_mm`}
                                       data-field-type="time_part"
                                       data-field-name={`${cleanLabel} (Phút bắt đầu)`}
-                                      style={{ borderBottom: '1px dotted #cbd5e1', width: '22px', display: 'inline-block', minHeight: 'var(--pw-line-h)' }}
+                                      style={{ borderBottom: '1px dotted #cbd5e1', width: '22px', display: 'inline-block', height: '16px' }}
                                     />
                                     {' '}đến{' '}
                                     <span
@@ -708,7 +708,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                       data-field-id={`${f.id}_end_hh`}
                                       data-field-type="time_part"
                                       data-field-name={`${cleanLabel} (Giờ kết thúc)`}
-                                      style={{ borderBottom: '1px dotted #cbd5e1', width: '22px', display: 'inline-block', minHeight: 'var(--pw-line-h)' }}
+                                      style={{ borderBottom: '1px dotted #cbd5e1', width: '22px', display: 'inline-block', height: '16px' }}
                                     />
                                     :
                                     <span
@@ -716,17 +716,17 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                       data-field-id={`${f.id}_end_mm`}
                                       data-field-type="time_part"
                                       data-field-name={`${cleanLabel} (Phút kết thúc)`}
-                                      style={{ borderBottom: '1px dotted #cbd5e1', width: '22px', display: 'inline-block', minHeight: 'var(--pw-line-h)' }}
+                                      style={{ borderBottom: '1px dotted #cbd5e1', width: '22px', display: 'inline-block', height: '16px' }}
                                     />
                                   </div>
                                 ) : (
-                                  <div style={{ fontSize: '0.8rem', color: '#1e293b', display: 'flex', alignItems: 'baseline', gap: '4px', flex: 1 }}>
+                                  <div style={{ fontSize: '0.8rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '4px', flex: 1 }}>
                                     <span
                                       data-acroform-field="true"
                                       data-field-id={`${f.id}_hh`}
                                       data-field-type="time_part"
                                       data-field-name={`${cleanLabel} (Giờ)`}
-                                      style={{ borderBottom: '1px dotted #cbd5e1', width: '24px', display: 'inline-block', minHeight: 'var(--pw-line-h)' }}
+                                      style={{ borderBottom: '1px dotted #cbd5e1', width: '24px', display: 'inline-block', height: '16px' }}
                                     />
                                     <span style={{ color: '#475569', fontWeight: 'var(--pw-weight-regular)' }}>:</span>
                                     <span
@@ -734,12 +734,12 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                       data-field-id={`${f.id}_mm`}
                                       data-field-type="time_part"
                                       data-field-name={`${cleanLabel} (Phút)`}
-                                      style={{ borderBottom: '1px dotted #cbd5e1', width: '24px', display: 'inline-block', minHeight: 'var(--pw-line-h)' }}
+                                      style={{ borderBottom: '1px dotted #cbd5e1', width: '24px', display: 'inline-block', height: '16px' }}
                                     />
                                   </div>
                                 )
                               ) : (
-                                <div data-acroform-field="true" data-field-id={f.id} data-field-type={f.type} data-field-name={cleanLabel} style={{ flex: 1, borderBottom: '1px dotted #cbd5e1', minHeight: 'var(--pw-line-h)' }} />
+                                <div data-acroform-field="true" data-field-id={f.id} data-field-type={f.type} data-field-name={cleanLabel} style={{ flex: 1, borderBottom: '1px dotted #cbd5e1', height: '16px' }} />
                               )}
                             </div>
                           );

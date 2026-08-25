@@ -405,8 +405,8 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
 
                             if (f.type === 'label') {
                               return (
-                                <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'center', fontSize: '0.85rem', whiteSpace: 'pre-wrap', wordBreak: 'break-word', pageBreakInside: 'avoid' }}>
-                                  <span style={{ fontWeight: 'var(--pw-weight-medium)', color: '#0f172a' }}>{cleanLabel}</span>
+                                <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'center', fontSize: '0.85rem', whiteSpace: 'pre-wrap', wordBreak: 'break-word', pageBreakInside: 'avoid', lineHeight: 1.5 }}>
+                                  <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a' }}>{cleanLabel}</span>
                                 </div>
                               );
                             }
@@ -460,9 +460,9 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                             if (f.type === 'checkbox' || f.type === 'radio') {
                               const options = f.options ?? [{ label: 'Có', value: 'YES' }, { label: 'Không', value: 'NO' }];
                               return (
-                                <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'baseline', gap: '8px', fontSize: '0.85rem' }}>
-                                  {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap' }}>{cleanLabel}</span>}
-                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', alignItems: 'center' }}>
+                                <div key={f.id} style={{ ...gridItemStyle, display: 'grid', gridTemplateColumns: '35% 65%', gap: '8px', alignItems: 'center', minHeight: 'var(--pw-line-h)', fontSize: '0.85rem' }}>
+                                  {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', lineHeight: 1.4 }}>{cleanLabel}</span>}
+                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', alignItems: 'center', maxWidth: '100%' }}>
                                     {options.map((opt: any) => {
                                       const selected = isOptionSelected(val, opt.value, f.type as 'radio' | 'checkbox');
                                       return (
@@ -524,8 +524,8 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                             // date / time / text / number — render value with underline line preserved
                             if (f.type === 'date') {
                               return (
-                                <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'baseline', gap: '8px', fontSize: '0.85rem' }}>
-                                  {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap' }}>{cleanLabel}</span>}
+                                <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'center', minHeight: 'var(--pw-line-h)', gap: '8px', fontSize: '0.85rem' }}>
+                                  {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap', lineHeight: 1.4 }}>{cleanLabel}</span>}
                                   <span style={{ fontWeight: 600, color: '#0f172a', minWidth: '80px', borderBottom: '1px dotted #cbd5e1' }}>{val || '\u00A0'}</span>
                                 </div>
                               );
@@ -533,8 +533,8 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
 
                             if (f.type === 'time') {
                               return (
-                                <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'baseline', gap: '8px', fontSize: '0.85rem' }}>
-                                  {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap' }}>{cleanLabel}</span>}
+                                <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'center', minHeight: 'var(--pw-line-h)', gap: '8px', fontSize: '0.85rem' }}>
+                                  {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap', lineHeight: 1.4 }}>{cleanLabel}</span>}
                                   <span style={{ fontWeight: 600, color: '#0f172a', minWidth: '60px', borderBottom: '1px dotted #cbd5e1' }}>{val || '\u00A0'}</span>
                                 </div>
                               );
@@ -542,9 +542,9 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
 
                             // default: text / number
                             return (
-                              <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'baseline', gap: '8px', fontSize: '0.85rem' }}>
-                                {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap' }}>{cleanLabel}</span>}
-                                <div style={{ flex: 1, borderBottom: '1px dotted #cbd5e1', minHeight: 'var(--pw-line-h)', fontWeight: 600, color: '#0f172a' }}>{val || '\u00A0'}</div>
+                              <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'center', minHeight: 'var(--pw-line-h)', gap: '8px', fontSize: '0.85rem' }}>
+                                {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap', lineHeight: 1.4 }}>{cleanLabel}</span>}
+                                <div style={{ flex: 1, borderBottom: '1px dotted #cbd5e1', minHeight: '16px', fontWeight: 600, color: '#0f172a' }}>{val || '\u00A0'}</div>
                               </div>
                             );
                           })}

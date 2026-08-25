@@ -608,8 +608,8 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
 
                     if (matchedField?.type === 'label') {
                       return (
-                        <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'center', fontSize: '0.85rem', whiteSpace: 'pre-wrap', wordBreak: 'break-word', pageBreakInside: 'avoid' }}>
-                          <span style={{ fontWeight: 'var(--pw-weight-medium)', color: '#0f172a' }}>{f.checkItem}</span>
+                        <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'center', fontSize: '0.85rem', whiteSpace: 'pre-wrap', wordBreak: 'break-word', pageBreakInside: 'avoid', lineHeight: 1.5 }}>
+                          <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a' }}>{f.checkItem}</span>
                         </div>
                       );
                     }
@@ -661,8 +661,8 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                     }
 
                     return (
-                      <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'baseline', gap: '8px', fontSize: '0.85rem' }}>
-                        <span style={{ fontWeight: 'var(--pw-weight-regular)', whiteSpace: 'nowrap' }}>{f.checkItem ? `${f.checkItem}:` : ''}</span>
+                      <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'center', minHeight: 'var(--pw-line-h)', gap: '8px', fontSize: '0.85rem' }}>
+                        <span style={{ fontWeight: 'var(--pw-weight-regular)', whiteSpace: 'nowrap', lineHeight: 1.4 }}>{f.checkItem ? `${f.checkItem}:` : ''}</span>
                         <span style={{ borderBottom: '1px solid #94a3b8', flex: 1, paddingBottom: '2px', fontWeight: 'var(--pw-weight-regular)' }}>
                           {f.value}
                         </span>
