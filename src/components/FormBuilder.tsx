@@ -587,7 +587,17 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
         row_2: { col_1: '2', col_2: 'Hạng mục kiểm tra B' }
       } : undefined
     };
-    setLayoutBlocks(prev => [...prev, newBlock]);
+    setLayoutBlocks(prev => {
+      if (activeBlockId) {
+        const activeIdx = prev.findIndex(b => b.id === activeBlockId);
+        if (activeIdx !== -1) {
+          const next = [...prev];
+          next.splice(activeIdx + 1, 0, newBlock);
+          return next;
+        }
+      }
+      return [...prev, newBlock];
+    });
     setActiveBlockId(newBlock.id);
     setActiveFieldId(null);
   };
@@ -613,8 +623,18 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
       fields: newFields
     };
 
-    // Append to current layoutBlocks
-    setLayoutBlocks(prev => [...prev, newBlock]);
+    // Insert after current activeBlockId if present, else append
+    setLayoutBlocks(prev => {
+      if (activeBlockId) {
+        const activeIdx = prev.findIndex(b => b.id === activeBlockId);
+        if (activeIdx !== -1) {
+          const next = [...prev];
+          next.splice(activeIdx + 1, 0, newBlock);
+          return next;
+        }
+      }
+      return [...prev, newBlock];
+    });
     setShowCopyModal(false);
     setActiveBlockId(newBlockId);
     setActiveFieldId(null);
