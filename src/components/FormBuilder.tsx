@@ -3967,7 +3967,6 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                     onChange={(e) => handleUpdateField(activeBlockId!, activeFieldId!, { checkItem: e.target.value })}
                     style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', resize: 'vertical', fontSize: '0.8rem', fontFamily: 'inherit', lineHeight: 1.4 }}
                   />
-                  <span style={{ fontSize: '0.68rem', color: '#64748b' }}>Hỗ trợ <code>**đậm**</code>, <code>*nghiêng*</code>, <code>&lt;u&gt;gạch chân&lt;/u&gt;</code> hoặc phím tắt <code>Ctrl+B / I / U</code></span>
                 </div>
 
                 {activeField.type === 'photo' && (
