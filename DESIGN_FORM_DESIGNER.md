@@ -9,7 +9,7 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | `5a06c33` (2026-08-25) — Sections 2 & 4 (Form Engine Typography Token System & Unified 0.82rem Font Sizing). |
+| **Verified At Commit** | `84fcc06` (2026-08-25) — Sections 2 & 4 (Hide Table Header Option & Single-Line Settings Bar). |
 
 > **⚠️ Architectural note:** FormBuilder has no awareness of which process it belongs to. The `formName` prop is always identical to `formId`. See Section 6.1 and the Technical Debt table.
 
@@ -483,6 +483,6 @@ full diff of any entry below.
 | 2026-08-25 | `a367b9e` | **Typography Scale, Hierarchy & 1px Border Standardization:** (1) Standardized table column headers (`<th>`) to bold `fontWeight: 700` (`var(--pw-weight-heavy)`), `fontSize: '0.82rem'`, and high-contrast color `#0f172a` / `#000000` on clean `#f1f5f9` across Canvas, Filler, Reader, and Print templates. (2) Normalized group separator rows to subtle `#f8fafc` tint, `fontWeight: 600`, `fontSize: '0.80rem'`, `#1e293b` / `#000000`, with `renderFormattedText`. (3) Standardized all table borders from `1.5px` to crisp `1px solid #000000` (print/PDF) and `1px solid #cbd5e1` (screen). |
 | 2026-08-25 | `1077bc3` | **Context-Aware Checkbox/Radio Layout & Space Optimization:** (1) Refactored `getAutoCheckboxLayoutMode(field, blockColumns)` in `formUtils.ts` to dynamically calculate row width and column density (1-col threshold: 65 chars label / 85 chars total). (2) Added `hasLongOptions(field)` helper. (3) In `PrintBlankForm.tsx` & `PrintFilledForm.tsx`, enabled `auto 1fr` grid for 1-column layouts and compact horizontal options rendering in `OPTION_C` for short options, reducing vertical space usage from 3 lines to 1-2 lines. |
 | 2026-08-25 | `5a06c33` | **Form Engine Typography Token System & Unified 0.82rem Font Sizing:** (1) Added `--pw-font-body: 0.82rem` and size token hierarchy in `print.css`. (2) Unified all body text across `INFO_GRID` (labels, questions) and `TABLE` (row cells, static text, open inputs, Likert headers) to 0.82rem. (3) Added `renderFormattedText` support inside table static cells for bold/italic/underline formatting. |
-| 2026-08-25 | `pending` | **Hide Table Header Option & Single-Line Settings Bar:** (1) Added `hideHeader?: boolean` to `LayoutBlockISO`. (2) In `FormBuilder.tsx`, placed `Border` and `Header` on a single horizontal row with an animated On/Off pill toggle switch. (3) Dims `<thead>` (`opacity: 0.45`) on Canvas and omits `<thead>` on Print Blank/Filled/Record, FormFiller, ProcessReader, and PDF export while preserving `<colgroup>`. |
+| 2026-08-25 | `84fcc06` | **Hide Table Header Option & Single-Line Settings Bar:** (1) Added `hideHeader?: boolean` to `LayoutBlockISO`. (2) In `FormBuilder.tsx`, placed `Border` and `Header` on a single horizontal row with an animated On/Off pill toggle switch. (3) Dims `<thead>` (`opacity: 0.45`) on Canvas and omits `<thead>` on Print Blank/Filled/Record, FormFiller, ProcessReader, and PDF export while preserving `<colgroup>`. |
 
 
