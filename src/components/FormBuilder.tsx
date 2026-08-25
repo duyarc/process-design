@@ -4440,51 +4440,60 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.8rem' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                  <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Title</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.75rem', margin: 0 }}>Title</label>
+                    
+                    {activeBlock.type !== 'TITLE' && (
+                      <div style={{ display: 'flex', background: '#f1f5f9', padding: '2px', borderRadius: '5px', border: '1px solid var(--neutral-border)' }}>
+                        {(['H1', 'H2', 'BODY', 'NONE'] as const).map(fmt => {
+                          const activeFmt = getEffectiveTitleFormat(activeBlock);
+                          const isSelected = activeFmt === fmt;
+                          const labelText = fmt === 'BODY' ? 'Body' : fmt === 'NONE' ? 'None' : fmt;
+                          return (
+                            <button
+                              key={fmt}
+                              type="button"
+                              disabled={isLocked}
+                              onClick={() => handleUpdateBlockTitleFormat(activeBlockId!, fmt)}
+                              style={{
+                                padding: '1px 6px',
+                                fontSize: '0.68rem',
+                                fontWeight: isSelected ? 700 : 500,
+                                border: 'none',
+                                borderRadius: '3px',
+                                cursor: isLocked ? 'not-allowed' : 'pointer',
+                                background: isSelected ? 'var(--primary)' : 'transparent',
+                                color: isSelected ? '#ffffff' : 'var(--text-secondary)',
+                                boxShadow: isSelected ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
+                                transition: 'all 0.15s ease',
+                                lineHeight: '16px'
+                              }}
+                              title={`Định dạng tiêu đề: ${labelText}`}
+                            >
+                              {labelText}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                   <input
                     type="text"
                     disabled={isLocked}
                     value={activeBlock.title}
                     onChange={(e) => handleUpdateBlockTitle(activeBlockId!, e.target.value)}
-                    style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
+                    placeholder={getEffectiveTitleFormat(activeBlock) === 'NONE' ? '(Tiêu đề đang ẩn)' : 'Tiêu đề khối...'}
+                    style={{
+                      padding: '0.35rem 0.5rem',
+                      borderRadius: '4px',
+                      border: '1px solid var(--neutral-border)',
+                      fontSize: '0.78rem',
+                      opacity: getEffectiveTitleFormat(activeBlock) === 'NONE' ? 0.6 : 1,
+                      backgroundColor: getEffectiveTitleFormat(activeBlock) === 'NONE' ? '#f8fafc' : '#ffffff'
+                    }}
                   />
                 </div>
-
-                {activeBlock.type !== 'TITLE' && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                    <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Title Format</label>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.2rem', background: '#f1f5f9', padding: '0.2rem', borderRadius: '6px' }}>
-                      {(['H1', 'H2', 'BODY', 'NONE'] as const).map(fmt => {
-                        const activeFmt = getEffectiveTitleFormat(activeBlock);
-                        const isSelected = activeFmt === fmt;
-                        const labelText = fmt === 'BODY' ? 'Body' : fmt === 'NONE' ? 'None' : fmt;
-                        return (
-                          <button
-                            key={fmt}
-                            type="button"
-                            disabled={isLocked}
-                            onClick={() => handleUpdateBlockTitleFormat(activeBlockId!, fmt)}
-                            style={{
-                              padding: '0.3rem 0.2rem',
-                              fontSize: '0.75rem',
-                              fontWeight: isSelected ? 700 : 500,
-                              border: 'none',
-                              borderRadius: '4px',
-                              cursor: isLocked ? 'not-allowed' : 'pointer',
-                              background: isSelected ? 'var(--primary)' : 'transparent',
-                              color: isSelected ? '#ffffff' : 'var(--text-secondary)',
-                              boxShadow: isSelected ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
-                              transition: 'all 0.15s ease'
-                            }}
-                          >
-                            {labelText}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
 
                 {activeBlock.type === 'TABLE' && (
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginTop: '0.1rem', padding: '2px 0' }}>
