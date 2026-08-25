@@ -5852,22 +5852,6 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                     </select>
                   </div>
                 )}
-
-                {activeBlock.type !== 'TITLE' && (
-                  <div style={{ borderTop: '1px solid var(--neutral-border)', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
-                    <button
-                      type="button"
-                      disabled={isLocked}
-                      onClick={() => handleCloneBlock(activeBlockId!)}
-                      className="btn btn-secondary btn-sm"
-                      style={{ width: '100%', justifyContent: 'center', display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', padding: '0.45rem 0.6rem' }}
-                      title="Nhân bản khối này (Ctrl+D)"
-                    >
-                      <Copy size={13} />
-                      <span>Nhân bản khối này (Duplicate)</span>
-                    </button>
-                  </div>
-                )}
               </div>
             </div>
           ) : (
