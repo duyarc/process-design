@@ -2013,7 +2013,7 @@ setFormValues(prev => ({ ...prev, [field.id]: stringifySubtableValue(newRows) })
                                      })}
                                    </colgroup>
                                    <thead>
-                                     <tr style={{ background: bStyle === 'borderless' ? 'transparent' : '#e2e8f0', borderBottom: bStyle === 'borderless' ? 'none' : bStyle === 'horizontal_only' ? '1.5px solid #cbd5e1' : '2px solid var(--primary)' }}>
+                                     <tr style={{ background: bStyle === 'borderless' ? 'transparent' : '#f1f5f9', borderBottom: bStyle === 'borderless' ? 'none' : '1px solid #cbd5e1' }}>
                                        {(block.tableColumns || []).map((col: any) => {
                                          const colWidth = getColStyleWidth(col.id, col.width, block.tableColumns || []);
                                          const headerAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'date' || col.type === 'time' || col.type === 'likert_scale' ? 'center' : 'left'));
@@ -2023,12 +2023,7 @@ setFormValues(prev => ({ ...prev, [field.id]: stringifySubtableValue(newRows) })
                                              style={{
                                                padding: '8px 10px',
                                                borderRight: bStyle === 'grid' ? '1px solid #cbd5e1' : 'none',
-                                               borderBottom: bStyle === 'horizontal_only' ? '1.5px solid #cbd5e1' : (bStyle === 'borderless' ? 'none' : '2px solid var(--primary)'),
-                                               color: '#0f172a',
-                                               textAlign: headerAlign as any,
-                                               width: colWidth,
-                                               fontWeight: 600,
-                                               fontSize: '0.8rem'
+                                               borderBottom: bStyle === 'borderless' ? 'none' : '1px solid #cbd5e1', color: '#0f172a', textAlign: headerAlign as any, width: colWidth, fontWeight: 700, fontSize: '0.82rem'
                                              }}
                                            >
                                              {col.type === 'likert_scale' ? (
@@ -2059,19 +2054,14 @@ setFormValues(prev => ({ ...prev, [field.id]: stringifySubtableValue(newRows) })
                                          if (row.isGroupHeader) {
                                            const groupTitle = row.groupTitle || block.tableData?.[row.id]?.['_groupTitle'] || '';
                                            return (
-                                             <tr key={row.id} style={{ background: bStyle === 'borderless' ? 'transparent' : '#e5e7eb', borderBottom: bStyle === 'borderless' ? 'none' : '1.5px solid #cbd5e1' }}>
+                                             <tr key={row.id} style={{ background: bStyle === 'borderless' ? 'transparent' : '#f8fafc', borderBottom: bStyle === 'borderless' ? 'none' : '1px solid #cbd5e1' }}>
                                                <td
                                                  colSpan={(block.tableColumns || []).length}
                                                  style={{
-                                                   padding: '8px 10px',
-                                                   fontWeight: 700,
-                                                   fontSize: '0.85rem',
-                                                   color: '#0f172a',
-                                                   whiteSpace: 'pre-wrap',
-                                                   wordBreak: 'break-word'
+                                                   padding: '6px 10px', fontWeight: 600, fontSize: '0.80rem', color: '#1e293b', whiteSpace: 'pre-wrap', wordBreak: 'break-word'
                                                  }}
                                                >
-                                                 {groupTitle}
+                                                 {renderFormattedText(groupTitle)}
                                                </td>
                                              </tr>
                                            );

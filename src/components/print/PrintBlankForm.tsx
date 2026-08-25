@@ -781,11 +781,10 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                           key={col.id}
                           style={{
                             width: col.width,
-                            border: '1.5px solid #000000',
+                            border: '1px solid #000000',
                             padding: '6px',
                             background: '#f1f5f9',
-                            fontWeight: 'var(--pw-weight-medium)',
-                            fontSize: '0.8rem',
+                            fontWeight: 'var(--pw-weight-heavy)', fontSize: '0.82rem', color: '#000000',
                             textAlign: (col.align || (col.id === 'col_stt' ? 'center' : 'left')) as any
                           }}
                         >
@@ -813,7 +812,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                       if (sectionHeader && sectionHeader !== prevSection) {
                         renderRows.push(
                           <tr key={`sec_${field.id}`} style={{ background: '#f8fafc', pageBreakInside: 'avoid' }}>
-                            <td colSpan={getChecklistColumns(block).length} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontWeight: 'var(--pw-weight-heavy)', fontSize: '0.8rem', textTransform: 'uppercase', color: '#1e293b' }}>
+                            <td colSpan={getChecklistColumns(block).length} style={{ border: '1px solid #000000', padding: '4px 6px', fontWeight: 'var(--pw-weight-medium)', fontSize: '0.80rem', textTransform: 'uppercase', color: '#000000' }}>
                               {sectionHeader}
                             </td>
                           </tr>
@@ -824,7 +823,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                         <tr key={field.id} style={{ pageBreakInside: 'avoid' }}>
                           {getChecklistColumns(block).map((col) => {
                             const commonStyle: React.CSSProperties = {
-                              border: '1.5px solid #000000',
+                              border: '1px solid #000000',
                               padding: '4px 6px',
                               fontSize: '0.8rem',
                               verticalAlign: 'middle',
@@ -960,10 +959,10 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
             {block.type === 'TABLE' && (() => {
               const bStyle = block.borderStyle || 'grid';
               const titleFmt = getEffectiveTitleFormat(block);
-              const tableBorder = bStyle === 'borderless' ? 'none' : bStyle === 'horizontal_only' ? 'none' : '1.5px solid #000000';
-              const tableBorderTop = bStyle === 'horizontal_only' ? '1.5px solid #000000' : undefined;
-              const cellBorder = bStyle === 'borderless' ? 'none' : bStyle === 'horizontal_only' ? 'none' : '1.5px solid #000000';
-              const cellBorderBottom = bStyle === 'horizontal_only' ? '1.5px solid #000000' : (bStyle === 'borderless' ? 'none' : '1.5px solid #000000');
+              const tableBorder = bStyle === 'borderless' ? 'none' : bStyle === 'horizontal_only' ? 'none' : '1px solid #000000';
+              const tableBorderTop = bStyle === 'horizontal_only' ? '1px solid #000000' : undefined;
+              const cellBorder = bStyle === 'borderless' ? 'none' : bStyle === 'horizontal_only' ? 'none' : '1px solid #000000';
+              const cellBorderBottom = bStyle === 'horizontal_only' ? '1px solid #000000' : (bStyle === 'borderless' ? 'none' : '1px solid #000000');
 
               return (
                 <div style={{ marginTop: '0' }}>
@@ -1013,8 +1012,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                               borderBottom: cellBorderBottom,
                               padding: '6px',
                               background: bStyle === 'borderless' ? 'transparent' : '#f1f5f9',
-                              fontWeight: 'var(--pw-weight-medium)',
-                              fontSize: '0.8rem',
+                              fontWeight: 'var(--pw-weight-heavy)', fontSize: '0.82rem', color: '#000000',
                               textAlign: cellAlign,
                               width: colWidth
                             }}
@@ -1100,16 +1098,14 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                               style={{
                                 border: cellBorder,
                                 borderBottom: cellBorderBottom,
-                                background: bStyle === 'borderless' ? 'transparent' : '#e5e7eb',
-                                fontWeight: 'bold',
-                                fontSize: '0.82rem',
+                                background: bStyle === 'borderless' ? 'transparent' : '#f8fafc', fontWeight: 'var(--pw-weight-medium)', fontSize: '0.80rem',
                                 padding: '5px 8px',
                                 color: '#000000',
                                 whiteSpace: 'pre-wrap',
                                 wordBreak: 'break-word'
                               }}
                             >
-                              {grp.groupHeaderRow.groupTitle || block.tableData?.[grp.groupHeaderRow.id]?.['_groupTitle'] || ''}
+                              {renderFormattedText(grp.groupHeaderRow.groupTitle || block.tableData?.[grp.groupHeaderRow.id]?.['_groupTitle'] || '')}
                             </td>
                           </tr>
                         )}
@@ -1369,7 +1365,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                             <tr key={sumType.id || idx} style={{ background: '#ffffff', fontWeight: 'var(--pw-weight-heavy)' }}>
                               {firstSumColIdx > 0 && (
                                 <td colSpan={firstSumColIdx} style={{
-                                  border: '1.5px solid #000000',
+                                  border: '1px solid #000000',
                                   padding: '5px 8px',
                                   textAlign: 'right',
                                   fontSize: '0.82rem',
@@ -1384,7 +1380,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
 
                                 return (
                                   <td key={col.id} style={{
-                                    border: '1.5px solid #000000',
+                                    border: '1px solid #000000',
                                     padding: '5px 8px',
                                     textAlign: 'right',
                                     fontSize: '0.82rem',
@@ -1431,26 +1427,26 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                   }}>
                   <thead>
                     <tr>
-                      <th rowSpan={2} style={{ width: '50px', border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'var(--pw-weight-medium)', fontSize: '0.8rem', textAlign: 'center' }}>
+                      <th rowSpan={2} style={{ width: '50px', border: '1px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'var(--pw-weight-heavy)', fontSize: '0.82rem', color: '#000000', textAlign: 'center' }}>
                         {block.matrixConfig.rowHeader}
                       </th>
-                      <th colSpan={block.matrixConfig.columns.length} style={{ border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'var(--pw-weight-medium)', fontSize: '0.8rem', textAlign: 'center' }}>
+                      <th colSpan={block.matrixConfig.columns.length} style={{ border: '1px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'var(--pw-weight-heavy)', fontSize: '0.82rem', color: '#000000', textAlign: 'center' }}>
                         {block.matrixConfig.columnHeader}
                       </th>
                       {block.matrixConfig.showTotalColumn && (
-                        <th rowSpan={2} style={{ width: '130px', border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'var(--pw-weight-medium)', fontSize: '0.8rem', textAlign: 'center' }}>
+                        <th rowSpan={2} style={{ width: '130px', border: '1px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'var(--pw-weight-heavy)', fontSize: '0.82rem', color: '#000000', textAlign: 'center' }}>
                           {block.matrixConfig.totalColumnHeader}
                         </th>
                       )}
                       {block.matrixConfig.showNotesColumn && (
-                        <th rowSpan={2} style={{ width: '180px', border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'var(--pw-weight-medium)', fontSize: '0.8rem', textAlign: 'left' }}>
+                        <th rowSpan={2} style={{ width: '180px', border: '1px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'var(--pw-weight-heavy)', fontSize: '0.82rem', color: '#000000', textAlign: 'left' }}>
                           {block.matrixConfig.notesColumnHeader}
                         </th>
                       )}
                     </tr>
                     <tr>
                       {block.matrixConfig.columns.map((colName, cIdx) => (
-                        <th key={cIdx} style={{ border: '1.5px solid #000000', padding: '4px', background: '#f8fafc', fontWeight: 'var(--pw-weight-medium)', fontSize: '0.75rem', textAlign: block.matrixConfig!.columnAlign || 'center' }}>
+                        <th key={cIdx} style={{ border: '1px solid #000000', padding: '4px', background: '#f8fafc', fontWeight: 'var(--pw-weight-medium)', fontSize: '0.75rem', textAlign: block.matrixConfig!.columnAlign || 'center' }}>
                           {colName || `Cột ${cIdx + 1}`}
                         </th>
                       ))}
@@ -1459,31 +1455,31 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                   <tbody>
                     {Array.from({ length: block.matrixConfig.rowCount }).map((_, rIdx) => (
                       <tr key={rIdx} style={{ pageBreakInside: 'avoid' }}>
-                        <td style={{ border: '1.5px solid #000000', padding: '6px', textAlign: 'center', fontSize: '0.8rem', fontWeight: 'var(--pw-weight-regular)' }}>
+                        <td style={{ border: '1px solid #000000', padding: '6px', textAlign: 'center', fontSize: '0.8rem', fontWeight: 'var(--pw-weight-regular)' }}>
                           {rIdx + 1}
                         </td>
                         {block.matrixConfig!.columns.map((_, cIdx) => (
-                          <td key={cIdx} data-acroform-field="true" data-field-id={`matrix_r${rIdx}_c${cIdx}`} data-field-type="number" data-field-name={`Matrix Row ${rIdx + 1} Col ${cIdx + 1}`} style={{ border: '1.5px solid #000000', padding: '4px 6px', height: '28px' }}></td>
+                          <td key={cIdx} data-acroform-field="true" data-field-id={`matrix_r${rIdx}_c${cIdx}`} data-field-type="number" data-field-name={`Matrix Row ${rIdx + 1} Col ${cIdx + 1}`} style={{ border: '1px solid #000000', padding: '4px 6px', height: '28px' }}></td>
                         ))}
                         {block.matrixConfig!.showTotalColumn && (
-                          <td data-acroform-field="true" data-field-id={`matrix_r${rIdx}_total`} data-field-type="number" data-field-name={`Matrix Row ${rIdx + 1} Total`} style={{ border: '1.5px solid #000000', padding: '4px 6px', height: '28px' }}></td>
+                          <td data-acroform-field="true" data-field-id={`matrix_r${rIdx}_total`} data-field-type="number" data-field-name={`Matrix Row ${rIdx + 1} Total`} style={{ border: '1px solid #000000', padding: '4px 6px', height: '28px' }}></td>
                         )}
                         {block.matrixConfig!.showNotesColumn && (
-                          <td data-acroform-field="true" data-field-id={`matrix_r${rIdx}_notes`} data-field-type="text" data-field-name={`Matrix Row ${rIdx + 1} Notes`} style={{ border: '1.5px solid #000000', padding: '4px 6px', height: '28px' }}></td>
+                          <td data-acroform-field="true" data-field-id={`matrix_r${rIdx}_notes`} data-field-type="text" data-field-name={`Matrix Row ${rIdx + 1} Notes`} style={{ border: '1px solid #000000', padding: '4px 6px', height: '28px' }}></td>
                         )}
                       </tr>
                     ))}
                     {/* Empty Total Row */}
                     <tr style={{ background: '#f8fafc', fontWeight: 'var(--pw-weight-heavy)', pageBreakInside: 'avoid' }}>
-                      <td style={{ border: '1.5px solid #000000', padding: '4px 6px', textAlign: 'center', fontSize: '0.8rem' }}>TỔNG</td>
+                      <td style={{ border: '1px solid #000000', padding: '4px 6px', textAlign: 'center', fontSize: '0.8rem' }}>TỔNG</td>
                       {block.matrixConfig.columns.map((_, cIdx) => (
-                        <td key={cIdx} style={{ border: '1.5px solid #000000', padding: '4px 6px', height: '28px' }}></td>
+                        <td key={cIdx} style={{ border: '1px solid #000000', padding: '4px 6px', height: '28px' }}></td>
                       ))}
                       {block.matrixConfig.showTotalColumn && (
-                        <td style={{ border: '1.5px solid #000000', padding: '4px 6px', height: '28px' }}></td>
+                        <td style={{ border: '1px solid #000000', padding: '4px 6px', height: '28px' }}></td>
                       )}
                       {block.matrixConfig.showNotesColumn && (
-                        <td style={{ border: '1.5px solid #000000', padding: '4px 6px', height: '28px' }}></td>
+                        <td style={{ border: '1px solid #000000', padding: '4px 6px', height: '28px' }}></td>
                       )}
                     </tr>
                   </tbody>

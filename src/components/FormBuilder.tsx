@@ -2979,7 +2979,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                 )}
                               </colgroup>
                               <thead>
-                                <tr style={{ background: bStyle === 'borderless' ? 'transparent' : '#e2e8f0', borderBottom: bStyle === 'borderless' ? 'none' : bStyle === 'horizontal_only' ? '1.5px solid #cbd5e1' : '2px solid var(--primary)' }}>
+                                <tr style={{ background: bStyle === 'borderless' ? 'transparent' : '#f1f5f9', borderBottom: bStyle === 'borderless' ? 'none' : '1px solid #cbd5e1' }}>
                                   {(block.tableColumns || []).map((col) => {
                                     const colWidth = getColStyleWidth(col.id, col.width, block.tableColumns || []);
                                     const headerAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'date' || col.type === 'time' || col.type === 'likert_scale' ? 'center' : 'left'));
@@ -2989,7 +2989,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                         style={{
                                           padding: '4px 6px',
                                           borderRight: bStyle === 'grid' ? '1px solid #cbd5e1' : 'none',
-                                          borderBottom: bStyle === 'horizontal_only' ? '1.5px solid #cbd5e1' : 'none',
+                                          borderBottom: bStyle === 'borderless' ? 'none' : '1px solid #cbd5e1',
                                           width: colWidth,
                                           verticalAlign: 'top',
                                           boxSizing: 'border-box'
@@ -2998,7 +2998,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                         {col.type === 'likert_scale' ? (
                                           <div style={{ display: 'grid', gridTemplateColumns: `repeat(${(col.scaleOptions || []).length || 3}, 1fr)`, gap: '4px', textAlign: 'center', width: '100%', minHeight: '22px' }}>
                                             {(col.scaleOptions || ['Easy to Answer', 'Could Answer', 'Difficult to Answer']).map((opt, sIdx) => (
-                                              <div key={sIdx} style={{ fontSize: '0.72rem', fontWeight: 600, color: '#0f172a', padding: '2px 2px', wordBreak: 'break-word', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                              <div key={sIdx} style={{ fontSize: '0.75rem', fontWeight: 700, color: '#0f172a', padding: '2px 2px', wordBreak: 'break-word', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                                 {opt}
                                               </div>
                                             ))}
@@ -3012,8 +3012,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                 visibility: 'hidden',
                                                 whiteSpace: 'pre-wrap',
                                                 wordBreak: 'break-word',
-                                                fontSize: '0.75rem',
-                                                fontWeight: 600,
+                                                fontSize: '0.82rem',
+                                                fontWeight: 700,
                                                 lineHeight: 1.35,
                                                 fontFamily: 'inherit',
                                                 textAlign: headerAlign as any,
@@ -3037,8 +3037,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                 gridArea: '1 / 1 / 2 / 2',
                                                 width: '100%',
                                                 height: '100%',
-                                                fontWeight: 600,
-                                                fontSize: '0.75rem',
+                                                fontWeight: 700,
+                                                fontSize: '0.82rem',
                                                 lineHeight: 1.35,
                                                 fontFamily: 'inherit',
                                                 color: '#0f172a',
@@ -3089,7 +3089,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                       return (
                                         <tr
                                           key={row.id}
-                                          style={{ borderBottom: bStyle === 'borderless' ? 'none' : '1.5px solid #cbd5e1', background: bStyle === 'borderless' ? 'transparent' : '#e5e7eb' }}
+                                          style={{ borderBottom: bStyle === 'borderless' ? 'none' : '1px solid #cbd5e1', background: bStyle === 'borderless' ? 'transparent' : '#f8fafc' }}
                                           onMouseEnter={() => !isLocked && setHoveredTableRowId(row.id)}
                                           onMouseLeave={() => setHoveredTableRowId(null)}
                                         >
@@ -3103,13 +3103,13 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                             style={{
                                               padding: '6px 10px',
                                               verticalAlign: 'middle',
-                                              fontWeight: 700,
-                                              fontSize: '0.85rem',
-                                              color: '#0f172a',
+                                              fontWeight: 600,
+                                              fontSize: '0.80rem',
+                                              color: '#1e293b',
                                               outline: isSelected ? '1.5px solid #3b82f6' : 'none'
                                             }}
                                           >
-                                            <div style={{ display: 'grid', width: '100%', minHeight: '28px', boxSizing: 'border-box' }}>
+                                            <div style={{ display: 'grid', width: '100%', minHeight: '26px', boxSizing: 'border-box' }}>
                                               <span
                                                 aria-hidden="true"
                                                 style={{
@@ -3117,11 +3117,11 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                   visibility: 'hidden',
                                                   whiteSpace: 'pre-wrap',
                                                   wordBreak: 'break-word',
-                                                  fontSize: '0.85rem',
-                                                  fontWeight: 700,
+                                                  fontSize: '0.80rem',
+                                                  fontWeight: 600,
                                                   lineHeight: 1.4,
                                                   fontFamily: 'inherit',
-                                                  minHeight: '20px'
+                                                  minHeight: '18px'
                                                 }}
                                               >
                                                 {(groupTitleVal || '') + ' '}
@@ -3152,11 +3152,11 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                   outline: 'none',
                                                   padding: 0,
                                                   margin: 0,
-                                                  fontWeight: 700,
-                                                  fontSize: '0.85rem',
+                                                  fontWeight: 600,
+                                                  fontSize: '0.80rem',
                                                   lineHeight: 1.4,
                                                   fontFamily: 'inherit',
-                                                  color: '#0f172a',
+                                                  color: '#1e293b',
                                                   resize: 'none',
                                                   overflow: 'hidden',
                                                   whiteSpace: 'pre-wrap',

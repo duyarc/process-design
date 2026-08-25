@@ -568,7 +568,7 @@ table.print-table--borderless tr {
 
 table.print-table--horizontal {
   border-collapse: collapse !important;
-  border-top: 1.5px solid #cbd5e1 !important;
+  border-top: 1px solid #cbd5e1 !important;
   border-bottom: none !important;
   border-left: none !important;
   border-right: none !important;
@@ -578,7 +578,7 @@ table.print-table--horizontal th {
   border-top: none !important;
   border-left: none !important;
   border-right: none !important;
-  border-bottom: 1.5px solid #cbd5e1 !important;
+  border-bottom: 1px solid #cbd5e1 !important;
 }
 
 table.print-table--horizontal td {
@@ -598,7 +598,7 @@ table.print-table--horizontal td {
 
 .exporting-pdf-mode table.print-table.print-table--horizontal {
   border-collapse: collapse !important;
-  border-top: 1.5px solid #000000 !important;
+  border-top: 1px solid #000000 !important;
   border-bottom: none !important;
   border-left: none !important;
   border-right: none !important;
@@ -608,13 +608,13 @@ table.print-table--horizontal td {
   border-top: none !important;
   border-left: none !important;
   border-right: none !important;
-  border-bottom: 1.5px solid #000000 !important;
+  border-bottom: 1px solid #000000 !important;
 }
 
 .exporting-pdf-mode table.print-table.print-table--horizontal td {
   border-top: none !important;
   border-left: none !important;
   border-right: none !important;
-  border-bottom: 1.5px solid #000000 !important;
+  border-bottom: 1px solid #000000 !important;
 }
 

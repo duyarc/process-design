@@ -470,7 +470,7 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                         <span key={opt.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.8rem' }}>
                                           <span style={{
                                             display: 'inline-block', width: '13px', height: '13px',
-                                            border: '1.5px solid #000000',
+                                            border: '1px solid #000000',
                                             background: selected ? '#000000' : '#ffffff',
                                             borderRadius: '2px', flexShrink: 0,
                                             color: '#ffffff', fontSize: '10px', lineHeight: '13px', textAlign: 'center'
@@ -573,7 +573,7 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                           <thead>
                             <tr>
                               {cols.map(col => (
-                                <th key={col.id} style={{ width: col.width, border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'var(--pw-weight-medium)', fontSize: '0.8rem', textAlign: (col.align || (col.id === 'col_stt' ? 'center' : 'left')) as any }}>
+                                <th key={col.id} style={{ width: col.width, border: '1px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'var(--pw-weight-heavy)', fontSize: '0.82rem', color: '#000000', textAlign: (col.align || (col.id === 'col_stt' ? 'center' : 'left')) as any }}>
                                   {col.label}
                                 </th>
                               ))}
@@ -595,7 +595,7 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                               if (sectionHeader && sectionHeader !== prevSection) {
                                 renderRows.push(
                                   <tr key={`sec_${field.id}`} style={{ background: '#f8fafc', pageBreakInside: 'avoid' }}>
-                                    <td colSpan={cols.length} style={{ border: '1.5px solid #000000', padding: '4px 6px', fontWeight: 'var(--pw-weight-heavy)', fontSize: '0.8rem', textTransform: 'uppercase', color: '#1e293b' }}>
+                                    <td colSpan={cols.length} style={{ border: '1px solid #000000', padding: '4px 6px', fontWeight: 'var(--pw-weight-heavy)', fontSize: '0.8rem', textTransform: 'uppercase', color: '#1e293b' }}>
                                       {sectionHeader}
                                     </td>
                                   </tr>
@@ -609,7 +609,7 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                 <tr key={field.id} style={{ pageBreakInside: 'avoid' }}>
                                   {cols.map(col => {
                                     const commonStyle: React.CSSProperties = {
-                                      border: '1.5px solid #000000', padding: '4px 6px',
+                                      border: '1px solid #000000', padding: '4px 6px',
                                       fontSize: '0.8rem', verticalAlign: 'middle', height: '28px',
                                       textAlign: (col.align as any) || 'left'
                                     };
@@ -638,7 +638,7 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                                   <span key={opt.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem' }}>
                                                     <span style={{
                                                       display: 'inline-block', width: '14px', height: '14px',
-                                                      border: '1.5px solid #000000',
+                                                      border: '1px solid #000000',
                                                       background: selected ? '#000000' : '#ffffff',
                                                       borderRadius: '2px',
                                                       color: '#ffffff', fontSize: '10px', lineHeight: '14px', textAlign: 'center'
@@ -677,10 +677,10 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                   {block.type === 'TABLE' && (() => {
                     const bStyle = block.borderStyle || 'grid';
                     const titleFmt = getEffectiveTitleFormat(block);
-                    const tableBorder = bStyle === 'borderless' ? 'none' : bStyle === 'horizontal_only' ? 'none' : '1.5px solid #000000';
-                    const tableBorderTop = bStyle === 'horizontal_only' ? '1.5px solid #000000' : undefined;
-                    const cellBorder = bStyle === 'borderless' ? 'none' : bStyle === 'horizontal_only' ? 'none' : '1.5px solid #000000';
-                    const cellBorderBottom = bStyle === 'horizontal_only' ? '1.5px solid #000000' : (bStyle === 'borderless' ? 'none' : '1.5px solid #000000');
+                    const tableBorder = bStyle === 'borderless' ? 'none' : bStyle === 'horizontal_only' ? 'none' : '1px solid #000000';
+                    const tableBorderTop = bStyle === 'horizontal_only' ? '1px solid #000000' : undefined;
+                    const cellBorder = bStyle === 'borderless' ? 'none' : bStyle === 'horizontal_only' ? 'none' : '1px solid #000000';
+                    const cellBorderBottom = bStyle === 'horizontal_only' ? '1px solid #000000' : (bStyle === 'borderless' ? 'none' : '1px solid #000000');
                     const tableCols: TableColumnConfig[] = block.tableColumns || [];
                     const reconstructedRows = buildTableRowMap(block.id, submission.formData, tableCols);
                     // Fall back to template rows (static) if no snapshot rows found
@@ -723,8 +723,7 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                       borderBottom: cellBorderBottom,
                                       padding: '6px',
                                       background: bStyle === 'borderless' ? 'transparent' : '#f1f5f9',
-                                      fontWeight: 'var(--pw-weight-medium)',
-                                      fontSize: '0.8rem',
+                                      fontWeight: 'var(--pw-weight-heavy)', fontSize: '0.82rem', color: '#000000',
                                       textAlign: cellAlign as any,
                                       width: colWidth
                                     }}
@@ -805,16 +804,14 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                       style={{
                                         border: cellBorder,
                                         borderBottom: cellBorderBottom,
-                                        background: bStyle === 'borderless' ? 'transparent' : '#e5e7eb',
-                                        fontWeight: 'bold',
-                                        fontSize: '0.82rem',
+                                        background: bStyle === 'borderless' ? 'transparent' : '#f8fafc', fontWeight: 'var(--pw-weight-medium)', fontSize: '0.80rem',
                                         padding: '5px 8px',
                                         color: '#000000',
                                         whiteSpace: 'pre-wrap',
                                         wordBreak: 'break-word'
                                       }}
                                     >
-                                      {grp.groupHeaderRow.groupTitle || block.tableData?.[grp.groupHeaderRow.id]?.['_groupTitle'] || ''}
+                                      {renderFormattedText(grp.groupHeaderRow.groupTitle || block.tableData?.[grp.groupHeaderRow.id]?.['_groupTitle'] || '')}
                                     </td>
                                   </tr>
                                 )}
@@ -846,7 +843,7 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                                         width: '13px',
                                                         height: '13px',
                                                         borderRadius: '50%',
-                                                        border: '1.5px solid #000000',
+                                                        border: '1px solid #000000',
                                                         background: '#ffffff'
                                                       }}
                                                     >
@@ -935,7 +932,7 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                                       width: '13px',
                                                       height: '13px',
                                                       borderRadius: '50%',
-                                                      border: '1.5px solid #000000',
+                                                      border: '1px solid #000000',
                                                       background: '#ffffff'
                                                     }}
                                                   >
@@ -1007,10 +1004,10 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                               <tfoot>
                                 {summaryTypes.map((sumType, idx) => (
                                   <tr key={sumType.id || idx} style={{ background: '#ffffff', fontWeight: 'var(--pw-weight-heavy)' }}>
-                                    {firstSumColIdx > 0 && <td colSpan={firstSumColIdx} style={{ border: '1.5px solid #000000', padding: '5px 8px', textAlign: 'right', fontSize: '0.82rem' }}>{sumType.label}</td>}
+                                    {firstSumColIdx > 0 && <td colSpan={firstSumColIdx} style={{ border: '1px solid #000000', padding: '5px 8px', textAlign: 'right', fontSize: '0.82rem' }}>{sumType.label}</td>}
                                     {columns.slice(firstSumColIdx).map((col: any, offsetIdx: number) => {
                                       const isLabelColIfFirst = firstSumColIdx + offsetIdx === 0 && firstSumColIdx === 0;
-                                      return <td key={col.id} style={{ border: '1.5px solid #000000', padding: '5px 8px', textAlign: 'right', fontSize: '0.82rem' }}>{isLabelColIfFirst ? sumType.label : ''}</td>;
+                                      return <td key={col.id} style={{ border: '1px solid #000000', padding: '5px 8px', textAlign: 'right', fontSize: '0.82rem' }}>{isLabelColIfFirst ? sumType.label : ''}</td>;
                                     })}
                                   </tr>
                                 ))}
@@ -1054,14 +1051,14 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                         <table className="print-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                           <thead>
                             <tr>
-                              <th rowSpan={2} style={{ width: '50px', border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'var(--pw-weight-medium)', fontSize: '0.8rem', textAlign: 'center' }}>{cfg.rowHeader}</th>
-                              <th colSpan={cfg.columns.length} style={{ border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'var(--pw-weight-medium)', fontSize: '0.8rem', textAlign: 'center' }}>{cfg.columnHeader}</th>
-                              {cfg.showTotalColumn && <th rowSpan={2} style={{ width: '130px', border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'var(--pw-weight-medium)', fontSize: '0.8rem', textAlign: 'center' }}>{cfg.totalColumnHeader}</th>}
-                              {cfg.showNotesColumn && <th rowSpan={2} style={{ width: '180px', border: '1.5px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'var(--pw-weight-medium)', fontSize: '0.8rem', textAlign: 'left' }}>{cfg.notesColumnHeader}</th>}
+                              <th rowSpan={2} style={{ width: '50px', border: '1px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'var(--pw-weight-heavy)', fontSize: '0.82rem', color: '#000000', textAlign: 'center' }}>{cfg.rowHeader}</th>
+                              <th colSpan={cfg.columns.length} style={{ border: '1px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'var(--pw-weight-heavy)', fontSize: '0.82rem', color: '#000000', textAlign: 'center' }}>{cfg.columnHeader}</th>
+                              {cfg.showTotalColumn && <th rowSpan={2} style={{ width: '130px', border: '1px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'var(--pw-weight-heavy)', fontSize: '0.82rem', color: '#000000', textAlign: 'center' }}>{cfg.totalColumnHeader}</th>}
+                              {cfg.showNotesColumn && <th rowSpan={2} style={{ width: '180px', border: '1px solid #000000', padding: '6px', background: '#f1f5f9', fontWeight: 'var(--pw-weight-heavy)', fontSize: '0.82rem', color: '#000000', textAlign: 'left' }}>{cfg.notesColumnHeader}</th>}
                             </tr>
                             <tr>
                               {cfg.columns.map((colName: string, cIdx: number) => (
-                                <th key={cIdx} style={{ border: '1.5px solid #000000', padding: '4px', background: '#f8fafc', fontWeight: 'var(--pw-weight-medium)', fontSize: '0.75rem', textAlign: cfg.columnAlign || 'center' }}>
+                                <th key={cIdx} style={{ border: '1px solid #000000', padding: '4px', background: '#f8fafc', fontWeight: 'var(--pw-weight-medium)', fontSize: '0.75rem', textAlign: cfg.columnAlign || 'center' }}>
                                   {colName || `Cột ${cIdx + 1}`}
                                 </th>
                               ))}
@@ -1070,22 +1067,22 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                           <tbody>
                             {Array.from({ length: rowCount }).map((_, rIdx) => (
                               <tr key={rIdx} style={{ pageBreakInside: 'avoid' }}>
-                                <td style={{ border: '1.5px solid #000000', padding: '6px', textAlign: 'center', fontSize: '0.8rem', fontWeight: 'var(--pw-weight-regular)' }}>{rIdx + 1}</td>
+                                <td style={{ border: '1px solid #000000', padding: '6px', textAlign: 'center', fontSize: '0.8rem', fontWeight: 'var(--pw-weight-regular)' }}>{rIdx + 1}</td>
                                 {cfg.columns.map((_: any, cIdx: number) => (
-                                  <td key={cIdx} style={{ border: '1.5px solid #000000', padding: '4px 6px', height: '28px', fontSize: '0.8rem', textAlign: cfg.columnAlign || 'center' }}>
+                                  <td key={cIdx} style={{ border: '1px solid #000000', padding: '4px 6px', height: '28px', fontSize: '0.8rem', textAlign: cfg.columnAlign || 'center' }}>
                                     {cellMap[rIdx]?.[cIdx] ?? ''}
                                   </td>
                                 ))}
-                                {cfg.showTotalColumn && <td style={{ border: '1.5px solid #000000', padding: '4px 6px', height: '28px' }} />}
-                                {cfg.showNotesColumn && <td style={{ border: '1.5px solid #000000', padding: '4px 6px', height: '28px', fontSize: '0.8rem' }}>{noteMap[rIdx] ?? ''}</td>}
+                                {cfg.showTotalColumn && <td style={{ border: '1px solid #000000', padding: '4px 6px', height: '28px' }} />}
+                                {cfg.showNotesColumn && <td style={{ border: '1px solid #000000', padding: '4px 6px', height: '28px', fontSize: '0.8rem' }}>{noteMap[rIdx] ?? ''}</td>}
                               </tr>
                             ))}
                             {/* TỔNG row — always blank (totals are computed, not stored in snapshot) */}
                             <tr style={{ background: '#f8fafc', fontWeight: 'var(--pw-weight-heavy)', pageBreakInside: 'avoid' }}>
-                              <td style={{ border: '1.5px solid #000000', padding: '4px 6px', textAlign: 'center', fontSize: '0.8rem' }}>TỔNG</td>
-                              {cfg.columns.map((_: any, cIdx: number) => <td key={cIdx} style={{ border: '1.5px solid #000000', padding: '4px 6px', height: '28px' }} />)}
-                              {cfg.showTotalColumn && <td style={{ border: '1.5px solid #000000', padding: '4px 6px', height: '28px' }} />}
-                              {cfg.showNotesColumn && <td style={{ border: '1.5px solid #000000', padding: '4px 6px', height: '28px' }} />}
+                              <td style={{ border: '1px solid #000000', padding: '4px 6px', textAlign: 'center', fontSize: '0.8rem' }}>TỔNG</td>
+                              {cfg.columns.map((_: any, cIdx: number) => <td key={cIdx} style={{ border: '1px solid #000000', padding: '4px 6px', height: '28px' }} />)}
+                              {cfg.showTotalColumn && <td style={{ border: '1px solid #000000', padding: '4px 6px', height: '28px' }} />}
+                              {cfg.showNotesColumn && <td style={{ border: '1px solid #000000', padding: '4px 6px', height: '28px' }} />}
                             </tr>
                           </tbody>
                         </table>
@@ -1146,7 +1143,7 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
               {/* ── Photo Evidence Section ── */}
               {imageUrls.length > 0 && (
                 <div className="print-block print-block-avoid" style={{ marginTop: '1rem' }}>
-                  <h3 style={{ fontSize: '0.9rem', fontWeight: 700, margin: '0 0 8px 0', textTransform: 'uppercase', borderBottom: '1.5px solid #000000', paddingBottom: '4px', color: '#000000' }}>
+                  <h3 style={{ fontSize: '0.9rem', fontWeight: 700, margin: '0 0 8px 0', textTransform: 'uppercase', borderBottom: '1px solid #000000', paddingBottom: '4px', color: '#000000' }}>
                     Ảnh bằng chứng
                   </h3>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
