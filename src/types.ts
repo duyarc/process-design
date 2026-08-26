@@ -35,7 +35,7 @@ export interface FormField {
 export interface RadioOption {
   label: string;   // Nhãn hiển thị — ví dụ: "Đạt", "Loại B"
   value: string;   // Giá trị lưu   — ví dụ: "PASS", "GRADE_B"
-  isPass: boolean; // Lựa chọn này có được tính là đạt không?
+  isPass?: boolean; // Lựa chọn này có được tính là đạt không?
 }
 
 export interface FormDesignerField {

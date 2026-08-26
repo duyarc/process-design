@@ -510,9 +510,10 @@ interface FieldTypeDropdownProps {
   value: 'label' | 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo' | 'rating' | 'subtable' | 'likert_scale';
   onChange: (newType: 'label' | 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo' | 'rating' | 'subtable' | 'likert_scale') => void;
   disabled?: boolean;
+  compact?: boolean;
 }
 
-function FieldTypeDropdown({ value, onChange, disabled }: FieldTypeDropdownProps) {
+function FieldTypeDropdown({ value, onChange, disabled, compact }: FieldTypeDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -540,13 +541,33 @@ function FieldTypeDropdown({ value, onChange, disabled }: FieldTypeDropdownProps
   }, [isOpen]);
 
   return (
-    <div ref={containerRef} style={{ position: 'relative', width: '100%', userSelect: 'none' }}>
+    <div ref={containerRef} style={{ position: 'relative', width: compact ? 'fit-content' : '100%', userSelect: 'none' }}>
       {/* Trigger Button Card */}
       <button
         type="button"
         disabled={disabled}
-        onClick={() => setIsOpen(prev => !prev)}
-        style={{
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsOpen(prev => !prev);
+        }}
+        style={compact ? {
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '4px',
+          padding: '2px 6px',
+          borderRadius: '4px',
+          border: isOpen ? '1.5px solid var(--primary)' : '1px solid #cbd5e1',
+          background: '#ffffff',
+          color: '#0f172a',
+          cursor: disabled ? 'not-allowed' : 'pointer',
+          fontSize: '0.72rem',
+          fontWeight: 600,
+          boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+          transition: 'all 0.15s ease',
+          outline: 'none',
+          minWidth: '85px',
+          justifyContent: 'space-between'
+        } : {
           width: '100%',
           display: 'flex',
           alignItems: 'center',
@@ -564,17 +585,18 @@ function FieldTypeDropdown({ value, onChange, disabled }: FieldTypeDropdownProps
           outline: 'none'
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-          <ActiveIcon size={16} strokeWidth={2} style={{ color: 'var(--primary)' }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: compact ? '4px' : '0.6rem' }}>
+          <ActiveIcon size={compact ? 13 : 16} strokeWidth={2} style={{ color: 'var(--primary)' }} />
           <span>{activeOption.label}</span>
         </div>
         <ChevronDown
-          size={14}
+          size={compact ? 11 : 14}
           strokeWidth={2}
           style={{
             color: '#64748b',
             transform: isOpen ? 'rotate(180deg)' : 'none',
-            transition: 'transform 0.2s ease'
+            transition: 'transform 0.2s ease',
+            marginLeft: '2px'
           }}
         />
       </button>
@@ -582,15 +604,17 @@ function FieldTypeDropdown({ value, onChange, disabled }: FieldTypeDropdownProps
       {/* Popover Card Menu List */}
       {isOpen && (
         <div
+          onClick={(e) => e.stopPropagation()}
           style={{
             position: 'absolute',
             top: 'calc(100% + 4px)',
-            left: 0,
-            right: 0,
+            right: compact ? 0 : 'auto',
+            left: compact ? 'auto' : 0,
+            width: compact ? '160px' : 'auto',
             background: '#ffffff',
             border: '1px solid #e2e8f0',
             borderRadius: '8px',
-            boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1)',
+            boxShadow: '0 10px 15px -3px rgba(0,0,0,0.12), 0 4px 6px -4px rgba(0,0,0,0.08)',
             padding: '0.35rem',
             zIndex: 9999,
             maxHeight: '340px',
@@ -602,7 +626,7 @@ function FieldTypeDropdown({ value, onChange, disabled }: FieldTypeDropdownProps
         >
           {FIELD_TYPE_OPTIONS.map((opt) => {
             const Icon = opt.icon;
-            const isSelected = opt.value === value;
+            const isSelected = opt.value === value || (value === 'rating' && opt.value === 'likert_scale');
             return (
               <button
                 key={opt.value}
@@ -616,7 +640,7 @@ function FieldTypeDropdown({ value, onChange, disabled }: FieldTypeDropdownProps
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  padding: '0.45rem 0.6rem',
+                  padding: compact ? '0.35rem 0.5rem' : '0.45rem 0.6rem',
                   borderRadius: '6px',
                   border: isSelected ? '1.5px solid var(--primary)' : '1px solid #f1f5f9',
                   background: isSelected ? 'rgba(13, 148, 136, 0.06)' : '#ffffff',
@@ -638,17 +662,13 @@ function FieldTypeDropdown({ value, onChange, disabled }: FieldTypeDropdownProps
                   }
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                  <Icon
-                    size={16}
-                    strokeWidth={2}
-                    style={{ color: isSelected ? 'var(--primary)' : '#334155' }}
-                  />
-                  <span style={{ fontSize: '0.82rem', fontWeight: isSelected ? 700 : 500, color: isSelected ? 'var(--primary)' : '#0f172a' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Icon size={14} strokeWidth={2} style={{ color: isSelected ? 'var(--primary)' : '#64748b' }} />
+                  <span style={{ fontSize: '0.76rem', fontWeight: isSelected ? 700 : 500, color: isSelected ? 'var(--primary)' : '#1e293b' }}>
                     {opt.label}
                   </span>
                 </div>
-                {isSelected && <Check size={14} strokeWidth={2.5} style={{ color: 'var(--primary)' }} />}
+                {isSelected && <Check size={13} strokeWidth={2.5} style={{ color: 'var(--primary)' }} />}
               </button>
             );
           })}
@@ -2931,43 +2951,16 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                             </button>
                                           </div>
                                         )}
-                                        <select
+                                        <FieldTypeDropdown
+                                          compact
                                           disabled={isLocked}
                                           value={f.type}
-                                          onClick={(e) => {
-                                            e.stopPropagation();
+                                          onChange={(newType) => {
                                             setActiveBlockId(block.id);
                                             setActiveFieldId(f.id);
+                                            handleChangeFieldType(block.id, f.id, newType);
                                           }}
-                                          onChange={(e) => {
-                                            e.stopPropagation();
-                                            handleChangeFieldType(block.id, f.id, e.target.value as any);
-                                          }}
-                                          style={{
-                                            fontSize: '0.68rem',
-                                            padding: '1px 3px',
-                                            borderRadius: '3px',
-                                            border: '1px solid #cbd5e1',
-                                            background: '#f8fafc',
-                                            color: 'var(--text-secondary)',
-                                            cursor: isLocked ? 'default' : 'pointer',
-                                            outline: 'none',
-                                            fontWeight: 500
-                                          }}
-                                          title="Đổi loại trường"
-                                        >
-                                          <option value="label">label</option>
-                                          <option value="text">text</option>
-                                          <option value="number">number</option>
-                                          <option value="date">date</option>
-                                          <option value="time">time</option>
-                                          <option value="checkbox">checkbox</option>
-                                          <option value="radio">radio</option>
-                                          <option value="rating">rating</option>
-                                          <option value="photo">photo</option>
-                                          <option value="signature">signature</option>
-                                          <option value="subtable">subtable</option>
-                                        </select>
+                                        />
                                       </div>
                                     </div>
 
@@ -3023,13 +3016,112 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
 
                                       const scales = f.scaleOptions && f.scaleOptions.length > 0 ? f.scaleOptions : ['1', '2', '3', '4', '5'];
                                       return (
-                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px', marginTop: '6px', paddingTop: '2px', width: '100%', overflowX: 'auto' }}>
+                                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '4px', marginTop: '6px', paddingTop: '2px', width: '100%', overflowX: 'auto' }}>
                                           {scales.map((opt, idx) => (
-                                            <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', flex: 1, minWidth: '24px', textAlign: 'center' }}>
-                                              <span style={{ fontSize: '0.68rem', color: '#475569', fontWeight: 500, lineHeight: 1.1, wordBreak: 'break-word', maxWidth: '100%' }}>{opt}</span>
-                                              <span style={{ display: 'inline-block', width: '13px', height: '13px', borderRadius: '50%', border: '1.5px solid #64748b', background: '#ffffff' }} />
+                                            <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', flex: 1, minWidth: '32px', textAlign: 'center', position: 'relative' }}>
+                                              <input
+                                                type="text"
+                                                disabled={isLocked}
+                                                value={opt}
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setActiveBlockId(block.id);
+                                                  setActiveFieldId(f.id);
+                                                }}
+                                                onChange={(e) => {
+                                                  const newScales = [...scales];
+                                                  newScales[idx] = e.target.value;
+                                                  handleUpdateField(block.id, f.id, { scaleOptions: newScales });
+                                                }}
+                                                style={{
+                                                  fontSize: '0.68rem',
+                                                  color: '#334155',
+                                                  fontWeight: 600,
+                                                  lineHeight: 1.1,
+                                                  textAlign: 'center',
+                                                  width: '100%',
+                                                  maxWidth: '90px',
+                                                  border: '1px solid transparent',
+                                                  borderRadius: '3px',
+                                                  background: 'transparent',
+                                                  outline: 'none',
+                                                  cursor: isLocked ? 'default' : 'text',
+                                                  padding: '1px 2px',
+                                                  transition: 'all 0.15s ease'
+                                                }}
+                                                onFocus={(e) => {
+                                                  e.currentTarget.style.borderColor = 'var(--primary)';
+                                                  e.currentTarget.style.background = '#ffffff';
+                                                }}
+                                                onBlur={(e) => {
+                                                  e.currentTarget.style.borderColor = 'transparent';
+                                                  e.currentTarget.style.background = 'transparent';
+                                                }}
+                                                placeholder={`Nấc ${idx + 1}`}
+                                              />
+                                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', width: '100%' }}>
+                                                <span style={{ display: 'inline-block', width: '13px', height: '13px', borderRadius: '50%', border: '1.5px solid #64748b', background: '#ffffff' }} />
+                                                {isFieldSelected && !isLocked && scales.length > 2 && (
+                                                  <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      const newScales = scales.filter((_, i) => i !== idx);
+                                                      handleUpdateField(block.id, f.id, { scaleOptions: newScales });
+                                                    }}
+                                                    style={{
+                                                      position: 'absolute',
+                                                      top: '-12px',
+                                                      right: 'calc(50% - 18px)',
+                                                      background: '#fee2e2',
+                                                      border: '1px solid #fca5a5',
+                                                      color: '#ef4444',
+                                                      borderRadius: '50%',
+                                                      width: '12px',
+                                                      height: '12px',
+                                                      fontSize: '8px',
+                                                      display: 'flex',
+                                                      alignItems: 'center',
+                                                      justifyContent: 'center',
+                                                      cursor: 'pointer',
+                                                      padding: 0,
+                                                      lineHeight: 1
+                                                    }}
+                                                    title="Xóa nấc này"
+                                                  >
+                                                    ✕
+                                                  </button>
+                                                )}
+                                              </div>
                                             </div>
                                           ))}
+                                          {isFieldSelected && !isLocked && (
+                                            <button
+                                              type="button"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                const newScales = [...scales, `Mức ${scales.length + 1}`];
+                                                handleUpdateField(block.id, f.id, { scaleOptions: newScales });
+                                              }}
+                                              style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                padding: '2px 5px',
+                                                fontSize: '0.65rem',
+                                                borderRadius: '4px',
+                                                border: '1px dashed #94a3b8',
+                                                background: '#ffffff',
+                                                color: 'var(--text-secondary)',
+                                                cursor: 'pointer',
+                                                marginTop: '10px',
+                                                flexShrink: 0
+                                              }}
+                                              title="Thêm nấc mới"
+                                            >
+                                              <Plus size={10} />
+                                            </button>
+                                          )}
                                         </div>
                                       );
                                     })()}
@@ -3051,8 +3143,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                           paddingLeft: isOptionC ? '1rem' : '0',
                                           maxWidth: '100%'
                                         }}>
-                                          {options.map((opt: any) => (
-                                            <span key={opt.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#334155', whiteSpace: 'normal', wordBreak: 'break-word', maxWidth: '100%' }}>
+                                          {options.map((opt: any, optIdx: number) => (
+                                            <span key={opt.value || optIdx} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.78rem', color: '#334155', maxWidth: '100%' }}>
                                               <span style={{
                                                 display: 'inline-block',
                                                 width: '12px',
@@ -3063,9 +3155,92 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                 flexShrink: 0,
                                                 marginTop: isOptionC && isLongOpt ? '2px' : '0'
                                               }} />
-                                              <span style={{ lineHeight: '1.3' }}>{opt.label}</span>
+                                              <input
+                                                type="text"
+                                                disabled={isLocked}
+                                                value={opt.label}
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setActiveBlockId(block.id);
+                                                  setActiveFieldId(f.id);
+                                                }}
+                                                onChange={(e) => {
+                                                  const newOptions = [...options];
+                                                  newOptions[optIdx] = { ...newOptions[optIdx], label: e.target.value };
+                                                  handleUpdateField(block.id, f.id, { options: newOptions });
+                                                }}
+                                                style={{
+                                                  fontSize: '0.78rem',
+                                                  color: '#334155',
+                                                  border: '1px solid transparent',
+                                                  borderRadius: '3px',
+                                                  background: 'transparent',
+                                                  outline: 'none',
+                                                  cursor: isLocked ? 'default' : 'text',
+                                                  padding: '1px 3px',
+                                                  maxWidth: '180px',
+                                                  transition: 'all 0.15s ease'
+                                                }}
+                                                onFocus={(e) => {
+                                                  e.currentTarget.style.borderColor = 'var(--primary)';
+                                                  e.currentTarget.style.background = '#ffffff';
+                                                }}
+                                                onBlur={(e) => {
+                                                  e.currentTarget.style.borderColor = 'transparent';
+                                                  e.currentTarget.style.background = 'transparent';
+                                                }}
+                                                placeholder="Nhãn..."
+                                              />
+                                              {isFieldSelected && !isLocked && options.length > 1 && (
+                                                <button
+                                                  type="button"
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    const newOptions = options.filter((_: any, i: number) => i !== optIdx);
+                                                    handleUpdateField(block.id, f.id, { options: newOptions });
+                                                  }}
+                                                  style={{
+                                                    background: 'none',
+                                                    border: 'none',
+                                                    color: '#ef4444',
+                                                    cursor: 'pointer',
+                                                    padding: '0 2px',
+                                                    fontSize: '10px',
+                                                    lineHeight: 1,
+                                                    opacity: 0.6
+                                                  }}
+                                                  title="Xóa lựa chọn này"
+                                                >
+                                                  ✕
+                                                </button>
+                                              )}
                                             </span>
                                           ))}
+                                          {isFieldSelected && !isLocked && (
+                                            <button
+                                              type="button"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                const newOptions = [...options, { label: `Tùy chọn ${options.length + 1}`, value: `opt_${Date.now()}` }];
+                                                handleUpdateField(block.id, f.id, { options: newOptions });
+                                              }}
+                                              style={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '2px',
+                                                padding: '1px 5px',
+                                                fontSize: '0.68rem',
+                                                borderRadius: '3px',
+                                                border: '1px dashed #94a3b8',
+                                                background: '#ffffff',
+                                                color: 'var(--text-secondary)',
+                                                cursor: 'pointer'
+                                              }}
+                                              title="Thêm tùy chọn mới"
+                                            >
+                                              <Plus size={10} /> Thêm
+                                            </button>
+                                          )}
                                         </div>
                                       );
                                     })()}
