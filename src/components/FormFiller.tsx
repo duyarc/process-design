@@ -730,7 +730,7 @@ function FormFillerInner({
       }
 
       setSubmitting(true);
-      const submissionId = editSubmissionId || `sub_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+      const submissionId = editSubmissionId;
       
       const payload = {
         id: submissionId,
@@ -755,8 +755,10 @@ function FormFillerInner({
       });
  
       if (!res.ok) throw new Error('Submission server error');
+      const resData = await res.json();
+      const finalId = resData.id || submissionId;
        
-      setSubmittedId(submissionId);
+      setSubmittedId(finalId);
       
       // Reset states
       setFormValues({});

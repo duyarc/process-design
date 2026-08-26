@@ -9,7 +9,7 @@
 | **Module Name** | Backend & Persistence |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | `a12b0c9` (2026-08-11) — Checked /api/cron-ping and vercel.json cron configuration against source |
+| **Verified At Commit** | (2026-08-26) — Sections 4 and 6 checked against server.cjs (POST /api/submissions sequential ID) |
 
 ### Quick File Index
 
@@ -302,3 +302,4 @@ Architectural changes only — schema, endpoints, invariants. UI polish lives in
 | 2026-08-03 | `CURRENT` | **Submissions update route:** Added `PUT /api/submissions/:id` to support overwriting submission records by admin. |
 | 2026-08-03 | `CURRENT` | **Submissions delete route:** Added `DELETE /api/submissions/:id` to support hard-deletion of submission records by admin. |
 | 2026-08-11 | `a12b0c9` | **Cron ping route & config:** Added `/api/cron-ping` endpoint and configured daily Vercel Cron Job in `vercel.json` to query the DB and prevent automatic pausing of Supabase free tier. |
+| 2026-08-26 | `CURRENT` | **Daily Sequential Submission ID Generation:** Implemented `generateDailySequentialSubmissionId` in `server.cjs` and updated `POST /api/submissions` to automatically assign human-friendly daily sequential IDs (`YYMMDD-XX`, e.g. `260826-01`). |

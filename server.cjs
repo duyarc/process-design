@@ -1943,15 +1943,56 @@ app.get('/api/submissions', async (req, res) => {
   }
 });
 
+/**
+ * Generates the next sequential Submission ID for the current date in GMT+7 (Asia/Ho_Chi_Minh).
+ * Format: YYMMDD-XX (e.g. 260826-01, 260826-02, ..., 260826-100)
+ */
+async function generateDailySequentialSubmissionId(dbPool) {
+  const now = new Date();
+  const vnFormatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    year: '2-digit',
+    month: '2-digit',
+    day: '2-digit'
+  });
+  // en-CA formats as "YY-MM-DD" -> removes "-" to get "YYMMDD" (e.g. "260826")
+  const datePrefix = vnFormatter.format(now).replace(/-/g, '');
+
+  const result = await dbPool.query(
+    `SELECT id FROM submissions WHERE id LIKE $1 ORDER BY id DESC LIMIT 1`,
+    [`${datePrefix}-%`]
+  );
+
+  let nextSeq = 1;
+  if (result.rows.length > 0) {
+    const lastId = result.rows[0].id; // e.g. "260826-05"
+    const parts = lastId.split('-');
+    if (parts.length === 2) {
+      const parsed = parseInt(parts[1], 10);
+      if (!isNaN(parsed)) {
+        nextSeq = parsed + 1;
+      }
+    }
+  }
+
+  const paddedSeq = nextSeq < 10 ? `0${nextSeq}` : `${nextSeq}`;
+  return `${datePrefix}-${paddedSeq}`;
+}
+
 // POST /api/submissions - Save a completed form submission
 app.post('/api/submissions', async (req, res) => {
   try {
     if (!dbPool) {
       return res.status(503).json({ error: 'Database connection not available.' });
     }
-    const { id, processId, formId, formVersion, operatorId, status, formData, mediaUrls } = req.body;
-    if (!id || !processId || !formId || !operatorId || !status || !formData) {
+    let { id, processId, formId, formVersion, operatorId, status, formData, mediaUrls } = req.body;
+    if (!processId || !formId || !operatorId || !status || !formData) {
       return res.status(400).json({ error: 'Missing required submission fields.' });
+    }
+
+    // Auto-generate human-friendly sequential ID if not supplied or legacy sub_ format
+    if (!id || id.startsWith('sub_')) {
+      id = await generateDailySequentialSubmissionId(dbPool);
     }
 
     await dbPool.query(`

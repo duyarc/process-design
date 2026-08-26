@@ -440,6 +440,7 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 | 2026-08-26 | `CURRENT` | **Smart Public Link Access Control & Guest Bypass Route:** Integrated Smart Status Pill (`[🌐 Link công khai / 🔒 Cần đăng nhập] + [🔗 Sao chép link]`) in `FormFiller.tsx`. Updated `App.tsx` with public guest route bypass allowing guest users to fill out forms directly without login when `mode=public` query parameter is present. |
 | 2026-08-26 | `CURRENT` | **FormFiller Auto-Expanding Multi-line Text Area Support:** Integrated `AutoResizingTextarea` in `FormFiller.tsx`, replacing single-line `<input type="text">` across INFO_GRID fields, Checklist groups, Action notes, and dynamic `TABLE` cells with auto-expanding multi-line textareas without vertical scrollbars. |
 | 2026-08-26 | `CURRENT` | **FormFiller Pagination Rollback & Continuous Form Restoration:** Rolled back Paper Sheet Pagination UX (`getFormPages`, tabs, sticky dock, shortcuts) to restore standard continuous form rendering in `FormFiller.tsx`. Preserved 100% designed table rows, auto-append row generation, AutoResizingTextarea, and FormErrorBoundary. |
+| 2026-08-26 | `CURRENT` | **Human-Friendly Daily Sequential Submission ID:** Upgraded `FormFiller.tsx` and `ProcessReader.tsx` submission flow to receive compact 9-character daily sequential IDs (`YYMMDD-XX`, e.g. `260826-01`) assigned by backend. |
 
 
 

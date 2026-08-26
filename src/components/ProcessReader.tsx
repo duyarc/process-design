@@ -307,10 +307,8 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
       }
 
       setSubmitting(true);
-      const submissionId = `sub_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
       
       const payload = {
-        id: submissionId,
         processId: process.id,
         formId: formTemplate.formId,
         formVersion: formTemplate.version,
@@ -327,8 +325,9 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
       });
 
       if (!res.ok) throw new Error('Submission server error');
+      const resData = await res.json();
       
-      alert(`Record submitted successfully! ID: ${submissionId}`);
+      alert(`Record submitted successfully! ID: ${resData.id || ''}`);
       
       setFormValues({});
       setFieldReactions({});
