@@ -469,6 +469,28 @@ export interface FieldTypeOptionItem {
   icon: React.ComponentType<{ size?: number; strokeWidth?: number; className?: string; style?: React.CSSProperties }>;
 }
 
+export const getFormSnapshot = (data: {
+  formId: string;
+  formTitle: string;
+  version: string;
+  status: string;
+  pageSize: string;
+  effectiveDate?: string;
+  layoutBlocks: LayoutBlockISO[];
+  revisionHistory: FormRevisionEntry[];
+}) => {
+  return JSON.stringify({
+    formId: data.formId,
+    formTitle: data.formTitle,
+    version: data.version,
+    status: data.status,
+    pageSize: data.pageSize,
+    effectiveDate: data.effectiveDate,
+    layoutBlocks: data.layoutBlocks,
+    revisionHistory: data.revisionHistory
+  });
+};
+
 export const FIELD_TYPE_OPTIONS: FieldTypeOptionItem[] = [
   { value: 'label', label: 'Nhãn (Label)', icon: AlignLeft },
   { value: 'text', label: 'Text', icon: FileText },
@@ -653,19 +675,21 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
   const [revisionHistory, setRevisionHistory] = useState<FormRevisionEntry[]>(initialData?.revisionHistory || []);
   const [loading, setLoading] = useState(false);
   const inspectorLabelRef = useRef<HTMLTextAreaElement>(null);
+  const [effectiveDate, setEffectiveDate] = useState(() => (initialData as any)?.effectiveDate || (initialData as any)?.effective_date || new Date().toISOString().split('T')[0]);
 
-  // Track saved state
-  const isInitialMount = useRef(true);
-  const [isSaved, setIsSaved] = useState(true);
-
-  // Auto detect any changes across the entire form model
-  useEffect(() => {
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      return;
-    }
-    setIsSaved(false);
-  }, [formId, formTitle, version, status, pageSize, layoutBlocks, revisionHistory]);
+  // Track saved state via Snapshot comparison
+  const [lastSavedSnapshot, setLastSavedSnapshot] = useState<string>(() => {
+    return getFormSnapshot({
+      formId: initialData?.formId || `FM-${formName.toUpperCase().replace(/[^A-Z0-9]/g, '-')}-001`,
+      formTitle: initialData?.formTitle || formName,
+      version: initialData?.version ? initialData.version.replace(/\s*\([^)]*\)/g, '').trim() : 'v0.1',
+      status: initialData?.status || 'DRAFT',
+      pageSize: initialData?.pageSize || (initialData as any)?.page_size || 'A4',
+      effectiveDate: (initialData as any)?.effectiveDate || (initialData as any)?.effective_date,
+      layoutBlocks: initialData?.layoutBlocks || defaultBlocks,
+      revisionHistory: initialData?.revisionHistory || []
+    });
+  });
 
   useEffect(() => {
     const fetchFormTemplate = async () => {
@@ -677,33 +701,49 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
         const res = await fetch(`/api/forms/${encodeURIComponent(targetId)}`);
         if (res.ok) {
           const data = await res.json();
-          setFormId(data.form_id);
-          setFormTitle(data.form_title || data.form_name);
-          setVersion((data.version || 'v0.1').replace(/\s*\([^)]*\)/g, '').trim());
-          if (data.effective_date) {
-            setEffectiveDate(data.effective_date.split('T')[0]);
-          }
-          setStatus(data.status);
-          if (data.page_size || data.pageSize) {
-            setPageSize(data.page_size || data.pageSize);
-          }
-          
-          if (data.layout_blocks) {
-            setLayoutBlocks(typeof data.layout_blocks === 'string' ? JSON.parse(data.layout_blocks) : data.layout_blocks);
-          }
-        }
+          const targetFormId = data.form_id;
+          const targetFormTitle = data.form_title || data.form_name;
+          const targetVersion = (data.version || 'v0.1').replace(/\s*\([^)]*\)/g, '').trim();
+          const targetEffectiveDate = data.effective_date ? data.effective_date.split('T')[0] : undefined;
+          const targetStatus = data.status;
+          const targetPageSize = data.page_size || data.pageSize || 'A4';
+          const targetBlocks = data.layout_blocks
+            ? (typeof data.layout_blocks === 'string' ? JSON.parse(data.layout_blocks) : data.layout_blocks)
+            : [];
 
-        // 2. Fetch unified form revision history (including historical and bug duplicates)
-        const historyRes = await fetch(`/api/forms/${encodeURIComponent(targetId)}/history`);
-        if (historyRes.ok) {
-          const historyData = await historyRes.json();
-          setRevisionHistory(historyData);
+          setFormId(targetFormId);
+          setFormTitle(targetFormTitle);
+          setVersion(targetVersion);
+          if (targetEffectiveDate) {
+            setEffectiveDate(targetEffectiveDate);
+          }
+          setStatus(targetStatus);
+          setPageSize(targetPageSize);
+          setLayoutBlocks(targetBlocks);
+
+          // 2. Fetch unified form revision history (including historical and bug duplicates)
+          let targetHistory: FormRevisionEntry[] = [];
+          const historyRes = await fetch(`/api/forms/${encodeURIComponent(targetId)}/history`);
+          if (historyRes.ok) {
+            targetHistory = await historyRes.json();
+            setRevisionHistory(targetHistory);
+          }
+
+          setLastSavedSnapshot(getFormSnapshot({
+            formId: targetFormId,
+            formTitle: targetFormTitle,
+            version: targetVersion,
+            status: targetStatus,
+            pageSize: targetPageSize,
+            effectiveDate: targetEffectiveDate,
+            layoutBlocks: targetBlocks,
+            revisionHistory: targetHistory
+          }));
         }
       } catch (err) {
         console.error("Error fetching form template and history:", err);
       } finally {
         setLoading(false);
-        setTimeout(() => setIsSaved(true), 0);
       }
     };
     
@@ -766,7 +806,6 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
   const [activeFieldId, setActiveFieldId] = useState<string | null>(null);
   const [changeSummary, setChangeSummary] = useState('');
-  const [effectiveDate, setEffectiveDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [isLocked, setIsLocked] = useState(initialData?.status === 'ACTIVE');
   /** true = Form ID bị khoá vì đang liên kết với process (có thể đổi sang false sau khi unlink) */
   const [formIdLinked, setFormIdLinked] = useState(!!linkedProcessId);
@@ -777,6 +816,19 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
   const [rightTab, setRightTab] = useState<'properties' | 'versions'>('properties');
   const [hoveredTableRowId, setHoveredTableRowId] = useState<string | null>(null);
   const [activeCellKey, setActiveCellKey] = useState<string | null>(null);
+
+  // Compute live snapshot & isSaved state
+  const currentSnapshot = getFormSnapshot({
+    formId,
+    formTitle,
+    version,
+    status,
+    pageSize,
+    effectiveDate: status === 'ACTIVE' ? effectiveDate : undefined,
+    layoutBlocks,
+    revisionHistory
+  });
+  const isSaved = lastSavedSnapshot !== '' && lastSavedSnapshot === currentSnapshot;
 
   useEffect(() => {
     if (activeBlockId) {
@@ -1995,7 +2047,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
         layoutBlocks,
         revisionHistory
       });
-      setIsSaved(true);
+      setLastSavedSnapshot(currentSnapshot);
     } catch (err) {
       console.error(err);
     } finally {

@@ -2969,11 +2969,6 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                   await handleSave(nextFormsData, true);
                 }
                 fetchFormsList();
-                if (exitOnCloseForm) {
-                  onCancel();
-                } else {
-                  setActiveFormToBuild(null);
-                }
               }}
               onClose={() => {
                 if (exitOnCloseForm) {
