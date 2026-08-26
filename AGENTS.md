@@ -69,10 +69,10 @@ lên bất kỳ tệp nào trong bảng Module Ownership Map, agent **PHẢI**:
 ## 4. Trường `Verified At Commit` là một lời cam kết, không phải dấu thời gian
 
 Không được cập nhật ngày một cách phản xạ. Trường này phải nêu rõ phạm vi đã kiểm chứng
-và commit đã kiểm chứng tại đó — đúng một dòng duy nhất trong Header Block:
+và ngày kiểm chứng tại đó — đúng một dòng duy nhất trong Header Block:
 
 ```
-| **Verified At Commit** | `a1b2c3d` (2026-07-27) — Sections 4 and 6 checked against source |
+| **Verified At Commit** | (2026-08-26) — Sections 4 and 6 checked against source |
 ```
 
 Chỉ ghi tên những mục agent thực sự đã đọc và so với source trong lần đó. Các mục không
@@ -91,13 +91,16 @@ Change Log **không** phải là bản sao thứ hai của `git log`.
 - **Không ghi**: đổi nhãn UI, đổi padding, đổi màu, đổi text nút bấm.
   Những thay đổi này đã có trong `git log`.
 - **Giới hạn ~15 dòng**. Khi vượt quá, xoá dòng cũ nhất.
-- **Cột định danh phải là git commit SHA** (7 ký tự), không phải conversation ID.
-  SHA hoạt động với mọi agent và mọi máy; `git show <sha>` cho ra toàn bộ diff.
+- **Quy tắc Commit Nguyên tử (Atomic Single Commit — Tuyệt đối không tạo commit phụ)**:
+  Mọi sửa đổi mã nguồn và tài liệu thiết kế PHẢI được gộp trong **đúng 1 commit duy nhất**
+  khi push lên Git. **Tuyệt đối cấm** tạo commit thứ hai chỉ để sửa mã SHA trong tài liệu
+  nhằm tránh kích hoạt lãng phí các lượt build CI/CD (Vercel / GitHub Actions). Cột định danh
+  trong Change Log ghi ngày và tiêu đề thay đổi rõ ràng.
 
 ```
-| Date | Commit | Change |
-|---|---|---|
-| 2026-07-27 | `a1b2c3d` | ... |
+| Date | Change |
+|---|---|
+| 2026-08-26 | **Tên thay đổi kiến trúc:** Mô tả chi tiết... |
 ```
 
 ---
@@ -186,4 +189,5 @@ git add <file cụ thể>; git commit -m "<message>"; git push origin main; git 
    ```powershell
    Remove-Item -Path .git\index.lock -Force -ErrorAction SilentlyContinue
    ```
+4. **Cam kết 1 Commit duy nhất (Atomic Single Commit):** Luôn gộp tất cả mã nguồn và tài liệu liên quan vào đúng **1 lần commit & push duy nhất**. Tuyệt đối không tạo commit phụ thứ hai để tránh lãng phí build trên CI/CD.
 
