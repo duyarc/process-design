@@ -218,19 +218,19 @@
 .print-doc {
   --pw-block-gap: 16px;
   --pw-section-top-gap: 24px;
-  --pw-section-bottom-gap: 10px;
+  --pw-section-bottom-gap: 8px;
   --pw-section-gap: 24px;
   --pw-field-gap: 10px;
-  --pw-title-gap: 8px;
+  --pw-title-gap: 6px;
   --pw-line-h: 22px;
-  --pw-table-gap: 14px;
+  --pw-table-gap: 12px;
 }
 
 /* Khoảng cách giữa các block: chỉ định nghĩa ở đây, không ở inline style.
    Dùng selector anh-em nên block đầu tiên không có margin trên và margin
    không cộng dồn.
    Theo quy tắc 2:1 Proximity Rule: SECTION_LABEL cách xa block trước nó (24px)
-   và nép sát vào block sau nó (10px). */
+   và nép sát vào block sau nó (8px). */
 .print-doc .print-block + .print-block {
   margin-top: var(--pw-block-gap);
 }
@@ -241,6 +241,16 @@
 
 .print-doc .print-block--section + .print-block {
   margin-top: var(--pw-section-bottom-gap);
+}
+
+/* Seamless Table Continuation: Khi 1 bảng ẩn header đứng ngay sau 1 bảng khác */
+.print-doc .print-block + .print-block--seamless-table,
+.print-doc .print-block--seamless-table {
+  margin-top: -1px !important;
+}
+
+.print-doc .print-block--seamless-table .print-table {
+  border-top: none !important;
 }
 
 /* INFO_GRID: grid row-major khớp thứ tự canvas FormBuilder, baseline chung

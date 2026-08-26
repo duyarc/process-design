@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { Process, SubmissionFieldSnapshot } from '../types';
 import { formatFormVersion, getColStyleWidth } from '../types';
-import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, canTableOptionsFitInline, getCheckboxGridTemplate } from '../utils/formUtils';
+import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock } from '../utils/formUtils';
 import { renderFormattedText } from '../utils/textFormatter';
 import { useAuth } from '../context/AuthContext';
 import { Printer, Edit2, Camera, AlertTriangle, X, PenTool, GitBranch, Eye, ArrowLeft, Trash2, Star } from 'lucide-react';
@@ -1215,7 +1215,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                   </div>
 
                   {/* Body Form Fields */}
-                  <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                  <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '0px' }}>
                     {/* Operator identification (ALCOA+ Attributability) */}
                     <div style={{
                       background: '#eff6ff',
@@ -1224,7 +1224,8 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                       borderRadius: '6px',
                       display: 'flex',
                       flexDirection: 'column',
-                      gap: '0.35rem'
+                      gap: '0.35rem',
+                      marginBottom: '1.25rem'
                     }}>
                       <label style={{ fontSize: '0.8rem', fontWeight: 600, color: '#1e40af', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                         <span>Operator Signature / ID (Attributable Signature) *</span>
@@ -1246,28 +1247,32 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                     </div>
 
                     {/* Field checklist grouped by Layout Blocks */}
-                    {formTemplate.layoutBlocks && formTemplate.layoutBlocks.map((block: any) => {
+                    {formTemplate.layoutBlocks && formTemplate.layoutBlocks.map((block: any, index: number) => {
                       if (block.fields.length === 0 && block.type !== 'TITLE' && block.type !== 'SECTION_LABEL' && block.type !== 'TABLE') return null;
+
+                      const prevBlock = index > 0 ? formTemplate.layoutBlocks[index - 1] : undefined;
+                      const isSeamless = isSeamlessTableBlock(block, prevBlock);
+                      const isPrevSection = prevBlock?.type === 'SECTION_LABEL' && getEffectiveTitleFormat(prevBlock) !== 'NONE';
 
                       if (block.type === 'SECTION_LABEL') {
                         const titleFmt = getEffectiveTitleFormat(block);
                         if (titleFmt === 'NONE') return null;
                         return (
                           <div key={block.id} style={titleFmt === 'H1' ? {
-                            padding: '0.25rem 0',
-                            marginTop: '1.5rem',
-                            marginBottom: '0.6rem'
+                            padding: '0.15rem 0',
+                            marginTop: index === 0 ? '0' : '24px',
+                            marginBottom: '8px'
                           } : titleFmt === 'H2' ? {
-                            padding: '0.75rem 1rem',
+                            padding: '0.6rem 0.85rem',
                             background: '#f1f5f9',
                             borderLeft: '4px solid var(--primary)',
                             borderRadius: '0px',
-                            marginTop: '1.5rem',
-                            marginBottom: '0.6rem'
+                            marginTop: index === 0 ? '0' : '24px',
+                            marginBottom: '8px'
                           } : {
-                            padding: '0.25rem 0',
-                            marginTop: '1.25rem',
-                            marginBottom: '0.5rem'
+                            padding: '0.2rem 0',
+                            marginTop: index === 0 ? '0' : '20px',
+                            marginBottom: '6px'
                           }}>
                             {titleFmt === 'H1' ? (
                               <h2 style={{
@@ -1303,16 +1308,27 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
 
                       const blockTitleFmt = getEffectiveTitleFormat(block);
 
+                      let blockMarginTop = '0px';
+                      if (index > 0) {
+                        if (isSeamless) {
+                          blockMarginTop = '-1px';
+                        } else if (isPrevSection) {
+                          blockMarginTop = '0px';
+                        } else {
+                          blockMarginTop = '16px';
+                        }
+                      }
+
                       return (
                         <div key={block.id} style={{
                           border: 'none',
                           borderRadius: '0',
-                          padding: '0.25rem 0',
+                          padding: '0',
+                          marginTop: blockMarginTop,
                           background: 'transparent',
-                          marginBottom: '0.5rem',
                           display: 'flex',
                           flexDirection: 'column',
-                          gap: '1rem'
+                          gap: '6px'
                         }}>
                           {blockTitleFmt !== 'NONE' && block.type !== 'TITLE' && (
                             blockTitleFmt === 'H1' ? (
@@ -1992,7 +2008,7 @@ setFormValues(prev => ({ ...prev, [field.id]: stringifySubtableValue(newRows) })
                            {block.type === 'TABLE' && (() => {
                              const bStyle = block.borderStyle || 'grid';
                              return (
-                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem', marginTop: '1rem' }}>
+                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: isSeamless ? '0px' : '0.5rem', marginTop: '0px' }}>
                                <div style={{ overflowX: 'auto' }}>
                                  <table
                                    className={bStyle === 'borderless' ? 'print-table--borderless' : bStyle === 'horizontal_only' ? 'print-table--horizontal' : ''}
@@ -2003,7 +2019,7 @@ setFormValues(prev => ({ ...prev, [field.id]: stringifySubtableValue(newRows) })
                                      background: '#ffffff', 
                                      tableLayout: 'fixed', 
                                      border: bStyle === 'grid' ? '1px solid var(--neutral-border)' : 'none',
-                                     borderTop: bStyle === 'horizontal_only' ? '1.5px solid #cbd5e1' : undefined
+                                     borderTop: isSeamless ? 'none' : (bStyle === 'horizontal_only' ? '1.5px solid #cbd5e1' : undefined)
                                    }}
                                  >
                                    <colgroup>

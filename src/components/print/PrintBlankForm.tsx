@@ -2,7 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import type { FormTemplateISO, LayoutBlockISO, TableColumnConfig } from '../../types';
 import { formatFormVersion, getColStyleWidth } from '../../types';
-import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, getCheckboxGridTemplate } from '../../utils/formUtils';
+import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock } from '../../utils/formUtils';
 import { renderFormattedText } from '../../utils/textFormatter';
 
 import { exportFillablePdfFromDOM } from '../../utils/pdfFormExporter';
@@ -290,9 +290,11 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
           <tr>
             <td>
               {/* Dynamic Blocks Rendering */}
-              {template.layoutBlocks && template.layoutBlocks.map((block) => {
+              {template.layoutBlocks && template.layoutBlocks.map((block, index) => {
+                const prevBlock = index > 0 ? template.layoutBlocks[index - 1] : undefined;
+                const isSeamless = isSeamlessTableBlock(block, prevBlock);
         return (
-          <div key={block.id} className={`print-block${block.type === 'SECTION_LABEL' ? ' print-block--section' : ''} ${block.type !== 'CHECKLIST_TABLE' && block.type !== 'INFO_GRID' && block.type !== 'TABLE' ? 'print-block-avoid' : ''}`}>
+          <div key={block.id} className={`print-block${block.type === 'SECTION_LABEL' ? ' print-block--section' : ''}${isSeamless ? ' print-block--seamless-table' : ''} ${block.type !== 'CHECKLIST_TABLE' && block.type !== 'INFO_GRID' && block.type !== 'TABLE' ? 'print-block-avoid' : ''}`}>
             
             {/* 1.1 SECTION LABEL BLOCK */}
             {block.type === 'SECTION_LABEL' && (() => {
@@ -959,7 +961,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
               const bStyle = block.borderStyle || 'grid';
               const titleFmt = getEffectiveTitleFormat(block);
               const tableBorder = bStyle === 'borderless' ? 'none' : bStyle === 'horizontal_only' ? 'none' : '1px solid #000000';
-              const tableBorderTop = bStyle === 'horizontal_only' ? '1px solid #000000' : undefined;
+              const tableBorderTop = isSeamless ? 'none' : (bStyle === 'horizontal_only' ? '1px solid #000000' : undefined);
               const cellBorder = bStyle === 'borderless' ? 'none' : bStyle === 'horizontal_only' ? 'none' : '1px solid #000000';
               const cellBorderBottom = bStyle === 'horizontal_only' ? '1px solid #000000' : (bStyle === 'borderless' ? 'none' : '1px solid #000000');
 

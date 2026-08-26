@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import type { FormFieldISO, FormRevisionEntry, FormTemplateISO, LayoutBlockISO, RadioOption, MatrixConfigISO, TableColumnConfig, TableRowConfig, ColumnSummaryRowConfig, TitleFormatISO, SubtableColumn } from '../types';
 import { formatFormVersion, getColStyleWidth } from '../types';
-import { sanitizeLabel, getEffectiveTitleFormat, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline } from '../utils/formUtils';
+import { sanitizeLabel, getEffectiveTitleFormat, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, isSeamlessTableBlock } from '../utils/formUtils';
 import { applyTextFormat, handleFormatKeyDown } from '../utils/textFormatter';
 import { 
   Plus, 
@@ -2102,7 +2102,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
             minHeight: '1050px',
             display: 'flex',
             flexDirection: 'column',
-            gap: '1rem',
+            gap: '0px',
             position: 'relative'
           }}>
             
@@ -2118,6 +2118,22 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
             ) : (
               layoutBlocks.map((block, index) => {
                 const isBlockSelected = activeBlockId === block.id;
+                const prevBlock = index > 0 ? layoutBlocks[index - 1] : undefined;
+                const nextBlock = index < layoutBlocks.length - 1 ? layoutBlocks[index + 1] : undefined;
+                const isSeamless = isSeamlessTableBlock(block, prevBlock);
+                const isFollowedBySeamless = nextBlock ? isSeamlessTableBlock(nextBlock, block) : false;
+                const isPrevSection = prevBlock?.type === 'SECTION_LABEL' && getEffectiveTitleFormat(prevBlock) !== 'NONE';
+
+                let blockMarginTop = '0px';
+                if (index > 0) {
+                  if (isSeamless) {
+                    blockMarginTop = '-1px';
+                  } else if (isPrevSection) {
+                    blockMarginTop = '4px';
+                  } else {
+                    blockMarginTop = block.type === 'SECTION_LABEL' ? '20px' : '12px';
+                  }
+                }
                 
                 return (
                   <div 
@@ -2129,8 +2145,10 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                     }}
                     style={{
                       border: isBlockSelected ? '2px solid var(--primary)' : '1px dashed #cbd5e1',
-                      borderRadius: '6px',
-                      padding: block.type === 'SECTION_LABEL' ? '0.5rem 0.85rem' : '1rem',
+                      borderTop: isSeamless && !isBlockSelected ? '1px dashed transparent' : undefined,
+                      borderRadius: isSeamless && isFollowedBySeamless ? '0px' : isSeamless ? '0 0 6px 6px' : isFollowedBySeamless ? '6px 6px 0 0' : '6px',
+                      padding: block.type === 'SECTION_LABEL' ? '0.35rem 0.65rem' : '0.85rem',
+                      marginTop: blockMarginTop,
                       position: 'relative',
                       background: isBlockSelected ? 'rgba(16, 163, 163, 0.02)' : 'none',
                       cursor: 'pointer'
@@ -2972,7 +2990,13 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                               )
                             )}
                           
-                          <div style={{ overflowX: 'auto', border: bStyle === 'borderless' ? '1px dashed #e2e8f0' : '1px solid #cbd5e1', borderRadius: '4px', background: bStyle === 'borderless' ? '#ffffff' : 'inherit' }}>
+                          <div style={{
+                            overflowX: 'auto',
+                            border: bStyle === 'borderless' ? '1px dashed #e2e8f0' : '1px solid #cbd5e1',
+                            borderTop: isSeamless ? 'none' : (bStyle === 'borderless' ? '1px dashed #e2e8f0' : '1px solid #cbd5e1'),
+                            borderRadius: isSeamless && isFollowedBySeamless ? '0px' : isSeamless ? '0 0 4px 4px' : isFollowedBySeamless ? '4px 4px 0 0' : '4px',
+                            background: bStyle === 'borderless' ? '#ffffff' : 'inherit'
+                          }}>
                             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem', tableLayout: 'fixed' }}>
                               <colgroup>
                                 {(block.tableColumns || []).map((col) => {

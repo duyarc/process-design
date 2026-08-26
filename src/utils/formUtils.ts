@@ -148,6 +148,24 @@ export const getEffectiveTitleFormat = (block: { type: string; titleFormat?: Tit
 };
 
 /**
+ * Determines whether a TABLE block should seamlessly merge with its preceding block.
+ * Returns true if:
+ * 1. The current block is a TABLE with hideHeader === true
+ * 2. The current block has titleFormat === 'NONE' (no section/block title displayed)
+ * 3. The preceding block is also a TABLE
+ */
+export function isSeamlessTableBlock(
+  block?: { type: string; hideHeader?: boolean; titleFormat?: TitleFormatISO; sectionFormat?: 'H1' | 'H2' },
+  prevBlock?: { type: string; hideHeader?: boolean; titleFormat?: TitleFormatISO; sectionFormat?: 'H1' | 'H2' }
+): boolean {
+  if (!block || !prevBlock) return false;
+  if (block.type !== 'TABLE' || prevBlock.type !== 'TABLE') return false;
+  if (!block.hideHeader) return false;
+  const titleFmt = getEffectiveTitleFormat(block);
+  return titleFmt === 'NONE';
+}
+
+/**
  * Normalizes any title string to follow Digital 5S naming conventions:
  * 1. Remove Vietnamese diacritics (accents)
  * 2. Strip special characters (except alphanumeric, spaces, and underscores)

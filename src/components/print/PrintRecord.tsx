@@ -3,7 +3,7 @@ import { Star } from 'lucide-react';
 import ReactDOM from 'react-dom';
 import type { Submission, LayoutBlockISO, TableColumnConfig } from '../../types';
 import { formatFormVersion, getColStyleWidth } from '../../types';
-import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, canTableOptionsFitInline, getCheckboxGridTemplate } from '../../utils/formUtils';
+import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock } from '../../utils/formUtils';
 import { renderFormattedText } from '../../utils/textFormatter';
 
 // Helper: derive CHECKLIST_TABLE columns — falls back to columnLabels for backward compat
@@ -956,20 +956,23 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
 
       {/* REGULAR TABLE RECORD BLOCK */}
       {layoutBlocks.filter(b => b.type === 'TABLE').map((block: any) => {
+        const fullIndex = layoutBlocks.findIndex(b => b.id === block.id);
+        const prevBlock = fullIndex > 0 ? layoutBlocks[fullIndex - 1] : undefined;
+        const isSeamless = isSeamlessTableBlock(block, prevBlock);
         const titleFmt = getEffectiveTitleFormat(block);
         return (
-          <div key={block.id} className="print-block">
+          <div key={block.id} className={`print-block${isSeamless ? ' print-block--seamless-table' : ''}`}>
             {titleFmt !== 'NONE' && (
               titleFmt === 'H1' ? (
-                <h2 style={{ display: 'inline-block', margin: '0 0 8px 0', fontSize: '1.05rem', fontWeight: 'var(--pw-weight-heavy)', textTransform: 'uppercase', color: '#000000', borderBottom: '2.5px solid #0d9488', paddingBottom: '3px' }}>
+                <h2 style={{ display: 'inline-block', margin: '0 0 6px 0', fontSize: '1.05rem', fontWeight: 'var(--pw-weight-heavy)', textTransform: 'uppercase', color: '#000000', borderBottom: '2.5px solid #0d9488', paddingBottom: '3px' }}>
                   {block.title || 'BẢNG THÔNG TIN'}
                 </h2>
               ) : titleFmt === 'H2' ? (
-                <div style={{ padding: '6px 10px', background: '#f1f5f9', borderLeft: '4px solid #0d9488', borderRadius: '0px', marginBottom: '8px', fontWeight: 'var(--pw-weight-heavy)', fontSize: '0.9rem', color: '#000000' }}>
+                <div style={{ padding: '6px 10px', background: '#f1f5f9', borderLeft: '4px solid #0d9488', borderRadius: '0px', marginBottom: '6px', fontWeight: 'var(--pw-weight-heavy)', fontSize: '0.9rem', color: '#000000' }}>
                   {block.title || 'BẢNG THÔNG TIN'}
                 </div>
               ) : (
-                <div style={{ fontSize: '0.85rem', fontWeight: 'var(--pw-weight-medium)', marginBottom: '8px', color: '#000000' }}>
+                <div style={{ fontSize: '0.85rem', fontWeight: 'var(--pw-weight-medium)', marginBottom: '6px', color: '#000000' }}>
                   {block.title || 'BẢNG THÔNG TIN'}
                 </div>
               )
@@ -977,7 +980,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
             {(() => {
               const bStyle = block.borderStyle || 'grid';
               const tableBorder = bStyle === 'borderless' ? 'none' : bStyle === 'horizontal_only' ? 'none' : '1px solid #000000';
-              const tableBorderTop = bStyle === 'horizontal_only' ? '1px solid #000000' : undefined;
+              const tableBorderTop = isSeamless ? 'none' : (bStyle === 'horizontal_only' ? '1px solid #000000' : undefined);
               const cellBorder = bStyle === 'borderless' ? 'none' : bStyle === 'horizontal_only' ? 'none' : '1px solid #000000';
               const cellBorderBottom = bStyle === 'horizontal_only' ? '1px solid #000000' : (bStyle === 'borderless' ? 'none' : '1px solid #000000');
 
