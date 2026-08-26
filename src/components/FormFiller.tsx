@@ -129,43 +129,129 @@ export default function FormFiller({
   // Dynamic Table Rows state: blockId -> TableRowConfig[]
   const [tableRowsMap, setTableRowsMap] = useState<{ [blockId: string]: any[] }>({});
 
-  // Helper to initialize smart table rows: preserves static label rows 100%, collapses free editable rows to 1 initial blank row
+  // Helper to initialize smart table rows: preserves static label rows 100%, collapses free editable rows to 1 initial blank row per group
   const initSmartTableRows = (block: any): any[] => {
     const originalRows = block.tableRows || [];
     if (originalRows.length === 0) return [];
 
-    const staticRows: any[] = [];
-    const freeRows: any[] = [];
+    const hasGroupHeaders = originalRows.some((r: any) => r.isGroupHeader);
 
-    originalRows.forEach((row: any) => {
-      const hasStaticText = (block.tableColumns || []).some((col: any) => {
-        const staticVal = block.tableData?.[row.id]?.[col.id];
-        return (col.type === 'static_text' || col.type === 'text') &&
-               staticVal !== undefined && staticVal !== null &&
-               staticVal.toString().trim() !== '';
+    if (!hasGroupHeaders) {
+      const staticRows: any[] = [];
+      const freeRows: any[] = [];
+
+      originalRows.forEach((row: any) => {
+        const hasStaticText = (block.tableColumns || []).some((col: any) => {
+          const staticVal = block.tableData?.[row.id]?.[col.id];
+          return (col.type === 'static_text' || col.type === 'text') &&
+                 staticVal !== undefined && staticVal !== null &&
+                 staticVal.toString().trim() !== '';
+        });
+
+        if (hasStaticText) {
+          staticRows.push(row);
+        } else {
+          freeRows.push(row);
+        }
       });
 
-      if (hasStaticText || row.isGroupHeader) {
-        staticRows.push(row);
+      const initialFreeRows = freeRows.length > 0 ? [freeRows[0]] : [];
+      return [...staticRows, ...initialFreeRows];
+    }
+
+    // Grouped Table: Process group by group
+    const resultRows: any[] = [];
+    let currentGroupHeader: any = null;
+    let currentGroupStaticRows: any[] = [];
+    let currentGroupFreeRows: any[] = [];
+
+    const flushGroup = () => {
+      if (currentGroupHeader) {
+        resultRows.push(currentGroupHeader);
+        resultRows.push(...currentGroupStaticRows);
+        if (currentGroupFreeRows.length > 0) {
+          resultRows.push(currentGroupFreeRows[0]);
+        } else {
+          resultRows.push({
+            id: `row_dyn_${currentGroupHeader.id}_init`,
+            groupId: currentGroupHeader.id,
+            isDynamic: true
+          });
+        }
+      }
+    };
+
+    originalRows.forEach((row: any) => {
+      if (row.isGroupHeader) {
+        flushGroup();
+        currentGroupHeader = row;
+        currentGroupStaticRows = [];
+        currentGroupFreeRows = [];
       } else {
-        freeRows.push(row);
+        const hasStaticText = (block.tableColumns || []).some((col: any) => {
+          const staticVal = block.tableData?.[row.id]?.[col.id];
+          return (col.type === 'static_text' || col.type === 'text') &&
+                 staticVal !== undefined && staticVal !== null &&
+                 staticVal.toString().trim() !== '';
+        });
+
+        if (hasStaticText) {
+          currentGroupStaticRows.push(row);
+        } else {
+          currentGroupFreeRows.push(row);
+        }
       }
     });
+    flushGroup();
 
-    const initialFreeRows = freeRows.length > 0 ? [freeRows[0]] : [];
-    return [...staticRows, ...initialFreeRows];
+    return resultRows;
   };
 
-  const handleAddTableRow = (block: any) => {
+  const handleAddTableRowToGroup = (block: any, groupHeaderId?: string) => {
     const blockId = block.id;
     const currentRows = tableRowsMap[blockId] || initSmartTableRows(block);
     const newRowId = `row_dyn_${Date.now()}`;
-    const newRow = { id: newRowId, isDynamic: true };
+    const newRow = { id: newRowId, isDynamic: true, groupId: groupHeaderId };
+
+    if (!groupHeaderId) {
+      setTableRowsMap(prev => ({
+        ...prev,
+        [blockId]: [...currentRows, newRow]
+      }));
+      return;
+    }
+
+    let insertIndex = -1;
+    let foundGroup = false;
+
+    for (let i = 0; i < currentRows.length; i++) {
+      const r = currentRows[i];
+      if (r.id === groupHeaderId) {
+        foundGroup = true;
+        insertIndex = i;
+        continue;
+      }
+      if (foundGroup) {
+        if (r.isGroupHeader) break;
+        insertIndex = i;
+      }
+    }
+
+    const nextRows = [...currentRows];
+    if (insertIndex !== -1) {
+      nextRows.splice(insertIndex + 1, 0, newRow);
+    } else {
+      nextRows.push(newRow);
+    }
 
     setTableRowsMap(prev => ({
       ...prev,
-      [blockId]: [...currentRows, newRow]
+      [blockId]: nextRows
     }));
+  };
+
+  const handleAddTableRow = (block: any) => {
+    handleAddTableRowToGroup(block, undefined);
   };
 
   const handleDeleteTableRow = (blockId: string, rowId: string) => {
@@ -1748,10 +1834,15 @@ export default function FormFiller({
                               </tr>
                             );
                           }
-                          return activeRows.map((row: any) => {
+
+                          const hasGroupHeaders = activeRows.some((r: any) => r.isGroupHeader);
+                          let currentGroupId: string | undefined = undefined;
+
+                          return activeRows.flatMap((row: any, rIdx: number) => {
                             if (row.isGroupHeader) {
+                              currentGroupId = row.id;
                               const groupTitle = row.groupTitle || block.tableData?.[row.id]?.['_groupTitle'] || '';
-                              return (
+                              return [
                                 <tr key={row.id} style={{ background: bStyle === 'borderless' ? 'transparent' : '#f8fafc', borderBottom: bStyle === 'borderless' ? 'none' : '1px solid #cbd5e1' }}>
                                   <td
                                     colSpan={(block.tableColumns || []).length + 1}
@@ -1767,8 +1858,16 @@ export default function FormFiller({
                                     {renderFormattedText(groupTitle)}
                                   </td>
                                 </tr>
-                              );
+                              ];
                             }
+
+                            if (row.groupId) {
+                              currentGroupId = row.groupId;
+                            }
+
+                            const nextRow = activeRows[rIdx + 1];
+                            const isEndOfGroup = hasGroupHeaders && (!nextRow || nextRow.isGroupHeader);
+                            const thisGroupHeaderId = currentGroupId;
 
                             const hasStaticText = (block.tableColumns || []).some((col: any) => {
                               const staticVal = block.tableData?.[row.id]?.[col.id];
@@ -1778,7 +1877,8 @@ export default function FormFiller({
                             });
                             const isDeletable = !row.isGroupHeader && !hasStaticText && activeRows.length > 1;
 
-                            return (
+                            const groupRowElements: any[] = [];
+                            groupRowElements.push(
                               <tr key={row.id} style={{ borderBottom: bStyle === 'borderless' ? 'none' : '1px solid var(--neutral-border)' }}>
                               {(block.tableColumns || []).map((col: any) => {
                                 const colWidth = getColStyleWidth(col.id, col.width, block.tableColumns || []);
@@ -2044,6 +2144,24 @@ export default function FormFiller({
                               </td>
                             </tr>
                           );
+
+                          if (isEndOfGroup) {
+                            groupRowElements.push(
+                              <tr key={`group_add_${thisGroupHeaderId}_${row.id}`} style={{ background: '#f8fafc' }}>
+                                <td colSpan={(block.tableColumns || []).length + 1} style={{ padding: '5px 8px', borderBottom: bStyle === 'borderless' ? 'none' : '1px solid var(--neutral-border)' }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleAddTableRowToGroup(block, thisGroupHeaderId)}
+                                    className="btn btn-secondary btn-sm"
+                                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', padding: '0.25rem 0.55rem' }}
+                                  >
+                                    <Plus size={12} /> Thêm dòng
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          }
+                          return groupRowElements;
                         });
                       })()}
                       </tbody>
@@ -2142,9 +2260,12 @@ export default function FormFiller({
                       })()}
                     </table>
                   </div>
-                  {/* Dynamic Rows Toolbar below table */}
+                  {/* Dynamic Rows Toolbar below table (only for UNGROUPED tables) */}
                   {(() => {
                     const activeRows = tableRowsMap[block.id] || initSmartTableRows(block);
+                    const hasGroupHeaders = activeRows.some((r: any) => r.isGroupHeader);
+                    if (hasGroupHeaders) return null;
+
                     return (
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' }}>
                         <button
