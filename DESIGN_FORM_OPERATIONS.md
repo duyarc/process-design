@@ -9,7 +9,7 @@
 | **Module Name** | Form Operations |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | `3bd2477` (2026-08-25) — Sections 2 & 4 (INFO_GRID Horizontal Alignment & Label Typography Refinement in FormFiller, ProcessReader, PrintFilledForm, PrintRecord). |
+| **Verified At Commit** | (2026-08-26) — Sections 2 and 4 checked against source |
 
 ### Quick File Index
 
@@ -436,6 +436,7 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 | 2026-08-17 | `237f540` | **`<colgroup>` Dynamic Column Width Enforcement:** Added `<colgroup>` and `<col>` elements across `FormFiller.tsx`, `ProcessReader.tsx`, and `PrintFilledForm.tsx` to ensure 100% stable column alignments. |
 | 2026-08-25 | `a18181b` | **Table Block Border Styles Parity & Bottom Row Border Fix:** Updated `FormFiller.tsx`, `ProcessReader.tsx`, `PrintFilledForm.tsx`, and `PrintRecord.tsx` with explicit `borderBottom` definitions on `td` and `borderTop` on `horizontal_only` tables. |
 | 2026-08-25 | `3bd2477` | **INFO_GRID Horizontal Alignment & Label Typography Refinement:** Standardized `alignItems: 'center'`, `minHeight: 'var(--pw-line-h)'`, and `lineHeight: 1.4` on all INFO_GRID fields across `PrintFilledForm.tsx` and `PrintRecord.tsx`. Adjusted `label` field font weight to regular (400) and `lineHeight: 1.5` in `FormFiller.tsx` and `ProcessReader.tsx`. |
+| 2026-08-26 | `CURRENT` | **Fallback Operator Block Relocation & Vietnamese Localization:** Moved fallback operator identification block from top to bottom of `FormFiller.tsx` (above static footer strip, visible only when form has no `SIGN` block). Localized label to `Người điền phiếu *`, placeholder to `Nhập họ và tên người điền phiếu`, and validation alert to Vietnamese. |
 
 
 

@@ -489,7 +489,7 @@ export default function FormFiller({
     }
 
     if (!hasSignBlock && !operatorId.trim()) {
-      alert('Please enter your Operator ID to sign off this submission (Attributability).');
+      alert('Vui lòng nhập họ và tên người điền phiếu.');
       return;
     }
 
@@ -728,47 +728,6 @@ export default function FormFiller({
       <div className="paper-card" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '0px' }}>
         
 
-
-      {/* Check if form has a SIGN block */}
-      {(() => {
-        const hasSignBlock = formTemplate?.layoutBlocks?.some((b: any) => b.type === 'SIGN' && b.fields.length > 0);
-        return (
-          <>
-            {/* Fallback Operator Identification (Only shown if form has NO SIGN block) */}
-            {!hasSignBlock && (
-              <div style={{
-                background: '#eff6ff',
-                border: '1px solid #bfdbfe',
-                padding: '1.25rem',
-                borderRadius: '8px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.5rem',
-                marginBottom: '1.5rem'
-              }}>
-                <label style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1e40af', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                  <span>Operator ID / Attributable Signature *</span>
-                </label>
-                <input
-                  type="text"
-                  value={operatorId}
-                  onChange={(e) => setOperatorId(e.target.value)}
-                  placeholder="Enter your Name or Badge ID (e.g. John Doe / OP-42)"
-                  style={{
-                    width: '100%',
-                    padding: '0.5rem 0.75rem',
-                    fontSize: '0.85rem',
-                    border: '1px solid #93c5fd',
-                    borderRadius: '6px',
-                    outline: 'none',
-                    background: '#ffffff'
-                  }}
-                />
-              </div>
-            )}
-          </>
-        );
-      })()}
 
         {/* Checklist Groups */}
         {formTemplate.layoutBlocks && formTemplate.layoutBlocks.map((block: any, index: number) => {
@@ -2218,6 +2177,44 @@ export default function FormFiller({
             </div>
           );
         })}
+
+        {/* Fallback Operator Identification (Only shown at bottom if form has NO SIGN block) */}
+        {(() => {
+          const hasSignBlock = formTemplate?.layoutBlocks?.some((b: any) => b.type === 'SIGN' && b.fields.length > 0);
+          if (hasSignBlock) return null;
+          return (
+            <div style={{
+              background: '#eff6ff',
+              border: '1px solid #bfdbfe',
+              padding: '1.25rem',
+              borderRadius: '8px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.5rem',
+              marginTop: '0.5rem',
+              marginBottom: '0.5rem'
+            }}>
+              <label style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1e40af', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                <span>Người điền phiếu *</span>
+              </label>
+              <input
+                type="text"
+                value={operatorId}
+                onChange={(e) => setOperatorId(e.target.value)}
+                placeholder="Nhập họ và tên người điền phiếu"
+                style={{
+                  width: '100%',
+                  padding: '0.5rem 0.75rem',
+                  fontSize: '0.85rem',
+                  border: '1px solid #93c5fd',
+                  borderRadius: '6px',
+                  outline: 'none',
+                  background: '#ffffff'
+                }}
+              />
+            </div>
+          );
+        })()}
 
         {/* Static layout-driven footer matching paper printouts & Form Builder */}
         <div style={{
