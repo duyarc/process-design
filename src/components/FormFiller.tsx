@@ -181,6 +181,34 @@ function FormFillerInner({
   // Paper Form Replica Pagination State
   const [currentPageIndex, setCurrentPageIndex] = useState<number>(0);
 
+  // Keyboard Shortcut Listener for Paper Sheet Navigation (Alt+Left, Alt+Right)
+  // MUST be placed here — BEFORE early returns — so hooks run in consistent order every render
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const blocks = (process?.workflowFormsData?.[formName] as any)?.layoutBlocks || [];
+      const pages = getFormPages(blocks);
+      const totalPages = pages.length;
+      if (totalPages <= 1) return;
+
+      if (e.altKey && e.key === 'ArrowRight') {
+        e.preventDefault();
+        setCurrentPageIndex(prev => {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          return Math.min(prev + 1, totalPages - 1);
+        });
+      } else if (e.altKey && e.key === 'ArrowLeft') {
+        e.preventDefault();
+        setCurrentPageIndex(prev => {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          return Math.max(prev - 1, 0);
+        });
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [process, formName, tableRowsMap]);
+
   // Helper to chunk blocks into A4 Page Sheets
   const getFormPages = (blocks: any[]): { id: string; title: string; blockIds: string[]; groupHeaderId?: string }[] => {
     if (!blocks || blocks.length === 0) return [{ id: 'page_1', title: 'Trang 1', blockIds: [] }];
@@ -532,35 +560,6 @@ function FormFillerInner({
   }
 
   const formTemplate = process.workflowFormsData[formName] as FormTemplateISO;
-
-  // Keyboard Shortcut Listener for Paper Sheet Navigation (Alt+Left, Alt+Right)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const blocks = formTemplate?.layoutBlocks || [];
-      const pages = getFormPages(blocks);
-      const totalPages = pages.length;
-      if (totalPages <= 1) return;
-
-      if (e.altKey && e.key === 'ArrowRight') {
-        e.preventDefault();
-        setCurrentPageIndex(prev => {
-          const next = Math.min(prev + 1, totalPages - 1);
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-          return next;
-        });
-      } else if (e.altKey && e.key === 'ArrowLeft') {
-        e.preventDefault();
-        setCurrentPageIndex(prev => {
-          const next = Math.max(prev - 1, 0);
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-          return next;
-        });
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [formTemplate, tableRowsMap]);
 
   // Photo uploading callback
   const handlePhotoUpload = async (fieldId: string, file: File) => {
