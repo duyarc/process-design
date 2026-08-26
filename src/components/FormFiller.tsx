@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { Process, FormTemplateISO, SubmissionFieldSnapshot, Submission } from '../types';
 import { formatFormVersion, getColStyleWidth } from '../types';
 import { sanitizeLabel, getEffectiveTitleFormat, validateFormSubmission, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock, getInfoGridTemplateColumns } from '../utils/formUtils';
@@ -25,6 +25,59 @@ const parseSubtableValue = (val: string): Record<string, string>[] => {
   try { return JSON.parse(val || '[]'); } catch { return []; }
 };
 const stringifySubtableValue = (rows: Record<string, string>[]): string => JSON.stringify(rows);
+
+interface AutoResizingTextareaProps {
+  value: string;
+  onChange: (val: string) => void;
+  placeholder?: string;
+  style?: React.CSSProperties;
+  className?: string;
+}
+
+const AutoResizingTextarea: React.FC<AutoResizingTextareaProps> = ({
+  value,
+  onChange,
+  placeholder,
+  style,
+  className
+}) => {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const adjustHeight = () => {
+    const el = textareaRef.current;
+    if (el) {
+      el.style.height = 'auto';
+      el.style.height = `${Math.max(el.scrollHeight, 34)}px`;
+    }
+  };
+
+  useEffect(() => {
+    adjustHeight();
+  }, [value]);
+
+  return (
+    <textarea
+      ref={textareaRef}
+      value={value}
+      onChange={(e) => {
+        onChange(e.target.value);
+        adjustHeight();
+      }}
+      placeholder={placeholder}
+      rows={1}
+      style={{
+        width: '100%',
+        resize: 'none',
+        overflow: 'hidden',
+        boxSizing: 'border-box',
+        lineHeight: '1.4',
+        fontFamily: 'inherit',
+        ...style
+      }}
+      className={className}
+    />
+  );
+};
 
 interface FormFillerProps {
   processId: string;
@@ -1232,10 +1285,9 @@ export default function FormFiller({
                             </div>
                           );
                         })() : (
-                          <input
-                            type="text"
+                          <AutoResizingTextarea
                             value={value}
-                            onChange={(e) => setFormValues(prev => ({ ...prev, [field.id]: e.target.value }))}
+                            onChange={(val) => setFormValues(prev => ({ ...prev, [field.id]: val }))}
                             style={inputStyle}
                           />
                         )}
@@ -1504,10 +1556,9 @@ export default function FormFiller({
                                 ))}
                               </div>
                             ) : (
-                              <input 
-                                type="text"
+                              <AutoResizingTextarea 
                                 value={value}
-                                onChange={(e) => setFormValues(prev => ({ ...prev, [field.id]: e.target.value }))}
+                                onChange={(val) => setFormValues(prev => ({ ...prev, [field.id]: val }))}
                                 placeholder="Nhập kết quả..."
                                 style={{ width: '100%', padding: '0.45rem 0.5rem', fontSize: '0.82rem', border: '1px solid var(--neutral-border)', borderRadius: '4px' }}
                               />
@@ -1547,10 +1598,9 @@ export default function FormFiller({
                               <AlertTriangle size={12} />
                               <span>Corrective action Containment protocol required:</span>
                             </div>
-                            <input 
-                              type="text"
+                            <AutoResizingTextarea 
                               value={fieldReactions[field.id] || ''}
-                              onChange={(e) => setFieldReactions(prev => ({ ...prev, [field.id]: e.target.value }))}
+                              onChange={(val) => setFieldReactions(prev => ({ ...prev, [field.id]: val }))}
                               placeholder="Enter containment reaction protocol feedback... (e.g. Put on hold / Isolated)"
                               style={{ width: '100%', marginTop: '0.25rem', padding: '0.4rem 0.5rem', fontSize: '0.8rem', border: '1px solid #fca5a5', borderRadius: '4px', background: '#fff' }}
                             />
@@ -1885,10 +1935,9 @@ export default function FormFiller({
                                         style={{ width: '100%', padding: '0.35rem 0.45rem', fontSize: '0.8rem', border: '1px solid #e2e8f0', borderRadius: '4px', textAlign: 'right', backgroundColor: '#f8fafc' }}
                                       />
                                     ) : (
-                                      <input 
-                                        type="text" 
+                                      <AutoResizingTextarea 
                                         value={cellValue} 
-                                        onChange={(e) => setFormValues(prev => ({ ...prev, [cellKey]: e.target.value }))} 
+                                        onChange={(val) => setFormValues(prev => ({ ...prev, [cellKey]: val }))} 
                                         style={{ width: '100%', padding: '0.35rem 0.45rem', fontSize: '0.8rem', border: '1px solid #e2e8f0', borderRadius: '4px', textAlign: 'left', backgroundColor: '#f8fafc' }}
                                       />
                                     )}

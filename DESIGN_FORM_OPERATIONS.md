@@ -438,6 +438,7 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 | 2026-08-25 | `3bd2477` | **INFO_GRID Horizontal Alignment & Label Typography Refinement:** Standardized `alignItems: 'center'`, `minHeight: 'var(--pw-line-h)'`, and `lineHeight: 1.4` on all INFO_GRID fields across `PrintFilledForm.tsx` and `PrintRecord.tsx`. Adjusted `label` field font weight to regular (400) and `lineHeight: 1.5` in `FormFiller.tsx` and `ProcessReader.tsx`. |
 | 2026-08-26 | `CURRENT` | **Fallback Operator Block Relocation & Vietnamese Localization:** Moved fallback operator identification block from top to bottom of `FormFiller.tsx` (above static footer strip, visible only when form has no `SIGN` block). Localized label to `Người điền phiếu *`, placeholder to `Nhập họ và tên người điền phiếu`, and validation alert to Vietnamese. |
 | 2026-08-26 | `CURRENT` | **Smart Public Link Access Control & Guest Bypass Route:** Integrated Smart Status Pill (`[🌐 Link công khai / 🔒 Cần đăng nhập] + [🔗 Sao chép link]`) in `FormFiller.tsx`. Updated `App.tsx` with public guest route bypass allowing guest users to fill out forms directly without login when `mode=public` query parameter is present. |
+| 2026-08-26 | `CURRENT` | **FormFiller Auto-Expanding Multi-line Text Area Support:** Integrated `AutoResizingTextarea` in `FormFiller.tsx`, replacing single-line `<input type="text">` across INFO_GRID fields, Checklist groups, Action notes, and dynamic `TABLE` cells with auto-expanding multi-line textareas without vertical scrollbars. |
 
 
 
