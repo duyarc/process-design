@@ -124,8 +124,28 @@ const MainApp: React.FC = () => {
     setPage('user-management');
   };
 
-  // If not logged in, render the Login page
+  // Check URL params for public form link access (Guest mode)
+  const urlParams = new URLSearchParams(window.location.search);
+  const qPage = urlParams.get('page');
+  const qProcessId = urlParams.get('processId');
+  const qFormName = urlParams.get('formName');
+  const qMode = urlParams.get('mode');
+  const isPublicGuestFill = qPage === 'fill' && qMode === 'public' && Boolean(qProcessId && qFormName);
+
+  // If not logged in: check if accessing public form link (Guest mode) or redirect to LoginPage
   if (!currentUser) {
+    if (isPublicGuestFill) {
+      return (
+        <div className="app-container" style={{ minHeight: '100vh', background: 'var(--neutral-bg)', padding: '2rem 1rem' }}>
+          <FormFiller
+            processId={qProcessId!}
+            formName={qFormName!}
+            onBack={() => { window.location.href = '/'; }}
+            isPublicGuestMode={true}
+          />
+        </div>
+      );
+    }
     return <LoginPage />;
   }
 

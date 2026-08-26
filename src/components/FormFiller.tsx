@@ -16,7 +16,9 @@ import {
   Trash2,
   Printer,
   Star,
-  FileText
+  FileText,
+  Globe,
+  Lock
 } from 'lucide-react';
 
 const parseSubtableValue = (val: string): Record<string, string>[] => {
@@ -30,6 +32,7 @@ interface FormFillerProps {
   onBack: () => void;
   initialSubmission?: Submission;
   editSubmissionId?: string;
+  isPublicGuestMode?: boolean;
 }
 
 
@@ -38,7 +41,8 @@ export default function FormFiller({
   formName, 
   onBack, 
   initialSubmission, 
-  editSubmissionId 
+  editSubmissionId,
+  isPublicGuestMode
 }: FormFillerProps) {
   const [process, setProcess] = useState<Process | null>(null);
   const [loading, setLoading] = useState(true);
@@ -57,6 +61,16 @@ export default function FormFiller({
   const [showPrintBlank, setShowPrintBlank] = useState(false);
   const [autoExportPdf, setAutoExportPdf] = useState(false);
   const [printCurrentSubmission, setPrintCurrentSubmission] = useState<Submission | null>(null);
+
+  // Smart Public Link State
+  const [isPublic, setIsPublic] = useState<boolean>(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('mode') === 'public';
+  });
+
+  const handleTogglePublic = () => {
+    setIsPublic(prev => !prev);
+  };
 
   // Load initial values if editing
   useEffect(() => {
@@ -198,14 +212,18 @@ export default function FormFiller({
 
   // Copy share link helper
   const handleCopyShareLink = () => {
-    const shareUrl = `${window.location.origin}/?page=fill&processId=${processId}&formName=${encodeURIComponent(formName)}`;
+    const baseUrl = `${window.location.origin}/?page=fill&processId=${processId}&formName=${encodeURIComponent(formName)}`;
+    const shareUrl = isPublic ? `${baseUrl}&mode=public` : baseUrl;
     navigator.clipboard.writeText(shareUrl)
       .then(() => {
-        alert('Shareable link copied to clipboard!\n' + shareUrl);
+        const msg = isPublic 
+          ? '✓ Đã sao chép liên kết công khai! (Khách có thể điền không cần đăng nhập)\n' + shareUrl
+          : '✓ Đã sao chép liên kết nội bộ! (Yêu cầu đăng nhập)\n' + shareUrl;
+        alert(msg);
       })
       .catch((err) => {
         console.error(err);
-        alert('Failed to copy link.');
+        alert('Không thể sao chép liên kết.');
       });
   };
 
@@ -644,9 +662,11 @@ export default function FormFiller({
       {/* Standalone Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <button className="btn btn-secondary btn-sm" onClick={onBack} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-            <ArrowLeft size={14} /> Back
-          </button>
+          {!isPublicGuestMode && (
+            <button className="btn btn-secondary btn-sm" onClick={onBack} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              <ArrowLeft size={14} /> Back
+            </button>
+          )}
         </div>
 
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
@@ -712,15 +732,59 @@ export default function FormFiller({
             <span>In bản khai</span>
           </button>
 
-          <button 
-            className="btn btn-secondary btn-sm" 
-            onClick={handleCopyShareLink}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.35rem 0.75rem' }}
-            title="Copy link to this form"
-          >
-            <Link2 size={13} />
-            <span>Copy Form Link</span>
-          </button>
+          {/* Smart Status Pill & Copy Link Button (Only for internal users) */}
+          {!isPublicGuestMode && (
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'stretch',
+              borderRadius: '6px',
+              border: isPublic ? '1px solid #0d9488' : '1px solid var(--neutral-border)',
+              overflow: 'hidden',
+              fontSize: '0.78rem',
+              background: isPublic ? '#f0fdf4' : '#ffffff'
+            }}>
+              <button
+                type="button"
+                onClick={handleTogglePublic}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  padding: '0.35rem 0.65rem',
+                  border: 'none',
+                  background: isPublic ? '#ccfbf1' : '#f1f5f9',
+                  color: isPublic ? '#0f766e' : 'var(--text-secondary)',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  borderRight: '1px solid var(--neutral-border)'
+                }}
+                title={isPublic ? 'Bật công khai (Click để chuyển về cần đăng nhập)' : 'Tắt công khai (Click để mở công khai)'}
+              >
+                {isPublic ? <Globe size={13} style={{ color: '#0d9488' }} /> : <Lock size={13} />}
+                <span>{isPublic ? 'Link công khai' : 'Cần đăng nhập'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleCopyShareLink}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  padding: '0.35rem 0.75rem',
+                  border: 'none',
+                  background: 'transparent',
+                  color: 'var(--text-primary)',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+                title="Sao chép đường dẫn điền phiếu"
+              >
+                <Link2 size={13} />
+                <span>Sao chép link</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
