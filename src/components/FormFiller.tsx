@@ -128,82 +128,9 @@ export default function FormFiller({
   // Dynamic Table Rows state: blockId -> TableRowConfig[]
   const [tableRowsMap, setTableRowsMap] = useState<{ [blockId: string]: any[] }>({});
 
-  // Helper to initialize smart table rows: preserves static label rows 100%, collapses free editable rows to 1 initial blank row per group
+  // Helper to initialize table rows: preserves 100% of designed template rows without collapsing or auto-inserting extra rows
   const initSmartTableRows = (block: any): any[] => {
-    const originalRows = block.tableRows || [];
-    if (originalRows.length === 0) return [];
-
-    const hasGroupHeaders = originalRows.some((r: any) => r.isGroupHeader);
-
-    if (!hasGroupHeaders) {
-      const staticRows: any[] = [];
-      const freeRows: any[] = [];
-
-      originalRows.forEach((row: any) => {
-        const hasStaticText = (block.tableColumns || []).some((col: any) => {
-          const staticVal = block.tableData?.[row.id]?.[col.id];
-          return (col.type === 'static_text' || col.type === 'text') &&
-                 staticVal !== undefined && staticVal !== null &&
-                 staticVal.toString().trim() !== '';
-        });
-
-        if (hasStaticText) {
-          staticRows.push(row);
-        } else {
-          freeRows.push(row);
-        }
-      });
-
-      const initialFreeRows = freeRows.length > 0 ? [freeRows[0]] : [];
-      return [...staticRows, ...initialFreeRows];
-    }
-
-    // Grouped Table: Process group by group
-    const resultRows: any[] = [];
-    let currentGroupHeader: any = null;
-    let currentGroupStaticRows: any[] = [];
-    let currentGroupFreeRows: any[] = [];
-
-    const flushGroup = () => {
-      if (currentGroupHeader) {
-        resultRows.push(currentGroupHeader);
-        resultRows.push(...currentGroupStaticRows);
-        if (currentGroupFreeRows.length > 0) {
-          resultRows.push(currentGroupFreeRows[0]);
-        } else {
-          resultRows.push({
-            id: `row_dyn_${currentGroupHeader.id}_init`,
-            groupId: currentGroupHeader.id,
-            isDynamic: true
-          });
-        }
-      }
-    };
-
-    originalRows.forEach((row: any) => {
-      if (row.isGroupHeader) {
-        flushGroup();
-        currentGroupHeader = row;
-        currentGroupStaticRows = [];
-        currentGroupFreeRows = [];
-      } else {
-        const hasStaticText = (block.tableColumns || []).some((col: any) => {
-          const staticVal = block.tableData?.[row.id]?.[col.id];
-          return (col.type === 'static_text' || col.type === 'text') &&
-                 staticVal !== undefined && staticVal !== null &&
-                 staticVal.toString().trim() !== '';
-        });
-
-        if (hasStaticText) {
-          currentGroupStaticRows.push(row);
-        } else {
-          currentGroupFreeRows.push(row);
-        }
-      }
-    });
-    flushGroup();
-
-    return resultRows;
+    return block.tableRows || [];
   };
 
   const handleAddTableRowToGroup = (block: any, groupHeaderId?: string) => {
@@ -251,9 +178,9 @@ export default function FormFiller({
 
 
 
-  const handleDeleteTableRow = (blockId: string, rowId: string) => {
+  const handleDeleteTableRow = (blockId: string, rowId: string, block?: any) => {
     setTableRowsMap(prev => {
-      const currentRows = prev[blockId] || [];
+      const currentRows = prev[blockId] || (block ? initSmartTableRows(block) : []);
       const nextRows = currentRows.filter((r: any) => r.id !== rowId);
       return { ...prev, [blockId]: nextRows };
     });
@@ -2149,7 +2076,7 @@ export default function FormFiller({
                                 {isDeletable && (
                                   <button
                                     type="button"
-                                    onClick={() => handleDeleteTableRow(block.id, row.id)}
+                                    onClick={() => handleDeleteTableRow(block.id, row.id, block)}
                                     style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '2px' }}
                                     title="Xóa dòng này"
                                     onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
