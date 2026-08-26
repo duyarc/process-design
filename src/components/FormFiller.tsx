@@ -18,7 +18,8 @@ import {
   Star,
   FileText,
   Globe,
-  Lock
+  Lock,
+  Plus
 } from 'lucide-react';
 
 const parseSubtableValue = (val: string): Record<string, string>[] => {
@@ -123,6 +124,66 @@ export default function FormFiller({
 
   const handleTogglePublic = () => {
     setIsPublic(prev => !prev);
+  };
+
+  // Dynamic Table Rows state: blockId -> TableRowConfig[]
+  const [tableRowsMap, setTableRowsMap] = useState<{ [blockId: string]: any[] }>({});
+
+  // Helper to initialize smart table rows: preserves static label rows 100%, collapses free editable rows to 1 initial blank row
+  const initSmartTableRows = (block: any): any[] => {
+    const originalRows = block.tableRows || [];
+    if (originalRows.length === 0) return [];
+
+    const staticRows: any[] = [];
+    const freeRows: any[] = [];
+
+    originalRows.forEach((row: any) => {
+      const hasStaticText = (block.tableColumns || []).some((col: any) => {
+        const staticVal = block.tableData?.[row.id]?.[col.id];
+        return (col.type === 'static_text' || col.type === 'text') &&
+               staticVal !== undefined && staticVal !== null &&
+               staticVal.toString().trim() !== '';
+      });
+
+      if (hasStaticText || row.isGroupHeader) {
+        staticRows.push(row);
+      } else {
+        freeRows.push(row);
+      }
+    });
+
+    const initialFreeRows = freeRows.length > 0 ? [freeRows[0]] : [];
+    return [...staticRows, ...initialFreeRows];
+  };
+
+  const handleAddTableRow = (block: any) => {
+    const blockId = block.id;
+    const currentRows = tableRowsMap[blockId] || initSmartTableRows(block);
+    const newRowId = `row_dyn_${Date.now()}`;
+    const newRow = { id: newRowId, isDynamic: true };
+
+    setTableRowsMap(prev => ({
+      ...prev,
+      [blockId]: [...currentRows, newRow]
+    }));
+  };
+
+  const handleDeleteTableRow = (blockId: string, rowId: string) => {
+    setTableRowsMap(prev => {
+      const currentRows = prev[blockId] || [];
+      const nextRows = currentRows.filter((r: any) => r.id !== rowId);
+      return { ...prev, [blockId]: nextRows };
+    });
+
+    setFormValues(prev => {
+      const nextValues = { ...prev };
+      Object.keys(nextValues).forEach(key => {
+        if (key.startsWith(`${blockId}_${rowId}_`)) {
+          delete nextValues[key];
+        }
+      });
+      return nextValues;
+    });
   };
 
   // Load initial values if editing
@@ -1635,6 +1696,7 @@ export default function FormFiller({
                           const colWidth = getColStyleWidth(col.id, col.width, block.tableColumns || []);
                           return <col key={col.id} style={{ width: colWidth }} />;
                         })}
+                        <col style={{ width: '36px' }} />
                       </colgroup>
                       {!block.hideHeader && (
                         <thead>
@@ -1670,24 +1732,29 @@ export default function FormFiller({
                                 </th>
                               );
                             })}
+                            <th style={{ width: '36px', padding: 0, borderBottom: bStyle === 'borderless' ? 'none' : '1px solid #cbd5e1' }} />
                           </tr>
                         </thead>
                       )}
                       <tbody>
-                        {(block.tableRows || []).length === 0 ? (
-                          <tr>
-                            <td colSpan={(block.tableColumns || []).length} style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                              Không có dòng nào.
-                            </td>
-                          </tr>
-                        ) : (
-                          (block.tableRows || []).map((row: any) => {
+                        {(() => {
+                          const activeRows = tableRowsMap[block.id] || initSmartTableRows(block);
+                          if (activeRows.length === 0) {
+                            return (
+                              <tr>
+                                <td colSpan={(block.tableColumns || []).length + 1} style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                                  Không có dòng nào.
+                                </td>
+                              </tr>
+                            );
+                          }
+                          return activeRows.map((row: any) => {
                             if (row.isGroupHeader) {
                               const groupTitle = row.groupTitle || block.tableData?.[row.id]?.['_groupTitle'] || '';
                               return (
                                 <tr key={row.id} style={{ background: bStyle === 'borderless' ? 'transparent' : '#f8fafc', borderBottom: bStyle === 'borderless' ? 'none' : '1px solid #cbd5e1' }}>
                                   <td
-                                    colSpan={(block.tableColumns || []).length}
+                                    colSpan={(block.tableColumns || []).length + 1}
                                     style={{
                                       padding: '6px 10px',
                                       fontWeight: 600,
@@ -1702,8 +1769,17 @@ export default function FormFiller({
                                 </tr>
                               );
                             }
+
+                            const hasStaticText = (block.tableColumns || []).some((col: any) => {
+                              const staticVal = block.tableData?.[row.id]?.[col.id];
+                              return (col.type === 'static_text' || col.type === 'text') &&
+                                     staticVal !== undefined && staticVal !== null &&
+                                     staticVal.toString().trim() !== '';
+                            });
+                            const isDeletable = !row.isGroupHeader && !hasStaticText && activeRows.length > 1;
+
                             return (
-                            <tr key={row.id} style={{ borderBottom: bStyle === 'borderless' ? 'none' : '1px solid var(--neutral-border)' }}>
+                              <tr key={row.id} style={{ borderBottom: bStyle === 'borderless' ? 'none' : '1px solid var(--neutral-border)' }}>
                               {(block.tableColumns || []).map((col: any) => {
                                 const colWidth = getColStyleWidth(col.id, col.width, block.tableColumns || []);
                                 const cellKey = `${block.id}_${row.id}_${col.id}`;
@@ -1944,10 +2020,32 @@ export default function FormFiller({
                                   </td>
                                 );
                               })}
+                              {/* Dynamic Row Delete Cell */}
+                              <td style={{
+                                width: '36px',
+                                textAlign: 'center',
+                                verticalAlign: 'middle',
+                                padding: '2px',
+                                borderRight: bStyle === 'grid' ? '1px solid var(--neutral-border)' : 'none',
+                                borderBottom: bStyle === 'borderless' ? 'none' : '1px solid var(--neutral-border)'
+                              }}>
+                                {isDeletable && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteTableRow(block.id, row.id)}
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '2px' }}
+                                    title="Xóa dòng này"
+                                    onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
+                                    onMouseLeave={e => e.currentTarget.style.color = '#94a3b8'}
+                                  >
+                                    <Trash2 size={13} />
+                                  </button>
+                                )}
+                              </td>
                             </tr>
                           );
-                        })
-                      )}
+                        });
+                      })()}
                       </tbody>
                       {(() => {
                         const columns = block.tableColumns || [];
@@ -2044,6 +2142,25 @@ export default function FormFiller({
                       })()}
                     </table>
                   </div>
+                  {/* Dynamic Rows Toolbar below table */}
+                  {(() => {
+                    const activeRows = tableRowsMap[block.id] || initSmartTableRows(block);
+                    return (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' }}>
+                        <button
+                          type="button"
+                          onClick={() => handleAddTableRow(block)}
+                          className="btn btn-secondary btn-sm"
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.78rem', padding: '0.3rem 0.65rem' }}
+                        >
+                          <Plus size={13} /> Thêm dòng
+                        </button>
+                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                          (Tổng: {activeRows.length} dòng)
+                        </span>
+                      </div>
+                    );
+                  })()}
                 </div>
                 );
               })()}
