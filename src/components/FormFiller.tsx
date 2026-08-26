@@ -18,8 +18,7 @@ import {
   Star,
   FileText,
   Globe,
-  Lock,
-  Plus
+  Lock
 } from 'lucide-react';
 
 const parseSubtableValue = (val: string): Record<string, string>[] => {
@@ -250,9 +249,7 @@ export default function FormFiller({
     }));
   };
 
-  const handleAddTableRow = (block: any) => {
-    handleAddTableRowToGroup(block, undefined);
-  };
+
 
   const handleDeleteTableRow = (blockId: string, rowId: string) => {
     setTableRowsMap(prev => {
@@ -270,6 +267,30 @@ export default function FormFiller({
       });
       return nextValues;
     });
+  };
+
+  // Auto-append new row when user types in the last row of a group / table
+  const handleTableCellChangeWithAutoAppend = (
+    block: any,
+    rowId: string,
+    colId: string,
+    val: string,
+    groupId?: string
+  ) => {
+    const cellKey = `${block.id}_${rowId}_${colId}`;
+    setFormValues(prev => ({ ...prev, [cellKey]: val }));
+
+    if (val && val.trim() !== '') {
+      const currentRows = tableRowsMap[block.id] || initSmartTableRows(block);
+      const groupRows = groupId 
+        ? currentRows.filter((r: any) => r.groupId === groupId || r.id === groupId)
+        : currentRows;
+
+      const lastRowOfGroup = groupRows[groupRows.length - 1];
+      if (lastRowOfGroup && lastRowOfGroup.id === rowId) {
+        handleAddTableRowToGroup(block, groupId);
+      }
+    }
   };
 
   // Load initial values if editing
@@ -1835,10 +1856,9 @@ export default function FormFiller({
                             );
                           }
 
-                          const hasGroupHeaders = activeRows.some((r: any) => r.isGroupHeader);
                           let currentGroupId: string | undefined = undefined;
 
-                          return activeRows.flatMap((row: any, rIdx: number) => {
+                          return activeRows.flatMap((row: any) => {
                             if (row.isGroupHeader) {
                               currentGroupId = row.id;
                               const groupTitle = row.groupTitle || block.tableData?.[row.id]?.['_groupTitle'] || '';
@@ -1865,8 +1885,6 @@ export default function FormFiller({
                               currentGroupId = row.groupId;
                             }
 
-                            const nextRow = activeRows[rIdx + 1];
-                            const isEndOfGroup = hasGroupHeaders && (!nextRow || nextRow.isGroupHeader);
                             const thisGroupHeaderId = currentGroupId;
 
                             const hasStaticText = (block.tableColumns || []).some((col: any) => {
@@ -1877,8 +1895,7 @@ export default function FormFiller({
                             });
                             const isDeletable = !row.isGroupHeader && !hasStaticText && activeRows.length > 1;
 
-                            const groupRowElements: any[] = [];
-                            groupRowElements.push(
+                            return [
                               <tr key={row.id} style={{ borderBottom: bStyle === 'borderless' ? 'none' : '1px solid var(--neutral-border)' }}>
                               {(block.tableColumns || []).map((col: any) => {
                                 const colWidth = getColStyleWidth(col.id, col.width, block.tableColumns || []);
@@ -2093,27 +2110,27 @@ export default function FormFiller({
                                       <input 
                                         type="date" 
                                         value={cellValue} 
-                                        onChange={(e) => setFormValues(prev => ({ ...prev, [cellKey]: e.target.value }))} 
+                                        onChange={(e) => handleTableCellChangeWithAutoAppend(block, row.id, col.id, e.target.value, thisGroupHeaderId)} 
                                         style={{ width: '100%', padding: '0.35rem 0.45rem', fontSize: '0.8rem', border: '1px solid #e2e8f0', borderRadius: '4px', textAlign: 'center', backgroundColor: '#f8fafc' }}
                                       />
                                     ) : col.type === 'time' ? (
                                       <input 
                                         type="time" 
                                         value={cellValue} 
-                                        onChange={(e) => setFormValues(prev => ({ ...prev, [cellKey]: e.target.value }))} 
+                                        onChange={(e) => handleTableCellChangeWithAutoAppend(block, row.id, col.id, e.target.value, thisGroupHeaderId)} 
                                         style={{ width: '100%', padding: '0.35rem 0.45rem', fontSize: '0.8rem', border: '1px solid #e2e8f0', borderRadius: '4px', textAlign: 'center', backgroundColor: '#f8fafc' }}
                                       />
                                     ) : col.type === 'number' ? (
                                       <input 
                                         type="number" 
                                         value={cellValue} 
-                                        onChange={(e) => setFormValues(prev => ({ ...prev, [cellKey]: e.target.value }))} 
+                                        onChange={(e) => handleTableCellChangeWithAutoAppend(block, row.id, col.id, e.target.value, thisGroupHeaderId)} 
                                         style={{ width: '100%', padding: '0.35rem 0.45rem', fontSize: '0.8rem', border: '1px solid #e2e8f0', borderRadius: '4px', textAlign: 'right', backgroundColor: '#f8fafc' }}
                                       />
                                     ) : (
                                       <AutoResizingTextarea 
                                         value={cellValue} 
-                                        onChange={(val) => setFormValues(prev => ({ ...prev, [cellKey]: val }))} 
+                                        onChange={(val) => handleTableCellChangeWithAutoAppend(block, row.id, col.id, val, thisGroupHeaderId)} 
                                         style={{ width: '100%', padding: '0.35rem 0.45rem', fontSize: '0.8rem', border: '1px solid #e2e8f0', borderRadius: '4px', textAlign: 'left', backgroundColor: '#f8fafc' }}
                                       />
                                     )}
@@ -2142,27 +2159,9 @@ export default function FormFiller({
                                   </button>
                                 )}
                               </td>
-                            </tr>
-                          );
-
-                          if (isEndOfGroup) {
-                            groupRowElements.push(
-                              <tr key={`group_add_${thisGroupHeaderId}_${row.id}`} style={{ background: '#f8fafc' }}>
-                                <td colSpan={(block.tableColumns || []).length + 1} style={{ padding: '5px 8px', borderBottom: bStyle === 'borderless' ? 'none' : '1px solid var(--neutral-border)' }}>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleAddTableRowToGroup(block, thisGroupHeaderId)}
-                                    className="btn btn-secondary btn-sm"
-                                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', padding: '0.25rem 0.55rem' }}
-                                  >
-                                    <Plus size={12} /> Thêm dòng
-                                  </button>
-                                </td>
-                              </tr>
-                            );
-                          }
-                          return groupRowElements;
-                        });
+                             </tr>
+                           ];
+                         });
                       })()}
                       </tbody>
                       {(() => {
@@ -2260,28 +2259,7 @@ export default function FormFiller({
                       })()}
                     </table>
                   </div>
-                  {/* Dynamic Rows Toolbar below table (only for UNGROUPED tables) */}
-                  {(() => {
-                    const activeRows = tableRowsMap[block.id] || initSmartTableRows(block);
-                    const hasGroupHeaders = activeRows.some((r: any) => r.isGroupHeader);
-                    if (hasGroupHeaders) return null;
 
-                    return (
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' }}>
-                        <button
-                          type="button"
-                          onClick={() => handleAddTableRow(block)}
-                          className="btn btn-secondary btn-sm"
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.78rem', padding: '0.3rem 0.65rem' }}
-                        >
-                          <Plus size={13} /> Thêm dòng
-                        </button>
-                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                          (Tổng: {activeRows.length} dòng)
-                        </span>
-                      </div>
-                    );
-                  })()}
                 </div>
                 );
               })()}
