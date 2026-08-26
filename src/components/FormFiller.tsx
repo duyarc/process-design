@@ -1,5 +1,53 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Component } from 'react';
 import type { Process, FormTemplateISO, SubmissionFieldSnapshot, Submission } from '../types';
+
+interface ErrorBoundaryProps {
+  children: React.ReactNode;
+}
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+class FormErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('FormFiller ErrorBoundary caught an error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="paper-card" style={{ padding: '3rem 2rem', textAlign: 'center', maxWidth: '600px', margin: '2rem auto', border: '1px solid #fca5a5', background: '#fff5f5' }}>
+          <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>⚠️</div>
+          <h3 style={{ color: '#991b1b', marginBottom: '0.5rem' }}>Đã xảy ra lỗi khi hiển thị biểu mẫu</h3>
+          <p style={{ fontSize: '0.85rem', color: '#7f1d1d', marginBottom: '1.5rem' }}>
+            {this.state.error?.message || 'Không thể tải được dữ liệu biểu mẫu số.'}
+          </p>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => {
+              this.setState({ hasError: false, error: null });
+              window.location.reload();
+            }}
+          >
+            Tải lại trang
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 import { formatFormVersion, getColStyleWidth } from '../types';
 import { sanitizeLabel, getEffectiveTitleFormat, validateFormSubmission, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock, getInfoGridTemplateColumns } from '../utils/formUtils';
 import { renderFormattedText } from '../utils/textFormatter';
@@ -91,7 +139,7 @@ interface FormFillerProps {
 }
 
 
-export default function FormFiller({ 
+function FormFillerInner({ 
   processId, 
   formName, 
   onBack, 
@@ -725,7 +773,7 @@ export default function FormFiller({
     // Collect SIGN block signatures dynamically
     const signBlocks = formTemplate?.layoutBlocks?.filter((b: any) => b.type === 'SIGN') || [];
     signBlocks.forEach((block: any) => {
-      block.fields.forEach((f: any) => {
+      (block.fields || []).forEach((f: any) => {
         const sv = signValues[f.id];
         if (sv) {
           snapshots.push({
@@ -1108,7 +1156,8 @@ export default function FormFiller({
                 if (totalPages > 1 && currentPage && !currentPage.blockIds.includes(block.id)) {
                   return null;
                 }
-          if (block.fields.length === 0 && block.type !== 'TITLE' && block.type !== 'SECTION_LABEL' && block.type !== 'TABLE') return null;
+          if (block.type === 'PAGE_BREAK') return null;
+          if ((!block.fields || block.fields.length === 0) && block.type !== 'TITLE' && block.type !== 'SECTION_LABEL' && block.type !== 'TABLE') return null;
 
           const prevBlock = index > 0 ? formTemplate.layoutBlocks[index - 1] : undefined;
           const isSeamless = isSeamlessTableBlock(block, prevBlock);
@@ -1222,7 +1271,7 @@ export default function FormFiller({
                   )}
                   <h1 style={{ fontSize: '1.25rem', fontWeight: 800, margin: '0 0 0.25rem 0', textTransform: 'uppercase' }}>{block.title}</h1>
                   <p style={{ fontSize: '0.82rem', fontStyle: 'italic', color: 'var(--text-secondary)', margin: 0 }}>
-                    {block.fields[0]?.checkItem}
+                    {(block.fields || [])[0]?.checkItem}
                   </p>
                   {block.showDate && (block.datePosition ?? 'B') === 'B' && (
                     <div style={{ marginTop: '0.5rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.35rem', fontSize: '0.82rem' }}>
@@ -1245,7 +1294,7 @@ export default function FormFiller({
                   gridTemplateColumns: getInfoGridTemplateColumns(block),
                   gap: '1rem'
                 }}>
-                  {block.fields.map((field: any) => {
+                  {(block.fields || []).map((field: any) => {
                     const value = formValues[field.id] || '';
                     const inputStyle = { padding: '0.45rem 0.6rem', fontSize: '0.82rem', border: '1px solid #e2e8f0', borderRadius: '4px', width: '100%', height: '36px', backgroundColor: '#f8fafc' };
                     const parsedRSpan = field.type === 'subtable' ? undefined : (field.rowSpan ? Number(field.rowSpan) : undefined);
@@ -1560,7 +1609,7 @@ export default function FormFiller({
               {/* 3. CHECKLIST TABLE BLOCK */}
               {block.type === 'CHECKLIST_TABLE' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  {block.fields.map((field: any, fIdx: number) => {
+                  {(block.fields || []).map((field: any, fIdx: number) => {
                     const value = formValues[field.id] || '';
                     
                     // Out of spec detection
@@ -2461,7 +2510,7 @@ export default function FormFiller({
                   gap: '24px',
                   flexWrap: 'wrap'
                 }}>
-                  {block.fields.map((f: any, fIdx: number) => {
+                  {(block.fields || []).map((f: any, fIdx: number) => {
                     const confirmed = signValues[f.id];
                     const isOpen = signOpen[f.id];
                     const inputVal = signInputs[f.id] || '';
@@ -2740,5 +2789,13 @@ export default function FormFiller({
   );
 })()}
     </div>
+  );
+}
+
+export default function FormFiller(props: FormFillerProps) {
+  return (
+    <FormErrorBoundary>
+      <FormFillerInner {...props} />
+    </FormErrorBoundary>
   );
 }
