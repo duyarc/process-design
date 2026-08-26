@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import { Star } from 'lucide-react';
 import type { Submission, FormTemplateISO, LayoutBlockISO, TableColumnConfig } from '../../types';
 import { formatFormVersion, getColStyleWidth } from '../../types';
-import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock } from '../../utils/formUtils';
+import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock, getInfoGridTemplateColumns } from '../../utils/formUtils';
 import { renderFormattedText } from '../../utils/textFormatter';
 
 // ─── Helpers (mirrored from PrintBlankForm) ───────────────────────────────────
@@ -394,7 +394,7 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                             <div style={{ fontSize: '0.85rem', fontWeight: 'var(--pw-weight-medium)', marginBottom: '8px', color: '#0f172a' }}>{block.title}</div>
                           )
                         )}
-                        <div className="print-info-grid" style={{ gridTemplateColumns: `repeat(${block.columns}, 1fr)` }}>
+                        <div className="print-info-grid" style={{ gridTemplateColumns: getInfoGridTemplateColumns(block) }}>
                           {block.fields.map((f) => {
                             const cleanLabel = sanitizeLabel(f.checkItem);
                             const val = getVal(f.id);

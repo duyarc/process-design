@@ -208,4 +208,74 @@ export const validateFormSubmission = (
   };
 };
 
+/**
+ * Standard preset ratios for 2-column INFO_GRID (Column 1 width %)
+ */
+export const INFO_GRID_2COL_PRESETS = [20, 25, 30, 35, 40, 50, 60, 65, 70, 75, 80];
+
+/**
+ * Standard curated preset combinations for 3-column INFO_GRID [Col 1, Col 2, Col 3] (%)
+ */
+export const INFO_GRID_3COL_PRESETS: [number, number, number][] = [
+  [33, 34, 33], // 1:1:1 Equal
+  [25, 50, 25], // 1:2:1 Center prominent
+  [20, 60, 20], // 1:3:1 Center wide
+  [50, 25, 25], // 2:1:1 First prominent
+  [25, 25, 50], // 1:1:2 Last prominent
+  [40, 40, 20], // 2:2:1
+  [20, 40, 40], // 1:2:2
+  [30, 40, 30]  // 3:4:3
+];
+
+/**
+ * Calculates CSS Grid gridTemplateColumns for INFO_GRID block with minmax protection against overflow.
+ */
+export function getInfoGridTemplateColumns(block?: { columns: 1 | 2 | 3; columnWidths?: number[] }): string {
+  if (!block || block.columns === 1) return '1fr';
+
+  if (block.columns === 2) {
+    const w1 = block.columnWidths?.[0] ?? 50;
+    const w2 = block.columnWidths?.[1] ?? (100 - w1);
+    return `minmax(0, ${w1}fr) minmax(0, ${w2}fr)`;
+  }
+
+  if (block.columns === 3) {
+    const w1 = block.columnWidths?.[0] ?? 33.33;
+    const w2 = block.columnWidths?.[1] ?? 33.33;
+    const w3 = block.columnWidths?.[2] ?? Math.max(10, 100 - w1 - w2);
+    return `minmax(0, ${w1}fr) minmax(0, ${w2}fr) minmax(0, ${w3}fr)`;
+  }
+
+  return `repeat(${block.columns}, 1fr)`;
+}
+
+/**
+ * Snaps a 2-column percentage to the closest standard preset notch.
+ */
+export function snap2ColWidth(rawPct: number): [number, number] {
+  const closest = INFO_GRID_2COL_PRESETS.reduce((prev, curr) =>
+    Math.abs(curr - rawPct) < Math.abs(prev - rawPct) ? curr : prev
+  );
+  return [closest, 100 - closest];
+}
+
+/**
+ * Snaps a 3-column handle drag position to the closest curated 3-column preset.
+ */
+export function snap3ColWidths(handleIndex: 0 | 1, rawPosPct: number): [number, number, number] {
+  let bestPreset = INFO_GRID_3COL_PRESETS[0];
+  let minDiff = Infinity;
+
+  INFO_GRID_3COL_PRESETS.forEach((p) => {
+    const targetPos = handleIndex === 0 ? p[0] : p[0] + p[1];
+    const diff = Math.abs(targetPos - rawPosPct);
+    if (diff < minDiff) {
+      minDiff = diff;
+      bestPreset = p;
+    }
+  });
+
+  return [...bestPreset];
+}
+
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { Process, FormTemplateISO, SubmissionFieldSnapshot, Submission } from '../types';
 import { formatFormVersion, getColStyleWidth } from '../types';
-import { sanitizeLabel, getEffectiveTitleFormat, validateFormSubmission, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock } from '../utils/formUtils';
+import { sanitizeLabel, getEffectiveTitleFormat, validateFormSubmission, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock, getInfoGridTemplateColumns } from '../utils/formUtils';
 import { renderFormattedText } from '../utils/textFormatter';
 import PrintBlankForm from './print/PrintBlankForm';
 import PrintFilledForm from './print/PrintFilledForm';
@@ -906,7 +906,7 @@ export default function FormFiller({
               {block.type === 'INFO_GRID' && (
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: `repeat(${block.columns}, 1fr)`,
+                  gridTemplateColumns: getInfoGridTemplateColumns(block),
                   gap: '1rem'
                 }}>
                   {block.fields.map((field: any) => {

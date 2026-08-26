@@ -2,7 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import type { FormTemplateISO, LayoutBlockISO, TableColumnConfig } from '../../types';
 import { formatFormVersion, getColStyleWidth } from '../../types';
-import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock } from '../../utils/formUtils';
+import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock, getInfoGridTemplateColumns } from '../../utils/formUtils';
 import { renderFormattedText } from '../../utils/textFormatter';
 
 import { exportFillablePdfFromDOM } from '../../utils/pdfFormExporter';
@@ -461,7 +461,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                       </div>
                     )
                   )}
-                  <div className="print-info-grid" style={{ gridTemplateColumns: `repeat(${block.columns}, 1fr)` }}>
+                  <div className="print-info-grid" style={{ gridTemplateColumns: getInfoGridTemplateColumns(block) }}>
                     {block.fields.map((f) => {
                           const cleanLabel = sanitizeLabel(f.checkItem);
                           const parsedRSpan = f.type === 'subtable' ? undefined : (f.rowSpan ? Number(f.rowSpan) : undefined);

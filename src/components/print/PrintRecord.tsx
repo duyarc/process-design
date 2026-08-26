@@ -3,7 +3,7 @@ import { Star } from 'lucide-react';
 import ReactDOM from 'react-dom';
 import type { Submission, LayoutBlockISO, TableColumnConfig } from '../../types';
 import { formatFormVersion, getColStyleWidth } from '../../types';
-import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock } from '../../utils/formUtils';
+import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock, getInfoGridTemplateColumns } from '../../utils/formUtils';
 import { renderFormattedText } from '../../utils/textFormatter';
 
 // Helper: derive CHECKLIST_TABLE columns — falls back to columnLabels for backward compat
@@ -520,11 +520,10 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
       {/* INFO GRID BLOCK */}
       {infoFields.length > 0 && (() => {
         const infoBlock = layoutBlocks.find(b => b.type === 'INFO_GRID');
-        const infoColumns = infoBlock?.columns || 2;
 
         return (
           <div className="print-block" style={{ padding: '0' }}>
-            <div className="print-info-grid" style={{ gridTemplateColumns: `repeat(${infoColumns}, 1fr)` }}>
+            <div className="print-info-grid" style={{ gridTemplateColumns: getInfoGridTemplateColumns(infoBlock) }}>
               {infoFields.map((f) => {
                     const matchedBlock = layoutBlocks.find(b => b.fields?.some((field: any) => field.id === f.id));
                     const matchedField = matchedBlock?.fields?.find((field: any) => field.id === f.id);

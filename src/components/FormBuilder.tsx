@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import type { FormFieldISO, FormRevisionEntry, FormTemplateISO, LayoutBlockISO, RadioOption, MatrixConfigISO, TableColumnConfig, TableRowConfig, ColumnSummaryRowConfig, TitleFormatISO, SubtableColumn } from '../types';
 import { formatFormVersion, getColStyleWidth } from '../types';
-import { sanitizeLabel, getEffectiveTitleFormat, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, isSeamlessTableBlock } from '../utils/formUtils';
+import { sanitizeLabel, getEffectiveTitleFormat, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, isSeamlessTableBlock, getInfoGridTemplateColumns, snap2ColWidth, snap3ColWidths, INFO_GRID_2COL_PRESETS } from '../utils/formUtils';
 import { applyTextFormat, handleFormatKeyDown } from '../utils/textFormatter';
 import { 
   Plus, 
@@ -168,6 +168,298 @@ const generateFormChangeSummary = (
 
   return uniqueChanges.join('\n');
 };
+
+interface InfoGridSteppedSplitterProps {
+  columns: 2 | 3;
+  columnWidths?: number[];
+  onChange: (widths: number[]) => void;
+  disabled?: boolean;
+}
+
+function InfoGridSteppedSplitter({ columns, columnWidths, onChange, disabled }: InfoGridSteppedSplitterProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [activeHandle, setActiveHandle] = useState<number | null>(null);
+
+  // 2 Columns Setup
+  const w1 = columns === 2 ? (columnWidths?.[0] ?? 50) : 0;
+  const w2 = columns === 2 ? (columnWidths?.[1] ?? (100 - w1)) : 0;
+
+  // 3 Columns Setup
+  const c3_w1 = columns === 3 ? (columnWidths?.[0] ?? 33) : 0;
+  const c3_w2 = columns === 3 ? (columnWidths?.[1] ?? 34) : 0;
+  const c3_w3 = columns === 3 ? (columnWidths?.[2] ?? Math.max(10, 100 - c3_w1 - c3_w2)) : 0;
+  const c3_pos1 = c3_w1;
+  const c3_pos2 = c3_w1 + c3_w2;
+
+  const handlePointerDown = (handleIdx: number, e: React.MouseEvent | React.TouchEvent) => {
+    if (disabled) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setActiveHandle(handleIdx);
+
+    const onMove = (moveEvt: MouseEvent | TouchEvent) => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const clientX = 'touches' in moveEvt ? moveEvt.touches[0].clientX : moveEvt.clientX;
+      const rawPct = Math.max(5, Math.min(95, ((clientX - rect.left) / rect.width) * 100));
+
+      if (columns === 2) {
+        const snapped = snap2ColWidth(rawPct);
+        onChange(snapped);
+      } else if (columns === 3) {
+        const snapped = snap3ColWidths(handleIdx as 0 | 1, rawPct);
+        onChange(snapped);
+      }
+    };
+
+    const onUp = () => {
+      setActiveHandle(null);
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('touchend', onUp);
+    };
+
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    window.addEventListener('touchmove', onMove);
+    window.addEventListener('touchend', onUp);
+  };
+
+  const handleBarClick = (e: React.MouseEvent) => {
+    if (disabled || !containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const rawPct = Math.max(5, Math.min(95, ((e.clientX - rect.left) / rect.width) * 100));
+
+    if (columns === 2) {
+      const snapped = snap2ColWidth(rawPct);
+      onChange(snapped);
+    } else if (columns === 3) {
+      const distTo1 = Math.abs(rawPct - c3_pos1);
+      const distTo2 = Math.abs(rawPct - c3_pos2);
+      const handleIdx: 0 | 1 = distTo1 <= distTo2 ? 0 : 1;
+      const snapped = snap3ColWidths(handleIdx, rawPct);
+      onChange(snapped);
+    }
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', userSelect: 'none' }}>
+      {/* Interactive Track */}
+      <div
+        ref={containerRef}
+        onClick={handleBarClick}
+        style={{
+          position: 'relative',
+          height: '34px',
+          background: '#f8fafc',
+          border: '1.5px solid #cbd5e1',
+          borderRadius: '6px',
+          overflow: 'hidden',
+          cursor: disabled ? 'not-allowed' : 'pointer',
+          display: 'flex',
+          boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.04)'
+        }}
+      >
+        {columns === 2 ? (
+          <>
+            {/* Tick Marks for 2 Columns */}
+            {INFO_GRID_2COL_PRESETS.map((pct) => (
+              <div
+                key={pct}
+                style={{
+                  position: 'absolute',
+                  left: `${pct}%`,
+                  bottom: 0,
+                  width: '1px',
+                  height: pct === 50 ? '8px' : '4px',
+                  background: pct === 50 ? '#0d9488' : '#cbd5e1',
+                  pointerEvents: 'none',
+                  zIndex: 1
+                }}
+              />
+            ))}
+
+            {/* Left Segment */}
+            <div
+              style={{
+                width: `${w1}%`,
+                background: 'rgba(13, 148, 136, 0.12)',
+                borderRight: '1px solid rgba(13, 148, 136, 0.25)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                color: '#0f766e',
+                transition: activeHandle !== null ? 'none' : 'width 0.15s ease'
+              }}
+            >
+              {w1}%
+            </div>
+
+            {/* Right Segment */}
+            <div
+              style={{
+                width: `${w2}%`,
+                background: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                color: '#334155',
+                transition: activeHandle !== null ? 'none' : 'width 0.15s ease'
+              }}
+            >
+              {w2}%
+            </div>
+
+            {/* Handle */}
+            <div
+              onMouseDown={(e) => handlePointerDown(0, e)}
+              onTouchStart={(e) => handlePointerDown(0, e)}
+              style={{
+                position: 'absolute',
+                left: `${w1}%`,
+                top: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: '16px',
+                height: '24px',
+                background: '#ffffff',
+                border: '1.5px solid #0d9488',
+                borderRadius: '4px',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.18)',
+                cursor: disabled ? 'not-allowed' : 'col-resize',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '2px',
+                zIndex: 10,
+                transition: activeHandle !== null ? 'none' : 'left 0.15s ease'
+              }}
+              title="Kéo sang trái/phải để điều chỉnh tỷ lệ 2 cột"
+            >
+              <div style={{ width: '1.5px', height: '10px', background: '#0d9488', borderRadius: '1px' }} />
+              <div style={{ width: '1.5px', height: '10px', background: '#0d9488', borderRadius: '1px' }} />
+            </div>
+          </>
+        ) : (
+          <>
+            {/* 3 Columns Segments */}
+            <div
+              style={{
+                width: `${c3_w1}%`,
+                background: 'rgba(13, 148, 136, 0.12)',
+                borderRight: '1px solid rgba(13, 148, 136, 0.2)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                color: '#0f766e',
+                transition: activeHandle !== null ? 'none' : 'width 0.15s ease'
+              }}
+            >
+              {c3_w1}%
+            </div>
+
+            <div
+              style={{
+                width: `${c3_w2}%`,
+                background: '#ffffff',
+                borderRight: '1px solid #e2e8f0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                color: '#1e293b',
+                transition: activeHandle !== null ? 'none' : 'width 0.15s ease'
+              }}
+            >
+              {c3_w2}%
+            </div>
+
+            <div
+              style={{
+                width: `${c3_w3}%`,
+                background: 'rgba(100, 116, 139, 0.08)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                color: '#475569',
+                transition: activeHandle !== null ? 'none' : 'width 0.15s ease'
+              }}
+            >
+              {c3_w3}%
+            </div>
+
+            {/* Handle 1 (between Col 1 and Col 2) */}
+            <div
+              onMouseDown={(e) => handlePointerDown(0, e)}
+              onTouchStart={(e) => handlePointerDown(0, e)}
+              style={{
+                position: 'absolute',
+                left: `${c3_pos1}%`,
+                top: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: '16px',
+                height: '24px',
+                background: '#ffffff',
+                border: '1.5px solid #0d9488',
+                borderRadius: '4px',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.18)',
+                cursor: disabled ? 'not-allowed' : 'col-resize',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '2px',
+                zIndex: 10,
+                transition: activeHandle !== null ? 'none' : 'left 0.15s ease'
+              }}
+              title="Kéo để điều chỉnh ranh giới Cột 1 & 2"
+            >
+              <div style={{ width: '1.5px', height: '10px', background: '#0d9488', borderRadius: '1px' }} />
+              <div style={{ width: '1.5px', height: '10px', background: '#0d9488', borderRadius: '1px' }} />
+            </div>
+
+            {/* Handle 2 (between Col 2 and Col 3) */}
+            <div
+              onMouseDown={(e) => handlePointerDown(1, e)}
+              onTouchStart={(e) => handlePointerDown(1, e)}
+              style={{
+                position: 'absolute',
+                left: `${c3_pos2}%`,
+                top: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: '16px',
+                height: '24px',
+                background: '#ffffff',
+                border: '1.5px solid #0d9488',
+                borderRadius: '4px',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.18)',
+                cursor: disabled ? 'not-allowed' : 'col-resize',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '2px',
+                zIndex: 10,
+                transition: activeHandle !== null ? 'none' : 'left 0.15s ease'
+              }}
+              title="Kéo để điều chỉnh ranh giới Cột 2 & 3"
+            >
+              <div style={{ width: '1.5px', height: '10px', background: '#0d9488', borderRadius: '1px' }} />
+              <div style={{ width: '1.5px', height: '10px', background: '#0d9488', borderRadius: '1px' }} />
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function FormBuilder({ formName, initialData, onSave, onClose, linkedProcessId, onUnlinkFromProcess }: FormBuilderProps) {
   // 1. Core Layout State
@@ -759,7 +1051,22 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
   };
 
   const handleUpdateBlockColumns = (blockId: string, cols: 1 | 2 | 3) => {
-    setLayoutBlocks(prev => prev.map(b => b.id === blockId ? { ...b, columns: cols } : b));
+    setLayoutBlocks(prev => prev.map(b => {
+      if (b.id !== blockId) return b;
+      let defaultWidths: number[] | undefined;
+      if (cols === 2) {
+        defaultWidths = b.columnWidths && b.columnWidths.length === 2 ? b.columnWidths : [50, 50];
+      } else if (cols === 3) {
+        defaultWidths = b.columnWidths && b.columnWidths.length === 3 ? b.columnWidths : [33, 34, 33];
+      } else {
+        defaultWidths = undefined;
+      }
+      return { ...b, columns: cols, columnWidths: defaultWidths };
+    }));
+  };
+
+  const handleUpdateBlockColumnWidths = (blockId: string, widths: number[]) => {
+    setLayoutBlocks(prev => prev.map(b => b.id === blockId ? { ...b, columnWidths: widths } : b));
   };
 
   const handleUpdateBlockLogo = (blockId: string, newLogo: string) => {
@@ -2365,7 +2672,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                             )}
                             <div style={{
                               display: 'grid',
-                              gridTemplateColumns: `repeat(${block.columns}, 1fr)`,
+                              gridTemplateColumns: getInfoGridTemplateColumns(block),
                               columnGap: '0.75rem',
                               rowGap: '0.5rem',
                               gridAutoRows: 'minmax(38px, auto)',
@@ -5883,18 +6190,45 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                 )}
 
                 {(activeBlock.type === 'INFO_GRID' || activeBlock.type === 'SIGN') && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                    <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Columns Layout</label>
-                    <select
-                      disabled={isLocked}
-                      value={activeBlock.columns}
-                      onChange={(e) => handleUpdateBlockColumns(activeBlockId!, parseInt(e.target.value, 10) as 1 | 2 | 3)}
-                      style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
-                    >
-                      <option value={1}>1 Column</option>
-                      <option value={2}>2 Columns</option>
-                      <option value={3}>3 Columns</option>
-                    </select>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.8rem' }}>Columns</label>
+                      
+                      {/* Mini Segmented Pill [ 1 | 2 | 3 ] */}
+                      <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: '6px', padding: '2px', border: '1px solid #cbd5e1' }}>
+                        {[1, 2, 3].map((cols) => (
+                          <button
+                            key={cols}
+                            type="button"
+                            disabled={isLocked}
+                            onClick={() => handleUpdateBlockColumns(activeBlockId!, cols as 1 | 2 | 3)}
+                            style={{
+                              padding: '2px 10px',
+                              fontSize: '0.75rem',
+                              fontWeight: activeBlock.columns === cols ? 700 : 500,
+                              background: activeBlock.columns === cols ? 'var(--primary)' : 'transparent',
+                              color: activeBlock.columns === cols ? '#ffffff' : 'var(--text-secondary)',
+                              border: 'none',
+                              borderRadius: '4px',
+                              cursor: isLocked ? 'not-allowed' : 'pointer',
+                              transition: 'all 0.15s ease'
+                            }}
+                          >
+                            {cols}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Stepped Splitter Slider for INFO_GRID */}
+                    {activeBlock.type === 'INFO_GRID' && (activeBlock.columns === 2 || activeBlock.columns === 3) && (
+                      <InfoGridSteppedSplitter
+                        columns={activeBlock.columns}
+                        columnWidths={activeBlock.columnWidths}
+                        onChange={(widths) => handleUpdateBlockColumnWidths(activeBlock.id, widths)}
+                        disabled={isLocked}
+                      />
+                    )}
                   </div>
                 )}
               </div>

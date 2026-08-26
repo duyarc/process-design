@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { Process, SubmissionFieldSnapshot } from '../types';
 import { formatFormVersion, getColStyleWidth } from '../types';
-import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock } from '../utils/formUtils';
+import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock, getInfoGridTemplateColumns } from '../utils/formUtils';
 import { renderFormattedText } from '../utils/textFormatter';
 import { useAuth } from '../context/AuthContext';
 import { Printer, Edit2, Camera, AlertTriangle, X, PenTool, GitBranch, Eye, ArrowLeft, Trash2, Star } from 'lucide-react';
@@ -1360,7 +1360,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                           {block.type === 'INFO_GRID' && (
                             <div style={{
                               display: 'grid',
-                              gridTemplateColumns: `repeat(${block.columns}, 1fr)`,
+                              gridTemplateColumns: getInfoGridTemplateColumns(block),
                               gap: '1rem'
                             }}>
                               {block.fields.map((field: any) => {
