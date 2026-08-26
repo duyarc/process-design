@@ -18,7 +18,9 @@ import {
   Star,
   FileText,
   Globe,
-  Lock
+  Lock,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 
 const parseSubtableValue = (val: string): Record<string, string>[] => {
@@ -127,6 +129,89 @@ export default function FormFiller({
 
   // Dynamic Table Rows state: blockId -> TableRowConfig[]
   const [tableRowsMap, setTableRowsMap] = useState<{ [blockId: string]: any[] }>({});
+
+  // Paper Form Replica Pagination State
+  const [currentPageIndex, setCurrentPageIndex] = useState<number>(0);
+
+  // Helper to chunk blocks into A4 Page Sheets
+  const getFormPages = (blocks: any[]): { id: string; title: string; blockIds: string[]; groupHeaderId?: string }[] => {
+    if (!blocks || blocks.length === 0) return [{ id: 'page_1', title: 'Trang 1', blockIds: [] }];
+
+    const pages: { id: string; title: string; blockIds: string[]; groupHeaderId?: string }[] = [];
+
+    // Check if there are explicit PAGE_BREAK blocks
+    const hasPageBreak = blocks.some((b: any) => b.type === 'PAGE_BREAK');
+
+    if (hasPageBreak) {
+      let pageIdx = 1;
+      let currentBlockIds: string[] = [];
+      blocks.forEach((b: any) => {
+        if (b.type === 'PAGE_BREAK') {
+          if (currentBlockIds.length > 0) {
+            pages.push({ id: `page_${pageIdx}`, title: b.label || `Trang ${pageIdx}`, blockIds: currentBlockIds });
+            pageIdx++;
+            currentBlockIds = [];
+          }
+        } else {
+          currentBlockIds.push(b.id);
+        }
+      });
+      if (currentBlockIds.length > 0) {
+        pages.push({ id: `page_${pageIdx}`, title: `Trang ${pageIdx}`, blockIds: currentBlockIds });
+      }
+      return pages;
+    }
+
+    // Single large grouped table or multiple section blocks
+    if (blocks.length === 1 && blocks[0].type === 'TABLE') {
+      const tableBlock = blocks[0];
+      const rows = tableRowsMap[tableBlock.id] || (tableBlock.tableRows || []);
+      const groupHeaders = rows.filter((r: any) => r.isGroupHeader);
+
+      if (groupHeaders.length > 1) {
+        groupHeaders.forEach((g: any, gIdx: number) => {
+          const rawTitle = g.groupTitle || tableBlock.tableData?.[g.id]?._groupTitle || `Phần ${gIdx + 1}`;
+          const title = rawTitle.replace(/[\n\r]+/g, ' ').trim();
+          pages.push({
+            id: `group_page_${g.id}`,
+            title: title.length > 30 ? title.substring(0, 27) + '...' : title,
+            blockIds: [tableBlock.id],
+            groupHeaderId: g.id
+          });
+        });
+        return pages;
+      }
+    }
+
+    // Default: Group major blocks into pages if form has multiple blocks (> 2)
+    if (blocks.length > 2) {
+      let pageIdx = 1;
+      let currentBlockIds: string[] = [];
+
+      blocks.forEach((b: any) => {
+        if (b.type === 'INFO_GRID' || b.type === 'TABLE' || b.type === 'CHECKLIST') {
+          if (currentBlockIds.length > 0) {
+            pages.push({ id: `page_${pageIdx}`, title: b.title || `Trang ${pageIdx}`, blockIds: currentBlockIds });
+            pageIdx++;
+            currentBlockIds = [b.id];
+          } else {
+            currentBlockIds.push(b.id);
+          }
+        } else {
+          currentBlockIds.push(b.id);
+        }
+      });
+
+      if (currentBlockIds.length > 0) {
+        pages.push({ id: `page_${pageIdx}`, title: `Trang ${pageIdx}`, blockIds: currentBlockIds });
+      }
+
+      if (pages.length > 1) return pages;
+    }
+
+    // Fallback: 1 single page
+    return [{ id: 'page_1', title: 'Trang 1', blockIds: blocks.map((b: any) => b.id) }];
+  };
 
   // Helper to initialize table rows: preserves 100% of designed template rows without collapsing or auto-inserting extra rows
   const initSmartTableRows = (block: any): any[] => {
@@ -399,6 +484,35 @@ export default function FormFiller({
   }
 
   const formTemplate = process.workflowFormsData[formName] as FormTemplateISO;
+
+  // Keyboard Shortcut Listener for Paper Sheet Navigation (Alt+Left, Alt+Right)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const blocks = formTemplate?.layoutBlocks || [];
+      const pages = getFormPages(blocks);
+      const totalPages = pages.length;
+      if (totalPages <= 1) return;
+
+      if (e.altKey && e.key === 'ArrowRight') {
+        e.preventDefault();
+        setCurrentPageIndex(prev => {
+          const next = Math.min(prev + 1, totalPages - 1);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          return next;
+        });
+      } else if (e.altKey && e.key === 'ArrowLeft') {
+        e.preventDefault();
+        setCurrentPageIndex(prev => {
+          const next = Math.max(prev - 1, 0);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          return next;
+        });
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [formTemplate, tableRowsMap]);
 
   // Photo uploading callback
   const handlePhotoUpload = async (fieldId: string, file: File) => {
@@ -936,13 +1050,64 @@ export default function FormFiller({
         </div>
       </div>
 
-      {/* Main Form Paper Card */}
-      <div className="paper-card" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '0px' }}>
-        
+      {/* Paper Form Replica Pagination Wrapper */}
+      {(() => {
+        const blocks = formTemplate.layoutBlocks || [];
+        const pages = getFormPages(blocks);
+        const totalPages = pages.length;
+        const safePageIndex = Math.min(currentPageIndex, totalPages - 1);
+        const currentPage = pages[safePageIndex] || pages[0];
 
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+            {/* Paper Sheet Switcher Tab Bar */}
+            {totalPages > 1 && (
+              <div style={{
+                display: 'flex',
+                gap: '0.4rem',
+                overflowX: 'auto',
+                padding: '0.4rem 0.2rem',
+                marginBottom: '0.85rem',
+                borderBottom: '2px solid #e2e8f0'
+              }}>
+                {pages.map((p, pIdx) => {
+                  const isActive = safePageIndex === pIdx;
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => {
+                        setCurrentPageIndex(pIdx);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      className={`btn btn-sm ${isActive ? 'btn-primary' : 'btn-secondary'}`}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                        fontSize: '0.78rem',
+                        fontWeight: isActive ? 600 : 400,
+                        padding: '0.38rem 0.75rem',
+                        borderRadius: '6px',
+                        whiteSpace: 'nowrap',
+                        boxShadow: isActive ? '0 2px 6px rgba(0,0,0,0.1)' : 'none'
+                      }}
+                    >
+                      <FileText size={13} />
+                      <span>{p.title}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
-        {/* Checklist Groups */}
-        {formTemplate.layoutBlocks && formTemplate.layoutBlocks.map((block: any, index: number) => {
+            {/* Main Form Paper Card */}
+            <div className="paper-card" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '0px' }}>
+              {/* Checklist Groups */}
+              {blocks.map((block: any, index: number) => {
+                if (totalPages > 1 && currentPage && !currentPage.blockIds.includes(block.id)) {
+                  return null;
+                }
           if (block.fields.length === 0 && block.type !== 'TITLE' && block.type !== 'SECTION_LABEL' && block.type !== 'TABLE') return null;
 
           const prevBlock = index > 0 ? formTemplate.layoutBlocks[index - 1] : undefined;
@@ -1772,7 +1937,10 @@ export default function FormFiller({
                       )}
                       <tbody>
                         {(() => {
-                          const activeRows = tableRowsMap[block.id] || initSmartTableRows(block);
+                          const activeRowsAll = tableRowsMap[block.id] || initSmartTableRows(block);
+                          const activeRows = (totalPages > 1 && currentPage?.groupHeaderId)
+                            ? activeRowsAll.filter((r: any) => r.id === currentPage.groupHeaderId || r.groupId === currentPage.groupHeaderId)
+                            : activeRowsAll;
                           if (activeRows.length === 0) {
                             return (
                               <tr>
@@ -2516,7 +2684,61 @@ export default function FormFiller({
           </button>
         </div>
 
+        {/* Paper Sheet Navigation Fixed Bottom Dock */}
+        {totalPages > 1 && (
+          <div style={{
+            position: 'sticky',
+            bottom: 0,
+            zIndex: 90,
+            background: '#ffffff',
+            borderTop: '1px solid var(--neutral-border)',
+            boxShadow: '0 -4px 16px rgba(0,0,0,0.06)',
+            padding: '0.65rem 1.25rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginTop: '1.5rem',
+            marginLeft: '-2rem',
+            marginRight: '-2rem',
+            marginBottom: '-2rem',
+            borderBottomLeftRadius: 'var(--radius)',
+            borderBottomRightRadius: 'var(--radius)'
+          }}>
+            <button
+              type="button"
+              disabled={safePageIndex === 0}
+              onClick={() => {
+                setCurrentPageIndex(prev => Math.max(0, prev - 1));
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="btn btn-secondary btn-sm"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', opacity: safePageIndex === 0 ? 0.4 : 1 }}
+            >
+              <ChevronLeft size={14} /> Trang trước (Alt+←)
+            </button>
+
+            <div style={{ fontSize: '0.8rem', fontWeight: 500, color: 'var(--text-muted)' }}>
+              Trang <span style={{ color: 'var(--primary)', fontWeight: 700 }}>{safePageIndex + 1}</span> / {totalPages}
+            </div>
+
+            <button
+              type="button"
+              disabled={safePageIndex === totalPages - 1}
+              onClick={() => {
+                setCurrentPageIndex(prev => Math.min(totalPages - 1, prev + 1));
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="btn btn-primary btn-sm"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', opacity: safePageIndex === totalPages - 1 ? 0.4 : 1 }}
+            >
+              Trang tiếp (Alt+→) <ChevronRight size={14} />
+            </button>
+          </div>
+        )}
       </div>
+    </div>
+  );
+})()}
     </div>
   );
 }
