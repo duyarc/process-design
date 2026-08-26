@@ -9,7 +9,6 @@ import {
   ArrowUp, 
   ArrowDown, 
   FileText, 
-  ListChecks,
   Hash, 
   Calendar, 
   X, 
@@ -2114,19 +2113,120 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '0.75rem 1.25rem',
+        padding: '0.65rem 1.25rem',
         background: '#ffffff',
-        borderBottom: '1px solid var(--neutral-border)'
+        borderBottom: '1px solid var(--neutral-border)',
+        gap: '0.75rem',
+        flexWrap: 'wrap'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <FileText size={18} style={{ color: 'var(--primary)' }} />
-          <h2 style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>Form Builder</h2>
-          {status !== 'DRAFT' && (
-            <span className={`badge ${status === 'ACTIVE' ? 'badge-success' : 'badge-warning'}`} style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem' }}>
-              {status}
-            </span>
-          )}
+        {/* Left: Logo/Title + Section Adders Toolbar */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+            <FileText size={18} style={{ color: 'var(--primary)' }} />
+            <h2 style={{ fontSize: '0.95rem', fontWeight: 700, margin: 0 }}>Form Builder</h2>
+            {status !== 'DRAFT' && (
+              <span className={`badge ${status === 'ACTIVE' ? 'badge-success' : 'badge-warning'}`} style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem' }}>
+                {status}
+              </span>
+            )}
+          </div>
+
+          <div style={{ borderLeft: '1px solid var(--neutral-border)', height: '18px', margin: '0 0.15rem' }} />
+
+          {/* Section Adders Button Group */}
+          <div style={{ display: 'inline-flex', alignItems: 'center', background: '#f8fafc', padding: '2px', borderRadius: '6px', border: '1px solid #cbd5e1', gap: '2px' }}>
+            <button 
+              type="button" 
+              onClick={() => handleAddBlock('INFO_GRID', 2)}
+              disabled={isLocked}
+              className="btn"
+              style={{ padding: '3px 8px', fontSize: '0.75rem', fontWeight: 500, background: 'transparent', border: 'none', color: '#334155', display: 'flex', alignItems: 'center', gap: '4px', cursor: isLocked ? 'not-allowed' : 'pointer' }}
+              title="Thêm Lưới thông tin"
+            >
+              <Grid size={13} style={{ color: 'var(--primary)' }} />
+              <span>+ Info Grid</span>
+            </button>
+
+            <button 
+              type="button" 
+              onClick={() => handleAddBlock('TABLE')}
+              disabled={isLocked}
+              className="btn"
+              style={{ padding: '3px 8px', fontSize: '0.75rem', fontWeight: 500, background: 'transparent', border: 'none', color: '#334155', display: 'flex', alignItems: 'center', gap: '4px', cursor: isLocked ? 'not-allowed' : 'pointer' }}
+              title="Thêm Bảng kiểm tra"
+            >
+              <TableIcon size={13} style={{ color: 'var(--primary)' }} />
+              <span>+ Table</span>
+            </button>
+
+            <button 
+              type="button" 
+              onClick={() => handleAddBlock('MATRIX_TABLE')}
+              disabled={isLocked}
+              className="btn"
+              style={{ padding: '3px 8px', fontSize: '0.75rem', fontWeight: 500, background: 'transparent', border: 'none', color: '#334155', display: 'flex', alignItems: 'center', gap: '4px', cursor: isLocked ? 'not-allowed' : 'pointer' }}
+              title="Thêm Bảng ma trận"
+            >
+              <Grid size={13} style={{ color: 'var(--primary)' }} />
+              <span>+ Matrix</span>
+            </button>
+
+            <button 
+              type="button" 
+              onClick={() => handleAddBlock('SIGN', 2)}
+              disabled={isLocked}
+              className="btn"
+              style={{ padding: '3px 8px', fontSize: '0.75rem', fontWeight: 500, background: 'transparent', border: 'none', color: '#334155', display: 'flex', alignItems: 'center', gap: '4px', cursor: isLocked ? 'not-allowed' : 'pointer' }}
+              title="Thêm Khối chữ ký"
+            >
+              <PenTool size={13} style={{ color: 'var(--primary)' }} />
+              <span>+ Sign</span>
+            </button>
+
+            <button 
+              type="button" 
+              onClick={() => handleAddBlock('SECTION_LABEL')}
+              disabled={isLocked}
+              className="btn"
+              style={{ padding: '3px 8px', fontSize: '0.75rem', fontWeight: 500, background: 'transparent', border: 'none', color: '#334155', display: 'flex', alignItems: 'center', gap: '4px', cursor: isLocked ? 'not-allowed' : 'pointer' }}
+              title="Thêm Nhãn phân cách"
+            >
+              <AlignLeft size={13} style={{ color: 'var(--primary)' }} />
+              <span>+ Label</span>
+            </button>
+
+            <button 
+              type="button" 
+              onClick={() => handleAddBlock('TITLE')}
+              disabled={isLocked}
+              className="btn"
+              style={{ padding: '3px 8px', fontSize: '0.75rem', fontWeight: 500, background: 'transparent', border: 'none', color: '#334155', display: 'flex', alignItems: 'center', gap: '4px', cursor: isLocked ? 'not-allowed' : 'pointer' }}
+              title="Thêm Tiêu đề biểu mẫu"
+            >
+              <FileText size={13} style={{ color: 'var(--primary)' }} />
+              <span>+ Title</span>
+            </button>
+
+            <div style={{ borderLeft: '1px solid #cbd5e1', height: '14px', margin: '0 2px' }} />
+
+            <button 
+              type="button" 
+              onClick={() => {
+                setSelectedFormKey('');
+                setSelectedBlockId('');
+                setShowCopyModal(true);
+              }}
+              disabled={isLocked}
+              className="btn"
+              style={{ padding: '3px 8px', fontSize: '0.75rem', fontWeight: 500, background: 'transparent', border: 'none', color: '#475569', display: 'flex', alignItems: 'center', gap: '4px', cursor: isLocked ? 'not-allowed' : 'pointer' }}
+              title="Sao chép khối từ biểu mẫu khác"
+            >
+              <Copy size={13} style={{ color: '#64748b' }} />
+              <span>Copy...</span>
+            </button>
+          </div>
         </div>
+
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           {/* Page size toggle */}
           <div style={{ 
@@ -2350,231 +2450,14 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
         </div>
       </div>
 
-      {/* Main Designer Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr 280px', flex: 1, overflow: 'hidden' }}>
+      {/* Main Designer Grid (2-Column Streamlined Layout) */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', flex: 1, overflow: 'hidden' }}>
         
-        {/* LEFT PANEL: Layout Blocks & Field Elements Toolbox */}
-        <div style={{ background: '#ffffff', borderRight: '1px solid var(--neutral-border)', padding: '1rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          
-          {/* Blocks section */}
-          <div>
-            <h3 style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '0.65rem', letterSpacing: '0.05em' }}>
-              1. Layout
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-              <button 
-                type="button" 
-                onClick={() => handleAddBlock('TITLE')}
-                disabled={isLocked}
-                className="btn btn-secondary" 
-                style={{ justifyContent: 'start', padding: '0.45rem 0.65rem', fontSize: '0.8rem', opacity: isLocked ? 0.6 : 1 }}
-              >
-                <Grid size={14} style={{ marginRight: '0.35rem' }} />
-                + Title
-              </button>
-              <button 
-                type="button" 
-                onClick={() => handleAddBlock('SECTION_LABEL')}
-                disabled={isLocked}
-                className="btn btn-secondary" 
-                style={{ justifyContent: 'start', padding: '0.45rem 0.65rem', fontSize: '0.8rem', opacity: isLocked ? 0.6 : 1 }}
-              >
-                <Grid size={14} style={{ marginRight: '0.35rem' }} />
-                + Section Label
-              </button>
-              <button 
-                type="button" 
-                onClick={() => handleAddBlock('INFO_GRID', 2)}
-                disabled={isLocked}
-                className="btn btn-secondary" 
-                style={{ justifyContent: 'start', padding: '0.45rem 0.65rem', fontSize: '0.8rem', opacity: isLocked ? 0.6 : 1 }}
-              >
-                <Grid size={14} style={{ marginRight: '0.35rem' }} />
-                + Info Grid
-              </button>
-              <button 
-                type="button" 
-                onClick={() => handleAddBlock('TABLE')}
-                disabled={isLocked}
-                className="btn btn-secondary" 
-                style={{ justifyContent: 'start', padding: '0.45rem 0.65rem', fontSize: '0.8rem', opacity: isLocked ? 0.6 : 1 }}
-              >
-                <Grid size={14} style={{ marginRight: '0.35rem' }} />
-                + Table
-              </button>
-              <button 
-                type="button" 
-                onClick={() => handleAddBlock('MATRIX_TABLE')}
-                disabled={isLocked}
-                className="btn btn-secondary" 
-                style={{ justifyContent: 'start', padding: '0.45rem 0.65rem', fontSize: '0.8rem', opacity: isLocked ? 0.6 : 1 }}
-              >
-                <Grid size={14} style={{ marginRight: '0.35rem' }} />
-                + Matrix Table
-              </button>
-              <button 
-                type="button" 
-                onClick={() => handleAddBlock('SIGN', 2)}
-                disabled={isLocked}
-                className="btn btn-secondary" 
-                style={{ justifyContent: 'start', padding: '0.45rem 0.65rem', fontSize: '0.8rem', opacity: isLocked ? 0.6 : 1 }}
-              >
-                <Grid size={14} style={{ marginRight: '0.35rem' }} />
-                + Sign
-              </button>
-              
-              <div style={{ borderTop: '1px dashed var(--neutral-border)', margin: '0.5rem 0' }} />
-              <button 
-                type="button" 
-                onClick={() => {
-                  setSelectedFormKey('');
-                  setSelectedBlockId('');
-                  setShowCopyModal(true);
-                }}
-                disabled={isLocked}
-                className="btn btn-secondary" 
-                style={{ 
-                  justifyContent: 'start', 
-                  padding: '0.45rem 0.65rem', 
-                  fontSize: '0.8rem', 
-                  background: '#f8fafc',
-                  border: '1px dashed #cbd5e1',
-                  color: '#475569',
-                  opacity: isLocked ? 0.6 : 1 
-                }}
-                onMouseEnter={(e) => { if (!isLocked) e.currentTarget.style.background = '#f1f5f9'; }}
-                onMouseLeave={(e) => { if (!isLocked) e.currentTarget.style.background = '#f8fafc'; }}
-              >
-                <Copy size={14} style={{ marginRight: '0.35rem' }} />
-                Copy Section...
-              </button>
-            </div>
-          </div>
-
-          {/* Fields section */}
-          <div>
-            <h3 style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '0.35rem', letterSpacing: '0.05em' }}>
-              2. Field Elements
-            </h3>
-             {activeBlockId ? (
-              activeBlock?.type === 'SECTION_LABEL' || activeBlock?.type === 'TITLE' || activeBlock?.type === 'TABLE' || activeBlock?.type === 'MATRIX_TABLE' ? (
-                <div style={{ padding: '0.75rem', border: '1px dashed #cbd5e1', borderRadius: '4px', textAlign: 'center' }}>
-                  <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', margin: 0 }}>
-                    Khối <strong>{activeBlock?.title}</strong> không hỗ trợ thêm trường nhập liệu.
-                  </p>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-                  <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', margin: '0 0 0.25rem 0' }}>
-                    Adding to block: <strong>{activeBlock?.title}</strong>
-                  </p>
-                  <button 
-                    type="button" 
-                    onClick={() => handleAddField(activeBlockId, 'text')}
-                    disabled={isLocked || activeBlock?.type === 'SIGN'}
-                    className="btn btn-secondary" 
-                    style={{ justifyContent: 'start', padding: '0.4rem 0.5rem', fontSize: '0.75rem' }}
-                  >
-                    <FileText size={13} style={{ marginRight: '0.35rem' }} />
-                    Text
-                  </button>
-                  <button 
-                    type="button" 
-                    onClick={() => handleAddField(activeBlockId, 'number')}
-                    disabled={isLocked || activeBlock?.type === 'SIGN'}
-                    className="btn btn-secondary" 
-                    style={{ justifyContent: 'start', padding: '0.4rem 0.5rem', fontSize: '0.75rem' }}
-                  >
-                    <Hash size={13} style={{ marginRight: '0.35rem' }} />
-                    Number
-                  </button>
-                  <button 
-                    type="button" 
-                    onClick={() => handleAddField(activeBlockId, 'radio')}
-                    disabled={isLocked || activeBlock?.type === 'SIGN'}
-                    className="btn btn-secondary" 
-                    style={{ justifyContent: 'start', padding: '0.4rem 0.5rem', fontSize: '0.75rem' }}
-                  >
-                    <ListChecks size={13} style={{ marginRight: '0.35rem' }} />
-                    Radio
-                  </button>
-                  <button 
-                    type="button" 
-                    onClick={() => handleAddField(activeBlockId, 'checkbox')}
-                    disabled={isLocked || activeBlock?.type === 'SIGN'}
-                    className="btn btn-secondary" 
-                    style={{ justifyContent: 'start', padding: '0.4rem 0.5rem', fontSize: '0.75rem' }}
-                  >
-                    <CheckSquare size={13} style={{ marginRight: '0.35rem' }} />
-                    Checkbox
-                  </button>
-                  <button 
-                    type="button" 
-                    onClick={() => handleAddField(activeBlockId, 'subtable')}
-                    disabled={isLocked || activeBlock?.type === 'SIGN' || activeBlock?.type === 'CHECKLIST_TABLE'}
-                    className="btn btn-secondary" 
-                    style={{ justifyContent: 'start', padding: '0.4rem 0.5rem', fontSize: '0.75rem' }}
-                  >
-                    <TableIcon size={13} style={{ marginRight: '0.35rem' }} />
-                    Subtable
-                  </button>
-                  <button 
-                    type="button" 
-                    onClick={() => handleAddField(activeBlockId, 'date')}
-                    disabled={isLocked || activeBlock?.type === 'SIGN'}
-                    className="btn btn-secondary" 
-                    style={{ justifyContent: 'start', padding: '0.4rem 0.5rem', fontSize: '0.75rem' }}
-                  >
-                    <Calendar size={13} style={{ marginRight: '0.35rem' }} />
-                    Date
-                  </button>
-                  <button 
-                    type="button" 
-                    onClick={() => handleAddField(activeBlockId, 'time')}
-                    disabled={isLocked || activeBlock?.type === 'SIGN'}
-                    className="btn btn-secondary" 
-                    style={{ justifyContent: 'start', padding: '0.4rem 0.5rem', fontSize: '0.75rem' }}
-                  >
-                    <Clock size={13} style={{ marginRight: '0.35rem' }} />
-                    Time
-                  </button>
-                  <button 
-                    type="button" 
-                    onClick={() => handleAddField(activeBlockId, 'photo')}
-                    disabled={isLocked || (activeBlock?.type !== 'INFO_GRID' && activeBlock?.type !== 'CHECKLIST_TABLE')}
-                    className="btn btn-secondary" 
-                    style={{ justifyContent: 'start', padding: '0.4rem 0.5rem', fontSize: '0.75rem' }}
-                  >
-                    <Camera size={13} style={{ marginRight: '0.35rem' }} />
-                    Photo
-                  </button>
-                  <button 
-                    type="button" 
-                    onClick={() => handleAddField(activeBlockId, 'signature')}
-                    disabled={isLocked || activeBlock?.type !== 'SIGN'}
-                    className="btn btn-secondary" 
-                    style={{ justifyContent: 'start', padding: '0.4rem 0.5rem', fontSize: '0.75rem' }}
-                  >
-                    <PenTool size={13} style={{ marginRight: '0.35rem' }} />
-                    Sign-off
-                  </button>
-                </div>
-              )
-            ) : (
-              <div style={{ padding: '0.75rem', border: '1px dashed #cbd5e1', borderRadius: '4px', textAlign: 'center' }}>
-                <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', margin: 0 }}>
-                  Select a layout block on the canvas to add field elements.
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* CENTER CANVAS: A4 Portrait Grid Document Simulation */}
-        <div style={{ padding: '1.5rem', overflowY: 'auto', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', flex: 1 }}>
+        {/* CENTER CANVAS: A4/A5 Document Simulation */}
+        <div style={{ padding: '1.5rem', overflowY: 'auto', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', flex: 1, background: '#f8fafc' }}>
           <div style={{
             width: '100%',
-            maxWidth: '780px',
+            maxWidth: pageSize === 'A5_LANDSCAPE' ? '920px' : '820px',
             background: '#ffffff',
             border: '1px solid #cbd5e1',
             borderRadius: '6px',
@@ -2594,7 +2477,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', border: '2px dashed #cbd5e1', borderRadius: '8px', padding: '3rem', textAlign: 'center' }}>
                 <Grid size={32} style={{ color: 'var(--text-muted)', marginBottom: '0.75rem' }} />
                 <p style={{ fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 0.25rem 0' }}>Empty Layout Canvas</p>
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>Add layout blocks from the left toolbox to design your document structure.</p>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>Add layout blocks from the top toolbar to design your document structure.</p>
               </div>
             ) : (
               layoutBlocks.map((block, index) => {
@@ -3184,9 +3067,31 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                               {!isLocked && (
                                 <div 
                                   onClick={(e) => { e.stopPropagation(); handleAddField(block.id, 'text'); }}
-                                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px dashed #cbd5e1', borderRadius: '4px', padding: '4px', fontSize: '0.7rem', color: 'var(--text-muted)', cursor: 'pointer' }}
+                                  style={{ 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    justifyContent: 'center', 
+                                    border: '1px dashed #cbd5e1', 
+                                    borderRadius: '4px', 
+                                    padding: '5px', 
+                                    fontSize: '0.72rem', 
+                                    fontWeight: 500,
+                                    color: 'var(--text-muted)', 
+                                    cursor: 'pointer',
+                                    transition: 'all 0.15s ease'
+                                  }}
+                                  onMouseEnter={(e) => { 
+                                    e.currentTarget.style.borderColor = 'var(--primary)'; 
+                                    e.currentTarget.style.color = 'var(--primary)'; 
+                                    e.currentTarget.style.background = 'rgba(13, 148, 136, 0.04)';
+                                  }}
+                                  onMouseLeave={(e) => { 
+                                    e.currentTarget.style.borderColor = '#cbd5e1'; 
+                                    e.currentTarget.style.color = 'var(--text-muted)'; 
+                                    e.currentTarget.style.background = 'transparent';
+                                  }}
                                 >
-                                  <Plus size={10} style={{ marginRight: '2px' }} /> Add Field Slot
+                                  <Plus size={11} style={{ marginRight: '3px' }} /> Add Field Slot
                                 </div>
                               )}
                             </div>
