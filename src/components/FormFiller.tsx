@@ -1368,52 +1368,100 @@ export default function FormFiller({
                                   );
                                 })}
                               </div>
-                            ) : field.type === 'rating' ? (() => {
-                          const scale = field.ratingScale === 3 ? 3 : 5;
-                          const currentRating = parseInt(value, 10) || 0;
-                          return (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 0', minHeight: '36px' }}>
-                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                {Array.from({ length: scale }).map((_, idx) => {
-                                  const starVal = idx + 1;
-                                  const isFilled = starVal <= currentRating;
-                                  return (
-                                    <button
-                                      key={idx}
-                                      type="button"
-                                      onClick={() => {
-                                        const nextVal = currentRating === starVal ? '' : String(starVal);
-                                        setFormValues(prev => ({ ...prev, [field.id]: nextVal }));
-                                      }}
-                                      style={{
-                                        background: 'none',
-                                        border: 'none',
-                                        padding: '2px',
-                                        cursor: 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        transition: 'transform 0.1s ease'
-                                      }}
-                                      title={`${starVal}/${scale} sao`}
-                                    >
-                                      <Star
-                                        size={22}
-                                        style={{
-                                          color: isFilled ? '#f59e0b' : '#cbd5e1',
-                                          fill: isFilled ? '#f59e0b' : '#ffffff',
-                                          strokeWidth: 1.5
+                            ) : (field.type === 'likert_scale' || field.type === 'rating') ? (() => {
+                          const isStars = field.likertVariant === 'stars' || field.type === 'rating';
+                          if (isStars) {
+                            const scale = field.ratingScale === 3 ? 3 : 5;
+                            const currentRating = parseInt(value, 10) || 0;
+                            return (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 0', minHeight: '36px' }}>
+                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                  {Array.from({ length: scale }).map((_, idx) => {
+                                    const starVal = idx + 1;
+                                    const isFilled = starVal <= currentRating;
+                                    return (
+                                      <button
+                                        key={idx}
+                                        type="button"
+                                        onClick={() => {
+                                          const nextVal = currentRating === starVal ? '' : String(starVal);
+                                          setFormValues(prev => ({ ...prev, [field.id]: nextVal }));
                                         }}
-                                      />
-                                    </button>
-                                  );
-                                })}
+                                        style={{
+                                          background: 'none',
+                                          border: 'none',
+                                          padding: '2px',
+                                          cursor: 'pointer',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          transition: 'transform 0.1s ease'
+                                        }}
+                                        title={`${starVal}/${scale} sao`}
+                                      >
+                                        <Star
+                                          size={22}
+                                          style={{
+                                            color: isFilled ? '#f59e0b' : '#cbd5e1',
+                                            fill: isFilled ? '#f59e0b' : '#ffffff',
+                                            strokeWidth: 1.5
+                                          }}
+                                        />
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                                {currentRating > 0 && (
+                                  <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#d97706', marginLeft: '4px' }}>
+                                    {currentRating}/{scale}
+                                  </span>
+                                )}
                               </div>
-                              {currentRating > 0 && (
-                                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#d97706', marginLeft: '4px' }}>
-                                  {currentRating}/{scale}
-                                </span>
-                              )}
+                            );
+                          }
+
+                          const scales = field.scaleOptions && field.scaleOptions.length > 0 ? field.scaleOptions : ['1', '2', '3', '4', '5'];
+                          return (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 0', width: '100%', overflowX: 'auto' }}>
+                              {scales.map((opt: string, sIdx: number) => {
+                                const isSelected = value === opt;
+                                return (
+                                  <button
+                                    key={sIdx}
+                                    type="button"
+                                    onClick={() => {
+                                      const nextVal = isSelected ? '' : opt;
+                                      setFormValues(prev => ({ ...prev, [field.id]: nextVal }));
+                                    }}
+                                    style={{
+                                      flex: 1,
+                                      display: 'flex',
+                                      flexDirection: 'column',
+                                      alignItems: 'center',
+                                      gap: '4px',
+                                      padding: '6px 4px',
+                                      borderRadius: '6px',
+                                      border: isSelected ? '1.5px solid var(--primary)' : '1px solid #cbd5e1',
+                                      background: isSelected ? 'rgba(13, 148, 136, 0.08)' : '#f8fafc',
+                                      color: isSelected ? 'var(--primary)' : '#334155',
+                                      cursor: 'pointer',
+                                      transition: 'all 0.15s ease',
+                                      minWidth: '32px'
+                                    }}
+                                  >
+                                    <span style={{ fontSize: '0.72rem', fontWeight: isSelected ? 700 : 500, lineHeight: 1.1, textAlign: 'center' }}>
+                                      {opt}
+                                    </span>
+                                    <span style={{
+                                      width: '14px',
+                                      height: '14px',
+                                      borderRadius: '50%',
+                                      border: isSelected ? '4px solid var(--primary)' : '1.5px solid #94a3b8',
+                                      background: '#ffffff'
+                                    }} />
+                                  </button>
+                                );
+                              })}
                             </div>
                           );
                         })() : field.type === 'radio' ? (

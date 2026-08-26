@@ -611,31 +611,65 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                       );
                     }
 
-                    if (matchedField?.type === 'rating') {
-                      const scale = matchedField.ratingScale === 3 ? 3 : 5;
-                      const currentRating = parseInt(f.value || '', 10) || 0;
+                    if (matchedField?.type === 'likert_scale' || matchedField?.type === 'rating') {
+                      const isStars = matchedField?.likertVariant === 'stars' || matchedField?.type === 'rating';
+                      if (isStars) {
+                        const scale = matchedField?.ratingScale === 3 ? 3 : 5;
+                        const currentRating = parseInt(f.value || '', 10) || 0;
+                        return (
+                          <div key={f.id} style={{ ...gridItemStyle, display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.85rem', pageBreakInside: 'avoid' }}>
+                            {f.checkItem && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', fontSize: '0.82rem' }}>{renderFormattedText(f.checkItem)}:</span>}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', minHeight: '22px' }}>
+                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+                                {Array.from({ length: scale }).map((_, idx) => (
+                                  <Star
+                                    key={idx}
+                                    size={14}
+                                    style={{
+                                      color: '#000000',
+                                      fill: idx < currentRating ? '#000000' : 'none',
+                                      strokeWidth: 1.4
+                                    }}
+                                  />
+                                ))}
+                              </div>
+                              {currentRating > 0 && (
+                                <span style={{ fontSize: '0.8rem', fontWeight: 'var(--pw-weight-heavy)', color: '#000000', marginLeft: '4px' }}>
+                                  ({currentRating}/{scale})
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      const scales = matchedField?.scaleOptions && matchedField.scaleOptions.length > 0 ? matchedField.scaleOptions : ['1', '2', '3', '4', '5'];
                       return (
                         <div key={f.id} style={{ ...gridItemStyle, display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.85rem', pageBreakInside: 'avoid' }}>
                           {f.checkItem && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', fontSize: '0.82rem' }}>{renderFormattedText(f.checkItem)}:</span>}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', minHeight: '22px' }}>
-                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
-                              {Array.from({ length: scale }).map((_, idx) => (
-                                <Star
-                                  key={idx}
-                                  size={14}
-                                  style={{
-                                    color: '#000000',
-                                    fill: idx < currentRating ? '#000000' : 'none',
-                                    strokeWidth: 1.4
-                                  }}
-                                />
-                              ))}
-                            </div>
-                            {currentRating > 0 && (
-                              <span style={{ fontSize: '0.8rem', fontWeight: 'var(--pw-weight-heavy)', color: '#000000', marginLeft: '4px' }}>
-                                ({currentRating}/{scale})
-                              </span>
-                            )}
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', minHeight: '22px', paddingTop: '2px' }}>
+                            {scales.map((opt: string, idx: number) => {
+                              const isSelected = f.value === opt;
+                              return (
+                                <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', flex: 1, textAlign: 'center' }}>
+                                  <span style={{ fontSize: '0.72rem', color: '#0f172a', fontWeight: isSelected ? 'var(--pw-weight-heavy)' : 500, lineHeight: 1.1 }}>{opt}</span>
+                                  <span
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      width: '12px',
+                                      height: '12px',
+                                      borderRadius: '50%',
+                                      border: '1.2px solid #000000',
+                                      background: isSelected ? '#000000' : '#ffffff'
+                                    }}
+                                  >
+                                    {isSelected && <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#ffffff' }} />}
+                                  </span>
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
                       );

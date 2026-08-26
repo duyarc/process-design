@@ -9,7 +9,7 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-08-26) — Sections 2, 4, 5 & 6 (Snapshot-Based Save Engine & ProcessEditor onSave/onClose Decoupling). |
+| **Verified At Commit** | (2026-08-26) — Sections 2, 4, 5 & 6 (Scale Field Type Integration & Frequency-Ordered 11 Field Types Taxonomy). |
 
 > **⚠️ Architectural note:** FormBuilder has no awareness of which process it belongs to. The `formName` prop is always identical to `formId`. See Section 6.1 and the Technical Debt table.
 
@@ -492,5 +492,6 @@ full diff of any entry below.
 | 2026-08-26 | **2-Column Streamlined Form Designer & Top Section Adders Toolbar:** (1) Removed redundant Left Sidebar (Layout & Field Elements), freeing 240px width and expanding Canvas area by ~30% for true 100% A4/A5 scale parity. (2) Integrated Section Adders button group (`[+ Info Grid]`, `[+ Table]`, `[+ Matrix]`, `[+ Sign]`, `[+ Label]`, `[+ Title]`, `[Copy...]`) into Top Title Bar. (3) Retained direct in-canvas `+ Add Field Slot` button creating default `text` field with smooth hover effects. (4) Reconfigured designer grid to clean 2-column layout (`gridTemplateColumns: '1fr 300px'`). |
 | 2026-08-26 | **ISO Top Toolbar Restructuring & Save-and-Stay State Machine:** (1) Restructured Top Toolbar into 3 strict non-wrapping flex clusters: [Left Identity] + [Center ISO Section Adders: Title → Info Grid → Table → Matrix → Sign → Label | Copy] + [Right Page Setup: A4/A5 | PDF & Print | Save & Close]. (2) Implemented `Save & Stay` workflow: saving writes to backend and calls `onSave` while preserving the active Form Builder editor without closing. (3) Added automatic `isSaved` change detection via `useEffect`: switches Save button to greyed-out `✓ Saved` when up-to-date and re-activates dark `#0f172a` `Save` on any form edit. |
 | 2026-08-26 | **Snapshot-Based Save Engine & ProcessEditor onSave/onClose Decoupling:** (1) Replaced fragile `isInitialMount` state watcher in `FormBuilder.tsx` with deterministic `getFormSnapshot` JSON hash comparison, ensuring the Save button is reliably greyed-out (`✓ Saved`) upon opening or after async API fetch. (2) Removed `onCancel()` and `setActiveFormToBuild(null)` calls from `ProcessEditor.tsx`'s `onSave` callback, fixing the issue where clicking Save from Dashboard closed the FormBuilder. |
+| 2026-08-26 | **Scale Field Type Integration & Frequency-Ordered 11 Field Types Taxonomy:** (1) Integrated `Scale` (`likert_scale`) field type into `INFO_GRID` supporting both Linear Point/Label Scale and Star Rating (`likertVariant: 'scale' | 'stars'`). (2) Cleaned up and consolidated `rating` into `Scale`, reducing conceptual clutter while maintaining 100% backward compatibility. (3) Renamed `"Nhãn (Label)"` to `"Label"`. (4) Reordered the entire 11 Field Types dropdown based on Pareto Frequency of Use: `Text` → `Number` → `Date` → `Time` → `Radio` → `Checkbox` → `Scale` → `Photo` → `Sign-off` → `Subtable` → `Label`. (5) Synchronized interactive rendering and print layout across Canvas, `FormFiller`, `ProcessReader`, `PrintBlankForm`, `PrintFilledForm`, and `PrintRecord`. |
 
 

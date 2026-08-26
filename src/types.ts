@@ -97,7 +97,7 @@ export interface SubtableColumn {
 
 export interface FormFieldISO {
   id: string;
-  type: 'label' | 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo' | 'subtable' | 'rating';
+  type: 'label' | 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo' | 'subtable' | 'rating' | 'likert_scale';
   checkItem: string;
   placeholder?: string; // For input/photo placeholder or instruction text
   locationCode: string;
@@ -110,6 +110,8 @@ export interface FormFieldISO {
   reactionProtocol: string;
   timeMode?: 'single' | 'dual';
   ratingScale?: 3 | 5; // Rating scale: 3 or 5 stars (default: 5)
+  likertVariant?: 'scale' | 'stars'; // Scale display variant: 'scale' = Linear Point/Label, 'stars' = Star Rating
+  scaleOptions?: string[]; // For 'likert_scale': list of scale labels e.g. ['1', '2', '3', '4', '5']
   subtableColumns?: SubtableColumn[];
   subtableDefaultRows?: number;
   subtableStaticData?: Record<number, Record<string, string>>;

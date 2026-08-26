@@ -481,35 +481,68 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                             );
                           }
 
-                          if (f.type === 'rating') {
-                            const scale = f.ratingScale === 3 ? 3 : 5;
+                          if (f.type === 'likert_scale' || f.type === 'rating') {
+                            const isStars = f.likertVariant === 'stars' || f.type === 'rating';
+                            if (isStars) {
+                              const scale = f.ratingScale === 3 ? 3 : 5;
+                              return (
+                                <div key={f.id} style={{ ...gridItemStyle, display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.82rem', pageBreakInside: 'avoid' }}>
+                                  {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a' }}>{renderFormattedText(cleanLabel)}</span>}
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minHeight: '22px' }}>
+                                    {Array.from({ length: scale }).map((_, idx) => (
+                                      <span
+                                        key={idx}
+                                        data-acroform-field="true"
+                                        data-field-id={`${f.id}_star_${idx + 1}`}
+                                        data-field-type="rating"
+                                        data-field-radiogroup={f.id}
+                                        data-field-radiovalue={String(idx + 1)}
+                                        data-field-name={`${cleanLabel || 'Scale'} (${idx + 1}/${scale} sao)`}
+                                        style={{
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          lineHeight: 1,
+                                          userSelect: 'none'
+                                        }}
+                                      >
+                                        <Star size={15} style={{ color: '#000000', fill: 'none', strokeWidth: 1.4 }} />
+                                      </span>
+                                    ))}
+                                    <span style={{ fontSize: '0.72rem', color: '#64748b', marginLeft: '4px' }}>
+                                      (Thang {scale} sao)
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            }
+
+                            const scales = f.scaleOptions && f.scaleOptions.length > 0 ? f.scaleOptions : ['1', '2', '3', '4', '5'];
                             return (
                               <div key={f.id} style={{ ...gridItemStyle, display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.82rem', pageBreakInside: 'avoid' }}>
                                 {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a' }}>{renderFormattedText(cleanLabel)}</span>}
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minHeight: '22px' }}>
-                                  {Array.from({ length: scale }).map((_, idx) => (
-                                    <span
-                                      key={idx}
-                                      data-acroform-field="true"
-                                      data-field-id={`${f.id}_star_${idx + 1}`}
-                                      data-field-type="rating"
-                                      data-field-radiogroup={f.id}
-                                      data-field-radiovalue={String(idx + 1)}
-                                      data-field-name={`${cleanLabel || 'Rating'} (${idx + 1}/${scale} sao)`}
-                                      style={{
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        lineHeight: 1,
-                                        userSelect: 'none'
-                                      }}
-                                    >
-                                      <Star size={15} style={{ color: '#000000', fill: 'none', strokeWidth: 1.4 }} />
-                                    </span>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', minHeight: '22px', paddingTop: '2px' }}>
+                                  {scales.map((opt: string, idx: number) => (
+                                    <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', flex: 1, textAlign: 'center' }}>
+                                      <span style={{ fontSize: '0.72rem', color: '#0f172a', fontWeight: 500, lineHeight: 1.1 }}>{opt}</span>
+                                      <span
+                                        data-acroform-field="true"
+                                        data-field-id={`${f.id}_opt_${idx + 1}`}
+                                        data-field-type="radio"
+                                        data-field-radiogroup={f.id}
+                                        data-field-radiovalue={opt}
+                                        data-field-name={`${cleanLabel || 'Scale'} - ${opt}`}
+                                        style={{
+                                          display: 'inline-block',
+                                          width: '12px',
+                                          height: '12px',
+                                          borderRadius: '50%',
+                                          border: '1.2px solid #000000',
+                                          background: '#ffffff'
+                                        }}
+                                      />
+                                    </div>
                                   ))}
-                                  <span style={{ fontSize: '0.72rem', color: '#64748b', marginLeft: '4px' }}>
-                                    (Thang {scale} sao)
-                                  </span>
                                 </div>
                               </div>
                             );

@@ -415,31 +415,65 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                               );
                             }
 
-                            if (f.type === 'rating') {
-                              const scale = f.ratingScale === 3 ? 3 : 5;
-                              const currentRating = parseInt(val, 10) || 0;
+                            if (f.type === 'likert_scale' || f.type === 'rating') {
+                              const isStars = f.likertVariant === 'stars' || f.type === 'rating';
+                              if (isStars) {
+                                const scale = f.ratingScale === 3 ? 3 : 5;
+                                const currentRating = parseInt(val, 10) || 0;
+                                return (
+                                  <div key={f.id} style={{ ...gridItemStyle, display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.82rem', pageBreakInside: 'avoid' }}>
+                                    {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a' }}>{renderFormattedText(cleanLabel)}</span>}
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', minHeight: '22px' }}>
+                                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+                                        {Array.from({ length: scale }).map((_, idx) => (
+                                          <Star
+                                            key={idx}
+                                            size={14}
+                                            style={{
+                                              color: '#000000',
+                                              fill: idx < currentRating ? '#000000' : 'none',
+                                              strokeWidth: 1.4
+                                            }}
+                                          />
+                                        ))}
+                                      </div>
+                                      {currentRating > 0 && (
+                                        <span style={{ fontSize: '0.8rem', fontWeight: 'var(--pw-weight-heavy)', color: '#000000', marginLeft: '4px' }}>
+                                          ({currentRating}/{scale})
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              }
+
+                              const scales = f.scaleOptions && f.scaleOptions.length > 0 ? f.scaleOptions : ['1', '2', '3', '4', '5'];
                               return (
                                 <div key={f.id} style={{ ...gridItemStyle, display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.82rem', pageBreakInside: 'avoid' }}>
                                   {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a' }}>{renderFormattedText(cleanLabel)}</span>}
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', minHeight: '22px' }}>
-                                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
-                                      {Array.from({ length: scale }).map((_, idx) => (
-                                        <Star
-                                          key={idx}
-                                          size={14}
-                                          style={{
-                                            color: '#000000',
-                                            fill: idx < currentRating ? '#000000' : 'none',
-                                            strokeWidth: 1.4
-                                          }}
-                                        />
-                                      ))}
-                                    </div>
-                                    {currentRating > 0 && (
-                                      <span style={{ fontSize: '0.8rem', fontWeight: 'var(--pw-weight-heavy)', color: '#000000', marginLeft: '4px' }}>
-                                        ({currentRating}/{scale})
-                                      </span>
-                                    )}
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', minHeight: '22px', paddingTop: '2px' }}>
+                                    {scales.map((opt: string, idx: number) => {
+                                      const isSelected = val === opt;
+                                      return (
+                                        <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', flex: 1, textAlign: 'center' }}>
+                                          <span style={{ fontSize: '0.72rem', color: '#0f172a', fontWeight: isSelected ? 'var(--pw-weight-heavy)' : 500, lineHeight: 1.1 }}>{opt}</span>
+                                          <span
+                                            style={{
+                                              display: 'inline-flex',
+                                              alignItems: 'center',
+                                              justifyContent: 'center',
+                                              width: '12px',
+                                              height: '12px',
+                                              borderRadius: '50%',
+                                              border: '1.2px solid #000000',
+                                              background: isSelected ? '#000000' : '#ffffff'
+                                            }}
+                                          >
+                                            {isSelected && <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#ffffff' }} />}
+                                          </span>
+                                        </div>
+                                      );
+                                    })}
                                   </div>
                                 </div>
                               );

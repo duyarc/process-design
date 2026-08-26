@@ -34,7 +34,8 @@ import {
   Table as TableIcon,
   CircleDot,
   ChevronDown,
-  Check
+  Check,
+  SlidersHorizontal
 } from 'lucide-react';
 import PrintBlankForm from './print/PrintBlankForm';
 
@@ -464,7 +465,7 @@ function InfoGridSteppedSplitter({ columns, columnWidths, onChange, disabled }: 
 }
 
 export interface FieldTypeOptionItem {
-  value: 'label' | 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo' | 'rating' | 'subtable';
+  value: 'label' | 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo' | 'subtable' | 'likert_scale' | 'rating';
   label: string;
   icon: React.ComponentType<{ size?: number; strokeWidth?: number; className?: string; style?: React.CSSProperties }>;
 }
@@ -492,22 +493,22 @@ export const getFormSnapshot = (data: {
 };
 
 export const FIELD_TYPE_OPTIONS: FieldTypeOptionItem[] = [
-  { value: 'label', label: 'Nhãn (Label)', icon: AlignLeft },
   { value: 'text', label: 'Text', icon: FileText },
   { value: 'number', label: 'Number', icon: Hash },
-  { value: 'radio', label: 'Radio', icon: CircleDot },
-  { value: 'checkbox', label: 'Checkbox', icon: CheckSquare },
-  { value: 'subtable', label: 'Subtable', icon: TableIcon },
   { value: 'date', label: 'Date', icon: Calendar },
   { value: 'time', label: 'Time', icon: Clock },
+  { value: 'radio', label: 'Radio', icon: CircleDot },
+  { value: 'checkbox', label: 'Checkbox', icon: CheckSquare },
+  { value: 'likert_scale', label: 'Scale', icon: SlidersHorizontal },
   { value: 'photo', label: 'Photo', icon: Camera },
   { value: 'signature', label: 'Sign-off', icon: PenTool },
-  { value: 'rating', label: 'Đánh giá sao (Rating)', icon: Star }
+  { value: 'subtable', label: 'Subtable', icon: TableIcon },
+  { value: 'label', label: 'Label', icon: AlignLeft }
 ];
 
 interface FieldTypeDropdownProps {
-  value: 'label' | 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo' | 'rating' | 'subtable';
-  onChange: (newType: 'label' | 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo' | 'rating' | 'subtable') => void;
+  value: 'label' | 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo' | 'rating' | 'subtable' | 'likert_scale';
+  onChange: (newType: 'label' | 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo' | 'rating' | 'subtable' | 'likert_scale') => void;
   disabled?: boolean;
 }
 
@@ -515,7 +516,8 @@ function FieldTypeDropdown({ value, onChange, disabled }: FieldTypeDropdownProps
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const activeOption = FIELD_TYPE_OPTIONS.find(o => o.value === value) || FIELD_TYPE_OPTIONS[1];
+  const activeOption = FIELD_TYPE_OPTIONS.find(o => o.value === value) 
+    || (value === 'rating' ? { value: 'likert_scale', label: 'Scale', icon: SlidersHorizontal } : FIELD_TYPE_OPTIONS[0]);
   const ActiveIcon = activeOption.icon;
 
   useEffect(() => {
@@ -1571,7 +1573,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     }));
   };
 
-  const handleChangeFieldType = (blockId: string, fieldId: string, newType: 'label' | 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo' | 'subtable' | 'rating') => {
+  const handleChangeFieldType = (blockId: string, fieldId: string, newType: 'label' | 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo' | 'subtable' | 'likert_scale' | 'rating') => {
     if (isLocked) return;
     
     // Find current field to inspect its options
@@ -1589,8 +1591,11 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
       updates.minSpec = undefined;
       updates.maxSpec = undefined;
       updates.unit = undefined;
-    } else if (newType === 'rating') {
+    } else if (newType === 'likert_scale' || (newType as any) === 'rating') {
+      updates.type = 'likert_scale';
+      updates.likertVariant = field?.likertVariant || ((newType as any) === 'rating' ? 'stars' : 'scale');
       updates.ratingScale = field?.ratingScale || 5;
+      updates.scaleOptions = field?.scaleOptions && field.scaleOptions.length > 0 ? field.scaleOptions : ['1', '2', '3', '4', '5'];
       updates.minSpec = undefined;
       updates.maxSpec = undefined;
       updates.unit = undefined;
@@ -2992,24 +2997,39 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                       </div>
                                     )}
 
-                                    {f.type === 'rating' && (() => {
-                                      const scale = f.ratingScale === 3 ? 3 : 5;
+                                    {(f.type === 'likert_scale' || (f.type as any) === 'rating') && (() => {
+                                      const isStars = f.likertVariant === 'stars' || (f.type as any) === 'rating';
+                                      if (isStars) {
+                                        const scale = f.ratingScale === 3 ? 3 : 5;
+                                        return (
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '6px', paddingTop: '2px' }}>
+                                            {Array.from({ length: scale }).map((_, idx) => (
+                                              <Star
+                                                key={idx}
+                                                size={18}
+                                                style={{
+                                                  color: '#f59e0b',
+                                                  fill: '#fef3c7',
+                                                  strokeWidth: 1.5
+                                                }}
+                                              />
+                                            ))}
+                                            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginLeft: '4px', fontWeight: 500 }}>
+                                              ({scale} sao)
+                                            </span>
+                                          </div>
+                                        );
+                                      }
+
+                                      const scales = f.scaleOptions && f.scaleOptions.length > 0 ? f.scaleOptions : ['1', '2', '3', '4', '5'];
                                       return (
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '6px', paddingTop: '2px' }}>
-                                          {Array.from({ length: scale }).map((_, idx) => (
-                                            <Star
-                                              key={idx}
-                                              size={18}
-                                              style={{
-                                                color: '#f59e0b',
-                                                fill: '#fef3c7',
-                                                strokeWidth: 1.5
-                                              }}
-                                            />
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px', marginTop: '6px', paddingTop: '2px', width: '100%', overflowX: 'auto' }}>
+                                          {scales.map((opt, idx) => (
+                                            <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', flex: 1, minWidth: '24px', textAlign: 'center' }}>
+                                              <span style={{ fontSize: '0.68rem', color: '#475569', fontWeight: 500, lineHeight: 1.1, wordBreak: 'break-word', maxWidth: '100%' }}>{opt}</span>
+                                              <span style={{ display: 'inline-block', width: '13px', height: '13px', borderRadius: '50%', border: '1.5px solid #64748b', background: '#ffffff' }} />
+                                            </div>
                                           ))}
-                                          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginLeft: '4px', fontWeight: 500 }}>
-                                            ({scale} sao)
-                                          </span>
                                         </div>
                                       );
                                     })()}
@@ -4489,57 +4509,213 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                   />
                 </div>
 
-                {activeField.type === 'rating' && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', padding: '0.6rem', border: '1px solid #cbd5e1', borderRadius: '6px', background: '#f8fafc' }}>
-                    <label style={{ fontWeight: 600, fontSize: '0.78rem', color: '#0f172a' }}>Thang điểm Đánh giá (Rating Scale)</label>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <button
-                        type="button"
-                        disabled={isLocked}
-                        onClick={() => handleUpdateField(activeBlockId!, activeFieldId!, { ratingScale: 5 })}
-                        style={{
-                          flex: 1,
-                          padding: '0.4rem',
-                          borderRadius: '4px',
-                          border: '1px solid var(--neutral-border)',
-                          background: (activeField.ratingScale || 5) === 5 ? 'var(--primary)' : '#ffffff',
-                          color: (activeField.ratingScale || 5) === 5 ? '#ffffff' : 'var(--text-primary)',
-                          cursor: isLocked ? 'default' : 'pointer',
-                          fontWeight: 600,
-                          fontSize: '0.75rem',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '4px'
-                        }}
-                      >
-                        <Star size={13} style={{ fill: (activeField.ratingScale || 5) === 5 ? '#ffffff' : '#f59e0b', color: (activeField.ratingScale || 5) === 5 ? '#ffffff' : '#f59e0b' }} />
-                        Scale 5 (5 Sao)
-                      </button>
-                      <button
-                        type="button"
-                        disabled={isLocked}
-                        onClick={() => handleUpdateField(activeBlockId!, activeFieldId!, { ratingScale: 3 })}
-                        style={{
-                          flex: 1,
-                          padding: '0.4rem',
-                          borderRadius: '4px',
-                          border: '1px solid var(--neutral-border)',
-                          background: activeField.ratingScale === 3 ? 'var(--primary)' : '#ffffff',
-                          color: activeField.ratingScale === 3 ? '#ffffff' : 'var(--text-primary)',
-                          cursor: isLocked ? 'default' : 'pointer',
-                          fontWeight: 600,
-                          fontSize: '0.75rem',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '4px'
-                        }}
-                      >
-                        <Star size={13} style={{ fill: activeField.ratingScale === 3 ? '#ffffff' : '#f59e0b', color: activeField.ratingScale === 3 ? '#ffffff' : '#f59e0b' }} />
-                        Scale 3 (3 Sao)
-                      </button>
+                {(activeField.type === 'likert_scale' || (activeField.type as any) === 'rating') && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', padding: '0.6rem', border: '1px solid #cbd5e1', borderRadius: '6px', background: '#f8fafc' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                      <label style={{ fontWeight: 600, fontSize: '0.75rem', color: '#0f172a' }}>Display Variant</label>
+                      <div style={{ display: 'flex', gap: '4px', background: '#e2e8f0', padding: '2px', borderRadius: '6px' }}>
+                        <button
+                          type="button"
+                          disabled={isLocked}
+                          onClick={() => handleUpdateField(activeBlockId!, activeFieldId!, { likertVariant: 'scale' })}
+                          style={{
+                            flex: 1,
+                            padding: '3px 6px',
+                            borderRadius: '4px',
+                            border: 'none',
+                            background: (activeField.likertVariant || 'scale') === 'scale' && (activeField.type as any) !== 'rating' ? '#ffffff' : 'transparent',
+                            color: (activeField.likertVariant || 'scale') === 'scale' && (activeField.type as any) !== 'rating' ? '#0f172a' : '#64748b',
+                            fontWeight: 600,
+                            fontSize: '0.72rem',
+                            cursor: isLocked ? 'default' : 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '4px',
+                            boxShadow: (activeField.likertVariant || 'scale') === 'scale' && (activeField.type as any) !== 'rating' ? '0 1px 2px rgba(0,0,0,0.08)' : 'none'
+                          }}
+                        >
+                          <SlidersHorizontal size={12} />
+                          Linear Scale
+                        </button>
+                        <button
+                          type="button"
+                          disabled={isLocked}
+                          onClick={() => handleUpdateField(activeBlockId!, activeFieldId!, { likertVariant: 'stars' })}
+                          style={{
+                            flex: 1,
+                            padding: '3px 6px',
+                            borderRadius: '4px',
+                            border: 'none',
+                            background: activeField.likertVariant === 'stars' || (activeField.type as any) === 'rating' ? '#ffffff' : 'transparent',
+                            color: activeField.likertVariant === 'stars' || (activeField.type as any) === 'rating' ? '#0f172a' : '#64748b',
+                            fontWeight: 600,
+                            fontSize: '0.72rem',
+                            cursor: isLocked ? 'default' : 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '4px',
+                            boxShadow: activeField.likertVariant === 'stars' || (activeField.type as any) === 'rating' ? '0 1px 2px rgba(0,0,0,0.08)' : 'none'
+                          }}
+                        >
+                          <Star size={12} style={{ fill: '#f59e0b', color: '#f59e0b' }} />
+                          Stars
+                        </button>
+                      </div>
                     </div>
+
+                    {activeField.likertVariant === 'stars' || (activeField.type as any) === 'rating' ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                        <label style={{ fontWeight: 600, fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Rating Scale</label>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <button
+                            type="button"
+                            disabled={isLocked}
+                            onClick={() => handleUpdateField(activeBlockId!, activeFieldId!, { ratingScale: 5 })}
+                            style={{
+                              flex: 1,
+                              padding: '0.35rem',
+                              borderRadius: '4px',
+                              border: '1px solid #cbd5e1',
+                              background: (activeField.ratingScale || 5) === 5 ? 'var(--primary)' : '#ffffff',
+                              color: (activeField.ratingScale || 5) === 5 ? '#ffffff' : 'var(--text-primary)',
+                              cursor: isLocked ? 'default' : 'pointer',
+                              fontWeight: 600,
+                              fontSize: '0.72rem',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '4px'
+                            }}
+                          >
+                            <Star size={12} style={{ fill: (activeField.ratingScale || 5) === 5 ? '#ffffff' : '#f59e0b', color: (activeField.ratingScale || 5) === 5 ? '#ffffff' : '#f59e0b' }} />
+                            5 Stars
+                          </button>
+                          <button
+                            type="button"
+                            disabled={isLocked}
+                            onClick={() => handleUpdateField(activeBlockId!, activeFieldId!, { ratingScale: 3 })}
+                            style={{
+                              flex: 1,
+                              padding: '0.35rem',
+                              borderRadius: '4px',
+                              border: '1px solid #cbd5e1',
+                              background: activeField.ratingScale === 3 ? 'var(--primary)' : '#ffffff',
+                              color: activeField.ratingScale === 3 ? '#ffffff' : 'var(--text-primary)',
+                              cursor: isLocked ? 'default' : 'pointer',
+                              fontWeight: 600,
+                              fontSize: '0.72rem',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '4px'
+                            }}
+                          >
+                            <Star size={12} style={{ fill: activeField.ratingScale === 3 ? '#ffffff' : '#f59e0b', color: activeField.ratingScale === 3 ? '#ffffff' : '#f59e0b' }} />
+                            3 Stars
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                          <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Mẫu thang đo nhanh (Presets)</label>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                            <button
+                              type="button"
+                              disabled={isLocked}
+                              onClick={() => handleUpdateField(activeBlockId!, activeFieldId!, { scaleOptions: ['1', '2', '3', '4', '5'] })}
+                              style={{ padding: '2px 6px', fontSize: '0.68rem', borderRadius: '4px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#334155', cursor: 'pointer' }}
+                            >
+                              1 – 5
+                            </button>
+                            <button
+                              type="button"
+                              disabled={isLocked}
+                              onClick={() => handleUpdateField(activeBlockId!, activeFieldId!, { scaleOptions: ['1', '2', '3'] })}
+                              style={{ padding: '2px 6px', fontSize: '0.68rem', borderRadius: '4px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#334155', cursor: 'pointer' }}
+                            >
+                              1 – 3
+                            </button>
+                            <button
+                              type="button"
+                              disabled={isLocked}
+                              onClick={() => handleUpdateField(activeBlockId!, activeFieldId!, { scaleOptions: ['Kém', 'Đạt', 'Tốt'] })}
+                              style={{ padding: '2px 6px', fontSize: '0.68rem', borderRadius: '4px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#334155', cursor: 'pointer' }}
+                            >
+                              3 Mức
+                            </button>
+                            <button
+                              type="button"
+                              disabled={isLocked}
+                              onClick={() => handleUpdateField(activeBlockId!, activeFieldId!, { scaleOptions: ['Rất kém', 'Kém', 'Đạt', 'Tốt', 'Xuất sắc'] })}
+                              style={{ padding: '2px 6px', fontSize: '0.68rem', borderRadius: '4px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#334155', cursor: 'pointer' }}
+                            >
+                              5 Mức
+                            </button>
+                            <button
+                              type="button"
+                              disabled={isLocked}
+                              onClick={() => handleUpdateField(activeBlockId!, activeFieldId!, { scaleOptions: ['Không đạt', 'Đạt'] })}
+                              style={{ padding: '2px 6px', fontSize: '0.68rem', borderRadius: '4px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#334155', cursor: 'pointer' }}
+                            >
+                              Đạt / KĐ
+                            </button>
+                          </div>
+                        </div>
+
+                        <div style={{ borderTop: '1px dashed #cbd5e1', margin: '2px 0' }} />
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                          <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Mức độ thang đo (Scale Options)</label>
+                          {(activeField.scaleOptions || ['1', '2', '3', '4', '5']).map((opt, sIdx) => (
+                            <div key={sIdx} style={{ display: 'flex', gap: '0.2rem', alignItems: 'center' }}>
+                              <span style={{ fontSize: '0.68rem', color: '#64748b', width: '14px', textAlign: 'center' }}>{sIdx + 1}.</span>
+                              <input
+                                type="text"
+                                disabled={isLocked}
+                                placeholder={`Mức ${sIdx + 1}`}
+                                value={opt}
+                                onChange={(e) => {
+                                  const currentScales = activeField.scaleOptions || ['1', '2', '3', '4', '5'];
+                                  const newScales = [...currentScales];
+                                  newScales[sIdx] = e.target.value;
+                                  handleUpdateField(activeBlockId!, activeFieldId!, { scaleOptions: newScales });
+                                }}
+                                style={{ flex: 1, padding: '0.15rem 0.25rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', fontSize: '0.7rem' }}
+                              />
+                              <button
+                                type="button"
+                                disabled={isLocked || (activeField.scaleOptions || []).length <= 2}
+                                onClick={() => {
+                                  const currentScales = activeField.scaleOptions || ['1', '2', '3', '4', '5'];
+                                  const newScales = currentScales.filter((_, i) => i !== sIdx);
+                                  handleUpdateField(activeBlockId!, activeFieldId!, { scaleOptions: newScales });
+                                }}
+                                style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: isLocked || (activeField.scaleOptions || []).length <= 2 ? 'not-allowed' : 'pointer', padding: '0 2px', fontSize: '0.75rem', lineHeight: 1, opacity: isLocked || (activeField.scaleOptions || []).length <= 2 ? 0.3 : 1 }}
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+
+                        {!isLocked && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const currentScales = activeField.scaleOptions || ['1', '2', '3', '4', '5'];
+                              const newScales = [...currentScales, `Mức ${currentScales.length + 1}`];
+                              handleUpdateField(activeBlockId!, activeFieldId!, { scaleOptions: newScales });
+                            }}
+                            style={{ display: 'flex', alignItems: 'center', gap: '2px', padding: '0.2rem 0.4rem', fontSize: '0.68rem', borderRadius: '4px', border: '1px dashed #94a3b8', background: 'none', color: 'var(--text-secondary)', cursor: 'pointer', width: 'fit-content' }}
+                          >
+                            <Plus size={10} /> Thêm mức độ
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -5659,7 +5835,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                   <option value="checkbox">Checkbox</option>
                                   <option value="radio">Radio</option>
                                   <option value="rating">Đánh giá sao</option>
-                                  <option value="likert_scale">Thang đo Likert</option>
+                                  <option value="likert_scale">Scale</option>
                                   <option value="date">Ngày</option>
                                   <option value="time">Giờ</option>
                                 </select>
