@@ -654,6 +654,19 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
   const [loading, setLoading] = useState(false);
   const inspectorLabelRef = useRef<HTMLTextAreaElement>(null);
 
+  // Track saved state
+  const isInitialMount = useRef(true);
+  const [isSaved, setIsSaved] = useState(true);
+
+  // Auto detect any changes across the entire form model
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    setIsSaved(false);
+  }, [formId, formTitle, version, status, pageSize, layoutBlocks, revisionHistory]);
+
   useEffect(() => {
     const fetchFormTemplate = async () => {
       const targetId = initialData?.formId;
@@ -690,6 +703,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
         console.error("Error fetching form template and history:", err);
       } finally {
         setLoading(false);
+        setTimeout(() => setIsSaved(true), 0);
       }
     };
     
@@ -1936,7 +1950,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     alert(`New draft version created: ${draftVersion} (draft). You can now make edits. The previous version remains active in production until you publish this draft.`);
   };
 
-  const handleSaveDraftAndClose = async () => {
+  const handleSaveDraft = async () => {
+    if (isSaved || isLocked) return;
+
     // Validation: Ensure the draft version doesn't conflict with any published version in history
     const { major, minor } = parseVersion(version);
     const targetVersion = `v${major}.${minor}`;
@@ -1979,7 +1995,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
         layoutBlocks,
         revisionHistory
       });
-      onClose();
+      setIsSaved(true);
     } catch (err) {
       console.error(err);
     } finally {
@@ -2117,117 +2133,115 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
         background: '#ffffff',
         borderBottom: '1px solid var(--neutral-border)',
         gap: '0.75rem',
-        flexWrap: 'wrap'
+        flexWrap: 'nowrap',
+        overflowX: 'auto'
       }}>
-        {/* Left: Logo/Title + Section Adders Toolbar */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
-            <FileText size={18} style={{ color: 'var(--primary)' }} />
-            <h2 style={{ fontSize: '0.95rem', fontWeight: 700, margin: 0 }}>Form Builder</h2>
-            {status !== 'DRAFT' && (
-              <span className={`badge ${status === 'ACTIVE' ? 'badge-success' : 'badge-warning'}`} style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem' }}>
-                {status}
-              </span>
-            )}
-          </div>
-
-          <div style={{ borderLeft: '1px solid var(--neutral-border)', height: '18px', margin: '0 0.15rem' }} />
-
-          {/* Section Adders Button Group */}
-          <div style={{ display: 'inline-flex', alignItems: 'center', background: '#f8fafc', padding: '2px', borderRadius: '6px', border: '1px solid #cbd5e1', gap: '2px' }}>
-            <button 
-              type="button" 
-              onClick={() => handleAddBlock('INFO_GRID', 2)}
-              disabled={isLocked}
-              className="btn"
-              style={{ padding: '3px 8px', fontSize: '0.75rem', fontWeight: 500, background: 'transparent', border: 'none', color: '#334155', display: 'flex', alignItems: 'center', gap: '4px', cursor: isLocked ? 'not-allowed' : 'pointer' }}
-              title="Thêm Lưới thông tin"
-            >
-              <Grid size={13} style={{ color: 'var(--primary)' }} />
-              <span>+ Info Grid</span>
-            </button>
-
-            <button 
-              type="button" 
-              onClick={() => handleAddBlock('TABLE')}
-              disabled={isLocked}
-              className="btn"
-              style={{ padding: '3px 8px', fontSize: '0.75rem', fontWeight: 500, background: 'transparent', border: 'none', color: '#334155', display: 'flex', alignItems: 'center', gap: '4px', cursor: isLocked ? 'not-allowed' : 'pointer' }}
-              title="Thêm Bảng kiểm tra"
-            >
-              <TableIcon size={13} style={{ color: 'var(--primary)' }} />
-              <span>+ Table</span>
-            </button>
-
-            <button 
-              type="button" 
-              onClick={() => handleAddBlock('MATRIX_TABLE')}
-              disabled={isLocked}
-              className="btn"
-              style={{ padding: '3px 8px', fontSize: '0.75rem', fontWeight: 500, background: 'transparent', border: 'none', color: '#334155', display: 'flex', alignItems: 'center', gap: '4px', cursor: isLocked ? 'not-allowed' : 'pointer' }}
-              title="Thêm Bảng ma trận"
-            >
-              <Grid size={13} style={{ color: 'var(--primary)' }} />
-              <span>+ Matrix</span>
-            </button>
-
-            <button 
-              type="button" 
-              onClick={() => handleAddBlock('SIGN', 2)}
-              disabled={isLocked}
-              className="btn"
-              style={{ padding: '3px 8px', fontSize: '0.75rem', fontWeight: 500, background: 'transparent', border: 'none', color: '#334155', display: 'flex', alignItems: 'center', gap: '4px', cursor: isLocked ? 'not-allowed' : 'pointer' }}
-              title="Thêm Khối chữ ký"
-            >
-              <PenTool size={13} style={{ color: 'var(--primary)' }} />
-              <span>+ Sign</span>
-            </button>
-
-            <button 
-              type="button" 
-              onClick={() => handleAddBlock('SECTION_LABEL')}
-              disabled={isLocked}
-              className="btn"
-              style={{ padding: '3px 8px', fontSize: '0.75rem', fontWeight: 500, background: 'transparent', border: 'none', color: '#334155', display: 'flex', alignItems: 'center', gap: '4px', cursor: isLocked ? 'not-allowed' : 'pointer' }}
-              title="Thêm Nhãn phân cách"
-            >
-              <AlignLeft size={13} style={{ color: 'var(--primary)' }} />
-              <span>+ Label</span>
-            </button>
-
-            <button 
-              type="button" 
-              onClick={() => handleAddBlock('TITLE')}
-              disabled={isLocked}
-              className="btn"
-              style={{ padding: '3px 8px', fontSize: '0.75rem', fontWeight: 500, background: 'transparent', border: 'none', color: '#334155', display: 'flex', alignItems: 'center', gap: '4px', cursor: isLocked ? 'not-allowed' : 'pointer' }}
-              title="Thêm Tiêu đề biểu mẫu"
-            >
-              <FileText size={13} style={{ color: 'var(--primary)' }} />
-              <span>+ Title</span>
-            </button>
-
-            <div style={{ borderLeft: '1px solid #cbd5e1', height: '14px', margin: '0 2px' }} />
-
-            <button 
-              type="button" 
-              onClick={() => {
-                setSelectedFormKey('');
-                setSelectedBlockId('');
-                setShowCopyModal(true);
-              }}
-              disabled={isLocked}
-              className="btn"
-              style={{ padding: '3px 8px', fontSize: '0.75rem', fontWeight: 500, background: 'transparent', border: 'none', color: '#475569', display: 'flex', alignItems: 'center', gap: '4px', cursor: isLocked ? 'not-allowed' : 'pointer' }}
-              title="Sao chép khối từ biểu mẫu khác"
-            >
-              <Copy size={13} style={{ color: '#64748b' }} />
-              <span>Copy...</span>
-            </button>
-          </div>
+        {/* 1. LEFT: Identity & Status */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexShrink: 0 }}>
+          <FileText size={18} style={{ color: 'var(--primary)' }} />
+          <h2 style={{ fontSize: '0.95rem', fontWeight: 700, margin: 0, whiteSpace: 'nowrap' }}>Form Builder</h2>
+          {status !== 'DRAFT' && (
+            <span className={`badge ${status === 'ACTIVE' ? 'badge-success' : 'badge-warning'}`} style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem' }}>
+              {status}
+            </span>
+          )}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        {/* 2. CENTER: Section Adders Toolbar (ISO Logical Order) */}
+        <div style={{ display: 'inline-flex', alignItems: 'center', background: '#f8fafc', padding: '2px', borderRadius: '6px', border: '1px solid #cbd5e1', gap: '2px', flexShrink: 0 }}>
+          <button 
+            type="button" 
+            onClick={() => handleAddBlock('TITLE')}
+            disabled={isLocked}
+            className="btn"
+            style={{ padding: '3px 8px', fontSize: '0.75rem', fontWeight: 500, background: 'transparent', border: 'none', color: '#334155', display: 'flex', alignItems: 'center', gap: '4px', cursor: isLocked ? 'not-allowed' : 'pointer' }}
+            title="Thêm Tiêu đề biểu mẫu"
+          >
+            <FileText size={13} style={{ color: 'var(--primary)' }} />
+            <span>+ Title</span>
+          </button>
+
+          <button 
+            type="button" 
+            onClick={() => handleAddBlock('INFO_GRID', 2)}
+            disabled={isLocked}
+            className="btn"
+            style={{ padding: '3px 8px', fontSize: '0.75rem', fontWeight: 500, background: 'transparent', border: 'none', color: '#334155', display: 'flex', alignItems: 'center', gap: '4px', cursor: isLocked ? 'not-allowed' : 'pointer' }}
+            title="Thêm Lưới thông tin"
+          >
+            <Grid size={13} style={{ color: 'var(--primary)' }} />
+            <span>+ Info Grid</span>
+          </button>
+
+          <button 
+            type="button" 
+            onClick={() => handleAddBlock('TABLE')}
+            disabled={isLocked}
+            className="btn"
+            style={{ padding: '3px 8px', fontSize: '0.75rem', fontWeight: 500, background: 'transparent', border: 'none', color: '#334155', display: 'flex', alignItems: 'center', gap: '4px', cursor: isLocked ? 'not-allowed' : 'pointer' }}
+            title="Thêm Bảng kiểm tra"
+          >
+            <TableIcon size={13} style={{ color: 'var(--primary)' }} />
+            <span>+ Table</span>
+          </button>
+
+          <button 
+            type="button" 
+            onClick={() => handleAddBlock('MATRIX_TABLE')}
+            disabled={isLocked}
+            className="btn"
+            style={{ padding: '3px 8px', fontSize: '0.75rem', fontWeight: 500, background: 'transparent', border: 'none', color: '#334155', display: 'flex', alignItems: 'center', gap: '4px', cursor: isLocked ? 'not-allowed' : 'pointer' }}
+            title="Thêm Bảng ma trận"
+          >
+            <Grid size={13} style={{ color: 'var(--primary)' }} />
+            <span>+ Matrix</span>
+          </button>
+
+          <button 
+            type="button" 
+            onClick={() => handleAddBlock('SIGN', 2)}
+            disabled={isLocked}
+            className="btn"
+            style={{ padding: '3px 8px', fontSize: '0.75rem', fontWeight: 500, background: 'transparent', border: 'none', color: '#334155', display: 'flex', alignItems: 'center', gap: '4px', cursor: isLocked ? 'not-allowed' : 'pointer' }}
+            title="Thêm Khối chữ ký"
+          >
+            <PenTool size={13} style={{ color: 'var(--primary)' }} />
+            <span>+ Sign</span>
+          </button>
+
+          <button 
+            type="button" 
+            onClick={() => handleAddBlock('SECTION_LABEL')}
+            disabled={isLocked}
+            className="btn"
+            style={{ padding: '3px 8px', fontSize: '0.75rem', fontWeight: 500, background: 'transparent', border: 'none', color: '#334155', display: 'flex', alignItems: 'center', gap: '4px', cursor: isLocked ? 'not-allowed' : 'pointer' }}
+            title="Thêm Nhãn phân cách"
+          >
+            <AlignLeft size={13} style={{ color: 'var(--primary)' }} />
+            <span>+ Label</span>
+          </button>
+
+          <div style={{ borderLeft: '1px solid #cbd5e1', height: '14px', margin: '0 2px' }} />
+
+          <button 
+            type="button" 
+            onClick={() => {
+              setSelectedFormKey('');
+              setSelectedBlockId('');
+              setShowCopyModal(true);
+            }}
+            disabled={isLocked}
+            className="btn"
+            style={{ padding: '3px 8px', fontSize: '0.75rem', fontWeight: 500, background: 'transparent', border: 'none', color: '#475569', display: 'flex', alignItems: 'center', gap: '4px', cursor: isLocked ? 'not-allowed' : 'pointer' }}
+            title="Sao chép khối từ biểu mẫu khác"
+          >
+            <Copy size={13} style={{ color: '#64748b' }} />
+            <span>Copy...</span>
+          </button>
+        </div>
+
+        {/* 3. RIGHT: Page Setup, PDF/Print, Save (with Greyout state) & Close */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
           {/* Page size toggle */}
           <div style={{ 
             display: 'inline-flex', 
@@ -2235,10 +2249,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
             background: '#f1f5f9', 
             padding: '2px', 
             borderRadius: '6px', 
-            border: '1px solid #cbd5e1',
-            marginRight: '0.25rem'
+            border: '1px solid #cbd5e1'
           }}>
-            <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600, padding: '0 0.4rem' }}>Khổ in:</span>
             <button
               type="button"
               onClick={() => setPageSize('A4')}
@@ -2273,96 +2285,15 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                 cursor: 'pointer',
                 transition: 'all 0.15s'
               }}
-              title="Khổ in A5 Ngang (210mm x 148mm) cho biểu mẫu ngắn (Phiếu 3S, Nhập xuất kho)"
+              title="Khổ in A5 Ngang (210mm x 148mm)"
             >
               A5 Ngang
             </button>
           </div>
 
-          {!isLocked ? (
-            <>
-              <button 
-                type="button"
-                onClick={handleSaveDraftAndClose} 
-                style={{
-                  background: '#0f172a',
-                  border: '1px solid #0f172a',
-                  color: '#ffffff',
-                  padding: '4px 12px',
-                  borderRadius: '4px',
-                  fontSize: '0.8rem',
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                  transition: 'background-color 0.2s'
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = '#1e293b'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = '#0f172a'; }}
-              >
-                Save
-              </button>
-              <button 
-                type="button"
-                onClick={handleDiscardChangesAndClose} 
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: '#64748b',
-                  padding: '4px 12px',
-                  fontSize: '0.8rem',
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                  transition: 'color 0.2s'
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = '#ef4444'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = '#64748b'; }}
-              >
-                Close
-              </button>
-            </>
-          ) : (
-            <>
-              <button 
-                type="button"
-                onClick={handleCreateNewVersion} 
-                style={{
-                  background: '#0f172a',
-                  border: '1px solid #0f172a',
-                  color: '#ffffff',
-                  padding: '4px 12px',
-                  borderRadius: '4px',
-                  fontSize: '0.8rem',
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                  transition: 'background-color 0.2s'
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = '#1e293b'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = '#0f172a'; }}
-              >
-                Edit
-              </button>
-              <button 
-                type="button"
-                onClick={onClose} 
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: '#64748b',
-                  padding: '4px 12px',
-                  fontSize: '0.8rem',
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                  transition: 'color 0.2s'
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = '#0f172a'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = '#64748b'; }}
-              >
-                Close
-              </button>
-            </>
-          )}
-          
-          <div style={{ borderLeft: '1px solid var(--neutral-border)', height: '16px', margin: '0 0.25rem' }} />
+          <div style={{ borderLeft: '1px solid var(--neutral-border)', height: '16px', margin: '0 0.1rem' }} />
 
+          {/* Export PDF & Print */}
           <button 
             type="button"
             onClick={() => {
@@ -2383,9 +2314,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
               background: 'none',
               border: '1px solid #cbd5e1',
               color: '#334155',
-              padding: '4px 12px',
+              padding: '3px 10px',
               borderRadius: '4px',
-              fontSize: '0.8rem',
+              fontSize: '0.78rem',
               fontWeight: 500,
               cursor: 'pointer',
               display: 'inline-flex',
@@ -2393,14 +2324,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
               gap: '0.35rem',
               transition: 'all 0.2s'
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#f8fafc';
-              e.currentTarget.style.borderColor = '#94a3b8';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'none';
-              e.currentTarget.style.borderColor = '#cbd5e1';
-            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = '#f8fafc'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; }}
             title="Xuất biểu mẫu dạng Fillable PDF tương tác"
           >
             <FileText size={13} />
@@ -2424,9 +2349,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
               background: 'none',
               border: '1px solid #cbd5e1',
               color: '#334155',
-              padding: '4px 12px',
+              padding: '3px 10px',
               borderRadius: '4px',
-              fontSize: '0.8rem',
+              fontSize: '0.78rem',
               fontWeight: 500,
               cursor: 'pointer',
               display: 'inline-flex',
@@ -2434,19 +2359,111 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
               gap: '0.35rem',
               transition: 'all 0.2s'
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = '#f8fafc';
-              e.currentTarget.style.borderColor = '#94a3b8';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'none';
-              e.currentTarget.style.borderColor = '#cbd5e1';
-            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = '#f8fafc'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; }}
             title="In thử hoặc xem trước biểu mẫu"
           >
             <Printer size={13} />
             <span>Print</span>
           </button>
+
+          <div style={{ borderLeft: '1px solid var(--neutral-border)', height: '16px', margin: '0 0.1rem' }} />
+
+          {/* Save & Close Buttons */}
+          {!isLocked ? (
+            <>
+              <button 
+                type="button"
+                disabled={isSaved}
+                onClick={handleSaveDraft} 
+                style={{
+                  background: isSaved ? '#f1f5f9' : '#0f172a',
+                  border: isSaved ? '1px solid #cbd5e1' : '1px solid #0f172a',
+                  color: isSaved ? '#94a3b8' : '#ffffff',
+                  padding: '3px 12px',
+                  borderRadius: '4px',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  cursor: isSaved ? 'default' : 'pointer',
+                  transition: 'all 0.2s',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+                onMouseEnter={(e) => { if (!isSaved) e.currentTarget.style.background = '#1e293b'; }}
+                onMouseLeave={(e) => { if (!isSaved) e.currentTarget.style.background = '#0f172a'; }}
+                title={isSaved ? 'Đã lưu trạng thái mới nhất' : 'Lưu lại thay đổi'}
+              >
+                {isSaved ? (
+                  <>
+                    <Check size={13} strokeWidth={2.5} style={{ color: '#94a3b8' }} />
+                    <span>Saved</span>
+                  </>
+                ) : (
+                  <span>Save</span>
+                )}
+              </button>
+              
+              <button 
+                type="button"
+                onClick={handleDiscardChangesAndClose} 
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#64748b',
+                  padding: '3px 10px',
+                  fontSize: '0.78rem',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  transition: 'color 0.2s'
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = '#ef4444'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = '#64748b'; }}
+              >
+                Close
+              </button>
+            </>
+          ) : (
+            <>
+              <button 
+                type="button"
+                onClick={handleCreateNewVersion} 
+                style={{
+                  background: '#0f172a',
+                  border: '1px solid #0f172a',
+                  color: '#ffffff',
+                  padding: '3px 12px',
+                  borderRadius: '4px',
+                  fontSize: '0.78rem',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s'
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = '#1e293b'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = '#0f172a'; }}
+              >
+                Edit
+              </button>
+              <button 
+                type="button"
+                onClick={onClose} 
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#64748b',
+                  padding: '3px 10px',
+                  fontSize: '0.78rem',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  transition: 'color 0.2s'
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = '#0f172a'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = '#64748b'; }}
+              >
+                Close
+              </button>
+            </>
+          )}
         </div>
       </div>
 

@@ -9,7 +9,7 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-08-26) — Sections 2, 4, 5 & 6 (2-Column Streamlined Layout & Top Section Adders Toolbar). |
+| **Verified At Commit** | (2026-08-26) — Sections 2, 4, 5 & 6 (ISO Top Toolbar Restructuring & Save and Stay Behavior). |
 
 > **⚠️ Architectural note:** FormBuilder has no awareness of which process it belongs to. The `formName` prop is always identical to `formId`. See Section 6.1 and the Technical Debt table.
 
@@ -490,5 +490,6 @@ full diff of any entry below.
 | 2026-08-26 | **INFO_GRID Stepped Splitter & Proportional Column Width Engine:** (1) Added `columnWidths?: number[]` to `LayoutBlockISO`. (2) In `FormBuilder.tsx`, placed `Columns` label and mini pill toggle `[ 1 | 2 | 3 ]` on 1 line. (3) Built interactive `InfoGridSteppedSplitter` component snapping to standard preset notches (9 presets for 2 cols, 8 curated presets for 3 cols) without external preset buttons. (4) Centralized `getInfoGridTemplateColumns` with `minmax(0, ${w}fr)` and integrated across `FormBuilder.tsx`, `FormFiller.tsx`, `ProcessReader.tsx`, `PrintBlankForm.tsx`, `PrintFilledForm.tsx`, and `PrintRecord.tsx`. |
 | 2026-08-26 | **Custom Field Type Card Dropdown with Line/Outline Minimalist Icons:** (1) Replaced native `<select>` in Right Inspector with custom `FieldTypeDropdown` component. (2) Rendered trigger and popover items as clean rounded card rows (`borderRadius: '6px'`) with hover transitions, active highlight (`rgba(13, 148, 136, 0.06)` / `var(--primary)` border), and checkmark (`✓`). (3) Mapped all 11 field types to unified Line/Outline vector icons from `lucide-react` (`size={16} strokeWidth={2}`). (4) Implemented click-outside and Escape key detection for smooth menu management. |
 | 2026-08-26 | **2-Column Streamlined Form Designer & Top Section Adders Toolbar:** (1) Removed redundant Left Sidebar (Layout & Field Elements), freeing 240px width and expanding Canvas area by ~30% for true 100% A4/A5 scale parity. (2) Integrated Section Adders button group (`[+ Info Grid]`, `[+ Table]`, `[+ Matrix]`, `[+ Sign]`, `[+ Label]`, `[+ Title]`, `[Copy...]`) into Top Title Bar. (3) Retained direct in-canvas `+ Add Field Slot` button creating default `text` field with smooth hover effects. (4) Reconfigured designer grid to clean 2-column layout (`gridTemplateColumns: '1fr 300px'`). |
+| 2026-08-26 | **ISO Top Toolbar Restructuring & Save-and-Stay State Machine:** (1) Restructured Top Toolbar into 3 strict non-wrapping flex clusters: [Left Identity] + [Center ISO Section Adders: Title → Info Grid → Table → Matrix → Sign → Label | Copy] + [Right Page Setup: A4/A5 | PDF & Print | Save & Close]. (2) Implemented `Save & Stay` workflow: saving writes to backend and calls `onSave` while preserving the active Form Builder editor without closing. (3) Added automatic `isSaved` change detection via `useEffect`: switches Save button to greyed-out `✓ Saved` when up-to-date and re-activates dark `#0f172a` `Save` on any form edit. |
 
 
