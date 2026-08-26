@@ -32,7 +32,10 @@ import {
   Printer,
   Star,
   SquareDashed,
-  Table as TableIcon
+  Table as TableIcon,
+  CircleDot,
+  ChevronDown,
+  Check
 } from 'lucide-react';
 import PrintBlankForm from './print/PrintBlankForm';
 
@@ -457,6 +460,177 @@ function InfoGridSteppedSplitter({ columns, columnWidths, onChange, disabled }: 
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+export interface FieldTypeOptionItem {
+  value: 'label' | 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo' | 'rating' | 'subtable';
+  label: string;
+  icon: React.ComponentType<{ size?: number; strokeWidth?: number; className?: string; style?: React.CSSProperties }>;
+}
+
+export const FIELD_TYPE_OPTIONS: FieldTypeOptionItem[] = [
+  { value: 'label', label: 'Nhãn (Label)', icon: AlignLeft },
+  { value: 'text', label: 'Text', icon: FileText },
+  { value: 'number', label: 'Number', icon: Hash },
+  { value: 'radio', label: 'Radio', icon: CircleDot },
+  { value: 'checkbox', label: 'Checkbox', icon: CheckSquare },
+  { value: 'subtable', label: 'Subtable', icon: TableIcon },
+  { value: 'date', label: 'Date', icon: Calendar },
+  { value: 'time', label: 'Time', icon: Clock },
+  { value: 'photo', label: 'Photo', icon: Camera },
+  { value: 'signature', label: 'Sign-off', icon: PenTool },
+  { value: 'rating', label: 'Đánh giá sao (Rating)', icon: Star }
+];
+
+interface FieldTypeDropdownProps {
+  value: 'label' | 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo' | 'rating' | 'subtable';
+  onChange: (newType: 'label' | 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo' | 'rating' | 'subtable') => void;
+  disabled?: boolean;
+}
+
+function FieldTypeDropdown({ value, onChange, disabled }: FieldTypeDropdownProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const activeOption = FIELD_TYPE_OPTIONS.find(o => o.value === value) || FIELD_TYPE_OPTIONS[1];
+  const ActiveIcon = activeOption.icon;
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsOpen(false);
+    };
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleKeyDown);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen]);
+
+  return (
+    <div ref={containerRef} style={{ position: 'relative', width: '100%', userSelect: 'none' }}>
+      {/* Trigger Button Card */}
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => setIsOpen(prev => !prev)}
+        style={{
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0.45rem 0.65rem',
+          borderRadius: '6px',
+          border: isOpen ? '1.5px solid var(--primary)' : '1px solid #cbd5e1',
+          background: '#ffffff',
+          color: '#0f172a',
+          cursor: disabled ? 'not-allowed' : 'pointer',
+          fontSize: '0.82rem',
+          fontWeight: 600,
+          boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+          transition: 'all 0.15s ease',
+          outline: 'none'
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+          <ActiveIcon size={16} strokeWidth={2} style={{ color: 'var(--primary)' }} />
+          <span>{activeOption.label}</span>
+        </div>
+        <ChevronDown
+          size={14}
+          strokeWidth={2}
+          style={{
+            color: '#64748b',
+            transform: isOpen ? 'rotate(180deg)' : 'none',
+            transition: 'transform 0.2s ease'
+          }}
+        />
+      </button>
+
+      {/* Popover Card Menu List */}
+      {isOpen && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 'calc(100% + 4px)',
+            left: 0,
+            right: 0,
+            background: '#ffffff',
+            border: '1px solid #e2e8f0',
+            borderRadius: '8px',
+            boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1)',
+            padding: '0.35rem',
+            zIndex: 9999,
+            maxHeight: '340px',
+            overflowY: 'auto',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.25rem'
+          }}
+        >
+          {FIELD_TYPE_OPTIONS.map((opt) => {
+            const Icon = opt.icon;
+            const isSelected = opt.value === value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => {
+                  onChange(opt.value);
+                  setIsOpen(false);
+                }}
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '0.45rem 0.6rem',
+                  borderRadius: '6px',
+                  border: isSelected ? '1.5px solid var(--primary)' : '1px solid #f1f5f9',
+                  background: isSelected ? 'rgba(13, 148, 136, 0.06)' : '#ffffff',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  transition: 'all 0.12s ease',
+                  outline: 'none'
+                }}
+                onMouseEnter={(e) => {
+                  if (!isSelected) {
+                    e.currentTarget.style.background = '#f8fafc';
+                    e.currentTarget.style.borderColor = '#cbd5e1';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isSelected) {
+                    e.currentTarget.style.background = '#ffffff';
+                    e.currentTarget.style.borderColor = '#f1f5f9';
+                  }
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                  <Icon
+                    size={16}
+                    strokeWidth={2}
+                    style={{ color: isSelected ? 'var(--primary)' : '#334155' }}
+                  />
+                  <span style={{ fontSize: '0.82rem', fontWeight: isSelected ? 700 : 500, color: isSelected ? 'var(--primary)' : '#0f172a' }}>
+                    {opt.label}
+                  </span>
+                </div>
+                {isSelected && <Check size={14} strokeWidth={2.5} style={{ color: 'var(--primary)' }} />}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -4332,26 +4506,13 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                   </div>
                 )}
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                  <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Field Type</label>
-                  <select
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.8rem' }}>Field Type</label>
+                  <FieldTypeDropdown
                     disabled={isLocked}
                     value={activeField.type}
-                    onChange={(e) => handleChangeFieldType(activeBlockId!, activeFieldId!, e.target.value as any)}
-                    style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', background: '#fff' }}
-                  >
-                    <option value="label">Nhãn (Label)</option>
-                    <option value="text">Text</option>
-                    <option value="number">Number</option>
-                    <option value="date">Date</option>
-                    <option value="time">Time</option>
-                    <option value="checkbox">Checkbox</option>
-                    <option value="radio">Radio</option>
-                    <option value="signature">Sign-off</option>
-                    <option value="photo">Photo</option>
-                    <option value="rating">Đánh giá sao (Rating)</option>
-                    <option value="subtable">Subtable</option>
-                  </select>
+                    onChange={(newType) => handleChangeFieldType(activeBlockId!, activeFieldId!, newType)}
+                  />
                 </div>
 
                 {activeField.type === 'rating' && (

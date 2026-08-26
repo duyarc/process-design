@@ -9,7 +9,7 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-08-26) — Sections 2, 4, 5 & 6 (INFO_GRID Stepped Splitter & Proportional Column Width Engine). |
+| **Verified At Commit** | (2026-08-26) — Sections 2, 4, 5 & 6 (Custom Field Type Card Dropdown & Line/Outline Minimalist Icons). |
 
 > **⚠️ Architectural note:** FormBuilder has no awareness of which process it belongs to. The `formName` prop is always identical to `formId`. See Section 6.1 and the Technical Debt table.
 
@@ -488,5 +488,6 @@ full diff of any entry below.
 | 2026-08-25 | `c88d543` | **Context-Aware Table Radio and Checkbox Inline Layout Engine:** (1) Implemented `canTableOptionsFitInline` in `formUtils.ts` dynamically estimating character counts and column widths. Short 2-option pairs (*Có / Không*, *Đạt / KĐ*) and compact sets render horizontally side-by-side (`flexDirection: 'row'`, `gap: '4px 12px'`). (2) Long options stack vertically without clipping. (3) Centralized `getCheckboxGridTemplate` in `formUtils.ts`. (4) Uniformly integrated across `FormBuilder.tsx`, `PrintBlankForm.tsx`, `PrintFilledForm.tsx`, `PrintRecord.tsx`, `FormFiller.tsx`, and `ProcessReader.tsx`. |
 | 2026-08-26 | **Layout Block Spacing Optimization & Seamless Table Continuation Engine:** (1) Standardized Gestalt 2.5:1 proximity spacing (`--pw-section-top-gap: 24px`, `--pw-section-bottom-gap: 8px`, `--pw-title-gap: 6px`, `--pw-block-gap: 16px`). (2) Fixed double-spacing collision in `FormFiller.tsx` and `ProcessReader.tsx`. (3) Implemented `isSeamlessTableBlock` in `formUtils.ts`: when a `TABLE` block with `hideHeader === true` and no title immediately follows another `TABLE` block, its top margin collapses to `-1px` / `0px` with `borderTop: 'none'`, seamlessly joining them into a single continuous table across Canvas, Filler, Reader, and Print/PDF export. |
 | 2026-08-26 | **INFO_GRID Stepped Splitter & Proportional Column Width Engine:** (1) Added `columnWidths?: number[]` to `LayoutBlockISO`. (2) In `FormBuilder.tsx`, placed `Columns` label and mini pill toggle `[ 1 | 2 | 3 ]` on 1 line. (3) Built interactive `InfoGridSteppedSplitter` component snapping to standard preset notches (9 presets for 2 cols, 8 curated presets for 3 cols) without external preset buttons. (4) Centralized `getInfoGridTemplateColumns` with `minmax(0, ${w}fr)` and integrated across `FormBuilder.tsx`, `FormFiller.tsx`, `ProcessReader.tsx`, `PrintBlankForm.tsx`, `PrintFilledForm.tsx`, and `PrintRecord.tsx`. |
+| 2026-08-26 | **Custom Field Type Card Dropdown with Line/Outline Minimalist Icons:** (1) Replaced native `<select>` in Right Inspector with custom `FieldTypeDropdown` component. (2) Rendered trigger and popover items as clean rounded card rows (`borderRadius: '6px'`) with hover transitions, active highlight (`rgba(13, 148, 136, 0.06)` / `var(--primary)` border), and checkmark (`✓`). (3) Mapped all 11 field types to unified Line/Outline vector icons from `lucide-react` (`size={16} strokeWidth={2}`). (4) Implemented click-outside and Escape key detection for smooth menu management. |
 
 
