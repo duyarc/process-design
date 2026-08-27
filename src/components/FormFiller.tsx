@@ -215,6 +215,13 @@ function FormFillerInner({
   const [activeSectionIndex, setActiveSectionIndex] = useState<number>(0);
   const [viewMode, setViewMode] = useState<'focus' | 'all'>('focus');
 
+  const rawFormTemplate = (process?.workflowFormsData?.[formName] || null) as FormTemplateISO | null;
+
+  const sections: FormSectionGroup[] = useMemo(() => {
+    if (!rawFormTemplate?.layoutBlocks) return [];
+    return groupBlocksIntoSections(rawFormTemplate.layoutBlocks);
+  }, [rawFormTemplate?.layoutBlocks]);
+
   const handleTogglePublic = () => {
     setIsPublic(prev => !prev);
   };
@@ -543,11 +550,6 @@ function FormFillerInner({
   }
 
   const formTemplate = process.workflowFormsData[formName] as FormTemplateISO;
-
-  const sections: FormSectionGroup[] = useMemo(() => {
-    if (!formTemplate?.layoutBlocks) return [];
-    return groupBlocksIntoSections(formTemplate.layoutBlocks);
-  }, [formTemplate?.layoutBlocks]);
 
   // Photo uploading callback
   const handlePhotoUpload = async (fieldId: string, file: File) => {
