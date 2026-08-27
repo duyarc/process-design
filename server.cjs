@@ -696,6 +696,84 @@ app.get('/api/forms/*formId/history', async (req, res) => {
   }
 });
 
+// GET /api/forms/resolve/*identifier - Resolve a form by slug, form_id, or form_name across standalone forms and processes
+app.get('/api/forms/resolve/*identifier', async (req, res) => {
+  try {
+    const rawParam = Array.isArray(req.params.identifier) ? req.params.identifier[0] : req.params.identifier;
+    const identifier = decodeURIComponent(rawParam).trim();
+    if (!identifier) {
+      return res.status(400).json({ error: 'Missing identifier' });
+    }
+
+    if (dbPool) {
+      // 1. Check standalone forms table
+      const formRes = await dbPool.query(
+        'SELECT * FROM forms WHERE form_id = $1 OR form_name = $1 OR form_title = $1 ORDER BY updated_at DESC LIMIT 1',
+        [identifier]
+      );
+      if (formRes.rows.length > 0) {
+        const formRecord = formRes.rows[0];
+        return res.json({
+          exists: true,
+          processId: 'unlinked',
+          formName: formRecord.form_name || formRecord.form_id,
+          formTitle: formRecord.form_title || formRecord.form_name || formRecord.form_id,
+          version: formRecord.version || 'v0.1',
+          status: formRecord.status || 'DRAFT',
+          isPublic: true
+        });
+      }
+
+      // 2. Check processes table
+      const procRes = await dbPool.query('SELECT id, title, "workflowFormsData" FROM processes');
+      for (const row of procRes.rows) {
+        const wfForms = typeof row.workflowFormsData === 'string'
+          ? JSON.parse(row.workflowFormsData || '{}')
+          : (row.workflowFormsData || {});
+        for (const [fKey, fData] of Object.entries(wfForms)) {
+          if (
+            fKey === identifier ||
+            fData.formId === identifier ||
+            fData.formTitle === identifier ||
+            (fData.formTitle && fData.formTitle.toLowerCase() === identifier.toLowerCase())
+          ) {
+            return res.json({
+              exists: true,
+              processId: row.id,
+              formName: fKey,
+              formTitle: fData.formTitle || fKey,
+              version: fData.version || 'v0.1',
+              status: fData.status || 'DRAFT',
+              isPublic: true
+            });
+          }
+        }
+      }
+
+      return res.status(404).json({ exists: false, error: 'Form not found' });
+    } else {
+      // Offline fallback
+      const forms = readFormsOffline();
+      const form = forms.find(f => f.form_id === identifier || f.form_name === identifier || f.form_title === identifier);
+      if (form) {
+        return res.json({
+          exists: true,
+          processId: 'unlinked',
+          formName: form.form_name || form.form_id,
+          formTitle: form.form_title || form.form_name || form.form_id,
+          version: form.version || 'v0.1',
+          status: form.status || 'DRAFT',
+          isPublic: true
+        });
+      }
+      return res.status(404).json({ exists: false, error: 'Form not found' });
+    }
+  } catch (err) {
+    console.error('Error resolving form:', err);
+    res.status(500).json({ error: 'Failed to resolve form identifier' });
+  }
+});
+
 // GET /api/forms/:formId - Get a specific form version (pass ?version=v0.3 or omit for latest)
 app.get('/api/forms/*formId', async (req, res) => {
   try {

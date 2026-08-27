@@ -408,12 +408,13 @@ function FormFillerInner({
 
   // Copy share link helper
   const handleCopyShareLink = () => {
-    const baseUrl = `${window.location.origin}/?page=fill&processId=${processId}&formName=${encodeURIComponent(formName)}`;
-    const shareUrl = isPublic ? `${baseUrl}&mode=public` : baseUrl;
+    const cleanPublicUrl = `${window.location.origin}/f/${encodeURIComponent(formName)}`;
+    const internalUrl = `${window.location.origin}/?page=fill&processId=${encodeURIComponent(processId)}&formName=${encodeURIComponent(formName)}`;
+    const shareUrl = isPublic ? cleanPublicUrl : internalUrl;
     navigator.clipboard.writeText(shareUrl)
       .then(() => {
         const msg = isPublic 
-          ? '✓ Đã sao chép liên kết công khai! (Khách có thể điền không cần đăng nhập)\n' + shareUrl
+          ? '✓ Đã sao chép liên kết công khai ngắn gọn! (Khách có thể điền trực tiếp không cần đăng nhập)\n' + shareUrl
           : '✓ Đã sao chép liên kết nội bộ! (Yêu cầu đăng nhập)\n' + shareUrl;
         alert(msg);
       })

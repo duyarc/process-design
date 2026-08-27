@@ -49,9 +49,42 @@ const MainApp: React.FC = () => {
   const { currentUser, logout, hasPermission } = useAuth();
 
 
-  // Detect shareable form links in the URL query string (only when logged in)
+  // Public / Short Link State
+  const [resolvedShortForm, setResolvedShortForm] = useState<{ processId: string; formName: string } | null>(null);
+  const [shortLinkLoading, setShortLinkLoading] = useState<boolean>(() => {
+    return window.location.pathname.startsWith('/f/');
+  });
+
+  // Detect and resolve shareable form links (Clean path /f/:identifier or legacy query params)
   // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
+    const pathname = window.location.pathname;
+    if (pathname.startsWith('/f/')) {
+      const rawIdentifier = pathname.replace(/^\/f\//, '').trim();
+      if (rawIdentifier) {
+        fetch(`/api/forms/resolve/${encodeURIComponent(rawIdentifier)}`)
+          .then(res => {
+            if (!res.ok) throw new Error('Form not found');
+            return res.json();
+          })
+          .then(data => {
+            if (data.exists) {
+              setResolvedShortForm({ processId: data.processId, formName: data.formName });
+              setSelectedProcessId(data.processId);
+              setSelectedFormName(data.formName);
+              setPage('fill-form');
+            }
+          })
+          .catch(err => {
+            console.error('Error resolving short form link:', err);
+          })
+          .finally(() => {
+            setShortLinkLoading(false);
+          });
+        return;
+      }
+    }
+
     const params = new URLSearchParams(window.location.search);
     const qPage = params.get('page');
     const qProcessId = params.get('processId');
@@ -130,11 +163,32 @@ const MainApp: React.FC = () => {
   const qProcessId = urlParams.get('processId');
   const qFormName = urlParams.get('formName');
   const qMode = urlParams.get('mode');
-  const isPublicGuestFill = qPage === 'fill' && qMode === 'public' && Boolean(qProcessId && qFormName);
+  const isLegacyPublicGuestFill = qPage === 'fill' && qMode === 'public' && Boolean(qProcessId && qFormName);
+  const isShortPathGuestFill = Boolean(resolvedShortForm);
+
+  if (shortLinkLoading) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--neutral-bg)' }}>
+        <div style={{ fontSize: '0.95rem', color: 'var(--text-secondary)' }}>Đang mở biểu mẫu số...</div>
+      </div>
+    );
+  }
 
   // If not logged in: check if accessing public form link (Guest mode) or redirect to LoginPage
   if (!currentUser) {
-    if (isPublicGuestFill) {
+    if (isShortPathGuestFill && resolvedShortForm) {
+      return (
+        <div className="app-container" style={{ minHeight: '100vh', background: 'var(--neutral-bg)', padding: '2rem 1rem' }}>
+          <FormFiller
+            processId={resolvedShortForm.processId}
+            formName={resolvedShortForm.formName}
+            onBack={() => { window.location.href = '/'; }}
+            isPublicGuestMode={true}
+          />
+        </div>
+      );
+    }
+    if (isLegacyPublicGuestFill) {
       return (
         <div className="app-container" style={{ minHeight: '100vh', background: 'var(--neutral-bg)', padding: '2rem 1rem' }}>
           <FormFiller

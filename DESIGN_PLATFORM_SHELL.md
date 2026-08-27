@@ -9,7 +9,7 @@
 | **Module Name** | Platform Shell |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | `001af74` (2026-07-27) — Sections 4 and 6 checked against source |
+| **Verified At Commit** | (2026-08-27) — Section 3 and App.tsx clean path routing /f/:identifier checked |
 
 ### Quick File Index
 
@@ -215,3 +215,4 @@ lives in `git log`; run `git show <commit>` for the full diff of any entry below
 | 2026-07-28 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Sort Forms List by Last Update Descending in Forms Tab:** Added `getFormTimestamp` sorting logic in `Dashboard.tsx` to sort `formsList` descending by latest `updated_at` timestamp (with tie-breaker by `formTitle` A-Z), placing recently updated form templates at the top of the Forms tab. |
 | 2026-07-09 | `1385a38` | Fix ProcessReader back-navigation by explicitly calling `setPage('dashboard')` — a consequence of state-based routing with no formal router (see Section 7). |
 | 2026-07-09 | `8df2f3c` | Document created. Initial full write based on codebase review. |
+| 2026-08-27 | `CURRENT` | **Clean Path Routing for Form Fill (`/f/:identifier`):** Added direct route resolution in `App.tsx` matching `/f/:identifier`, calling `/api/forms/resolve/:identifier` to render `FormFiller` directly without lengthy query strings. |
