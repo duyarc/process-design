@@ -4649,7 +4649,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.75rem' }}>
-                      Field ID (Mã trường)
+                      ID
                     </label>
                     <button
                       type="button"
@@ -4700,7 +4700,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Label / Check Item</label>
+                    <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Label</label>
                     <div style={{ display: 'flex', gap: '4px' }}>
                       <button
                         type="button"
@@ -4757,13 +4757,15 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                   </div>
                 )}
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                  <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.8rem' }}>Field Type</label>
-                  <FieldTypeDropdown
-                    disabled={isLocked}
-                    value={activeField.type}
-                    onChange={(newType) => handleChangeFieldType(activeBlockId!, activeFieldId!, newType)}
-                  />
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
+                  <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.8rem', minWidth: '40px' }}>Type</label>
+                  <div style={{ flex: 1 }}>
+                    <FieldTypeDropdown
+                      disabled={isLocked}
+                      value={activeField.type}
+                      onChange={(newType) => handleChangeFieldType(activeBlockId!, activeFieldId!, newType)}
+                    />
+                  </div>
                 </div>
 
                 {(activeField.type === 'likert_scale' || (activeField.type as any) === 'rating') && (

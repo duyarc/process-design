@@ -9,7 +9,7 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-08-27) — Section 2 and 3 checked against source (Smart Clean Slug for Field IDs and [🪄 Auto] upgrade button) |
+| **Verified At Commit** | (2026-08-27) — Section 2, 4, 5 (Field Properties Label Modernization & Single-Line Type Row Layout). |
 
 > **⚠️ Architectural note:** FormBuilder has no awareness of which process it belongs to. The `formName` prop is always identical to `formId`. See Section 6.1 and the Technical Debt table.
 
@@ -487,5 +487,6 @@ full diff of any entry below.
 | 2026-08-26 | **Scale Field Type Integration & Frequency-Ordered 11 Field Types Taxonomy:** (1) Integrated `Scale` (`likert_scale`) field type into `INFO_GRID` supporting both Linear Point/Label Scale and Star Rating (`likertVariant: 'scale' | 'stars'`). (2) Cleaned up and consolidated `rating` into `Scale`, reducing conceptual clutter while maintaining 100% backward compatibility. (3) Renamed `"Nhãn (Label)"` to `"Label"`. (4) Reordered the entire 11 Field Types dropdown based on Pareto Frequency of Use: `Text` → `Number` → `Date` → `Time` → `Radio` → `Checkbox` → `Scale` → `Photo` → `Sign-off` → `Subtable` → `Label`. (5) Synchronized interactive rendering and print layout across Canvas, `FormFiller`, `ProcessReader`, `PrintBlankForm`, `PrintFilledForm`, and `PrintRecord`. |
 | 2026-08-26 | **Canvas FieldTypeDropdown Unification & In-Canvas Inline Editing Engine:** (1) Extended `FieldTypeDropdown` component with `compact?: boolean` mode and replaced legacy native `<select>` in Canvas `INFO_GRID` field headers, bringing identical popover card menus, vector icons, and Option B taxonomy to Canvas. (2) Built direct in-canvas inline editing for `Scale` (`likert_scale`): editable label input on each step circle, plus dynamic `+` add step and `✕` remove step buttons. (3) Built direct in-canvas inline editing for `Radio` & `Checkbox`: editable label input beside indicators, plus dynamic `+ Thêm` option and `✕` remove option buttons with real-time 2-way sync with Right Inspector. |
 | 2026-08-27 | **Default Option isPass Standardization:** Changed initial `isPass` value from `false` to `true` when clicking `+ Thêm lựa chọn` across Radio, Checkbox, Table columns, and Subtables in `FormBuilder.tsx`, preventing regular classification fields from being mistakenly flagged as quality inspection defects. |
+| 2026-08-27 | **Field Properties Inspector Modernization:** (1) Renamed `Field ID (Mã trường)` → `ID` with `✨ Tự động` button. (2) Renamed `Label / Check Item` → `Label`. (3) Renamed `Field Type` → `Type` and combined `Type` label and `FieldTypeDropdown` into a single-line horizontal flex row (`justifyContent: 'space-between'`), optimizing vertical space and inspection density. |
 
 
