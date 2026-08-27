@@ -60,16 +60,13 @@ import {
   isSeamlessTableBlock, 
   getInfoGridTemplateColumns,
   groupBlocksIntoSections,
-  computeSectionProgress,
   type FormSectionGroup
 } from '../utils/formUtils';
 import { renderFormattedText } from '../utils/textFormatter';
 import PrintFilledForm from './print/PrintFilledForm';
 import { 
   ArrowLeft, 
-  ArrowRight,
   CheckCircle2, 
-  ChevronDown,
   X, 
   Camera, 
   AlertTriangle, 
@@ -2577,140 +2574,86 @@ function FormFillerInner({
               
               {/* Checklist Groups / Sections */}
               {viewMode === 'focus' && sections.length > 1 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0px' }}>
                   {sections.map((sec, sIdx) => {
                     const isActive = sIdx === activeSectionIndex;
-                    const prog = computeSectionProgress(sec, formValues, tableRowsMap, signValues);
 
-                    if (!isActive) {
-                      // Collapsed Section Header Card
-                      return (
-                        <div
-                          key={sec.id}
-                          onClick={() => setActiveSectionIndex(sIdx)}
-                          style={{
-                            padding: '0.85rem 1.25rem',
-                            borderRadius: '8px',
-                            border: '1px solid var(--neutral-border)',
-                            background: prog.isComplete ? '#fcfdfd' : '#ffffff',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            cursor: 'pointer',
-                            transition: 'background 0.15s ease'
-                          }}
-                          onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(13, 148, 136, 0.04)'}
-                          onMouseLeave={(e) => e.currentTarget.style.background = prog.isComplete ? '#fcfdfd' : '#ffffff'}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            {prog.isComplete ? (
-                              <CheckCircle2 size={16} style={{ color: '#16a34a' }} />
-                            ) : (
-                              <span style={{
-                                width: '20px',
-                                height: '20px',
-                                borderRadius: '50%',
-                                background: '#f1f5f9',
-                                color: '#64748b',
-                                fontSize: '0.75rem',
-                                fontWeight: 700,
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center'
-                              }}>
-                                {sIdx + 1}
-                              </span>
-                            )}
-                            <span style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                              {sec.title}
-                            </span>
-                          </div>
-
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                            {prog.total > 0 && (
-                              <span style={{
-                                fontSize: '0.75rem',
-                                padding: '2px 8px',
-                                borderRadius: '12px',
-                                background: prog.isComplete ? '#dcfce7' : '#f1f5f9',
-                                color: prog.isComplete ? '#15803d' : '#64748b',
-                                fontWeight: 600
-                              }}>
-                                {prog.isComplete ? `✓ Đã xong ${prog.completed}/${prog.total}` : `${prog.completed}/${prog.total} mục`}
-                              </span>
-                            )}
-                            <ChevronDown size={16} style={{ color: '#94a3b8' }} />
-                          </div>
-                        </div>
-                      );
-                    }
-
-                    // Active Expanded Section Card
                     return (
                       <div
                         key={sec.id}
                         id={`form-section-${sec.id}`}
                         style={{
-                          padding: '0.5rem 0',
                           display: 'flex',
                           flexDirection: 'column',
-                          gap: '0px'
+                          gap: '0px',
+                          marginTop: sIdx === 0 ? '0' : '24px',
+                          marginBottom: isActive ? '16px' : '4px'
                         }}
                       >
-                        {sec.blocks.map((block, bIdx) => renderBlock(block, bIdx, sec.blocks))}
+                        {/* Interactive H1 Header Row */}
+                        <div
+                          onClick={() => setActiveSectionIndex(isActive ? -1 : sIdx)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '0.35rem 0',
+                            cursor: 'pointer',
+                            borderBottom: isActive ? 'none' : '1px solid var(--neutral-border)',
+                            paddingBottom: isActive ? '0.25rem' : '0.65rem',
+                            userSelect: 'none',
+                            transition: 'opacity 0.15s ease'
+                          }}
+                          onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.75')}
+                          onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
+                          title={isActive ? 'Bấm để thu gọn' : 'Bấm để mở rộng phân đoạn này'}
+                        >
+                          <h2 style={{
+                            margin: '0 0 4px 0',
+                            fontSize: '1.15rem',
+                            fontWeight: 700,
+                            color: 'var(--text-primary)',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.6px'
+                          }}>
+                            {renderFormattedText(sec.title)}
+                          </h2>
 
-                        {/* Section Navigation Footer */}
-                        <div style={{
-                          marginTop: '2.5rem',
-                          paddingTop: '1.25rem',
-                          borderTop: '1px solid var(--neutral-border)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          gap: '1rem'
-                        }}>
-                          {sIdx > 0 ? (
-                            <button
-                              type="button"
-                              className="btn btn-secondary"
-                              onClick={() => {
-                                setActiveSectionIndex(sIdx - 1);
-                                window.scrollTo({ top: 100, behavior: 'smooth' });
-                              }}
-                              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}
-                            >
-                              <ArrowLeft size={14} />
-                              <span>Quay lại: {sections[sIdx - 1].title}</span>
-                            </button>
-                          ) : <div />}
-
-                          {sIdx < sections.length - 1 ? (
-                            <button
-                              type="button"
-                              className="btn btn-primary"
-                              onClick={() => {
-                                setActiveSectionIndex(sIdx + 1);
-                                window.scrollTo({ top: 100, behavior: 'smooth' });
-                              }}
-                              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', padding: '0.5rem 1.25rem' }}
-                            >
-                              <span>Tiếp tục: {sections[sIdx + 1].title}</span>
-                              <ArrowRight size={14} />
-                            </button>
-                          ) : (
-                            !readOnly && (
-                              <button
-                                type="button"
-                                className="btn btn-primary"
-                                onClick={handleSubmitForm}
-                                disabled={submitting}
-                                style={{ padding: '0.5rem 2rem', fontSize: '0.9rem', fontWeight: 700 }}
-                              >
-                                {submitting ? 'Đang gửi...' : '🚀 Hoàn thành & Gửi phiếu'}
-                              </button>
-                            )
-                          )}
+                          <span style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '4px',
+                            background: isActive ? 'rgba(13, 148, 136, 0.1)' : '#f1f5f9',
+                            color: isActive ? 'var(--primary)' : '#64748b',
+                            fontWeight: 700,
+                            fontSize: '1.1rem',
+                            lineHeight: 1,
+                            flexShrink: 0
+                          }}>
+                            {isActive ? '−' : '+'}
+                          </span>
                         </div>
+
+                        {/* Expanded Child Content (Only when active) */}
+                        {isActive && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0px', marginTop: '4px' }}>
+                            {sec.description && (
+                              <p style={{ margin: '0 0 12px 0', fontSize: '0.85rem', color: 'var(--text-secondary)', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+                                {renderFormattedText(sec.description)}
+                              </p>
+                            )}
+                            {sec.blocks.map((block, bIdx) => {
+                              // Skip the leading SECTION_LABEL since it was already rendered in the interactive H1 header row above
+                              if (bIdx === 0 && block.type === 'SECTION_LABEL' && (block.titleFormat || 'H1') === 'H1') {
+                                return null;
+                              }
+                              return renderBlock(block, bIdx, sec.blocks);
+                            })}
+                          </div>
+                        )}
                       </div>
                     );
                   })}

@@ -356,7 +356,9 @@ export function groupBlocksIntoSections(layoutBlocks: LayoutBlockISO[]): FormSec
   layoutBlocks.forEach((block, idx) => {
     if ((block.type as string) === 'PAGE_BREAK') return;
 
-    const isSectionHeader = block.type === 'SECTION_LABEL' || (idx > 0 && block.titleFormat === 'H1' && block.title);
+    const titleFmt = block.titleFormat || (block.type === 'SECTION_LABEL' ? 'H1' : 'NONE');
+    const isH1 = titleFmt === 'H1' && !!block.title;
+    const isSectionHeader = (block.type === 'SECTION_LABEL' && titleFmt === 'H1') || (idx > 0 && isH1);
 
     if (isSectionHeader) {
       if (currentSection && currentSection.id === 'section_overview' && currentSection.blocks.every(b => b.type === 'TITLE' || !b.fields || b.fields.length === 0)) {
@@ -365,7 +367,7 @@ export function groupBlocksIntoSections(layoutBlocks: LayoutBlockISO[]): FormSec
         currentSection.id = block.id || `section_1`;
         currentSection.title = block.title || `Phần 1`;
         currentSection.description = block.description;
-        currentSection.titleFormat = block.titleFormat || 'H1';
+        currentSection.titleFormat = 'H1';
         currentSection.blocks = [...leadingBlocks, block];
         sectionCounter = 1;
       } else {
@@ -375,7 +377,7 @@ export function groupBlocksIntoSections(layoutBlocks: LayoutBlockISO[]): FormSec
           index: sectionCounter - 1,
           title: block.title || `Phần ${sectionCounter}`,
           description: block.description,
-          titleFormat: block.titleFormat || 'H1',
+          titleFormat: 'H1',
           blocks: [block]
         };
         sections.push(currentSection);
