@@ -1,4 +1,4 @@
-import type { FormFieldISO, TitleFormatISO } from '../types';
+import type { FormFieldISO, TitleFormatISO, LayoutBlockISO } from '../types';
 
 /**
  * Automatically determines whether a checkbox or radio field should render using
@@ -327,6 +327,158 @@ export function generateSmartFieldSlug(label: string, existingIds: string[] = []
 }
 
 export { extractTableFields, extractAllFormFields } from './tableFieldExtractor';
+
+// ============================================================================
+// SECTION GROUPING & PROGRESS TRACKING ENGINE (Focus Mode & Accordion)
+// ============================================================================
+
+export interface FormSectionGroup {
+  id: string;
+  index: number;
+  title: string;
+  description?: string;
+  titleFormat: TitleFormatISO;
+  blocks: LayoutBlockISO[];
+}
+
+/**
+ * Gom nhóm danh sách layoutBlocks thành các FormSectionGroup theo mốc SECTION_LABEL (hoặc block có titleFormat === 'H1').
+ * Nếu đầu biểu mẫu có các block trước SECTION_LABEL đầu tiên (ví dụ TITLE, INFO_GRID thông tin chung),
+ * chúng được gom thành Section 0: "Thông tin chung".
+ */
+export function groupBlocksIntoSections(layoutBlocks: LayoutBlockISO[]): FormSectionGroup[] {
+  if (!layoutBlocks || layoutBlocks.length === 0) return [];
+
+  const sections: FormSectionGroup[] = [];
+  let currentSection: FormSectionGroup | null = null;
+  let sectionCounter = 0;
+
+  layoutBlocks.forEach((block, idx) => {
+    if ((block.type as string) === 'PAGE_BREAK') return;
+
+    const isSectionHeader = block.type === 'SECTION_LABEL' || (idx > 0 && block.titleFormat === 'H1' && block.title);
+
+    if (isSectionHeader) {
+      sectionCounter++;
+      currentSection = {
+        id: block.id || `section_${sectionCounter}`,
+        index: sectionCounter - 1,
+        title: block.title || `Phần ${sectionCounter}`,
+        description: block.description,
+        titleFormat: block.titleFormat || 'H1',
+        blocks: [block]
+      };
+      sections.push(currentSection);
+    } else {
+      if (!currentSection) {
+        sectionCounter++;
+        currentSection = {
+          id: 'section_overview',
+          index: 0,
+          title: 'Thông tin chung',
+          titleFormat: 'H1',
+          blocks: []
+        };
+        sections.push(currentSection);
+      }
+      currentSection.blocks.push(block);
+    }
+  });
+
+  sections.forEach((s, idx) => {
+    s.index = idx;
+  });
+
+  return sections;
+}
+
+/**
+ * Tính toán tiến độ nhập liệu (số trường đã điền / tổng số trường) trong một Section.
+ */
+export function computeSectionProgress(
+  section: FormSectionGroup,
+  formValues: Record<string, any>,
+  tableRowsMap?: Record<string, any[]>,
+  signValues?: Record<string, any>
+): { completed: number; total: number; isComplete: boolean } {
+  let total = 0;
+  let completed = 0;
+
+  section.blocks.forEach(block => {
+    if (block.type === 'TITLE' || block.type === 'SECTION_LABEL') return;
+
+    if (block.type === 'INFO_GRID' || block.type === 'CHECKLIST_TABLE') {
+      (block.fields || []).forEach(f => {
+        if ((f.type as string) === 'label' || (f.type as string) === 'divider') return;
+        total++;
+        const val = formValues[f.id];
+        if (val !== undefined && val !== null && String(val).trim() !== '') {
+          completed++;
+        }
+      });
+    } else if (block.type === 'SIGN') {
+      (block.fields || []).forEach(f => {
+        if (!f.checkItem || f.checkItem.trim() === '') return;
+        total++;
+        const signVal = signValues?.[f.id] || formValues[f.id];
+        if (signVal && (typeof signVal === 'object' ? signVal.name : String(signVal).trim() !== '')) {
+          completed++;
+        }
+      });
+    } else if (block.type === 'TABLE') {
+      const rows = tableRowsMap?.[block.id] || block.tableRows || [];
+      const cols = block.tableColumns || [];
+      const isLikert = (block as any).isLikert || (block as any).tableConfig?.isLikert;
+
+      if (isLikert) {
+        rows.forEach((r: any) => {
+          if (!r.isHeader) {
+            total++;
+            const cellKey = `${block.id}_${r.id}_likert`;
+            const val = formValues[cellKey];
+            if (val !== undefined && val !== null && String(val).trim() !== '') {
+              completed++;
+            }
+          }
+        });
+      } else {
+        rows.forEach((r: any) => {
+          if (!r.isHeader) {
+            cols.forEach((col: any) => {
+              if (col.id === 'col_stt' || col.id === 'col_action') return;
+              total++;
+              const cellKey = `${block.id}_${r.id}_${col.id}`;
+              const val = formValues[cellKey];
+              if (val !== undefined && val !== null && String(val).trim() !== '') {
+                completed++;
+              }
+            });
+          }
+        });
+      }
+    } else if (block.type === 'MATRIX_TABLE' && block.matrixConfig) {
+      const cfg = block.matrixConfig;
+      const rowCount = cfg.rowCount || 0;
+      const colCount = (cfg.columns || []).length;
+      for (let r = 0; r < rowCount; r++) {
+        for (let c = 0; c < colCount; c++) {
+          total++;
+          const cellKey = `${block.id}_${r}_${c}`;
+          const val = formValues[cellKey];
+          if (val !== undefined && val !== null && String(val).trim() !== '') {
+            completed++;
+          }
+        }
+      }
+    }
+  });
+
+  return {
+    total,
+    completed,
+    isComplete: total > 0 ? completed >= total : true
+  };
+}
 
 
 

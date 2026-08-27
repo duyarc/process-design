@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, Component } from 'react';
+import React, { useState, useEffect, useRef, useMemo, Component } from 'react';
 import type { Process, FormTemplateISO, SubmissionFieldSnapshot, Submission } from '../types';
 
 interface ErrorBoundaryProps {
@@ -49,13 +49,30 @@ class FormErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState
   }
 }
 import { formatFormVersion, getColStyleWidth } from '../types';
-import { sanitizeLabel, getEffectiveTitleFormat, validateFormSubmission, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock, getInfoGridTemplateColumns } from '../utils/formUtils';
+import { 
+  sanitizeLabel, 
+  getEffectiveTitleFormat, 
+  validateFormSubmission, 
+  getAutoCheckboxLayoutMode, 
+  hasLongOptions, 
+  canTableOptionsFitInline, 
+  getCheckboxGridTemplate, 
+  isSeamlessTableBlock, 
+  getInfoGridTemplateColumns,
+  groupBlocksIntoSections,
+  computeSectionProgress,
+  type FormSectionGroup
+} from '../utils/formUtils';
 import { renderFormattedText } from '../utils/textFormatter';
 import PrintBlankForm from './print/PrintBlankForm';
 import PrintFilledForm from './print/PrintFilledForm';
 import { 
   ArrowLeft, 
+  ArrowRight,
   CheckCircle2, 
+  Circle,
+  CircleDot,
+  ChevronDown,
   X, 
   Camera, 
   AlertTriangle, 
@@ -193,6 +210,10 @@ function FormFillerInner({
     const params = new URLSearchParams(window.location.search);
     return params.get('mode') === 'public';
   });
+
+  // ── Section Grouping & Focus / Accordion Mode ──
+  const [activeSectionIndex, setActiveSectionIndex] = useState<number>(0);
+  const [viewMode, setViewMode] = useState<'focus' | 'all'>('focus');
 
   const handleTogglePublic = () => {
     setIsPublic(prev => !prev);
@@ -522,6 +543,11 @@ function FormFillerInner({
   }
 
   const formTemplate = process.workflowFormsData[formName] as FormTemplateISO;
+
+  const sections: FormSectionGroup[] = useMemo(() => {
+    if (!formTemplate?.layoutBlocks) return [];
+    return groupBlocksIntoSections(formTemplate.layoutBlocks);
+  }, [formTemplate?.layoutBlocks]);
 
   // Photo uploading callback
   const handlePhotoUpload = async (fieldId: string, file: File) => {
@@ -878,198 +904,32 @@ function FormFillerInner({
     );
   }
 
-  return (
-    <div style={{ maxWidth: '800px', margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      
-      {/* Read-Only Mode Banner */}
-      {readOnly && initialSubmission && (
-        <div style={{
-          background: '#f8fafc',
-          border: '1px solid var(--neutral-border)',
-          padding: '0.85rem 1.25rem',
-          borderRadius: '8px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: '1rem',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+  const renderBlock = (block: any, index: number, currentList?: any[]) => {
+    const list = currentList || formTemplate?.layoutBlocks || [];
+    if (block.type === 'PAGE_BREAK') return null;
+    if ((!block.fields || block.fields.length === 0) && block.type !== 'TITLE' && block.type !== 'SECTION_LABEL' && block.type !== 'TABLE') return null;
+
+    const prevBlock = index > 0 ? list[index - 1] : undefined;
+    const isSeamless = isSeamlessTableBlock(block, prevBlock);
+    const isPrevSection = prevBlock?.type === 'SECTION_LABEL' && getEffectiveTitleFormat(prevBlock) !== 'NONE';
+
+    if (block.type === 'SECTION_LABEL') {
+      const titleFmt = getEffectiveTitleFormat(block);
+      if (titleFmt === 'NONE') return null;
+      return (
+        <div key={block.id} id={`form-section-${block.id}`} style={titleFmt === 'H1' ? {
+          padding: '0.15rem 0',
+          marginTop: index === 0 ? '0' : '24px',
+          marginBottom: '8px'
+        } : titleFmt === 'H2' ? {
+          padding: '0.15rem 0',
+          marginTop: index === 0 ? '0' : '24px',
+          marginBottom: '8px'
+        } : {
+          padding: '0.2rem 0',
+          marginTop: index === 0 ? '0' : '20px',
+          marginBottom: '6px'
         }}>
-          <div>
-            <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.5px' }}>Chế độ xem toàn văn biểu mẫu (Chỉ đọc)</span>
-            <div style={{ fontSize: '0.92rem', fontWeight: 600, color: 'var(--text-primary)', marginTop: '0.15rem' }}>
-              Mã bản ghi: <code style={{ fontFamily: 'monospace', color: 'var(--primary)' }}>{initialSubmission.id}</code>
-              <span style={{ marginLeft: '0.75rem', fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 400 }}>
-                Người điền: <strong style={{ color: 'var(--text-primary)' }}>{initialSubmission.operatorId}</strong> — Ngày nộp: {new Date(initialSubmission.submittedAt).toLocaleString('vi-VN')}
-              </span>
-            </div>
-          </div>
-          <span 
-            className={`badge ${initialSubmission.status === 'PASS' ? 'badge-success' : 'badge-danger'}`}
-            style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem' }}
-          >
-            {initialSubmission.status}
-          </span>
-        </div>
-      )}
-
-      {/* Standalone Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          {!isPublicGuestMode && (
-            <button className="btn btn-secondary btn-sm" onClick={onBack} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-              <ArrowLeft size={14} /> Back
-            </button>
-          )}
-        </div>
-
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-          <button 
-            className="btn btn-secondary btn-sm" 
-            onClick={() => {
-              setAutoExportPdf(true);
-              setShowPrintBlank(true);
-            }}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.35rem 0.75rem' }}
-            title="Tải biểu mẫu dạng Fillable PDF tương tác"
-          >
-            <FileText size={13} />
-            <span>PDF</span>
-          </button>
-
-          <button 
-            className="btn btn-secondary btn-sm" 
-            onClick={() => setShowPrintBlank(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.35rem 0.75rem' }}
-            title="In form trắng A4 để ghi tay"
-          >
-            <Printer size={13} />
-            <span>In form trắng</span>
-          </button>
-
-          <button 
-            className="btn btn-secondary btn-sm" 
-            onClick={() => {
-              const signBlocks = formTemplate?.layoutBlocks?.filter((b: any) => b.type === 'SIGN' && b.fields.length > 0) || [];
-              const mandatorySignField = signBlocks[0]?.fields[0];
-              const effectiveOperatorId = mandatorySignField && signValues[mandatorySignField.id]
-                ? signValues[mandatorySignField.id]!.name
-                : operatorId;
-
-              const { snapshots, isOverallPass } = buildSubmissionSnapshots(true);
-              const allMediaKeys: string[] = [];
-              Object.values(uploadedPhotos).forEach(keys => {
-                allMediaKeys.push(...keys);
-              });
-
-              const draftSub: Submission = {
-                id: editSubmissionId || `draft_${Date.now()}`,
-                processId: processId,
-                formId: formTemplate.formId,
-                formVersion: formTemplate.version,
-                operatorId: effectiveOperatorId || 'DRAFT',
-                submittedAt: new Date().toISOString(),
-                status: isOverallPass ? 'PASS' : 'ABNORMALITY',
-                formData: snapshots,
-                mediaUrls: editSubmissionId ? (initialSubmission?.mediaUrls || []) : allMediaKeys
-              };
-              if (editSubmissionId && allMediaKeys.length > 0) {
-                const uniqueKeys = new Set([...(initialSubmission?.mediaUrls || []), ...allMediaKeys]);
-                draftSub.mediaUrls = Array.from(uniqueKeys);
-              }
-              setPrintCurrentSubmission(draftSub);
-            }}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.35rem 0.75rem' }}
-            title="In bản khai hiện tại cùng dữ liệu đang nhập"
-          >
-            <Printer size={13} style={{ color: '#0d9488' }} />
-            <span>In bản khai</span>
-          </button>
-
-          {/* Smart Status Pill & Copy Link Button (Only for internal users) */}
-          {!isPublicGuestMode && !readOnly && (
-            <div style={{
-              display: 'inline-flex',
-              alignItems: 'stretch',
-              borderRadius: '6px',
-              border: isPublic ? '1px solid #0d9488' : '1px solid var(--neutral-border)',
-              overflow: 'hidden',
-              fontSize: '0.78rem',
-              background: isPublic ? '#f0fdf4' : '#ffffff'
-            }}>
-              <button
-                type="button"
-                onClick={handleTogglePublic}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.35rem',
-                  padding: '0.35rem 0.65rem',
-                  border: 'none',
-                  background: isPublic ? '#ccfbf1' : '#f1f5f9',
-                  color: isPublic ? '#0f766e' : 'var(--text-secondary)',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  borderRight: '1px solid var(--neutral-border)'
-                }}
-                title={isPublic ? 'Bật công khai (Click để chuyển về cần đăng nhập)' : 'Tắt công khai (Click để mở công khai)'}
-              >
-                {isPublic ? <Globe size={13} style={{ color: '#0d9488' }} /> : <Lock size={13} />}
-                <span>{isPublic ? 'Link công khai' : 'Cần đăng nhập'}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={handleCopyShareLink}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.35rem',
-                  padding: '0.35rem 0.75rem',
-                  border: 'none',
-                  background: 'transparent',
-                  color: 'var(--text-primary)',
-                  fontWeight: 600,
-                  cursor: 'pointer'
-                }}
-                title="Sao chép đường dẫn điền phiếu"
-              >
-                <Link2 size={13} />
-                <span>Sao chép link</span>
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Main Form Paper Card */}
-      <fieldset disabled={readOnly} style={{ border: 'none', padding: 0, margin: 0, minWidth: 0 }}>
-      <div className="paper-card" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '0px' }}>
-        {/* Checklist Groups */}
-        {formTemplate.layoutBlocks && formTemplate.layoutBlocks.map((block: any, index: number) => {
-          if (block.type === 'PAGE_BREAK') return null;
-          if ((!block.fields || block.fields.length === 0) && block.type !== 'TITLE' && block.type !== 'SECTION_LABEL' && block.type !== 'TABLE') return null;
-
-          const prevBlock = index > 0 ? formTemplate.layoutBlocks[index - 1] : undefined;
-          const isSeamless = isSeamlessTableBlock(block, prevBlock);
-          const isPrevSection = prevBlock?.type === 'SECTION_LABEL' && getEffectiveTitleFormat(prevBlock) !== 'NONE';
-
-          if (block.type === 'SECTION_LABEL') {
-            const titleFmt = getEffectiveTitleFormat(block);
-            if (titleFmt === 'NONE') return null;
-            return (
-              <div key={block.id} style={titleFmt === 'H1' ? {
-                padding: '0.15rem 0',
-                marginTop: index === 0 ? '0' : '24px',
-                marginBottom: '8px'
-              } : titleFmt === 'H2' ? {
-                padding: '0.15rem 0',
-                marginTop: index === 0 ? '0' : '24px',
-                marginBottom: '8px'
-              } : {
-                padding: '0.2rem 0',
-                marginTop: index === 0 ? '0' : '20px',
-                marginBottom: '6px'
-              }}>
                 {titleFmt === 'H1' ? (
                   <h2 style={{
                     margin: '0 0 4px 0',
@@ -2538,7 +2398,443 @@ function FormFillerInner({
 
             </div>
           );
-        })}
+        };
+
+  return (
+    <div style={{ maxWidth: '800px', margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      
+      {/* Read-Only Mode Banner */}
+      {readOnly && initialSubmission && (
+        <div style={{
+          background: '#f8fafc',
+          border: '1px solid var(--neutral-border)',
+          padding: '0.85rem 1.25rem',
+          borderRadius: '8px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: '1rem',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+        }}>
+          <div>
+            <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.5px' }}>Chế độ xem toàn văn biểu mẫu (Chỉ đọc)</span>
+            <div style={{ fontSize: '0.92rem', fontWeight: 600, color: 'var(--text-primary)', marginTop: '0.15rem' }}>
+              Mã bản ghi: <code style={{ fontFamily: 'monospace', color: 'var(--primary)' }}>{initialSubmission.id}</code>
+              <span style={{ marginLeft: '0.75rem', fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 400 }}>
+                Người điền: <strong style={{ color: 'var(--text-primary)' }}>{initialSubmission.operatorId}</strong> — Ngày nộp: {new Date(initialSubmission.submittedAt).toLocaleString('vi-VN')}
+              </span>
+            </div>
+          </div>
+          <span 
+            className={`badge ${initialSubmission.status === 'PASS' ? 'badge-success' : 'badge-danger'}`}
+            style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem' }}
+          >
+            {initialSubmission.status}
+          </span>
+        </div>
+      )}
+
+      {/* Standalone Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          {!isPublicGuestMode && (
+            <button className="btn btn-secondary btn-sm" onClick={onBack} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              <ArrowLeft size={14} /> Back
+            </button>
+          )}
+        </div>
+
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <button 
+            className="btn btn-secondary btn-sm" 
+            onClick={() => {
+              setAutoExportPdf(true);
+              setShowPrintBlank(true);
+            }}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.35rem 0.75rem' }}
+            title="Tải biểu mẫu dạng Fillable PDF tương tác"
+          >
+            <FileText size={13} />
+            <span>PDF</span>
+          </button>
+
+          <button 
+            className="btn btn-secondary btn-sm" 
+            onClick={() => setShowPrintBlank(true)}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.35rem 0.75rem' }}
+            title="In form trắng A4 để ghi tay"
+          >
+            <Printer size={13} />
+            <span>In form trắng</span>
+          </button>
+
+          <button 
+            className="btn btn-secondary btn-sm" 
+            onClick={() => {
+              const signBlocks = formTemplate?.layoutBlocks?.filter((b: any) => b.type === 'SIGN' && b.fields.length > 0) || [];
+              const mandatorySignField = signBlocks[0]?.fields[0];
+              const effectiveOperatorId = mandatorySignField && signValues[mandatorySignField.id]
+                ? signValues[mandatorySignField.id]!.name
+                : operatorId;
+
+              const { snapshots, isOverallPass } = buildSubmissionSnapshots(true);
+              const allMediaKeys: string[] = [];
+              Object.values(uploadedPhotos).forEach(keys => {
+                allMediaKeys.push(...keys);
+              });
+
+              const draftSub: Submission = {
+                id: editSubmissionId || `draft_${Date.now()}`,
+                processId: processId,
+                formId: formTemplate.formId,
+                formVersion: formTemplate.version,
+                operatorId: effectiveOperatorId || 'DRAFT',
+                submittedAt: new Date().toISOString(),
+                status: isOverallPass ? 'PASS' : 'ABNORMALITY',
+                formData: snapshots,
+                mediaUrls: editSubmissionId ? (initialSubmission?.mediaUrls || []) : allMediaKeys
+              };
+              if (editSubmissionId && allMediaKeys.length > 0) {
+                const uniqueKeys = new Set([...(initialSubmission?.mediaUrls || []), ...allMediaKeys]);
+                draftSub.mediaUrls = Array.from(uniqueKeys);
+              }
+              setPrintCurrentSubmission(draftSub);
+            }}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.35rem 0.75rem' }}
+            title="In bản khai hiện tại cùng dữ liệu đang nhập"
+          >
+            <Printer size={13} style={{ color: '#0d9488' }} />
+            <span>In bản khai</span>
+          </button>
+
+          {/* Smart Status Pill & Copy Link Button (Only for internal users) */}
+          {!isPublicGuestMode && !readOnly && (
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'stretch',
+              borderRadius: '6px',
+              border: isPublic ? '1px solid #0d9488' : '1px solid var(--neutral-border)',
+              overflow: 'hidden',
+              fontSize: '0.78rem',
+              background: isPublic ? '#f0fdf4' : '#ffffff'
+            }}>
+              <button
+                type="button"
+                onClick={handleTogglePublic}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  padding: '0.35rem 0.65rem',
+                  border: 'none',
+                  background: isPublic ? '#ccfbf1' : '#f1f5f9',
+                  color: isPublic ? '#0f766e' : 'var(--text-secondary)',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  borderRight: '1px solid var(--neutral-border)'
+                }}
+                title={isPublic ? 'Bật công khai (Click để chuyển về cần đăng nhập)' : 'Tắt công khai (Click để mở công khai)'}
+              >
+                {isPublic ? <Globe size={13} style={{ color: '#0d9488' }} /> : <Lock size={13} />}
+                <span>{isPublic ? 'Link công khai' : 'Cần đăng nhập'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleCopyShareLink}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  padding: '0.35rem 0.75rem',
+                  border: 'none',
+                  background: 'transparent',
+                  color: 'var(--text-primary)',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+                title="Sao chép đường dẫn điền phiếu"
+              >
+                <Link2 size={13} />
+                <span>Sao chép link</span>
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+
+            {/* ── STICKY SECTION STEPPER TRACKER & MODE SWITCHER ── */}
+            {sections.length > 1 && (
+              <div style={{
+                position: 'sticky',
+                top: '12px',
+                zIndex: 90,
+                background: 'rgba(255, 255, 255, 0.94)',
+                backdropFilter: 'blur(12px)',
+                borderRadius: '10px',
+                padding: '0.6rem 1rem',
+                marginBottom: '1rem',
+                border: '1px solid var(--neutral-border)',
+                boxShadow: '0 4px 16px rgba(0, 0, 0, 0.04)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '1rem',
+                overflowX: 'auto'
+              }}>
+                {/* Stepper Pills Container */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flex: 1, overflowX: 'auto', minWidth: 0 }}>
+                  {sections.map((sec, sIdx) => {
+                    const prog = computeSectionProgress(sec, formValues, tableRowsMap, signValues);
+                    const isActive = sIdx === activeSectionIndex;
+                    return (
+                      <button
+                        key={sec.id}
+                        type="button"
+                        onClick={() => {
+                          setActiveSectionIndex(sIdx);
+                          if (viewMode === 'all') {
+                            const el = document.getElementById(`form-section-${sec.id}`);
+                            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                          }
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.35rem',
+                          padding: '0.35rem 0.65rem',
+                          borderRadius: '6px',
+                          border: isActive ? '1.5px solid var(--primary)' : '1px solid var(--neutral-border)',
+                          background: isActive ? 'rgba(13, 148, 136, 0.08)' : prog.isComplete ? '#f0fdf4' : '#ffffff',
+                          color: isActive ? 'var(--primary)' : prog.isComplete ? '#15803d' : 'var(--text-secondary)',
+                          fontSize: '0.8rem',
+                          fontWeight: isActive ? 700 : 500,
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap',
+                          transition: 'all 0.15s ease',
+                          flexShrink: 0
+                        }}
+                      >
+                        {prog.isComplete ? (
+                          <CheckCircle2 size={13} style={{ color: '#16a34a' }} />
+                        ) : isActive ? (
+                          <CircleDot size={13} style={{ color: 'var(--primary)' }} />
+                        ) : (
+                          <Circle size={13} style={{ color: '#94a3b8' }} />
+                        )}
+                        <span>{sec.title}</span>
+                        {prog.total > 0 && (
+                          <span style={{
+                            fontSize: '0.72rem',
+                            padding: '1px 5px',
+                            borderRadius: '4px',
+                            background: isActive ? 'var(--primary)' : prog.isComplete ? '#bbf7d0' : '#f1f5f9',
+                            color: isActive ? '#ffffff' : prog.isComplete ? '#166534' : '#64748b',
+                            fontWeight: 600
+                          }}>
+                            {prog.completed}/{prog.total}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* View Mode Toggle Pill */}
+                <div style={{
+                  display: 'inline-flex',
+                  borderRadius: '6px',
+                  border: '1px solid var(--neutral-border)',
+                  background: '#f8fafc',
+                  padding: '2px',
+                  fontSize: '0.75rem',
+                  flexShrink: 0
+                }}>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('focus')}
+                    style={{
+                      padding: '0.25rem 0.6rem',
+                      borderRadius: '4px',
+                      border: 'none',
+                      background: viewMode === 'focus' ? '#ffffff' : 'transparent',
+                      color: viewMode === 'focus' ? 'var(--primary)' : 'var(--text-secondary)',
+                      fontWeight: viewMode === 'focus' ? 700 : 500,
+                      boxShadow: viewMode === 'focus' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    📑 Từng phần
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('all')}
+                    style={{
+                      padding: '0.25rem 0.6rem',
+                      borderRadius: '4px',
+                      border: 'none',
+                      background: viewMode === 'all' ? '#ffffff' : 'transparent',
+                      color: viewMode === 'all' ? 'var(--primary)' : 'var(--text-secondary)',
+                      fontWeight: viewMode === 'all' ? 700 : 500,
+                      boxShadow: viewMode === 'all' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    📄 Toàn bộ
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Main Form Paper Card */}
+            <fieldset disabled={readOnly} style={{ border: 'none', padding: 0, margin: 0, minWidth: 0 }}>
+            <div className="paper-card" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '0px' }}>
+              
+              {/* Checklist Groups / Sections */}
+              {viewMode === 'focus' && sections.length > 1 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {sections.map((sec, sIdx) => {
+                    const isActive = sIdx === activeSectionIndex;
+                    const prog = computeSectionProgress(sec, formValues, tableRowsMap, signValues);
+
+                    if (!isActive) {
+                      // Collapsed Section Header Card
+                      return (
+                        <div
+                          key={sec.id}
+                          onClick={() => setActiveSectionIndex(sIdx)}
+                          style={{
+                            padding: '0.85rem 1.25rem',
+                            borderRadius: '8px',
+                            border: '1px solid var(--neutral-border)',
+                            background: prog.isComplete ? '#fcfdfd' : '#ffffff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            cursor: 'pointer',
+                            transition: 'background 0.15s ease'
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(13, 148, 136, 0.04)'}
+                          onMouseLeave={(e) => e.currentTarget.style.background = prog.isComplete ? '#fcfdfd' : '#ffffff'}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            {prog.isComplete ? (
+                              <CheckCircle2 size={16} style={{ color: '#16a34a' }} />
+                            ) : (
+                              <span style={{
+                                width: '20px',
+                                height: '20px',
+                                borderRadius: '50%',
+                                background: '#f1f5f9',
+                                color: '#64748b',
+                                fontSize: '0.75rem',
+                                fontWeight: 700,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                              }}>
+                                {sIdx + 1}
+                              </span>
+                            )}
+                            <span style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                              {sec.title}
+                            </span>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                            {prog.total > 0 && (
+                              <span style={{
+                                fontSize: '0.75rem',
+                                padding: '2px 8px',
+                                borderRadius: '12px',
+                                background: prog.isComplete ? '#dcfce7' : '#f1f5f9',
+                                color: prog.isComplete ? '#15803d' : '#64748b',
+                                fontWeight: 600
+                              }}>
+                                {prog.isComplete ? `✓ Đã xong ${prog.completed}/${prog.total}` : `${prog.completed}/${prog.total} mục`}
+                              </span>
+                            )}
+                            <ChevronDown size={16} style={{ color: '#94a3b8' }} />
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    // Active Expanded Section Card
+                    return (
+                      <div
+                        key={sec.id}
+                        id={`form-section-${sec.id}`}
+                        style={{
+                          padding: '0.5rem 0',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '0px'
+                        }}
+                      >
+                        {sec.blocks.map((block, bIdx) => renderBlock(block, bIdx, sec.blocks))}
+
+                        {/* Section Navigation Footer */}
+                        <div style={{
+                          marginTop: '2.5rem',
+                          paddingTop: '1.25rem',
+                          borderTop: '1px solid var(--neutral-border)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '1rem'
+                        }}>
+                          {sIdx > 0 ? (
+                            <button
+                              type="button"
+                              className="btn btn-secondary"
+                              onClick={() => {
+                                setActiveSectionIndex(sIdx - 1);
+                                window.scrollTo({ top: 100, behavior: 'smooth' });
+                              }}
+                              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem' }}
+                            >
+                              <ArrowLeft size={14} />
+                              <span>Quay lại: {sections[sIdx - 1].title}</span>
+                            </button>
+                          ) : <div />}
+
+                          {sIdx < sections.length - 1 ? (
+                            <button
+                              type="button"
+                              className="btn btn-primary"
+                              onClick={() => {
+                                setActiveSectionIndex(sIdx + 1);
+                                window.scrollTo({ top: 100, behavior: 'smooth' });
+                              }}
+                              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', padding: '0.5rem 1.25rem' }}
+                            >
+                              <span>Tiếp tục: {sections[sIdx + 1].title}</span>
+                              <ArrowRight size={14} />
+                            </button>
+                          ) : (
+                            !readOnly && (
+                              <button
+                                type="button"
+                                className="btn btn-primary"
+                                onClick={handleSubmitForm}
+                                disabled={submitting}
+                                style={{ padding: '0.5rem 2rem', fontSize: '0.9rem', fontWeight: 700 }}
+                              >
+                                {submitting ? 'Đang gửi...' : '🚀 Hoàn thành & Gửi phiếu'}
+                              </button>
+                            )
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                /* Continuous / All View Mode */
+                formTemplate?.layoutBlocks && formTemplate.layoutBlocks.map((block: any, index: number) => renderBlock(block, index, formTemplate.layoutBlocks))
+              )}
 
         {/* Fallback Operator Identification (Only shown at bottom if form has NO SIGN block) */}
         {(() => {
