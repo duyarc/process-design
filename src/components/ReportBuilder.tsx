@@ -3,6 +3,7 @@ import type {
   ReportTemplateISO,
   ReportBlockConfig,
   ReportBlockType,
+  ReportRevisionEntry,
   FormTemplateISO,
   FormFieldISO,
   Submission,
@@ -22,10 +23,73 @@ import {
   ArrowDown,
   Printer,
   Save,
-  CheckCircle,
-  RotateCcw,
-  Search
+  Clock,
+  Search,
+  Sparkles,
+  Plus
 } from 'lucide-react';
+
+const generateReportChangeSummary = (
+  initialBlocks?: ReportBlockConfig[],
+  currentBlocks?: ReportBlockConfig[],
+  history?: ReportRevisionEntry[]
+): string => {
+  const hasActiveVersion = (history || []).some(
+    h => h.status === 'ACTIVE' || h.change?.includes('Published') || h.change?.includes('Ban hành')
+  );
+
+  if (!hasActiveVersion) {
+    return 'Ban hành cấu hình báo cáo lần đầu';
+  }
+
+  const current = currentBlocks || [];
+  const initial = initialBlocks || [];
+  const changes: string[] = [];
+
+  const initialBlockMap = new Map<string, ReportBlockConfig>();
+  initial.forEach(b => initialBlockMap.set(b.id, b));
+
+  const currentBlockMap = new Map<string, ReportBlockConfig>();
+  current.forEach(b => currentBlockMap.set(b.id, b));
+
+  // 1. Detect added blocks
+  current.forEach(b => {
+    if (!initialBlockMap.has(b.id)) {
+      const groupTitle = b.title || b.type;
+      changes.push(`[BỔ SUNG] Bổ sung khối mới: "${groupTitle}"`);
+    }
+  });
+
+  // 2. Detect removed blocks
+  initial.forEach(b => {
+    if (!currentBlockMap.has(b.id)) {
+      const groupTitle = b.title || b.type;
+      changes.push(`[XOÁ] Xoá khối: "${groupTitle}"`);
+    }
+  });
+
+  // 3. Detect updated blocks / rules
+  current.forEach(b => {
+    const orig = initialBlockMap.get(b.id);
+    if (orig) {
+      if (b.title !== orig.title) {
+        changes.push(`[ĐỔI TÊN] Đổi tiêu đề khối "${orig.title}" -> "${b.title}"`);
+      }
+      if (JSON.stringify(b.boundFieldIds) !== JSON.stringify(orig.boundFieldIds)) {
+        changes.push(`[CẬP NHẬT] Cập nhật danh sách trường dữ liệu khối "${b.title || b.type}"`);
+      }
+      if (JSON.stringify(b.ruleOverrides) !== JSON.stringify(orig.ruleOverrides)) {
+        changes.push(`[QUY TẮC] Điều chỉnh quy tắc đánh giá dung sai khối "${b.title || b.type}"`);
+      }
+    }
+  });
+
+  if (changes.length === 0) {
+    return 'Cập nhật cấu hình và chuẩn hóa bố cục báo cáo';
+  }
+
+  return changes.slice(0, 5).join('\n');
+};
 
 interface ReportBuilderProps {
   initialReportId?: string;
@@ -63,10 +127,12 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
   const [saving, setSaving] = useState<boolean>(false);
   const [searchFieldQuery, setSearchFieldQuery] = useState<string>('');
 
-  const [showPublishModal, setShowPublishModal] = useState<boolean>(false);
-  const [publishVersion, setPublishVersion] = useState<string>('v1.0');
-  const [publishChangeSummary, setPublishChangeSummary] = useState<string>('Khởi tạo cấu hình báo cáo');
-  const [publishEffectiveDate, setPublishEffectiveDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [effectiveDate, setEffectiveDate] = useState<string>(template.effectiveDate || new Date().toISOString().split('T')[0]);
+  const [changeSummary, setChangeSummary] = useState<string>('');
+  const [viewingRevisionVersion, setViewingRevisionVersion] = useState<string | null>(null);
+  const [draftBlocksSnapshot, setDraftBlocksSnapshot] = useState<ReportBlockConfig[] | null>(null);
+  const [initialBlocks, setInitialBlocks] = useState<ReportBlockConfig[]>([]);
+
   const [showPrintPreview, setShowPrintPreview] = useState<boolean>(false);
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
@@ -122,6 +188,8 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
           if (repRes.ok) {
             const repData = await repRes.json();
             setTemplate(repData);
+            setInitialBlocks(repData.layoutBlocks || []);
+            if (repData.effectiveDate) setEffectiveDate(repData.effectiveDate);
             if (repData.linkedFormId) {
               fetchSubmissionsForForm(repData.linkedFormId);
             }
@@ -289,23 +357,67 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
     }
   };
 
+  const verParts = (template.version || 'v1.0').replace('v', '').split('.');
+  const major = parseInt(verParts[0], 10) || 1;
+  const minor = parseInt(verParts[1], 10) || 0;
+
+  const handleMajorChange = (newMajor: number) => {
+    setTemplate(prev => ({
+      ...prev,
+      version: `v${newMajor}.${minor}`
+    }));
+  };
+
+  const handleMinorChange = (newMinor: number) => {
+    setTemplate(prev => ({
+      ...prev,
+      version: `v${major}.${newMinor}`
+    }));
+  };
+
+  const handleCreateNewVersion = () => {
+    const nextMinor = minor + 1;
+    const nextVer = `v${major}.${nextMinor}`;
+    setTemplate(prev => ({
+      ...prev,
+      version: nextVer,
+      status: 'DRAFT'
+    }));
+    setChangeSummary('');
+    setEffectiveDate(new Date().toISOString().split('T')[0]);
+  };
+
   const handlePublish = async () => {
+    let activeSummary = changeSummary.trim();
+    if (!activeSummary) {
+      activeSummary = generateReportChangeSummary(initialBlocks, template.layoutBlocks, template.revisionHistory);
+      setChangeSummary(activeSummary);
+    }
+
+    if (!template.reportTitle.trim()) {
+      alert('Vui lòng nhập Tiêu đề báo cáo trước khi xuất bản.');
+      return;
+    }
+
+    const publishDate = effectiveDate || new Date().toISOString().split('T')[0];
+    const newEntry: ReportRevisionEntry = {
+      version: template.version,
+      date: publishDate,
+      author: 'Admin',
+      change: activeSummary,
+      status: 'ACTIVE',
+      layoutBlocks: JSON.parse(JSON.stringify(template.layoutBlocks))
+    };
+
+    const updatedHistory = [newEntry, ...template.revisionHistory];
+
     try {
       setSaving(true);
-      const newEntry = {
-        version: publishVersion,
-        date: publishEffectiveDate,
-        author: 'Quality Engineer',
-        change: publishChangeSummary,
-        layoutBlocks: template.layoutBlocks
-      };
-
       const payload: ReportTemplateISO = {
         ...template,
-        version: publishVersion,
         status: 'ACTIVE',
-        effectiveDate: publishEffectiveDate,
-        revisionHistory: [newEntry, ...template.revisionHistory]
+        effectiveDate: publishDate,
+        revisionHistory: updatedHistory
       };
 
       const res = await fetch('/api/reports', {
@@ -321,7 +433,8 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
 
       const published = await res.json();
       setTemplate(published);
-      setShowPublishModal(false);
+      setInitialBlocks(published.layoutBlocks || []);
+      setChangeSummary('');
       if (onSave) onSave(published);
     } catch (err: any) {
       alert(err.message || 'Lỗi khi xuất bản báo cáo.');
@@ -330,18 +443,64 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
     }
   };
 
-  const handleRestoreVersion = (rev: any) => {
-    if (!rev.layoutBlocks) return;
+  const handleRestoreRevision = (entry: ReportRevisionEntry) => {
+    if (!entry.layoutBlocks || entry.layoutBlocks.length === 0) {
+      alert(`Bản ghi phiên bản (${entry.version}) không có dữ liệu bố cục.`);
+      return;
+    }
+
+    if (!draftBlocksSnapshot) {
+      setDraftBlocksSnapshot(JSON.parse(JSON.stringify(template.layoutBlocks)));
+    }
+    setViewingRevisionVersion(entry.version);
+    setTemplate(prev => ({
+      ...prev,
+      layoutBlocks: JSON.parse(JSON.stringify(entry.layoutBlocks))
+    }));
+  };
+
+  const handleCommitRestore = () => {
     setConfirmModal({
       isOpen: true,
       title: 'Khôi phục phiên bản',
-      message: `Khôi phục cấu hình layout từ phiên bản ${rev.version} (${rev.date})? Các chỉnh sửa chưa lưu sẽ bị ghi đè.`,
+      message: `Bạn có chắc muốn áp dụng toàn bộ bố cục của phiên bản ${viewingRevisionVersion} vào bản nháp hiện tại?`,
       onConfirm: () => {
-        setTemplate(prev => ({
-          ...prev,
-          layoutBlocks: rev.layoutBlocks,
-          status: 'DRAFT'
-        }));
+        setViewingRevisionVersion(null);
+        setDraftBlocksSnapshot(null);
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+      }
+    });
+  };
+
+  const handleReturnToDraft = () => {
+    if (draftBlocksSnapshot) {
+      setTemplate(prev => ({
+        ...prev,
+        layoutBlocks: draftBlocksSnapshot
+      }));
+    }
+    setViewingRevisionVersion(null);
+    setDraftBlocksSnapshot(null);
+  };
+
+  const handleDeleteRevisionEntry = (ver: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Xóa phiên bản khỏi lịch sử',
+      message: `Bạn có chắc chắn muốn xóa bản ghi phiên bản ${ver} khỏi lịch sử không?`,
+      onConfirm: async () => {
+        const nextHistory = template.revisionHistory.filter(h => h.version !== ver);
+        const nextTemplate = { ...template, revisionHistory: nextHistory };
+        setTemplate(nextTemplate);
+        try {
+          await fetch('/api/reports', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...nextTemplate, allowActiveUpdate: true })
+          });
+        } catch (e) {
+          console.error(e);
+        }
         setConfirmModal(prev => ({ ...prev, isOpen: false }));
       }
     });
@@ -396,6 +555,60 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 900, background: '#f8fafc', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       
+      {/* ── Warning banner when viewing old revision in read-only mode ── */}
+      {viewingRevisionVersion && (
+        <div style={{
+          background: '#fffbeb',
+          borderBottom: '1px solid #fde68a',
+          padding: '0.5rem 1.25rem',
+          fontSize: '0.82rem',
+          color: '#b45309',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          fontWeight: 500,
+          flexShrink: 0
+        }}>
+          <span>
+            ⚠️ Bạn đang xem phiên bản cũ <strong>{viewingRevisionVersion}</strong> (Chế độ chỉ đọc - Read-only).
+          </span>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button
+              type="button"
+              onClick={handleCommitRestore}
+              style={{
+                background: '#059669',
+                border: 'none',
+                color: '#ffffff',
+                padding: '0.2rem 0.6rem',
+                borderRadius: '4px',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+            >
+              Khôi phục thành bản nháp hiện tại
+            </button>
+            <button
+              type="button"
+              onClick={handleReturnToDraft}
+              style={{
+                background: '#b45309',
+                border: 'none',
+                color: '#ffffff',
+                padding: '0.2rem 0.6rem',
+                borderRadius: '4px',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+            >
+              Quay lại bản nháp hiện tại
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ── Top Action Bar ── */}
       <div style={{
         height: '56px',
@@ -478,7 +691,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
           </button>
         </div>
 
-        {/* 3. RIGHT: Page Setup, Print, Save & Publish, Close */}
+        {/* 3. RIGHT: Page Setup, Print, Save, Close */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
           <div style={{ 
             display: 'inline-flex', 
@@ -552,32 +765,6 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
           >
             <Save size={13} />
             <span>{saving ? 'Saving...' : 'Save'}</span>
-          </button>
-
-          <button 
-            type="button"
-            disabled={saving}
-            onClick={() => setShowPublishModal(true)} 
-            style={{
-              background: '#15803d',
-              border: '1px solid #15803d',
-              color: '#ffffff',
-              padding: '3px 12px',
-              borderRadius: '4px',
-              fontSize: '0.78rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px'
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = '#166534'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = '#15803d'; }}
-            title="Xuất bản phiên bản chính thức"
-          >
-            <CheckCircle size={13} />
-            <span>Publish</span>
           </button>
 
           <button 
@@ -1053,87 +1240,305 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
 
           {/* Tab 2: Versions */}
           {rightTab === 'versions' && (
-            <div style={{ flex: 1, overflowY: 'auto', padding: '0.75rem' }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.75rem' }}>
-                LỊCH SỬ PHIÊN BẢN (REVISION HISTORY)
-              </div>
-              {template.revisionHistory.length === 0 ? (
-                <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Chưa có phiên bản nào được lưu trong lịch sử.</p>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  {template.revisionHistory.map((rev, idx) => (
-                    <div key={idx} style={{ background: '#f8fafc', border: '1px solid var(--neutral-border)', borderRadius: '4px', padding: '0.6rem' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-                        <span style={{ fontWeight: 700, fontSize: '0.8rem', color: 'var(--primary)' }}>{rev.version}</span>
-                        <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)' }}>{rev.date}</span>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              
+              {/* Card 1: Version Control & Status */}
+              <div style={{
+                backgroundColor: '#ffffff',
+                border: '1px solid var(--neutral-border, #cbd5e1)',
+                borderRadius: '6px',
+                padding: '0.85rem 1rem',
+                boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.5rem'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <Clock size={13} style={{ color: '#94a3b8' }} />
+                  <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-secondary)' }}>
+                    Version Control
+                  </span>
+                </div>
+
+                {template.status === 'ACTIVE' ? (
+                  <>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                        <span style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                          {template.version}
+                        </span>
+                        <span className="badge badge-success" style={{ fontSize: '0.65rem', padding: '0.05rem 0.35rem', backgroundColor: '#d1fae5', color: '#065f46', border: '1px solid #6ee7b7', textTransform: 'uppercase', fontWeight: 700 }}>
+                          Active
+                        </span>
                       </div>
-                      <p style={{ fontSize: '0.75rem', color: 'var(--text-primary)', margin: '0 0 0.5rem 0' }}>{rev.change || 'Không có mô tả'}</p>
-                      {rev.layoutBlocks && (
-                        <button
-                          className="btn btn-secondary btn-sm"
-                          onClick={() => handleRestoreVersion(rev)}
-                          style={{ fontSize: '0.7rem', padding: '0.15rem 0.5rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
-                        >
-                          <RotateCcw size={11} /> Khôi phục bản này
-                        </button>
+                      {template.effectiveDate && (
+                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                          ({template.effectiveDate})
+                        </span>
                       )}
                     </div>
-                  ))}
+
+                    <div style={{ marginTop: '0.15rem' }}>
+                      <button
+                        type="button"
+                        onClick={handleCreateNewVersion}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '0.35rem',
+                          width: '100%',
+                          padding: '0.45rem 0.75rem',
+                          background: '#0f172a',
+                          border: '1px solid #0f172a',
+                          color: '#ffffff',
+                          borderRadius: '6px',
+                          fontSize: '0.78rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          transition: 'background-color 0.15s ease'
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = '#1e293b'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = '#0f172a'; }}
+                      >
+                        <Plus size={12} /> NEW DRAFT
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center', flexWrap: 'nowrap', width: '100%' }}>
+                      <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>v</span>
+                      <input
+                        type="number"
+                        min="0"
+                        value={major}
+                        onChange={(e) => handleMajorChange(parseInt(e.target.value, 10) || 0)}
+                        style={{ width: '38px', padding: '0.2rem 0.15rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', textAlign: 'center', fontSize: '0.8rem' }}
+                      />
+                      <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>.</span>
+                      <input
+                        type="number"
+                        min="0"
+                        value={minor}
+                        onChange={(e) => handleMinorChange(parseInt(e.target.value, 10) || 0)}
+                        style={{ width: '38px', padding: '0.2rem 0.15rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', textAlign: 'center', fontSize: '0.8rem' }}
+                      />
+
+                      <span className="badge badge-warning" style={{ fontSize: '0.65rem', padding: '0.05rem 0.35rem', backgroundColor: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d', textTransform: 'uppercase', fontWeight: 700, marginLeft: '0.15rem' }}>
+                        Draft
+                      </span>
+                    </div>
+
+                    {!viewingRevisionVersion && (
+                      <>
+                        <div style={{ borderTop: '1px solid var(--neutral-border)', margin: '0.4rem 0' }} />
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Change Summary</label>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const suggested = generateReportChangeSummary(initialBlocks, template.layoutBlocks, template.revisionHistory);
+                                setChangeSummary(suggested);
+                              }}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                color: '#0d9488',
+                                fontSize: '0.7rem',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '2px',
+                                padding: 0
+                              }}
+                              title="Tự động phân tích thay đổi và tạo tóm tắt"
+                            >
+                              <Sparkles size={11} /> Gợi ý tự động
+                            </button>
+                          </div>
+                          <textarea 
+                            value={changeSummary}
+                            onChange={(e) => setChangeSummary(e.target.value)}
+                            placeholder="Mô tả tóm tắt thay đổi..."
+                            rows={3}
+                            style={{
+                              padding: '0.35rem 0.5rem',
+                              fontSize: '0.8rem',
+                              border: '1px solid var(--neutral-border)',
+                              borderRadius: '4px',
+                              resize: 'none'
+                            }}
+                          />
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                          <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Release Date & Action</label>
+                          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                            <input 
+                              type="date"
+                              value={effectiveDate}
+                              onChange={(e) => setEffectiveDate(e.target.value)}
+                              style={{
+                                flex: 1,
+                                padding: '0.35rem 0.5rem',
+                                fontSize: '0.78rem',
+                                border: '1px solid var(--neutral-border)',
+                                borderRadius: '4px',
+                                outline: 'none',
+                                boxSizing: 'border-box'
+                              }}
+                            />
+                            <button 
+                              type="button"
+                              disabled={saving}
+                              onClick={handlePublish} 
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                padding: '0.35rem 0.75rem',
+                                background: '#10b981',
+                                border: '1px solid #10b981',
+                                color: '#ffffff',
+                                borderRadius: '4px',
+                                fontSize: '0.78rem',
+                                fontWeight: 600,
+                                cursor: saving ? 'default' : 'pointer',
+                                whiteSpace: 'nowrap',
+                                transition: 'background-color 0.15s ease'
+                              }}
+                              onMouseEnter={(e) => { e.currentTarget.style.background = '#059669'; }}
+                              onMouseLeave={(e) => { e.currentTarget.style.background = '#10b981'; }}
+                            >
+                              Publish
+                            </button>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </>
+                )}
+              </div>
+
+              {/* Card 2: Revision History & Audit Log */}
+              <div style={{
+                backgroundColor: '#ffffff',
+                border: '1px solid var(--neutral-border, #cbd5e1)',
+                borderRadius: '6px',
+                padding: '0.85rem 1rem',
+                boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.65rem'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <Clock size={13} style={{ color: '#94a3b8' }} />
+                  <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-secondary)' }}>
+                    Revision History
+                  </span>
                 </div>
-              )}
+
+                {template.revisionHistory.length === 0 ? (
+                  <div style={{ padding: '0.75rem 1rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.75rem', border: '1px dashed var(--neutral-border)', borderRadius: '5px' }}>
+                    No version history available.
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', maxHeight: '350px', overflowY: 'auto', paddingRight: '4px' }}>
+                    {template.revisionHistory.map((h, i) => {
+                      const hasLayout = !!(h.layoutBlocks && h.layoutBlocks.length > 0);
+                      const isCurrentActive = h.version === template.version && template.status === 'ACTIVE';
+                      const isCurrentDraft = h.version === template.version && template.status === 'DRAFT';
+                      const itemStatus = isCurrentActive ? 'ACTIVE' : (isCurrentDraft || h.status === 'DRAFT' ? 'DRAFT' : (h.status || 'RETIRED'));
+                      
+                      const statusColor = 
+                        itemStatus === 'ACTIVE' ? { bg: '#d1fae5', text: '#065f46', border: '#6ee7b7', label: 'Active' } :
+                        itemStatus === 'DRAFT'  ? { bg: '#fef3c7', text: '#92400e', border: '#fcd34d', label: 'Draft' }  :
+                                                  { bg: '#fee2e2', text: '#991b1b', border: '#fca5a5', label: 'Retired' };
+
+                      return (
+                        <div 
+                          key={i} 
+                          onClick={() => hasLayout && handleRestoreRevision(h)}
+                          style={{ 
+                            padding: '0.5rem 0.65rem', 
+                            background: viewingRevisionVersion === h.version ? '#f0fdfa' : '#f9fafb', 
+                            borderRadius: '6px', 
+                            border: viewingRevisionVersion === h.version ? '1px solid #99f6e4' : '1px solid var(--neutral-border)', 
+                            fontSize: '0.75rem',
+                            cursor: hasLayout ? 'pointer' : 'default',
+                            transition: 'all 0.15s ease',
+                          }}
+                          onMouseEnter={e => { if (hasLayout && viewingRevisionVersion !== h.version) { e.currentTarget.style.background = '#e0f2fe'; e.currentTarget.style.borderColor = '#7dd3fc'; } }}
+                          onMouseLeave={e => { if (hasLayout && viewingRevisionVersion !== h.version) { e.currentTarget.style.background = '#f9fafb'; e.currentTarget.style.borderColor = 'var(--neutral-border)'; } }}
+                          title={hasLayout ? "Click to view this version in read-only mode" : "Version log details"}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 700, marginBottom: h.change ? '4px' : '0px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                              <span style={{ color: 'var(--text-primary)' }}>{h.version}</span>
+                              {viewingRevisionVersion === h.version && (
+                                <span style={{ fontSize: '0.6rem', fontWeight: 700, color: 'var(--primary)', background: '#f0fdfa', border: '1px solid #99f6e4', padding: '0.01rem 0.2rem', borderRadius: '3px', textTransform: 'uppercase' }}>
+                                  VIEWING
+                                </span>
+                              )}
+                              <span className="badge" style={{ backgroundColor: statusColor.bg, color: statusColor.text, border: `1px solid ${statusColor.border}`, fontSize: '0.62rem', padding: '0.02rem 0.25rem', borderRadius: '3px', textTransform: 'uppercase', fontWeight: 700 }}>
+                                {statusColor.label}
+                              </span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                              <span style={{ color: 'var(--text-muted)', fontSize: '0.68rem', fontWeight: 500 }}>{h.date}</span>
+                              {!isCurrentActive && !isCurrentDraft && (
+                                <button
+                                  type="button"
+                                  title={`Xóa phiên bản ${h.version}`}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteRevisionEntry(h.version);
+                                  }}
+                                  style={{
+                                    background: '#fee2e2',
+                                    border: '1px solid #fca5a5',
+                                    color: '#b91c1c',
+                                    borderRadius: '4px',
+                                    padding: '0.1rem 0.3rem',
+                                    fontSize: '0.65rem',
+                                    cursor: 'pointer',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    transition: 'all 0.15s ease'
+                                  }}
+                                  onMouseEnter={(e) => { e.currentTarget.style.background = '#fca5a5'; }}
+                                  onMouseLeave={(e) => { e.currentTarget.style.background = '#fee2e2'; }}
+                                >
+                                  <Trash2 size={11} />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                          
+                          {h.change && (
+                            <div style={{ color: 'var(--text-secondary)', fontSize: '0.72rem', wordBreak: 'break-word', whiteSpace: 'pre-line', lineHeight: '1.25' }}>
+                              {h.change}
+                            </div>
+                          )}
+                          
+                          <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '4px', textAlign: 'right' }}>
+                            By: {h.author || 'Admin'}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
       </div>
-
-      {/* ── Publish Modal ── */}
-      {showPublishModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div className="paper-card" style={{ width: '420px', background: '#ffffff', padding: '1.5rem', borderRadius: '8px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
-            <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.05rem', fontWeight: 700 }}>Xuất bản Báo cáo chất lượng</h3>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.25rem' }}>
-              <div>
-                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Mã phiên bản (Version)</label>
-                <input
-                  type="text"
-                  value={publishVersion}
-                  onChange={e => setPublishVersion(e.target.value)}
-                  style={{ width: '100%', padding: '0.4rem 0.5rem', fontSize: '0.85rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', marginTop: '0.25rem' }}
-                />
-              </div>
-              <div>
-                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Ngày hiệu lực</label>
-                <input
-                  type="date"
-                  value={publishEffectiveDate}
-                  onChange={e => setPublishEffectiveDate(e.target.value)}
-                  style={{ width: '100%', padding: '0.4rem 0.5rem', fontSize: '0.85rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', marginTop: '0.25rem' }}
-                />
-              </div>
-              <div>
-                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Nội dung thay đổi (Change Log)</label>
-                <textarea
-                  rows={3}
-                  value={publishChangeSummary}
-                  onChange={e => setPublishChangeSummary(e.target.value)}
-                  placeholder="Mô tả tóm tắt các cập nhật trong phiên bản này..."
-                  style={{ width: '100%', padding: '0.4rem 0.5rem', fontSize: '0.85rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', marginTop: '0.25rem' }}
-                />
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-              <button className="btn btn-secondary btn-sm" onClick={() => setShowPublishModal(false)}>
-                Huỷ
-              </button>
-              <button className="btn btn-primary btn-sm" onClick={handlePublish} disabled={saving}>
-                Xác nhận xuất bản
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ── Print Preview Portal ── */}
       {showPrintPreview && (

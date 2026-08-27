@@ -387,6 +387,7 @@ export interface ReportRevisionEntry {
   date: string;
   author: string;
   change: string;
+  status?: 'DRAFT' | 'ACTIVE' | 'ARCHIVED' | 'RETIRED';
   layoutBlocks?: ReportBlockConfig[];   // Snapshot for 1-click restore
 }
 
