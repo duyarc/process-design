@@ -303,3 +303,4 @@ Architectural changes only — schema, endpoints, invariants. UI polish lives in
 | 2026-08-03 | `CURRENT` | **Submissions delete route:** Added `DELETE /api/submissions/:id` to support hard-deletion of submission records by admin. |
 | 2026-08-11 | `a12b0c9` | **Cron ping route & config:** Added `/api/cron-ping` endpoint and configured daily Vercel Cron Job in `vercel.json` to query the DB and prevent automatic pausing of Supabase free tier. |
 | 2026-08-26 | `CURRENT` | **Daily Sequential Submission ID Generation:** Implemented `generateDailySequentialSubmissionId` in `server.cjs` and updated `POST /api/submissions` to automatically assign human-friendly daily sequential IDs (`YYMMDD-XX`, e.g. `260826-01`). |
+| 2026-08-27 | `CURRENT` | **Vercel SPA Rewrites & Form Resolution:** Configured `vercel.json` rewrites for `/f/:path*` to `index.html` (resolving Vercel 404 on direct URL visits) and added case-insensitive matching in `GET /api/forms/resolve/*identifier`. |

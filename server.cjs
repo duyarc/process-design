@@ -708,7 +708,7 @@ app.get('/api/forms/resolve/*identifier', async (req, res) => {
     if (dbPool) {
       // 1. Check standalone forms table
       const formRes = await dbPool.query(
-        'SELECT * FROM forms WHERE form_id = $1 OR form_name = $1 OR form_title = $1 ORDER BY updated_at DESC LIMIT 1',
+        'SELECT * FROM forms WHERE LOWER(form_id) = LOWER($1) OR LOWER(form_name) = LOWER($1) OR LOWER(form_title) = LOWER($1) ORDER BY updated_at DESC LIMIT 1',
         [identifier]
       );
       if (formRes.rows.length > 0) {
@@ -732,9 +732,8 @@ app.get('/api/forms/resolve/*identifier', async (req, res) => {
           : (row.workflowFormsData || {});
         for (const [fKey, fData] of Object.entries(wfForms)) {
           if (
-            fKey === identifier ||
-            fData.formId === identifier ||
-            fData.formTitle === identifier ||
+            fKey.toLowerCase() === identifier.toLowerCase() ||
+            (fData.formId && fData.formId.toLowerCase() === identifier.toLowerCase()) ||
             (fData.formTitle && fData.formTitle.toLowerCase() === identifier.toLowerCase())
           ) {
             return res.json({
@@ -754,7 +753,11 @@ app.get('/api/forms/resolve/*identifier', async (req, res) => {
     } else {
       // Offline fallback
       const forms = readFormsOffline();
-      const form = forms.find(f => f.form_id === identifier || f.form_name === identifier || f.form_title === identifier);
+      const form = forms.find(f => 
+        (f.form_id && f.form_id.toLowerCase() === identifier.toLowerCase()) ||
+        (f.form_name && f.form_name.toLowerCase() === identifier.toLowerCase()) ||
+        (f.form_title && f.form_title.toLowerCase() === identifier.toLowerCase())
+      );
       if (form) {
         return res.json({
           exists: true,
