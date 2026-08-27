@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type {
   ReportTemplateISO,
   ReportBlockConfig,
@@ -7,10 +7,12 @@ import type {
   FormTemplateISO,
   FormFieldISO,
   Submission,
-  ReportDataModel
+  ReportDataModel,
+  TitleFormatISO
 } from '../types';
 import { computeRecordReport } from '../utils/reportCompute';
 import { extractAllFormFields } from '../utils/tableFieldExtractor';
+import { getInfoGridTemplateColumns, snap2ColWidth, snap3ColWidths } from '../utils/formUtils';
 import ConfirmModal from './common/ConfirmModal';
 import PrintReport from './print/PrintReport';
 import {
@@ -31,6 +33,126 @@ import {
   Plus,
   GitBranch
 } from 'lucide-react';
+
+interface InfoGridSteppedSplitterProps {
+  columns: 2 | 3;
+  columnWidths?: number[];
+  onChange: (widths: number[]) => void;
+  disabled?: boolean;
+}
+
+function InfoGridSteppedSplitter({ columns, columnWidths, onChange, disabled }: InfoGridSteppedSplitterProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [activeHandle, setActiveHandle] = useState<number | null>(null);
+
+  const w1 = columns === 2 ? (columnWidths?.[0] ?? 50) : 0;
+  const w2 = columns === 2 ? (columnWidths?.[1] ?? (100 - w1)) : 0;
+
+  const c3_w1 = columns === 3 ? (columnWidths?.[0] ?? 33) : 0;
+  const c3_w2 = columns === 3 ? (columnWidths?.[1] ?? 34) : 0;
+  const c3_w3 = columns === 3 ? (columnWidths?.[2] ?? Math.max(10, 100 - c3_w1 - c3_w2)) : 0;
+  const c3_pos1 = c3_w1;
+  const c3_pos2 = c3_w1 + c3_w2;
+
+  const handlePointerDown = (handleIdx: number, e: React.MouseEvent) => {
+    if (disabled) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setActiveHandle(handleIdx);
+
+    const onMove = (moveEvt: MouseEvent) => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const rawPct = Math.max(5, Math.min(95, ((moveEvt.clientX - rect.left) / rect.width) * 100));
+
+      if (columns === 2) {
+        onChange(snap2ColWidth(rawPct));
+      } else if (columns === 3) {
+        onChange(snap3ColWidths(handleIdx as 0 | 1, rawPct));
+      }
+    };
+
+    const onUp = () => {
+      setActiveHandle(null);
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', userSelect: 'none' }}>
+      <div
+        ref={containerRef}
+        style={{
+          position: 'relative',
+          height: '32px',
+          background: '#f8fafc',
+          border: '1px solid #cbd5e1',
+          borderRadius: '4px',
+          overflow: 'hidden',
+          display: 'flex',
+          alignItems: 'center'
+        }}
+      >
+        {columns === 2 ? (
+          <>
+            <div style={{ width: `${w1}%`, height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 600, color: 'var(--primary)', background: 'rgba(13, 148, 136, 0.08)' }}>
+              {w1}%
+            </div>
+            <div
+              onMouseDown={(e) => handlePointerDown(0, e)}
+              style={{
+                position: 'absolute',
+                left: `${w1}%`,
+                top: 0,
+                bottom: 0,
+                width: '10px',
+                marginLeft: '-5px',
+                cursor: 'col-resize',
+                zIndex: 10,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <div style={{ width: '3px', height: '100%', background: activeHandle === 0 ? 'var(--primary)' : '#64748b', borderRadius: '1px' }} />
+            </div>
+            <div style={{ width: `${w2}%`, height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 600, color: '#64748b' }}>
+              {w2}%
+            </div>
+          </>
+        ) : (
+          <>
+            <div style={{ width: `${c3_w1}%`, height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 600, color: 'var(--primary)', background: 'rgba(13, 148, 136, 0.08)' }}>
+              {c3_w1}%
+            </div>
+            <div
+              onMouseDown={(e) => handlePointerDown(0, e)}
+              style={{ position: 'absolute', left: `${c3_pos1}%`, top: 0, bottom: 0, width: '10px', marginLeft: '-5px', cursor: 'col-resize', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            >
+              <div style={{ width: '3px', height: '100%', background: activeHandle === 0 ? 'var(--primary)' : '#64748b', borderRadius: '1px' }} />
+            </div>
+            <div style={{ width: `${c3_w2}%`, height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 600, color: '#334155', background: 'rgba(51, 65, 85, 0.05)' }}>
+              {c3_w2}%
+            </div>
+            <div
+              onMouseDown={(e) => handlePointerDown(1, e)}
+              style={{ position: 'absolute', left: `${c3_pos2}%`, top: 0, bottom: 0, width: '10px', marginLeft: '-5px', cursor: 'col-resize', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            >
+              <div style={{ width: '3px', height: '100%', background: activeHandle === 1 ? 'var(--primary)' : '#64748b', borderRadius: '1px' }} />
+            </div>
+            <div style={{ width: `${c3_w3}%`, height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 600, color: '#64748b' }}>
+              {c3_w3}%
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export const getReportSnapshot = (data: ReportTemplateISO) => {
   return JSON.stringify({
@@ -341,7 +463,10 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
       datePosition,
       boundFieldIds,
       columns: type === 'INFO_GRID' ? 2 : 1,
-      borderStyle: 'grid'
+      columnWidths: type === 'INFO_GRID' ? [50, 50] : undefined,
+      titleFormat: 'H2',
+      borderStyle: 'grid',
+      hideHeader: false
     };
 
     setTemplate(prev => ({
@@ -609,6 +734,30 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
       layoutBlocks: prev.layoutBlocks.map(b =>
         b.id === activeBlock.id ? { ...b, boundFieldIds: updated } : b
       )
+    }));
+  };
+
+  const removeFieldFromBlock = (blockId: string, fieldId: string) => {
+    setTemplate(prev => ({
+      ...prev,
+      layoutBlocks: prev.layoutBlocks.map(b =>
+        b.id === blockId ? { ...b, boundFieldIds: (b.boundFieldIds || []).filter(id => id !== fieldId) } : b
+      )
+    }));
+  };
+
+  const moveFieldInBlock = (blockId: string, fieldIdx: number, direction: 'up' | 'down') => {
+    setTemplate(prev => ({
+      ...prev,
+      layoutBlocks: prev.layoutBlocks.map(b => {
+        if (b.id !== blockId || !b.boundFieldIds) return b;
+        const targetIdx = direction === 'up' ? fieldIdx - 1 : fieldIdx + 1;
+        if (targetIdx < 0 || targetIdx >= b.boundFieldIds.length) return b;
+        const newIds = [...b.boundFieldIds];
+        const [moved] = newIds.splice(fieldIdx, 1);
+        newIds.splice(targetIdx, 0, moved);
+        return { ...b, boundFieldIds: newIds };
+      })
     }));
   };
 
@@ -1151,76 +1300,194 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                       </div>
                     )}
 
-                    {block.type === 'INFO_GRID' && (
-                      <div>
-                        {block.title && <div style={{ fontWeight: 600, fontSize: '0.8rem', marginBottom: '0.35rem' }}>{block.title}</div>}
-                        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${block.columns || 2}, 1fr)`, gap: '0.5rem', border: '1px solid #000', padding: '0.5rem' }}>
-                          {(block.boundFieldIds || []).map(fid => {
-                            const field = allFormFields.find(f => f.id === fid);
-                            const val = getSampleValue(fid);
-                            return (
-                              <div key={fid} style={{ fontSize: '0.75rem' }}>
-                                <span style={{ color: '#64748b' }}>{field?.checkItem || fid}: </span>
-                                <strong>{val}</strong>
+                    {/* 2. INFO_GRID Block Renderer */}
+                    {block.type === 'INFO_GRID' && (() => {
+                      const titleFmt = block.titleFormat || 'H2';
+                      return (
+                        <div>
+                          {titleFmt !== 'NONE' && (
+                            titleFmt === 'H1' ? (
+                              <h2 style={{ display: 'inline-block', margin: '0 0 8px 0', fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', borderBottom: '2.5px solid var(--text-primary)', paddingBottom: '3px' }}>
+                                {block.title}
+                              </h2>
+                            ) : titleFmt === 'H2' ? (
+                              <div style={{ padding: '0.4rem 0.6rem', background: '#f1f5f9', borderLeft: '4px solid var(--primary)', borderRadius: '0px', marginBottom: '0.5rem', fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+                                {block.title}
                               </div>
-                            );
-                          })}
+                            ) : (
+                              <div style={{ fontSize: '0.82rem', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
+                                {block.title}
+                              </div>
+                            )
+                          )}
+
+                          {/* Grid Container */}
+                          {(!block.boundFieldIds || block.boundFieldIds.length === 0) ? (
+                            <div style={{ padding: '1rem', border: '1.5px dashed #cbd5e1', borderRadius: '6px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.8rem', background: '#f8fafc' }}>
+                              + Nhấp chọn các trường từ danh mục <strong>FIELDS</strong> bên trái để nạp vào khung lưới này
+                            </div>
+                          ) : (
+                            <div style={{
+                              display: 'grid',
+                              gridTemplateColumns: getInfoGridTemplateColumns(block as any),
+                              columnGap: '0.75rem',
+                              rowGap: '0.5rem',
+                              gridAutoRows: 'minmax(38px, auto)'
+                            }}>
+                              {block.boundFieldIds.map((fid) => {
+                                const field = allFormFields.find(f => f.id === fid);
+                                const val = getSampleValue(fid);
+                                const badgeLabel = field?.type === 'likert_scale' ? 'LIKERT' : field?.type ? field.type.toUpperCase() : 'FIELD';
+
+                                return (
+                                  <div
+                                    key={fid}
+                                    style={{
+                                      border: '1px solid #cbd5e1',
+                                      borderRadius: '4px',
+                                      padding: '6px 8px',
+                                      background: '#ffffff',
+                                      fontSize: '0.75rem',
+                                      display: 'flex',
+                                      flexDirection: 'column',
+                                      justifyContent: 'space-between',
+                                      gap: '4px'
+                                    }}
+                                  >
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '4px' }}>
+                                      <span style={{ fontWeight: 600, color: 'var(--text-primary)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                        {field?.checkItem || fid}
+                                      </span>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        <span style={{ fontSize: '0.62rem', padding: '1px 4px', borderRadius: '2px', background: '#f1f5f9', color: '#475569', fontWeight: 700 }}>
+                                          {badgeLabel}
+                                        </span>
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            removeFieldFromBlock(block.id, fid);
+                                          }}
+                                          style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#94a3b8', padding: '0 2px', fontSize: '0.8rem', lineHeight: 1 }}
+                                          title="Gỡ trường khỏi khối này"
+                                        >
+                                          ✕
+                                        </button>
+                                      </div>
+                                    </div>
+                                    <div style={{ fontSize: '0.82rem', color: '#0f172a', fontWeight: 600, borderTop: '1px dotted #e2e8f0', paddingTop: '3px' }}>
+                                      {val || '—'}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
                         </div>
-                      </div>
-                    )}
+                      );
+                    })()}
 
-                    {block.type === 'TABLE' && (
-                      <div>
-                        {block.title && <div style={{ fontWeight: 600, fontSize: '0.8rem', marginBottom: '0.35rem' }}>{block.title}</div>}
-                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem', border: '1px solid #000' }}>
-                          <thead>
-                            <tr style={{ background: '#f8fafc', borderBottom: '1px solid #000' }}>
-                              <th style={{ border: '1px solid #000', padding: '4px 6px', textAlign: 'left', width: '30%' }}>Hạng mục kiểm tra</th>
-                              <th style={{ border: '1px solid #000', padding: '4px 6px', textAlign: 'center', width: '25%' }}>Quy cách / Tiêu chuẩn</th>
-                              <th style={{ border: '1px solid #000', padding: '4px 6px', textAlign: 'center', width: '20%' }}>Kết quả thực tế</th>
-                              <th style={{ border: '1px solid #000', padding: '4px 6px', textAlign: 'center', width: '25%' }}>Đánh giá</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {(block.boundFieldIds || []).map(fid => {
-                              const field = allFormFields.find(f => f.id === fid);
-                              const evalRes = computedData?.evaluations?.[fid];
-                              const override = block.ruleOverrides?.[fid];
-                              const min = override?.customMinSpec !== undefined ? override.customMinSpec : field?.minSpec;
-                              const max = override?.customMaxSpec !== undefined ? override.customMaxSpec : field?.maxSpec;
+                    {/* 3. TABLE Block Renderer */}
+                    {block.type === 'TABLE' && (() => {
+                      const titleFmt = block.titleFormat || 'H2';
+                      const borderStyle = block.borderStyle || 'grid';
+                      const tableBorder = borderStyle === 'grid' ? '1px solid #cbd5e1' : borderStyle === 'horizontal_only' ? 'none' : 'none';
+                      const cellBorder = borderStyle === 'grid' ? '1px solid #cbd5e1' : borderStyle === 'horizontal_only' ? '1px solid #e2e8f0' : 'none';
 
-                              let specText = field?.targetRange || '—';
-                              if (min !== undefined && max !== undefined) specText = `${min} ~ ${max} ${field?.unit || ''}`;
-                              else if (min !== undefined) specText = `≥ ${min} ${field?.unit || ''}`;
-                              else if (max !== undefined) specText = `≤ ${max} ${field?.unit || ''}`;
+                      return (
+                        <div>
+                          {titleFmt !== 'NONE' && (
+                            titleFmt === 'H1' ? (
+                              <h2 style={{ display: 'inline-block', margin: '0 0 8px 0', fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', borderBottom: '2.5px solid var(--text-primary)', paddingBottom: '3px' }}>
+                                {block.title}
+                              </h2>
+                            ) : titleFmt === 'H2' ? (
+                              <div style={{ padding: '0.4rem 0.6rem', background: '#f1f5f9', borderLeft: '4px solid var(--primary)', borderRadius: '0px', marginBottom: '0.5rem', fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+                                {block.title}
+                              </div>
+                            ) : (
+                              <div style={{ fontSize: '0.82rem', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
+                                {block.title}
+                              </div>
+                            )
+                          )}
 
-                              const rawVal = getSampleValue(fid);
-                              const status = evalRes?.status || 'PASS';
+                          {(!block.boundFieldIds || block.boundFieldIds.length === 0) ? (
+                            <div style={{ padding: '1rem', border: '1.5px dashed #cbd5e1', borderRadius: '6px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.8rem', background: '#f8fafc' }}>
+                              + Nhấp chọn các trường từ danh mục <strong>FIELDS</strong> bên trái để nạp các dòng tiêu chí vào bảng này
+                            </div>
+                          ) : (
+                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem', border: tableBorder }}>
+                              {!block.hideHeader && (
+                                <thead>
+                                  <tr style={{ background: '#f8fafc', borderBottom: '1.5px solid #cbd5e1' }}>
+                                    <th style={{ border: cellBorder, padding: '5px 6px', textAlign: 'center', width: '35px', fontWeight: 700 }}>STT</th>
+                                    <th style={{ border: cellBorder, padding: '5px 8px', textAlign: 'left', fontWeight: 700 }}>Hạng mục kiểm tra / Tiêu chí</th>
+                                    <th style={{ border: cellBorder, padding: '5px 8px', textAlign: 'center', width: '22%', fontWeight: 700 }}>Quy cách / Tiêu chuẩn</th>
+                                    <th style={{ border: cellBorder, padding: '5px 8px', textAlign: 'center', width: '18%', fontWeight: 700 }}>Kết quả thực tế</th>
+                                    <th style={{ border: cellBorder, padding: '5px 8px', textAlign: 'center', width: '16%', fontWeight: 700 }}>Đánh giá</th>
+                                    <th style={{ border: cellBorder, padding: '5px 4px', textAlign: 'center', width: '40px', fontWeight: 700 }}></th>
+                                  </tr>
+                                </thead>
+                              )}
+                              <tbody>
+                                {block.boundFieldIds.map((fid, rIdx) => {
+                                  const field = allFormFields.find(f => f.id === fid);
+                                  const evalRes = computedData?.evaluations?.[fid];
+                                  const override = block.ruleOverrides?.[fid];
+                                  const min = override?.customMinSpec !== undefined ? override.customMinSpec : field?.minSpec;
+                                  const max = override?.customMaxSpec !== undefined ? override.customMaxSpec : field?.maxSpec;
 
-                              return (
-                                <tr key={fid} style={{ borderBottom: '1px solid #000' }}>
-                                  <td style={{ border: '1px solid #000', padding: '4px 6px' }}>{field?.checkItem || fid}</td>
-                                  <td style={{ border: '1px solid #000', padding: '4px 6px', textAlign: 'center' }}>{specText}</td>
-                                  <td style={{ border: '1px solid #000', padding: '4px 6px', textAlign: 'center', fontWeight: 600 }}>{rawVal}</td>
-                                  <td style={{ border: '1px solid #000', padding: '4px 6px', textAlign: 'center' }}>
-                                    <span style={{
-                                      padding: '1px 6px',
-                                      borderRadius: '3px',
-                                      fontSize: '0.7rem',
-                                      fontWeight: 700,
-                                      background: status === 'PASS' ? '#dcfce7' : status === 'FAIL' ? '#fee2e2' : '#f1f5f9',
-                                      color: status === 'PASS' ? '#15803d' : status === 'FAIL' ? '#b91c1c' : '#475569'
-                                    }}>
-                                      {status === 'PASS' ? 'ĐẠT (PASS)' : status === 'FAIL' ? 'KHÔNG ĐẠT' : 'N/A'}
-                                    </span>
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
+                                  let specText = override?.customTargetRange || field?.targetRange || '—';
+                                  if (min !== undefined && max !== undefined) specText = `${min} ~ ${max} ${field?.unit || ''}`;
+                                  else if (min !== undefined) specText = `≥ ${min} ${field?.unit || ''}`;
+                                  else if (max !== undefined) specText = `≤ ${max} ${field?.unit || ''}`;
+
+                                  const rawVal = getSampleValue(fid);
+                                  const status = evalRes?.status || 'PASS';
+
+                                  return (
+                                    <tr key={fid} style={{ borderBottom: cellBorder }}>
+                                      <td style={{ border: cellBorder, padding: '5px 6px', textAlign: 'center', color: '#64748b' }}>{rIdx + 1}</td>
+                                      <td style={{ border: cellBorder, padding: '5px 8px' }}>
+                                        <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{field?.checkItem || fid}</div>
+                                      </td>
+                                      <td style={{ border: cellBorder, padding: '5px 8px', textAlign: 'center', color: '#475569' }}>{specText}</td>
+                                      <td style={{ border: cellBorder, padding: '5px 8px', textAlign: 'center', fontWeight: 600, color: '#0f172a' }}>{rawVal}</td>
+                                      <td style={{ border: cellBorder, padding: '5px 8px', textAlign: 'center' }}>
+                                        <span style={{
+                                          padding: '2px 6px',
+                                          borderRadius: '3px',
+                                          fontSize: '0.68rem',
+                                          fontWeight: 700,
+                                          background: status === 'PASS' ? '#dcfce7' : status === 'FAIL' ? '#fee2e2' : '#f1f5f9',
+                                          color: status === 'PASS' ? '#15803d' : status === 'FAIL' ? '#b91c1c' : '#475569'
+                                        }}>
+                                          {status === 'PASS' ? 'ĐẠT (PASS)' : status === 'FAIL' ? 'KHÔNG ĐẠT' : 'N/A'}
+                                        </span>
+                                      </td>
+                                      <td style={{ border: cellBorder, padding: '2px', textAlign: 'center' }}>
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            removeFieldFromBlock(block.id, fid);
+                                          }}
+                                          style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#94a3b8', fontSize: '0.8rem' }}
+                                          title="Gỡ dòng này"
+                                        >
+                                          ✕
+                                        </button>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          )}
+                        </div>
+                      );
+                    })()}
 
                     {block.type === 'SIGN' && (
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem', border: '1px solid #000', padding: '0.75rem', textAlign: 'center' }}>
@@ -1302,8 +1569,39 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
             <div style={{ flex: 1, overflowY: 'auto', padding: '0.75rem' }}>
               {activeBlock ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {/* 1. Block Title & Title Format */}
                   <div>
-                    <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Tiêu đề khối</label>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                      <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Tiêu đề khối</label>
+                      {activeBlock.type !== 'TITLE' && (
+                        <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: '4px', padding: '1px', border: '1px solid #cbd5e1' }}>
+                          {(['H1', 'H2', 'BODY', 'NONE'] as TitleFormatISO[]).map(fmt => (
+                            <button
+                              key={fmt}
+                              type="button"
+                              onClick={() => {
+                                setTemplate(prev => ({
+                                  ...prev,
+                                  layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, titleFormat: fmt } : b)
+                                }));
+                              }}
+                              style={{
+                                padding: '1px 5px',
+                                fontSize: '0.65rem',
+                                fontWeight: (activeBlock.titleFormat || 'H2') === fmt ? 700 : 500,
+                                background: (activeBlock.titleFormat || 'H2') === fmt ? 'var(--primary)' : 'transparent',
+                                color: (activeBlock.titleFormat || 'H2') === fmt ? '#ffffff' : 'var(--text-secondary)',
+                                border: 'none',
+                                borderRadius: '3px',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              {fmt === 'BODY' ? 'Body' : fmt === 'NONE' ? 'None' : fmt}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                     <input
                       type="text"
                       value={activeBlock.title}
@@ -1314,7 +1612,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                           layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, title: val } : b)
                         }));
                       }}
-                      style={{ width: '100%', padding: '0.35rem 0.5rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', marginTop: '0.25rem' }}
+                      style={{ width: '100%', padding: '0.35rem 0.5rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px' }}
                     />
                   </div>
 
@@ -1457,24 +1755,195 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                     </>
                   )}
 
+                  {/* INFO_GRID Special Controls */}
                   {activeBlock.type === 'INFO_GRID' && (
-                    <div>
-                      <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Số cột hiển thị</label>
-                      <select
-                        value={activeBlock.columns || 2}
-                        onChange={e => {
-                          const cols = parseInt(e.target.value, 10) as 1 | 2 | 3;
-                          setTemplate(prev => ({
-                            ...prev,
-                            layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, columns: cols } : b)
-                          }));
-                        }}
-                        style={{ width: '100%', padding: '0.35rem 0.5rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', marginTop: '0.25rem' }}
-                      >
-                        <option value={1}>1 cột</option>
-                        <option value={2}>2 cột</option>
-                        <option value={3}>3 cột</option>
-                      </select>
+                    <div style={{ borderTop: '1px solid var(--neutral-border)', paddingTop: '0.6rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Columns</label>
+                        <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: '4px', padding: '1px', border: '1px solid #cbd5e1' }}>
+                          {[1, 2, 3].map(cols => (
+                            <button
+                              key={cols}
+                              type="button"
+                              onClick={() => {
+                                setTemplate(prev => ({
+                                  ...prev,
+                                  layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? {
+                                    ...b,
+                                    columns: cols as 1 | 2 | 3,
+                                    columnWidths: cols === 2 ? [50, 50] : cols === 3 ? [33, 34, 33] : undefined
+                                  } : b)
+                                }));
+                              }}
+                              style={{
+                                padding: '2px 8px',
+                                fontSize: '0.72rem',
+                                fontWeight: (activeBlock.columns || 2) === cols ? 700 : 500,
+                                background: (activeBlock.columns || 2) === cols ? 'var(--primary)' : 'transparent',
+                                color: (activeBlock.columns || 2) === cols ? '#ffffff' : 'var(--text-secondary)',
+                                border: 'none',
+                                borderRadius: '3px',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              {cols}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Stepped Splitter for 2 or 3 columns */}
+                      {(activeBlock.columns === 2 || activeBlock.columns === 3) && (
+                        <InfoGridSteppedSplitter
+                          columns={activeBlock.columns}
+                          columnWidths={activeBlock.columnWidths}
+                          onChange={(widths) => {
+                            setTemplate(prev => ({
+                              ...prev,
+                              layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, columnWidths: widths } : b)
+                            }));
+                          }}
+                        />
+                      )}
+                    </div>
+                  )}
+
+                  {/* TABLE Special Controls */}
+                  {activeBlock.type === 'TABLE' && (
+                    <div style={{ borderTop: '1px solid var(--neutral-border)', paddingTop: '0.6rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Border Style</label>
+                        <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: '4px', padding: '1px', border: '1px solid #cbd5e1' }}>
+                          {[
+                            { id: 'grid', label: 'Grid' },
+                            { id: 'horizontal_only', label: 'Horizontal' },
+                            { id: 'borderless', label: 'None' }
+                          ].map(styleOpt => (
+                            <button
+                              key={styleOpt.id}
+                              type="button"
+                              onClick={() => {
+                                setTemplate(prev => ({
+                                  ...prev,
+                                  layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, borderStyle: styleOpt.id as any } : b)
+                                }));
+                              }}
+                              style={{
+                                padding: '2px 6px',
+                                fontSize: '0.68rem',
+                                fontWeight: (activeBlock.borderStyle || 'grid') === styleOpt.id ? 700 : 500,
+                                background: (activeBlock.borderStyle || 'grid') === styleOpt.id ? 'var(--primary)' : 'transparent',
+                                color: (activeBlock.borderStyle || 'grid') === styleOpt.id ? '#ffffff' : 'var(--text-secondary)',
+                                border: 'none',
+                                borderRadius: '3px',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              {styleOpt.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Header</label>
+                        <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: '4px', padding: '1px', border: '1px solid #cbd5e1' }}>
+                          {[
+                            { val: false, label: 'Hiện' },
+                            { val: true, label: 'Ẩn' }
+                          ].map(opt => (
+                            <button
+                              key={String(opt.val)}
+                              type="button"
+                              onClick={() => {
+                                setTemplate(prev => ({
+                                  ...prev,
+                                  layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, hideHeader: opt.val } : b)
+                                }));
+                              }}
+                              style={{
+                                padding: '2px 8px',
+                                fontSize: '0.68rem',
+                                fontWeight: (activeBlock.hideHeader ?? false) === opt.val ? 700 : 500,
+                                background: (activeBlock.hideHeader ?? false) === opt.val ? 'var(--primary)' : 'transparent',
+                                color: (activeBlock.hideHeader ?? false) === opt.val ? '#ffffff' : 'var(--text-secondary)',
+                                border: 'none',
+                                borderRadius: '3px',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Bound Fields Manager for INFO_GRID and TABLE */}
+                  {(activeBlock.type === 'INFO_GRID' || activeBlock.type === 'TABLE') && (
+                    <div style={{ borderTop: '1px solid var(--neutral-border)', paddingTop: '0.6rem' }}>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.4rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span>CÁC TRƯỜNG ĐÃ GÁN ({(activeBlock.boundFieldIds || []).length})</span>
+                      </div>
+                      {(!activeBlock.boundFieldIds || activeBlock.boundFieldIds.length === 0) ? (
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                          Chưa có trường nào. Nhấp chọn trường ở danh mục FIELDS bên trái.
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '160px', overflowY: 'auto' }}>
+                          {activeBlock.boundFieldIds.map((fid, fIdx) => {
+                            const field = allFormFields.find(f => f.id === fid);
+                            return (
+                              <div
+                                key={fid}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  padding: '3px 6px',
+                                  background: '#f8fafc',
+                                  border: '1px solid #e2e8f0',
+                                  borderRadius: '3px',
+                                  fontSize: '0.72rem'
+                                }}
+                              >
+                                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }} title={field?.checkItem || fid}>
+                                  {fIdx + 1}. {field?.checkItem || fid}
+                                </span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '2px', marginLeft: '4px' }}>
+                                  <button
+                                    type="button"
+                                    disabled={fIdx === 0}
+                                    onClick={() => moveFieldInBlock(activeBlock.id, fIdx, 'up')}
+                                    style={{ border: 'none', background: 'none', cursor: fIdx === 0 ? 'not-allowed' : 'pointer', color: fIdx === 0 ? '#cbd5e1' : '#64748b', padding: '1px 3px' }}
+                                    title="Di chuyển lên"
+                                  >
+                                    ↑
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={fIdx === (activeBlock.boundFieldIds?.length || 0) - 1}
+                                    onClick={() => moveFieldInBlock(activeBlock.id, fIdx, 'down')}
+                                    style={{ border: 'none', background: 'none', cursor: fIdx === (activeBlock.boundFieldIds?.length || 0) - 1 ? 'not-allowed' : 'pointer', color: fIdx === (activeBlock.boundFieldIds?.length || 0) - 1 ? '#cbd5e1' : '#64748b', padding: '1px 3px' }}
+                                    title="Di chuyển xuống"
+                                  >
+                                    ↓
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => removeFieldFromBlock(activeBlock.id, fid)}
+                                    style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#ef4444', padding: '1px 3px' }}
+                                    title="Gỡ trường"
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   )}
 

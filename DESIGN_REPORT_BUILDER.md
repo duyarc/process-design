@@ -9,7 +9,7 @@
 | **Module Name** | Report Builder |
 | **Status** | Implemented & Verified |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-08-27) — Sections 1 to 4 checked against source code (Title Block ISO Design Parity with FormBuilder) |
+| **Verified At Commit** | (2026-08-27) — Sections 1 to 4 checked against source code (INFO_GRID Stepped Splitter & TABLE Layout Engine Parity) |
 
 ### Quick File Index
 
@@ -91,6 +91,7 @@ The module operates on a linear 4-stage processing and rendering pipeline:
 
 | Date | Change |
 |---|---|
+| 2026-08-27 | **INFO_GRID & TABLE Layout Engine Parity with Loaded Fields:** (1) Extended `ReportBlockConfig` with `columnWidths?: number[]`, `titleFormat?: TitleFormatISO`, and `hideHeader?: boolean`. (2) Integrated `InfoGridSteppedSplitter` and column ratio presets for 2 & 3 columns. (3) Upgraded Canvas for `INFO_GRID` to render blank dropzone when empty, and `Loaded Field Cards` when bound (with question label, type badge, sample value, and removal action). (4) Upgraded Canvas for `TABLE` to render evaluation dropzone when empty, and `Loaded Criteria Rows` when bound (with STT, Spec, Actual value, Pass/Fail status, and removal action). (5) Extended Right Inspector with Title format pills (`[ H1 | H2 | Body | None ]`), Columns pill `[ 1 | 2 | 3 ]`, Stepped Splitter, Border style `[ Grid | Horizontal | None ]`, Header toggle `[ Hiện | Ẩn ]`, and Bound field list managers with reordering. (6) Synchronized print layout in `PrintReport.tsx`. |
 | 2026-08-27 | **Title Block ISO Design Parity & Logo Engine:** (1) Added `showDate?: boolean` and `datePosition?: 'A' | 'B'` to `ReportBlockConfig`. (2) Upgraded Canvas render for `TITLE` block in `ReportBuilder.tsx` to match FormBuilder's ISO layout (H1 uppercase title, italic description, 2-column layout with left Logo container, flexible date placement at top-right or bottom-center). (3) Extended Right Inspector with Logo Uploader (`+ Upload Logo`), preview container (70px), `Remove Logo` action, `Description` input, and date position toggle (`Phải` / `Giữa`). (4) Implemented auto-inheritance of source form's logo and subtitle when adding Title block. (5) Synchronized identical ISO Title rendering in `PrintReport.tsx`. |
 | 2026-08-27 | **Modular Table-to-Field Extraction Engine & Multi-Table Data Ingestion:** (1) Created standalone module `tableFieldExtractor.ts` with `extractTableFields` and `extractAllFormFields`, converting 4 table variants (Likert scale, row QA, multi-column inputs, and group-header tables) into first-class `FormFieldISO` objects. (2) Re-exported through `formUtils.ts` for uniform system access. (3) Integrated with `ReportBuilder.tsx` and `reportCompute.ts`, unlocking all 89 fields in `5C-Scorecard`. (4) Upgraded Left Panel `FIELDS` tray with colored type badges (`[LIKERT]`, `[RATING]`, `[RADIO]`, `[NUMBER]`, `[CHECKBOX]`, `[TEXT]`), block location subtitles, and tri-field search matching. |
 | 2026-08-27 | **ReportBuilder Label Cleanup & Redundancy Removal:** (1) Streamlined Left Panel labels to concise English: `1. SOURCE FORM`, `2. SAMPLE SUBMISSION`, `FIELDS (n)`. (2) In Right Inspector `Properties` tab when no block is selected, removed duplicate `Report ID`, duplicate `Linked Form`, section header, and helper hint note, leaving only a clean `Report Title` input field. |

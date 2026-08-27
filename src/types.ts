@@ -375,6 +375,9 @@ export interface ReportBlockConfig {
   title: string;
   description?: string;                 // For SECTION_LABEL or TITLE subtitle
   columns?: 1 | 2 | 3;                  // For INFO_GRID
+  columnWidths?: number[];              // For INFO_GRID stepped splitter ratios
+  titleFormat?: TitleFormatISO;         // 'H1' | 'H2' | 'BODY' | 'NONE'
+  hideHeader?: boolean;                 // For TABLE hide thead
   logo?: string;                        // For TITLE block
   showDate?: boolean;                   // For TITLE block
   datePosition?: 'A' | 'B';             // 'A' (top-right) or 'B' (bottom-center)
