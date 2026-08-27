@@ -288,9 +288,20 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
     const newId = `rep_block_${Date.now()}`;
     let title = 'Tiêu đề khối';
     let boundFieldIds: string[] = [];
+    let logo: string | undefined = undefined;
+    let description: string | undefined = undefined;
+    let showDate: boolean | undefined = undefined;
+    let datePosition: 'A' | 'B' | undefined = undefined;
 
     if (type === 'TITLE') {
-      title = template.reportTitle || 'BÁO CÁO KIỂM ĐỊNH';
+      title = template.reportTitle || 'BÁO CÁO ĐÁNH GIÁ';
+      const sourceTitleBlock = selectedForm?.layoutBlocks?.find(b => b.type === 'TITLE');
+      if (sourceTitleBlock) {
+        logo = sourceTitleBlock.logo;
+        description = sourceTitleBlock.description;
+        showDate = sourceTitleBlock.showDate;
+        datePosition = sourceTitleBlock.datePosition;
+      }
     } else if (type === 'SECTION_LABEL') {
       title = '1. THÔNG TIN ĐÁNH GIÁ';
     } else if (type === 'INFO_GRID') {
@@ -324,6 +335,10 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
       id: newId,
       type,
       title,
+      logo,
+      description,
+      showDate,
+      datePosition,
       boundFieldIds,
       columns: type === 'INFO_GRID' ? 2 : 1,
       borderStyle: 'grid'
@@ -1069,15 +1084,65 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
 
                     {/* Block Renderer based on Type */}
                     {block.type === 'TITLE' && (
-                      <div style={{ border: '1px solid #000', padding: '0.75rem', textAlign: 'center' }}>
-                        <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>{template.reportId}</div>
-                        <h3 style={{ margin: '0.25rem 0', fontSize: '1.1rem', fontWeight: 700 }}>{block.title || template.reportTitle}</h3>
-                        <div style={{ display: 'flex', justifyContent: 'space-around', fontSize: '0.75rem', marginTop: '0.5rem', color: '#475569' }}>
-                          <span>Form gốc: <strong>{template.linkedFormId}</strong></span>
-                          <span>Ngày lập: <strong>{sampleSubmittedAtText}</strong></span>
-                          <span>Người kiểm tra: <strong>{sampleOperatorText}</strong></span>
+                      block.logo ? (
+                        <div style={{
+                          padding: '10px 0',
+                          display: 'flex',
+                          alignItems: 'center',
+                          marginBottom: '10px',
+                          position: 'relative'
+                        }}>
+                          <div style={{ marginRight: '20px', display: 'flex', alignItems: 'center', height: '65px' }}>
+                            <img src={block.logo} alt="Logo" style={{ maxHeight: '65px', maxWidth: '260px', objectFit: 'contain' }} />
+                          </div>
+                          <div style={{ textAlign: 'center', flex: 1 }}>
+                            <h1 style={{ margin: '0 0 2px 0', fontSize: '1.25rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-primary)' }}>
+                              {block.title || template.reportTitle || 'BÁO CÁO ĐÁNH GIÁ'}
+                            </h1>
+                            {block.description && (
+                              <p style={{ margin: 0, fontSize: '0.8rem', fontStyle: 'italic', color: 'var(--text-secondary)' }}>
+                                {block.description}
+                              </p>
+                            )}
+                            {block.showDate && (block.datePosition ?? 'B') === 'B' && (
+                              <div style={{ marginTop: '4px', fontSize: '0.78rem', color: 'var(--text-secondary)', textAlign: 'center' }}>
+                                <span style={{ fontWeight: 600 }}>Ngày</span> <span style={{ marginLeft: '6px', color: sampleSubmittedAtText !== '—' ? 'var(--text-primary)' : 'var(--text-muted)', letterSpacing: sampleSubmittedAtText !== '—' ? '0px' : '2px', fontWeight: sampleSubmittedAtText !== '—' ? 600 : 400 }}>{sampleSubmittedAtText !== '—' ? sampleSubmittedAtText : '\u00a0\u00a0\u00a0/\u00a0\u00a0\u00a0/\u00a0\u00a0\u00a0\u00a0'}</span>
+                              </div>
+                            )}
+                          </div>
+                          {block.showDate && block.datePosition === 'A' && (
+                            <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap', marginLeft: '10px', alignSelf: 'flex-start', paddingTop: '4px' }}>
+                              <span style={{ fontWeight: 600 }}>Ngày</span> <span style={{ marginLeft: '6px', color: sampleSubmittedAtText !== '—' ? 'var(--text-primary)' : 'var(--text-muted)', letterSpacing: sampleSubmittedAtText !== '—' ? '0px' : '2px', fontWeight: sampleSubmittedAtText !== '—' ? 600 : 400 }}>{sampleSubmittedAtText !== '—' ? sampleSubmittedAtText : '\u00a0\u00a0\u00a0/\u00a0\u00a0\u00a0/\u00a0\u00a0\u00a0\u00a0'}</span>
+                            </div>
+                          )}
                         </div>
-                      </div>
+                      ) : (
+                        <div style={{
+                          padding: '10px 0',
+                          textAlign: 'center',
+                          marginBottom: '10px',
+                          position: 'relative'
+                        }}>
+                          {block.showDate && block.datePosition === 'A' && (
+                            <div style={{ position: 'absolute', right: 0, top: '10px', fontSize: '0.78rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                              <span style={{ fontWeight: 600 }}>Ngày</span> <span style={{ marginLeft: '6px', color: sampleSubmittedAtText !== '—' ? 'var(--text-primary)' : 'var(--text-muted)', letterSpacing: sampleSubmittedAtText !== '—' ? '0px' : '2px', fontWeight: sampleSubmittedAtText !== '—' ? 600 : 400 }}>{sampleSubmittedAtText !== '—' ? sampleSubmittedAtText : '\u00a0\u00a0\u00a0/\u00a0\u00a0\u00a0/\u00a0\u00a0\u00a0\u00a0'}</span>
+                            </div>
+                          )}
+                          <h1 style={{ margin: '0 0 4px 0', fontSize: '1.25rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-primary)' }}>
+                            {block.title || template.reportTitle || 'BÁO CÁO ĐÁNH GIÁ'}
+                          </h1>
+                          {block.description && (
+                            <p style={{ margin: 0, fontSize: '0.8rem', fontStyle: 'italic', color: 'var(--text-secondary)' }}>
+                              {block.description}
+                            </p>
+                          )}
+                          {block.showDate && (block.datePosition ?? 'B') === 'B' && (
+                            <div style={{ marginTop: '4px', fontSize: '0.78rem', color: 'var(--text-secondary)', textAlign: 'center' }}>
+                              <span style={{ fontWeight: 600 }}>Ngày</span> <span style={{ marginLeft: '6px', color: sampleSubmittedAtText !== '—' ? 'var(--text-primary)' : 'var(--text-muted)', letterSpacing: sampleSubmittedAtText !== '—' ? '0px' : '2px', fontWeight: sampleSubmittedAtText !== '—' ? 600 : 400 }}>{sampleSubmittedAtText !== '—' ? sampleSubmittedAtText : '\u00a0\u00a0\u00a0/\u00a0\u00a0\u00a0/\u00a0\u00a0\u00a0\u00a0'}</span>
+                            </div>
+                          )}
+                        </div>
+                      )
                     )}
 
                     {block.type === 'SECTION_LABEL' && (
@@ -1252,6 +1317,145 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                       style={{ width: '100%', padding: '0.35rem 0.5rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', marginTop: '0.25rem' }}
                     />
                   </div>
+
+                  {/* TITLE Block Special Controls: Logo, Description, Date */}
+                  {activeBlock.type === 'TITLE' && (
+                    <>
+                      {/* Logo Section */}
+                      <div style={{ borderTop: '1px solid var(--neutral-border)', paddingTop: '0.6rem' }}>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.35rem' }}>
+                          Logo Image
+                        </label>
+                        {activeBlock.logo ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                            <div style={{ padding: '0.4rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', background: '#f8fafc', display: 'flex', justifyContent: 'center', alignItems: 'center', height: '70px' }}>
+                              <img src={activeBlock.logo} alt="Logo preview" style={{ maxHeight: '60px', maxWidth: '100%', objectFit: 'contain' }} />
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setTemplate(prev => ({
+                                  ...prev,
+                                  layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, logo: undefined } : b)
+                                }));
+                              }}
+                              style={{ padding: '0.25rem 0.5rem', background: '#ffffff', border: '1px solid var(--danger)', color: 'var(--danger)', borderRadius: '4px', fontSize: '0.72rem', cursor: 'pointer', fontWeight: 600 }}
+                            >
+                              Remove Logo
+                            </button>
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              id="report-logo-uploader"
+                              style={{ display: 'none' }}
+                              onChange={e => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  const reader = new FileReader();
+                                  reader.onload = () => {
+                                    const base64 = reader.result as string;
+                                    setTemplate(prev => ({
+                                      ...prev,
+                                      layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, logo: base64 } : b)
+                                    }));
+                                  };
+                                  reader.readAsDataURL(file);
+                                }
+                              }}
+                            />
+                            <label
+                              htmlFor="report-logo-uploader"
+                              style={{
+                                padding: '0.45rem',
+                                border: '2px dashed var(--neutral-border)',
+                                borderRadius: '6px',
+                                textAlign: 'center',
+                                cursor: 'pointer',
+                                color: 'var(--text-secondary)',
+                                fontWeight: 600,
+                                background: '#f8fafc',
+                                display: 'block',
+                                fontSize: '0.75rem'
+                              }}
+                            >
+                              + Upload Logo
+                            </label>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Description Section */}
+                      <div style={{ borderTop: '1px solid var(--neutral-border)', paddingTop: '0.6rem' }}>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>
+                          Description
+                        </label>
+                        <input
+                          type="text"
+                          value={activeBlock.description || ''}
+                          onChange={e => {
+                            const val = e.target.value;
+                            setTemplate(prev => ({
+                              ...prev,
+                              layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, description: val } : b)
+                            }));
+                          }}
+                          placeholder="e.g. (kiểm tra trước khi xuất kho...)"
+                          style={{ width: '100%', padding: '0.35rem 0.5rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px' }}
+                        />
+                      </div>
+
+                      {/* Show Date Section */}
+                      <div style={{ borderTop: '1px solid var(--neutral-border)', paddingTop: '0.6rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.35rem', cursor: 'pointer' }}>
+                          <input
+                            type="checkbox"
+                            checked={!!activeBlock.showDate}
+                            onChange={e => {
+                              const checked = e.target.checked;
+                              setTemplate(prev => ({
+                                ...prev,
+                                layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, showDate: checked, datePosition: b.datePosition || 'B' } : b)
+                              }));
+                            }}
+                          />
+                          Hiển thị ô "Ngày"
+                        </label>
+                        {activeBlock.showDate && (
+                          <div style={{ display: 'flex', border: '1px solid var(--neutral-border)', borderRadius: '4px', overflow: 'hidden' }}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setTemplate(prev => ({
+                                  ...prev,
+                                  layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, datePosition: 'A' } : b)
+                                }));
+                              }}
+                              style={{ padding: '2px 6px', background: activeBlock.datePosition === 'A' ? 'var(--primary)' : '#ffffff', color: activeBlock.datePosition === 'A' ? '#ffffff' : 'var(--text-secondary)', border: 'none', cursor: 'pointer', fontSize: '0.7rem', fontWeight: 600 }}
+                              title="Góc trên bên phải"
+                            >
+                              Phải
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setTemplate(prev => ({
+                                  ...prev,
+                                  layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, datePosition: 'B' } : b)
+                                }));
+                              }}
+                              style={{ padding: '2px 6px', background: (activeBlock.datePosition ?? 'B') === 'B' ? 'var(--primary)' : '#ffffff', color: (activeBlock.datePosition ?? 'B') === 'B' ? '#ffffff' : 'var(--text-secondary)', border: 'none', cursor: 'pointer', fontSize: '0.7rem', fontWeight: 600 }}
+                              title="Căn giữa bên dưới"
+                            >
+                              Giữa
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
 
                   {activeBlock.type === 'INFO_GRID' && (
                     <div>

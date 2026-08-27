@@ -86,19 +86,67 @@ export const PrintReport: React.FC<PrintReportProps> = ({
             
             {/* TITLE Block */}
             {block.type === 'TITLE' && (
-              <div style={{ border: '1px solid #000', padding: '10px', textAlign: 'center', marginBottom: '8px' }}>
-                <div style={{ fontSize: '11px', fontWeight: 600, color: '#475569', textTransform: 'uppercase' }}>
-                  {template.reportId} • PHIÊN BẢN {template.version}
+              block.logo ? (
+                <div style={{
+                  padding: '8px 0',
+                  display: 'flex',
+                  alignItems: 'center',
+                  marginBottom: '10px',
+                  position: 'relative',
+                  pageBreakInside: 'avoid'
+                }}>
+                  <div style={{ marginRight: '16px', display: 'flex', alignItems: 'center', height: '60px' }}>
+                    <img src={block.logo} alt="Logo" style={{ maxHeight: '60px', maxWidth: '240px', objectFit: 'contain' }} />
+                  </div>
+                  <div style={{ textAlign: 'center', flex: 1 }}>
+                    <h1 style={{ margin: '0 0 2px 0', fontSize: '16px', fontWeight: 800, textTransform: 'uppercase', color: '#000000' }}>
+                      {block.title || template.reportTitle || 'BÁO CÁO ĐÁNH GIÁ'}
+                    </h1>
+                    {block.description && (
+                      <p style={{ margin: 0, fontSize: '11px', fontStyle: 'italic', color: '#475569' }}>
+                        {block.description}
+                      </p>
+                    )}
+                    {block.showDate && (block.datePosition ?? 'B') === 'B' && (
+                      <div style={{ marginTop: '4px', fontSize: '11px', color: '#475569', textAlign: 'center' }}>
+                        <span style={{ fontWeight: 600 }}>Ngày</span> <span style={{ marginLeft: '6px', color: '#000000', letterSpacing: submittedAtText !== '—' ? '0px' : '2px', fontWeight: submittedAtText !== '—' ? 600 : 400 }}>{submittedAtText !== '—' ? submittedAtText : '\u00a0\u00a0\u00a0/\u00a0\u00a0\u00a0/\u00a0\u00a0\u00a0\u00a0'}</span>
+                      </div>
+                    )}
+                  </div>
+                  {block.showDate && block.datePosition === 'A' && (
+                    <div style={{ fontSize: '11px', color: '#475569', whiteSpace: 'nowrap', marginLeft: '10px', alignSelf: 'flex-start', paddingTop: '2px' }}>
+                      <span style={{ fontWeight: 600 }}>Ngày</span> <span style={{ marginLeft: '6px', color: '#000000', letterSpacing: submittedAtText !== '—' ? '0px' : '2px', fontWeight: submittedAtText !== '—' ? 600 : 400 }}>{submittedAtText !== '—' ? submittedAtText : '\u00a0\u00a0\u00a0/\u00a0\u00a0\u00a0/\u00a0\u00a0\u00a0\u00a0'}</span>
+                    </div>
+                  )}
                 </div>
-                <h1 style={{ margin: '4px 0 6px 0', fontSize: '16px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  {block.title || template.reportTitle}
-                </h1>
-                <div style={{ display: 'flex', justifyContent: 'space-around', fontSize: '11px', borderTop: '1px solid #000', paddingTop: '6px', marginTop: '6px' }}>
-                  <span>Biểu mẫu nguồn: <strong>{template.linkedFormId}</strong></span>
-                  <span>Mã lượt nộp: <strong>{submission.id}</strong></span>
-                  <span>Ngày kiểm tra: <strong>{submittedAtText}</strong></span>
+              ) : (
+                <div style={{
+                  padding: '8px 0',
+                  textAlign: 'center',
+                  marginBottom: '10px',
+                  position: 'relative',
+                  pageBreakInside: 'avoid'
+                }}>
+                  {block.showDate && block.datePosition === 'A' && (
+                    <div style={{ position: 'absolute', right: 0, top: '8px', fontSize: '11px', color: '#475569', whiteSpace: 'nowrap' }}>
+                      <span style={{ fontWeight: 600 }}>Ngày</span> <span style={{ marginLeft: '6px', color: '#000000', letterSpacing: submittedAtText !== '—' ? '0px' : '2px', fontWeight: submittedAtText !== '—' ? 600 : 400 }}>{submittedAtText !== '—' ? submittedAtText : '\u00a0\u00a0\u00a0/\u00a0\u00a0\u00a0/\u00a0\u00a0\u00a0\u00a0'}</span>
+                    </div>
+                  )}
+                  <h1 style={{ margin: '0 0 4px 0', fontSize: '16px', fontWeight: 800, textTransform: 'uppercase', color: '#000000' }}>
+                    {block.title || template.reportTitle || 'BÁO CÁO ĐÁNH GIÁ'}
+                  </h1>
+                  {block.description && (
+                    <p style={{ margin: 0, fontSize: '11px', fontStyle: 'italic', color: '#475569' }}>
+                      {block.description}
+                    </p>
+                  )}
+                  {block.showDate && (block.datePosition ?? 'B') === 'B' && (
+                    <div style={{ marginTop: '4px', fontSize: '11px', color: '#475569', textAlign: 'center' }}>
+                      <span style={{ fontWeight: 600 }}>Ngày</span> <span style={{ marginLeft: '6px', color: '#000000', letterSpacing: submittedAtText !== '—' ? '0px' : '2px', fontWeight: submittedAtText !== '—' ? 600 : 400 }}>{submittedAtText !== '—' ? submittedAtText : '\u00a0\u00a0\u00a0/\u00a0\u00a0\u00a0/\u00a0\u00a0\u00a0\u00a0'}</span>
+                    </div>
+                  )}
                 </div>
-              </div>
+              )
             )}
 
             {/* SECTION_LABEL Block */}

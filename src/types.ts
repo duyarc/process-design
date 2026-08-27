@@ -373,9 +373,11 @@ export interface ReportBlockConfig {
   id: string;
   type: ReportBlockType;
   title: string;
-  description?: string;                 // For SECTION_LABEL
+  description?: string;                 // For SECTION_LABEL or TITLE subtitle
   columns?: 1 | 2 | 3;                  // For INFO_GRID
   logo?: string;                        // For TITLE block
+  showDate?: boolean;                   // For TITLE block
+  datePosition?: 'A' | 'B';             // 'A' (top-right) or 'B' (bottom-center)
   boundFieldIds?: string[];             // Form field IDs included in this block
   ruleOverrides?: Record<string, ReportFieldRuleOverride>; // Field ID -> Custom Rules
   tableColumns?: { id: string; label: string; width?: string; align?: 'left' | 'center' | 'right' }[];
