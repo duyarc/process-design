@@ -354,45 +354,94 @@ function FormFillerInner({
   const fetchProcess = async () => {
     try {
       setLoading(true);
-      if (!processId || processId === 'unlinked') {
-        const res = await fetch(`/api/forms/${encodeURIComponent(formName)}`);
-        if (!res.ok) throw new Error('Failed to fetch unlinked form');
-        const formRecord = await res.json();
-        
+
+      // 1. Try to fetch the full form layout directly from /api/forms/:formName
+      let formRecord: any = null;
+      try {
+        const formRes = await fetch(`/api/forms/${encodeURIComponent(formName)}`);
+        if (formRes.ok) {
+          formRecord = await formRes.json();
+        }
+      } catch (_) {}
+
+      // 2. Fetch process details if linked to a process
+      let foundProc: Process | null = null;
+      if (processId && processId !== 'unlinked') {
+        try {
+          const procRes = await fetch('/api/processes');
+          if (procRes.ok) {
+            const procList: Process[] = await procRes.json();
+            foundProc = procList.find(p => p.id === processId) || null;
+          }
+        } catch (_) {}
+      }
+
+      if (formRecord) {
         const layoutBlocks = typeof formRecord.layout_blocks === 'string'
           ? JSON.parse(formRecord.layout_blocks)
           : (formRecord.layout_blocks || []);
-        
-        const virtualProc: Process = {
-          id: 'unlinked',
-          title: 'Biểu mẫu tự do',
+
+        const procTitle = foundProc ? foundProc.title : 'Biểu mẫu tự do';
+        const parentProcId = foundProc ? foundProc.id : (processId || 'unlinked');
+
+        const virtualProc: Process = foundProc ? {
+          ...foundProc,
+          workflowFormsData: {
+            ...(foundProc.workflowFormsData || {}),
+            [formName]: {
+              ...(foundProc.workflowFormsData?.[formName] || {}),
+              formId: formRecord.form_id || formName,
+              formTitle: formRecord.form_title || formRecord.form_name || formName,
+              version: formRecord.version || 'v0.1',
+              status: formRecord.status || 'DRAFT',
+              layoutBlocks
+            },
+            ...(formRecord.form_name && formRecord.form_name !== formName ? {
+              [formRecord.form_name]: {
+                formId: formRecord.form_id || formRecord.form_name,
+                formTitle: formRecord.form_title || formRecord.form_name,
+                version: formRecord.version || 'v0.1',
+                status: formRecord.status || 'DRAFT',
+                layoutBlocks
+              }
+            } : {})
+          }
+        } : {
+          id: parentProcId,
+          title: procTitle,
           description: 'Biểu mẫu chưa liên kết quy trình',
           version: 'V1.0',
           status: 'Active',
           steps: [],
-          parentProcessId: 'unlinked',
+          parentProcessId: parentProcId,
           roles: [],
           formFields: [],
           lastUpdated: formRecord.updated_at || new Date().toISOString(),
           workflowFormsData: {
             [formName]: {
-              formId: formName,
+              formId: formRecord.form_id || formName,
               formTitle: formRecord.form_title || formRecord.form_name || formName,
               version: formRecord.version || 'v0.1',
               status: formRecord.status || 'DRAFT',
               layoutBlocks
-            }
+            },
+            ...(formRecord.form_name && formRecord.form_name !== formName ? {
+              [formRecord.form_name]: {
+                formId: formRecord.form_id || formRecord.form_name,
+                formTitle: formRecord.form_title || formRecord.form_name,
+                version: formRecord.version || 'v0.1',
+                status: formRecord.status || 'DRAFT',
+                layoutBlocks
+              }
+            } : {})
           }
         };
+
         setProcess(virtualProc);
+      } else if (foundProc) {
+        setProcess(foundProc);
       } else {
-        const res = await fetch('/api/processes');
-        if (!res.ok) throw new Error('Failed to fetch processes');
-        const procList: Process[] = await res.json();
-        const foundProc = procList.find(p => p.id === processId);
-        if (foundProc) {
-          setProcess(foundProc);
-        }
+        throw new Error(`Could not load form "${formName}"`);
       }
     } catch (err) {
       console.error(err);

@@ -706,25 +706,29 @@ app.get('/api/forms/resolve/*identifier', async (req, res) => {
     }
 
     if (dbPool) {
-      // 1. Check standalone forms table
-      const formRes = await dbPool.query(
-        'SELECT * FROM forms WHERE LOWER(form_id) = LOWER($1) OR LOWER(form_name) = LOWER($1) OR LOWER(form_title) = LOWER($1) ORDER BY updated_at DESC LIMIT 1',
-        [identifier]
-      );
-      if (formRes.rows.length > 0) {
-        const formRecord = formRes.rows[0];
+      // 1. Check process_forms table first to get real processId if linked
+      const pfRes = await dbPool.query(`
+        SELECT pf.process_id, pf.form_name, pf.form_id, pf.form_version, p.title as process_title
+        FROM process_forms pf
+        JOIN processes p ON pf.process_id = p.id
+        WHERE LOWER(pf.form_name) = LOWER($1) OR LOWER(pf.form_id) = LOWER($1)
+        ORDER BY pf.updated_at DESC LIMIT 1
+      `, [identifier]);
+
+      if (pfRes.rows.length > 0) {
+        const pf = pfRes.rows[0];
         return res.json({
           exists: true,
-          processId: 'unlinked',
-          formName: formRecord.form_name || formRecord.form_id,
-          formTitle: formRecord.form_title || formRecord.form_name || formRecord.form_id,
-          version: formRecord.version || 'v0.1',
-          status: formRecord.status || 'DRAFT',
+          processId: pf.process_id,
+          formName: pf.form_name || pf.form_id,
+          formTitle: pf.form_name,
+          version: pf.form_version || 'v0.1',
+          status: 'ACTIVE',
           isPublic: true
         });
       }
 
-      // 2. Check processes table
+      // 2. Check processes table workflowFormsData
       const procRes = await dbPool.query('SELECT id, title, "workflowFormsData" FROM processes');
       for (const row of procRes.rows) {
         const wfForms = typeof row.workflowFormsData === 'string'
@@ -747,6 +751,24 @@ app.get('/api/forms/resolve/*identifier', async (req, res) => {
             });
           }
         }
+      }
+
+      // 3. Check standalone forms table
+      const formRes = await dbPool.query(
+        'SELECT * FROM forms WHERE LOWER(form_id) = LOWER($1) OR LOWER(form_name) = LOWER($1) OR LOWER(form_title) = LOWER($1) ORDER BY updated_at DESC LIMIT 1',
+        [identifier]
+      );
+      if (formRes.rows.length > 0) {
+        const formRecord = formRes.rows[0];
+        return res.json({
+          exists: true,
+          processId: 'unlinked',
+          formName: formRecord.form_name || formRecord.form_id,
+          formTitle: formRecord.form_title || formRecord.form_name || formRecord.form_id,
+          version: formRecord.version || 'v0.1',
+          status: formRecord.status || 'DRAFT',
+          isPublic: true
+        });
       }
 
       return res.status(404).json({ exists: false, error: 'Form not found' });
@@ -787,13 +809,13 @@ app.get('/api/forms/*formId', async (req, res) => {
       if (version) {
         // Fetch exact version snapshot
         result = await dbPool.query(
-          'SELECT * FROM forms WHERE form_id = $1 AND version = $2',
+          'SELECT * FROM forms WHERE (form_id = $1 OR form_name = $1 OR LOWER(form_id) = LOWER($1) OR LOWER(form_name) = LOWER($1)) AND version = $2',
           [formId, version]
         );
       } else {
         // Fetch the most recently updated version (latest snapshot)
         result = await dbPool.query(
-          'SELECT * FROM forms WHERE form_id = $1 ORDER BY updated_at DESC LIMIT 1',
+          'SELECT * FROM forms WHERE form_id = $1 OR form_name = $1 OR form_title = $1 OR LOWER(form_id) = LOWER($1) OR LOWER(form_name) = LOWER($1) OR LOWER(form_title) = LOWER($1) ORDER BY updated_at DESC LIMIT 1',
           [formId]
         );
       }
@@ -804,8 +826,8 @@ app.get('/api/forms/*formId', async (req, res) => {
     } else {
       const forms = readFormsOffline();
       const form = version
-        ? forms.find(f => f.form_id === formId && f.version === version)
-        : forms.filter(f => f.form_id === formId).sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))[0];
+        ? forms.find(f => (f.form_id === formId || f.form_name === formId || f.form_title === formId || (f.form_id && f.form_id.toLowerCase() === formId.toLowerCase()) || (f.form_name && f.form_name.toLowerCase() === formId.toLowerCase())) && f.version === version)
+        : forms.filter(f => f.form_id === formId || f.form_name === formId || f.form_title === formId || (f.form_id && f.form_id.toLowerCase() === formId.toLowerCase()) || (f.form_name && f.form_name.toLowerCase() === formId.toLowerCase())).sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))[0];
       if (!form) return res.status(404).json({ error: 'Form not found' });
       res.json(form);
     }
