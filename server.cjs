@@ -2883,8 +2883,19 @@ if (require.main === module) {
   }
 }
 
+// TEMP DIAGNOSTIC: GET /api/debug/submission-process - show raw join data for debugging
+app.get('/api/debug/submission-process', async (req, res) => {
+  if (!dbPool) return res.status(503).json({ error: 'No DB' });
+  try {
+    const subs = await dbPool.query('SELECT id, process_id, form_id FROM submissions ORDER BY submitted_at DESC LIMIT 10');
+    const pf = await dbPool.query('SELECT process_id, form_name, form_id FROM process_forms ORDER BY updated_at DESC LIMIT 20');
+    const procs = await dbPool.query('SELECT id, title, jsonb_object_keys("workflowFormsData") as wfd_key FROM processes WHERE id <> \'unlinked\' LIMIT 20');
+    res.json({ submissions: subs.rows, process_forms: pf.rows, process_wfd_keys: procs.rows });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = app;
 
 // Trigger database re-seed on restart for independent versioning schema.
-
-
