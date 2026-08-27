@@ -186,11 +186,16 @@ export const PrintReport: React.FC<PrintReportProps> = ({
                   }}>
                     {(block.boundFieldIds || []).map(fid => {
                       const field = allFormFields.find(f => f.id === fid);
+                      const override = block.ruleOverrides?.[fid];
+                      const isLabelHidden = !!override?.hideLabel;
+                      const displayLabel = override?.customLabel !== undefined
+                        ? override.customLabel
+                        : (field?.checkItem || fid);
                       const val = getFieldValue(fid);
                       return (
-                        <div key={fid} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dotted #94a3b8', paddingBottom: '2px' }}>
-                          <span style={{ color: '#475569' }}>{field?.checkItem || fid}:</span>
-                          <strong style={{ color: '#000000', marginLeft: '6px' }}>{val}</strong>
+                        <div key={fid} style={{ display: 'flex', justifyContent: isLabelHidden ? 'flex-start' : 'space-between', borderBottom: '1px dotted #94a3b8', paddingBottom: '2px' }}>
+                          {!isLabelHidden && <span style={{ color: '#475569' }}>{displayLabel}:</span>}
+                          <strong style={{ color: '#000000', marginLeft: isLabelHidden ? '0' : '6px' }}>{val}</strong>
                         </div>
                       );
                     })}
@@ -251,11 +256,12 @@ export const PrintReport: React.FC<PrintReportProps> = ({
                         const rawVal = getFieldValue(fid);
                         const isPass = evalRes?.status === 'PASS';
                         const isFail = evalRes?.status === 'FAIL';
+                        const displayLabel = override?.customLabel || field?.checkItem || fid;
 
                         return (
                           <tr key={fid} style={{ borderBottom: cellBorder }}>
                             <td style={{ border: cellBorder, padding: '4px 6px', textAlign: 'center', color: '#64748b' }}>{rIdx + 1}</td>
-                            <td style={{ border: cellBorder, padding: '4px 6px', fontWeight: 600 }}>{field?.checkItem || fid}</td>
+                            <td style={{ border: cellBorder, padding: '4px 6px', fontWeight: 600 }}>{displayLabel}</td>
                             <td style={{ border: cellBorder, padding: '4px 6px', textAlign: 'center' }}>{specText}</td>
                             <td style={{ border: cellBorder, padding: '4px 6px', textAlign: 'center', fontWeight: 600 }}>{rawVal}</td>
                             <td style={{ border: cellBorder, padding: '4px 6px', textAlign: 'center', fontWeight: 700 }}>

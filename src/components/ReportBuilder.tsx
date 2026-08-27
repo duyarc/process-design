@@ -27,12 +27,62 @@ import {
   Printer,
   Check,
   X,
+  RotateCcw,
   Clock,
   Search,
   Sparkles,
   Plus,
   GitBranch
 } from 'lucide-react';
+
+interface ToggleSwitchProps {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  label?: string;
+  disabled?: boolean;
+}
+
+function ToggleSwitch({ checked, onChange, label, disabled }: ToggleSwitchProps) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', userSelect: 'none' }}>
+      {label && <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{label}</span>}
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        disabled={disabled}
+        onClick={() => onChange(!checked)}
+        style={{
+          width: '32px',
+          height: '18px',
+          borderRadius: '9px',
+          background: checked ? 'var(--primary)' : '#cbd5e1',
+          position: 'relative',
+          border: 'none',
+          cursor: disabled ? 'not-allowed' : 'pointer',
+          transition: 'background 0.2s ease',
+          padding: 0,
+          outline: 'none',
+          flexShrink: 0
+        }}
+      >
+        <div
+          style={{
+            width: '14px',
+            height: '14px',
+            borderRadius: '50%',
+            background: '#ffffff',
+            position: 'absolute',
+            top: '2px',
+            left: checked ? '16px' : '2px',
+            transition: 'left 0.2s ease',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.2)'
+          }}
+        />
+      </button>
+    </div>
+  );
+}
 
 interface InfoGridSteppedSplitterProps {
   columns: 2 | 3;
@@ -1332,8 +1382,13 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                             }}>
                               {block.boundFieldIds.map((fid) => {
                                 const field = allFormFields.find(f => f.id === fid);
+                                const override = block.ruleOverrides?.[fid];
+                                const isLabelHidden = !!override?.hideLabel;
+                                const hasCustomLabel = override?.customLabel !== undefined && override.customLabel !== (field?.checkItem || fid);
+                                const displayLabel = override?.customLabel !== undefined
+                                  ? override.customLabel
+                                  : (field?.checkItem || fid);
                                 const val = getSampleValue(fid);
-                                const badgeLabel = field?.type === 'likert_scale' ? 'LIKERT' : field?.type ? field.type.toUpperCase() : 'FIELD';
 
                                 return (
                                   <div
@@ -1346,18 +1401,58 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                       fontSize: '0.75rem',
                                       display: 'flex',
                                       flexDirection: 'column',
-                                      justifyContent: 'space-between',
-                                      gap: '4px'
+                                      justifyContent: isLabelHidden ? 'center' : 'space-between',
+                                      minHeight: '48px',
+                                      position: 'relative'
                                     }}
                                   >
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '4px' }}>
-                                      <span style={{ fontWeight: 600, color: 'var(--text-primary)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                        {field?.checkItem || fid}
-                                      </span>
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                        <span style={{ fontSize: '0.62rem', padding: '1px 4px', borderRadius: '2px', background: '#f1f5f9', color: '#475569', fontWeight: 700 }}>
-                                          {badgeLabel}
-                                        </span>
+                                    {!isLabelHidden && (
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: 1, minWidth: 0 }}>
+                                          <input
+                                            type="text"
+                                            value={displayLabel}
+                                            placeholder={field?.checkItem || fid}
+                                            onChange={(e) => {
+                                              const newVal = e.target.value;
+                                              updateRuleOverride(fid, { customLabel: newVal === '' ? undefined : newVal });
+                                            }}
+                                            onClick={(e) => e.stopPropagation()}
+                                            style={{
+                                              fontSize: '0.75rem',
+                                              fontWeight: 600,
+                                              color: 'var(--text-secondary)',
+                                              border: '1px solid transparent',
+                                              background: 'transparent',
+                                              borderRadius: '3px',
+                                              padding: '1px 3px',
+                                              width: '100%',
+                                              outline: 'none',
+                                              transition: 'all 0.15s ease'
+                                            }}
+                                            onFocus={(e) => {
+                                              e.target.style.borderColor = 'var(--primary)';
+                                              e.target.style.background = '#f8fafc';
+                                            }}
+                                            onBlur={(e) => {
+                                              e.target.style.borderColor = 'transparent';
+                                              e.target.style.background = 'transparent';
+                                            }}
+                                          />
+                                          {hasCustomLabel && (
+                                            <button
+                                              type="button"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                updateRuleOverride(fid, { customLabel: undefined });
+                                              }}
+                                              style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--primary)', padding: '1px 2px', display: 'flex', alignItems: 'center' }}
+                                              title="Khôi phục nhãn ban đầu"
+                                            >
+                                              <RotateCcw size={11} />
+                                            </button>
+                                          )}
+                                        </div>
                                         <button
                                           type="button"
                                           onClick={(e) => {
@@ -1370,8 +1465,21 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                           ✕
                                         </button>
                                       </div>
-                                    </div>
-                                    <div style={{ fontSize: '0.82rem', color: '#0f172a', fontWeight: 600, borderTop: '1px dotted #e2e8f0', paddingTop: '3px' }}>
+                                    )}
+                                    {isLabelHidden && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          removeFieldFromBlock(block.id, fid);
+                                        }}
+                                        style={{ position: 'absolute', right: '4px', top: '4px', border: 'none', background: 'none', cursor: 'pointer', color: '#94a3b8', fontSize: '0.8rem', lineHeight: 1 }}
+                                        title="Gỡ trường khỏi khối này"
+                                      >
+                                        ✕
+                                      </button>
+                                    )}
+                                    <div style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 600, paddingLeft: '3px' }}>
                                       {val || '—'}
                                     </div>
                                   </div>
@@ -1441,12 +1549,13 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
 
                                   const rawVal = getSampleValue(fid);
                                   const status = evalRes?.status || 'PASS';
+                                  const displayLabel = override?.customLabel || field?.checkItem || fid;
 
                                   return (
                                     <tr key={fid} style={{ borderBottom: cellBorder }}>
                                       <td style={{ border: cellBorder, padding: '5px 6px', textAlign: 'center', color: '#64748b' }}>{rIdx + 1}</td>
                                       <td style={{ border: cellBorder, padding: '5px 8px' }}>
-                                        <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{field?.checkItem || fid}</div>
+                                        <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{displayLabel}</div>
                                       </td>
                                       <td style={{ border: cellBorder, padding: '5px 8px', textAlign: 'center', color: '#475569' }}>{specText}</td>
                                       <td style={{ border: cellBorder, padding: '5px 8px', textAlign: 'center', fontWeight: 600, color: '#0f172a' }}>{rawVal}</td>
@@ -1841,38 +1950,16 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                         </div>
                       </div>
 
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Header</label>
-                        <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: '4px', padding: '1px', border: '1px solid #cbd5e1' }}>
-                          {[
-                            { val: false, label: 'Hiện' },
-                            { val: true, label: 'Ẩn' }
-                          ].map(opt => (
-                            <button
-                              key={String(opt.val)}
-                              type="button"
-                              onClick={() => {
-                                setTemplate(prev => ({
-                                  ...prev,
-                                  layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, hideHeader: opt.val } : b)
-                                }));
-                              }}
-                              style={{
-                                padding: '2px 8px',
-                                fontSize: '0.68rem',
-                                fontWeight: (activeBlock.hideHeader ?? false) === opt.val ? 700 : 500,
-                                background: (activeBlock.hideHeader ?? false) === opt.val ? 'var(--primary)' : 'transparent',
-                                color: (activeBlock.hideHeader ?? false) === opt.val ? '#ffffff' : 'var(--text-secondary)',
-                                border: 'none',
-                                borderRadius: '3px',
-                                cursor: 'pointer'
-                              }}
-                            >
-                              {opt.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
+                      <ToggleSwitch
+                        label="Header"
+                        checked={!(activeBlock.hideHeader ?? false)}
+                        onChange={(show) => {
+                          setTemplate(prev => ({
+                            ...prev,
+                            layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, hideHeader: !show } : b)
+                          }));
+                        }}
+                      />
                     </div>
                   )}
 
@@ -1887,54 +1974,89 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                           Chưa có trường nào. Nhấp chọn trường ở danh mục FIELDS bên trái.
                         </div>
                       ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '160px', overflowY: 'auto' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', maxHeight: '240px', overflowY: 'auto' }}>
                           {activeBlock.boundFieldIds.map((fid, fIdx) => {
                             const field = allFormFields.find(f => f.id === fid);
+                            const override = activeBlock.ruleOverrides?.[fid];
+                            const hasCustomLabel = override?.customLabel !== undefined && override.customLabel !== (field?.checkItem || fid);
+
                             return (
                               <div
                                 key={fid}
                                 style={{
                                   display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'space-between',
-                                  padding: '3px 6px',
+                                  flexDirection: 'column',
+                                  gap: '4px',
+                                  padding: '5px 8px',
                                   background: '#f8fafc',
                                   border: '1px solid #e2e8f0',
-                                  borderRadius: '3px',
+                                  borderRadius: '4px',
                                   fontSize: '0.72rem'
                                 }}
                               >
-                                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }} title={field?.checkItem || fid}>
-                                  {fIdx + 1}. {field?.checkItem || fid}
-                                </span>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '2px', marginLeft: '4px' }}>
-                                  <button
-                                    type="button"
-                                    disabled={fIdx === 0}
-                                    onClick={() => moveFieldInBlock(activeBlock.id, fIdx, 'up')}
-                                    style={{ border: 'none', background: 'none', cursor: fIdx === 0 ? 'not-allowed' : 'pointer', color: fIdx === 0 ? '#cbd5e1' : '#64748b', padding: '1px 3px' }}
-                                    title="Di chuyển lên"
-                                  >
-                                    ↑
-                                  </button>
-                                  <button
-                                    type="button"
-                                    disabled={fIdx === (activeBlock.boundFieldIds?.length || 0) - 1}
-                                    onClick={() => moveFieldInBlock(activeBlock.id, fIdx, 'down')}
-                                    style={{ border: 'none', background: 'none', cursor: fIdx === (activeBlock.boundFieldIds?.length || 0) - 1 ? 'not-allowed' : 'pointer', color: fIdx === (activeBlock.boundFieldIds?.length || 0) - 1 ? '#cbd5e1' : '#64748b', padding: '1px 3px' }}
-                                    title="Di chuyển xuống"
-                                  >
-                                    ↓
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => removeFieldFromBlock(activeBlock.id, fid)}
-                                    style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#ef4444', padding: '1px 3px' }}
-                                    title="Gỡ trường"
-                                  >
-                                    ✕
-                                  </button>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                  <span style={{ fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }} title={field?.checkItem || fid}>
+                                    {fIdx + 1}. {field?.checkItem || fid}
+                                  </span>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '2px', marginLeft: '4px' }}>
+                                    <button
+                                      type="button"
+                                      disabled={fIdx === 0}
+                                      onClick={() => moveFieldInBlock(activeBlock.id, fIdx, 'up')}
+                                      style={{ border: 'none', background: 'none', cursor: fIdx === 0 ? 'not-allowed' : 'pointer', color: fIdx === 0 ? '#cbd5e1' : '#64748b', padding: '1px 3px' }}
+                                      title="Di chuyển lên"
+                                    >
+                                      ↑
+                                    </button>
+                                    <button
+                                      type="button"
+                                      disabled={fIdx === (activeBlock.boundFieldIds?.length || 0) - 1}
+                                      onClick={() => moveFieldInBlock(activeBlock.id, fIdx, 'down')}
+                                      style={{ border: 'none', background: 'none', cursor: fIdx === (activeBlock.boundFieldIds?.length || 0) - 1 ? 'not-allowed' : 'pointer', color: fIdx === (activeBlock.boundFieldIds?.length || 0) - 1 ? '#cbd5e1' : '#64748b', padding: '1px 3px' }}
+                                      title="Di chuyển xuống"
+                                    >
+                                      ↓
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => removeFieldFromBlock(activeBlock.id, fid)}
+                                      style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#ef4444', padding: '1px 3px' }}
+                                      title="Gỡ trường"
+                                    >
+                                      ✕
+                                    </button>
+                                  </div>
                                 </div>
+
+                                {activeBlock.type === 'INFO_GRID' && (
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '2px', borderTop: '1px dotted #cbd5e1', paddingTop: '4px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                      <input
+                                        type="text"
+                                        placeholder={field?.checkItem || fid}
+                                        value={override?.customLabel ?? ''}
+                                        onChange={(e) => updateRuleOverride(fid, { customLabel: e.target.value === '' ? undefined : e.target.value })}
+                                        style={{ flex: 1, padding: '2px 4px', fontSize: '0.72rem', border: '1px solid var(--neutral-border)', borderRadius: '3px', outline: 'none' }}
+                                      />
+                                      {hasCustomLabel && (
+                                        <button
+                                          type="button"
+                                          onClick={() => updateRuleOverride(fid, { customLabel: undefined })}
+                                          style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--primary)', padding: '1px 2px', display: 'flex', alignItems: 'center' }}
+                                          title="Khôi phục nhãn ban đầu"
+                                        >
+                                          <RotateCcw size={11} />
+                                        </button>
+                                      )}
+                                    </div>
+
+                                    <ToggleSwitch
+                                      label="Label"
+                                      checked={!override?.hideLabel}
+                                      onChange={(show) => updateRuleOverride(fid, { hideLabel: !show })}
+                                    />
+                                  </div>
+                                )}
                               </div>
                             );
                           })}

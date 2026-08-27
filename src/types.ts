@@ -362,6 +362,8 @@ export type ReportBlockType = 'TITLE' | 'SECTION_LABEL' | 'INFO_GRID' | 'TABLE' 
 
 export interface ReportFieldRuleOverride {
   fieldId: string;                      // Bound FormFieldISO.id
+  customLabel?: string;                 // Override label text in report
+  hideLabel?: boolean;                  // Hide label (show only value)
   customMinSpec?: number;               // Override lower bound
   customMaxSpec?: number;               // Override upper bound
   customTargetRange?: string;           // Override target text
