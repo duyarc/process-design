@@ -10,6 +10,7 @@ import type {
   ReportDataModel
 } from '../types';
 import { computeRecordReport } from '../utils/reportCompute';
+import { extractAllFormFields } from '../utils/tableFieldExtractor';
 import ConfirmModal from './common/ConfirmModal';
 import PrintReport from './print/PrintReport';
 import {
@@ -612,9 +613,11 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
     }));
   };
 
-  const allFormFields: FormFieldISO[] = (selectedForm?.layoutBlocks || []).flatMap(b => b.fields || []);
+  const allFormFields: FormFieldISO[] = extractAllFormFields(selectedForm?.layoutBlocks || []);
   const filteredFormFields = allFormFields.filter(f =>
-    (f.checkItem || f.id).toLowerCase().includes(searchFieldQuery.toLowerCase())
+    (f.checkItem || '').toLowerCase().includes(searchFieldQuery.toLowerCase()) ||
+    (f.id || '').toLowerCase().includes(searchFieldQuery.toLowerCase()) ||
+    (f.locationCode || '').toLowerCase().includes(searchFieldQuery.toLowerCase())
   );
 
   if (loading) {
@@ -942,12 +945,25 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
             <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
               {filteredFormFields.map(field => {
                 const isBoundToActive = activeBlock?.boundFieldIds?.includes(field.id);
+                
+                // Badge color mapping
+                const badgeStyle = (() => {
+                  switch (field.type) {
+                    case 'likert_scale': return { bg: '#f3e8ff', color: '#7e22ce', label: 'LIKERT' }; // Purple
+                    case 'rating': return { bg: '#fef3c7', color: '#b45309', label: 'RATING' };       // Amber
+                    case 'radio': return { bg: '#e0f2fe', color: '#0369a1', label: 'RADIO' };        // Sky
+                    case 'number': return { bg: '#ccfbf1', color: '#0f766e', label: 'NUMBER' };       // Teal
+                    case 'checkbox': return { bg: '#e0e7ff', color: '#4338ca', label: 'CHECKBOX' };   // Indigo
+                    default: return { bg: '#f1f5f9', color: '#475569', label: field.type.toUpperCase() }; // Slate
+                  }
+                })();
+
                 return (
                   <div
                     key={field.id}
                     onClick={() => activeBlock && toggleFieldInBlock(field.id)}
                     style={{
-                      padding: '0.4rem 0.6rem',
+                      padding: '0.45rem 0.6rem',
                       borderRadius: '4px',
                       border: `1px solid ${isBoundToActive ? 'var(--primary)' : 'var(--neutral-border)'}`,
                       background: isBoundToActive ? '#eff6ff' : '#ffffff',
@@ -955,24 +971,36 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      fontSize: '0.78rem'
+                      fontSize: '0.78rem',
+                      gap: '0.5rem'
                     }}
                     title={activeBlock ? 'Click để thêm/bớt khỏi khối đang chọn' : 'Chọn một khối ở giữa để gán trường này'}
                   >
-                    <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '170px' }}>
-                      <span style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{field.checkItem || field.id}</span>
-                      <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)' }}>ID: {field.id}</div>
+                    <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                      <div style={{ fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {field.checkItem || field.id}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.1rem' }}>
+                        <span style={{ fontSize: '0.66rem', color: '#64748b', fontStyle: 'italic', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {field.locationCode}
+                        </span>
+                        <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>•</span>
+                        <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+                          ID: {field.id.length > 18 ? `${field.id.substring(0, 8)}...${field.id.slice(-6)}` : field.id}
+                        </span>
+                      </div>
                     </div>
                     <span style={{
-                      fontSize: '0.65rem',
-                      padding: '0.1rem 0.35rem',
+                      fontSize: '0.63rem',
+                      padding: '0.12rem 0.35rem',
                       borderRadius: '3px',
-                      background: '#f1f5f9',
-                      color: '#475569',
+                      background: badgeStyle.bg,
+                      color: badgeStyle.color,
                       textTransform: 'uppercase',
-                      fontWeight: 600
+                      fontWeight: 700,
+                      flexShrink: 0
                     }}>
-                      {field.type}
+                      {badgeStyle.label}
                     </span>
                   </div>
                 );

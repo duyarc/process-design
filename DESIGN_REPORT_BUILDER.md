@@ -9,7 +9,7 @@
 | **Module Name** | Report Builder |
 | **Status** | Implemented & Verified |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-08-27) — Sections 1 to 4 checked against source code (Streamlined Left & Right Panel labels and removed redundancies) |
+| **Verified At Commit** | (2026-08-27) — Sections 1 to 4 checked against source code (Table-to-Field Engine & 4-Module Architecture) |
 
 ### Quick File Index
 
@@ -18,6 +18,7 @@
 | [`src/components/ReportBuilder.tsx`](src/components/ReportBuilder.tsx) | 3-panel authoring tool for configuring report templates |
 | [`src/components/FormReport.tsx`](src/components/FormReport.tsx) | Interactive report viewer for single submission records |
 | [`src/components/print/PrintReport.tsx`](src/components/print/PrintReport.tsx) | Dedicated A4/PDF print renderer complying with DESIGN_UI_UX.md |
+| [`src/utils/tableFieldExtractor.ts`](src/utils/tableFieldExtractor.ts) | Core extraction engine converting TABLE/Likert/Matrix into FormFieldISO |
 | [`src/utils/reportCompute.ts`](src/utils/reportCompute.ts) | Headless hybrid calculation engine (Compute stage) |
 | [`src/types.ts`](src/types.ts) | Shared types: `ReportTemplateISO`, `ReportBlockConfig`, `ReportRevisionEntry`, `ReportDataModel` |
 
@@ -90,6 +91,7 @@ The module operates on a linear 4-stage processing and rendering pipeline:
 
 | Date | Change |
 |---|---|
+| 2026-08-27 | **Modular Table-to-Field Extraction Engine & Multi-Table Data Ingestion:** (1) Created standalone module `tableFieldExtractor.ts` with `extractTableFields` and `extractAllFormFields`, converting 4 table variants (Likert scale, row QA, multi-column inputs, and group-header tables) into first-class `FormFieldISO` objects. (2) Re-exported through `formUtils.ts` for uniform system access. (3) Integrated with `ReportBuilder.tsx` and `reportCompute.ts`, unlocking all 89 fields in `5C-Scorecard`. (4) Upgraded Left Panel `FIELDS` tray with colored type badges (`[LIKERT]`, `[RATING]`, `[RADIO]`, `[NUMBER]`, `[CHECKBOX]`, `[TEXT]`), block location subtitles, and tri-field search matching. |
 | 2026-08-27 | **ReportBuilder Label Cleanup & Redundancy Removal:** (1) Streamlined Left Panel labels to concise English: `1. SOURCE FORM`, `2. SAMPLE SUBMISSION`, `FIELDS (n)`. (2) In Right Inspector `Properties` tab when no block is selected, removed duplicate `Report ID`, duplicate `Linked Form`, section header, and helper hint note, leaving only a clean `Report Title` input field. |
 | 2026-08-27 | **Right Panel & Tab Switcher Standardization:** (1) Standardized Right Panel tab switcher to clean underline style with `Properties` / `Versions` labels. (2) Added independent `Report ID` input field at the top of Tab Versions. (3) Standardized Version Control card to clean 1px border without teal accent border, updated icon to `<GitBranch />`, and added active draft discard button (`[ 🗑 ]` + `handleDeleteActiveDraft`). |
 | 2026-08-27 | **Save State Machine & Minimalist Close Icon:** (1) Implemented `getReportSnapshot` and `isSaved` state machine on the Save button (`[✓ Saved]` / `[Save]`). (2) Replaced text `Close` button with a minimalist `<X size={18} />` icon button with confirmation dialog for unsaved changes (`handleDiscardChangesAndClose`). |

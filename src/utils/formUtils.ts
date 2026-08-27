@@ -326,5 +326,8 @@ export function generateSmartFieldSlug(label: string, existingIds: string[] = []
   return uniqueId;
 }
 
+export { extractTableFields, extractAllFormFields } from './tableFieldExtractor';
+
+
 
 

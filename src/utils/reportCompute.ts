@@ -7,6 +7,7 @@ import type {
   FieldEvaluationResult,
   ReportDataModel
 } from '../types';
+import { extractAllFormFields } from './tableFieldExtractor';
 
 /**
  * Evaluates an individual form field's submitted value against specifications.
@@ -132,12 +133,11 @@ export function computeRecordReport(
 ): ReportDataModel {
   const evaluations: Record<string, FieldEvaluationResult> = {};
 
-  // Build field lookup dictionary from form template
+  // Build field lookup dictionary from form template (including table fields)
   const formFieldMap = new Map<string, FormFieldISO>();
-  (formTemplate.layoutBlocks || []).forEach(block => {
-    (block.fields || []).forEach(field => {
-      formFieldMap.set(field.id, field);
-    });
+  const allFields = extractAllFormFields(formTemplate.layoutBlocks || []);
+  allFields.forEach(field => {
+    formFieldMap.set(field.id, field);
   });
 
   // Collect all rule overrides from report template
