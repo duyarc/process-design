@@ -7067,94 +7067,92 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                   />
                 </div>
 
-                {/* 1-Line 2-Toggle Row: Focus mode & Public link */}
-                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem' }}>
-                  {/* Focus mode toggle card */}
-                  <div
-                    onClick={() => !isLocked && setDefaultFocusMode(prev => !prev)}
-                    style={{
-                      flex: 1,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '0.4rem 0.55rem',
-                      background: '#f8fafc',
-                      border: defaultFocusMode ? '1.5px solid var(--primary)' : '1px solid var(--neutral-border)',
-                      borderRadius: '6px',
-                      cursor: isLocked ? 'not-allowed' : 'pointer',
-                      userSelect: 'none',
-                      transition: 'all 0.15s ease'
-                    }}
-                    title="Mặc định mở biểu mẫu ở chế độ Focus từng phân đoạn H1"
-                  >
-                    <span style={{ fontSize: '0.75rem', fontWeight: 600, color: defaultFocusMode ? 'var(--primary)' : 'var(--text-secondary)' }}>
+                {/* 1-Line 2-Toggle Row: Focus mode & Public link (Minimalist style matching Table Header toggle) */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.25rem 0', marginTop: '0.25rem' }}>
+                  {/* Focus mode Toggle */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <label 
+                      onClick={() => !isLocked && setDefaultFocusMode(prev => !prev)}
+                      style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.75rem', margin: 0, cursor: isLocked ? 'not-allowed' : 'pointer', userSelect: 'none' }}
+                    >
                       Focus mode
-                    </span>
-                    <div style={{
-                      width: '28px',
-                      height: '16px',
-                      borderRadius: '9999px',
-                      background: defaultFocusMode ? 'var(--primary)' : '#cbd5e1',
-                      position: 'relative',
-                      transition: 'background 0.2s ease',
-                      flexShrink: 0
-                    }}>
-                      <div style={{
-                        width: '12px',
-                        height: '12px',
-                        borderRadius: '50%',
-                        background: '#ffffff',
-                        position: 'absolute',
-                        top: '2px',
-                        left: defaultFocusMode ? '14px' : '2px',
-                        transition: 'left 0.2s ease',
-                        boxShadow: '0 1px 2px rgba(0,0,0,0.2)'
-                      }} />
-                    </div>
+                    </label>
+                    <button
+                      type="button"
+                      disabled={isLocked}
+                      onClick={() => setDefaultFocusMode(prev => !prev)}
+                      style={{
+                        width: '32px',
+                        height: '18px',
+                        borderRadius: '9px',
+                        background: defaultFocusMode ? 'var(--primary)' : '#cbd5e1',
+                        border: 'none',
+                        cursor: isLocked ? 'not-allowed' : 'pointer',
+                        position: 'relative',
+                        padding: '2px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        transition: 'background-color 0.2s ease',
+                        outline: 'none'
+                      }}
+                      title={defaultFocusMode ? 'Focus mode đang Bật (Click để Tắt)' : 'Focus mode đang Tắt (Click để Bật)'}
+                    >
+                      <span
+                        style={{
+                          width: '14px',
+                          height: '14px',
+                          borderRadius: '50%',
+                          background: '#ffffff',
+                          boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                          transform: defaultFocusMode ? 'translateX(14px)' : 'translateX(0px)',
+                          transition: 'transform 0.2s ease',
+                          display: 'block'
+                        }}
+                      />
+                    </button>
                   </div>
 
-                  {/* Public link toggle card */}
-                  <div
-                    onClick={() => !isLocked && setIsPublic(prev => !prev)}
-                    style={{
-                      flex: 1,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '0.4rem 0.55rem',
-                      background: '#f8fafc',
-                      border: isPublic ? '1.5px solid #0d9488' : '1px solid var(--neutral-border)',
-                      borderRadius: '6px',
-                      cursor: isLocked ? 'not-allowed' : 'pointer',
-                      userSelect: 'none',
-                      transition: 'all 0.15s ease'
-                    }}
-                    title="Cho phép người ngoài/khách truy cập và điền form không cần đăng nhập"
-                  >
-                    <span style={{ fontSize: '0.75rem', fontWeight: 600, color: isPublic ? '#0d9488' : 'var(--text-secondary)' }}>
+                  {/* Public link Toggle */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <label 
+                      onClick={() => !isLocked && setIsPublic(prev => !prev)}
+                      style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.75rem', margin: 0, cursor: isLocked ? 'not-allowed' : 'pointer', userSelect: 'none' }}
+                    >
                       Public link
-                    </span>
-                    <div style={{
-                      width: '28px',
-                      height: '16px',
-                      borderRadius: '9999px',
-                      background: isPublic ? '#0d9488' : '#cbd5e1',
-                      position: 'relative',
-                      transition: 'background 0.2s ease',
-                      flexShrink: 0
-                    }}>
-                      <div style={{
-                        width: '12px',
-                        height: '12px',
-                        borderRadius: '50%',
-                        background: '#ffffff',
-                        position: 'absolute',
-                        top: '2px',
-                        left: isPublic ? '14px' : '2px',
-                        transition: 'left 0.2s ease',
-                        boxShadow: '0 1px 2px rgba(0,0,0,0.2)'
-                      }} />
-                    </div>
+                    </label>
+                    <button
+                      type="button"
+                      disabled={isLocked}
+                      onClick={() => setIsPublic(prev => !prev)}
+                      style={{
+                        width: '32px',
+                        height: '18px',
+                        borderRadius: '9px',
+                        background: isPublic ? 'var(--primary)' : '#cbd5e1',
+                        border: 'none',
+                        cursor: isLocked ? 'not-allowed' : 'pointer',
+                        position: 'relative',
+                        padding: '2px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        transition: 'background-color 0.2s ease',
+                        outline: 'none'
+                      }}
+                      title={isPublic ? 'Public link đang Bật (Click để Tắt)' : 'Public link đang Tắt (Click để Bật)'}
+                    >
+                      <span
+                        style={{
+                          width: '14px',
+                          height: '14px',
+                          borderRadius: '50%',
+                          background: '#ffffff',
+                          boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                          transform: isPublic ? 'translateX(14px)' : 'translateX(0px)',
+                          transition: 'transform 0.2s ease',
+                          display: 'block'
+                        }}
+                      />
+                    </button>
                   </div>
                 </div>
 

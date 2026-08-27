@@ -2424,50 +2424,45 @@ function FormFillerInner({
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
           {/* Focus Mode Switch Toggle */}
           {sections.length > 1 && (
-            <div
-              onClick={() => setViewMode(prev => prev === 'focus' ? 'all' : 'focus')}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.45rem',
-                cursor: 'pointer',
-                userSelect: 'none',
-                fontSize: '0.8rem',
-                fontWeight: 600,
-                color: viewMode === 'focus' ? 'var(--primary)' : 'var(--text-secondary)',
-                background: '#ffffff',
-                border: '1px solid var(--neutral-border)',
-                borderRadius: '6px',
-                padding: '0.35rem 0.65rem'
-              }}
-              title={viewMode === 'focus' ? 'Chế độ Focus từng phân đoạn (Đang Bật)' : 'Chế độ xem toàn bộ (Đang Tắt)'}
-            >
-              <span>Focus mode</span>
-              <div
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginRight: '0.25rem' }}>
+              <label
+                onClick={() => setViewMode(prev => prev === 'focus' ? 'all' : 'focus')}
+                style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.8rem', margin: 0, cursor: 'pointer', userSelect: 'none' }}
+              >
+                Focus mode
+              </label>
+              <button
+                type="button"
+                onClick={() => setViewMode(prev => prev === 'focus' ? 'all' : 'focus')}
                 style={{
                   width: '32px',
                   height: '18px',
-                  borderRadius: '9999px',
+                  borderRadius: '9px',
                   background: viewMode === 'focus' ? 'var(--primary)' : '#cbd5e1',
+                  border: 'none',
+                  cursor: 'pointer',
                   position: 'relative',
-                  transition: 'background 0.2s ease',
-                  cursor: 'pointer'
+                  padding: '2px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  transition: 'background-color 0.2s ease',
+                  outline: 'none'
                 }}
+                title={viewMode === 'focus' ? 'Chế độ Focus từng phân đoạn (Đang Bật)' : 'Chế độ xem toàn bộ (Đang Tắt)'}
               >
-                <div
+                <span
                   style={{
                     width: '14px',
                     height: '14px',
                     borderRadius: '50%',
                     background: '#ffffff',
-                    position: 'absolute',
-                    top: '2px',
-                    left: viewMode === 'focus' ? '16px' : '2px',
-                    transition: 'left 0.2s ease',
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.2)'
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                    transform: viewMode === 'focus' ? 'translateX(14px)' : 'translateX(0px)',
+                    transition: 'transform 0.2s ease',
+                    display: 'block'
                   }}
                 />
-              </div>
+              </button>
             </div>
           )}
 
