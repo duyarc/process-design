@@ -1145,12 +1145,8 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                         {field.checkItem || field.id}
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.1rem' }}>
-                        <span style={{ fontSize: '0.66rem', color: '#64748b', fontStyle: 'italic', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {field.locationCode}
-                        </span>
-                        <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>•</span>
                         <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
-                          ID: {field.id.length > 18 ? `${field.id.substring(0, 8)}...${field.id.slice(-6)}` : field.id}
+                          ID: {field.id.length > 24 ? `${field.id.substring(0, 10)}...${field.id.slice(-8)}` : field.id}
                         </span>
                       </div>
                     </div>
