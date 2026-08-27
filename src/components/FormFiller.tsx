@@ -548,7 +548,7 @@ function FormFillerInner({
   };
 
   // Helper: Collect snapshots from UI state
-  const buildSubmissionSnapshots = (forPrint: boolean = false) => {
+  const buildSubmissionSnapshots = (_forPrint: boolean = false) => {
     const allFields = formTemplate?.layoutBlocks?.flatMap((b: any) => b.fields || []) || [];
     let isOverallPass = true;
     const snapshots: SubmissionFieldSnapshot[] = [];
@@ -603,10 +603,6 @@ function FormFillerInner({
         }
       } else {
         targetRange = field.targetRange || 'N/A';
-      }
-
-      if (fieldStatus === 'FAIL' && !fieldReactions[field.id]?.trim() && !forPrint) {
-        throw new Error(`Corrective Action Containment log is required for failed check: "${field.checkItem}".`);
       }
 
       const actionText = fieldReactions[field.id]?.trim() ? ` (Action: ${fieldReactions[field.id]})` : '';
@@ -774,10 +770,6 @@ function FormFillerInner({
       Object.values(uploadedPhotos).forEach(keys => {
         allMediaKeys.push(...keys);
       });
-
-      if (!isOverallPass && allMediaKeys.length === 0) {
-        throw new Error('⚠️ QMS Protocol: Photo evidence is required for out-of-specification abnormalities.');
-      }
 
       setSubmitting(true);
       const submissionId = editSubmissionId;

@@ -442,6 +442,7 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 | 2026-08-26 | `CURRENT` | **FormFiller Pagination Rollback & Continuous Form Restoration:** Rolled back Paper Sheet Pagination UX (`getFormPages`, tabs, sticky dock, shortcuts) to restore standard continuous form rendering in `FormFiller.tsx`. Preserved 100% designed table rows, auto-append row generation, AutoResizingTextarea, and FormErrorBoundary. |
 | 2026-08-26 | `CURRENT` | **Human-Friendly Daily Sequential Submission ID:** Upgraded `FormFiller.tsx` and `ProcessReader.tsx` submission flow to receive compact 9-character daily sequential IDs (`YYMMDD-XX`, e.g. `260826-01`) assigned by backend. |
 | 2026-08-27 | `CURRENT` | **Short, Beautiful & Secure Public Link Generator:** Upgraded `handleCopyShareLink` in `FormFiller.tsx` to generate clean 38-character short links (`/f/:formName`) backed by smart route resolution and backward compatibility. |
+| 2026-08-27 | `CURRENT` | **Submission Validation Logic Fix:** Removed hard blocks on failed checks (action note & photo requirements) in `FormFiller.tsx` and `ProcessReader.tsx`, allowing non-compliant inspection records to be submitted normally with `status: 'ABNORMALITY'`. |
 
 
 

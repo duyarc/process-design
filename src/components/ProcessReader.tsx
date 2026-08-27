@@ -217,17 +217,13 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
           targetRange = field.targetRange || 'Required';
         }
 
-        if (fieldStatus === 'FAIL' && !fieldReactions[field.id]?.trim()) {
-          throw new Error(`Corrective Action Containment log is required for failed check: "${field.checkItem}".`);
-        }
-
         return {
           id: field.id,
           checkItem: field.checkItem,
           locationCode: field.locationCode || 'N/A',
           targetRange,
           reactionProtocol: field.reactionProtocol,
-          value: val + (fieldStatus === 'FAIL' ? ` (Action: ${fieldReactions[field.id]})` : ''),
+          value: val + (fieldStatus === 'FAIL' && fieldReactions[field.id]?.trim() ? ` (Action: ${fieldReactions[field.id]})` : ''),
           status: fieldStatus
         };
       });
@@ -301,10 +297,6 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
       Object.values(uploadedPhotos).forEach(keys => {
         allMediaKeys.push(...keys);
       });
-
-      if (!isOverallPass && allMediaKeys.length === 0) {
-        throw new Error('⚠️ QMS Protocol: Photo evidence is required for out-of-specification abnormalities.');
-      }
 
       setSubmitting(true);
       

@@ -5088,7 +5088,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                       <button
                         type="button"
                         onClick={() => {
-                          const newOpts = [...(activeField.options ?? DEFAULT_RADIO_OPTIONS), { label: 'Lựa chọn mới', value: `OPT_${Date.now()}`, isPass: false }];
+                          const newOpts = [...(activeField.options ?? DEFAULT_RADIO_OPTIONS), { label: 'Lựa chọn mới', value: `OPT_${Date.now()}`, isPass: true }];
                           handleUpdateField(activeBlockId!, activeFieldId!, { options: newOpts });
                         }}
                         style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '0.25rem 0.5rem', fontSize: '0.7rem', borderRadius: '4px', border: '1px dashed #94a3b8', background: 'none', color: 'var(--text-secondary)', cursor: 'pointer', } }
@@ -5739,7 +5739,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                     ))}
                                   </div>
                                   {!isLocked && (
-                                    <button type="button" onClick={() => { const newOpts = [...(col.options || []), { label: 'Lựa chọn mới', value: `OPT_${Date.now()}`, isPass: false }]; handleUpdateTableColumn(activeBlock.id, col.id, { options: newOpts }); }} style={{ display: 'flex', alignItems: 'center', gap: '2px', padding: '0.15rem 0.3rem', fontSize: '0.65rem', borderRadius: '4px', border: '1px dashed #94a3b8', background: 'none', color: 'var(--text-secondary)', cursor: 'pointer', width: 'fit-content' }}>
+                                    <button type="button" onClick={() => { const newOpts = [...(col.options || []), { label: 'Lựa chọn mới', value: `OPT_${Date.now()}`, isPass: true }]; handleUpdateTableColumn(activeBlock.id, col.id, { options: newOpts }); }} style={{ display: 'flex', alignItems: 'center', gap: '2px', padding: '0.15rem 0.3rem', fontSize: '0.65rem', borderRadius: '4px', border: '1px dashed #94a3b8', background: 'none', color: 'var(--text-secondary)', cursor: 'pointer', width: 'fit-content' }}>
                                       <Plus size={10} /> Thêm lựa chọn
                                     </button>
                                   )}
@@ -5757,7 +5757,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                     ))}
                                   </div>
                                   {!isLocked && (
-                                    <button type="button" onClick={() => { const newOpts = [...(col.options || []), { label: 'Lựa chọn mới', value: `OPT_${Date.now()}`, isPass: false }]; handleUpdateTableColumn(activeBlock.id, col.id, { options: newOpts }); }} style={{ display: 'flex', alignItems: 'center', gap: '2px', padding: '0.15rem 0.3rem', fontSize: '0.65rem', borderRadius: '4px', border: '1px dashed #94a3b8', background: 'none', color: 'var(--text-secondary)', cursor: 'pointer', width: 'fit-content' }}>
+                                    <button type="button" onClick={() => { const newOpts = [...(col.options || []), { label: 'Lựa chọn mới', value: `OPT_${Date.now()}`, isPass: true }]; handleUpdateTableColumn(activeBlock.id, col.id, { options: newOpts }); }} style={{ display: 'flex', alignItems: 'center', gap: '2px', padding: '0.15rem 0.3rem', fontSize: '0.65rem', borderRadius: '4px', border: '1px dashed #94a3b8', background: 'none', color: 'var(--text-secondary)', cursor: 'pointer', width: 'fit-content' }}>
                                       <Plus size={10} /> Thêm lựa chọn
                                     </button>
                                   )}
@@ -6242,7 +6242,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                       <button
                                         type="button"
                                         onClick={() => {
-                                          const newOpts = [...(col.options || []), { label: 'Lựa chọn mới', value: `OPT_${Date.now()}`, isPass: false }];
+                                          const newOpts = [...(col.options || []), { label: 'Lựa chọn mới', value: `OPT_${Date.now()}`, isPass: true }];
                                           handleUpdateTableColumn(activeBlock.id, col.id, { options: newOpts });
                                         }}
                                         style={{ display: 'flex', alignItems: 'center', gap: '2px', padding: '0.15rem 0.3rem', fontSize: '0.65rem', borderRadius: '4px', border: '1px dashed #94a3b8', background: 'none', color: 'var(--text-secondary)', cursor: 'pointer', width: 'fit-content' }}
