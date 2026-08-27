@@ -66,7 +66,8 @@ import {
   Star,
   FileText,
   Globe,
-  Lock
+  Lock,
+  Copy
 } from 'lucide-react';
 
 const parseSubtableValue = (val: string): Record<string, string>[] => {
@@ -159,6 +160,13 @@ function FormFillerInner({
   const [signOpen, setSignOpen] = useState<{ [fieldId: string]: boolean }>({});
   const [submitting, setSubmitting] = useState(false);
   const [submittedId, setSubmittedId] = useState<string | null>(null);
+  const [lastSubmittedSnapshot, setLastSubmittedSnapshot] = useState<{
+    formValues: { [fieldId: string]: string };
+    fieldReactions: { [fieldId: string]: string };
+    uploadedPhotos: { [fieldId: string]: string[] };
+    operatorId: string;
+    signValues: { [fieldId: string]: { name: string; confirmedAt: string } | null };
+  } | null>(null);
   const [showPrintBlank, setShowPrintBlank] = useState(false);
   const [autoExportPdf, setAutoExportPdf] = useState(false);
   const [printCurrentSubmission, setPrintCurrentSubmission] = useState<Submission | null>(null);
@@ -802,7 +810,16 @@ function FormFillerInner({
        
       setSubmittedId(finalId);
       
-      // Reset states
+      // Save snapshot for potential copy action before resetting
+      setLastSubmittedSnapshot({
+        formValues: { ...formValues },
+        fieldReactions: { ...fieldReactions },
+        uploadedPhotos: { ...uploadedPhotos },
+        operatorId,
+        signValues: { ...signValues }
+      });
+
+      // Reset active editing states
       setFormValues({});
       setFieldReactions({});
       setUploadedPhotos({});
@@ -818,33 +835,69 @@ function FormFillerInner({
     }
   };
 
+  // Helper: Copy last submitted data to create a new submission
+  const handleCopyLastSubmitted = () => {
+    if (lastSubmittedSnapshot) {
+      setFormValues(lastSubmittedSnapshot.formValues);
+      setFieldReactions(lastSubmittedSnapshot.fieldReactions);
+      setUploadedPhotos(lastSubmittedSnapshot.uploadedPhotos);
+      setOperatorId(lastSubmittedSnapshot.operatorId);
+      setSignValues(lastSubmittedSnapshot.signValues);
+    }
+    setSubmittedId(null);
+  };
+
+  // Helper: Reset to completely blank form
+  const handleFillNewBlank = () => {
+    setFormValues({});
+    setFieldReactions({});
+    setUploadedPhotos({});
+    setOperatorId('');
+    setSignValues({});
+    setSignInputs({});
+    setSignOpen({});
+    setLastSubmittedSnapshot(null);
+    setSubmittedId(null);
+  };
+
   // Submission success UI
   if (submittedId) {
     return (
       <div className="paper-card" style={{ padding: '3rem 2rem', textAlign: 'center', maxWidth: '600px', margin: '4rem auto', borderTop: '4px solid #10b981' }}>
         <CheckCircle2 size={56} style={{ color: '#10b981', marginBottom: '1.25rem' }} />
         <h2 style={{ fontSize: '1.5rem', fontWeight: 700, margin: '0 0 0.5rem 0' }}>
-          {editSubmissionId ? 'Record Updated Successfully!' : 'Record Submitted Successfully!'}
+          Record Submitted Successfully!
         </h2>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
-          {editSubmissionId 
-            ? 'Your changes have been saved and overwritten on the server.'
-            : 'Your check record has been securely uploaded and cataloged.'}
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1.75rem' }}>
+          Phiếu kiểm tra đã được lưu trữ an toàn vào hệ thống.
           <br />
-          Submission ID: <strong style={{ fontFamily: 'monospace' }}>{submittedId}</strong>
+          Submission ID: <strong style={{ fontFamily: 'monospace', color: 'var(--text-primary)' }}>{submittedId}</strong>
         </p>
         
-        <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
+        <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
           <button 
+            type="button"
             className="btn btn-primary" 
-            onClick={() => setSubmittedId(null)}
+            onClick={handleCopyLastSubmitted}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
           >
-            Fill Another Record
+            <Copy size={15} />
+            <span>Sao chép dữ liệu để tạo phiếu mới</span>
           </button>
           
-          <button className="btn btn-secondary" onClick={onBack}>
-            Back to Form Manager
+          <button 
+            type="button"
+            className="btn btn-secondary" 
+            onClick={handleFillNewBlank}
+          >
+            Điền phiếu trắng mới
           </button>
+          
+          {onBack && (
+            <button type="button" className="btn btn-secondary" onClick={onBack}>
+              Quay lại
+            </button>
+          )}
         </div>
       </div>
     );
@@ -878,26 +931,6 @@ function FormFillerInner({
 
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      
-      {editSubmissionId && (
-        <div style={{
-          background: '#fff7ed',
-          border: '1px solid #ffedd5',
-          padding: '1rem 1.25rem',
-          borderRadius: '8px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.75rem',
-          color: '#c2410c',
-          marginTop: '1rem'
-        }}>
-          <AlertTriangle size={20} style={{ color: '#ea580c', flexShrink: 0 }} />
-          <div style={{ fontSize: '0.88rem' }}>
-            <strong>Admin Edit Mode</strong> — Đang chỉnh sửa bản ghi <code style={{ background: '#ffedd5', padding: '0.1rem 0.3rem', borderRadius: '4px', fontFamily: 'monospace' }}>{editSubmissionId}</code>. 
-            Lưu lại sẽ <strong>ghi đè (overwrite)</strong> bản ghi gốc này.
-          </div>
-        </div>
-      )}
       
       {/* Standalone Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

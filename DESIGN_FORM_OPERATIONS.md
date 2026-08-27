@@ -443,6 +443,7 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 | 2026-08-26 | `CURRENT` | **Human-Friendly Daily Sequential Submission ID:** Upgraded `FormFiller.tsx` and `ProcessReader.tsx` submission flow to receive compact 9-character daily sequential IDs (`YYMMDD-XX`, e.g. `260826-01`) assigned by backend. |
 | 2026-08-27 | `CURRENT` | **Short, Beautiful & Secure Public Link Generator:** Upgraded `handleCopyShareLink` in `FormFiller.tsx` to generate clean 38-character short links (`/f/:formName`) backed by smart route resolution and backward compatibility. |
 | 2026-08-27 | `CURRENT` | **Submission Validation Logic Fix:** Removed hard blocks on failed checks (action note & photo requirements) in `FormFiller.tsx` and `ProcessReader.tsx`, allowing non-compliant inspection records to be submitted normally with `status: 'ABNORMALITY'`. |
+| 2026-08-27 | `CURRENT` | **Minimal Copy Submission Workflow & Admin Deletion:** Replaced in-place editing with an immutable Copy-to-New workflow (Copy button in Submission Detail Drawer and Success Screen only, keeping list views clean). Submissions created via Copy receive fresh sequential IDs upon submit. Admin deletion guarded by `ConfirmModal`. |
 
 
 

@@ -14,8 +14,8 @@ import {
   XCircle, 
   UserCheck, 
   Share2,
-  Pencil,
-  Trash2
+  Trash2,
+  Copy
 } from 'lucide-react';
 import PrintFilledForm from './print/PrintFilledForm';
 import FormFiller from './FormFiller';
@@ -52,8 +52,8 @@ export default function FormManager({ processId, formName, onOpenFormFiller, onB
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'PASS' | 'ABNORMALITY'>('ALL');
   const [signoffFilter, setSignoffFilter] = useState<'ALL' | 'PENDING' | 'VERIFIED'>('ALL');
   
-  // Edit State
-  const [editSubmission, setEditSubmission] = useState<Submission | null>(null);
+  // Copy Submission State
+  const [copySubmission, setCopySubmission] = useState<Submission | null>(null);
 
   // Deletion States
   const [submissionToDelete, setSubmissionToDelete] = useState<Submission | null>(null);
@@ -230,16 +230,15 @@ export default function FormManager({ processId, formName, onOpenFormFiller, onB
     );
   }
 
-  // Handle direct Edit mode transition
-  if (editSubmission) {
+  // Handle Copy / Clone Submission mode transition
+  if (copySubmission) {
     return (
       <FormFiller
         processId={processId}
         formName={formName}
-        initialSubmission={editSubmission}
-        editSubmissionId={editSubmission.id}
+        initialSubmission={copySubmission}
         onBack={() => {
-          setEditSubmission(null);
+          setCopySubmission(null);
           fetchData();
         }}
       />
@@ -441,26 +440,15 @@ export default function FormManager({ processId, formName, onOpenFormFiller, onB
                               <Printer size={14} />
                             </button>
                             {currentUser?.role_id === 'admin' && (
-                              <>
-                                <button
-                                  type="button"
-                                  className="btn btn-secondary btn-sm"
-                                  title="Edit & Overwrite (Admin)"
-                                  onClick={() => setEditSubmission(sub)}
-                                  style={{ padding: '0.25rem', height: '28px', width: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                                >
-                                  <Pencil size={14} style={{ color: '#ea580c' }} />
-                                </button>
-                                <button
-                                  type="button"
-                                  className="btn btn-secondary btn-sm"
-                                  title="Delete Record (Admin)"
-                                  onClick={() => setSubmissionToDelete(sub)}
-                                  style={{ padding: '0.25rem', height: '28px', width: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                                >
-                                  <Trash2 size={14} style={{ color: '#ef4444' }} />
-                                </button>
-                              </>
+                              <button
+                                type="button"
+                                className="btn btn-secondary btn-sm"
+                                title="Delete Record (Admin)"
+                                onClick={() => setSubmissionToDelete(sub)}
+                                style={{ padding: '0.25rem', height: '28px', width: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444' }}
+                              >
+                                <Trash2 size={14} />
+                              </button>
                             )}
                           </div>
                         </td>
@@ -490,13 +478,51 @@ export default function FormManager({ processId, formName, onOpenFormFiller, onB
                   <h3 style={{ margin: '0.15rem 0 0 0', fontSize: '1rem', color: 'var(--text-primary)' }}>{process.title}</h3>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontFamily: 'monospace', marginTop: '0.1rem' }}>ID: {selectedSubmission.id}</div>
                 </div>
-                <button 
-                  type="button" 
-                  onClick={() => setSelectedSubmission(null)}
-                  style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
-                >
-                  <XCircle size={18} />
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    title="Sao chép thành phiếu mới (Copy Record)"
+                    onClick={() => {
+                      setCopySubmission(selectedSubmission);
+                      setSelectedSubmission(null);
+                    }}
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
+                  >
+                    <Copy size={13} />
+                    <span>Sao chép</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    title="In biểu mẫu (Print)"
+                    onClick={() => setPrintSubmission(selectedSubmission)}
+                    style={{ padding: '0.25rem', height: '26px', width: '26px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  >
+                    <Printer size={13} />
+                  </button>
+                  {currentUser?.role_id === 'admin' && (
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      title="Xóa bản ghi lỗi (Admin)"
+                      onClick={() => {
+                        setSubmissionToDelete(selectedSubmission);
+                        setSelectedSubmission(null);
+                      }}
+                      style={{ padding: '0.25rem', height: '26px', width: '26px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444' }}
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  )}
+                  <button 
+                    type="button" 
+                    onClick={() => setSelectedSubmission(null)}
+                    style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', outline: 'none', padding: '0.2rem', marginLeft: '0.25rem' }}
+                  >
+                    <XCircle size={18} />
+                  </button>
+                </div>
               </div>
 
               {/* Stats Grid */}

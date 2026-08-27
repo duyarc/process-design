@@ -13,10 +13,12 @@ import {
   XCircle,
   UserCheck,
   Trash2,
-  FileText
+  FileText,
+  Copy
 } from 'lucide-react';
 import PrintFilledForm from './print/PrintFilledForm';
 import ConfirmModal from './common/ConfirmModal';
+import FormFiller from './FormFiller';
 
 interface SubmissionManagerProps {
   onBack?: () => void;
@@ -39,6 +41,9 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
   
   // Print Mode State
   const [printSubmission, setPrintSubmission] = useState<Submission | null>(null);
+
+  // Copy / Clone Submission State
+  const [copyingSubmission, setCopyingSubmission] = useState<Submission | null>(null);
   
   // Supervisor verification states
   const [supervisorName, setSupervisorName] = useState(currentUser?.role_id === 'admin' || currentUser?.role_id === 'supervisor' ? currentUser.full_name : '');
@@ -200,6 +205,21 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
       setDeleting(false);
     }
   };
+
+  // Copy / Clone Submission mode render bypass
+  if (copyingSubmission) {
+    return (
+      <FormFiller
+        processId={copyingSubmission.processId}
+        formName={copyingSubmission.formId}
+        initialSubmission={copyingSubmission}
+        onBack={() => {
+          setCopyingSubmission(null);
+          fetchData();
+        }}
+      />
+    );
+  }
 
   // 4. Print Record render bypass
   if (printSubmission) {
@@ -510,6 +530,17 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
                             >
                               <Printer size={13} />
                             </button>
+                            {currentUser?.role_id === 'admin' && (
+                              <button
+                                type="button"
+                                className="btn btn-secondary btn-sm"
+                                title="Xóa bản ghi lỗi (Admin)"
+                                onClick={() => setSubmissionToDelete(sub)}
+                                style={{ padding: '0.25rem', height: '26px', width: '26px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: 0, color: '#ef4444' }}
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -569,13 +600,51 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
                 <h3 style={{ margin: '0.15rem 0 0 0', fontSize: '1rem', color: 'var(--text-primary)' }}>{getProcessTitle(selectedSubmission.processId)}</h3>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontFamily: 'monospace', marginTop: '0.1rem' }}>ID: {selectedSubmission.id}</div>
               </div>
-              <button 
-                type="button" 
-                onClick={() => setSelectedSubmission(null)}
-                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', outline: 'none' }}
-              >
-                <XCircle size={18} />
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  title="Sao chép thành phiếu mới (Copy Record)"
+                  onClick={() => {
+                    setCopyingSubmission(selectedSubmission);
+                    setSelectedSubmission(null);
+                  }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
+                >
+                  <Copy size={13} />
+                  <span>Sao chép</span>
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  title="In biểu mẫu (Print)"
+                  onClick={() => setPrintSubmission(selectedSubmission)}
+                  style={{ padding: '0.25rem', height: '26px', width: '26px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <Printer size={13} />
+                </button>
+                {currentUser?.role_id === 'admin' && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    title="Xóa bản ghi lỗi (Admin)"
+                    onClick={() => {
+                      setSubmissionToDelete(selectedSubmission);
+                      setSelectedSubmission(null);
+                    }}
+                    style={{ padding: '0.25rem', height: '26px', width: '26px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444' }}
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                )}
+                <button 
+                  type="button" 
+                  onClick={() => setSelectedSubmission(null)}
+                  style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', outline: 'none', padding: '0.2rem', marginLeft: '0.25rem' }}
+                >
+                  <XCircle size={18} />
+                </button>
+              </div>
             </div>
 
             {/* Stats Grid */}
