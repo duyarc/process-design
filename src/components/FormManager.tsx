@@ -52,6 +52,9 @@ export default function FormManager({ processId, formName, onOpenFormFiller, onB
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'PASS' | 'ABNORMALITY'>('ALL');
   const [signoffFilter, setSignoffFilter] = useState<'ALL' | 'PENDING' | 'VERIFIED'>('ALL');
   
+  // Read-only Full Form View State
+  const [viewingSubmission, setViewingSubmission] = useState<Submission | null>(null);
+
   // Copy Submission State
   const [copySubmission, setCopySubmission] = useState<Submission | null>(null);
 
@@ -226,6 +229,26 @@ export default function FormManager({ processId, formName, onOpenFormFiller, onB
         submission={printSubmission}
         formTemplate={formTemplate}
         onClose={() => setPrintSubmission(null)}
+      />
+    );
+  }
+
+  // Handle Read-Only Full Online Form Viewer transition
+  if (viewingSubmission) {
+    return (
+      <FormFiller
+        processId={processId}
+        formName={formName}
+        initialSubmission={viewingSubmission}
+        readOnly={true}
+        onCopySubmission={(sub) => {
+          setViewingSubmission(null);
+          setCopySubmission(sub);
+        }}
+        onBack={() => {
+          setViewingSubmission(null);
+          fetchData();
+        }}
       />
     );
   }
@@ -424,9 +447,9 @@ export default function FormManager({ processId, formName, onOpenFormFiller, onB
                             <button
                               type="button"
                               className="btn btn-secondary btn-sm"
-                              title="View Details"
-                              onClick={() => setSelectedSubmission(sub)}
-                              style={{ padding: '0.25rem', height: '28px', width: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                              title="Xem toàn văn Form Online (Full Web View)"
+                              onClick={() => setViewingSubmission(sub)}
+                              style={{ padding: '0.25rem', height: '28px', width: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}
                             >
                               <Eye size={14} />
                             </button>
@@ -479,6 +502,19 @@ export default function FormManager({ processId, formName, onOpenFormFiller, onB
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontFamily: 'monospace', marginTop: '0.1rem' }}>ID: {selectedSubmission.id}</div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    title="Mở toàn văn Form Online (Full Web View)"
+                    onClick={() => {
+                      setViewingSubmission(selectedSubmission);
+                      setSelectedSubmission(null);
+                    }}
+                    style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', padding: '0.25rem 0.5rem', color: 'var(--primary)' }}
+                  >
+                    <Eye size={13} />
+                    <span>Toàn văn</span>
+                  </button>
                   <button
                     type="button"
                     className="btn btn-secondary btn-sm"

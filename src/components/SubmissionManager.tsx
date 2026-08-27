@@ -39,6 +39,9 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
   // Selected Detail View
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
   
+  // Read-only Full Form View State
+  const [viewingSubmission, setViewingSubmission] = useState<Submission | null>(null);
+
   // Print Mode State
   const [printSubmission, setPrintSubmission] = useState<Submission | null>(null);
 
@@ -205,6 +208,26 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
       setDeleting(false);
     }
   };
+
+  // Read-Only Full Online Form Viewer render bypass
+  if (viewingSubmission) {
+    return (
+      <FormFiller
+        processId={viewingSubmission.processId}
+        formName={viewingSubmission.formId}
+        initialSubmission={viewingSubmission}
+        readOnly={true}
+        onCopySubmission={(sub) => {
+          setViewingSubmission(null);
+          setCopyingSubmission(sub);
+        }}
+        onBack={() => {
+          setViewingSubmission(null);
+          fetchData();
+        }}
+      />
+    );
+  }
 
   // Copy / Clone Submission mode render bypass
   if (copyingSubmission) {
@@ -504,9 +527,9 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
                             <button
                               type="button"
                               className="btn btn-secondary btn-sm"
-                              title="View Details"
-                              onClick={() => setSelectedSubmission(sub)}
-                              style={{ padding: '0.25rem', height: '26px', width: '26px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: 0 }}
+                              title="Xem toàn văn Form Online (Full Web View)"
+                              onClick={() => setViewingSubmission(sub)}
+                              style={{ padding: '0.25rem', height: '26px', width: '26px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: 0, color: 'var(--primary)' }}
                             >
                               <Eye size={13} />
                             </button>
@@ -601,6 +624,19 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontFamily: 'monospace', marginTop: '0.1rem' }}>ID: {selectedSubmission.id}</div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  title="Mở toàn văn Form Online (Full Web View)"
+                  onClick={() => {
+                    setViewingSubmission(selectedSubmission);
+                    setSelectedSubmission(null);
+                  }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', padding: '0.25rem 0.5rem', color: 'var(--primary)' }}
+                >
+                  <Eye size={13} />
+                  <span>Toàn văn</span>
+                </button>
                 <button
                   type="button"
                   className="btn btn-secondary btn-sm"

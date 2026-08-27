@@ -66,7 +66,8 @@ import {
   Star,
   FileText,
   Globe,
-  Lock
+  Lock,
+  Copy
 } from 'lucide-react';
 
 const parseSubtableValue = (val: string): Record<string, string>[] => {
@@ -80,6 +81,8 @@ interface AutoResizingTextareaProps {
   placeholder?: string;
   style?: React.CSSProperties;
   className?: string;
+  disabled?: boolean;
+  readOnly?: boolean;
 }
 
 const AutoResizingTextarea: React.FC<AutoResizingTextareaProps> = ({
@@ -87,7 +90,9 @@ const AutoResizingTextarea: React.FC<AutoResizingTextareaProps> = ({
   onChange,
   placeholder,
   style,
-  className
+  className,
+  disabled,
+  readOnly
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -108,11 +113,15 @@ const AutoResizingTextarea: React.FC<AutoResizingTextareaProps> = ({
       ref={textareaRef}
       value={value}
       onChange={(e) => {
-        onChange(e.target.value);
-        adjustHeight();
+        if (!disabled && !readOnly) {
+          onChange(e.target.value);
+          adjustHeight();
+        }
       }}
       placeholder={placeholder}
       rows={1}
+      disabled={disabled}
+      readOnly={readOnly}
       style={{
         width: '100%',
         resize: 'none',
@@ -120,6 +129,8 @@ const AutoResizingTextarea: React.FC<AutoResizingTextareaProps> = ({
         boxSizing: 'border-box',
         lineHeight: '1.4',
         fontFamily: 'inherit',
+        backgroundColor: disabled || readOnly ? '#f8fafc' : undefined,
+        cursor: disabled || readOnly ? 'default' : undefined,
         ...style
       }}
       className={className}
@@ -132,9 +143,11 @@ interface FormFillerProps {
   formName: string;
   onBack?: () => void;
   onSubmitSuccess?: (submissionId: string) => void;
+  onCopySubmission?: (sub: Submission) => void;
   initialSubmission?: Submission;
   editSubmissionId?: string;
   isPublicGuestMode?: boolean;
+  readOnly?: boolean;
 }
 
 
@@ -143,9 +156,11 @@ function FormFillerInner({
   formName, 
   onBack, 
   onSubmitSuccess,
+  onCopySubmission,
   initialSubmission, 
   editSubmissionId,
-  isPublicGuestMode
+  isPublicGuestMode,
+  readOnly
 }: FormFillerProps) {
   const [process, setProcess] = useState<Process | null>(null);
   const [loading, setLoading] = useState(true);
@@ -866,6 +881,37 @@ function FormFillerInner({
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       
+      {/* Read-Only Mode Banner */}
+      {readOnly && initialSubmission && (
+        <div style={{
+          background: '#f8fafc',
+          border: '1px solid var(--neutral-border)',
+          padding: '0.85rem 1.25rem',
+          borderRadius: '8px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: '1rem',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+        }}>
+          <div>
+            <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.5px' }}>Chế độ xem toàn văn biểu mẫu (Chỉ đọc)</span>
+            <div style={{ fontSize: '0.92rem', fontWeight: 600, color: 'var(--text-primary)', marginTop: '0.15rem' }}>
+              Mã bản ghi: <code style={{ fontFamily: 'monospace', color: 'var(--primary)' }}>{initialSubmission.id}</code>
+              <span style={{ marginLeft: '0.75rem', fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 400 }}>
+                Người điền: <strong style={{ color: 'var(--text-primary)' }}>{initialSubmission.operatorId}</strong> — Ngày nộp: {new Date(initialSubmission.submittedAt).toLocaleString('vi-VN')}
+              </span>
+            </div>
+          </div>
+          <span 
+            className={`badge ${initialSubmission.status === 'PASS' ? 'badge-success' : 'badge-danger'}`}
+            style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem' }}
+          >
+            {initialSubmission.status}
+          </span>
+        </div>
+      )}
+
       {/* Standalone Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
@@ -940,7 +986,7 @@ function FormFillerInner({
           </button>
 
           {/* Smart Status Pill & Copy Link Button (Only for internal users) */}
-          {!isPublicGuestMode && (
+          {!isPublicGuestMode && !readOnly && (
             <div style={{
               display: 'inline-flex',
               alignItems: 'stretch',
@@ -996,6 +1042,7 @@ function FormFillerInner({
       </div>
 
       {/* Main Form Paper Card */}
+      <fieldset disabled={readOnly} style={{ border: 'none', padding: 0, margin: 0, minWidth: 0 }}>
       <div className="paper-card" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '0px' }}>
         {/* Checklist Groups */}
         {formTemplate.layoutBlocks && formTemplate.layoutBlocks.map((block: any, index: number) => {
@@ -2544,35 +2591,71 @@ function FormFillerInner({
           <span>{formatFormVersion(formTemplate.version || 'v0.1', formTemplate.status, formTemplate.effectiveDate, formTemplate.updatedAt)}</span>
         </div>
 
-        {/* Submit Bar */}
-        <div style={{
-          borderTop: '1px solid var(--neutral-border)',
-          paddingTop: '1.5rem',
-          display: 'flex',
-          justifyContent: 'flex-end',
-          gap: '0.75rem'
-        }}>
+      </div>
+      </fieldset>
+
+      {/* Action Footer Bar */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        gap: '0.75rem',
+        padding: '0.5rem 0 2rem 0'
+      }}>
+        <div>
           {onBack && (
             <button 
               type="button" 
               className="btn btn-secondary" 
               onClick={onBack}
               disabled={submitting}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
             >
-              Cancel
+              <ArrowLeft size={14} />
+              <span>{readOnly ? 'Quay lại danh sách' : 'Hủy bỏ'}</span>
             </button>
           )}
-          <button 
-            type="button" 
-            className="btn btn-primary" 
-            onClick={handleSubmitForm}
-            disabled={submitting}
-            style={{ padding: '0.5rem 2rem' }}
-          >
-            {submitting ? 'Submitting...' : 'Submit'}
-          </button>
         </div>
 
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          {readOnly && initialSubmission && onCopySubmission && (
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => onCopySubmission(initialSubmission)}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+            >
+              <Copy size={14} />
+              <span>Sao chép phiếu này</span>
+            </button>
+          )}
+          {readOnly && (
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => {
+                if (initialSubmission && formTemplate) {
+                  setPrintCurrentSubmission(initialSubmission);
+                }
+              }}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+            >
+              <Printer size={14} />
+              <span>In A4 / Xuất PDF</span>
+            </button>
+          )}
+          {!readOnly && (
+            <button 
+              type="button" 
+              className="btn btn-primary" 
+              onClick={handleSubmitForm}
+              disabled={submitting}
+              style={{ padding: '0.5rem 2rem' }}
+            >
+              {submitting ? 'Submitting...' : 'Submit'}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Floating Local Toast Notification */}
