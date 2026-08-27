@@ -216,6 +216,8 @@ export interface FormTemplateISO {
   effectiveDate?: string; // ISO date string "YYYY-MM-DD", set on publish
   updatedAt?: string; // ISO timestamp or simple date, set on save
   pageSize?: 'A4' | 'A5_LANDSCAPE';
+  isPublic?: boolean;
+  defaultFocusMode?: boolean;
   layoutBlocks: LayoutBlockISO[];
   revisionHistory: FormRevisionEntry[];
 }

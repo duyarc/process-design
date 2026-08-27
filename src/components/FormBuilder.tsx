@@ -49,6 +49,8 @@ interface FormBuilderProps {
     status?: 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
     updatedAt?: string;
     pageSize?: 'A4' | 'A5_LANDSCAPE';
+    isPublic?: boolean;
+    defaultFocusMode?: boolean;
     layoutBlocks?: LayoutBlockISO[];
     revisionHistory?: FormRevisionEntry[];
   };
@@ -477,6 +479,8 @@ export const getFormSnapshot = (data: {
   version: string;
   status: string;
   pageSize: string;
+  isPublic?: boolean;
+  defaultFocusMode?: boolean;
   effectiveDate?: string;
   layoutBlocks: LayoutBlockISO[];
   revisionHistory: FormRevisionEntry[];
@@ -487,6 +491,8 @@ export const getFormSnapshot = (data: {
     version: data.version,
     status: data.status,
     pageSize: data.pageSize,
+    isPublic: data.isPublic ?? false,
+    defaultFocusMode: data.defaultFocusMode ?? false,
     effectiveDate: data.effectiveDate,
     layoutBlocks: data.layoutBlocks,
     revisionHistory: data.revisionHistory
@@ -946,6 +952,13 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
   const [pageSize, setPageSize] = useState<'A4' | 'A5_LANDSCAPE'>(
     initialData?.pageSize || (initialData as any)?.page_size || 'A4'
   );
+  const [isPublic, setIsPublic] = useState<boolean>(
+    initialData?.isPublic ?? (initialData as any)?.is_public ?? false
+  );
+  const [defaultFocusMode, setDefaultFocusMode] = useState<boolean>(
+    initialData?.defaultFocusMode ?? (initialData as any)?.default_focus_mode ?? false
+  );
+  const [copiedLink, setCopiedLink] = useState(false);
   
   // Default blocks if none provided
   const defaultBlocks: LayoutBlockISO[] = [];
@@ -965,6 +978,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
       version: initialData?.version ? initialData.version.replace(/\s*\([^)]*\)/g, '').trim() : 'v0.1',
       status: initialData?.status || 'DRAFT',
       pageSize: initialData?.pageSize || (initialData as any)?.page_size || 'A4',
+      isPublic: initialData?.isPublic ?? (initialData as any)?.is_public ?? false,
+      defaultFocusMode: initialData?.defaultFocusMode ?? (initialData as any)?.default_focus_mode ?? false,
       effectiveDate: (initialData as any)?.effectiveDate || (initialData as any)?.effective_date,
       layoutBlocks: initialData?.layoutBlocks || defaultBlocks,
       revisionHistory: initialData?.revisionHistory || []
@@ -987,6 +1002,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
           const targetEffectiveDate = data.effective_date ? data.effective_date.split('T')[0] : undefined;
           const targetStatus = data.status || 'DRAFT';
           const targetPageSize = data.page_size || data.pageSize || 'A4';
+          const targetIsPublic = data.is_public ?? data.isPublic ?? false;
+          const targetDefaultFocusMode = data.default_focus_mode ?? data.defaultFocusMode ?? false;
           const targetBlocks = data.layout_blocks
             ? (typeof data.layout_blocks === 'string' ? JSON.parse(data.layout_blocks) : data.layout_blocks)
             : [];
@@ -999,6 +1016,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
           }
           setStatus(targetStatus);
           setPageSize(targetPageSize);
+          setIsPublic(targetIsPublic);
+          setDefaultFocusMode(targetDefaultFocusMode);
           setLayoutBlocks(targetBlocks);
 
           // 2. Fetch unified form revision history (including historical and bug duplicates)
@@ -1015,6 +1034,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
             version: targetVersion,
             status: targetStatus,
             pageSize: targetPageSize,
+            isPublic: targetIsPublic,
+            defaultFocusMode: targetDefaultFocusMode,
             effectiveDate: targetEffectiveDate,
             layoutBlocks: targetBlocks,
             revisionHistory: targetHistory
@@ -1055,6 +1076,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
         status: activeStatus,
         version: activeVersion,
         pageSize,
+        isPublic,
+        defaultFocusMode,
         effectiveDate: activeStatus === 'ACTIVE' ? (opts.effectiveDateOverride || effectiveDate) : null,
         layoutBlocks: opts.layoutBlocksOverride ?? layoutBlocks,
         revisionHistory: activeHistory,
@@ -1104,6 +1127,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     version,
     status,
     pageSize,
+    isPublic,
+    defaultFocusMode,
     effectiveDate: status === 'ACTIVE' ? effectiveDate : undefined,
     layoutBlocks,
     revisionHistory
@@ -2660,6 +2685,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                 version,
                 status,
                 pageSize,
+                isPublic,
+                defaultFocusMode,
                 effectiveDate: status === 'ACTIVE' ? (effectiveDate || (initialData as any)?.effectiveDate || (initialData as any)?.effective_date) : undefined,
                 updatedAt: initialData?.updatedAt || (initialData as any)?.updated_at || new Date().toISOString(),
                 layoutBlocks,
@@ -2696,6 +2723,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
               version,
               status,
               pageSize,
+              isPublic,
+              defaultFocusMode,
               effectiveDate: status === 'ACTIVE' ? (effectiveDate || (initialData as any)?.effectiveDate || (initialData as any)?.effective_date) : undefined,
               updatedAt: initialData?.updatedAt || (initialData as any)?.updated_at || new Date().toISOString(),
               layoutBlocks,
@@ -7021,11 +7050,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
           ) : (
             /* GENERAL FORM PROPERTIES */
             <div>
-
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.8rem' }}>
-                
-
-
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
                   <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Form Title</label>
                   <input
@@ -7040,6 +7065,167 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                     }}
                     style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
                   />
+                </div>
+
+                {/* 1-Line 2-Toggle Row: Focus mode & Public link */}
+                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem' }}>
+                  {/* Focus mode toggle card */}
+                  <div
+                    onClick={() => !isLocked && setDefaultFocusMode(prev => !prev)}
+                    style={{
+                      flex: 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '0.4rem 0.55rem',
+                      background: '#f8fafc',
+                      border: defaultFocusMode ? '1.5px solid var(--primary)' : '1px solid var(--neutral-border)',
+                      borderRadius: '6px',
+                      cursor: isLocked ? 'not-allowed' : 'pointer',
+                      userSelect: 'none',
+                      transition: 'all 0.15s ease'
+                    }}
+                    title="Mặc định mở biểu mẫu ở chế độ Focus từng phân đoạn H1"
+                  >
+                    <span style={{ fontSize: '0.75rem', fontWeight: 600, color: defaultFocusMode ? 'var(--primary)' : 'var(--text-secondary)' }}>
+                      Focus mode
+                    </span>
+                    <div style={{
+                      width: '28px',
+                      height: '16px',
+                      borderRadius: '9999px',
+                      background: defaultFocusMode ? 'var(--primary)' : '#cbd5e1',
+                      position: 'relative',
+                      transition: 'background 0.2s ease',
+                      flexShrink: 0
+                    }}>
+                      <div style={{
+                        width: '12px',
+                        height: '12px',
+                        borderRadius: '50%',
+                        background: '#ffffff',
+                        position: 'absolute',
+                        top: '2px',
+                        left: defaultFocusMode ? '14px' : '2px',
+                        transition: 'left 0.2s ease',
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.2)'
+                      }} />
+                    </div>
+                  </div>
+
+                  {/* Public link toggle card */}
+                  <div
+                    onClick={() => !isLocked && setIsPublic(prev => !prev)}
+                    style={{
+                      flex: 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '0.4rem 0.55rem',
+                      background: '#f8fafc',
+                      border: isPublic ? '1.5px solid #0d9488' : '1px solid var(--neutral-border)',
+                      borderRadius: '6px',
+                      cursor: isLocked ? 'not-allowed' : 'pointer',
+                      userSelect: 'none',
+                      transition: 'all 0.15s ease'
+                    }}
+                    title="Cho phép người ngoài/khách truy cập và điền form không cần đăng nhập"
+                  >
+                    <span style={{ fontSize: '0.75rem', fontWeight: 600, color: isPublic ? '#0d9488' : 'var(--text-secondary)' }}>
+                      Public link
+                    </span>
+                    <div style={{
+                      width: '28px',
+                      height: '16px',
+                      borderRadius: '9999px',
+                      background: isPublic ? '#0d9488' : '#cbd5e1',
+                      position: 'relative',
+                      transition: 'background 0.2s ease',
+                      flexShrink: 0
+                    }}>
+                      <div style={{
+                        width: '12px',
+                        height: '12px',
+                        borderRadius: '50%',
+                        background: '#ffffff',
+                        position: 'absolute',
+                        top: '2px',
+                        left: isPublic ? '14px' : '2px',
+                        transition: 'left 0.2s ease',
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.2)'
+                      }} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Direct Link & Copy Row (Always Available!) */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.25rem' }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'stretch',
+                    borderRadius: '6px',
+                    border: '1px solid var(--neutral-border)',
+                    background: '#ffffff',
+                    overflow: 'hidden'
+                  }}>
+                    <input
+                      type="text"
+                      readOnly
+                      value={(() => {
+                        const baseUrl = window.location.origin;
+                        if (isPublic) {
+                          const slug = formTitle ? formTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : formId;
+                          return `${baseUrl}/f/${slug}`;
+                        }
+                        return `${baseUrl}/?form=${encodeURIComponent(formTitle || formId)}`;
+                      })()}
+                      style={{
+                        flex: 1,
+                        padding: '0.35rem 0.5rem',
+                        fontSize: '0.72rem',
+                        border: 'none',
+                        background: 'transparent',
+                        color: isPublic ? '#0f766e' : '#475569',
+                        outline: 'none'
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const baseUrl = window.location.origin;
+                        let link = '';
+                        if (isPublic) {
+                          const slug = formTitle ? formTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : formId;
+                          link = `${baseUrl}/f/${slug}`;
+                        } else {
+                          link = `${baseUrl}/?form=${encodeURIComponent(formTitle || formId)}`;
+                        }
+                        navigator.clipboard.writeText(link);
+                        setCopiedLink(true);
+                        setTimeout(() => setCopiedLink(false), 2000);
+                      }}
+                      style={{
+                        padding: '0.35rem 0.65rem',
+                        fontSize: '0.72rem',
+                        fontWeight: 600,
+                        border: 'none',
+                        borderLeft: '1px solid var(--neutral-border)',
+                        background: copiedLink ? '#dcfce7' : '#f8fafc',
+                        color: copiedLink ? '#15803d' : 'var(--text-primary)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.25rem',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <Copy size={12} />
+                      <span>{copiedLink ? 'Đã chép!' : 'Copy'}</span>
+                    </button>
+                  </div>
+                  <span style={{ fontSize: '0.7rem', color: isPublic ? '#0d9488' : '#94a3b8' }}>
+                    {isPublic ? '🌐 Link công khai (khách điền trực tiếp)' : '🔒 Link nội bộ (yêu cầu đăng nhập)'}
+                  </span>
                 </div>
               </div>
             </div>

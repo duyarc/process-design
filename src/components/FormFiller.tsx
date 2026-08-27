@@ -75,8 +75,6 @@ import {
   Trash2,
   Printer,
   Star,
-  Globe,
-  Lock,
   Copy
 } from 'lucide-react';
 
@@ -197,25 +195,24 @@ function FormFillerInner({
   const [printCurrentSubmission, setPrintCurrentSubmission] = useState<Submission | null>(null);
 
   // Smart Public Link State
-  const [isPublic, setIsPublic] = useState<boolean>(() => {
+  const rawFormTemplate = (process?.workflowFormsData?.[formName] || null) as FormTemplateISO | null;
+
+  const [isPublic] = useState<boolean>(() => {
     const params = new URLSearchParams(window.location.search);
-    return params.get('mode') === 'public';
+    if (params.get('mode') === 'public') return true;
+    return (rawFormTemplate as any)?.isPublic ?? (rawFormTemplate as any)?.is_public ?? false;
   });
 
   // ── Section Grouping & Focus / Accordion Mode ──
   const [activeSectionIndex, setActiveSectionIndex] = useState<number>(0);
-  const [viewMode, setViewMode] = useState<'focus' | 'all'>('focus');
-
-  const rawFormTemplate = (process?.workflowFormsData?.[formName] || null) as FormTemplateISO | null;
+  const [viewMode, setViewMode] = useState<'focus' | 'all'>(() => {
+    return (rawFormTemplate as any)?.defaultFocusMode === true || (rawFormTemplate as any)?.default_focus_mode === true ? 'focus' : 'all';
+  });
 
   const sections: FormSectionGroup[] = useMemo(() => {
     if (!rawFormTemplate?.layoutBlocks) return [];
     return groupBlocksIntoSections(rawFormTemplate.layoutBlocks);
   }, [rawFormTemplate?.layoutBlocks]);
-
-  const handleTogglePublic = () => {
-    setIsPublic(prev => !prev);
-  };
 
   // Dynamic Table Rows state: blockId -> TableRowConfig[]
   const [tableRowsMap, setTableRowsMap] = useState<{ [blockId: string]: any[] }>({});
@@ -506,14 +503,16 @@ function FormFillerInner({
     const shareUrl = isPublic ? cleanPublicUrl : internalUrl;
     navigator.clipboard.writeText(shareUrl)
       .then(() => {
-        const msg = isPublic 
-          ? '✓ Đã sao chép liên kết công khai ngắn gọn! (Khách có thể điền trực tiếp không cần đăng nhập)\n' + shareUrl
-          : '✓ Đã sao chép liên kết nội bộ! (Yêu cầu đăng nhập)\n' + shareUrl;
-        alert(msg);
+        setLocalToast({
+          message: isPublic 
+            ? '✓ Đã sao chép liên kết công khai vào clipboard!'
+            : '✓ Đã sao chép liên kết nội bộ vào clipboard!',
+          id: 'share_link'
+        });
       })
       .catch((err) => {
         console.error(err);
-        alert('Không thể sao chép liên kết.');
+        setLocalToast({ message: 'Không thể sao chép liên kết.', id: 'copy_error' });
       });
   };
 
@@ -2443,7 +2442,7 @@ function FormFillerInner({
               }}
               title={viewMode === 'focus' ? 'Chế độ Focus từng phân đoạn (Đang Bật)' : 'Chế độ xem toàn bộ (Đang Tắt)'}
             >
-              <span>🎯 Focus mode</span>
+              <span>Focus mode</span>
               <div
                 style={{
                   width: '32px',
@@ -2512,58 +2511,18 @@ function FormFillerInner({
             <span>In bản khai</span>
           </button>
 
-          {/* Smart Status Pill & Copy Link Button (Only for internal users) */}
+          {/* Single Copy Link Button */}
           {!isPublicGuestMode && !readOnly && (
-            <div style={{
-              display: 'inline-flex',
-              alignItems: 'stretch',
-              borderRadius: '6px',
-              border: isPublic ? '1px solid #0d9488' : '1px solid var(--neutral-border)',
-              overflow: 'hidden',
-              fontSize: '0.78rem',
-              background: isPublic ? '#f0fdf4' : '#ffffff'
-            }}>
-              <button
-                type="button"
-                onClick={handleTogglePublic}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.35rem',
-                  padding: '0.35rem 0.65rem',
-                  border: 'none',
-                  background: isPublic ? '#ccfbf1' : '#f1f5f9',
-                  color: isPublic ? '#0f766e' : 'var(--text-secondary)',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  borderRight: '1px solid var(--neutral-border)'
-                }}
-                title={isPublic ? 'Bật công khai (Click để chuyển về cần đăng nhập)' : 'Tắt công khai (Click để mở công khai)'}
-              >
-                {isPublic ? <Globe size={13} style={{ color: '#0d9488' }} /> : <Lock size={13} />}
-                <span>{isPublic ? 'Link công khai' : 'Cần đăng nhập'}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={handleCopyShareLink}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.35rem',
-                  padding: '0.35rem 0.75rem',
-                  border: 'none',
-                  background: 'transparent',
-                  color: 'var(--text-primary)',
-                  fontWeight: 600,
-                  cursor: 'pointer'
-                }}
-                title="Sao chép đường dẫn điền phiếu"
-              >
-                <Link2 size={13} />
-                <span>Sao chép link</span>
-              </button>
-            </div>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={handleCopyShareLink}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.35rem 0.75rem' }}
+              title={isPublic ? "Sao chép link công khai cho khách điền" : "Sao chép link biểu mẫu (yêu cầu đăng nhập)"}
+            >
+              <Link2 size={13} />
+              <span>Sao chép link</span>
+            </button>
           )}
         </div>
       </div>

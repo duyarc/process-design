@@ -163,6 +163,8 @@ const INITIALIZE_SCHEMA_QUERY = `
   ALTER TABLE report_templates ENABLE ROW LEVEL SECURITY;
 
   ALTER TABLE forms ADD COLUMN IF NOT EXISTS page_size TEXT DEFAULT 'A4';
+  ALTER TABLE forms ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT false;
+  ALTER TABLE forms ADD COLUMN IF NOT EXISTS default_focus_mode BOOLEAN DEFAULT false;
 `;
 
 // ─── Sample Data for Fresh Seed ──────────────────────────────────────────────
@@ -910,6 +912,8 @@ app.post('/api/forms', async (req, res) => {
     const history = Array.isArray(revisionHistory) ? JSON.stringify(revisionHistory) : (revisionHistory || '[]');
     const ver = version || 'v0.1';
     const pSize = pageSize || 'A4';
+    const isPublic = req.body.isPublic ?? req.body.is_public ?? false;
+    const defaultFocusMode = req.body.defaultFocusMode ?? req.body.default_focus_mode ?? false;
 
     if (dbPool) {
       // If Form ID changed and it was a draft, delete the old draft record
@@ -940,8 +944,8 @@ app.post('/api/forms', async (req, res) => {
       // Upsert using composite PK (form_id, version) — each version is an independent snapshot
       const query = `
         INSERT INTO forms (
-          form_id, form_name, form_title, status, version, effective_date, layout_blocks, revision_history, pdf_name, pdf_key, pdf_size, page_size, updated_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
+          form_id, form_name, form_title, status, version, effective_date, layout_blocks, revision_history, pdf_name, pdf_key, pdf_size, page_size, is_public, default_focus_mode, updated_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW())
         ON CONFLICT (form_id, version) DO UPDATE SET
           form_name = EXCLUDED.form_name,
           form_title = EXCLUDED.form_title,
@@ -953,10 +957,12 @@ app.post('/api/forms', async (req, res) => {
           pdf_key = EXCLUDED.pdf_key,
           pdf_size = EXCLUDED.pdf_size,
           page_size = EXCLUDED.page_size,
+          is_public = EXCLUDED.is_public,
+          default_focus_mode = EXCLUDED.default_focus_mode,
           updated_at = NOW()
         RETURNING *
       `;
-      const values = [formId, formName, formTitle || formName, status || 'DRAFT', ver, effectiveDate || null, blocks, history, pdfName || null, pdfKey || null, pdfSize || 0, pSize];
+      const values = [formId, formName, formTitle || formName, status || 'DRAFT', ver, effectiveDate || null, blocks, history, pdfName || null, pdfKey || null, pdfSize || 0, pSize, isPublic, defaultFocusMode];
       const result = await dbPool.query(query, values);
 
       // Fanout updated revision_history to ALL other rows of the same form_id
@@ -991,6 +997,8 @@ app.post('/api/forms', async (req, res) => {
         pdf_key: pdfKey || null,
         pdf_size: pdfSize || 0,
         page_size: pSize,
+        is_public: isPublic,
+        default_focus_mode: defaultFocusMode,
         updated_at: new Date().toISOString()
       };
       if (existingIdx >= 0) {
