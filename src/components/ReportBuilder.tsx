@@ -84,6 +84,17 @@ function ToggleSwitch({ checked, onChange, label, disabled }: ToggleSwitchProps)
   );
 }
 
+const getFieldBadgeStyle = (type?: string) => {
+  switch (type) {
+    case 'likert_scale': return { bg: '#f3e8ff', color: '#7e22ce', label: 'LIKERT' }; // Purple
+    case 'rating': return { bg: '#fef3c7', color: '#b45309', label: 'RATING' };       // Amber
+    case 'radio': return { bg: '#e0f2fe', color: '#0369a1', label: 'RADIO' };        // Sky
+    case 'number': return { bg: '#ccfbf1', color: '#0f766e', label: 'NUMBER' };       // Teal
+    case 'checkbox': return { bg: '#e0e7ff', color: '#4338ca', label: 'CHECKBOX' };   // Indigo
+    default: return { bg: '#f1f5f9', color: '#475569', label: (type || 'TEXT').toUpperCase() }; // Slate
+  }
+};
+
 interface InfoGridSteppedSplitterProps {
   columns: 2 | 3;
   columnWidths?: number[];
@@ -315,6 +326,8 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
   const [searchFieldQuery, setSearchFieldQuery] = useState<string>('');
+  const [fieldPickerBlockId, setFieldPickerBlockId] = useState<string | null>(null);
+  const [fieldPickerSearch, setFieldPickerSearch] = useState<string>('');
 
   const [effectiveDate, setEffectiveDate] = useState<string>(template.effectiveDate || new Date().toISOString().split('T')[0]);
   const [changeSummary, setChangeSummary] = useState<string>('');
@@ -787,6 +800,21 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
     }));
   };
 
+  const addFieldToBlock = (blockId: string, fieldId: string) => {
+    setTemplate(prev => ({
+      ...prev,
+      layoutBlocks: prev.layoutBlocks.map(b => {
+        if (b.id !== blockId) return b;
+        const current = b.boundFieldIds || [];
+        if (current.includes(fieldId)) return b;
+        return {
+          ...b,
+          boundFieldIds: [...current, fieldId]
+        };
+      })
+    }));
+  };
+
   const removeFieldFromBlock = (blockId: string, fieldId: string) => {
     setTemplate(prev => ({
       ...prev,
@@ -1159,18 +1187,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
             <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
               {filteredFormFields.map(field => {
                 const isBoundToActive = activeBlock?.boundFieldIds?.includes(field.id);
-                
-                // Badge color mapping
-                const badgeStyle = (() => {
-                  switch (field.type) {
-                    case 'likert_scale': return { bg: '#f3e8ff', color: '#7e22ce', label: 'LIKERT' }; // Purple
-                    case 'rating': return { bg: '#fef3c7', color: '#b45309', label: 'RATING' };       // Amber
-                    case 'radio': return { bg: '#e0f2fe', color: '#0369a1', label: 'RADIO' };        // Sky
-                    case 'number': return { bg: '#ccfbf1', color: '#0f766e', label: 'NUMBER' };       // Teal
-                    case 'checkbox': return { bg: '#e0e7ff', color: '#4338ca', label: 'CHECKBOX' };   // Indigo
-                    default: return { bg: '#f1f5f9', color: '#475569', label: field.type.toUpperCase() }; // Slate
-                  }
-                })();
+                const badgeStyle = getFieldBadgeStyle(field.type);
 
                 return (
                   <div
@@ -1485,6 +1502,35 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                   </div>
                                 );
                               })}
+                              {/* Slot + Thêm trường trực tiếp trên Canvas */}
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveBlockId(block.id);
+                                  setFieldPickerBlockId(block.id);
+                                  setFieldPickerSearch('');
+                                }}
+                                style={{
+                                  border: '1.5px dashed var(--primary)',
+                                  borderRadius: '4px',
+                                  padding: '6px 8px',
+                                  background: '#f0fdfa',
+                                  color: 'var(--primary)',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 600,
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: '4px',
+                                  minHeight: '48px',
+                                  transition: 'all 0.15s ease'
+                                }}
+                                title="Nhấp để thêm trường vào lưới này"
+                              >
+                                <Plus size={13} /> Thêm trường
+                              </button>
                             </div>
                           )}
                         </div>
@@ -1518,7 +1564,31 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
 
                           {(!block.boundFieldIds || block.boundFieldIds.length === 0) ? (
                             <div style={{ padding: '1rem', border: '1.5px dashed #cbd5e1', borderRadius: '6px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.8rem', background: '#f8fafc' }}>
-                              + Nhấp chọn các trường từ danh mục <strong>FIELDS</strong> bên trái để nạp các dòng tiêu chí vào bảng này
+                              <div style={{ marginBottom: '6px' }}>Chưa có tiêu chí nào trong bảng đánh giá này.</div>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveBlockId(block.id);
+                                  setFieldPickerBlockId(block.id);
+                                  setFieldPickerSearch('');
+                                }}
+                                style={{
+                                  padding: '4px 10px',
+                                  border: '1px solid var(--primary)',
+                                  borderRadius: '4px',
+                                  background: 'var(--primary)',
+                                  color: '#ffffff',
+                                  fontSize: '0.72rem',
+                                  fontWeight: 600,
+                                  cursor: 'pointer',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px'
+                                }}
+                              >
+                                <Plus size={12} /> Thêm trường
+                              </button>
                             </div>
                           ) : (
                             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem', border: tableBorder }}>
@@ -1588,6 +1658,40 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                   );
                                 })}
                               </tbody>
+                              <tfoot>
+                                <tr>
+                                  <td colSpan={6} style={{ padding: '4px 0 0 0' }}>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setActiveBlockId(block.id);
+                                        setFieldPickerBlockId(block.id);
+                                        setFieldPickerSearch('');
+                                      }}
+                                      style={{
+                                        width: '100%',
+                                        padding: '4px 8px',
+                                        border: '1.5px dashed var(--primary)',
+                                        borderRadius: '4px',
+                                        background: '#f0fdfa',
+                                        color: 'var(--primary)',
+                                        fontSize: '0.72rem',
+                                        fontWeight: 600,
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '4px',
+                                        transition: 'all 0.15s ease'
+                                      }}
+                                      title="Nhấp để thêm dòng tiêu chí vào bảng này"
+                                    >
+                                      <Plus size={12} /> Thêm trường
+                                    </button>
+                                  </td>
+                                </tr>
+                              </tfoot>
                             </table>
                           )}
                         </div>
@@ -1970,11 +2074,11 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                         <span>CÁC TRƯỜNG ĐÃ GÁN ({(activeBlock.boundFieldIds || []).length})</span>
                       </div>
                       {(!activeBlock.boundFieldIds || activeBlock.boundFieldIds.length === 0) ? (
-                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                          Chưa có trường nào. Nhấp chọn trường ở danh mục FIELDS bên trái.
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontStyle: 'italic', marginBottom: '6px' }}>
+                          Chưa có trường nào được gán.
                         </div>
                       ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', maxHeight: '240px', overflowY: 'auto' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '6px' }}>
                           {activeBlock.boundFieldIds.map((fid, fIdx) => {
                             const field = allFormFields.find(f => f.id === fid);
                             const override = activeBlock.ruleOverrides?.[fid];
@@ -1985,25 +2089,65 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                 key={fid}
                                 style={{
                                   display: 'flex',
-                                  flexDirection: 'column',
+                                  alignItems: 'center',
                                   gap: '4px',
-                                  padding: '5px 8px',
+                                  padding: '4px 6px',
                                   background: '#f8fafc',
                                   border: '1px solid #e2e8f0',
                                   borderRadius: '4px',
                                   fontSize: '0.72rem'
                                 }}
                               >
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                  <span style={{ fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }} title={field?.checkItem || fid}>
-                                    {fIdx + 1}. {field?.checkItem || fid}
-                                  </span>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '2px', marginLeft: '4px' }}>
+                                <span style={{ fontWeight: 700, color: 'var(--text-secondary)', minWidth: '14px' }}>
+                                  {fIdx + 1}.
+                                </span>
+
+                                {/* Custom Label Input with Placeholder & Reset Button */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '2px', flex: 1, minWidth: 0 }}>
+                                  <input
+                                    type="text"
+                                    placeholder={field?.checkItem || fid}
+                                    value={override?.customLabel ?? ''}
+                                    onChange={(e) => updateRuleOverride(fid, { customLabel: e.target.value === '' ? undefined : e.target.value })}
+                                    style={{
+                                      width: '100%',
+                                      padding: '2px 4px',
+                                      fontSize: '0.72rem',
+                                      border: '1px solid var(--neutral-border)',
+                                      borderRadius: '3px',
+                                      outline: 'none',
+                                      background: '#ffffff'
+                                    }}
+                                  />
+                                  {hasCustomLabel && (
+                                    <button
+                                      type="button"
+                                      onClick={() => updateRuleOverride(fid, { customLabel: undefined })}
+                                      style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--primary)', padding: '1px', display: 'flex', alignItems: 'center' }}
+                                      title="Khôi phục nhãn ban đầu"
+                                    >
+                                      <RotateCcw size={11} />
+                                    </button>
+                                  )}
+                                </div>
+
+                                {/* Right Unified Action Cluster */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '3px', flexShrink: 0 }}>
+                                  {activeBlock.type === 'INFO_GRID' && (
+                                    <div title={!override?.hideLabel ? "Đang hiện nhãn" : "Đang ẩn nhãn"} style={{ display: 'flex', alignItems: 'center' }}>
+                                      <ToggleSwitch
+                                        checked={!override?.hideLabel}
+                                        onChange={(show) => updateRuleOverride(fid, { hideLabel: !show })}
+                                      />
+                                    </div>
+                                  )}
+
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '1px', borderLeft: '1px solid #cbd5e1', paddingLeft: '3px' }}>
                                     <button
                                       type="button"
                                       disabled={fIdx === 0}
                                       onClick={() => moveFieldInBlock(activeBlock.id, fIdx, 'up')}
-                                      style={{ border: 'none', background: 'none', cursor: fIdx === 0 ? 'not-allowed' : 'pointer', color: fIdx === 0 ? '#cbd5e1' : '#64748b', padding: '1px 3px' }}
+                                      style={{ border: 'none', background: 'none', cursor: fIdx === 0 ? 'not-allowed' : 'pointer', color: fIdx === 0 ? '#cbd5e1' : '#64748b', padding: '1px 2px' }}
                                       title="Di chuyển lên"
                                     >
                                       ↑
@@ -2012,7 +2156,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                       type="button"
                                       disabled={fIdx === (activeBlock.boundFieldIds?.length || 0) - 1}
                                       onClick={() => moveFieldInBlock(activeBlock.id, fIdx, 'down')}
-                                      style={{ border: 'none', background: 'none', cursor: fIdx === (activeBlock.boundFieldIds?.length || 0) - 1 ? 'not-allowed' : 'pointer', color: fIdx === (activeBlock.boundFieldIds?.length || 0) - 1 ? '#cbd5e1' : '#64748b', padding: '1px 3px' }}
+                                      style={{ border: 'none', background: 'none', cursor: fIdx === (activeBlock.boundFieldIds?.length || 0) - 1 ? 'not-allowed' : 'pointer', color: fIdx === (activeBlock.boundFieldIds?.length || 0) - 1 ? '#cbd5e1' : '#64748b', padding: '1px 2px' }}
                                       title="Di chuyển xuống"
                                     >
                                       ↓
@@ -2020,48 +2164,46 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                     <button
                                       type="button"
                                       onClick={() => removeFieldFromBlock(activeBlock.id, fid)}
-                                      style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#ef4444', padding: '1px 3px' }}
+                                      style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#ef4444', padding: '1px 2px' }}
                                       title="Gỡ trường"
                                     >
                                       ✕
                                     </button>
                                   </div>
                                 </div>
-
-                                {activeBlock.type === 'INFO_GRID' && (
-                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '2px', borderTop: '1px dotted #cbd5e1', paddingTop: '4px' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-                                      <input
-                                        type="text"
-                                        placeholder={field?.checkItem || fid}
-                                        value={override?.customLabel ?? ''}
-                                        onChange={(e) => updateRuleOverride(fid, { customLabel: e.target.value === '' ? undefined : e.target.value })}
-                                        style={{ flex: 1, padding: '2px 4px', fontSize: '0.72rem', border: '1px solid var(--neutral-border)', borderRadius: '3px', outline: 'none' }}
-                                      />
-                                      {hasCustomLabel && (
-                                        <button
-                                          type="button"
-                                          onClick={() => updateRuleOverride(fid, { customLabel: undefined })}
-                                          style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--primary)', padding: '1px 2px', display: 'flex', alignItems: 'center' }}
-                                          title="Khôi phục nhãn ban đầu"
-                                        >
-                                          <RotateCcw size={11} />
-                                        </button>
-                                      )}
-                                    </div>
-
-                                    <ToggleSwitch
-                                      label="Label"
-                                      checked={!override?.hideLabel}
-                                      onChange={(show) => updateRuleOverride(fid, { hideLabel: !show })}
-                                    />
-                                  </div>
-                                )}
                               </div>
                             );
                           })}
                         </div>
                       )}
+
+                      {/* + Thêm trường Button */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFieldPickerBlockId(activeBlock.id);
+                          setFieldPickerSearch('');
+                        }}
+                        style={{
+                          width: '100%',
+                          padding: '5px',
+                          border: '1px dashed var(--primary)',
+                          borderRadius: '4px',
+                          background: '#f0fdfa',
+                          color: 'var(--primary)',
+                          fontSize: '0.72rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '4px',
+                          transition: 'all 0.15s ease'
+                        }}
+                        title="Mở bảng chọn trường để gán vào khối này"
+                      >
+                        <Plus size={13} /> Thêm trường
+                      </button>
                     </div>
                   )}
 
@@ -2498,6 +2640,169 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
           }}
           onClose={() => setShowPrintPreview(false)}
         />
+      )}
+
+      {/* ── Quick Field Picker Modal ── */}
+      {fieldPickerBlockId && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.45)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem'
+          }}
+          onClick={() => setFieldPickerBlockId(null)}
+        >
+          <div
+            style={{
+              background: '#ffffff',
+              borderRadius: '8px',
+              width: '100%',
+              maxWidth: '480px',
+              maxHeight: '80vh',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)',
+              overflow: 'hidden'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem', borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, fontSize: '0.88rem', color: '#0f172a' }}>
+                <Plus size={16} color="var(--primary)" />
+                Thêm trường vào khối
+              </div>
+              <button
+                type="button"
+                onClick={() => setFieldPickerBlockId(null)}
+                style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#64748b', fontSize: '1.1rem', lineHeight: 1 }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Search Input */}
+            <div style={{ padding: '0.6rem 1rem', borderBottom: '1px solid #e2e8f0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#f1f5f9', borderRadius: '4px', padding: '4px 8px' }}>
+                <Search size={14} color="#64748b" />
+                <input
+                  type="text"
+                  placeholder="Tìm kiếm theo tên trường hoặc ID..."
+                  value={fieldPickerSearch}
+                  onChange={(e) => setFieldPickerSearch(e.target.value)}
+                  autoFocus
+                  style={{ border: 'none', background: 'transparent', outline: 'none', width: '100%', fontSize: '0.8rem' }}
+                />
+                {fieldPickerSearch && (
+                  <button type="button" onClick={() => setFieldPickerSearch('')} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#94a3b8', fontSize: '0.75rem' }}>✕</button>
+                )}
+              </div>
+            </div>
+
+            {/* Field List */}
+            <div style={{ padding: '0.5rem 1rem', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              {(() => {
+                const targetBlock = template.layoutBlocks.find(b => b.id === fieldPickerBlockId);
+                const boundIds = targetBlock?.boundFieldIds || [];
+                const q = fieldPickerSearch.toLowerCase().trim();
+
+                const filtered = allFormFields.filter(f => {
+                  if (boundIds.includes(f.id)) return false;
+                  if (!q) return true;
+                  return (
+                    (f.checkItem || '').toLowerCase().includes(q) ||
+                    (f.id || '').toLowerCase().includes(q)
+                  );
+                });
+
+                if (filtered.length === 0) {
+                  return (
+                    <div style={{ padding: '2rem 1rem', textAlign: 'center', color: '#64748b', fontSize: '0.8rem' }}>
+                      {allFormFields.length === 0
+                        ? 'Chưa nạp được trường nào từ Biểu mẫu nguồn.'
+                        : 'Tất cả các trường phù hợp đã được gán vào khối này.'}
+                    </div>
+                  );
+                }
+
+                return filtered.map((field) => {
+                  const badgeStyle = getFieldBadgeStyle(field.type);
+                  return (
+                    <div
+                      key={field.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '6px 8px',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '4px',
+                        background: '#ffffff',
+                        gap: '8px'
+                      }}
+                    >
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 600, fontSize: '0.78rem', color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={field.checkItem || field.id}>
+                          {field.checkItem || field.id}
+                        </div>
+                        <div style={{ fontSize: '0.65rem', color: '#64748b', fontFamily: 'monospace', marginTop: '1px' }}>
+                          ID: {field.id}
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ fontSize: '0.62rem', padding: '1px 5px', borderRadius: '3px', background: badgeStyle.bg, color: badgeStyle.color, fontWeight: 700, textTransform: 'uppercase' }}>
+                          {badgeStyle.label}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => addFieldToBlock(fieldPickerBlockId, field.id)}
+                          style={{
+                            padding: '3px 8px',
+                            background: 'var(--primary)',
+                            color: '#ffffff',
+                            border: 'none',
+                            borderRadius: '4px',
+                            fontSize: '0.72rem',
+                            fontWeight: 600,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          + Gán
+                        </button>
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+
+            {/* Footer */}
+            <div style={{ padding: '0.6rem 1rem', borderTop: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={() => setFieldPickerBlockId(null)}
+                style={{
+                  padding: '4px 12px',
+                  background: '#e2e8f0',
+                  color: '#334155',
+                  border: 'none',
+                  borderRadius: '4px',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                Xong
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* ── Confirmation Modal ── */}
