@@ -2493,16 +2493,19 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                   background: 'none',
                   border: 'none',
                   color: '#64748b',
-                  padding: '3px 10px',
-                  fontSize: '0.78rem',
-                  fontWeight: 500,
+                  padding: '4px',
+                  borderRadius: '4px',
                   cursor: 'pointer',
-                  transition: 'color 0.2s'
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.15s ease'
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = '#ef4444'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = '#64748b'; }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.background = '#fee2e2'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = '#64748b'; e.currentTarget.style.background = 'none'; }}
+                title="Đóng (Close)"
               >
-                Close
+                <X size={18} />
               </button>
             </>
           ) : (
@@ -2533,16 +2536,19 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                   background: 'none',
                   border: 'none',
                   color: '#64748b',
-                  padding: '3px 10px',
-                  fontSize: '0.78rem',
-                  fontWeight: 500,
+                  padding: '4px',
+                  borderRadius: '4px',
                   cursor: 'pointer',
-                  transition: 'color 0.2s'
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.15s ease'
                 }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = '#0f172a'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = '#64748b'; }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.background = '#fee2e2'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = '#64748b'; e.currentTarget.style.background = 'none'; }}
+                title="Đóng (Close)"
               >
-                Close
+                <X size={18} />
               </button>
             </>
           )}

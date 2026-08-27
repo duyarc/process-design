@@ -22,12 +22,27 @@ import {
   ArrowUp,
   ArrowDown,
   Printer,
-  Save,
+  Check,
+  X,
   Clock,
   Search,
   Sparkles,
   Plus
 } from 'lucide-react';
+
+export const getReportSnapshot = (data: ReportTemplateISO) => {
+  return JSON.stringify({
+    reportId: data.reportId,
+    reportTitle: data.reportTitle,
+    linkedFormId: data.linkedFormId,
+    reportType: data.reportType,
+    version: data.version,
+    status: data.status,
+    effectiveDate: data.effectiveDate,
+    layoutBlocks: data.layoutBlocks,
+    revisionHistory: data.revisionHistory
+  });
+};
 
 const generateReportChangeSummary = (
   initialBlocks?: ReportBlockConfig[],
@@ -133,6 +148,11 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
   const [draftBlocksSnapshot, setDraftBlocksSnapshot] = useState<ReportBlockConfig[] | null>(null);
   const [initialBlocks, setInitialBlocks] = useState<ReportBlockConfig[]>([]);
 
+  // Compute live snapshot & isSaved state
+  const [lastSavedSnapshot, setLastSavedSnapshot] = useState<string>(() => getReportSnapshot(template));
+  const currentSnapshot = getReportSnapshot(template);
+  const isSaved = lastSavedSnapshot !== '' && lastSavedSnapshot === currentSnapshot;
+
   const [showPrintPreview, setShowPrintPreview] = useState<boolean>(false);
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
@@ -145,6 +165,22 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
     message: '',
     onConfirm: () => {}
   });
+
+  const handleDiscardChangesAndClose = () => {
+    if (!isSaved) {
+      setConfirmModal({
+        isOpen: true,
+        title: 'Thoát không lưu?',
+        message: 'Bạn có các thay đổi chưa được lưu trong báo cáo. Bạn có chắc muốn thoát mà không lưu?',
+        onConfirm: () => {
+          setConfirmModal(prev => ({ ...prev, isOpen: false }));
+          onClose();
+        }
+      });
+    } else {
+      onClose();
+    }
+  };
 
   useEffect(() => {
     const init = async () => {
@@ -189,6 +225,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
             const repData = await repRes.json();
             setTemplate(repData);
             setInitialBlocks(repData.layoutBlocks || []);
+            setLastSavedSnapshot(getReportSnapshot(repData));
             if (repData.effectiveDate) setEffectiveDate(repData.effectiveDate);
             if (repData.linkedFormId) {
               fetchSubmissionsForForm(repData.linkedFormId);
@@ -349,6 +386,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
       }
       const saved = await res.json();
       setTemplate(saved);
+      setLastSavedSnapshot(getReportSnapshot(saved));
       if (onSave) onSave(saved);
     } catch (err: any) {
       alert(err.message || 'Lỗi khi lưu bản nháp.');
@@ -434,6 +472,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
       const published = await res.json();
       setTemplate(published);
       setInitialBlocks(published.layoutBlocks || []);
+      setLastSavedSnapshot(getReportSnapshot(published));
       setChangeSummary('');
       if (onSave) onSave(published);
     } catch (err: any) {
@@ -743,47 +782,56 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
 
           <button 
             type="button"
-            disabled={saving}
+            disabled={isSaved || saving}
             onClick={handleSaveDraft} 
             style={{
-              background: '#0f172a',
-              border: '1px solid #0f172a',
-              color: '#ffffff',
+              background: isSaved ? '#f1f5f9' : '#0f172a',
+              border: isSaved ? '1px solid #cbd5e1' : '1px solid #0f172a',
+              color: isSaved ? '#94a3b8' : '#ffffff',
               padding: '3px 12px',
               borderRadius: '4px',
               fontSize: '0.78rem',
               fontWeight: 600,
-              cursor: saving ? 'default' : 'pointer',
+              cursor: isSaved ? 'default' : 'pointer',
               transition: 'all 0.2s',
               display: 'inline-flex',
               alignItems: 'center',
               gap: '4px'
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = '#1e293b'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = '#0f172a'; }}
-            title="Lưu lại thay đổi bản nháp"
+            onMouseEnter={(e) => { if (!isSaved) e.currentTarget.style.background = '#1e293b'; }}
+            onMouseLeave={(e) => { if (!isSaved) e.currentTarget.style.background = '#0f172a'; }}
+            title={isSaved ? 'Đã lưu trạng thái mới nhất' : 'Lưu lại thay đổi'}
           >
-            <Save size={13} />
-            <span>{saving ? 'Saving...' : 'Save'}</span>
+            {isSaved ? (
+              <>
+                <Check size={13} strokeWidth={2.5} style={{ color: '#94a3b8' }} />
+                <span>Saved</span>
+              </>
+            ) : (
+              <span>{saving ? 'Saving...' : 'Save'}</span>
+            )}
           </button>
 
           <button 
             type="button"
-            onClick={onClose} 
+            onClick={handleDiscardChangesAndClose} 
             style={{
               background: 'none',
               border: 'none',
               color: '#64748b',
-              padding: '3px 10px',
-              fontSize: '0.78rem',
-              fontWeight: 500,
+              padding: '4px',
+              borderRadius: '4px',
               cursor: 'pointer',
-              transition: 'color 0.2s'
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 0.15s ease'
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = '#0f172a'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = '#64748b'; }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.background = '#fee2e2'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = '#64748b'; e.currentTarget.style.background = 'none'; }}
+            title="Đóng (Close)"
           >
-            Close
+            <X size={18} />
           </button>
         </div>
       </div>

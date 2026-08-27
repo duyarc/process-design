@@ -9,7 +9,7 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-08-27) — Sections 1, 2, and 6 checked against source (Fullscreen Studio Workspace) |
+| **Verified At Commit** | (2026-08-27) — Section 2 checked against source (Minimalist Close icon button) |
 
 > **⚠️ Architectural note:** FormBuilder has no awareness of which process it belongs to. The `formName` prop is always identical to `formId`. See Section 6.1 and the Technical Debt table.
 

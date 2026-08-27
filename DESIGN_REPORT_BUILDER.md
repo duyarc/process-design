@@ -9,7 +9,7 @@
 | **Module Name** | Report Builder |
 | **Status** | Implemented & Verified |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-08-27) — Sections 1 to 4 checked against source code (Versions Tab & Publish Relocation to parity with FormBuilder) |
+| **Verified At Commit** | (2026-08-27) — Sections 1 to 4 checked against source code (Save button state machine & minimalist Close icon) |
 
 ### Quick File Index
 
@@ -90,6 +90,7 @@ The module operates on a linear 4-stage processing and rendering pipeline:
 
 | Date | Change |
 |---|---|
+| 2026-08-27 | **Save State Machine & Minimalist Close Icon:** (1) Implemented `getReportSnapshot` and `isSaved` state machine on the Save button (`[✓ Saved]` / `[Save]`). (2) Replaced text `Close` button with a minimalist `<X size={18} />` icon button with confirmation dialog for unsaved changes (`handleDiscardChangesAndClose`). |
 | 2026-08-27 | **Versions Tab & Publish Relocation (FormBuilder Parity):** (1) Removed Publish button from Top Action Bar to match FormBuilder's clean layout. (2) Replicated FormBuilder's 3-card Versions tab: Card 1 (Version Control & Status with Major/Minor inputs & New Draft trigger), Card 2 (Change Summary with auto-suggest `generateReportChangeSummary`, Release Date & green Publish action), Card 3 (Revision History with Read-only preview & Rollback, status badges, and yellow top warning banner). |
 | 2026-08-27 | **Header & Top Toolbar Alignment with FormBuilder:** (1) Restructured ReportBuilder Top Action Bar into 3 clusters: Left (Identity & Status), Center (Pill block adders toolbar: `+ Title`, `+ Info Grid`, `+ Table`, `+ Sign`, `+ Label`), Right (`[A4 Dọc]`, `[Print]`, `[Save]`, `Close`). (2) Removed in-canvas floating toolbar. (3) Moved Report ID and Title inputs to Right Inspector Properties tab. |
 | 2026-08-27 | **Report Builder Implementation Complete:** Built 3-panel `ReportBuilder.tsx` authoring canvas, `reportCompute.ts` hybrid engine, `FormReport.tsx` single-record viewer with empty-state fallback, `PrintReport.tsx` A4 portal, and wired 4th `[Reports]` Hub in `Dashboard.tsx` and `App.tsx`. Verified with `npm run build`. |
