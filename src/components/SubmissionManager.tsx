@@ -12,7 +12,8 @@ import {
   CheckCircle2,
   XCircle,
   UserCheck,
-  Trash2
+  Trash2,
+  FileText
 } from 'lucide-react';
 import PrintFilledForm from './print/PrintFilledForm';
 import ConfirmModal from './common/ConfirmModal';
@@ -22,9 +23,10 @@ interface SubmissionManagerProps {
   initialFormFilter?: string | null;
   isEmbedded?: boolean;
   layoutMode?: 'grid' | 'list';
+  onOpenReport?: (submissionId: string) => void;
 }
 
-export default function SubmissionManager({ onBack, initialFormFilter, isEmbedded = false, layoutMode = 'list' }: SubmissionManagerProps) {
+export default function SubmissionManager({ onBack, initialFormFilter, isEmbedded = false, layoutMode = 'list', onOpenReport }: SubmissionManagerProps) {
   const { currentUser } = useAuth();
   
   // Data States
@@ -369,6 +371,17 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
                       >
                         <Eye size={13} />
                       </button>
+                      {onOpenReport && (
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          title="Xem Báo cáo Đánh giá (Record Report)"
+                          onClick={() => onOpenReport(sub.id)}
+                          style={{ padding: '0.25rem', height: '26px', width: '26px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: 0 }}
+                        >
+                          <FileText size={13} />
+                        </button>
+                      )}
                       <button
                         type="button"
                         className="btn btn-secondary btn-sm"
@@ -477,6 +490,17 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
                             >
                               <Eye size={13} />
                             </button>
+                            {onOpenReport && (
+                              <button
+                                type="button"
+                                className="btn btn-secondary btn-sm"
+                                title="Xem Báo cáo Đánh giá (Record Report)"
+                                onClick={() => onOpenReport(sub.id)}
+                                style={{ padding: '0.25rem', height: '26px', width: '26px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: 0 }}
+                              >
+                                <FileText size={13} />
+                              </button>
+                            )}
                             <button
                               type="button"
                               className="btn btn-secondary btn-sm"

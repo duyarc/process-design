@@ -28,8 +28,13 @@ The execution and tracking layer for running processes on the floor.
 - **Responsibilities:** Digital fill-out of forms, capturing photo evidence (QMS protocol), real-time pass/fail evaluation, logging submissions, and supervisor verification sign-off.
 - **Key Components:** `FormFiller.tsx`, `FormManager.tsx`, `SubmissionManager.tsx`.
 
-### 5. [Backend & Persistence](./DESIGN_BACKEND.md)
-The Express API server backing all four frontend modules.
+### 5. [Report Builder](./DESIGN_REPORT_BUILDER.md)
+The reporting and insights layer for transforming completed form records.
+- **Responsibilities:** 4-stage processing pipeline (Source → Compute → Layout → Distribute), 1-to-1 Record Reports (inspection scorecards, compliance certificates), spec tolerance evaluations, and A4 print export.
+- **Key Components:** *(Components TBD)*.
+
+### 6. [Backend & Persistence](./DESIGN_BACKEND.md)
+The Express API server backing all frontend modules.
 - **Responsibilities:** 30 REST endpoints, Postgres/Supabase schema and migrations, Cloudflare R2 presigned upload and cleanup, JWT issuance, and CSV offline fallback.
 - **Key Components:** `server.cjs`, `api/index.js`.
 

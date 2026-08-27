@@ -17,6 +17,7 @@ thiết kế chính thức. Bảng này là nguồn tra cứu duy nhất cho qua
 | **Process Designer** | `src/components/ProcessEditor.tsx`, `src/components/ProcessReader.tsx`, `src/components/BpmnModelerComponent.tsx`, `src/components/BpmnViewerComponent.tsx`, `src/components/BPMNGuide.tsx`, `src/utils/bpmnXmlGenerator.ts`, `src/utils/layout/*`, `src/bpmn-custom.d.ts` | [`DESIGN_PROCESS_DESIGNER.md`](DESIGN_PROCESS_DESIGNER.md) |
 | **Form Designer** | `src/components/FormBuilder.tsx`, `src/components/print/PrintBlankForm.tsx` | [`DESIGN_FORM_DESIGNER.md`](DESIGN_FORM_DESIGNER.md) |
 | **Form Operations** | `src/components/FormFiller.tsx`, `src/components/FormManager.tsx`, `src/components/SubmissionManager.tsx`, `src/components/print/PrintRecord.tsx`, `src/utils/formUtils.ts` | [`DESIGN_FORM_OPERATIONS.md`](DESIGN_FORM_OPERATIONS.md) |
+| **Report Builder** | *(Components TBD)* | [`DESIGN_REPORT_BUILDER.md`](DESIGN_REPORT_BUILDER.md) |
 | **Backend & Persistence** | `server.cjs`, `api/index.js` | [`DESIGN_BACKEND.md`](DESIGN_BACKEND.md) |
 | **Design System** | `src/index.css`, `src/print.css`, `src/App.css` | [`DESIGN_UI_UX.md`](DESIGN_UI_UX.md) |
 
@@ -30,6 +31,7 @@ thiết kế chính thức. Bảng này là nguồn tra cứu duy nhất cho qua
 | `Process`, `ProcessStep`, `SOPSignOff`, `SOPSignOffs`, `FormField`, `FormDesignerField`, `RadioOption` | `DESIGN_PROCESS_DESIGNER.md` |
 | `FormTemplateISO`, `LayoutBlockISO`, `FormFieldISO`, `FormRevisionEntry`, `MatrixConfigISO`, `TableColumnConfig`, `TableRowConfig`, `SubtableColumn`, `ColumnSummaryRowConfig`, `TitleFormatISO` | `DESIGN_FORM_DESIGNER.md` |
 | `Submission`, `SubmissionFieldSnapshot` | `DESIGN_FORM_OPERATIONS.md` |
+| `ReportTemplateISO`, `ReportBlockConfig`, `ReportBlockType`, `ReportRevisionEntry`, `ReportDataModel`, `FieldEvaluationResult`, `ReportFieldRuleOverride` | `DESIGN_REPORT_BUILDER.md` |
 
 > `User`, `Role`, `RoleId`, `PermissionKey`, `RolePermissionsMatrix` **không** nằm trong
 > `types.ts` — chúng được khai báo trong `src/context/AuthContext.tsx` và thuộc

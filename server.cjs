@@ -138,11 +138,29 @@ const INITIALIZE_SCHEMA_QUERY = `
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
   );
 
+  CREATE TABLE IF NOT EXISTS report_templates (
+    report_id TEXT NOT NULL,
+    report_title TEXT NOT NULL,
+    linked_form_id TEXT NOT NULL,
+    report_type TEXT NOT NULL DEFAULT 'RECORD',
+    status TEXT NOT NULL DEFAULT 'DRAFT',
+    version TEXT NOT NULL DEFAULT 'v1.0',
+    effective_date DATE,
+    layout_blocks JSONB NOT NULL DEFAULT '[]',
+    revision_history JSONB NOT NULL DEFAULT '[]',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (report_id, version)
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_report_templates_linked_form ON report_templates(linked_form_id);
+
   ALTER TABLE processes ENABLE ROW LEVEL SECURITY;
   ALTER TABLE forms ENABLE ROW LEVEL SECURITY;
   ALTER TABLE process_forms ENABLE ROW LEVEL SECURITY;
   ALTER TABLE submissions ENABLE ROW LEVEL SECURITY;
   ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+  ALTER TABLE report_templates ENABLE ROW LEVEL SECURITY;
 
   ALTER TABLE forms ADD COLUMN IF NOT EXISTS page_size TEXT DEFAULT 'A4';
 `;
@@ -1068,6 +1086,273 @@ app.post('/api/forms/:formId/archive', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to archive form' });
+  }
+});
+
+// ─── API REPORT TEMPLATES (REPORT BUILDER MODULE) ───────────────────────────
+
+const REPORTS_JSON_PATH = path.join(__dirname, 'data', 'report_templates.json');
+
+function readReportsOffline() {
+  if (!fs.existsSync(REPORTS_JSON_PATH)) return [];
+  try {
+    return JSON.parse(fs.readFileSync(REPORTS_JSON_PATH, 'utf8'));
+  } catch (err) {
+    console.error('Error reading offline report templates:', err);
+    return [];
+  }
+}
+
+function writeReportsOffline(reports) {
+  try {
+    fs.writeFileSync(REPORTS_JSON_PATH, JSON.stringify(reports, null, 2), 'utf8');
+  } catch (err) {
+    console.error('Error writing offline report templates:', err);
+  }
+}
+
+function formatReportRow(r) {
+  if (!r) return null;
+  return {
+    reportId: r.report_id || r.reportId,
+    reportTitle: r.report_title || r.reportTitle,
+    linkedFormId: r.linked_form_id || r.linkedFormId,
+    reportType: r.report_type || r.reportType || 'RECORD',
+    status: r.status || 'DRAFT',
+    version: r.version || 'v1.0',
+    effectiveDate: r.effective_date || r.effectiveDate || null,
+    layoutBlocks: typeof r.layout_blocks === 'string' ? JSON.parse(r.layout_blocks) : (r.layout_blocks || r.layoutBlocks || []),
+    revisionHistory: typeof r.revision_history === 'string' ? JSON.parse(r.revision_history) : (r.revision_history || r.revisionHistory || []),
+    createdAt: r.created_at || r.createdAt,
+    updatedAt: r.updated_at || r.updatedAt
+  };
+}
+
+// GET /api/reports - List all report templates
+app.get('/api/reports', async (req, res) => {
+  try {
+    if (dbPool) {
+      const result = await dbPool.query('SELECT * FROM report_templates ORDER BY updated_at DESC');
+      res.json(result.rows.map(formatReportRow));
+    } else {
+      res.json(readReportsOffline().map(formatReportRow));
+    }
+  } catch (err) {
+    console.error('Error fetching report templates:', err);
+    res.status(500).json({ error: 'Failed to fetch report templates' });
+  }
+});
+
+// GET /api/reports/by-form/:formId - Get active report template for a form (fallback to latest draft)
+app.get('/api/reports/by-form/:formId', async (req, res) => {
+  try {
+    const { formId } = req.params;
+    if (dbPool) {
+      const result = await dbPool.query(
+        `SELECT * FROM report_templates 
+         WHERE linked_form_id = $1 
+         ORDER BY (CASE WHEN status = 'ACTIVE' THEN 1 WHEN status = 'DRAFT' THEN 2 ELSE 3 END), updated_at DESC 
+         LIMIT 1`,
+        [formId]
+      );
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: `No report template found for form ${formId}` });
+      }
+      res.json(formatReportRow(result.rows[0]));
+    } else {
+      const reports = readReportsOffline().map(formatReportRow);
+      const matches = reports.filter(r => r.linkedFormId === formId);
+      if (matches.length === 0) {
+        return res.status(404).json({ error: `No report template found for form ${formId}` });
+      }
+      matches.sort((a, b) => {
+        if (a.status === 'ACTIVE' && b.status !== 'ACTIVE') return -1;
+        if (b.status === 'ACTIVE' && a.status !== 'ACTIVE') return 1;
+        return new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime();
+      });
+      res.json(matches[0]);
+    }
+  } catch (err) {
+    console.error('Error fetching report template by form:', err);
+    res.status(500).json({ error: 'Failed to fetch report template by form' });
+  }
+});
+
+// GET /api/reports/:reportId - Get a specific report template by ID (optional ?version=...)
+app.get('/api/reports/:reportId', async (req, res) => {
+  try {
+    const { reportId } = req.params;
+    const { version } = req.query;
+
+    if (dbPool) {
+      let queryStr = 'SELECT * FROM report_templates WHERE report_id = $1';
+      const params = [reportId];
+      if (version) {
+        queryStr += ' AND version = $2';
+        params.push(version);
+      } else {
+        queryStr += ` ORDER BY (CASE WHEN status = 'ACTIVE' THEN 1 WHEN status = 'DRAFT' THEN 2 ELSE 3 END), updated_at DESC LIMIT 1`;
+      }
+      const result = await dbPool.query(queryStr, params);
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: `Report template ${reportId} not found` });
+      }
+      res.json(formatReportRow(result.rows[0]));
+    } else {
+      const reports = readReportsOffline().map(formatReportRow);
+      let matches = reports.filter(r => r.reportId === reportId);
+      if (matches.length === 0) {
+        return res.status(404).json({ error: `Report template ${reportId} not found` });
+      }
+      if (version) {
+        const exact = matches.find(r => r.version === version);
+        if (!exact) return res.status(404).json({ error: `Version ${version} of report ${reportId} not found` });
+        return res.json(exact);
+      }
+      matches.sort((a, b) => {
+        if (a.status === 'ACTIVE' && b.status !== 'ACTIVE') return -1;
+        if (b.status === 'ACTIVE' && a.status !== 'ACTIVE') return 1;
+        return new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime();
+      });
+      res.json(matches[0]);
+    }
+  } catch (err) {
+    console.error('Error fetching report template:', err);
+    res.status(500).json({ error: 'Failed to fetch report template' });
+  }
+});
+
+// POST /api/reports - Save or Update report template (upsert composite key (report_id, version))
+app.post('/api/reports', async (req, res) => {
+  try {
+    const {
+      reportId,
+      reportTitle,
+      linkedFormId,
+      reportType,
+      status,
+      version,
+      effectiveDate,
+      layoutBlocks,
+      revisionHistory,
+      oldReportId,
+      oldVersion,
+      allowActiveUpdate
+    } = req.body;
+
+    if (!reportId || !reportTitle || !linkedFormId) {
+      return res.status(400).json({ error: 'reportId, reportTitle, and linkedFormId are required' });
+    }
+
+    const blocks = Array.isArray(layoutBlocks) ? JSON.stringify(layoutBlocks) : (layoutBlocks || '[]');
+    const history = Array.isArray(revisionHistory) ? JSON.stringify(revisionHistory) : (revisionHistory || '[]');
+    const ver = version || 'v1.0';
+    const rType = reportType || 'RECORD';
+    const st = status || 'DRAFT';
+    const effDate = effectiveDate || null;
+
+    if (dbPool) {
+      // If reportId changed in draft mode, delete old draft
+      if (oldReportId && oldReportId !== reportId) {
+        await dbPool.query("DELETE FROM report_templates WHERE report_id = $1 AND status = 'DRAFT'", [oldReportId]);
+      }
+      // If version changed in draft mode, delete old draft version
+      if (oldVersion && oldVersion !== ver) {
+        await dbPool.query("DELETE FROM report_templates WHERE report_id = $1 AND version = $2 AND status = 'DRAFT'", [reportId, oldVersion]);
+      }
+
+      // Safety check: Don't overwrite existing ACTIVE version unless explicitly permitted
+      const safety = await dbPool.query(
+        'SELECT status FROM report_templates WHERE report_id = $1 AND version = $2',
+        [reportId, ver]
+      );
+      if (safety.rows.length > 0 && safety.rows[0].status === 'ACTIVE' && !allowActiveUpdate) {
+        return res.status(400).json({ error: `Version ${ver} is already ACTIVE and locked. Please increment version to publish.` });
+      }
+
+      // Upsert report template
+      const query = `
+        INSERT INTO report_templates (
+          report_id, report_title, linked_form_id, report_type, status, version, effective_date, layout_blocks, revision_history, updated_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9::jsonb, NOW())
+        ON CONFLICT (report_id, version) DO UPDATE SET
+          report_title = EXCLUDED.report_title,
+          linked_form_id = EXCLUDED.linked_form_id,
+          report_type = EXCLUDED.report_type,
+          status = EXCLUDED.status,
+          effective_date = EXCLUDED.effective_date,
+          layout_blocks = EXCLUDED.layout_blocks,
+          revision_history = EXCLUDED.revision_history,
+          updated_at = NOW()
+        RETURNING *;
+      `;
+
+      const result = await dbPool.query(query, [reportId, reportTitle, linkedFormId, rType, st, ver, effDate, blocks, history]);
+      res.json(formatReportRow(result.rows[0]));
+    } else {
+      let reports = readReportsOffline();
+      // Remove old draft if renamed
+      if (oldReportId && oldReportId !== reportId) {
+        reports = reports.filter(r => !(r.report_id === oldReportId && r.status === 'DRAFT'));
+      }
+      if (oldVersion && oldVersion !== ver) {
+        reports = reports.filter(r => !(r.report_id === reportId && r.version === oldVersion && r.status === 'DRAFT'));
+      }
+
+      const existingIdx = reports.findIndex(r => (r.report_id === reportId || r.reportId === reportId) && r.version === ver);
+      const newRecord = {
+        report_id: reportId,
+        report_title: reportTitle,
+        linked_form_id: linkedFormId,
+        report_type: rType,
+        status: st,
+        version: ver,
+        effective_date: effDate,
+        layout_blocks: typeof blocks === 'string' ? JSON.parse(blocks) : blocks,
+        revision_history: typeof history === 'string' ? JSON.parse(history) : history,
+        updated_at: new Date().toISOString(),
+        created_at: existingIdx >= 0 ? reports[existingIdx].created_at : new Date().toISOString()
+      };
+
+      if (existingIdx >= 0) {
+        reports[existingIdx] = newRecord;
+      } else {
+        reports.push(newRecord);
+      }
+      writeReportsOffline(reports);
+      res.json(formatReportRow(newRecord));
+    }
+  } catch (err) {
+    console.error('Error saving report template:', err);
+    res.status(500).json({ error: 'Failed to save report template' });
+  }
+});
+
+// DELETE /api/reports/:reportId - Delete report template or specific version
+app.delete('/api/reports/:reportId', async (req, res) => {
+  try {
+    const { reportId } = req.params;
+    const { version } = req.query;
+
+    if (dbPool) {
+      if (version) {
+        await dbPool.query('DELETE FROM report_templates WHERE report_id = $1 AND version = $2', [reportId, version]);
+      } else {
+        await dbPool.query('DELETE FROM report_templates WHERE report_id = $1', [reportId]);
+      }
+    } else {
+      let reports = readReportsOffline();
+      if (version) {
+        reports = reports.filter(r => !((r.report_id === reportId || r.reportId === reportId) && r.version === version));
+      } else {
+        reports = reports.filter(r => !(r.report_id === reportId || r.reportId === reportId));
+      }
+      writeReportsOffline(reports);
+    }
+    res.json({ success: true, message: `Report template ${reportId} deleted successfully` });
+  } catch (err) {
+    console.error('Error deleting report template:', err);
+    res.status(500).json({ error: 'Failed to delete report template' });
   }
 });
 

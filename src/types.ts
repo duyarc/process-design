@@ -353,3 +353,81 @@ export function getColStyleWidth(colId: string, _colWidth: string, tableColumns:
   }
 }
 
+// ==========================================
+// REPORT BUILDER DATA CONTRACTS
+// Governing doc: DESIGN_REPORT_BUILDER.md
+// ==========================================
+
+export type ReportBlockType = 'TITLE' | 'SECTION_LABEL' | 'INFO_GRID' | 'TABLE' | 'SIGN';
+
+export interface ReportFieldRuleOverride {
+  fieldId: string;                      // Bound FormFieldISO.id
+  customMinSpec?: number;               // Override lower bound
+  customMaxSpec?: number;               // Override upper bound
+  customTargetRange?: string;           // Override target text
+  customPassOptions?: string[];         // Override pass radio/checkbox values
+  weight?: number;                      // Scoring weight
+}
+
+export interface ReportBlockConfig {
+  id: string;
+  type: ReportBlockType;
+  title: string;
+  description?: string;                 // For SECTION_LABEL
+  columns?: 1 | 2 | 3;                  // For INFO_GRID
+  logo?: string;                        // For TITLE block
+  boundFieldIds?: string[];             // Form field IDs included in this block
+  ruleOverrides?: Record<string, ReportFieldRuleOverride>; // Field ID -> Custom Rules
+  tableColumns?: { id: string; label: string; width?: string; align?: 'left' | 'center' | 'right' }[];
+  borderStyle?: 'grid' | 'borderless' | 'horizontal_only';
+}
+
+export interface ReportRevisionEntry {
+  version: string;
+  date: string;
+  author: string;
+  change: string;
+  layoutBlocks?: ReportBlockConfig[];   // Snapshot for 1-click restore
+}
+
+export interface ReportTemplateISO {
+  reportId: string;                     // Primary key, e.g. "RP-QC-F01"
+  reportTitle: string;                  // Display name, e.g. "Final Inspection Scorecard"
+  linkedFormId: string;                 // Foreign key to source FormTemplateISO.formId
+  reportType?: 'RECORD' | 'SUMMARY';    // Default: 'RECORD' (1-to-1)
+  version: string;                      // e.g. "v1.0" or "v1.1 (draft)"
+  status: 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
+  effectiveDate?: string;               // ISO date string (YYYY-MM-DD)
+  layoutBlocks: ReportBlockConfig[];    // Ordered visual report blocks
+  revisionHistory: ReportRevisionEntry[]; // Full snapshot audit trail
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface FieldEvaluationResult {
+  fieldId: string;
+  label: string;
+  rawValue: any;
+  nominalSpec?: string;
+  minSpec?: number;
+  maxSpec?: number;
+  unit?: string;
+  status: 'PASS' | 'FAIL' | 'NA';
+  deviationText?: string;
+}
+
+export interface ReportDataModel {
+  reportId: string;
+  reportTitle: string;
+  submissionId: string;
+  formId: string;
+  operatorName: string;
+  submittedAt: string;
+  overallStatus: 'PASS' | 'FAIL';
+  totalEvaluated: number;
+  passCount: number;
+  failCount: number;
+  scorePercentage: number;
+  evaluations: Record<string, FieldEvaluationResult>;
+}
+

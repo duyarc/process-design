@@ -8,6 +8,8 @@ import FormManager from './components/FormManager';
 import FormFiller from './components/FormFiller';
 import UserManagement from './components/UserManagement';
 import LoginPage from './components/LoginPage';
+import ReportBuilder from './components/ReportBuilder';
+import FormReport from './components/FormReport';
 import { BookOpen, Users, LogOut, ChevronDown } from 'lucide-react';
 
 // ─────────────────────────────────────────────────────────────
@@ -31,11 +33,13 @@ const MainApp: React.FC = () => {
   const [initialFormFilter, setInitialFormFilter] = useState<string | null>(null);
   const [initialPrintFormName, setInitialPrintFormName] = useState<string | null>(null);
   const [triggerProcessPrint, setTriggerProcessPrint] = useState(false);
-  const [dashboardViewMode, setDashboardViewMode] = useState<'processes' | 'forms' | 'submissions' | 'guide'>('processes');
+  const [dashboardViewMode, setDashboardViewMode] = useState<'processes' | 'forms' | 'submissions' | 'reports' | 'guide'>('processes');
   const [initialEditorTab, setInitialEditorTab] = useState<'description' | 'workflow' | 'form' | 'versions' | undefined>(undefined);
   const [initialFormToBuild, setInitialFormToBuild] = useState<string | null>(null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [reportBuilderState, setReportBuilderState] = useState<{ isOpen: boolean; formId?: string; reportId?: string }>({ isOpen: false });
+  const [formReportState, setFormReportState] = useState<{ isOpen: boolean; submissionId?: string }>({ isOpen: false });
 
   useEffect(() => {
     if (toastMessage) {
@@ -336,6 +340,8 @@ const MainApp: React.FC = () => {
             onPrintProcess={handlePrintProcess}
             onOpenFormManager={handleOpenFormManager}
             onOpenFormFiller={handleOpenFormFiller}
+            onOpenReportBuilder={(formId, reportId) => setReportBuilderState({ isOpen: true, formId, reportId })}
+            onOpenFormReport={(submissionId) => setFormReportState({ isOpen: true, submissionId })}
             viewMode={dashboardViewMode}
             onViewModeChange={setDashboardViewMode}
             initialFormFilter={initialFormFilter}
@@ -404,6 +410,30 @@ const MainApp: React.FC = () => {
               </div>
         )}
       </main>
+
+      {/* Report Builder Fullscreen Authoring Shell */}
+      {reportBuilderState.isOpen && (
+        <ReportBuilder
+          initialFormId={reportBuilderState.formId}
+          initialReportId={reportBuilderState.reportId}
+          onSave={(saved) => {
+            setToastMessage(`Đã lưu mẫu báo cáo ${saved.reportId} (${saved.version})`);
+          }}
+          onClose={() => setReportBuilderState({ isOpen: false })}
+        />
+      )}
+
+      {/* Form Report Single Submission Record Viewer */}
+      {formReportState.isOpen && formReportState.submissionId && (
+        <FormReport
+          submissionId={formReportState.submissionId}
+          onClose={() => setFormReportState({ isOpen: false })}
+          onOpenBuilder={(formId) => {
+            setFormReportState({ isOpen: false });
+            setReportBuilderState({ isOpen: true, formId });
+          }}
+        />
+      )}
 
       {/* Floating Toast Notification Banner */}
       {toastMessage && (

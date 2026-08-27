@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import type { Process } from '../types';
+import type { Process, ReportTemplateISO } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { Plus, Search, FileText, Eye, Calendar, Printer, History, PenTool, Edit2, GitBranch, ChevronDown, ChevronUp, Grid, List } from 'lucide-react';
+import { Plus, Search, FileText, Eye, Calendar, Printer, History, PenTool, Edit2, GitBranch, ChevronDown, ChevronUp, Grid, List, SlidersHorizontal } from 'lucide-react';
 import SubmissionManager from './SubmissionManager';
 import { BPMNGuide } from './BPMNGuide';
 import PrintBlankForm from './print/PrintBlankForm';
@@ -14,8 +14,10 @@ interface DashboardProps {
   onPrintForm?: (processId: string, formName: string) => void;
   onOpenFormManager?: (processId: string, formName: string) => void;
   onOpenFormFiller?: (processId: string, formName: string) => void;
-  viewMode?: 'processes' | 'forms' | 'submissions' | 'guide';
-  onViewModeChange?: (mode: 'processes' | 'forms' | 'submissions' | 'guide') => void;
+  onOpenReportBuilder?: (formId?: string, reportId?: string) => void;
+  onOpenFormReport?: (submissionId: string) => void;
+  viewMode?: 'processes' | 'forms' | 'submissions' | 'reports' | 'guide';
+  onViewModeChange?: (mode: 'processes' | 'forms' | 'submissions' | 'reports' | 'guide') => void;
   initialFormFilter?: string | null;
   onClearFormFilter?: () => void;
 }
@@ -35,6 +37,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onViewFormSubmissions, 
   onOpenFormManager,
   onOpenFormFiller,
+  onOpenReportBuilder,
+  onOpenFormReport,
   viewMode = 'processes',
   onViewModeChange,
   initialFormFilter = null,
@@ -42,6 +46,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 }) => {
   const [processes, setProcesses] = useState<Process[]>([]);
   const [allForms, setAllForms] = useState<any[]>([]);
+  const [reportTemplates, setReportTemplates] = useState<ReportTemplateISO[]>([]);
   const [selectedFormVersions, setSelectedFormVersions] = useState<Record<string, string>>({});
   const [printTemplateData, setPrintTemplateData] = useState<any | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -80,9 +85,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const fetchProcesses = async () => {
     try {
       setLoading(true);
-      const [procRes, formsRes] = await Promise.all([
+      const [procRes, formsRes, repRes] = await Promise.all([
         fetch('/api/processes'),
-        fetch('/api/forms')
+        fetch('/api/forms'),
+        fetch('/api/reports')
       ]);
 
       if (!procRes.ok) throw new Error('Failed to fetch processes');
@@ -92,6 +98,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
       if (formsRes.ok) {
         const formsData = await formsRes.json();
         setAllForms(formsData);
+      }
+      if (repRes.ok) {
+        const repsData = await repRes.json();
+        setReportTemplates(repsData);
       }
       setError(null);
     } catch (err) {
@@ -601,6 +611,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
           >
             Submissions
           </button>
+          <button
+            className={`btn btn-sm ${viewMode === 'reports' ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => { onViewModeChange && onViewModeChange('reports'); setSearchQuery(''); }}
+            style={{ borderRadius: '20px', padding: '0.35rem 1.25rem' }}
+          >
+            Reports
+          </button>
         </div>
 
         {viewMode !== 'guide' && (
@@ -659,7 +676,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input
               type="text"
-              placeholder={viewMode === 'processes' ? "Search processes by title, description or checks..." : "Search forms by name, form ID, or linked process..."}
+              placeholder={
+                viewMode === 'processes' ? "Search processes by title, description or checks..." :
+                viewMode === 'forms' ? "Search forms by name, form ID, or linked process..." :
+                "Search report templates by ID, title, or linked form..."
+              }
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               style={{ padding: '0.45rem 0.6rem 0.45rem 2.25rem', fontSize: '0.85rem', border: '1px solid var(--neutral-border)', borderRadius: '6px', width: '100%', outline: 'none', background: '#fff' }}
@@ -673,6 +694,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
             >
               <Plus size={18} />
               New Process
+            </button>
+          )}
+          {hasPermission('design_document') && viewMode === 'reports' && onOpenReportBuilder && (
+            <button 
+              className="btn btn-primary" 
+              onClick={() => onOpenReportBuilder()}
+              style={{ flexShrink: 0, margin: 0 }}
+            >
+              <Plus size={18} />
+              New Report Template
             </button>
           )}
         </div>
@@ -694,10 +725,112 @@ export const Dashboard: React.FC<DashboardProps> = ({
           initialFormFilter={initialFormFilter} 
           onBack={onClearFormFilter} 
           layoutMode={layoutMode}
+          onOpenReport={onOpenFormReport}
         />
       ) : viewMode === 'guide' ? (
         <BPMNGuide />
-      ) : viewMode === 'forms' ? (() => {
+      ) : viewMode === 'reports' ? (
+        (() => {
+          const filteredReports = reportTemplates.filter(r => {
+            const q = searchQuery.toLowerCase();
+            return (
+              (r.reportId || '').toLowerCase().includes(q) ||
+              (r.reportTitle || '').toLowerCase().includes(q) ||
+              (r.linkedFormId || '').toLowerCase().includes(q)
+            );
+          });
+
+          if (filteredReports.length === 0) {
+            return (
+              <div className="paper-card" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
+                <FileText size={48} style={{ color: 'var(--text-secondary)', marginBottom: '1rem', opacity: 0.5 }} />
+                <h3>Chưa có Mẫu Báo cáo nào (No Report Templates)</h3>
+                <p style={{ maxWidth: '480px', margin: '0 auto 1.5rem auto', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                  {searchQuery
+                    ? 'Không tìm thấy mẫu báo cáo phù hợp với từ khóa tìm kiếm.'
+                    : 'Chưa có mẫu Report Template nào được tạo. Nhấp nút bên dưới để thiết kế mẫu báo cáo đầu tiên.'}
+                </p>
+                {onOpenReportBuilder && (
+                  <button className="btn btn-primary" onClick={() => onOpenReportBuilder()}>
+                    <Plus size={16} /> Tạo Mẫu Báo cáo Mới
+                  </button>
+                )}
+              </div>
+            );
+          }
+
+          return (
+            <div className="paper-card accent-teal" style={{ padding: '1.5rem' }}>
+              <div style={{ overflowX: 'auto', border: '1px solid var(--neutral-border)', borderRadius: '6px' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '2px solid var(--neutral-border)', background: '#f8fafc', color: 'var(--text-secondary)' }}>
+                      <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '18%' }}>Mã Báo Cáo (ID)</th>
+                      <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '32%' }}>Tên Báo Cáo</th>
+                      <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '20%' }}>Biểu Mẫu Nguồn</th>
+                      <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '12%' }}>Phiên Bản</th>
+                      <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '10%' }}>Trạng Thái</th>
+                      <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '8%' }}>Thao Tác</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredReports.map((rep) => {
+                      const status = rep.status || 'DRAFT';
+                      const colors = status === 'ACTIVE'
+                        ? { bg: '#f0fdf4', text: '#15803d', border: '#bbf7d0' }
+                        : { bg: '#fffbeb', text: '#b45309', border: '#fde68a' };
+
+                      return (
+                        <tr
+                          key={rep.reportId + rep.version}
+                          style={{ borderBottom: '1px solid var(--neutral-border)', transition: 'background 0.15s' }}
+                          onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
+                          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                        >
+                          <td style={{ padding: '0.6rem 0.75rem', verticalAlign: 'middle' }}>
+                            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', background: '#f1f5f9', padding: '0.1rem 0.4rem', borderRadius: '4px', border: '1px solid #e2e8f0', fontFamily: 'monospace' }}>
+                              {rep.reportId}
+                            </span>
+                          </td>
+                          <td style={{ padding: '0.6rem 0.75rem', verticalAlign: 'middle', fontWeight: 600, color: 'var(--text-primary)' }}>
+                            {rep.reportTitle}
+                          </td>
+                          <td style={{ padding: '0.6rem 0.75rem', verticalAlign: 'middle', fontSize: '0.8rem' }}>
+                            <span style={{ fontWeight: 600, color: 'var(--primary)' }}>{rep.linkedFormId}</span>
+                          </td>
+                          <td style={{ padding: '0.6rem 0.75rem', textAlign: 'center', verticalAlign: 'middle' }}>
+                            <span style={{ fontWeight: 600, fontSize: '0.75rem' }}>{rep.version}</span>
+                          </td>
+                          <td style={{ padding: '0.6rem 0.75rem', textAlign: 'center', verticalAlign: 'middle' }}>
+                            <span className="badge" style={{ backgroundColor: colors.bg, color: colors.text, border: `1px solid ${colors.border}`, textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 700, padding: '0.1rem 0.4rem', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', margin: 0 }}>
+                              {status}
+                            </span>
+                          </td>
+                          <td style={{ padding: '0.6rem 0.75rem', textAlign: 'center', verticalAlign: 'middle' }}>
+                            <div style={{ display: 'flex', gap: '0.25rem', justifyContent: 'center' }}>
+                              {onOpenReportBuilder && (
+                                <button
+                                  className="btn btn-secondary btn-sm"
+                                  style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', margin: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: '26px' }}
+                                  title="Chỉnh sửa Mẫu Báo cáo"
+                                  onClick={() => onOpenReportBuilder(rep.linkedFormId, rep.reportId)}
+                                >
+                                  <Edit2 size={12} />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          );
+        })()
+      ) : viewMode === 'forms' ? (
+        (() => {
         const handleFillAction = (form: any) => {
           if (form.linkedProcesses.length > 1) {
             setProcessSelectDialog({ form, action: 'fill' });
@@ -948,14 +1081,26 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                 </button>
                                 
                                 {hasPermission('design_document') && (
-                                  <button 
-                                    className="btn btn-secondary btn-sm"
-                                    style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', margin: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: '26px' }}
-                                    title="Edit Template"
-                                    onClick={() => onEditProcess(form.linkedProcesses[0]?.id || null, 'form', form.formName)}
-                                  >
-                                    <Edit2 size={12} />
-                                  </button>
+                                  <>
+                                    <button 
+                                      className="btn btn-secondary btn-sm"
+                                      style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', margin: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: '26px' }}
+                                      title="Edit Template"
+                                      onClick={() => onEditProcess(form.linkedProcesses[0]?.id || null, 'form', form.formName)}
+                                    >
+                                      <Edit2 size={12} />
+                                    </button>
+                                    {onOpenReportBuilder && (
+                                      <button 
+                                        className="btn btn-secondary btn-sm"
+                                        style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', margin: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: '26px' }}
+                                        title="Cấu hình Mẫu Báo cáo (Report Template)"
+                                        onClick={() => onOpenReportBuilder(form.formId)}
+                                      >
+                                        <SlidersHorizontal size={12} />
+                                      </button>
+                                    )}
+                                  </>
                                 )}
                                 
                                 <button 
@@ -1168,15 +1313,28 @@ export const Dashboard: React.FC<DashboardProps> = ({
                           </button>
                           
                           {hasPermission('design_document') && (
-                            <button 
-                              className="btn btn-secondary btn-sm"
-                              style={{ flex: 1, padding: '0.3rem 0.4rem', fontSize: '0.75rem', margin: 0, gap: '0.2rem', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                              title="Edit Template"
-                              onClick={() => onEditProcess(form.linkedProcesses[0]?.id || null, 'form', form.formName)}
-                            >
-                              <Edit2 size={13} style={{ flexShrink: 0 }} />
-                              Edit
-                            </button>
+                            <>
+                              <button 
+                                className="btn btn-secondary btn-sm"
+                                style={{ flex: 1, padding: '0.3rem 0.4rem', fontSize: '0.75rem', margin: 0, gap: '0.2rem', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                                title="Edit Template"
+                                onClick={() => onEditProcess(form.linkedProcesses[0]?.id || null, 'form', form.formName)}
+                              >
+                                <Edit2 size={13} style={{ flexShrink: 0 }} />
+                                Edit
+                              </button>
+                              {onOpenReportBuilder && (
+                                <button 
+                                  className="btn btn-secondary btn-sm"
+                                  style={{ flex: 1, padding: '0.3rem 0.4rem', fontSize: '0.75rem', margin: 0, gap: '0.2rem', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                                  title="Cấu hình Mẫu Báo cáo (Report Template)"
+                                  onClick={() => onOpenReportBuilder(form.formId)}
+                                >
+                                  <SlidersHorizontal size={13} style={{ flexShrink: 0 }} />
+                                  Report
+                                </button>
+                              )}
+                            </>
                           )}
                           
                           <button 
@@ -1290,7 +1448,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
             )}
           </>
         );
-      })() : filteredFamilies.length === 0 ? (
+      })()
+      ) : filteredFamilies.length === 0 ? (
         <div className="paper-card" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
           <FileText size={48} style={{ color: 'var(--text-secondary)', marginBottom: '1rem', opacity: 0.5 }} />
           <h3>No Processes Found</h3>
