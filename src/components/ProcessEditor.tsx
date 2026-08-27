@@ -2902,84 +2902,68 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
       </div>
 
       {activeFormToBuild && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 1000,
-          padding: '2rem'
-        }}>
-          <div style={{ width: '95%', maxWidth: '1200px', background: '#ffffff', borderRadius: '8px', overflow: 'hidden' }}>
-            <FormBuilder
-              formName={activeFormToBuild}
-              linkedProcessId={processId && processId !== 'unlinked' ? processId : undefined}
-              onUnlinkFromProcess={() => handleUnlinkFormFromProcess(activeFormToBuild)}
-              initialData={(() => {
-                // Primary: look up the latest version of this form_id directly from allForms (DB)
-                const live = allForms
-                  .filter(f => f.form_id === activeFormToBuild)
-                  .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())[0];
-                
-                if (live) {
-                  return {
-                    formId: live.form_id,
-                    formTitle: live.form_title || live.form_name,
-                    version: live.version,
-                    status: live.status as 'DRAFT' | 'ACTIVE' | 'ARCHIVED',
-                    layoutBlocks: typeof live.layout_blocks === 'string'
-                      ? JSON.parse(live.layout_blocks)
-                      : (live.layout_blocks || []),
-                    revisionHistory: typeof live.revision_history === 'string'
-                      ? JSON.parse(live.revision_history)
-                      : (live.revision_history || []),
-                  };
-                }
+        <FormBuilder
+          formName={activeFormToBuild}
+          linkedProcessId={processId && processId !== 'unlinked' ? processId : undefined}
+          onUnlinkFromProcess={() => handleUnlinkFormFromProcess(activeFormToBuild)}
+          initialData={(() => {
+            // Primary: look up the latest version of this form_id directly from allForms (DB)
+            const live = allForms
+              .filter(f => f.form_id === activeFormToBuild)
+              .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())[0];
+            
+            if (live) {
+              return {
+                formId: live.form_id,
+                formTitle: live.form_title || live.form_name,
+                version: live.version,
+                status: live.status as 'DRAFT' | 'ACTIVE' | 'ARCHIVED',
+                layoutBlocks: typeof live.layout_blocks === 'string'
+                  ? JSON.parse(live.layout_blocks)
+                  : (live.layout_blocks || []),
+                revisionHistory: typeof live.revision_history === 'string'
+                  ? JSON.parse(live.revision_history)
+                  : (live.revision_history || []),
+              };
+            }
 
-                // Fallback: try workflowFormsData[activeFormToBuild] if form is not yet saved to DB
-                const fd = workflowFormsData[activeFormToBuild];
-                if (fd) return { ...fd };
+            // Fallback: try workflowFormsData[activeFormToBuild] if form is not yet saved to DB
+            const fd = workflowFormsData[activeFormToBuild];
+            if (fd) return { ...fd };
 
-                // Last resort: new blank form with the declared form_id
-                return {
-                  formId: activeFormToBuild,
-                  formTitle: activeFormToBuild,
-                  status: 'DRAFT' as const,
-                  version: 'v0.1',
-                  layoutBlocks: [],
-                  revisionHistory: [],
-                };
-              })()}
-              onSave={async (savedFormData) => {
-                const nextFormsData = {
-                  ...workflowFormsData,
-                  [activeFormToBuild]: {
-                    ...workflowFormsData[activeFormToBuild],
-                    ...savedFormData
-                  }
-                };
-                setWorkflowFormsData(nextFormsData);
-                // Only auto-save the process data silently if it is a real process (not unlinked)
-                if (processId && processId !== 'unlinked') {
-                  await handleSave(nextFormsData, true);
-                }
-                fetchFormsList();
-              }}
-              onClose={() => {
-                if (exitOnCloseForm) {
-                  onCancel();
-                } else {
-                  setActiveFormToBuild(null);
-                }
-              }}
-            />
-          </div>
-        </div>
+            // Last resort: new blank form with the declared form_id
+            return {
+              formId: activeFormToBuild,
+              formTitle: activeFormToBuild,
+              status: 'DRAFT' as const,
+              version: 'v0.1',
+              layoutBlocks: [],
+              revisionHistory: [],
+            };
+          })()}
+          onSave={async (savedFormData) => {
+            const nextFormsData = {
+              ...workflowFormsData,
+              [activeFormToBuild]: {
+                ...workflowFormsData[activeFormToBuild],
+                ...savedFormData
+              }
+            };
+            setWorkflowFormsData(nextFormsData);
+            // Only auto-save the process data silently if it is a real process (not unlinked)
+            if (processId && processId !== 'unlinked') {
+              await handleSave(nextFormsData, true);
+            }
+            fetchFormsList();
+          }}
+          onClose={() => {
+            if (exitOnCloseForm) {
+              onCancel();
+            } else {
+              setActiveFormToBuild(null);
+            }
+          }}
+        />
       )}
       {printTemplateData && (
         <PrintBlankForm

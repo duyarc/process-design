@@ -2125,12 +2125,12 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
 
   return (
     <div style={{
+      position: 'fixed',
+      inset: 0,
+      zIndex: 1000,
       display: 'flex',
       flexDirection: 'column',
-      height: '85vh',
       background: '#f8fafc',
-      border: '1px solid var(--neutral-border)',
-      borderRadius: '8px',
       overflow: 'hidden'
     }}>
       {/* Warning banner when viewing old revision in read-only mode */}
@@ -2144,7 +2144,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          fontWeight: 500
+          fontWeight: 500,
+          flexShrink: 0
         }}>
           <span>
             ⚠️ Bạn đang xem phiên bản cũ <strong>{viewingRevisionVersion}</strong> (Chế độ chỉ đọc - Read-only).
@@ -2203,15 +2204,19 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
       )}
       {/* Title bar */}
       <div style={{
+        height: '56px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '0.65rem 1.25rem',
+        padding: '0 1.25rem',
         background: '#ffffff',
         borderBottom: '1px solid var(--neutral-border)',
         gap: '0.75rem',
         flexWrap: 'nowrap',
-        overflowX: 'auto'
+        overflowX: 'auto',
+        zIndex: 10,
+        boxSizing: 'border-box',
+        flexShrink: 0
       }}>
         {/* 1. LEFT: Identity & Status */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexShrink: 0 }}>
@@ -2548,7 +2553,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', flex: 1, overflow: 'hidden' }}>
         
         {/* CENTER CANVAS: A4/A5 Document Simulation */}
-        <div style={{ padding: '1.5rem', overflowY: 'auto', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', flex: 1, background: '#f8fafc' }}>
+        <div style={{ padding: '1.5rem', overflowY: 'auto', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', flex: 1, background: '#f1f5f9' }}>
           <div style={{
             width: '100%',
             maxWidth: pageSize === 'A5_LANDSCAPE' ? '920px' : '820px',
@@ -2561,7 +2566,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
             display: 'flex',
             flexDirection: 'column',
             gap: '0px',
-            position: 'relative'
+            position: 'relative',
+            boxSizing: 'border-box'
           }}>
             
 
