@@ -13,15 +13,17 @@ import ConfirmModal from './common/ConfirmModal';
 import PrintReport from './print/PrintReport';
 import {
   FileText,
+  Grid,
+  Table as TableIcon,
+  PenTool,
+  AlignLeft,
   Trash2,
   ArrowUp,
   ArrowDown,
   Printer,
   Save,
   CheckCircle,
-  X,
   RotateCcw,
-  Layers,
   Search
 } from 'lucide-react';
 
@@ -395,67 +397,206 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
     <div style={{ position: 'fixed', inset: 0, zIndex: 900, background: '#f8fafc', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       
       {/* ── Top Action Bar ── */}
-      <div style={{ height: '56px', background: '#ffffff', borderBottom: '1px solid var(--neutral-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 1.25rem', zIndex: 10 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--primary)', fontWeight: 700, fontSize: '0.95rem' }}>
-            <FileText size={18} />
-            <span>Report Builder</span>
-          </div>
-          <span style={{ color: 'var(--neutral-border)' }}>|</span>
-          <input
-            type="text"
-            value={template.reportId}
-            onChange={e => setTemplate({ ...template, reportId: e.target.value.toUpperCase() })}
-            placeholder="Mã báo cáo (e.g. RP-QC-F01)"
-            style={{ fontWeight: 600, fontSize: '0.85rem', padding: '0.2rem 0.5rem', width: '130px', border: '1px solid var(--neutral-border)', borderRadius: '4px' }}
-          />
-          <input
-            type="text"
-            value={template.reportTitle}
-            onChange={e => setTemplate({ ...template, reportTitle: e.target.value })}
-            placeholder="Tiêu đề báo cáo..."
-            style={{ fontWeight: 600, fontSize: '0.85rem', padding: '0.2rem 0.5rem', width: '280px', border: '1px solid var(--neutral-border)', borderRadius: '4px' }}
-          />
-          <span className="badge" style={{
-            background: template.status === 'ACTIVE' ? '#dcfce7' : '#fef9c3',
-            color: template.status === 'ACTIVE' ? '#15803d' : '#854d0e',
-            border: `1px solid ${template.status === 'ACTIVE' ? '#86efac' : '#fde047'}`,
-            fontSize: '0.7rem', padding: '0.15rem 0.5rem', borderRadius: '4px', fontWeight: 600
-          }}>
-            {template.version} {template.status}
-          </span>
+      <div style={{
+        height: '56px',
+        background: '#ffffff',
+        borderBottom: '1px solid var(--neutral-border)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '0 1.25rem',
+        zIndex: 10,
+        boxSizing: 'border-box',
+        flexShrink: 0
+      }}>
+        {/* 1. LEFT: Identity & Status */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexShrink: 0 }}>
+          <FileText size={18} style={{ color: 'var(--primary)' }} />
+          <h2 style={{ fontSize: '0.95rem', fontWeight: 700, margin: 0, whiteSpace: 'nowrap' }}>Report Builder</h2>
+          {template.status !== 'DRAFT' && (
+            <span className={`badge ${template.status === 'ACTIVE' ? 'badge-success' : 'badge-warning'}`} style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem' }}>
+              {template.status}
+            </span>
+          )}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        {/* 2. CENTER: Section Adders Toolbar */}
+        <div style={{ display: 'inline-flex', alignItems: 'center', background: '#f8fafc', padding: '2px', borderRadius: '6px', border: '1px solid #cbd5e1', gap: '2px', flexShrink: 0 }}>
+          <button 
+            type="button" 
+            onClick={() => handleAddBlock('TITLE')}
+            className="btn"
+            style={{ padding: '3px 8px', fontSize: '0.75rem', fontWeight: 500, background: 'transparent', border: 'none', color: '#334155', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
+            title="Thêm Tiêu đề báo cáo"
+          >
+            <FileText size={13} style={{ color: 'var(--primary)' }} />
+            <span>+ Title</span>
+          </button>
+
+          <button 
+            type="button" 
+            onClick={() => handleAddBlock('INFO_GRID')}
+            className="btn"
+            style={{ padding: '3px 8px', fontSize: '0.75rem', fontWeight: 500, background: 'transparent', border: 'none', color: '#334155', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
+            title="Thêm Lưới thông tin"
+          >
+            <Grid size={13} style={{ color: 'var(--primary)' }} />
+            <span>+ Info Grid</span>
+          </button>
+
+          <button 
+            type="button" 
+            onClick={() => handleAddBlock('TABLE')}
+            className="btn"
+            style={{ padding: '3px 8px', fontSize: '0.75rem', fontWeight: 500, background: 'transparent', border: 'none', color: '#334155', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
+            title="Thêm Bảng đánh giá tiêu chuẩn"
+          >
+            <TableIcon size={13} style={{ color: 'var(--primary)' }} />
+            <span>+ Table</span>
+          </button>
+
+          <button 
+            type="button" 
+            onClick={() => handleAddBlock('SIGN')}
+            className="btn"
+            style={{ padding: '3px 8px', fontSize: '0.75rem', fontWeight: 500, background: 'transparent', border: 'none', color: '#334155', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
+            title="Thêm Khối chữ ký"
+          >
+            <PenTool size={13} style={{ color: 'var(--primary)' }} />
+            <span>+ Sign</span>
+          </button>
+
+          <button 
+            type="button" 
+            onClick={() => handleAddBlock('SECTION_LABEL')}
+            className="btn"
+            style={{ padding: '3px 8px', fontSize: '0.75rem', fontWeight: 500, background: 'transparent', border: 'none', color: '#334155', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
+            title="Thêm Nhãn phân cách"
+          >
+            <AlignLeft size={13} style={{ color: 'var(--primary)' }} />
+            <span>+ Label</span>
+          </button>
+        </div>
+
+        {/* 3. RIGHT: Page Setup, Print, Save & Publish, Close */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+          <div style={{ 
+            display: 'inline-flex', 
+            alignItems: 'center', 
+            background: '#f1f5f9', 
+            padding: '2px', 
+            borderRadius: '6px', 
+            border: '1px solid #cbd5e1'
+          }}>
+            <span style={{
+              padding: '2px 8px',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              color: '#0f172a',
+              background: '#ffffff',
+              borderRadius: '4px',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.08)'
+            }}>
+              A4 Dọc
+            </span>
+          </div>
+
           <button
-            className="btn btn-secondary btn-sm"
+            type="button"
             onClick={() => setShowPrintPreview(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#334155',
+              padding: '3px 8px',
+              borderRadius: '4px',
+              fontSize: '0.78rem',
+              fontWeight: 500,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = '#f8fafc'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; }}
+            title="In thử hoặc xem trước báo cáo"
           >
-            <Printer size={14} /> In thử A4
+            <Printer size={13} />
+            <span>Print</span>
           </button>
-          <button
-            className="btn btn-secondary btn-sm"
-            onClick={handleSaveDraft}
+
+          <div style={{ borderLeft: '1px solid var(--neutral-border)', height: '16px', margin: '0 0.1rem' }} />
+
+          <button 
+            type="button"
             disabled={saving}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+            onClick={handleSaveDraft} 
+            style={{
+              background: '#0f172a',
+              border: '1px solid #0f172a',
+              color: '#ffffff',
+              padding: '3px 12px',
+              borderRadius: '4px',
+              fontSize: '0.78rem',
+              fontWeight: 600,
+              cursor: saving ? 'default' : 'pointer',
+              transition: 'all 0.2s',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = '#1e293b'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = '#0f172a'; }}
+            title="Lưu lại thay đổi bản nháp"
           >
-            <Save size={14} /> Lưu nháp
+            <Save size={13} />
+            <span>{saving ? 'Saving...' : 'Save'}</span>
           </button>
-          <button
-            className="btn btn-primary btn-sm"
-            onClick={() => setShowPublishModal(true)}
+
+          <button 
+            type="button"
             disabled={saving}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+            onClick={() => setShowPublishModal(true)} 
+            style={{
+              background: '#15803d',
+              border: '1px solid #15803d',
+              color: '#ffffff',
+              padding: '3px 12px',
+              borderRadius: '4px',
+              fontSize: '0.78rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = '#166534'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = '#15803d'; }}
+            title="Xuất bản phiên bản chính thức"
           >
-            <CheckCircle size={14} /> Xuất bản
+            <CheckCircle size={13} />
+            <span>Publish</span>
           </button>
-          <button
-            className="btn btn-secondary btn-sm"
-            onClick={onClose}
-            style={{ padding: '0.35rem 0.6rem' }}
+
+          <button 
+            type="button"
+            onClick={onClose} 
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#64748b',
+              padding: '3px 10px',
+              fontSize: '0.78rem',
+              fontWeight: 500,
+              cursor: 'pointer',
+              transition: 'color 0.2s'
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = '#0f172a'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = '#64748b'; }}
           >
-            <X size={16} />
+            Close
           </button>
         </div>
       </div>
@@ -574,30 +715,6 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
         {/* ── CENTER PANEL: Blank A4 Layout Canvas ── */}
         <div style={{ flex: 1, background: '#f1f5f9', overflowY: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           
-          {/* Block Adder Toolbar */}
-          <div style={{ width: '100%', maxWidth: '698px', background: '#ffffff', padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid var(--neutral-border)', marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-              <Layers size={14} /> Thêm khối báo cáo:
-            </span>
-            <div style={{ display: 'flex', gap: '0.35rem' }}>
-              <button className="btn btn-secondary btn-sm" onClick={() => handleAddBlock('TITLE')} style={{ fontSize: '0.72rem', padding: '0.2rem 0.5rem' }}>
-                TITLE
-              </button>
-              <button className="btn btn-secondary btn-sm" onClick={() => handleAddBlock('SECTION_LABEL')} style={{ fontSize: '0.72rem', padding: '0.2rem 0.5rem' }}>
-                SECTION
-              </button>
-              <button className="btn btn-secondary btn-sm" onClick={() => handleAddBlock('INFO_GRID')} style={{ fontSize: '0.72rem', padding: '0.2rem 0.5rem' }}>
-                INFO_GRID
-              </button>
-              <button className="btn btn-secondary btn-sm" onClick={() => handleAddBlock('TABLE')} style={{ fontSize: '0.72rem', padding: '0.2rem 0.5rem' }}>
-                TABLE
-              </button>
-              <button className="btn btn-secondary btn-sm" onClick={() => handleAddBlock('SIGN')} style={{ fontSize: '0.72rem', padding: '0.2rem 0.5rem' }}>
-                SIGN
-              </button>
-            </div>
-          </div>
-
           {/* A4 Sheet Container */}
           <div
             className="paper-card"
@@ -893,8 +1010,42 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                   </div>
                 </div>
               ) : (
-                <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', textAlign: 'center', marginTop: '2rem' }}>
-                  Nhấp chọn một khối trong trang canvas ở giữa để chỉnh sửa thuộc tính và quy tắc đánh giá.
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', borderBottom: '1px solid var(--neutral-border)', paddingBottom: '0.4rem' }}>
+                    THUỘC TÍNH BÁO CÁO (REPORT SETTINGS)
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Mã báo cáo (Report ID)</label>
+                    <input
+                      type="text"
+                      value={template.reportId}
+                      onChange={e => setTemplate({ ...template, reportId: e.target.value.toUpperCase() })}
+                      style={{ width: '100%', padding: '0.35rem 0.5rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', fontWeight: 600 }}
+                      placeholder="e.g. RP-QC-F01"
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Tiêu đề báo cáo (Report Title)</label>
+                    <input
+                      type="text"
+                      value={template.reportTitle}
+                      onChange={e => setTemplate({ ...template, reportTitle: e.target.value })}
+                      style={{ width: '100%', padding: '0.35rem 0.5rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', fontWeight: 600 }}
+                      placeholder="Tiêu đề mẫu báo cáo..."
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Biểu mẫu liên kết (Linked Form)</label>
+                    <input
+                      type="text"
+                      value={template.linkedFormId}
+                      disabled
+                      style={{ width: '100%', padding: '0.35rem 0.5rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', background: '#f8fafc', color: '#64748b' }}
+                    />
+                  </div>
+                  <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', marginTop: '0.5rem', fontStyle: 'italic' }}>
+                    💡 Bạn có thể nhấp chọn một khối cụ thể trong trang canvas ở giữa để cấu hình chi tiết hoặc quy tắc đánh giá riêng.
+                  </div>
                 </div>
               )}
             </div>

@@ -9,7 +9,7 @@
 | **Module Name** | Report Builder |
 | **Status** | Implemented & Verified |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-08-27) — Sections 1 to 4 checked against source code and verified with production build |
+| **Verified At Commit** | (2026-08-27) — Sections 1 to 4 checked against source code (Header & Top Toolbar Alignment with FormBuilder) |
 
 ### Quick File Index
 
@@ -90,5 +90,6 @@ The module operates on a linear 4-stage processing and rendering pipeline:
 
 | Date | Change |
 |---|---|
+| 2026-08-27 | **Header & Top Toolbar Alignment with FormBuilder:** (1) Restructured ReportBuilder Top Action Bar into 3 clusters: Left (Identity & Status), Center (Pill block adders toolbar: `+ Title`, `+ Info Grid`, `+ Table`, `+ Sign`, `+ Label`), Right (`[A4 Dọc]`, `[Print]`, `[Save]`, `[Publish]`, `Close`). (2) Removed in-canvas floating toolbar. (3) Moved Report ID and Title inputs to Right Inspector Properties tab. |
 | 2026-08-27 | **Report Builder Implementation Complete:** Built 3-panel `ReportBuilder.tsx` authoring canvas, `reportCompute.ts` hybrid engine, `FormReport.tsx` single-record viewer with empty-state fallback, `PrintReport.tsx` A4 portal, and wired 4th `[Reports]` Hub in `Dashboard.tsx` and `App.tsx`. Verified with `npm run build`. |
 | 2026-08-27 | **Finalized Architecture:** Locked in 5 core decisions: dedicated `report_templates` table, starter blocks (`TITLE`, `SECTION_LABEL`, `INFO_GRID`, `TABLE`, `SIGN`), blank page initialization, hybrid compute engine, and empty state fallback. |
