@@ -1254,10 +1254,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                             marginTop: index === 0 ? '0' : '24px',
                             marginBottom: '8px'
                           } : titleFmt === 'H2' ? {
-                            padding: '0.6rem 0.85rem',
-                            background: '#f1f5f9',
-                            borderLeft: '4px solid var(--primary)',
-                            borderRadius: '0px',
+                            padding: '0.15rem 0',
                             marginTop: index === 0 ? '0' : '24px',
                             marginBottom: '8px'
                           } : {
@@ -1267,20 +1264,25 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                           }}>
                             {titleFmt === 'H1' ? (
                               <h2 style={{
-                                display: 'inline-block',
                                 margin: '0 0 4px 0',
                                 fontSize: '1.15rem',
                                 fontWeight: 700,
                                 color: 'var(--text-primary)',
                                 textTransform: 'uppercase',
-                                letterSpacing: '0.5px',
-                                borderBottom: '2.5px solid var(--text-primary)',
-                                paddingBottom: '0.3rem'
+                                letterSpacing: '0.6px'
                               }}>
                                 {renderFormattedText(block.title)}
                               </h2>
                             ) : titleFmt === 'H2' ? (
-                              <h3 style={{ margin: '0 0 4px 0', fontSize: '1.0rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                              <h3 style={{
+                                margin: '0 0 6px 0',
+                                fontSize: '0.95rem',
+                                fontWeight: 700,
+                                color: 'var(--text-primary)',
+                                borderLeft: '3px solid var(--primary)',
+                                paddingLeft: '8px',
+                                background: 'transparent'
+                              }}>
                                 {renderFormattedText(block.title)}
                               </h3>
                             ) : (
@@ -1323,16 +1325,16 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                         }}>
                           {blockTitleFmt !== 'NONE' && block.type !== 'TITLE' && (
                             blockTitleFmt === 'H1' ? (
-                              <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-primary)', borderBottom: '2px solid var(--text-primary)', paddingBottom: '0.3rem' }}>
-                                {block.title}
+                              <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: 'var(--text-primary)' }}>
+                                {renderFormattedText(block.title)}
                               </h2>
                             ) : blockTitleFmt === 'H2' ? (
-                              <div style={{ padding: '0.6rem 0.8rem', background: '#f1f5f9', borderLeft: '4px solid var(--primary)', borderRadius: '4px', fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)' }}>
-                                {block.title}
+                              <div style={{ padding: '2px 0 2px 8px', background: 'transparent', borderLeft: '3px solid var(--primary)', fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)' }}>
+                                {renderFormattedText(block.title)}
                               </div>
                             ) : (
                               <div style={{ margin: 0, fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                                {block.title}
+                                {renderFormattedText(block.title)}
                               </div>
                             )
                           )}

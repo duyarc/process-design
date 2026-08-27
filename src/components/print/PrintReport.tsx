@@ -349,11 +349,11 @@ export const PrintReport: React.FC<PrintReportProps> = ({
                     return (
                       <div style={{ marginBottom: '6px' }}>
                         {titleFmt === 'H1' ? (
-                          <h2 style={{ margin: '0 0 4px 0', fontSize: 'var(--pw-font-h1)', fontWeight: 'var(--pw-weight-heavy)', textTransform: 'uppercase', borderBottom: '2px solid #000', paddingBottom: '2px' }}>
+                          <h2 style={{ margin: '0 0 4px 0', fontSize: 'var(--pw-font-h1)', fontWeight: 'var(--pw-weight-heavy)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
                             {renderFormattedText(block.title)}
                           </h2>
                         ) : titleFmt === 'H2' ? (
-                          <div style={{ padding: '4px 8px', background: '#f1f5f9', borderLeft: '4px solid #000', fontWeight: 'var(--pw-weight-heavy)', fontSize: 'var(--pw-font-h2)', textTransform: 'uppercase', marginBottom: '4px' }}>
+                          <div style={{ padding: '2px 0 2px 8px', background: 'transparent', borderLeft: '3px solid #000', fontWeight: 'var(--pw-weight-heavy)', fontSize: 'var(--pw-font-h2)', marginBottom: '4px' }}>
                             {renderFormattedText(block.title)}
                           </div>
                         ) : (
@@ -377,11 +377,11 @@ export const PrintReport: React.FC<PrintReportProps> = ({
                       <div style={{ marginBottom: '8px' }}>
                         {titleFmt !== 'NONE' && (
                           titleFmt === 'H1' ? (
-                            <h2 style={{ margin: '0 0 6px 0', fontSize: 'var(--pw-font-h1)', fontWeight: 'var(--pw-weight-heavy)', textTransform: 'uppercase', borderBottom: '2px solid #000', paddingBottom: '2px' }}>
+                            <h2 style={{ margin: '0 0 6px 0', fontSize: 'var(--pw-font-h1)', fontWeight: 'var(--pw-weight-heavy)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
                               {renderFormattedText(block.title)}
                             </h2>
                           ) : titleFmt === 'H2' ? (
-                            <div style={{ padding: '3px 6px', background: '#f1f5f9', borderLeft: '3px solid #000', fontWeight: 'var(--pw-weight-heavy)', fontSize: 'var(--pw-font-h2)', textTransform: 'uppercase', marginBottom: '6px' }}>
+                            <div style={{ padding: '2px 0 2px 8px', background: 'transparent', borderLeft: '3px solid #000', fontWeight: 'var(--pw-weight-heavy)', fontSize: 'var(--pw-font-h2)', marginBottom: '6px' }}>
                               {renderFormattedText(block.title)}
                             </div>
                           ) : (
@@ -428,11 +428,11 @@ export const PrintReport: React.FC<PrintReportProps> = ({
                       <div style={{ marginBottom: '8px' }}>
                         {titleFmt !== 'NONE' && (
                           titleFmt === 'H1' ? (
-                            <h2 style={{ margin: '0 0 6px 0', fontSize: 'var(--pw-font-h1)', fontWeight: 'var(--pw-weight-heavy)', textTransform: 'uppercase', borderBottom: '2px solid #000', paddingBottom: '2px' }}>
+                            <h2 style={{ margin: '0 0 6px 0', fontSize: 'var(--pw-font-h1)', fontWeight: 'var(--pw-weight-heavy)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
                               {renderFormattedText(block.title)}
                             </h2>
                           ) : titleFmt === 'H2' ? (
-                            <div style={{ padding: '3px 6px', background: '#f1f5f9', borderLeft: '3px solid #000', fontWeight: 'var(--pw-weight-heavy)', fontSize: 'var(--pw-font-h2)', textTransform: 'uppercase', marginBottom: '6px' }}>
+                            <div style={{ padding: '2px 0 2px 8px', background: 'transparent', borderLeft: '3px solid #000', fontWeight: 'var(--pw-weight-heavy)', fontSize: 'var(--pw-font-h2)', marginBottom: '6px' }}>
                               {renderFormattedText(block.title)}
                             </div>
                           ) : (

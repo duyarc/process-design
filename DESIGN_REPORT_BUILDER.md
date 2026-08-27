@@ -9,7 +9,7 @@
 | **Module Name** | Report Builder |
 | **Status** | Implemented & Verified |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-08-27) — Section 1 to 4 (Section Label Description Auto-Grow Mirror & Markdown Formatting Parity). |
+| **Verified At Commit** | (2026-08-27) — Section 1 to 4 (Executive Editorial Pair 1 H1-H2 Typography & Spacing Standardization across Canvas, Viewer, and Print). |
 
 ### Quick File Index
 
@@ -91,6 +91,7 @@ The module operates on a linear 4-stage processing and rendering pipeline:
 
 | Date | Change |
 |---|---|
+| 2026-08-27 | **Executive Editorial Pair 1 H1-H2 Typography & Spacing Standardization:** (1) Standardized **H1** in `ReportBuilder.tsx`, `FormReport.tsx`, and `PrintReport.tsx` to bold uppercase typography (`fontSize: var(--pw-font-h1)`, `fontWeight: 700`, `letterSpacing: 0.6px`, `border: 'none'`, `background: 'transparent'`), eliminating divisive horizontal underlines. (2) Standardized **H2** to use a sleek Left Accent Bar (`borderLeft: '3px solid var(--primary)'` / `3px solid #000`, `padding: '2px 0 2px 8px'`) with transparent background (`background: 'transparent'`), eliminating gray boxes for smooth visual flow. |
 | 2026-08-27 | **Section Label Description Auto-Grow Mirror & Markdown Formatting Parity:** (1) Upgraded Canvas `InCanvasTitleHeader` description in `ReportBuilder.tsx` to CSS Grid Auto-Grow Textarea Mirror, preventing multiline text clipping. (2) Added keyboard shortcuts `handleFormatKeyDown` (`Ctrl+B`, `Ctrl+I`, `Ctrl+U`) on Canvas description. (3) Added `[ B ] [ I ] [ U ]` format buttons and `sectionDescRef` to Right Inspector for `SECTION_LABEL`. (4) Synchronized `PrintReport.tsx` and `FormReport.tsx` to render markdown `renderFormattedText` with `whiteSpace: 'pre-wrap'` and `lineHeight: 1.5`. |
 | 2026-08-27 | **Section Label Parity with FormBuilder & In-Canvas Style Switcher:** (1) Standardized `SECTION_LABEL` creation default to `H1`. (2) Integrated `InCanvasTitleHeader` component into `ReportBuilder.tsx` Canvas for `SECTION_LABEL`, `INFO_GRID`, `TABLE`, and `SIGN` with WYSIWYG direct inline editable title/description inputs and quick-switch pill group `[ H1 | H2 | Body | None ]`. (3) Added `Description` textarea to Right Inspector for `SECTION_LABEL`. (4) Synchronized `PrintReport.tsx` and `FormReport.tsx` with full ISO typography and description rendering. |
 | 2026-08-27 | **Table Field Extraction Parity in PrintReport & FormReport:** Replaced naive `layoutBlocks.flatMap(b => b.fields)` with full `extractAllFormFields(formTemplate.layoutBlocks)` in `PrintReport.tsx` and `FormReport.tsx`. Fixed bug where bound fields originating from Likert/QA/Matrix table rows (such as `5C-Scorecard`) failed to resolve their human-readable `checkItem` questions and incorrectly fell back to raw technical field IDs (e.g., `btable178...acol_3`). |

@@ -399,13 +399,12 @@ function InCanvasTitleHeader({
               placeholder="NHẬP TIÊU ĐỀ PHÂN ĐOẠN (H1)..."
               style={{
                 width: '100%',
-                fontSize: '1.05rem',
+                fontSize: '1.1rem',
                 fontWeight: 700,
                 color: '#0f172a',
                 textTransform: 'uppercase',
-                letterSpacing: '0.5px',
+                letterSpacing: '0.6px',
                 border: 'none',
-                borderBottom: '2.5px solid #0f172a',
                 background: 'transparent',
                 outline: 'none',
                 padding: '0.15rem 0.2rem',
@@ -421,7 +420,7 @@ function InCanvasTitleHeader({
               }}
             />
           ) : titleFmt === 'H2' ? (
-            <div style={{ padding: '0.35rem 0.6rem', background: '#f1f5f9', borderLeft: '4px solid #0f172a', borderRadius: '0px' }}>
+            <div style={{ padding: '2px 0 2px 8px', background: 'transparent', borderLeft: '3px solid var(--primary)', borderRadius: '0px' }}>
               <input
                 type="text"
                 disabled={isLocked}
@@ -442,7 +441,7 @@ function InCanvasTitleHeader({
                   transition: 'all 0.15s ease'
                 }}
                 onFocus={(e) => {
-                  e.currentTarget.style.background = '#ffffff';
+                  e.currentTarget.style.background = '#f8fafc';
                 }}
                 onBlur={(e) => {
                   e.currentTarget.style.background = 'transparent';

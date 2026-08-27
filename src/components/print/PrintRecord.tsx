@@ -698,16 +698,16 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
           <div className="print-block">
             {titleFmt !== 'NONE' && (
               titleFmt === 'H1' ? (
-                <h2 style={{ display: 'inline-block', margin: '0 0 8px 0', fontSize: '1.05rem', fontWeight: 'var(--pw-weight-heavy)', textTransform: 'uppercase', color: '#000000', borderBottom: '2.5px solid #0d9488', paddingBottom: '3px' }}>
-                  {titleText}
+                <h2 style={{ margin: '0 0 8px 0', fontSize: '1.05rem', fontWeight: 'var(--pw-weight-heavy)', textTransform: 'uppercase', letterSpacing: '0.6px', color: '#000000' }}>
+                  {renderFormattedText(titleText)}
                 </h2>
               ) : titleFmt === 'H2' ? (
-                <div style={{ padding: '6px 10px', background: '#f1f5f9', borderLeft: '4px solid #0d9488', borderRadius: '0px', marginBottom: '8px', fontWeight: 'var(--pw-weight-heavy)', fontSize: '0.9rem', color: '#000000' }}>
-                  {titleText}
+                <div style={{ padding: '2px 0 2px 8px', background: 'transparent', borderLeft: '3px solid #0d9488', borderRadius: '0px', marginBottom: '8px', fontWeight: 'var(--pw-weight-heavy)', fontSize: '0.92rem', color: '#000000' }}>
+                  {renderFormattedText(titleText)}
                 </div>
               ) : (
                 <div style={{ fontSize: '0.85rem', fontWeight: 'var(--pw-weight-medium)', marginBottom: '8px', color: '#000000' }}>
-                  {titleText}
+                  {renderFormattedText(titleText)}
                 </div>
               )
             )}
@@ -896,16 +896,16 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
               const titleFmt = matchedBlock ? getEffectiveTitleFormat(matchedBlock) : 'BODY';
               return titleFmt !== 'NONE' && (
                 titleFmt === 'H1' ? (
-                  <h2 style={{ display: 'inline-block', margin: '0 0 8px 0', fontSize: '1.05rem', fontWeight: 'var(--pw-weight-heavy)', textTransform: 'uppercase', color: '#000000', borderBottom: '2.5px solid #0d9488', paddingBottom: '3px' }}>
-                    {titleText}
+                  <h2 style={{ margin: '0 0 8px 0', fontSize: '1.05rem', fontWeight: 'var(--pw-weight-heavy)', textTransform: 'uppercase', letterSpacing: '0.6px', color: '#000000' }}>
+                    {renderFormattedText(titleText)}
                   </h2>
                 ) : titleFmt === 'H2' ? (
-                  <div style={{ padding: '6px 10px', background: '#f1f5f9', borderLeft: '4px solid #0d9488', borderRadius: '0px', marginBottom: '8px', fontWeight: 'var(--pw-weight-heavy)', fontSize: '0.9rem', color: '#000000' }}>
-                    {titleText}
+                  <div style={{ padding: '2px 0 2px 8px', background: 'transparent', borderLeft: '3px solid #0d9488', borderRadius: '0px', marginBottom: '8px', fontWeight: 'var(--pw-weight-heavy)', fontSize: '0.92rem', color: '#000000' }}>
+                    {renderFormattedText(titleText)}
                   </div>
                 ) : (
                   <div style={{ fontSize: '0.85rem', fontWeight: 'var(--pw-weight-medium)', marginBottom: '8px', color: '#000000' }}>
-                    {titleText}
+                    {renderFormattedText(titleText)}
                   </div>
                 )
               );
@@ -997,16 +997,16 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
           <div key={block.id} className={`print-block${isSeamless ? ' print-block--seamless-table' : ''}`}>
             {titleFmt !== 'NONE' && (
               titleFmt === 'H1' ? (
-                <h2 style={{ display: 'inline-block', margin: '0 0 6px 0', fontSize: '1.05rem', fontWeight: 'var(--pw-weight-heavy)', textTransform: 'uppercase', color: '#000000', borderBottom: '2.5px solid #0d9488', paddingBottom: '3px' }}>
-                  {block.title || 'BẢNG THÔNG TIN'}
+                <h2 style={{ margin: '0 0 6px 0', fontSize: '1.05rem', fontWeight: 'var(--pw-weight-heavy)', textTransform: 'uppercase', letterSpacing: '0.6px', color: '#000000' }}>
+                  {renderFormattedText(block.title || 'BẢNG THÔNG TIN')}
                 </h2>
               ) : titleFmt === 'H2' ? (
-                <div style={{ padding: '6px 10px', background: '#f1f5f9', borderLeft: '4px solid #0d9488', borderRadius: '0px', marginBottom: '6px', fontWeight: 'var(--pw-weight-heavy)', fontSize: '0.9rem', color: '#000000' }}>
-                  {block.title || 'BẢNG THÔNG TIN'}
+                <div style={{ padding: '2px 0 2px 8px', background: 'transparent', borderLeft: '3px solid #0d9488', borderRadius: '0px', marginBottom: '6px', fontWeight: 'var(--pw-weight-heavy)', fontSize: '0.92rem', color: '#000000' }}>
+                  {renderFormattedText(block.title || 'BẢNG THÔNG TIN')}
                 </div>
               ) : (
                 <div style={{ fontSize: '0.85rem', fontWeight: 'var(--pw-weight-medium)', marginBottom: '6px', color: '#000000' }}>
-                  {block.title || 'BẢNG THÔNG TIN'}
+                  {renderFormattedText(block.title || 'BẢNG THÔNG TIN')}
                 </div>
               )
             )}
@@ -1431,15 +1431,12 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                 breakAfter: 'avoid'
               }}>
                 <h2 style={{
-                  display: 'inline-block',
                   margin: '0 0 4px 0',
                   fontSize: '1.1rem',
                   fontWeight: 'var(--pw-weight-heavy)',
                   color: '#000000',
                   textTransform: 'uppercase',
-                  letterSpacing: '0.5px',
-                  borderBottom: '2.5px solid #0d9488',
-                  paddingBottom: '3px'
+                  letterSpacing: '0.6px'
                 }}>
                   {renderFormattedText(block.title)}
                 </h2>
@@ -1451,9 +1448,9 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
               </div>
             ) : (
               <div style={{
-                padding: '8px 12px',
-                background: '#f1f5f9',
-                borderLeft: '4px solid #0d9488',
+                padding: '2px 0 2px 8px',
+                background: 'transparent',
+                borderLeft: '3px solid #0d9488',
                 borderRadius: '0px',
                 marginBottom: 'var(--pw-title-gap)',
                 pageBreakInside: 'avoid',
@@ -1461,7 +1458,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                 pageBreakAfter: 'avoid',
                 breakAfter: 'avoid'
               }}>
-                <h3 style={{ margin: '0 0 4px 0', fontSize: '0.95rem', fontWeight: 'var(--pw-weight-heavy)', color: '#1e293b' }}>
+                <h3 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 'var(--pw-weight-heavy)', color: '#000000' }}>
                   {renderFormattedText(block.title)}
                 </h3>
                 {block.description && (

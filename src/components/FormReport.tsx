@@ -247,11 +247,11 @@ export const FormReport: React.FC<FormReportProps> = ({
                 return (
                   <div style={{ marginBottom: '8px' }}>
                     {titleFmt === 'H1' ? (
-                      <h2 style={{ margin: '0 0 4px 0', fontSize: '1.05rem', fontWeight: 700, textTransform: 'uppercase', borderBottom: '2.5px solid #0f172a', paddingBottom: '3px', color: '#0f172a' }}>
+                      <h2 style={{ margin: '0 0 4px 0', fontSize: '1.1rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: '#0f172a' }}>
                         {renderFormattedText(block.title)}
                       </h2>
                     ) : titleFmt === 'H2' ? (
-                      <div style={{ padding: '0.4rem 0.6rem', background: '#f1f5f9', borderLeft: '4px solid var(--primary)', fontWeight: 700, fontSize: '0.9rem', color: '#0f172a', marginBottom: '4px' }}>
+                      <div style={{ padding: '2px 0 2px 8px', background: 'transparent', borderLeft: '3px solid var(--primary)', fontWeight: 700, fontSize: '0.92rem', color: '#0f172a', marginBottom: '4px' }}>
                         {renderFormattedText(block.title)}
                       </div>
                     ) : (
