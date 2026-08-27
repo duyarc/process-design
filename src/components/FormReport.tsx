@@ -8,6 +8,7 @@ import type {
 } from '../types';
 import { computeRecordReport } from '../utils/reportCompute';
 import { extractAllFormFields } from '../utils/tableFieldExtractor';
+import { renderFormattedText } from '../utils/textFormatter';
 import PrintReport from './print/PrintReport';
 import {
   FileText,
@@ -247,20 +248,20 @@ export const FormReport: React.FC<FormReportProps> = ({
                   <div style={{ marginBottom: '8px' }}>
                     {titleFmt === 'H1' ? (
                       <h2 style={{ margin: '0 0 4px 0', fontSize: '1.05rem', fontWeight: 700, textTransform: 'uppercase', borderBottom: '2.5px solid #0f172a', paddingBottom: '3px', color: '#0f172a' }}>
-                        {block.title}
+                        {renderFormattedText(block.title)}
                       </h2>
                     ) : titleFmt === 'H2' ? (
                       <div style={{ padding: '0.4rem 0.6rem', background: '#f1f5f9', borderLeft: '4px solid var(--primary)', fontWeight: 700, fontSize: '0.9rem', color: '#0f172a', marginBottom: '4px' }}>
-                        {block.title}
+                        {renderFormattedText(block.title)}
                       </div>
                     ) : (
                       <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
-                        {block.title}
+                        {renderFormattedText(block.title)}
                       </div>
                     )}
                     {block.description && (
-                      <p style={{ margin: '2px 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)', whiteSpace: 'pre-line' }}>
-                        {block.description}
+                      <p style={{ margin: '2px 0 0 0', fontSize: '0.82rem', color: 'var(--text-secondary)', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+                        {renderFormattedText(block.description)}
                       </p>
                     )}
                   </div>

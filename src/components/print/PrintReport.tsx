@@ -362,7 +362,7 @@ export const PrintReport: React.FC<PrintReportProps> = ({
                           </div>
                         )}
                         {block.description && (
-                          <p style={{ margin: '2px 0 0 0', fontSize: 'var(--pw-font-small)', color: '#475569', whiteSpace: 'pre-line' }}>
+                          <p style={{ margin: '2px 0 0 0', fontSize: 'var(--pw-font-small)', color: '#475569', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
                             {renderFormattedText(block.description)}
                           </p>
                         )}

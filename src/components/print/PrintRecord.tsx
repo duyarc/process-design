@@ -1441,11 +1441,11 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                   borderBottom: '2.5px solid #0d9488',
                   paddingBottom: '3px'
                 }}>
-                  {block.title}
+                  {renderFormattedText(block.title)}
                 </h2>
                 {block.description && (
-                  <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#333333', whiteSpace: 'pre-line' }}>
-                    {block.description}
+                  <p style={{ margin: '4px 0 0 0', fontSize: '0.82rem', color: '#333333', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+                    {renderFormattedText(block.description)}
                   </p>
                 )}
               </div>
@@ -1462,11 +1462,11 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                 breakAfter: 'avoid'
               }}>
                 <h3 style={{ margin: '0 0 4px 0', fontSize: '0.95rem', fontWeight: 'var(--pw-weight-heavy)', color: '#1e293b' }}>
-                  {block.title}
+                  {renderFormattedText(block.title)}
                 </h3>
                 {block.description && (
-                  <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#475569', whiteSpace: 'pre-line' }}>
-                    {block.description}
+                  <p style={{ margin: '4px 0 0 0', fontSize: '0.82rem', color: '#475569', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+                    {renderFormattedText(block.description)}
                   </p>
                 )}
               </div>

@@ -872,38 +872,65 @@ function InCanvasTitleHeader({
       </div>
 
       {block.type === 'SECTION_LABEL' && (
-        <textarea
-          rows={2}
-          disabled={isLocked}
-          value={block.description || ''}
-          onClick={onSelectBlock}
-          onChange={(e) => onUpdateDescription?.(e.target.value)}
-          placeholder="Gõ mô tả hoặc ghi chú hướng dẫn (tùy chọn)..."
-          style={{
-            width: '100%',
-            marginTop: '4px',
-            fontSize: '0.8rem',
-            color: '#475569',
-            border: '1px solid transparent',
-            borderRadius: '4px',
-            background: 'transparent',
-            outline: 'none',
-            padding: '0.2rem 0.35rem',
-            resize: 'vertical',
-            fontFamily: 'inherit',
-            lineHeight: 1.4,
-            cursor: isLocked ? 'default' : 'text',
-            transition: 'all 0.15s ease'
-          }}
-          onFocus={(e) => {
-            e.currentTarget.style.borderColor = 'var(--primary)';
-            e.currentTarget.style.background = '#ffffff';
-          }}
-          onBlur={(e) => {
-            e.currentTarget.style.borderColor = 'transparent';
-            e.currentTarget.style.background = 'transparent';
-          }}
-        />
+        <div style={{ display: 'grid', width: '100%', marginTop: '4px', position: 'relative' }}>
+          {/* CSS Grid Auto-Grow Textarea mirror span */}
+          <span
+            aria-hidden="true"
+            style={{
+              gridArea: '1 / 1 / 2 / 2',
+              visibility: 'hidden',
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+              fontSize: '0.8rem',
+              lineHeight: 1.5,
+              fontFamily: 'inherit',
+              padding: '0.2rem 0.35rem',
+              minHeight: '26px'
+            }}
+          >
+            {(block.description || '') + ' '}
+          </span>
+
+          {/* Overlay Textarea */}
+          <textarea
+            disabled={isLocked}
+            rows={1}
+            value={block.description || ''}
+            onClick={onSelectBlock}
+            onKeyDown={(e) => handleFormatKeyDown(e, block.description || '', (val) => onUpdateDescription?.(val))}
+            onChange={(e) => onUpdateDescription?.(e.target.value)}
+            placeholder="Gõ mô tả hoặc ghi chú hướng dẫn (hỗ trợ **in đậm**, *in nghiêng*, __gạch chân__)..."
+            style={{
+              gridArea: '1 / 1 / 2 / 2',
+              width: '100%',
+              height: '100%',
+              fontSize: '0.8rem',
+              color: '#475569',
+              border: '1px solid transparent',
+              borderRadius: '4px',
+              background: 'transparent',
+              outline: 'none',
+              padding: '0.2rem 0.35rem',
+              margin: 0,
+              resize: 'none',
+              overflow: 'hidden',
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+              fontFamily: 'inherit',
+              lineHeight: 1.5,
+              cursor: isLocked ? 'default' : 'text',
+              transition: 'all 0.15s ease'
+            }}
+            onFocus={(e) => {
+              e.currentTarget.style.borderColor = 'var(--primary)';
+              e.currentTarget.style.background = '#ffffff';
+            }}
+            onBlur={(e) => {
+              e.currentTarget.style.borderColor = 'transparent';
+              e.currentTarget.style.background = 'transparent';
+            }}
+          />
+        </div>
       )}
     </div>
   );
@@ -928,6 +955,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
   const [revisionHistory, setRevisionHistory] = useState<FormRevisionEntry[]>(initialData?.revisionHistory || []);
   const [loading, setLoading] = useState(false);
   const inspectorLabelRef = useRef<HTMLTextAreaElement>(null);
+  const sectionDescRef = useRef<HTMLTextAreaElement>(null);
   const [effectiveDate, setEffectiveDate] = useState(() => (initialData as any)?.effectiveDate || (initialData as any)?.effective_date || new Date().toISOString().split('T')[0]);
 
   // Track saved state via Snapshot comparison
@@ -5667,15 +5695,48 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                 )}
 
                 {activeBlock.type === 'SECTION_LABEL' && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', borderTop: '1px solid var(--neutral-border)', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
-                    <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Description</label>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', borderTop: '1px solid var(--neutral-border)', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.75rem' }}>Description</label>
+                      <div style={{ display: 'flex', gap: '4px' }}>
+                        <button
+                          type="button"
+                          title="In đậm (Ctrl+B)"
+                          disabled={isLocked}
+                          onClick={() => applyTextFormat(sectionDescRef.current, 'bold', activeBlock.description || '', (val) => handleUpdateBlockDescription(activeBlockId!, val))}
+                          style={{ width: '22px', height: '22px', border: '1px solid #cbd5e1', borderRadius: '3px', background: '#ffffff', fontWeight: 'bold', fontSize: '0.75rem', cursor: isLocked ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        >
+                          B
+                        </button>
+                        <button
+                          type="button"
+                          title="In nghiêng (Ctrl+I)"
+                          disabled={isLocked}
+                          onClick={() => applyTextFormat(sectionDescRef.current, 'italic', activeBlock.description || '', (val) => handleUpdateBlockDescription(activeBlockId!, val))}
+                          style={{ width: '22px', height: '22px', border: '1px solid #cbd5e1', borderRadius: '3px', background: '#ffffff', fontStyle: 'italic', fontSize: '0.75rem', cursor: isLocked ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        >
+                          I
+                        </button>
+                        <button
+                          type="button"
+                          title="Gạch chân (Ctrl+U)"
+                          disabled={isLocked}
+                          onClick={() => applyTextFormat(sectionDescRef.current, 'underline', activeBlock.description || '', (val) => handleUpdateBlockDescription(activeBlockId!, val))}
+                          style={{ width: '22px', height: '22px', border: '1px solid #cbd5e1', borderRadius: '3px', background: '#ffffff', textDecoration: 'underline', fontSize: '0.75rem', cursor: isLocked ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        >
+                          U
+                        </button>
+                      </div>
+                    </div>
                     <textarea
+                      ref={sectionDescRef}
+                      rows={4}
                       disabled={isLocked}
                       value={activeBlock.description || ''}
+                      onKeyDown={(e) => handleFormatKeyDown(e, activeBlock.description || '', (val) => handleUpdateBlockDescription(activeBlockId!, val))}
                       onChange={(e) => handleUpdateBlockDescription(activeBlockId!, e.target.value)}
-                      placeholder="Nhập mô tả..."
-                      rows={3}
-                      style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', fontSize: '0.85rem', resize: 'vertical' }}
+                      placeholder="Nhập mô tả hoặc hướng dẫn danh mục..."
+                      style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', fontSize: '0.8rem', resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.4 }}
                     />
                   </div>
                 )}

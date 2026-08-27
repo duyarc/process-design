@@ -1085,20 +1085,20 @@ function FormFillerInner({
                     borderBottom: '2.5px solid var(--text-primary)',
                     paddingBottom: '0.3rem'
                   }}>
-                    {block.title}
+                    {renderFormattedText(block.title)}
                   </h2>
                 ) : titleFmt === 'H2' ? (
                   <h3 style={{ margin: '0 0 4px 0', fontSize: '1.0rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                    {block.title}
+                    {renderFormattedText(block.title)}
                   </h3>
                 ) : (
                   <div style={{ margin: '0 0 4px 0', fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                    {block.title}
+                    {renderFormattedText(block.title)}
                   </div>
                 )}
                 {block.description && (
-                  <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: 'var(--text-secondary)', whiteSpace: 'pre-line' }}>
-                    {block.description}
+                  <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: 'var(--text-secondary)', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+                    {renderFormattedText(block.description)}
                   </p>
                 )}
               </div>

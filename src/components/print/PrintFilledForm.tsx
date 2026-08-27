@@ -296,21 +296,21 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                     if (titleFmt === 'H1') return (
                       <div style={{ padding: '0', marginBottom: 'var(--pw-title-gap)', pageBreakInside: 'avoid', breakInside: 'avoid', pageBreakAfter: 'avoid', breakAfter: 'avoid' }}>
                         <h2 style={{ display: 'inline-block', margin: '0 0 4px 0', fontSize: '1.1rem', fontWeight: 'var(--pw-weight-heavy)', color: '#000000', textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '2.5px solid #0d9488', paddingBottom: '3px' }}>
-                          {block.title}
+                          {renderFormattedText(block.title)}
                         </h2>
-                        {block.description && <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#333333', whiteSpace: 'pre-line' }}>{block.description}</p>}
+                        {block.description && <p style={{ margin: '4px 0 0 0', fontSize: '0.82rem', color: '#333333', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{renderFormattedText(block.description)}</p>}
                       </div>
                     );
                     if (titleFmt === 'H2') return (
                       <div style={{ padding: '8px 12px', background: '#f1f5f9', borderLeft: '4px solid #0d9488', marginBottom: 'var(--pw-title-gap)', pageBreakInside: 'avoid', breakInside: 'avoid', pageBreakAfter: 'avoid', breakAfter: 'avoid' }}>
-                        <h3 style={{ margin: '0 0 4px 0', fontSize: '0.95rem', fontWeight: 'var(--pw-weight-heavy)', color: '#1e293b' }}>{block.title}</h3>
-                        {block.description && <p style={{ margin: '4px 0 0 0', fontSize: '0.8rem', color: '#475569', whiteSpace: 'pre-line' }}>{block.description}</p>}
+                        <h3 style={{ margin: '0 0 4px 0', fontSize: '0.95rem', fontWeight: 'var(--pw-weight-heavy)', color: '#1e293b' }}>{renderFormattedText(block.title)}</h3>
+                        {block.description && <p style={{ margin: '4px 0 0 0', fontSize: '0.82rem', color: '#475569', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{renderFormattedText(block.description)}</p>}
                       </div>
                     );
                     return (
                       <div style={{ padding: '2px 0', marginBottom: 'var(--pw-title-gap)', pageBreakAfter: 'avoid', breakAfter: 'avoid' }}>
-                        <div style={{ fontSize: '0.85rem', fontWeight: 'var(--pw-weight-medium)', color: '#000000' }}>{block.title}</div>
-                        {block.description && <p style={{ margin: '2px 0 0 0', fontSize: '0.8rem', color: '#333333', whiteSpace: 'pre-line' }}>{block.description}</p>}
+                        <div style={{ fontSize: '0.85rem', fontWeight: 'var(--pw-weight-medium)', color: '#000000' }}>{renderFormattedText(block.title)}</div>
+                        {block.description && <p style={{ margin: '2px 0 0 0', fontSize: '0.82rem', color: '#333333', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{renderFormattedText(block.description)}</p>}
                       </div>
                     );
                   })()}

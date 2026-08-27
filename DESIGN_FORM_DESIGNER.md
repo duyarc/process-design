@@ -9,7 +9,7 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-08-27) — Section 2, 3, 4 (Section Label In-Canvas Direct Editing & In-Canvas Style Switcher H1/H2/Body/None). |
+| **Verified At Commit** | (2026-08-27) — Section 2, 3, 4, 5 (Section Label Auto-Grow Description Mirror & Markdown Parsing Parity with INFO_GRID Label). |
 
 > **⚠️ Architectural note:** FormBuilder has no awareness of which process it belongs to. The `formName` prop is always identical to `formId`. See Section 6.1 and the Technical Debt table.
 
@@ -489,5 +489,6 @@ full diff of any entry below.
 | 2026-08-27 | **Default Option isPass Standardization:** Changed initial `isPass` value from `false` to `true` when clicking `+ Thêm lựa chọn` across Radio, Checkbox, Table columns, and Subtables in `FormBuilder.tsx`, preventing regular classification fields from being mistakenly flagged as quality inspection defects. |
 | 2026-08-27 | **Field Properties Inspector Modernization:** (1) Renamed `Field ID (Mã trường)` → `ID` with `✨ Tự động` button. (2) Renamed `Label / Check Item` → `Label`. (3) Renamed `Field Type` → `Type` and combined `Type` label and `FieldTypeDropdown` into a single-line horizontal flex row (`justifyContent: 'space-between'`), optimizing vertical space and inspection density. |
 | 2026-08-27 | **Section Label & Section Titles In-Canvas Direct Editing & Style Switcher Engine:** (1) Standardized `SECTION_LABEL` creation default to `H1` (and `formUtils.ts` fallback to `H1`). (2) Created `InCanvasTitleHeader` component with direct inline editable `<input>` (title) and `<textarea>` (description). (3) Integrated quick-switch pill group `[ H1 | H2 | Body | None ]` directly on Canvas with 1-touch formatting and two-way sync with Right Inspector. (4) Uniformly applied across `SECTION_LABEL`, `INFO_GRID`, `TABLE`, `MATRIX_TABLE`, and `SIGN`. |
+| 2026-08-27 | **Section Label Auto-Grow Description Mirror & Markdown Parsing Parity with INFO_GRID:** (1) Upgraded Canvas `InCanvasTitleHeader` description from fixed `rows={2}` to CSS Grid Auto-Grow Textarea Mirror (`<span>` mirror + `<textarea>` overlay), preventing multiline clipping/scrolling. (2) Added keyboard shortcuts `handleFormatKeyDown` (`Ctrl+B`, `Ctrl+I`, `Ctrl+U`) on Canvas description. (3) Added `[ B ] [ I ] [ U ]` format buttons and `sectionDescRef` to Right Inspector for `SECTION_LABEL`. (4) Integrated `renderFormattedText` with `whiteSpace: 'pre-wrap'` and `lineHeight: 1.5` for `SECTION_LABEL` across `PrintBlankForm.tsx`, `PrintFilledForm.tsx`, `PrintRecord.tsx`, `FormFiller.tsx`, and `ProcessReader.tsx`. |
 
 
