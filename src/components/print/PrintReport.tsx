@@ -10,6 +10,7 @@ import { formatFormVersion } from '../../types';
 import { computeRecordReport } from '../../utils/reportCompute';
 import { getInfoGridTemplateColumns, to5SFileName } from '../../utils/formUtils';
 import { renderFormattedText } from '../../utils/textFormatter';
+import { extractAllFormFields } from '../../utils/tableFieldExtractor';
 import { exportFillablePdfFromDOM } from '../../utils/pdfFormExporter';
 import { FileText, Printer } from 'lucide-react';
 
@@ -39,7 +40,7 @@ export const PrintReport: React.FC<PrintReportProps> = ({
   const isA5 = pageSize === 'A5_LANDSCAPE';
 
   const computed = computeRecordReport(submission, formTemplate, template);
-  const allFormFields: FormFieldISO[] = (formTemplate.layoutBlocks || []).flatMap(b => b.fields || []);
+  const allFormFields: FormFieldISO[] = extractAllFormFields(formTemplate?.layoutBlocks || []);
 
   const titleBlock = template.layoutBlocks.find(b => b.type === 'TITLE');
   const titleBlockLogo = titleBlock?.logo;

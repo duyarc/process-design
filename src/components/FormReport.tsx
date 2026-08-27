@@ -7,6 +7,7 @@ import type {
   FormFieldISO
 } from '../types';
 import { computeRecordReport } from '../utils/reportCompute';
+import { extractAllFormFields } from '../utils/tableFieldExtractor';
 import PrintReport from './print/PrintReport';
 import {
   FileText,
@@ -136,7 +137,7 @@ export const FormReport: React.FC<FormReportProps> = ({
   }
 
   // ─── Active Report Presentation View ───
-  const allFormFields: FormFieldISO[] = (formTemplate.layoutBlocks || []).flatMap(b => b.fields || []);
+  const allFormFields: FormFieldISO[] = extractAllFormFields(formTemplate?.layoutBlocks || []);
 
   const getFieldValue = (fid: string): string => {
     if (!submission?.formData) return '—';
