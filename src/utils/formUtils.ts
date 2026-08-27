@@ -359,16 +359,27 @@ export function groupBlocksIntoSections(layoutBlocks: LayoutBlockISO[]): FormSec
     const isSectionHeader = block.type === 'SECTION_LABEL' || (idx > 0 && block.titleFormat === 'H1' && block.title);
 
     if (isSectionHeader) {
-      sectionCounter++;
-      currentSection = {
-        id: block.id || `section_${sectionCounter}`,
-        index: sectionCounter - 1,
-        title: block.title || `Phần ${sectionCounter}`,
-        description: block.description,
-        titleFormat: block.titleFormat || 'H1',
-        blocks: [block]
-      };
-      sections.push(currentSection);
+      if (currentSection && currentSection.id === 'section_overview' && currentSection.blocks.every(b => b.type === 'TITLE' || !b.fields || b.fields.length === 0)) {
+        // Merge leading TITLE blocks into this first real section
+        const leadingBlocks = currentSection.blocks;
+        currentSection.id = block.id || `section_1`;
+        currentSection.title = block.title || `Phần 1`;
+        currentSection.description = block.description;
+        currentSection.titleFormat = block.titleFormat || 'H1';
+        currentSection.blocks = [...leadingBlocks, block];
+        sectionCounter = 1;
+      } else {
+        sectionCounter++;
+        currentSection = {
+          id: block.id || `section_${sectionCounter}`,
+          index: sectionCounter - 1,
+          title: block.title || `Phần ${sectionCounter}`,
+          description: block.description,
+          titleFormat: block.titleFormat || 'H1',
+          blocks: [block]
+        };
+        sections.push(currentSection);
+      }
     } else {
       if (!currentSection) {
         sectionCounter++;

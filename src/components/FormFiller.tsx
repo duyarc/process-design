@@ -64,14 +64,11 @@ import {
   type FormSectionGroup
 } from '../utils/formUtils';
 import { renderFormattedText } from '../utils/textFormatter';
-import PrintBlankForm from './print/PrintBlankForm';
 import PrintFilledForm from './print/PrintFilledForm';
 import { 
   ArrowLeft, 
   ArrowRight,
   CheckCircle2, 
-  Circle,
-  CircleDot,
   ChevronDown,
   X, 
   Camera, 
@@ -81,7 +78,6 @@ import {
   Trash2,
   Printer,
   Star,
-  FileText,
   Globe,
   Lock,
   Copy
@@ -201,8 +197,6 @@ function FormFillerInner({
     }
   }, [localToast]);
 
-  const [showPrintBlank, setShowPrintBlank] = useState(false);
-  const [autoExportPdf, setAutoExportPdf] = useState(false);
   const [printCurrentSubmission, setPrintCurrentSubmission] = useState<Submission | null>(null);
 
   // Smart Public Link State
@@ -879,21 +873,6 @@ function FormFillerInner({
       setSubmitting(false);
     }
   };
-
-  // Print blank form overlay
-  if (showPrintBlank && formTemplate) {
-    return (
-      <PrintBlankForm
-        template={formTemplate}
-        autoExportPdf={autoExportPdf}
-        exportMode={autoExportPdf}
-        onClose={() => {
-          setShowPrintBlank(false);
-          setAutoExportPdf(false);
-        }}
-      />
-    );
-  }
 
   // Print draft current filled form overlay
   if (printCurrentSubmission && formTemplate) {
@@ -2437,7 +2416,7 @@ function FormFillerInner({
       )}
 
       {/* Standalone Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
         <div>
           {!isPublicGuestMode && (
             <button className="btn btn-secondary btn-sm" onClick={onBack} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
@@ -2446,30 +2425,57 @@ function FormFillerInner({
           )}
         </div>
 
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-          <button 
-            className="btn btn-secondary btn-sm" 
-            onClick={() => {
-              setAutoExportPdf(true);
-              setShowPrintBlank(true);
-            }}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.35rem 0.75rem' }}
-            title="Tải biểu mẫu dạng Fillable PDF tương tác"
-          >
-            <FileText size={13} />
-            <span>PDF</span>
-          </button>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          {/* Focus Mode Switch Toggle */}
+          {sections.length > 1 && (
+            <div
+              onClick={() => setViewMode(prev => prev === 'focus' ? 'all' : 'focus')}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                cursor: 'pointer',
+                userSelect: 'none',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                color: viewMode === 'focus' ? 'var(--primary)' : 'var(--text-secondary)',
+                background: '#ffffff',
+                border: '1px solid var(--neutral-border)',
+                borderRadius: '6px',
+                padding: '0.35rem 0.65rem'
+              }}
+              title={viewMode === 'focus' ? 'Chế độ Focus từng phân đoạn (Đang Bật)' : 'Chế độ xem toàn bộ (Đang Tắt)'}
+            >
+              <span>🎯 Focus mode</span>
+              <div
+                style={{
+                  width: '32px',
+                  height: '18px',
+                  borderRadius: '9999px',
+                  background: viewMode === 'focus' ? 'var(--primary)' : '#cbd5e1',
+                  position: 'relative',
+                  transition: 'background 0.2s ease',
+                  cursor: 'pointer'
+                }}
+              >
+                <div
+                  style={{
+                    width: '14px',
+                    height: '14px',
+                    borderRadius: '50%',
+                    background: '#ffffff',
+                    position: 'absolute',
+                    top: '2px',
+                    left: viewMode === 'focus' ? '16px' : '2px',
+                    transition: 'left 0.2s ease',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.2)'
+                  }}
+                />
+              </div>
+            </div>
+          )}
 
-          <button 
-            className="btn btn-secondary btn-sm" 
-            onClick={() => setShowPrintBlank(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.35rem 0.75rem' }}
-            title="In form trắng A4 để ghi tay"
-          >
-            <Printer size={13} />
-            <span>In form trắng</span>
-          </button>
-
+          {/* In bản khai */}
           <button 
             className="btn btn-secondary btn-sm" 
             onClick={() => {
@@ -2564,130 +2570,6 @@ function FormFillerInner({
           )}
         </div>
       </div>
-
-
-            {/* ── STICKY SECTION STEPPER TRACKER & MODE SWITCHER ── */}
-            {sections.length > 1 && (
-              <div style={{
-                position: 'sticky',
-                top: '12px',
-                zIndex: 90,
-                background: 'rgba(255, 255, 255, 0.94)',
-                backdropFilter: 'blur(12px)',
-                borderRadius: '10px',
-                padding: '0.6rem 1rem',
-                marginBottom: '1rem',
-                border: '1px solid var(--neutral-border)',
-                boxShadow: '0 4px 16px rgba(0, 0, 0, 0.04)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: '1rem',
-                overflowX: 'auto'
-              }}>
-                {/* Stepper Pills Container */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flex: 1, overflowX: 'auto', minWidth: 0 }}>
-                  {sections.map((sec, sIdx) => {
-                    const prog = computeSectionProgress(sec, formValues, tableRowsMap, signValues);
-                    const isActive = sIdx === activeSectionIndex;
-                    return (
-                      <button
-                        key={sec.id}
-                        type="button"
-                        onClick={() => {
-                          setActiveSectionIndex(sIdx);
-                          if (viewMode === 'all') {
-                            const el = document.getElementById(`form-section-${sec.id}`);
-                            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                          }
-                        }}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '0.35rem',
-                          padding: '0.35rem 0.65rem',
-                          borderRadius: '6px',
-                          border: isActive ? '1.5px solid var(--primary)' : '1px solid var(--neutral-border)',
-                          background: isActive ? 'rgba(13, 148, 136, 0.08)' : prog.isComplete ? '#f0fdf4' : '#ffffff',
-                          color: isActive ? 'var(--primary)' : prog.isComplete ? '#15803d' : 'var(--text-secondary)',
-                          fontSize: '0.8rem',
-                          fontWeight: isActive ? 700 : 500,
-                          cursor: 'pointer',
-                          whiteSpace: 'nowrap',
-                          transition: 'all 0.15s ease',
-                          flexShrink: 0
-                        }}
-                      >
-                        {prog.isComplete ? (
-                          <CheckCircle2 size={13} style={{ color: '#16a34a' }} />
-                        ) : isActive ? (
-                          <CircleDot size={13} style={{ color: 'var(--primary)' }} />
-                        ) : (
-                          <Circle size={13} style={{ color: '#94a3b8' }} />
-                        )}
-                        <span>{sec.title}</span>
-                        {prog.total > 0 && (
-                          <span style={{
-                            fontSize: '0.72rem',
-                            padding: '1px 5px',
-                            borderRadius: '4px',
-                            background: isActive ? 'var(--primary)' : prog.isComplete ? '#bbf7d0' : '#f1f5f9',
-                            color: isActive ? '#ffffff' : prog.isComplete ? '#166534' : '#64748b',
-                            fontWeight: 600
-                          }}>
-                            {prog.completed}/{prog.total}
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* View Mode Toggle Pill */}
-                <div style={{
-                  display: 'inline-flex',
-                  borderRadius: '6px',
-                  border: '1px solid var(--neutral-border)',
-                  background: '#f8fafc',
-                  padding: '2px',
-                  fontSize: '0.75rem',
-                  flexShrink: 0
-                }}>
-                  <button
-                    type="button"
-                    onClick={() => setViewMode('focus')}
-                    style={{
-                      padding: '0.25rem 0.6rem',
-                      borderRadius: '4px',
-                      border: 'none',
-                      background: viewMode === 'focus' ? '#ffffff' : 'transparent',
-                      color: viewMode === 'focus' ? 'var(--primary)' : 'var(--text-secondary)',
-                      fontWeight: viewMode === 'focus' ? 700 : 500,
-                      boxShadow: viewMode === 'focus' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    📑 Từng phần
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setViewMode('all')}
-                    style={{
-                      padding: '0.25rem 0.6rem',
-                      borderRadius: '4px',
-                      border: 'none',
-                      background: viewMode === 'all' ? '#ffffff' : 'transparent',
-                      color: viewMode === 'all' ? 'var(--primary)' : 'var(--text-secondary)',
-                      fontWeight: viewMode === 'all' ? 700 : 500,
-                      boxShadow: viewMode === 'all' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    📄 Toàn bộ
-                  </button>
-                </div>
-              </div>
-            )}
 
             {/* Main Form Paper Card */}
             <fieldset disabled={readOnly} style={{ border: 'none', padding: 0, margin: 0, minWidth: 0 }}>
