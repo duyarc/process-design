@@ -2102,6 +2102,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
         formTitle,
         version: newActiveVersion,
         status: 'ACTIVE',
+        pageSize,
+        isPublic,
+        defaultFocusMode,
         layoutBlocks,
         revisionHistory: updatedHistory
       });
@@ -2368,6 +2371,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
         formTitle,
         version,
         status,
+        pageSize,
+        isPublic,
+        defaultFocusMode,
         layoutBlocks,
         revisionHistory
       });

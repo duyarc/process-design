@@ -197,17 +197,24 @@ function FormFillerInner({
   // Smart Public Link State
   const rawFormTemplate = (process?.workflowFormsData?.[formName] || null) as FormTemplateISO | null;
 
-  const [isPublic] = useState<boolean>(() => {
+  const isPublic = useMemo(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('mode') === 'public') return true;
-    return (rawFormTemplate as any)?.isPublic ?? (rawFormTemplate as any)?.is_public ?? false;
-  });
+    return rawFormTemplate?.isPublic ?? (rawFormTemplate as any)?.is_public ?? false;
+  }, [rawFormTemplate]);
 
   // ── Section Grouping & Focus / Accordion Mode ──
   const [activeSectionIndex, setActiveSectionIndex] = useState<number>(0);
-  const [viewMode, setViewMode] = useState<'focus' | 'all'>(() => {
-    return (rawFormTemplate as any)?.defaultFocusMode === true || (rawFormTemplate as any)?.default_focus_mode === true ? 'focus' : 'all';
-  });
+  const [viewMode, setViewMode] = useState<'focus' | 'all'>('all');
+  const hasInitializedViewMode = useRef(false);
+
+  useEffect(() => {
+    if (rawFormTemplate && !hasInitializedViewMode.current) {
+      hasInitializedViewMode.current = true;
+      const isDefaultFocus = rawFormTemplate.defaultFocusMode === true || (rawFormTemplate as any)?.default_focus_mode === true;
+      setViewMode(isDefaultFocus ? 'focus' : 'all');
+    }
+  }, [rawFormTemplate]);
 
   const sections: FormSectionGroup[] = useMemo(() => {
     if (!rawFormTemplate?.layoutBlocks) return [];
@@ -435,6 +442,9 @@ function FormFillerInner({
               formTitle: formRecord.form_title || formRecord.form_name || formName,
               version: formRecord.version || 'v0.1',
               status: formRecord.status || 'DRAFT',
+              pageSize: formRecord.page_size || formRecord.pageSize || 'A4',
+              isPublic: formRecord.is_public ?? formRecord.isPublic ?? false,
+              defaultFocusMode: formRecord.default_focus_mode ?? formRecord.defaultFocusMode ?? false,
               layoutBlocks
             },
             ...(formRecord.form_name && formRecord.form_name !== formName ? {
@@ -443,6 +453,9 @@ function FormFillerInner({
                 formTitle: formRecord.form_title || formRecord.form_name,
                 version: formRecord.version || 'v0.1',
                 status: formRecord.status || 'DRAFT',
+                pageSize: formRecord.page_size || formRecord.pageSize || 'A4',
+                isPublic: formRecord.is_public ?? formRecord.isPublic ?? false,
+                defaultFocusMode: formRecord.default_focus_mode ?? formRecord.defaultFocusMode ?? false,
                 layoutBlocks
               }
             } : {})
@@ -464,6 +477,9 @@ function FormFillerInner({
               formTitle: formRecord.form_title || formRecord.form_name || formName,
               version: formRecord.version || 'v0.1',
               status: formRecord.status || 'DRAFT',
+              pageSize: formRecord.page_size || formRecord.pageSize || 'A4',
+              isPublic: formRecord.is_public ?? formRecord.isPublic ?? false,
+              defaultFocusMode: formRecord.default_focus_mode ?? formRecord.defaultFocusMode ?? false,
               layoutBlocks
             },
             ...(formRecord.form_name && formRecord.form_name !== formName ? {
@@ -472,6 +488,9 @@ function FormFillerInner({
                 formTitle: formRecord.form_title || formRecord.form_name,
                 version: formRecord.version || 'v0.1',
                 status: formRecord.status || 'DRAFT',
+                pageSize: formRecord.page_size || formRecord.pageSize || 'A4',
+                isPublic: formRecord.is_public ?? formRecord.isPublic ?? false,
+                defaultFocusMode: formRecord.default_focus_mode ?? formRecord.defaultFocusMode ?? false,
                 layoutBlocks
               }
             } : {})

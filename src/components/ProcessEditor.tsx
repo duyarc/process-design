@@ -1178,7 +1178,10 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
           formId: matchedForm?.form_id || name,
           formTitle: matchedForm?.form_title || matchedForm?.form_name || name,
           version: matchedForm?.version || 'v0.1',
-          status: matchedForm?.status || 'DRAFT'
+          status: matchedForm?.status || 'DRAFT',
+          pageSize: matchedForm?.page_size || 'A4',
+          isPublic: matchedForm?.is_public ?? false,
+          defaultFocusMode: matchedForm?.default_focus_mode ?? false
         };
       }
     });
@@ -2934,6 +2937,9 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                 formTitle: live.form_title || live.form_name,
                 version: live.version,
                 status: live.status as 'DRAFT' | 'ACTIVE' | 'ARCHIVED',
+                pageSize: live.page_size || 'A4',
+                isPublic: live.is_public ?? false,
+                defaultFocusMode: live.default_focus_mode ?? false,
                 layoutBlocks: typeof live.layout_blocks === 'string'
                   ? JSON.parse(live.layout_blocks)
                   : (live.layout_blocks || []),

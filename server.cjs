@@ -716,6 +716,14 @@ app.get('/api/forms/*formId/history', async (req, res) => {
   }
 });
 
+const toSlug = (text) => {
+  if (!text) return '';
+  return text.toString().toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+};
+
 // GET /api/forms/resolve/*identifier - Resolve a form by slug, form_id, or form_name across standalone forms and processes
 app.get('/api/forms/resolve/*identifier', async (req, res) => {
   try {
@@ -724,6 +732,7 @@ app.get('/api/forms/resolve/*identifier', async (req, res) => {
     if (!identifier) {
       return res.status(400).json({ error: 'Missing identifier' });
     }
+    const targetSlug = toSlug(identifier);
 
     if (dbPool) {
       // 1. Check process_forms table first to get real processId if linked
@@ -731,18 +740,21 @@ app.get('/api/forms/resolve/*identifier', async (req, res) => {
         SELECT pf.process_id, pf.form_name, pf.form_id, pf.form_version, p.title as process_title
         FROM process_forms pf
         JOIN processes p ON pf.process_id = p.id
-        WHERE LOWER(pf.form_name) = LOWER($1) OR LOWER(pf.form_id) = LOWER($1)
-        ORDER BY pf.updated_at DESC LIMIT 1
-      `, [identifier]);
+        ORDER BY pf.updated_at DESC
+      `);
 
-      if (pfRes.rows.length > 0) {
-        const pf = pfRes.rows[0];
+      const matchedPf = pfRes.rows.find(pf => 
+        (pf.form_name && (pf.form_name.toLowerCase() === identifier.toLowerCase() || toSlug(pf.form_name) === targetSlug)) ||
+        (pf.form_id && (pf.form_id.toLowerCase() === identifier.toLowerCase() || toSlug(pf.form_id) === targetSlug))
+      );
+
+      if (matchedPf) {
         return res.json({
           exists: true,
-          processId: pf.process_id,
-          formName: pf.form_name || pf.form_id,
-          formTitle: pf.form_name,
-          version: pf.form_version || 'v0.1',
+          processId: matchedPf.process_id,
+          formName: matchedPf.form_name || matchedPf.form_id,
+          formTitle: matchedPf.form_name,
+          version: matchedPf.form_version || 'v0.1',
           status: 'ACTIVE',
           isPublic: true
         });
@@ -757,8 +769,9 @@ app.get('/api/forms/resolve/*identifier', async (req, res) => {
         for (const [fKey, fData] of Object.entries(wfForms)) {
           if (
             fKey.toLowerCase() === identifier.toLowerCase() ||
-            (fData.formId && fData.formId.toLowerCase() === identifier.toLowerCase()) ||
-            (fData.formTitle && fData.formTitle.toLowerCase() === identifier.toLowerCase())
+            toSlug(fKey) === targetSlug ||
+            (fData.formId && (fData.formId.toLowerCase() === identifier.toLowerCase() || toSlug(fData.formId) === targetSlug)) ||
+            (fData.formTitle && (fData.formTitle.toLowerCase() === identifier.toLowerCase() || toSlug(fData.formTitle) === targetSlug))
           ) {
             return res.json({
               exists: true,
@@ -774,19 +787,21 @@ app.get('/api/forms/resolve/*identifier', async (req, res) => {
       }
 
       // 3. Check standalone forms table
-      const formRes = await dbPool.query(
-        'SELECT * FROM forms WHERE LOWER(form_id) = LOWER($1) OR LOWER(form_name) = LOWER($1) OR LOWER(form_title) = LOWER($1) ORDER BY updated_at DESC LIMIT 1',
-        [identifier]
+      const formRes = await dbPool.query('SELECT * FROM forms ORDER BY updated_at DESC');
+      const matchedForm = formRes.rows.find(formRecord =>
+        (formRecord.form_id && (formRecord.form_id.toLowerCase() === identifier.toLowerCase() || toSlug(formRecord.form_id) === targetSlug)) ||
+        (formRecord.form_name && (formRecord.form_name.toLowerCase() === identifier.toLowerCase() || toSlug(formRecord.form_name) === targetSlug)) ||
+        (formRecord.form_title && (formRecord.form_title.toLowerCase() === identifier.toLowerCase() || toSlug(formRecord.form_title) === targetSlug))
       );
-      if (formRes.rows.length > 0) {
-        const formRecord = formRes.rows[0];
+
+      if (matchedForm) {
         return res.json({
           exists: true,
           processId: 'unlinked',
-          formName: formRecord.form_name || formRecord.form_id,
-          formTitle: formRecord.form_title || formRecord.form_name || formRecord.form_id,
-          version: formRecord.version || 'v0.1',
-          status: formRecord.status || 'DRAFT',
+          formName: matchedForm.form_name || matchedForm.form_id,
+          formTitle: matchedForm.form_title || matchedForm.form_name || matchedForm.form_id,
+          version: matchedForm.version || 'v0.1',
+          status: matchedForm.status || 'DRAFT',
           isPublic: true
         });
       }
@@ -796,9 +811,9 @@ app.get('/api/forms/resolve/*identifier', async (req, res) => {
       // Offline fallback
       const forms = readFormsOffline();
       const form = forms.find(f => 
-        (f.form_id && f.form_id.toLowerCase() === identifier.toLowerCase()) ||
-        (f.form_name && f.form_name.toLowerCase() === identifier.toLowerCase()) ||
-        (f.form_title && f.form_title.toLowerCase() === identifier.toLowerCase())
+        (f.form_id && (f.form_id.toLowerCase() === identifier.toLowerCase() || toSlug(f.form_id) === targetSlug)) ||
+        (f.form_name && (f.form_name.toLowerCase() === identifier.toLowerCase() || toSlug(f.form_name) === targetSlug)) ||
+        (f.form_title && (f.form_title.toLowerCase() === identifier.toLowerCase() || toSlug(f.form_title) === targetSlug))
       );
       if (form) {
         return res.json({
