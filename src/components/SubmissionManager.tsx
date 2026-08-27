@@ -127,8 +127,16 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
     if (formId) {
       const target = formId.toLowerCase();
       const linkedProc = processes.find(proc => {
-        if (!proc.workflowFormsData) return false;
-        return Object.entries(proc.workflowFormsData).some(([fName, fData]) => {
+        if (proc.id === 'unlinked') return false; // skip the system placeholder process
+        // Defensive: workflowFormsData may arrive stringified
+        let wfd = proc.workflowFormsData;
+        if (typeof wfd === 'string') {
+          try { wfd = JSON.parse(wfd); } catch { return false; }
+        }
+        if (!wfd) return false;
+        return Object.entries(wfd).some(([fName, fDataRaw]) => {
+          const fData = fDataRaw as { formId?: string; formTitle?: string };
+          // Match by form_name key, fData.formId, or fData.formTitle
           return fName.toLowerCase() === target || 
                  (fData.formId && fData.formId.toLowerCase() === target) ||
                  (fData.formTitle && fData.formTitle.toLowerCase() === target);

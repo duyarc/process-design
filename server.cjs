@@ -2314,7 +2314,12 @@ app.get('/api/submissions', async (req, res) => {
     const result = await dbPool.query(`
       SELECT 
         s.id,
-        COALESCE(pf.process_id, s.process_id, 'unlinked') AS process_id,
+        COALESCE(
+          pf.process_id,
+          wfd.process_id,
+          CASE WHEN s.process_id <> 'unlinked' THEN s.process_id ELSE NULL END,
+          'unlinked'
+        ) AS process_id,
         s.form_id,
         s.form_version,
         s.operator_id,
@@ -2329,6 +2334,15 @@ app.get('/api/submissions', async (req, res) => {
         WHERE LOWER(form_name) = LOWER(s.form_id) OR LOWER(form_id) = LOWER(s.form_id)
         LIMIT 1
       ) pf ON TRUE
+      LEFT JOIN LATERAL (
+        SELECT id AS process_id FROM processes
+        WHERE id <> 'unlinked'
+          AND (
+            "workflowFormsData" @> jsonb_build_object(s.form_id, '{}')
+            OR "workflowFormsData"::text ILIKE '%' || s.form_id || '%'
+          )
+        LIMIT 1
+      ) wfd ON pf.process_id IS NULL
       ORDER BY s.submitted_at DESC
     `);
     const mappedRows = result.rows.map(row => ({
