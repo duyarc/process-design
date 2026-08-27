@@ -2903,6 +2903,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
 
       {activeFormToBuild && (
         <FormBuilder
+          key={activeFormToBuild}
           formName={activeFormToBuild}
           linkedProcessId={processId && processId !== 'unlinked' ? processId : undefined}
           onUnlinkFromProcess={() => handleUnlinkFormFromProcess(activeFormToBuild)}

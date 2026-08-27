@@ -715,7 +715,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
 
   useEffect(() => {
     const fetchFormTemplate = async () => {
-      const targetId = initialData?.formId;
+      const targetId = initialData?.formId || formName;
       if (!targetId) return;
       try {
         setLoading(true);
@@ -723,11 +723,11 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
         const res = await fetch(`/api/forms/${encodeURIComponent(targetId)}`);
         if (res.ok) {
           const data = await res.json();
-          const targetFormId = data.form_id;
-          const targetFormTitle = data.form_title || data.form_name;
+          const targetFormId = data.form_id || targetId;
+          const targetFormTitle = data.form_title || data.form_name || targetId;
           const targetVersion = (data.version || 'v0.1').replace(/\s*\([^)]*\)/g, '').trim();
           const targetEffectiveDate = data.effective_date ? data.effective_date.split('T')[0] : undefined;
-          const targetStatus = data.status;
+          const targetStatus = data.status || 'DRAFT';
           const targetPageSize = data.page_size || data.pageSize || 'A4';
           const targetBlocks = data.layout_blocks
             ? (typeof data.layout_blocks === 'string' ? JSON.parse(data.layout_blocks) : data.layout_blocks)
@@ -770,7 +770,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     };
     
     fetchFormTemplate();
-  }, [initialData?.formId]);
+  }, [initialData?.formId, formName]);
 
   const saveFormToBackend = async (opts: { versionOverride?: string, statusOverride?: 'ACTIVE' | 'DRAFT' | 'ARCHIVED', historyOverride?: FormRevisionEntry[], effectiveDateOverride?: string, layoutBlocksOverride?: LayoutBlockISO[], allowActiveUpdate?: boolean, oldVersionOverride?: string } = {}) => {
     const activeVersion = opts.versionOverride || version;
