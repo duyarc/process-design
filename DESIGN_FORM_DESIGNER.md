@@ -9,7 +9,7 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-08-27) — Section 2, 4, 5 (Field Properties Label Modernization & Single-Line Type Row Layout). |
+| **Verified At Commit** | (2026-08-27) — Section 2, 3, 4 (Section Label In-Canvas Direct Editing & In-Canvas Style Switcher H1/H2/Body/None). |
 
 > **⚠️ Architectural note:** FormBuilder has no awareness of which process it belongs to. The `formName` prop is always identical to `formId`. See Section 6.1 and the Technical Debt table.
 
@@ -488,5 +488,6 @@ full diff of any entry below.
 | 2026-08-26 | **Canvas FieldTypeDropdown Unification & In-Canvas Inline Editing Engine:** (1) Extended `FieldTypeDropdown` component with `compact?: boolean` mode and replaced legacy native `<select>` in Canvas `INFO_GRID` field headers, bringing identical popover card menus, vector icons, and Option B taxonomy to Canvas. (2) Built direct in-canvas inline editing for `Scale` (`likert_scale`): editable label input on each step circle, plus dynamic `+` add step and `✕` remove step buttons. (3) Built direct in-canvas inline editing for `Radio` & `Checkbox`: editable label input beside indicators, plus dynamic `+ Thêm` option and `✕` remove option buttons with real-time 2-way sync with Right Inspector. |
 | 2026-08-27 | **Default Option isPass Standardization:** Changed initial `isPass` value from `false` to `true` when clicking `+ Thêm lựa chọn` across Radio, Checkbox, Table columns, and Subtables in `FormBuilder.tsx`, preventing regular classification fields from being mistakenly flagged as quality inspection defects. |
 | 2026-08-27 | **Field Properties Inspector Modernization:** (1) Renamed `Field ID (Mã trường)` → `ID` with `✨ Tự động` button. (2) Renamed `Label / Check Item` → `Label`. (3) Renamed `Field Type` → `Type` and combined `Type` label and `FieldTypeDropdown` into a single-line horizontal flex row (`justifyContent: 'space-between'`), optimizing vertical space and inspection density. |
+| 2026-08-27 | **Section Label & Section Titles In-Canvas Direct Editing & Style Switcher Engine:** (1) Standardized `SECTION_LABEL` creation default to `H1` (and `formUtils.ts` fallback to `H1`). (2) Created `InCanvasTitleHeader` component with direct inline editable `<input>` (title) and `<textarea>` (description). (3) Integrated quick-switch pill group `[ H1 | H2 | Body | None ]` directly on Canvas with 1-touch formatting and two-way sync with Right Inspector. (4) Uniformly applied across `SECTION_LABEL`, `INFO_GRID`, `TABLE`, `MATRIX_TABLE`, and `SIGN`. |
 
 

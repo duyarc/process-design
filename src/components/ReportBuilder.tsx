@@ -291,6 +291,236 @@ const generateReportChangeSummary = (
   return changes.slice(0, 5).join('\n');
 };
 
+interface InCanvasTitleHeaderProps {
+  block: ReportBlockConfig;
+  isLocked: boolean;
+  isBlockSelected: boolean;
+  onUpdateTitle: (title: string) => void;
+  onUpdateDescription?: (desc: string) => void;
+  onUpdateTitleFormat: (fmt: TitleFormatISO) => void;
+  onSelectBlock: () => void;
+}
+
+function InCanvasTitleHeader({
+  block,
+  isLocked,
+  isBlockSelected,
+  onUpdateTitle,
+  onUpdateDescription,
+  onUpdateTitleFormat,
+  onSelectBlock
+}: InCanvasTitleHeaderProps) {
+  const titleFmt = block.titleFormat || (block.type === 'SECTION_LABEL' ? 'H1' : 'H2');
+
+  const renderStylePill = () => (
+    <div
+      onClick={(e) => e.stopPropagation()}
+      style={{
+        display: 'inline-flex',
+        background: '#f1f5f9',
+        padding: '2px',
+        borderRadius: '5px',
+        border: '1px solid #cbd5e1',
+        gap: '2px',
+        flexShrink: 0
+      }}
+    >
+      {(['H1', 'H2', 'BODY', 'NONE'] as const).map(fmt => {
+        const isSelected = titleFmt === fmt;
+        const labelText = fmt === 'BODY' ? 'Body' : fmt === 'NONE' ? 'None' : fmt;
+        return (
+          <button
+            key={fmt}
+            type="button"
+            disabled={isLocked}
+            onClick={() => onUpdateTitleFormat(fmt)}
+            style={{
+              padding: '1px 6px',
+              fontSize: '0.65rem',
+              fontWeight: isSelected ? 700 : 500,
+              border: 'none',
+              borderRadius: '3px',
+              cursor: isLocked ? 'not-allowed' : 'pointer',
+              background: isSelected ? 'var(--primary)' : 'transparent',
+              color: isSelected ? '#ffffff' : 'var(--text-secondary)',
+              boxShadow: isSelected ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
+              transition: 'all 0.12s ease',
+              lineHeight: '16px'
+            }}
+            title={`Định dạng tiêu đề: ${labelText}`}
+          >
+            {labelText}
+          </button>
+        );
+      })}
+    </div>
+  );
+
+  if (titleFmt === 'NONE') {
+    if (block.type === 'SECTION_LABEL' || isBlockSelected) {
+      return (
+        <div
+          onClick={onSelectBlock}
+          style={{
+            padding: '0.35rem 0.6rem',
+            border: '1.5px dashed #cbd5e1',
+            borderRadius: '4px',
+            background: '#f8fafc',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '0.5rem',
+            marginBottom: '0.5rem',
+            cursor: 'pointer'
+          }}
+        >
+          <span style={{ fontSize: '0.74rem', color: '#64748b', fontStyle: 'italic' }}>
+            {block.type === 'SECTION_LABEL' ? '⚠️ Section Label đang ẩn (Format: NONE) — Bấm chọn Style để hiển thị:' : 'Tiêu đề khối đang ẩn — Bấm chọn Style để hiển thị:'}
+          </span>
+          {renderStylePill()}
+        </div>
+      );
+    }
+    return null;
+  }
+
+  return (
+    <div style={{ marginBottom: '0.5rem' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.5rem' }}>
+        <div style={{ flex: 1 }}>
+          {titleFmt === 'H1' ? (
+            <input
+              type="text"
+              disabled={isLocked}
+              value={block.title}
+              onClick={onSelectBlock}
+              onChange={(e) => onUpdateTitle(e.target.value)}
+              placeholder="NHẬP TIÊU ĐỀ PHÂN ĐOẠN (H1)..."
+              style={{
+                width: '100%',
+                fontSize: '1.05rem',
+                fontWeight: 700,
+                color: '#0f172a',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+                border: 'none',
+                borderBottom: '2.5px solid #0f172a',
+                background: 'transparent',
+                outline: 'none',
+                padding: '0.15rem 0.2rem',
+                borderRadius: '0px',
+                cursor: isLocked ? 'default' : 'text',
+                transition: 'all 0.15s ease'
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.background = '#f8fafc';
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.background = 'transparent';
+              }}
+            />
+          ) : titleFmt === 'H2' ? (
+            <div style={{ padding: '0.35rem 0.6rem', background: '#f1f5f9', borderLeft: '4px solid #0f172a', borderRadius: '0px' }}>
+              <input
+                type="text"
+                disabled={isLocked}
+                value={block.title}
+                onClick={onSelectBlock}
+                onChange={(e) => onUpdateTitle(e.target.value)}
+                placeholder="Nhập tiêu đề phân đoạn (H2)..."
+                style={{
+                  width: '100%',
+                  fontSize: '0.92rem',
+                  fontWeight: 700,
+                  color: '#1e293b',
+                  border: 'none',
+                  background: 'transparent',
+                  outline: 'none',
+                  padding: '0.1rem 0.2rem',
+                  cursor: isLocked ? 'default' : 'text',
+                  transition: 'all 0.15s ease'
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.background = '#ffffff';
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                }}
+              />
+            </div>
+          ) : (
+            <div style={{ padding: '0.1rem 0' }}>
+              <input
+                type="text"
+                disabled={isLocked}
+                value={block.title}
+                onClick={onSelectBlock}
+                onChange={(e) => onUpdateTitle(e.target.value)}
+                placeholder="Nhập tiêu đề phân đoạn (Body)..."
+                style={{
+                  width: '100%',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  color: 'var(--text-primary)',
+                  border: 'none',
+                  borderBottom: '1px dotted #cbd5e1',
+                  background: 'transparent',
+                  outline: 'none',
+                  padding: '0.1rem 0.2rem',
+                  cursor: isLocked ? 'default' : 'text',
+                  transition: 'all 0.15s ease'
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.background = '#f8fafc';
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                }}
+              />
+            </div>
+          )}
+        </div>
+        {renderStylePill()}
+      </div>
+
+      {block.type === 'SECTION_LABEL' && (
+        <textarea
+          rows={2}
+          disabled={isLocked}
+          value={block.description || ''}
+          onClick={onSelectBlock}
+          onChange={(e) => onUpdateDescription?.(e.target.value)}
+          placeholder="Gõ mô tả hoặc ghi chú hướng dẫn (tùy chọn)..."
+          style={{
+            width: '100%',
+            marginTop: '4px',
+            fontSize: '0.8rem',
+            color: '#475569',
+            border: '1px solid transparent',
+            borderRadius: '4px',
+            background: 'transparent',
+            outline: 'none',
+            padding: '0.2rem 0.35rem',
+            resize: 'vertical',
+            fontFamily: 'inherit',
+            lineHeight: 1.4,
+            cursor: isLocked ? 'default' : 'text',
+            transition: 'all 0.15s ease'
+          }}
+          onFocus={(e) => {
+            e.currentTarget.style.borderColor = 'var(--primary)';
+            e.currentTarget.style.background = '#ffffff';
+          }}
+          onBlur={(e) => {
+            e.currentTarget.style.borderColor = 'transparent';
+            e.currentTarget.style.background = 'transparent';
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
 interface ReportBuilderProps {
   initialReportId?: string;
   initialFormId?: string;
@@ -323,6 +553,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
   const [sampleSubmissions, setSampleSubmissions] = useState<Submission[]>([]);
   const [sampleSubmission, setSampleSubmission] = useState<Submission | null>(null);
   const [computedData, setComputedData] = useState<ReportDataModel | null>(null);
+  const isLocked = template.status === 'ACTIVE';
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
   const [searchFieldQuery, setSearchFieldQuery] = useState<string>('');
@@ -528,7 +759,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
       boundFieldIds,
       columns: type === 'INFO_GRID' ? 2 : 1,
       columnWidths: type === 'INFO_GRID' ? [50, 50] : undefined,
-      titleFormat: 'H2',
+      titleFormat: type === 'SECTION_LABEL' ? 'H1' : 'H2',
       borderStyle: 'grid',
       hideHeader: false
     };
@@ -1421,32 +1652,56 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                       )
                     )}
 
+                    {/* 1.1 SECTION_LABEL Block Renderer */}
                     {block.type === 'SECTION_LABEL' && (
-                      <div style={{ background: '#f1f5f9', padding: '0.4rem 0.6rem', borderLeft: '3px solid var(--primary)', fontWeight: 600, fontSize: '0.85rem' }}>
-                        {block.title}
-                      </div>
+                      <InCanvasTitleHeader
+                        block={block}
+                        isLocked={isLocked}
+                        isBlockSelected={activeBlockId === block.id}
+                        onUpdateTitle={(val) => {
+                          setTemplate(prev => ({
+                            ...prev,
+                            layoutBlocks: prev.layoutBlocks.map(b => b.id === block.id ? { ...b, title: val } : b)
+                          }));
+                        }}
+                        onUpdateDescription={(val) => {
+                          setTemplate(prev => ({
+                            ...prev,
+                            layoutBlocks: prev.layoutBlocks.map(b => b.id === block.id ? { ...b, description: val } : b)
+                          }));
+                        }}
+                        onUpdateTitleFormat={(fmt) => {
+                          setTemplate(prev => ({
+                            ...prev,
+                            layoutBlocks: prev.layoutBlocks.map(b => b.id === block.id ? { ...b, titleFormat: fmt } : b)
+                          }));
+                        }}
+                        onSelectBlock={() => setActiveBlockId(block.id)}
+                      />
                     )}
 
                     {/* 2. INFO_GRID Block Renderer */}
                     {block.type === 'INFO_GRID' && (() => {
-                      const titleFmt = block.titleFormat || 'H2';
                       return (
                         <div>
-                          {titleFmt !== 'NONE' && (
-                            titleFmt === 'H1' ? (
-                              <h2 style={{ display: 'inline-block', margin: '0 0 8px 0', fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', borderBottom: '2.5px solid var(--text-primary)', paddingBottom: '3px' }}>
-                                {block.title}
-                              </h2>
-                            ) : titleFmt === 'H2' ? (
-                              <div style={{ padding: '0.4rem 0.6rem', background: '#f1f5f9', borderLeft: '4px solid var(--primary)', borderRadius: '0px', marginBottom: '0.5rem', fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
-                                {block.title}
-                              </div>
-                            ) : (
-                              <div style={{ fontSize: '0.82rem', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
-                                {block.title}
-                              </div>
-                            )
-                          )}
+                          <InCanvasTitleHeader
+                            block={block}
+                            isLocked={isLocked}
+                            isBlockSelected={activeBlockId === block.id}
+                            onUpdateTitle={(val) => {
+                              setTemplate(prev => ({
+                                ...prev,
+                                layoutBlocks: prev.layoutBlocks.map(b => b.id === block.id ? { ...b, title: val } : b)
+                              }));
+                            }}
+                            onUpdateTitleFormat={(fmt) => {
+                              setTemplate(prev => ({
+                                ...prev,
+                                layoutBlocks: prev.layoutBlocks.map(b => b.id === block.id ? { ...b, titleFormat: fmt } : b)
+                              }));
+                            }}
+                            onSelectBlock={() => setActiveBlockId(block.id)}
+                          />
 
                           {/* Grid Container */}
                           {(!block.boundFieldIds || block.boundFieldIds.length === 0) ? (
@@ -1603,28 +1858,30 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
 
                     {/* 3. TABLE Block Renderer */}
                     {block.type === 'TABLE' && (() => {
-                      const titleFmt = block.titleFormat || 'H2';
                       const borderStyle = block.borderStyle || 'grid';
                       const tableBorder = borderStyle === 'grid' ? '1px solid #cbd5e1' : borderStyle === 'horizontal_only' ? 'none' : 'none';
                       const cellBorder = borderStyle === 'grid' ? '1px solid #cbd5e1' : borderStyle === 'horizontal_only' ? '1px solid #e2e8f0' : 'none';
 
                       return (
                         <div>
-                          {titleFmt !== 'NONE' && (
-                            titleFmt === 'H1' ? (
-                              <h2 style={{ display: 'inline-block', margin: '0 0 8px 0', fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', borderBottom: '2.5px solid var(--text-primary)', paddingBottom: '3px' }}>
-                                {block.title}
-                              </h2>
-                            ) : titleFmt === 'H2' ? (
-                              <div style={{ padding: '0.4rem 0.6rem', background: '#f1f5f9', borderLeft: '4px solid var(--primary)', borderRadius: '0px', marginBottom: '0.5rem', fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
-                                {block.title}
-                              </div>
-                            ) : (
-                              <div style={{ fontSize: '0.82rem', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
-                                {block.title}
-                              </div>
-                            )
-                          )}
+                          <InCanvasTitleHeader
+                            block={block}
+                            isLocked={isLocked}
+                            isBlockSelected={activeBlockId === block.id}
+                            onUpdateTitle={(val) => {
+                              setTemplate(prev => ({
+                                ...prev,
+                                layoutBlocks: prev.layoutBlocks.map(b => b.id === block.id ? { ...b, title: val } : b)
+                              }));
+                            }}
+                            onUpdateTitleFormat={(fmt) => {
+                              setTemplate(prev => ({
+                                ...prev,
+                                layoutBlocks: prev.layoutBlocks.map(b => b.id === block.id ? { ...b, titleFormat: fmt } : b)
+                              }));
+                            }}
+                            onSelectBlock={() => setActiveBlockId(block.id)}
+                          />
 
                           {(!block.boundFieldIds || block.boundFieldIds.length === 0) ? (
                             <div style={{ padding: '1rem', border: '1.5px dashed #cbd5e1', borderRadius: '6px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.8rem', background: '#f8fafc' }}>
@@ -1763,17 +2020,37 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                     })()}
 
                     {block.type === 'SIGN' && (
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem', border: '1px solid #000', padding: '0.75rem', textAlign: 'center' }}>
-                        <div>
-                          <div style={{ fontSize: '0.75rem', fontWeight: 600 }}>NGƯỜI KIỂM TRA</div>
-                          <div style={{ height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', color: '#64748b' }}>
-                            {sampleOperatorText !== '—' ? `[Đã ký: ${sampleOperatorText}]` : '(Ký và ghi rõ họ tên)'}
+                      <div>
+                        <InCanvasTitleHeader
+                          block={block}
+                          isLocked={isLocked}
+                          isBlockSelected={activeBlockId === block.id}
+                          onUpdateTitle={(val) => {
+                            setTemplate(prev => ({
+                              ...prev,
+                              layoutBlocks: prev.layoutBlocks.map(b => b.id === block.id ? { ...b, title: val } : b)
+                            }));
+                          }}
+                          onUpdateTitleFormat={(fmt) => {
+                            setTemplate(prev => ({
+                              ...prev,
+                              layoutBlocks: prev.layoutBlocks.map(b => b.id === block.id ? { ...b, titleFormat: fmt } : b)
+                            }));
+                          }}
+                          onSelectBlock={() => setActiveBlockId(block.id)}
+                        />
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem', border: '1px solid #000', padding: '0.75rem', textAlign: 'center' }}>
+                          <div>
+                            <div style={{ fontSize: '0.75rem', fontWeight: 600 }}>NGƯỜI KIỂM TRA</div>
+                            <div style={{ height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', color: '#64748b' }}>
+                              {sampleOperatorText !== '—' ? `[Đã ký: ${sampleOperatorText}]` : '(Ký và ghi rõ họ tên)'}
+                            </div>
                           </div>
-                        </div>
-                        <div>
-                          <div style={{ fontSize: '0.75rem', fontWeight: 600 }}>NGƯỜI THẨM TRA (QA/QC)</div>
-                          <div style={{ height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', color: '#64748b' }}>
-                            {sampleSupervisorText ? `[Thẩm tra: ${sampleSupervisorText}]` : '(Ký và ghi rõ họ tên)'}
+                          <div>
+                            <div style={{ fontSize: '0.75rem', fontWeight: 600 }}>NGƯỜI THẨM TRA (QA/QC)</div>
+                            <div style={{ height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', color: '#64748b' }}>
+                              {sampleSupervisorText ? `[Thẩm tra: ${sampleSupervisorText}]` : '(Ký và ghi rõ họ tên)'}
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -1888,6 +2165,25 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                       style={{ width: '100%', padding: '0.35rem 0.5rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px' }}
                     />
                   </div>
+
+                  {activeBlock.type === 'SECTION_LABEL' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', borderTop: '1px solid var(--neutral-border)', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
+                      <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Mô tả phân đoạn (Description)</label>
+                      <textarea
+                        value={activeBlock.description || ''}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setTemplate(prev => ({
+                            ...prev,
+                            layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, description: val } : b)
+                          }));
+                        }}
+                        placeholder="Nhập mô tả hoặc ghi chú..."
+                        rows={3}
+                        style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', fontSize: '0.8rem', resize: 'vertical' }}
+                      />
+                    </div>
+                  )}
 
                   {/* TITLE Block Special Controls: Logo, Description, Date */}
                   {activeBlock.type === 'TITLE' && (

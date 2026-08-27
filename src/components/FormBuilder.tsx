@@ -679,6 +679,236 @@ function FieldTypeDropdown({ value, onChange, disabled, compact }: FieldTypeDrop
   );
 }
 
+interface InCanvasTitleHeaderProps {
+  block: LayoutBlockISO;
+  isLocked: boolean;
+  isBlockSelected: boolean;
+  onUpdateTitle: (title: string) => void;
+  onUpdateDescription?: (desc: string) => void;
+  onUpdateTitleFormat: (fmt: TitleFormatISO) => void;
+  onSelectBlock: () => void;
+}
+
+function InCanvasTitleHeader({
+  block,
+  isLocked,
+  isBlockSelected,
+  onUpdateTitle,
+  onUpdateDescription,
+  onUpdateTitleFormat,
+  onSelectBlock
+}: InCanvasTitleHeaderProps) {
+  const titleFmt = getEffectiveTitleFormat(block);
+
+  const renderStylePill = () => (
+    <div
+      onClick={(e) => e.stopPropagation()}
+      style={{
+        display: 'inline-flex',
+        background: '#f1f5f9',
+        padding: '2px',
+        borderRadius: '5px',
+        border: '1px solid #cbd5e1',
+        gap: '2px',
+        flexShrink: 0
+      }}
+    >
+      {(['H1', 'H2', 'BODY', 'NONE'] as const).map(fmt => {
+        const isSelected = titleFmt === fmt;
+        const labelText = fmt === 'BODY' ? 'Body' : fmt === 'NONE' ? 'None' : fmt;
+        return (
+          <button
+            key={fmt}
+            type="button"
+            disabled={isLocked}
+            onClick={() => onUpdateTitleFormat(fmt)}
+            style={{
+              padding: '1px 6px',
+              fontSize: '0.65rem',
+              fontWeight: isSelected ? 700 : 500,
+              border: 'none',
+              borderRadius: '3px',
+              cursor: isLocked ? 'not-allowed' : 'pointer',
+              background: isSelected ? 'var(--primary)' : 'transparent',
+              color: isSelected ? '#ffffff' : 'var(--text-secondary)',
+              boxShadow: isSelected ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
+              transition: 'all 0.12s ease',
+              lineHeight: '16px'
+            }}
+            title={`Định dạng tiêu đề: ${labelText}`}
+          >
+            {labelText}
+          </button>
+        );
+      })}
+    </div>
+  );
+
+  if (titleFmt === 'NONE') {
+    if (block.type === 'SECTION_LABEL' || isBlockSelected) {
+      return (
+        <div
+          onClick={onSelectBlock}
+          style={{
+            padding: '0.35rem 0.6rem',
+            border: '1.5px dashed #cbd5e1',
+            borderRadius: '4px',
+            background: '#f8fafc',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '0.5rem',
+            marginBottom: '0.5rem',
+            cursor: 'pointer'
+          }}
+        >
+          <span style={{ fontSize: '0.74rem', color: '#64748b', fontStyle: 'italic' }}>
+            {block.type === 'SECTION_LABEL' ? '⚠️ Section Label đang ẩn (Format: NONE) — Bấm chọn Style để hiển thị:' : 'Tiêu đề khối đang ẩn — Bấm chọn Style để hiển thị:'}
+          </span>
+          {renderStylePill()}
+        </div>
+      );
+    }
+    return null;
+  }
+
+  return (
+    <div style={{ marginBottom: '0.5rem' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.5rem' }}>
+        <div style={{ flex: 1 }}>
+          {titleFmt === 'H1' ? (
+            <input
+              type="text"
+              disabled={isLocked}
+              value={block.title}
+              onClick={onSelectBlock}
+              onChange={(e) => onUpdateTitle(e.target.value)}
+              placeholder="NHẬP TIÊU ĐỀ PHÂN ĐOẠN (H1)..."
+              style={{
+                width: '100%',
+                fontSize: '1.05rem',
+                fontWeight: 700,
+                color: '#0f172a',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+                border: 'none',
+                borderBottom: '2.5px solid #0f172a',
+                background: 'transparent',
+                outline: 'none',
+                padding: '0.15rem 0.2rem',
+                borderRadius: '0px',
+                cursor: isLocked ? 'default' : 'text',
+                transition: 'all 0.15s ease'
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.background = '#f8fafc';
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.background = 'transparent';
+              }}
+            />
+          ) : titleFmt === 'H2' ? (
+            <div style={{ padding: '0.35rem 0.6rem', background: '#f1f5f9', borderLeft: '4px solid #0f172a', borderRadius: '0px' }}>
+              <input
+                type="text"
+                disabled={isLocked}
+                value={block.title}
+                onClick={onSelectBlock}
+                onChange={(e) => onUpdateTitle(e.target.value)}
+                placeholder="Nhập tiêu đề phân đoạn (H2)..."
+                style={{
+                  width: '100%',
+                  fontSize: '0.92rem',
+                  fontWeight: 700,
+                  color: '#1e293b',
+                  border: 'none',
+                  background: 'transparent',
+                  outline: 'none',
+                  padding: '0.1rem 0.2rem',
+                  cursor: isLocked ? 'default' : 'text',
+                  transition: 'all 0.15s ease'
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.background = '#ffffff';
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                }}
+              />
+            </div>
+          ) : (
+            <div style={{ padding: '0.1rem 0' }}>
+              <input
+                type="text"
+                disabled={isLocked}
+                value={block.title}
+                onClick={onSelectBlock}
+                onChange={(e) => onUpdateTitle(e.target.value)}
+                placeholder="Nhập tiêu đề phân đoạn (Body)..."
+                style={{
+                  width: '100%',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                  color: 'var(--text-primary)',
+                  border: 'none',
+                  borderBottom: '1px dotted #cbd5e1',
+                  background: 'transparent',
+                  outline: 'none',
+                  padding: '0.1rem 0.2rem',
+                  cursor: isLocked ? 'default' : 'text',
+                  transition: 'all 0.15s ease'
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.background = '#f8fafc';
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                }}
+              />
+            </div>
+          )}
+        </div>
+        {renderStylePill()}
+      </div>
+
+      {block.type === 'SECTION_LABEL' && (
+        <textarea
+          rows={2}
+          disabled={isLocked}
+          value={block.description || ''}
+          onClick={onSelectBlock}
+          onChange={(e) => onUpdateDescription?.(e.target.value)}
+          placeholder="Gõ mô tả hoặc ghi chú hướng dẫn (tùy chọn)..."
+          style={{
+            width: '100%',
+            marginTop: '4px',
+            fontSize: '0.8rem',
+            color: '#475569',
+            border: '1px solid transparent',
+            borderRadius: '4px',
+            background: 'transparent',
+            outline: 'none',
+            padding: '0.2rem 0.35rem',
+            resize: 'vertical',
+            fontFamily: 'inherit',
+            lineHeight: 1.4,
+            cursor: isLocked ? 'default' : 'text',
+            transition: 'all 0.15s ease'
+          }}
+          onFocus={(e) => {
+            e.currentTarget.style.borderColor = 'var(--primary)';
+            e.currentTarget.style.background = '#ffffff';
+          }}
+          onBlur={(e) => {
+            e.currentTarget.style.borderColor = 'transparent';
+            e.currentTarget.style.background = 'transparent';
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
 export default function FormBuilder({ formName, initialData, onSave, onClose, linkedProcessId, onUnlinkFromProcess }: FormBuilderProps) {
   // 1. Core Layout State
   const [formId, setFormId] = useState(initialData?.formId || `FM-${formName.toUpperCase().replace(/[^A-Z0-9]/g, '-')}-001`);
@@ -1101,7 +1331,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
       columns,
       title: type === 'TITLE' ? formTitle : type === 'INFO_GRID' ? 'Thông tin chung' : type === 'CHECKLIST_TABLE' ? 'Bảng kiểm tra' : type === 'MATRIX_TABLE' ? 'Bảng kiểm đếm số lượng' : type === 'TABLE' ? 'Bảng biểu mẫu động' : type === 'SECTION_LABEL' ? 'Tiêu đề danh mục' : 'Ký nhận',
       description: type === 'SECTION_LABEL' ? '' : undefined,
-      titleFormat: type === 'SECTION_LABEL' ? 'NONE' : undefined,
+      titleFormat: type === 'SECTION_LABEL' ? 'H1' : undefined,
       sectionFormat: undefined,
       fields: [],
       columnLabels: type === 'CHECKLIST_TABLE' ? {
@@ -2699,70 +2929,20 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                     <div style={{ marginTop: '0.25rem' }}>
                       
                       {/* 1.1 SECTION LABEL BLOCK */}
-                      {block.type === 'SECTION_LABEL' && (() => {
-                        const titleFmt = getEffectiveTitleFormat(block);
-                        if (titleFmt === 'NONE') return null;
-                        if (titleFmt === 'H1') {
-                          return (
-                            <div style={{
-                              padding: '0.15rem 0 0.25rem 0',
-                              marginBottom: '0.25rem'
-                            }}>
-                              <h2 style={{
-                                display: 'inline-block',
-                                margin: '0 0 4px 0',
-                                fontSize: '1.1rem',
-                                fontWeight: 700,
-                                color: '#0f172a',
-                                textTransform: 'uppercase',
-                                letterSpacing: '0.5px',
-                                borderBottom: '2.5px solid #0f172a',
-                                paddingBottom: '0.25rem'
-                              }}>
-                                {block.title || 'TIÊU ĐỀ DANH MỤC'}
-                              </h2>
-                              {block.description && (
-                                <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: '#475569', whiteSpace: 'pre-line' }}>
-                                  {block.description}
-                                </p>
-                              )}
-                            </div>
-                          );
-                        }
-                        if (titleFmt === 'H2') {
-                          return (
-                            <div style={{
-                              padding: '0.5rem 0.75rem',
-                              background: '#f1f5f9',
-                              borderLeft: '4px solid #0f172a',
-                              borderRadius: '0px',
-                              marginBottom: '0.25rem'
-                            }}>
-                              <h3 style={{ margin: '0 0 4px 0', fontSize: '0.95rem', fontWeight: 700, color: '#1e293b' }}>
-                                {block.title || 'Tiêu đề danh mục'}
-                              </h3>
-                              {block.description && (
-                                <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b', whiteSpace: 'pre-line' }}>
-                                  {block.description}
-                                </p>
-                              )}
-                            </div>
-                          );
-                        }
-                        // BODY format (normal body text, non-bold)
-                        return (
-                          <div style={{ padding: '0.25rem 0', marginBottom: '0.5rem' }}>
-                            <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                              {block.title || 'Tiêu đề danh mục'}
-                            </div>
-                            {block.description && (
-                              <p style={{ margin: '2px 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)', whiteSpace: 'pre-line' }}>
-                                {block.description}
-                              </p>
-                            )}
-                          </div>
-                        );
-                      })()}
+                      {block.type === 'SECTION_LABEL' && (
+                        <InCanvasTitleHeader
+                          block={block}
+                          isLocked={isLocked}
+                          isBlockSelected={isBlockSelected}
+                          onUpdateTitle={(val) => handleUpdateBlockTitle(block.id, val)}
+                          onUpdateDescription={(val) => handleUpdateBlockDescription(block.id, val)}
+                          onUpdateTitleFormat={(fmt) => handleUpdateBlockTitleFormat(block.id, fmt)}
+                          onSelectBlock={() => {
+                            setActiveBlockId(block.id);
+                            setActiveFieldId(null);
+                          }}
+                        />
+                      )}
 
                       {/* 1. TITLE BLOCK */}
                       {block.type === 'TITLE' && (
@@ -2832,24 +3012,19 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
 
                       {/* 2. INFO GRID BLOCK */}
                       {block.type === 'INFO_GRID' && (() => {
-                        const titleFmt = getEffectiveTitleFormat(block);
                         return (
                           <div>
-                            {titleFmt !== 'NONE' && (
-                              titleFmt === 'H1' ? (
-                                <h2 style={{ display: 'inline-block', margin: '0 0 8px 0', fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', borderBottom: '2.5px solid var(--text-primary)', paddingBottom: '3px' }}>
-                                  {block.title}
-                                </h2>
-                              ) : titleFmt === 'H2' ? (
-                                <div style={{ padding: '0.4rem 0.6rem', background: '#f1f5f9', borderLeft: '4px solid var(--primary)', borderRadius: '0px', marginBottom: '0.5rem', fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
-                                  {block.title}
-                                </div>
-                              ) : (
-                                <div style={{ fontSize: '0.82rem', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
-                                  {block.title}
-                                </div>
-                              )
-                            )}
+                            <InCanvasTitleHeader
+                              block={block}
+                              isLocked={isLocked}
+                              isBlockSelected={isBlockSelected}
+                              onUpdateTitle={(val) => handleUpdateBlockTitle(block.id, val)}
+                              onUpdateTitleFormat={(fmt) => handleUpdateBlockTitleFormat(block.id, fmt)}
+                              onSelectBlock={() => {
+                                setActiveBlockId(block.id);
+                                setActiveFieldId(null);
+                              }}
+                            />
                             <div style={{
                               display: 'grid',
                               gridTemplateColumns: getInfoGridTemplateColumns(block),
@@ -3394,24 +3569,19 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
 
                       {/* 3. CHECKLIST TABLE BLOCK */}
                       {block.type === 'CHECKLIST_TABLE' && (() => {
-                        const titleFmt = getEffectiveTitleFormat(block);
                         return (
                           <div>
-                            {titleFmt !== 'NONE' && (
-                              titleFmt === 'H1' ? (
-                                <h2 style={{ display: 'inline-block', margin: '0 0 8px 0', fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', borderBottom: '2.5px solid var(--text-primary)', paddingBottom: '3px' }}>
-                                  {block.title}
-                                </h2>
-                              ) : titleFmt === 'H2' ? (
-                                <div style={{ padding: '0.4rem 0.6rem', background: '#f1f5f9', borderLeft: '4px solid var(--primary)', borderRadius: '0px', marginBottom: '0.5rem', fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
-                                  {block.title}
-                                </div>
-                              ) : (
-                                <div style={{ fontSize: '0.82rem', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
-                                  {block.title}
-                                </div>
-                              )
-                            )}
+                            <InCanvasTitleHeader
+                              block={block}
+                              isLocked={isLocked}
+                              isBlockSelected={isBlockSelected}
+                              onUpdateTitle={(val) => handleUpdateBlockTitle(block.id, val)}
+                              onUpdateTitleFormat={(fmt) => handleUpdateBlockTitleFormat(block.id, fmt)}
+                              onSelectBlock={() => {
+                                setActiveBlockId(block.id);
+                                setActiveFieldId(null);
+                              }}
+                            />
                           
                           <div style={{ overflowX: 'auto', border: '1px solid #cbd5e1', borderRadius: '4px' }}>
                             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
@@ -3551,24 +3721,19 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
 
                       {/* 3.1 MATRIX TABLE BLOCK */}
                       {block.type === 'MATRIX_TABLE' && block.matrixConfig && (() => {
-                        const titleFmt = getEffectiveTitleFormat(block);
                         return (
                           <div>
-                            {titleFmt !== 'NONE' && (
-                              titleFmt === 'H1' ? (
-                                <h2 style={{ display: 'inline-block', margin: '0 0 8px 0', fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', borderBottom: '2.5px solid var(--text-primary)', paddingBottom: '3px' }}>
-                                  {block.title}
-                                </h2>
-                              ) : titleFmt === 'H2' ? (
-                                <div style={{ padding: '0.4rem 0.6rem', background: '#f1f5f9', borderLeft: '4px solid var(--primary)', borderRadius: '0px', marginBottom: '0.5rem', fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
-                                  {block.title}
-                                </div>
-                              ) : (
-                                <div style={{ fontSize: '0.82rem', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
-                                  {block.title}
-                                </div>
-                              )
-                            )}
+                            <InCanvasTitleHeader
+                              block={block}
+                              isLocked={isLocked}
+                              isBlockSelected={isBlockSelected}
+                              onUpdateTitle={(val) => handleUpdateBlockTitle(block.id, val)}
+                              onUpdateTitleFormat={(fmt) => handleUpdateBlockTitleFormat(block.id, fmt)}
+                              onSelectBlock={() => {
+                                setActiveBlockId(block.id);
+                                setActiveFieldId(null);
+                              }}
+                            />
                           
                           <div style={{ overflowX: 'auto', border: '1px solid #cbd5e1', borderRadius: '4px' }}>
                             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
@@ -3650,24 +3815,19 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                       {/* 3.2 DYNAMIC TABLE BLOCK */}
                       {block.type === 'TABLE' && (() => {
                         const bStyle = block.borderStyle || 'grid';
-                        const titleFmt = getEffectiveTitleFormat(block);
                         return (
                           <div>
-                            {titleFmt !== 'NONE' && (
-                              titleFmt === 'H1' ? (
-                                <h2 style={{ display: 'inline-block', margin: '0 0 8px 0', fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', borderBottom: '2.5px solid var(--text-primary)', paddingBottom: '3px' }}>
-                                  {block.title}
-                                </h2>
-                              ) : titleFmt === 'H2' ? (
-                                <div style={{ padding: '0.4rem 0.6rem', background: '#f1f5f9', borderLeft: '4px solid var(--primary)', borderRadius: '0px', marginBottom: '0.5rem', fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
-                                  {block.title}
-                                </div>
-                              ) : (
-                                <div style={{ fontSize: '0.82rem', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
-                                  {block.title}
-                                </div>
-                              )
-                            )}
+                            <InCanvasTitleHeader
+                              block={block}
+                              isLocked={isLocked}
+                              isBlockSelected={isBlockSelected}
+                              onUpdateTitle={(val) => handleUpdateBlockTitle(block.id, val)}
+                              onUpdateTitleFormat={(fmt) => handleUpdateBlockTitleFormat(block.id, fmt)}
+                              onSelectBlock={() => {
+                                setActiveBlockId(block.id);
+                                setActiveFieldId(null);
+                              }}
+                            />
                           
                           <div style={{
                             overflowX: 'auto',
@@ -4431,24 +4591,19 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
 
                       {/* 4. SIGN BLOCK */}
                       {block.type === 'SIGN' && (() => {
-                        const titleFmt = getEffectiveTitleFormat(block);
                         return (
                           <div>
-                            {titleFmt !== 'NONE' && (
-                              titleFmt === 'H1' ? (
-                                <h2 style={{ display: 'inline-block', margin: '0 0 8px 0', fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', borderBottom: '2.5px solid var(--text-primary)', paddingBottom: '3px' }}>
-                                  {block.title}
-                                </h2>
-                              ) : titleFmt === 'H2' ? (
-                                <div style={{ padding: '0.4rem 0.6rem', background: '#f1f5f9', borderLeft: '4px solid var(--primary)', borderRadius: '0px', marginBottom: '0.5rem', fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
-                                  {block.title}
-                                </div>
-                              ) : (
-                                <div style={{ fontSize: '0.82rem', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--text-primary)' }}>
-                                  {block.title}
-                                </div>
-                              )
-                            )}
+                            <InCanvasTitleHeader
+                              block={block}
+                              isLocked={isLocked}
+                              isBlockSelected={isBlockSelected}
+                              onUpdateTitle={(val) => handleUpdateBlockTitle(block.id, val)}
+                              onUpdateTitleFormat={(fmt) => handleUpdateBlockTitleFormat(block.id, fmt)}
+                              onSelectBlock={() => {
+                                setActiveBlockId(block.id);
+                                setActiveFieldId(null);
+                              }}
+                            />
                           <div style={{
                             display: 'grid',
                             gridTemplateColumns: `repeat(${block.columns}, 1fr)`,

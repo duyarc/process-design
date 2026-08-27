@@ -342,11 +342,33 @@ export const PrintReport: React.FC<PrintReportProps> = ({
                   )}
 
                   {/* 2. SECTION_LABEL Block */}
-                  {block.type === 'SECTION_LABEL' && (
-                    <div style={{ background: '#f1f5f9', borderLeft: '4px solid #000', padding: '4px 8px', fontWeight: 'var(--pw-weight-heavy)', fontSize: 'var(--pw-font-h1)', textTransform: 'uppercase', marginBottom: '6px' }}>
-                      {renderFormattedText(block.title)}
-                    </div>
-                  )}
+                  {block.type === 'SECTION_LABEL' && (() => {
+                    const titleFmt = block.titleFormat || 'H1';
+                    if (titleFmt === 'NONE') return null;
+
+                    return (
+                      <div style={{ marginBottom: '6px' }}>
+                        {titleFmt === 'H1' ? (
+                          <h2 style={{ margin: '0 0 4px 0', fontSize: 'var(--pw-font-h1)', fontWeight: 'var(--pw-weight-heavy)', textTransform: 'uppercase', borderBottom: '2px solid #000', paddingBottom: '2px' }}>
+                            {renderFormattedText(block.title)}
+                          </h2>
+                        ) : titleFmt === 'H2' ? (
+                          <div style={{ padding: '4px 8px', background: '#f1f5f9', borderLeft: '4px solid #000', fontWeight: 'var(--pw-weight-heavy)', fontSize: 'var(--pw-font-h2)', textTransform: 'uppercase', marginBottom: '4px' }}>
+                            {renderFormattedText(block.title)}
+                          </div>
+                        ) : (
+                          <div style={{ fontSize: 'var(--pw-font-body)', fontWeight: 'var(--pw-weight-heavy)', marginBottom: '4px' }}>
+                            {renderFormattedText(block.title)}
+                          </div>
+                        )}
+                        {block.description && (
+                          <p style={{ margin: '2px 0 0 0', fontSize: 'var(--pw-font-small)', color: '#475569', whiteSpace: 'pre-line' }}>
+                            {renderFormattedText(block.description)}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })()}
 
                   {/* 3. INFO_GRID Block */}
                   {block.type === 'INFO_GRID' && (() => {

@@ -9,7 +9,7 @@
 | **Module Name** | Report Builder |
 | **Status** | Implemented & Verified |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-08-27) — Sections 1 to 4 checked against source code (Table Field Extraction Parity in PrintReport & FormReport) |
+| **Verified At Commit** | (2026-08-27) — Section 1 to 4 (SECTION_LABEL Parity with FormBuilder & In-Canvas Style Switcher). |
 
 ### Quick File Index
 
@@ -91,6 +91,7 @@ The module operates on a linear 4-stage processing and rendering pipeline:
 
 | Date | Change |
 |---|---|
+| 2026-08-27 | **Section Label Parity with FormBuilder & In-Canvas Style Switcher:** (1) Standardized `SECTION_LABEL` creation default to `H1`. (2) Integrated `InCanvasTitleHeader` component into `ReportBuilder.tsx` Canvas for `SECTION_LABEL`, `INFO_GRID`, `TABLE`, and `SIGN` with WYSIWYG direct inline editable title/description inputs and quick-switch pill group `[ H1 | H2 | Body | None ]`. (3) Added `Description` textarea to Right Inspector for `SECTION_LABEL`. (4) Synchronized `PrintReport.tsx` and `FormReport.tsx` with full ISO typography and description rendering. |
 | 2026-08-27 | **Table Field Extraction Parity in PrintReport & FormReport:** Replaced naive `layoutBlocks.flatMap(b => b.fields)` with full `extractAllFormFields(formTemplate.layoutBlocks)` in `PrintReport.tsx` and `FormReport.tsx`. Fixed bug where bound fields originating from Likert/QA/Matrix table rows (such as `5C-Scorecard`) failed to resolve their human-readable `checkItem` questions and incorrectly fell back to raw technical field IDs (e.g., `btable178...acol_3`). |
 | 2026-08-27 | **Top Toolbar FormBuilder Parity & Standardized Report Print Engine:** (1) Aligned `ReportBuilder` Top Right Toolbar with `FormBuilder` (Segmented `[ A4 Dọc | A5 Ngang ]` pill, `[ 📄 PDF ]`, `[ 🖨️ Print ]`, `[ ✓ Saved ]` and `✕` close button). (2) Rebuilt `PrintReport.tsx` as a standard Print Engine portal with `ReactDOM.createPortal(..., document.body)` and `.print-container .print-doc` + `.print-outer-table`. (3) Added `download-inline` Base64 R2 logo loader preventing CORS/tainted canvas issues. (4) Integrated `exportFillablePdfFromDOM` for direct 1-click vector PDF generation with Digital 5S filename standard (`REPORT_...pdf`). (5) Applied Design System typography tokens (`--pw-font-banner`, `--pw-font-h1`, `--pw-font-h2`, `--pw-font-body`, `--pw-weight-banner`, etc.) and ISO report footer. |
 | 2026-08-27 | **Unified Action Cluster, Direct Canvas Field Adding & No Nested Scroll:** (1) Removed nested scrollbar (`maxHeight: 240px`) on bound fields list, allowing natural expansion. (2) Streamlined bound field items in Right Inspector to a sleek single row: STT + Custom Label input + Reset `[ ↺ ]` + `ToggleSwitch Label` + Unified Action cluster `[ ↑ ] [ ↓ ] [ ✕ ]`. (3) Added direct `[ + Thêm trường ]` dashed slot button to Canvas `INFO_GRID` and `TABLE` footer. (4) Built searchable `Quick Field Picker Modal` with type badge mapping, search query filtering, and instant `[ + Gán ]` action from both Canvas and Inspector. |

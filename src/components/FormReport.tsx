@@ -239,11 +239,33 @@ export const FormReport: React.FC<FormReportProps> = ({
               )}
 
               {/* SECTION_LABEL */}
-              {block.type === 'SECTION_LABEL' && (
-                <div style={{ background: '#f1f5f9', padding: '0.4rem 0.6rem', borderLeft: '3px solid var(--primary)', fontWeight: 600, fontSize: '0.85rem' }}>
-                  {block.title}
-                </div>
-              )}
+              {block.type === 'SECTION_LABEL' && (() => {
+                const titleFmt = block.titleFormat || 'H1';
+                if (titleFmt === 'NONE') return null;
+
+                return (
+                  <div style={{ marginBottom: '8px' }}>
+                    {titleFmt === 'H1' ? (
+                      <h2 style={{ margin: '0 0 4px 0', fontSize: '1.05rem', fontWeight: 700, textTransform: 'uppercase', borderBottom: '2.5px solid #0f172a', paddingBottom: '3px', color: '#0f172a' }}>
+                        {block.title}
+                      </h2>
+                    ) : titleFmt === 'H2' ? (
+                      <div style={{ padding: '0.4rem 0.6rem', background: '#f1f5f9', borderLeft: '4px solid var(--primary)', fontWeight: 700, fontSize: '0.9rem', color: '#0f172a', marginBottom: '4px' }}>
+                        {block.title}
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
+                        {block.title}
+                      </div>
+                    )}
+                    {block.description && (
+                      <p style={{ margin: '2px 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)', whiteSpace: 'pre-line' }}>
+                        {block.description}
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* INFO_GRID */}
               {block.type === 'INFO_GRID' && (
