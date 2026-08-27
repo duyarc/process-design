@@ -27,7 +27,8 @@ import {
   Clock,
   Search,
   Sparkles,
-  Plus
+  Plus,
+  GitBranch
 } from 'lucide-react';
 
 export const getReportSnapshot = (data: ReportTemplateISO) => {
@@ -423,6 +424,39 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
     }));
     setChangeSummary('');
     setEffectiveDate(new Date().toISOString().split('T')[0]);
+  };
+
+  const handleDeleteActiveDraft = () => {
+    if (template.status !== 'DRAFT') return;
+    const latestActive = template.revisionHistory.find(r => r.status === 'ACTIVE');
+    
+    setConfirmModal({
+      isOpen: true,
+      title: 'Xoá bản nháp này?',
+      message: latestActive
+        ? `Bạn có chắc muốn huỷ bản nháp "${template.version}"? Báo cáo sẽ được đưa về phiên bản đang hoạt động (${latestActive.version}).`
+        : `Bạn có chắc muốn xoá các thay đổi trong bản nháp "${template.version}"?`,
+      onConfirm: async () => {
+        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        try {
+          if (latestActive && latestActive.layoutBlocks) {
+            const restoredTemplate: ReportTemplateISO = {
+              ...template,
+              version: latestActive.version,
+              status: 'ACTIVE',
+              effectiveDate: latestActive.date,
+              layoutBlocks: JSON.parse(JSON.stringify(latestActive.layoutBlocks))
+            };
+            setTemplate(restoredTemplate);
+            setInitialBlocks(latestActive.layoutBlocks);
+            setLastSavedSnapshot(getReportSnapshot(restoredTemplate));
+            setChangeSummary('');
+          }
+        } catch (err) {
+          console.error('Failed to reset draft:', err);
+        }
+      }
+    });
   };
 
   const handlePublish = async () => {
@@ -1121,39 +1155,52 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
         {/* ── RIGHT PANEL: Properties & Versions Inspector ── */}
         <div style={{ width: '320px', background: '#ffffff', borderLeft: '1px solid var(--neutral-border)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           
-          {/* Tabs header */}
-          <div style={{ display: 'flex', borderBottom: '1px solid var(--neutral-border)', background: '#f8fafc' }}>
+          {/* Tab Switcher */}
+          <div style={{
+            display: 'flex',
+            borderBottom: '1px solid var(--neutral-border)',
+            marginBottom: '0.25rem',
+            paddingBottom: '2px',
+            gap: '0.5rem',
+            padding: '0.5rem 0.75rem 0'
+          }}>
             <button
+              type="button"
               onClick={() => setRightTab('properties')}
               style={{
                 flex: 1,
-                padding: '0.6rem 0',
-                border: 'none',
-                background: rightTab === 'properties' ? '#ffffff' : 'transparent',
-                fontWeight: 600,
-                fontSize: '0.8rem',
+                padding: '0.45rem 0.25rem',
+                fontSize: '0.78rem',
+                fontWeight: rightTab === 'properties' ? 700 : 500,
                 color: rightTab === 'properties' ? 'var(--primary)' : 'var(--text-secondary)',
-                borderBottom: rightTab === 'properties' ? '2px solid var(--primary)' : 'none',
-                cursor: 'pointer'
+                border: 'none',
+                background: 'none',
+                borderBottom: rightTab === 'properties' ? '2px solid var(--primary)' : '2px solid transparent',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                textAlign: 'center'
               }}
             >
-              Thuộc tính (Properties)
+              Properties
             </button>
             <button
+              type="button"
               onClick={() => setRightTab('versions')}
               style={{
                 flex: 1,
-                padding: '0.6rem 0',
-                border: 'none',
-                background: rightTab === 'versions' ? '#ffffff' : 'transparent',
-                fontWeight: 600,
-                fontSize: '0.8rem',
+                padding: '0.45rem 0.25rem',
+                fontSize: '0.78rem',
+                fontWeight: rightTab === 'versions' ? 700 : 500,
                 color: rightTab === 'versions' ? 'var(--primary)' : 'var(--text-secondary)',
-                borderBottom: rightTab === 'versions' ? '2px solid var(--primary)' : 'none',
-                cursor: 'pointer'
+                border: 'none',
+                background: 'none',
+                borderBottom: rightTab === 'versions' ? '2px solid var(--primary)' : '2px solid transparent',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                textAlign: 'center'
               }}
             >
-              Phiên bản (Versions)
+              Versions
             </button>
           </div>
 
@@ -1288,8 +1335,28 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
 
           {/* Tab 2: Versions */}
           {rightTab === 'versions' && (
-            <div style={{ flex: 1, overflowY: 'auto', padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '1rem', fontSize: '0.8rem' }}>
               
+              {/* Report ID Input */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Report ID</label>
+                <input
+                  type="text"
+                  disabled={template.status === 'ACTIVE'}
+                  value={template.reportId}
+                  onChange={(e) => setTemplate({ ...template, reportId: e.target.value.toUpperCase() })}
+                  placeholder="e.g. RP-QC-F01"
+                  style={{
+                    padding: '0.35rem 0.5rem',
+                    borderRadius: '4px',
+                    border: '1px solid var(--neutral-border)',
+                    backgroundColor: template.status === 'ACTIVE' ? '#f1f5f9' : '#ffffff',
+                    cursor: template.status === 'ACTIVE' ? 'not-allowed' : 'text',
+                    fontWeight: 600
+                  }}
+                />
+              </div>
+
               {/* Card 1: Version Control & Status */}
               <div style={{
                 backgroundColor: '#ffffff',
@@ -1302,7 +1369,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                 gap: '0.5rem'
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <Clock size={13} style={{ color: '#94a3b8' }} />
+                  <GitBranch size={13} style={{ color: 'var(--primary)' }} />
                   <span style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-secondary)' }}>
                     Version Control
                   </span>
@@ -1376,6 +1443,29 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                       <span className="badge badge-warning" style={{ fontSize: '0.65rem', padding: '0.05rem 0.35rem', backgroundColor: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d', textTransform: 'uppercase', fontWeight: 700, marginLeft: '0.15rem' }}>
                         Draft
                       </span>
+
+                      <button
+                        type="button"
+                        title="Xóa bản nháp này"
+                        onClick={handleDeleteActiveDraft}
+                        style={{
+                          marginLeft: 'auto',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: '0.2rem 0.4rem',
+                          background: '#fee2e2',
+                          border: '1px solid #fca5a5',
+                          borderRadius: '4px',
+                          color: '#dc2626',
+                          cursor: 'pointer',
+                          transition: 'background-color 0.15s ease'
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = '#fca5a5'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = '#fee2e2'; }}
+                      >
+                        <Trash2 size={13} />
+                      </button>
                     </div>
 
                     {!viewingRevisionVersion && (

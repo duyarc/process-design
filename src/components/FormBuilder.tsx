@@ -6842,7 +6842,6 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
             <div style={{
               backgroundColor: 'var(--neutral-card, #f8fafc)',
               border: '1px solid var(--neutral-border, #cbd5e1)',
-              borderLeft: '4px solid var(--primary, #3b82f6)',
               borderRadius: '6px',
               padding: '0.85rem 1rem',
               boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
