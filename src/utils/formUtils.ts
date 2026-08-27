@@ -278,4 +278,53 @@ export function snap3ColWidths(handleIndex: 0 | 1, rawPosPct: number): [number, 
   return [...bestPreset];
 }
 
+/**
+ * Chuyển đổi tiêu đề trường sang định dạng Field ID chuẩn Best Practice (Smart Clean Slug):
+ * - Loại bỏ ký tự in đậm Markdown **, __
+ * - Loại bỏ đơn vị đo trong ngoặc (tấn/năm), (VND)...
+ * - Chuyển dấu tiếng Việt sang ascii không dấu dạng snake_case
+ * - Giới hạn tối đa 3 từ khoá chính (khoảng 24 ký tự)
+ * - Tự động đánh số _2, _3 nếu trùng lặp trong cùng form
+ */
+export function generateSmartFieldSlug(label: string, existingIds: string[] = [], type?: string): string {
+  if (!label || !label.trim()) {
+    const base = type ? type.toLowerCase() : 'field';
+    let candidate = `${base}_1`;
+    let i = 1;
+    while (existingIds.includes(candidate)) {
+      i++;
+      candidate = `${base}_${i}`;
+    }
+    return candidate;
+  }
+
+  // 1. Lọc bỏ Markdown, dấu ngoặc và đơn vị
+  let clean = label
+    .replace(/\*\*/g, '')                         // Bỏ markdown bold **
+    .replace(/\(.*?\)/g, '')                      // Bỏ đơn vị trong ngoặc (tấn/năm), (VND)...
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')             // Bỏ dấu tiếng Việt
+    .replace(/đ/g, 'd')
+    .replace(/[^a-z0-9\s_]/g, '')                 // Chỉ giữ chữ cái, số và khoảng trắng
+    .trim();
+
+  // 2. Lấy tối đa 3 từ đầu tiên
+  const words = clean.split(/\s+/).filter(Boolean).slice(0, 3);
+  let slug = words.join('_').substring(0, 24);
+
+  if (!slug) slug = type ? type.toLowerCase() : 'field';
+
+  // 3. Chống trùng lặp trong cùng một biểu mẫu
+  let uniqueId = slug;
+  let counter = 2;
+  while (existingIds.includes(uniqueId)) {
+    uniqueId = `${slug}_${counter}`;
+    counter++;
+  }
+
+  return uniqueId;
+}
+
+
 

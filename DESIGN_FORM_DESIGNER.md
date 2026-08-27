@@ -9,7 +9,7 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-08-27) — Section 2 checked against source (Removed teal borderLeft from Version Control Card) |
+| **Verified At Commit** | (2026-08-27) — Section 2 and 3 checked against source (Smart Clean Slug for Field IDs and [🪄 Auto] upgrade button) |
 
 > **⚠️ Architectural note:** FormBuilder has no awareness of which process it belongs to. The `formName` prop is always identical to `formId`. See Section 6.1 and the Technical Debt table.
 
@@ -469,6 +469,7 @@ full diff of any entry below.
 
 | Date | Change |
 |---|---|
+| 2026-08-27 | **Smart Clean Slug for Field IDs & 1-Click Upgrade Engine:** (1) Implemented `generateSmartFieldSlug(label, existingIds, type)` in `formUtils.ts`, stripping Markdown syntax `**`, measurement units in parentheses `(...)`, and transliterating Vietnamese to concise `snake_case` with collision deduplication (`_2`, `_3`). (2) Updated `handleAddField`, `handleCloneBlock`, and `handleExecuteCopy` in `FormBuilder.tsx` to generate clean semantic slugs instead of raw 13-digit timestamps. (3) Added editable `Field ID (Mã trường)` input with validation (`[a-z0-9_]`) and a `[🪄 Tự động]` quick upgrade button in Right Inspector `FIELD PROPERTIES`, enabling seamless 1-click upgrade of legacy timestamped field IDs. |
 | 2026-08-27 | **Fullscreen Studio Workspace Upgrade:** (1) Upgraded FormBuilder root container from an 85vh floating modal card to a full-viewport edge-to-edge studio workspace (`position: fixed; inset: 0; zIndex: 1000`). (2) Removed modal backdrop wrapper in `ProcessEditor.tsx`. (3) Standardized 56px Top Action Bar and high-contrast `#f1f5f9` canvas background, achieving 100% design system parity with `ReportBuilder`. |
 | 2026-08-25 | **Rich Inline Text Formatting (Bold, Italic, Underline):** (1) Created `textFormatter.tsx` containing recursive JSX parser `renderFormattedText`, selection wrapper `applyTextFormat`, and shortcut listener `handleFormatKeyDown`. (2) In `FormBuilder.tsx`, enabled `Ctrl+B / I / U` on Canvas textarea and added mini `[ B ] [ I ] [ U ]` toolbar in Right Inspector. (3) Propagated uniform inline rendering across `FormFiller.tsx`, `ProcessReader.tsx`, `PrintBlankForm.tsx`, `PrintFilledForm.tsx`, and `PrintRecord.tsx`. |
 | 2026-08-25 | **Typography Scale, Hierarchy & 1px Border Standardization:** (1) Standardized table column headers (`<th>`) to bold `fontWeight: 700` (`var(--pw-weight-heavy)`), `fontSize: '0.82rem'`, and high-contrast color `#0f172a` / `#000000` on clean `#f1f5f9` across Canvas, Filler, Reader, and Print templates. (2) Normalized group separator rows to subtle `#f8fafc` tint, `fontWeight: 600`, `fontSize: '0.80rem'`, `#1e293b` / `#000000`, with `renderFormattedText`. (3) Standardized all table borders from `1.5px` to crisp `1px solid #000000` (print/PDF) and `1px solid #cbd5e1` (screen). |

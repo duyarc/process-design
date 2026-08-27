@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import type { FormFieldISO, FormRevisionEntry, FormTemplateISO, LayoutBlockISO, RadioOption, MatrixConfigISO, TableColumnConfig, TableRowConfig, ColumnSummaryRowConfig, TitleFormatISO, SubtableColumn } from '../types';
 import { formatFormVersion, getColStyleWidth } from '../types';
-import { sanitizeLabel, getEffectiveTitleFormat, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, isSeamlessTableBlock, getInfoGridTemplateColumns, snap2ColWidth, snap3ColWidths, INFO_GRID_2COL_PRESETS } from '../utils/formUtils';
+import { sanitizeLabel, getEffectiveTitleFormat, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, isSeamlessTableBlock, getInfoGridTemplateColumns, snap2ColWidth, snap3ColWidths, INFO_GRID_2COL_PRESETS, generateSmartFieldSlug } from '../utils/formUtils';
 import { applyTextFormat, handleFormatKeyDown } from '../utils/textFormatter';
 import { 
   Plus, 
@@ -35,7 +35,8 @@ import {
   CircleDot,
   ChevronDown,
   Check,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Sparkles
 } from 'lucide-react';
 import PrintBlankForm from './print/PrintBlankForm';
 
@@ -1164,8 +1165,11 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     const newBlockId = `b_${sourceBlock.type.toLowerCase()}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
     
     // Regenerate unique IDs for all fields in the block to prevent collisions
+    const existingIds = layoutBlocks.flatMap(b => (b.fields || []).map(f => f.id));
+    const generatedIds = [...existingIds];
     const newFields = sourceBlock.fields.map(field => {
-      const newFieldId = `field_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+      const newFieldId = generateSmartFieldSlug(field.checkItem, generatedIds, field.type);
+      generatedIds.push(newFieldId);
       return {
         ...field,
         id: newFieldId
@@ -1204,10 +1208,16 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     const newBlockId = `b_${sourceBlock.type.toLowerCase()}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
 
     // Regenerate unique IDs for all fields in the block
-    const newFields = (sourceBlock.fields || []).map(field => ({
-      ...field,
-      id: `field_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`
-    }));
+    const existingIds = layoutBlocks.flatMap(b => (b.fields || []).map(f => f.id));
+    const generatedIds = [...existingIds];
+    const newFields = (sourceBlock.fields || []).map(field => {
+      const newFieldId = generateSmartFieldSlug(field.checkItem, generatedIds, field.type);
+      generatedIds.push(newFieldId);
+      return {
+        ...field,
+        id: newFieldId
+      };
+    });
 
     // For TABLE blocks, regenerate unique row IDs and remap tableData and cellOptionsMap
     const rowIdMap = new Map<string, string>();
@@ -1542,10 +1552,14 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     if (isLocked) return;
     
     const labelPrefix = type === 'radio' || type === 'checkbox' ? 'Kiểm tra ' : type === 'number' ? 'Đo thông số ' : type === 'time' ? 'Thời gian ' : type === 'subtable' ? 'Bảng ' : 'Thông tin ';
+    const defaultCheckItem = `${labelPrefix}mới`;
+    const existingIds = layoutBlocks.flatMap(b => (b.fields || []).map(f => f.id));
+    const newFieldId = generateSmartFieldSlug(defaultCheckItem, existingIds, type);
+
     const newField: FormFieldISO = {
-      id: `f_${type}_${Date.now()}`,
+      id: newFieldId,
       type,
-      checkItem: `${labelPrefix}mới`,
+      checkItem: defaultCheckItem,
       locationCode: `LOC-${Math.floor(10 + Math.random() * 90)}`,
       reactionProtocol: type === 'radio' || type === 'checkbox' || type === 'number' ? "Báo cáo trưởng ca và ghi nhận hành động khắc phục." : ""
     };
@@ -1591,6 +1605,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
       }
       return b;
     }));
+    if (updates.id && updates.id !== fieldId && activeFieldId === fieldId) {
+      setActiveFieldId(updates.id);
+    }
   };
 
   const handleChangeFieldType = (blockId: string, fieldId: string, newType: 'label' | 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo' | 'subtable' | 'likert_scale' | 'rating') => {
@@ -4628,6 +4645,59 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.8rem' }}>
                 
+                {/* Field ID (Mã định danh trường) */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.75rem' }}>
+                      Field ID (Mã trường)
+                    </label>
+                    <button
+                      type="button"
+                      title="Tự động tạo lại ID sạch từ tiêu đề trường"
+                      disabled={isLocked}
+                      onClick={() => {
+                        const otherIds = layoutBlocks
+                          .flatMap(b => (b.fields || []).map(f => f.id))
+                          .filter(id => id !== activeField.id);
+                        const autoSlug = generateSmartFieldSlug(activeField.checkItem, otherIds, activeField.type);
+                        handleUpdateField(activeBlockId!, activeFieldId!, { id: autoSlug });
+                      }}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '3px',
+                        fontSize: '0.68rem',
+                        color: 'var(--primary)',
+                        background: 'none',
+                        border: 'none',
+                        cursor: isLocked ? 'not-allowed' : 'pointer',
+                        fontWeight: 600,
+                        padding: '0 2px'
+                      }}
+                    >
+                      <Sparkles size={11} /> Tự động
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    disabled={isLocked}
+                    value={activeField.id}
+                    onChange={(e) => {
+                      const sanitized = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '');
+                      handleUpdateField(activeBlockId!, activeFieldId!, { id: sanitized });
+                    }}
+                    placeholder="e.g. ten_doanh_nghiep"
+                    style={{
+                      padding: '0.35rem 0.5rem',
+                      borderRadius: '4px',
+                      border: '1px solid var(--neutral-border)',
+                      fontFamily: 'monospace',
+                      fontSize: '0.78rem',
+                      background: isLocked ? '#f8fafc' : '#ffffff'
+                    }}
+                  />
+                </div>
+
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Label / Check Item</label>
