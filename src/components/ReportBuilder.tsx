@@ -877,7 +877,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
         <div style={{ width: '280px', background: '#ffffff', borderRight: '1px solid var(--neutral-border)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           <div style={{ padding: '0.75rem', borderBottom: '1px solid var(--neutral-border)', background: '#f8fafc' }}>
             <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.3rem' }}>
-              1. NGUỒN FORM MẪU (SOURCE FORM)
+              1. SOURCE FORM
             </label>
             <select
               value={template.linkedFormId}
@@ -894,7 +894,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
 
           <div style={{ padding: '0.75rem', borderBottom: '1px solid var(--neutral-border)', background: '#ffffff' }}>
             <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.3rem' }}>
-              2. DỮ LIỆU MẪU ĐỂ PREVIEW (SAMPLE SUBMISSION)
+              2. SAMPLE SUBMISSION
             </label>
             <select
               value={sampleSubmission?.id || ''}
@@ -925,7 +925,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '0.75rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
               <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                DANH MỤC TRƯỜNG DỮ LIỆU ({allFormFields.length})
+                FIELDS ({allFormFields.length})
               </span>
             </div>
             <div style={{ position: 'relative', marginBottom: '0.5rem' }}>
@@ -1292,22 +1292,11 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                   </div>
                 </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-                  <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', borderBottom: '1px solid var(--neutral-border)', paddingBottom: '0.4rem' }}>
-                    THUỘC TÍNH BÁO CÁO (REPORT SETTINGS)
-                  </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   <div>
-                    <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Mã báo cáo (Report ID)</label>
-                    <input
-                      type="text"
-                      value={template.reportId}
-                      onChange={e => setTemplate({ ...template, reportId: e.target.value.toUpperCase() })}
-                      style={{ width: '100%', padding: '0.35rem 0.5rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', fontWeight: 600 }}
-                      placeholder="e.g. RP-QC-F01"
-                    />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Tiêu đề báo cáo (Report Title)</label>
+                    <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>
+                      Report Title
+                    </label>
                     <input
                       type="text"
                       value={template.reportTitle}
@@ -1315,18 +1304,6 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                       style={{ width: '100%', padding: '0.35rem 0.5rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', fontWeight: 600 }}
                       placeholder="Tiêu đề mẫu báo cáo..."
                     />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>Biểu mẫu liên kết (Linked Form)</label>
-                    <input
-                      type="text"
-                      value={template.linkedFormId}
-                      disabled
-                      style={{ width: '100%', padding: '0.35rem 0.5rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', background: '#f8fafc', color: '#64748b' }}
-                    />
-                  </div>
-                  <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', marginTop: '0.5rem', fontStyle: 'italic' }}>
-                    💡 Bạn có thể nhấp chọn một khối cụ thể trong trang canvas ở giữa để cấu hình chi tiết hoặc quy tắc đánh giá riêng.
                   </div>
                 </div>
               )}

@@ -9,7 +9,7 @@
 | **Module Name** | Report Builder |
 | **Status** | Implemented & Verified |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-08-27) — Sections 1 to 4 checked against source code (Tab Switcher and Versions Tab UI Parity with FormBuilder) |
+| **Verified At Commit** | (2026-08-27) — Sections 1 to 4 checked against source code (Streamlined Left & Right Panel labels and removed redundancies) |
 
 ### Quick File Index
 
@@ -90,6 +90,7 @@ The module operates on a linear 4-stage processing and rendering pipeline:
 
 | Date | Change |
 |---|---|
+| 2026-08-27 | **ReportBuilder Label Cleanup & Redundancy Removal:** (1) Streamlined Left Panel labels to concise English: `1. SOURCE FORM`, `2. SAMPLE SUBMISSION`, `FIELDS (n)`. (2) In Right Inspector `Properties` tab when no block is selected, removed duplicate `Report ID`, duplicate `Linked Form`, section header, and helper hint note, leaving only a clean `Report Title` input field. |
 | 2026-08-27 | **Right Panel & Tab Switcher Standardization:** (1) Standardized Right Panel tab switcher to clean underline style with `Properties` / `Versions` labels. (2) Added independent `Report ID` input field at the top of Tab Versions. (3) Standardized Version Control card to clean 1px border without teal accent border, updated icon to `<GitBranch />`, and added active draft discard button (`[ 🗑 ]` + `handleDeleteActiveDraft`). |
 | 2026-08-27 | **Save State Machine & Minimalist Close Icon:** (1) Implemented `getReportSnapshot` and `isSaved` state machine on the Save button (`[✓ Saved]` / `[Save]`). (2) Replaced text `Close` button with a minimalist `<X size={18} />` icon button with confirmation dialog for unsaved changes (`handleDiscardChangesAndClose`). |
 | 2026-08-27 | **Versions Tab & Publish Relocation (FormBuilder Parity):** (1) Removed Publish button from Top Action Bar to match FormBuilder's clean layout. (2) Replicated FormBuilder's 3-card Versions tab: Card 1 (Version Control & Status with Major/Minor inputs & New Draft trigger), Card 2 (Change Summary with auto-suggest `generateReportChangeSummary`, Release Date & green Publish action), Card 3 (Revision History with Read-only preview & Rollback, status badges, and yellow top warning banner). |
