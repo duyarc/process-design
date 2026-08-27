@@ -405,6 +405,7 @@ export interface ReportTemplateISO {
   reportType?: 'RECORD' | 'SUMMARY';    // Default: 'RECORD' (1-to-1)
   version: string;                      // e.g. "v1.0" or "v1.1 (draft)"
   status: 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
+  pageSize?: 'A4' | 'A5_LANDSCAPE' | 'A4_LANDSCAPE'; // Print paper size: A4 portrait (default), A5 landscape, A4 landscape
   effectiveDate?: string;               // ISO date string (YYYY-MM-DD)
   layoutBlocks: ReportBlockConfig[];    // Ordered visual report blocks
   revisionHistory: ReportRevisionEntry[]; // Full snapshot audit trail

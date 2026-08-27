@@ -328,6 +328,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
   const [searchFieldQuery, setSearchFieldQuery] = useState<string>('');
   const [fieldPickerBlockId, setFieldPickerBlockId] = useState<string | null>(null);
   const [fieldPickerSearch, setFieldPickerSearch] = useState<string>('');
+  const [autoExportPdf, setAutoExportPdf] = useState<boolean>(false);
 
   const [effectiveDate, setEffectiveDate] = useState<string>(template.effectiveDate || new Date().toISOString().split('T')[0]);
   const [changeSummary, setChangeSummary] = useState<string>('');
@@ -1009,8 +1010,9 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
           </button>
         </div>
 
-        {/* 3. RIGHT: Page Setup, Print, Save, Close */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+        {/* 3. RIGHT: Page Setup, PDF Export, Print, Save, Close */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexShrink: 0 }}>
+          {/* Page Size Segmented Switcher */}
           <div style={{ 
             display: 'inline-flex', 
             alignItems: 'center', 
@@ -1019,27 +1021,88 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
             borderRadius: '6px', 
             border: '1px solid #cbd5e1'
           }}>
-            <span style={{
-              padding: '2px 8px',
-              fontSize: '0.75rem',
-              fontWeight: 600,
-              color: '#0f172a',
-              background: '#ffffff',
-              borderRadius: '4px',
-              boxShadow: '0 1px 2px rgba(0,0,0,0.08)'
-            }}>
+            <button
+              type="button"
+              onClick={() => setTemplate(prev => ({ ...prev, pageSize: 'A4' }))}
+              style={{
+                padding: '2px 8px',
+                fontSize: '0.75rem',
+                fontWeight: (template.pageSize || 'A4') === 'A4' ? 600 : 400,
+                color: (template.pageSize || 'A4') === 'A4' ? '#0f172a' : '#64748b',
+                background: (template.pageSize || 'A4') === 'A4' ? '#ffffff' : 'transparent',
+                border: 'none',
+                borderRadius: '4px',
+                boxShadow: (template.pageSize || 'A4') === 'A4' ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                cursor: 'pointer',
+                transition: 'all 0.15s'
+              }}
+              title="Khổ in A4 Dọc tiêu chuẩn (210mm x 297mm)"
+            >
               A4 Dọc
-            </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setTemplate(prev => ({ ...prev, pageSize: 'A5_LANDSCAPE' }))}
+              style={{
+                padding: '2px 8px',
+                fontSize: '0.75rem',
+                fontWeight: template.pageSize === 'A5_LANDSCAPE' ? 600 : 400,
+                color: template.pageSize === 'A5_LANDSCAPE' ? '#0f172a' : '#64748b',
+                background: template.pageSize === 'A5_LANDSCAPE' ? '#ffffff' : 'transparent',
+                border: 'none',
+                borderRadius: '4px',
+                boxShadow: template.pageSize === 'A5_LANDSCAPE' ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                cursor: 'pointer',
+                transition: 'all 0.15s'
+              }}
+              title="Khổ in A5 Ngang (210mm x 148mm)"
+            >
+              A5 Ngang
+            </button>
           </div>
 
-          <button
+          <div style={{ borderLeft: '1px solid var(--neutral-border)', height: '16px', margin: '0 0.1rem' }} />
+
+          {/* Export PDF & Print */}
+          <button 
             type="button"
-            onClick={() => setShowPrintPreview(true)}
+            onClick={() => {
+              setAutoExportPdf(true);
+              setShowPrintPreview(true);
+            }}
             style={{
               background: 'none',
-              border: 'none',
+              border: '1px solid #cbd5e1',
               color: '#334155',
-              padding: '3px 8px',
+              padding: '3px 10px',
+              borderRadius: '4px',
+              fontSize: '0.78rem',
+              fontWeight: 500,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = '#f8fafc'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; }}
+            title="Xuất báo cáo dạng file PDF vector"
+          >
+            <FileText size={13} />
+            <span>PDF</span>
+          </button>
+
+          <button 
+            type="button"
+            onClick={() => {
+              setAutoExportPdf(false);
+              setShowPrintPreview(true);
+            }}
+            style={{
+              background: 'none',
+              border: '1px solid #cbd5e1',
+              color: '#334155',
+              padding: '3px 10px',
               borderRadius: '4px',
               fontSize: '0.78rem',
               fontWeight: 500,
@@ -1059,6 +1122,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
 
           <div style={{ borderLeft: '1px solid var(--neutral-border)', height: '16px', margin: '0 0.1rem' }} />
 
+          {/* Save & Close Buttons */}
           <button 
             type="button"
             disabled={isSaved || saving}
@@ -2620,6 +2684,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
       {showPrintPreview && (
         <PrintReport
           template={template}
+          autoExportPdf={autoExportPdf}
           submission={sampleSubmission || {
             id: 'SAMPLE-001',
             processId: 'PROC-001',
