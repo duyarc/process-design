@@ -121,15 +121,35 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Map process ID to display title (used in filters and table display)
-  const getProcessTitle = (procId: string) => {
-    const found = processes.find(p => p.id === procId);
-    return found ? found.title : `Process ID: ${procId}`;
+  // Map process ID to display title using Form-Centric Dynamic Resolution (current form mapping prioritized)
+  const getProcessTitle = (procId: string, formId?: string) => {
+    // 1. ƯU TIÊN SỐ 1: Tra cứu quy trình HIỆN TẠI đang chứa formId này (bất kể procId cũ là gì)
+    if (formId) {
+      const target = formId.toLowerCase();
+      const linkedProc = processes.find(proc => {
+        if (!proc.workflowFormsData) return false;
+        return Object.entries(proc.workflowFormsData).some(([fName, fData]) => {
+          return fName.toLowerCase() === target || 
+                 (fData.formId && fData.formId.toLowerCase() === target) ||
+                 (fData.formTitle && fData.formTitle.toLowerCase() === target);
+        });
+      });
+      if (linkedProc) return linkedProc.title;
+    }
+
+    // 2. Fallback: Nếu form hiện tại không gắn vào quy trình nào, kiểm tra procId lịch sử
+    if (procId && procId !== 'unlinked') {
+      const p = processes.find(proc => proc.id === procId);
+      if (p) return p.title;
+    }
+
+    // 3. Mặc định là Biểu mẫu tự do
+    return 'Biểu mẫu tự do';
   };
 
   // 2. Filter logic
   const filteredSubmissions = submissions.filter(sub => {
-    const procTitle = getProcessTitle(sub.processId).toLowerCase();
+    const procTitle = getProcessTitle(sub.processId, sub.formId).toLowerCase();
     const opId = sub.operatorId.toLowerCase();
     const subId = sub.id.toLowerCase();
     const fId = (sub.formId || '').toLowerCase();
@@ -490,7 +510,7 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
                       >
                         <td style={{ padding: '0.6rem 0.75rem', fontWeight: 500, fontFamily: 'monospace', verticalAlign: 'middle' }}>{sub.id}</td>
                         <td style={{ padding: '0.6rem 0.75rem', fontWeight: 600, verticalAlign: 'middle' }}>
-                          <div>{getProcessTitle(sub.processId)}</div>
+                          <div>{getProcessTitle(sub.processId, sub.formId)}</div>
                           {sub.formId && (
                             <div style={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--text-secondary)', marginTop: '2px' }}>
                               Template: {sub.formId}
@@ -620,7 +640,7 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid var(--neutral-border)', paddingBottom: '0.75rem' }}>
               <div>
                 <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Snapshot Detail</span>
-                <h3 style={{ margin: '0.15rem 0 0 0', fontSize: '1rem', color: 'var(--text-primary)' }}>{getProcessTitle(selectedSubmission.processId)}</h3>
+                <h3 style={{ margin: '0.15rem 0 0 0', fontSize: '1rem', color: 'var(--text-primary)' }}>{getProcessTitle(selectedSubmission.processId, selectedSubmission.formId)}</h3>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontFamily: 'monospace', marginTop: '0.1rem' }}>ID: {selectedSubmission.id}</div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>

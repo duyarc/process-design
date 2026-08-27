@@ -446,6 +446,7 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 | 2026-08-27 | `CURRENT` | **Minimal Copy Submission Workflow & Admin Deletion:** Replaced in-place editing with an immutable Copy-to-New workflow (Copy button in Submission Detail Drawer and Success Screen only, keeping list views clean). Submissions created via Copy receive fresh sequential IDs upon submit. Admin deletion guarded by `ConfirmModal`. |
 | 2026-08-27 | `CURRENT` | **Zero-Interruption Submission Flow & Non-Blocking Toast Feedback:** Eliminated full-page Success Screen. Form submission now triggers non-blocking toast notifications (`✓ Đã gửi phiếu thành công! (Mã: ID)`) and automatically navigates back to previous screen (or auto-resets form on public guest URLs). |
 | 2026-08-27 | `CURRENT` | **Read-Only Full Online Form View & Drawer Interaction Partitioning:** Added `readOnly` mode to `FormFiller.tsx` (locking inputs, disabling editing, rendering top metadata banner, and footer action bar). Clicking table rows opens the Slide-over Drawer (Quick Glance & Audit), while clicking Eye icon or Drawer's `[Toàn văn]` button opens the full digital online form view. |
+| 2026-08-27 | `CURRENT` | **Form-Centric Dynamic Process Link Resolution:** Upgraded `getProcessTitle(procId, formId)` and search filters in `SubmissionManager.tsx` to prioritize the active form mapping across processes, so submissions automatically reflect updated process names when forms are linked, re-linked, or unlinked. |
 
 
 

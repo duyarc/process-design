@@ -2305,13 +2305,32 @@ app.get('/api/storage/download-inline', async (req, res) => {
 });
 
 
-// GET /api/submissions - Retrieve all submissions from Supabase
+// GET /api/submissions - Retrieve all submissions from Supabase with dynamic process link
 app.get('/api/submissions', async (req, res) => {
   try {
     if (!dbPool) {
       return res.status(503).json({ error: 'Database connection not available.' });
     }
-    const result = await dbPool.query('SELECT * FROM submissions ORDER BY submitted_at DESC');
+    const result = await dbPool.query(`
+      SELECT 
+        s.id,
+        COALESCE(pf.process_id, s.process_id, 'unlinked') AS process_id,
+        s.form_id,
+        s.form_version,
+        s.operator_id,
+        s.status,
+        s.submitted_at,
+        s.form_data,
+        s.media_urls,
+        s.supervisor_signoff
+      FROM submissions s
+      LEFT JOIN LATERAL (
+        SELECT process_id FROM process_forms 
+        WHERE LOWER(form_name) = LOWER(s.form_id) OR LOWER(form_id) = LOWER(s.form_id)
+        LIMIT 1
+      ) pf ON TRUE
+      ORDER BY s.submitted_at DESC
+    `);
     const mappedRows = result.rows.map(row => ({
       id: row.id,
       processId: row.process_id,
@@ -2376,6 +2395,17 @@ app.post('/api/submissions', async (req, res) => {
     let { id, processId, formId, formVersion, operatorId, status, formData, mediaUrls } = req.body;
     if (!processId || !formId || !operatorId || !status || !formData) {
       return res.status(400).json({ error: 'Missing required submission fields.' });
+    }
+
+    // Auto-resolve current process_id from process_forms if unlinked or missing
+    if (!processId || processId === 'unlinked') {
+      const pfRes = await dbPool.query(
+        `SELECT process_id FROM process_forms WHERE LOWER(form_name) = LOWER($1) OR LOWER(form_id) = LOWER($1) LIMIT 1`,
+        [formId]
+      );
+      if (pfRes.rows.length > 0 && pfRes.rows[0].process_id) {
+        processId = pfRes.rows[0].process_id;
+      }
     }
 
     // Auto-generate human-friendly sequential ID if not supplied or legacy sub_ format
