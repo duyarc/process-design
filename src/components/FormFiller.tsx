@@ -66,8 +66,7 @@ import {
   Star,
   FileText,
   Globe,
-  Lock,
-  Copy
+  Lock
 } from 'lucide-react';
 
 const parseSubtableValue = (val: string): Record<string, string>[] => {
@@ -131,7 +130,8 @@ const AutoResizingTextarea: React.FC<AutoResizingTextareaProps> = ({
 interface FormFillerProps {
   processId: string;
   formName: string;
-  onBack: () => void;
+  onBack?: () => void;
+  onSubmitSuccess?: (submissionId: string) => void;
   initialSubmission?: Submission;
   editSubmissionId?: string;
   isPublicGuestMode?: boolean;
@@ -142,6 +142,7 @@ function FormFillerInner({
   processId, 
   formName, 
   onBack, 
+  onSubmitSuccess,
   initialSubmission, 
   editSubmissionId,
   isPublicGuestMode
@@ -159,14 +160,15 @@ function FormFillerInner({
   const [signInputs, setSignInputs] = useState<{ [fieldId: string]: string }>({});
   const [signOpen, setSignOpen] = useState<{ [fieldId: string]: boolean }>({});
   const [submitting, setSubmitting] = useState(false);
-  const [submittedId, setSubmittedId] = useState<string | null>(null);
-  const [lastSubmittedSnapshot, setLastSubmittedSnapshot] = useState<{
-    formValues: { [fieldId: string]: string };
-    fieldReactions: { [fieldId: string]: string };
-    uploadedPhotos: { [fieldId: string]: string[] };
-    operatorId: string;
-    signValues: { [fieldId: string]: { name: string; confirmedAt: string } | null };
-  } | null>(null);
+  const [localToast, setLocalToast] = useState<{ message: string; id: string } | null>(null);
+
+  useEffect(() => {
+    if (localToast) {
+      const timer = setTimeout(() => setLocalToast(null), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [localToast]);
+
   const [showPrintBlank, setShowPrintBlank] = useState(false);
   const [autoExportPdf, setAutoExportPdf] = useState(false);
   const [printCurrentSubmission, setPrintCurrentSubmission] = useState<Submission | null>(null);
@@ -808,17 +810,6 @@ function FormFillerInner({
       const resData = await res.json();
       const finalId = resData.id || submissionId;
        
-      setSubmittedId(finalId);
-      
-      // Save snapshot for potential copy action before resetting
-      setLastSubmittedSnapshot({
-        formValues: { ...formValues },
-        fieldReactions: { ...fieldReactions },
-        uploadedPhotos: { ...uploadedPhotos },
-        operatorId,
-        signValues: { ...signValues }
-      });
-
       // Reset active editing states
       setFormValues({});
       setFieldReactions({});
@@ -827,6 +818,17 @@ function FormFillerInner({
       setSignValues({});
       setSignInputs({});
       setSignOpen({});
+
+      // Trigger success toast
+      const successMsg = `Đã gửi phiếu thành công! (Mã: ${finalId})`;
+      setLocalToast({ message: successMsg, id: finalId });
+
+      // Auto-return or notify parent
+      if (onSubmitSuccess) {
+        onSubmitSuccess(finalId);
+      } else if (onBack && !isPublicGuestMode) {
+        onBack();
+      }
     } catch (err) {
       console.error(err);
       alert(`Failed to submit: ${err instanceof Error ? err.message : 'Server error'}`);
@@ -834,74 +836,6 @@ function FormFillerInner({
       setSubmitting(false);
     }
   };
-
-  // Helper: Copy last submitted data to create a new submission
-  const handleCopyLastSubmitted = () => {
-    if (lastSubmittedSnapshot) {
-      setFormValues(lastSubmittedSnapshot.formValues);
-      setFieldReactions(lastSubmittedSnapshot.fieldReactions);
-      setUploadedPhotos(lastSubmittedSnapshot.uploadedPhotos);
-      setOperatorId(lastSubmittedSnapshot.operatorId);
-      setSignValues(lastSubmittedSnapshot.signValues);
-    }
-    setSubmittedId(null);
-  };
-
-  // Helper: Reset to completely blank form
-  const handleFillNewBlank = () => {
-    setFormValues({});
-    setFieldReactions({});
-    setUploadedPhotos({});
-    setOperatorId('');
-    setSignValues({});
-    setSignInputs({});
-    setSignOpen({});
-    setLastSubmittedSnapshot(null);
-    setSubmittedId(null);
-  };
-
-  // Submission success UI
-  if (submittedId) {
-    return (
-      <div className="paper-card" style={{ padding: '3rem 2rem', textAlign: 'center', maxWidth: '600px', margin: '4rem auto', borderTop: '4px solid #10b981' }}>
-        <CheckCircle2 size={56} style={{ color: '#10b981', marginBottom: '1.25rem' }} />
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 700, margin: '0 0 0.5rem 0' }}>
-          Record Submitted Successfully!
-        </h2>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1.75rem' }}>
-          Phiếu kiểm tra đã được lưu trữ an toàn vào hệ thống.
-          <br />
-          Submission ID: <strong style={{ fontFamily: 'monospace', color: 'var(--text-primary)' }}>{submittedId}</strong>
-        </p>
-        
-        <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-          <button 
-            type="button"
-            className="btn btn-primary" 
-            onClick={handleCopyLastSubmitted}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
-          >
-            <Copy size={15} />
-            <span>Sao chép dữ liệu để tạo phiếu mới</span>
-          </button>
-          
-          <button 
-            type="button"
-            className="btn btn-secondary" 
-            onClick={handleFillNewBlank}
-          >
-            Điền phiếu trắng mới
-          </button>
-          
-          {onBack && (
-            <button type="button" className="btn btn-secondary" onClick={onBack}>
-              Quay lại
-            </button>
-          )}
-        </div>
-      </div>
-    );
-  }
 
   // Print blank form overlay
   if (showPrintBlank && formTemplate) {
@@ -2640,6 +2574,31 @@ function FormFillerInner({
         </div>
 
       </div>
+
+      {/* Floating Local Toast Notification */}
+      {localToast && (
+        <div style={{
+          position: 'fixed',
+          bottom: '24px',
+          right: '24px',
+          backgroundColor: '#0f172a',
+          color: '#ffffff',
+          padding: '0.75rem 1.25rem',
+          borderRadius: '8px',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.18)',
+          zIndex: 10000,
+          fontSize: '0.88rem',
+          fontWeight: 500,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          border: '1px solid rgba(255,255,255,0.1)',
+          animation: 'toast-slide-in 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards'
+        }}>
+          <CheckCircle2 size={16} style={{ color: '#10b981' }} />
+          <span>{localToast.message}</span>
+        </div>
+      )}
     </div>
   );
 }

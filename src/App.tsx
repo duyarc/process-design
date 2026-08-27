@@ -396,6 +396,10 @@ const MainApp: React.FC = () => {
           <FormFiller
             processId={selectedProcessId!}
             formName={selectedFormName!}
+            onSubmitSuccess={(subId) => {
+              setToastMessage(`Đã gửi phiếu thành công! (Mã: ${subId})`);
+              setPage('form-manager');
+            }}
             onBack={() => setPage('form-manager')}
           />
         )}
