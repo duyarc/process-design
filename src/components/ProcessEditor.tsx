@@ -1165,6 +1165,21 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
       const dataSrc = customFormsData || workflowFormsData;
       if (name && dataSrc[name]) {
         cleanedFormsData[name] = dataSrc[name];
+      } else if (name) {
+        // Form is linked in a step but has no workflowFormsData entry yet (e.g. newly linked, not yet built).
+        // Preserve a minimal stub so syncProcessForms can write the link to process_forms.
+        // Look up formId from allForms to populate the stub correctly.
+        const matchedForm = allForms.find((f: any) =>
+          f.form_id === name || f.form_name === name ||
+          (f.form_id && f.form_id.toLowerCase() === name.toLowerCase()) ||
+          (f.form_name && f.form_name.toLowerCase() === name.toLowerCase())
+        );
+        cleanedFormsData[name] = {
+          formId: matchedForm?.form_id || name,
+          formTitle: matchedForm?.form_title || matchedForm?.form_name || name,
+          version: matchedForm?.version || 'v0.1',
+          status: matchedForm?.status || 'DRAFT'
+        };
       }
     });
 
