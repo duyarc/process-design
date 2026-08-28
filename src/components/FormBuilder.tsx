@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import type { FormFieldISO, FormRevisionEntry, FormTemplateISO, LayoutBlockISO, RadioOption, MatrixConfigISO, TableColumnConfig, TableRowConfig, ColumnSummaryRowConfig, TitleFormatISO, SubtableColumn } from '../types';
 import { formatFormVersion, getColStyleWidth } from '../types';
 import { sanitizeLabel, getEffectiveTitleFormat, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, isSeamlessTableBlock, getInfoGridTemplateColumns, snap2ColWidth, snap3ColWidths, INFO_GRID_2COL_PRESETS, generateSmartFieldSlug, getCheckboxGridTemplate } from '../utils/formUtils';
-import { applyTextFormat, handleFormatKeyDown, renderFormattedText } from '../utils/textFormatter';
+import { applyTextFormat, handleFormatKeyDown } from '../utils/textFormatter';
 import { 
   Plus, 
   Trash2, 
@@ -4214,6 +4214,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                  const isInline = canTableOptionsFitInline(cellOptions, col.width, col.checkboxLayout);
                                                  return (
                                                    <div style={{
+                                                     position: 'relative',
                                                      display: col.checkboxLayout === '2-column' ? 'grid' : 'flex',
                                                      gridTemplateColumns: col.checkboxLayout === '2-column' ? getCheckboxGridTemplate(cellOptions) : undefined,
                                                      flexDirection: col.checkboxLayout === '2-column' ? undefined : isInline ? 'row' : 'column',
@@ -4222,8 +4223,39 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                      alignItems: 'center',
                                                      justifyContent: isInline ? (cellAlign === 'center' ? 'center' : cellAlign === 'right' ? 'flex-end' : 'flex-start') : undefined,
                                                      padding: '4px 6px',
-                                                     width: '100%'
+                                                     width: '100%',
+                                                     boxSizing: 'border-box'
                                                    }}>
+                                                     {isCustomCellOpts && !isLocked && (
+                                                       <button
+                                                         type="button"
+                                                         onClick={(e) => {
+                                                           e.stopPropagation();
+                                                           handleResetCellOptions(block.id, row.id, col.id);
+                                                         }}
+                                                         style={{
+                                                           position: 'absolute',
+                                                           top: '2px',
+                                                           right: '2px',
+                                                           background: '#fff7ed',
+                                                           border: '1px solid #fed7aa',
+                                                           borderRadius: '3px',
+                                                           color: '#c2410c',
+                                                           cursor: 'pointer',
+                                                           fontSize: '0.62rem',
+                                                           padding: '1px 3px',
+                                                           display: 'flex',
+                                                           alignItems: 'center',
+                                                           gap: '2px',
+                                                           zIndex: 2,
+                                                           lineHeight: 1
+                                                         }}
+                                                         title="Khôi phục về dùng chung cấu hình Cột"
+                                                       >
+                                                         🔄
+                                                       </button>
+                                                     )}
+
                                                      {cellOptions.map((opt, oIdx) => (
                                                        <div 
                                                          key={oIdx} 
@@ -4242,9 +4274,71 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                            disabled 
                                                            style={{ pointerEvents: 'none', flexShrink: 0, marginTop: 0, transform: 'scale(1.0)' }} 
                                                          />
-                                                         <span style={{ lineHeight: '1.35', whiteSpace: isInline ? 'nowrap' : 'pre-wrap', wordBreak: isInline ? 'normal' : 'break-word', flex: isInline ? undefined : 1 }}>
-                                                           {renderFormattedText(opt.label)}
-                                                         </span>
+                                                         {/* Direct In-Cell Editable Label with Auto-grow Mirror */}
+                                                          <div style={{ display: 'grid', flex: isInline ? undefined : 1, minWidth: isInline ? '32px' : 0, boxSizing: 'border-box' }}>
+                                                            <span
+                                                              aria-hidden="true"
+                                                              style={{
+                                                                gridArea: '1 / 1 / 2 / 2',
+                                                                visibility: 'hidden',
+                                                                whiteSpace: isInline ? 'nowrap' : 'pre-wrap',
+                                                                wordBreak: isInline ? 'normal' : 'break-word',
+                                                                fontSize: '0.82rem',
+                                                                lineHeight: 1.35,
+                                                                fontFamily: 'inherit',
+                                                                padding: '1px 3px',
+                                                                minHeight: '18px'
+                                                              }}
+                                                            >
+                                                              {(opt.label || '') + ' '}
+                                                            </span>
+                                                            <textarea
+                                                              disabled={isLocked}
+                                                              rows={1}
+                                                              value={opt.label}
+                                                              placeholder="Tùy chọn..."
+                                                              onClick={(e) => e.stopPropagation()}
+                                                              onKeyDown={(e) => handleFormatKeyDown(e, opt.label, (val) => {
+                                                                const newOpts = [...cellOptions];
+                                                                newOpts[oIdx] = { ...newOpts[oIdx], label: val };
+                                                                handleUpdateCellOptions(block.id, row.id, col.id, newOpts);
+                                                              })}
+                                                              onChange={(e) => {
+                                                                const newOpts = [...cellOptions];
+                                                                newOpts[oIdx] = { ...newOpts[oIdx], label: e.target.value };
+                                                                handleUpdateCellOptions(block.id, row.id, col.id, newOpts);
+                                                              }}
+                                                              style={{
+                                                                gridArea: '1 / 1 / 2 / 2',
+                                                                width: '100%',
+                                                                height: '100%',
+                                                                fontSize: '0.82rem',
+                                                                lineHeight: 1.35,
+                                                                fontFamily: 'inherit',
+                                                                color: 'var(--text-primary)',
+                                                                border: 'none',
+                                                                borderBottom: '1px dotted transparent',
+                                                                borderRadius: 0,
+                                                                background: 'transparent',
+                                                                outline: 'none',
+                                                                padding: '1px 3px',
+                                                                margin: 0,
+                                                                resize: 'none',
+                                                                overflow: 'hidden',
+                                                                whiteSpace: isInline ? 'nowrap' : 'pre-wrap',
+                                                                wordBreak: isInline ? 'normal' : 'break-word',
+                                                                cursor: isLocked ? 'default' : 'text'
+                                                              }}
+                                                              onFocus={(e) => {
+                                                                e.target.style.borderBottom = '1px solid var(--primary)';
+                                                                e.target.style.background = 'rgba(255, 255, 255, 0.9)';
+                                                              }}
+                                                              onBlur={(e) => {
+                                                                e.target.style.borderBottom = '1px dotted transparent';
+                                                                e.target.style.background = 'transparent';
+                                                              }}
+                                                            />
+                                                          </div>
                                                        </div>
                                                      ))}
                                                    </div>
@@ -6229,91 +6323,6 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                               >
                                 🔄 Chuyển sang dòng dữ liệu thường
                               </button>
-                            </div>
-                          </div>
-                        );
-                      })()}
-
-                      {/* Card tùy biến Lựa chọn cho Ô được chọn (Cell Options Override Inspector - Hiển thị ưu tiên ở trên cùng) */}
-                      {activeCellKey && activeBlock?.type === 'TABLE' && (() => {
-                        const [cellRowId, cellColId] = activeCellKey.split('_');
-                        const cellCol = activeBlock.tableColumns?.find(c => c.id === cellColId);
-                        if (!cellCol || (cellCol.type !== 'checkbox' && cellCol.type !== 'radio')) return null;
-
-                        const rowIdx = activeBlock.tableRows?.findIndex(r => r.id === cellRowId) ?? 0;
-                        const staticCol = activeBlock.tableColumns?.find(c => c.type === 'static_text');
-                        const rowLabel = staticCol ? (activeBlock.tableData?.[cellRowId]?.[staticCol.id] || `Dòng ${rowIdx + 1}`) : `Dòng ${rowIdx + 1}`;
-
-                        const isCustom = activeBlock.cellOptionsMap?.[activeCellKey] !== undefined;
-                        const currentCellOptions = getEffectiveCellOptions(activeBlock, cellRowId, cellColId);
-
-                        return (
-                          <div style={{ marginBottom: '0.25rem' }}>
-                            <div style={{ background: isCustom ? '#eff6ff' : '#f0fdf4', border: `1.5px solid ${isCustom ? '#3b82f6' : '#86efac'}`, borderRadius: '6px', padding: '0.65rem' }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-                                <span style={{ fontWeight: 700, fontSize: '0.8rem', color: isCustom ? '#1e40af' : '#166534' }}>
-                                  ✨ Tùy biến Lựa chọn cho Ô này
-                                </span>
-                                {isCustom && (
-                                  <button
-                                    type="button"
-                                    disabled={isLocked}
-                                    onClick={() => handleResetCellOptions(activeBlock.id, cellRowId, cellColId)}
-                                    style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', fontSize: '0.7rem', textDecoration: 'underline', padding: 0 }}
-                                    title="Khôi phục về dùng chung cấu hình Cột"
-                                  >
-                                    🔄 Dùng lại Cột
-                                  </button>
-                                )}
-                              </div>
-                              <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginBottom: '0.5rem', lineHeight: 1.35 }}>
-                                Vị trí: <strong style={{ color: '#0f172a' }}>{rowLabel}</strong><br />
-                                Cột: <strong style={{ color: '#0f172a' }}>"{cellCol.label}"</strong> ({cellCol.type === 'checkbox' ? 'Checkbox' : 'Radio'})
-                              </div>
-                              
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', marginBottom: '0.5rem' }}>
-                                {currentCellOptions.map((opt, oIdx) => (
-                                  <div key={oIdx} style={{ display: 'flex', gap: '0.3rem', alignItems: 'center' }}>
-                                    <input
-                                      type="text"
-                                      disabled={isLocked}
-                                      placeholder="Nhãn lựa chọn"
-                                      value={opt.label}
-                                      onChange={(e) => {
-                                        const newOpts = [...currentCellOptions];
-                                        newOpts[oIdx] = { ...newOpts[oIdx], label: e.target.value };
-                                        handleUpdateCellOptions(activeBlock.id, cellRowId, cellColId, newOpts);
-                                      }}
-                                      style={{ flex: 1, padding: '0.2rem 0.3rem', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', backgroundColor: '#ffffff' }}
-                                    />
-                                    <button
-                                      type="button"
-                                      disabled={isLocked}
-                                      onClick={() => {
-                                        const newOpts = currentCellOptions.filter((_, i) => i !== oIdx);
-                                        handleUpdateCellOptions(activeBlock.id, cellRowId, cellColId, newOpts);
-                                      }}
-                                      style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '0 4px', fontSize: '0.8rem' }}
-                                      title="Xóa lựa chọn này khỏi ô"
-                                    >
-                                      ✕
-                                    </button>
-                                  </div>
-                                ))}
-                              </div>
-
-                              {!isLocked && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const newOpts = [...currentCellOptions, { label: 'Lựa chọn mới', value: `OPT_${Date.now()}`, isPass: true }];
-                                    handleUpdateCellOptions(activeBlock.id, cellRowId, cellColId, newOpts);
-                                  }}
-                                  style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '0.25rem 0.5rem', fontSize: '0.72rem', borderRadius: '4px', border: '1px dashed #3b82f6', background: '#ffffff', color: '#1d4ed8', cursor: 'pointer', fontWeight: 500 }}
-                                >
-                                  <Plus size={11} /> Thêm tùy chọn cho Ô
-                                </button>
-                              )}
                             </div>
                           </div>
                         );
