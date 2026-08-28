@@ -374,13 +374,13 @@ export function groupBlocksIntoSections(layoutBlocks: LayoutBlockISO[]): FormSec
   let currentH1: typeof rawH1Sections[0] | null = null;
   let sectionCounter = 0;
 
-  // Bước 1: Gom các khối thành các Section H1
+  // Bước 1: Gom các khối thành các Section H1 (CHỈ KHI getEffectiveTitleFormat === 'H1')
   layoutBlocks.forEach((block, idx) => {
     if ((block.type as string) === 'PAGE_BREAK') return;
 
-    const titleFmt = block.titleFormat || (block.type === 'SECTION_LABEL' ? 'H1' : 'NONE');
-    const isH1 = titleFmt === 'H1' && !!block.title;
-    const isSectionHeader = (block.type === 'SECTION_LABEL' && titleFmt === 'H1') || (idx > 0 && isH1);
+    const effectiveFmt = getEffectiveTitleFormat(block);
+    const isH1 = effectiveFmt === 'H1' && !!block.title?.trim();
+    const isSectionHeader = (block.type === 'SECTION_LABEL' && effectiveFmt === 'H1') || (idx > 0 && isH1);
 
     if (isSectionHeader) {
       if (currentH1 && currentH1.id === 'section_overview' && currentH1.blocks.every(b => b.type === 'TITLE' || !b.fields || b.fields.length === 0)) {
@@ -420,7 +420,7 @@ export function groupBlocksIntoSections(layoutBlocks: LayoutBlockISO[]): FormSec
     }
   });
 
-  // Bước 2: Tách từng H1 thành leadingBlocks và subSections (H2)
+  // Bước 2: Tách từng H1 thành leadingBlocks và subSections (CHỈ KHI getEffectiveTitleFormat === 'H2')
   return rawH1Sections.map((sec, h1Idx) => {
     const leadingBlocks: LayoutBlockISO[] = [];
     const subSections: FormSubSectionGroup[] = [];
@@ -428,14 +428,16 @@ export function groupBlocksIntoSections(layoutBlocks: LayoutBlockISO[]): FormSec
     let subCounter = 0;
 
     sec.blocks.forEach((block, bIdx) => {
-      // Bỏ qua tiêu đề SECTION_LABEL H1 ở đầu
-      if (bIdx === 0 && block.type === 'SECTION_LABEL' && (block.titleFormat || 'H1') === 'H1') {
+      const effectiveFmt = getEffectiveTitleFormat(block);
+
+      // Bỏ qua tiêu đề SECTION_LABEL H1 ở đầu section
+      if (bIdx === 0 && block.type === 'SECTION_LABEL' && effectiveFmt === 'H1') {
         leadingBlocks.push(block);
         return;
       }
 
-      const blockFmt = block.titleFormat || (block.type === 'SECTION_LABEL' ? 'H1' : (block.title ? 'H2' : 'NONE'));
-      const isH2 = (block.type === 'SECTION_LABEL' && blockFmt === 'H2') || (blockFmt === 'H2' && !!block.title);
+      // CHỈ KHI thực sự là 'H2' và có tiêu đề không rỗng
+      const isH2 = effectiveFmt === 'H2' && !!block.title?.trim();
 
       if (isH2) {
         subCounter++;
@@ -450,6 +452,7 @@ export function groupBlocksIntoSections(layoutBlocks: LayoutBlockISO[]): FormSec
         };
         subSections.push(currentSub);
       } else {
+        // Các khối khác (kể cả BODY, NONE, INFO_GRID, TABLE...) gom vào danh sách nội dung
         if (currentSub) {
           currentSub.blocks.push(block);
         } else {

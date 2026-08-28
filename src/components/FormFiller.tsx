@@ -2627,7 +2627,7 @@ function FormFillerInner({
 
                             {/* 1. Leading blocks (các khối nằm trước H2 đầu tiên) */}
                             {sec.leadingBlocks && sec.leadingBlocks.map((block, bIdx) => {
-                              if (bIdx === 0 && block.type === 'SECTION_LABEL' && (block.titleFormat || 'H1') === 'H1') {
+                              if (bIdx === 0 && block.type === 'SECTION_LABEL' && getEffectiveTitleFormat(block) === 'H1') {
                                 return null;
                               }
                               return renderBlock(block, bIdx, sec.leadingBlocks);
@@ -2718,7 +2718,7 @@ function FormFillerInner({
                                             </p>
                                           )}
                                           {subSec.blocks.map((block, bIdx) => {
-                                            if (bIdx === 0 && block.type === 'SECTION_LABEL' && (block.titleFormat || 'H1') === 'H2') {
+                                            if (bIdx === 0 && block.type === 'SECTION_LABEL' && getEffectiveTitleFormat(block) === 'H2') {
                                               return null;
                                             }
                                             return renderBlock(block, bIdx, subSec.blocks);
@@ -2732,7 +2732,7 @@ function FormFillerInner({
                             ) : (
                               /* Fallback: Nếu không có H2, render toàn bộ blocks trực tiếp */
                               sec.blocks.map((block, bIdx) => {
-                                if (bIdx === 0 && block.type === 'SECTION_LABEL' && (block.titleFormat || 'H1') === 'H1') {
+                                if (bIdx === 0 && block.type === 'SECTION_LABEL' && getEffectiveTitleFormat(block) === 'H1') {
                                   return null;
                                 }
                                 return renderBlock(block, bIdx, sec.blocks);
