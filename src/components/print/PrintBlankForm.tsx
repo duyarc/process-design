@@ -1316,7 +1316,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                           flexDirection: col.checkboxLayout === '2-column' ? undefined : (isInline ? 'row' : 'column'),
                                           flexWrap: isInline ? 'wrap' : undefined,
                                           gap: col.checkboxLayout === '2-column' ? '3px 8px' : (isInline ? '4px 12px' : '3px'),
-                                          alignItems: isInline ? 'center' : 'start',
+                                          alignItems: isInline ? 'center' : (cellAlign === 'center' ? 'center' : cellAlign === 'right' ? 'flex-end' : 'flex-start'),
                                           justifyContent: isInline ? (cellAlign === 'center' ? 'center' : cellAlign === 'right' ? 'flex-end' : 'flex-start') : undefined,
                                           width: '100%'
                                         }}>
@@ -1329,8 +1329,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                               color: '#000000',
                                               textAlign: 'left',
                                               lineHeight: 1.2,
-                                              width: isInline ? 'auto' : '100%',
-                                              whiteSpace: isInline ? 'nowrap' : 'normal'
+                                              width: isInline ? 'auto' : (cellAlign === 'center' || cellAlign === 'right' ? 'fit-content' : '100%'), whiteSpace: isInline ? 'nowrap' : 'normal'
                                             }}>
                                               <span
                                                 className="acro-option-icon"
@@ -1346,7 +1345,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                                   flexShrink: 0
                                                 }}
                                               />
-                                              <span style={{ fontSize: '0.80rem', lineHeight: 1.3, whiteSpace: isInline ? 'nowrap' : 'pre-wrap', wordBreak: isInline ? 'normal' : 'break-word', flex: isInline ? undefined : 1 }}>{renderFormattedText(opt.label)}</span>
+                                              <span style={{ fontSize: '0.80rem', lineHeight: 1.3, textAlign: 'left', whiteSpace: isInline ? 'nowrap' : 'pre-wrap', wordBreak: isInline ? 'normal' : 'break-word', flex: isInline ? undefined : (cellAlign === 'center' || cellAlign === 'right' ? undefined : 1) }}>{renderFormattedText(opt.label)}</span>
                                             </div>
                                           ))}
                                         </div>

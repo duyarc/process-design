@@ -1215,7 +1215,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                                         flexDirection: col.checkboxLayout === '2-column' ? undefined : isInline ? 'row' : 'column',
                                         flexWrap: isInline ? 'wrap' : undefined,
                                         gap: col.checkboxLayout === '2-column' ? '4px 12px' : isInline ? '4px 12px' : '5px',
-                                        alignItems: 'center',
+                                        alignItems: isInline ? 'center' : (cellAlign === 'center' ? 'center' : cellAlign === 'right' ? 'flex-end' : 'flex-start'),
                                         justifyContent: isInline ? (cellAlign === 'center' ? 'center' : cellAlign === 'right' ? 'flex-end' : 'flex-start') : undefined,
                                         padding: '4px 0',
                                         width: '100%'
@@ -1224,7 +1224,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                                          const currentValues = cellValue ? cellValue.split(',').filter(Boolean) : [];
                                          const isChecked = currentValues.includes(opt.value || opt.label);
                                          return (
-                                           <div key={oIdx} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#000000', width: isInline ? 'auto' : '100%', whiteSpace: isInline ? 'nowrap' : undefined }}>
+                                           <div key={oIdx} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#000000', width: isInline ? 'auto' : (cellAlign === 'center' || cellAlign === 'right' ? 'fit-content' : '100%'), textAlign: 'left', whiteSpace: isInline ? 'nowrap' : undefined }}>
                                              <span style={{
                                                display: 'inline-flex',
                                                justifyContent: 'center',
@@ -1242,7 +1242,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                                              }}>
                                                {isChecked ? '✓' : ''}
                                              </span>
-                                             <span style={{ color: isChecked ? '#000000' : '#64748b', lineHeight: 1.3, whiteSpace: isInline ? 'nowrap' : 'pre-wrap', wordBreak: isInline ? 'normal' : 'break-word', flex: isInline ? undefined : 1 }}>{renderFormattedText(opt.label)}</span>
+                                             <span style={{ color: isChecked ? '#000000' : '#64748b', lineHeight: 1.3, textAlign: 'left', whiteSpace: isInline ? 'nowrap' : 'pre-wrap', wordBreak: isInline ? 'normal' : 'break-word', flex: isInline ? undefined : (cellAlign === 'center' || cellAlign === 'right' ? undefined : 1) }}>{renderFormattedText(opt.label)}</span>
                                            </div>
                                          );
                                        })}
@@ -1264,7 +1264,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                                        flexDirection: col.checkboxLayout === '2-column' ? undefined : isInline ? 'row' : 'column',
                                        flexWrap: isInline ? 'wrap' : undefined,
                                        gap: col.checkboxLayout === '2-column' ? '4px 12px' : isInline ? '4px 12px' : '5px',
-                                       alignItems: 'center',
+                                       alignItems: isInline ? 'center' : (cellAlign === 'center' ? 'center' : cellAlign === 'right' ? 'flex-end' : 'flex-start'),
                                        justifyContent: isInline ? (cellAlign === 'center' ? 'center' : cellAlign === 'right' ? 'flex-end' : 'flex-start') : undefined,
                                        padding: '4px 0',
                                        width: '100%'
@@ -1272,7 +1272,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                                        {opts.map((opt: any, oIdx: number) => {
                                         const isChecked = cellValue === (opt.value || opt.label);
                                         return (
-                                          <div key={oIdx} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', color: '#000000', width: isInline ? 'auto' : '100%', whiteSpace: isInline ? 'nowrap' : undefined }}>
+                                          <div key={oIdx} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', color: '#000000', width: isInline ? 'auto' : (cellAlign === 'center' || cellAlign === 'right' ? 'fit-content' : '100%'), textAlign: 'left', whiteSpace: isInline ? 'nowrap' : undefined }}>
                                             <span style={{
                                               display: 'inline-flex',
                                               justifyContent: 'center',
@@ -1287,7 +1287,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                                             }}>
                                               {isChecked && <span style={{ width: '4px', height: '4px', background: '#ffffff', borderRadius: '50%' }} />}
                                             </span>
-                                            <span style={{ color: isChecked ? '#000000' : '#64748b', lineHeight: 1.3, whiteSpace: isInline ? 'nowrap' : 'pre-wrap', wordBreak: isInline ? 'normal' : 'break-word', flex: isInline ? undefined : 1 }}>{renderFormattedText(opt.label)}</span>
+                                            <span style={{ color: isChecked ? '#000000' : '#64748b', lineHeight: 1.3, textAlign: 'left', whiteSpace: isInline ? 'nowrap' : 'pre-wrap', wordBreak: isInline ? 'normal' : 'break-word', flex: isInline ? undefined : (cellAlign === 'center' || cellAlign === 'right' ? undefined : 1) }}>{renderFormattedText(opt.label)}</span>
                                           </div>
                                         );
                                       })}

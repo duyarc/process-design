@@ -4221,7 +4221,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                       flexDirection: col.checkboxLayout === '2-column' ? undefined : isInline ? 'row' : 'column',
                                                       flexWrap: isInline ? 'wrap' : undefined,
                                                       gap: col.checkboxLayout === '2-column' ? '4px 12px' : isInline ? '4px 12px' : '4px',
-                                                      alignItems: 'center',
+                                                      alignItems: isInline ? 'center' : (cellAlign === 'center' ? 'center' : cellAlign === 'right' ? 'flex-end' : 'flex-start'),
                                                       justifyContent: isInline ? (cellAlign === 'center' ? 'center' : cellAlign === 'right' ? 'flex-end' : 'flex-start') : undefined,
                                                       padding: '4px 6px',
                                                       width: '100%',
@@ -4301,9 +4301,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                             alignItems: 'center', 
                                                             gap: '4px', 
                                                             fontSize: '0.82rem', 
-                                                            color: 'var(--text-primary)', 
-                                                            width: isInline ? 'auto' : '100%', 
-                                                            whiteSpace: isInline ? 'nowrap' : undefined 
+                                                            color: 'var(--text-primary)', width: isInline ? 'auto' : (cellAlign === 'center' || cellAlign === 'right' ? 'fit-content' : '100%'), textAlign: 'left', whiteSpace: isInline ? 'nowrap' : undefined 
                                                           }}
                                                         >
                                                           <input 

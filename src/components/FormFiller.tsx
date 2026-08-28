@@ -1824,7 +1824,7 @@ function FormFillerInner({
                                             flexDirection: col.checkboxLayout === '2-column' ? undefined : (isInline ? 'row' : 'column'),
                                             flexWrap: isInline ? 'wrap' : undefined,
                                             gap: col.checkboxLayout === '2-column' ? '4px 12px' : (isInline ? '4px 12px' : '5px'),
-                                            alignItems: isInline ? 'center' : 'flex-start',
+                                            alignItems: isInline ? 'center' : (cellAlign === 'center' ? 'center' : cellAlign === 'right' ? 'flex-end' : 'flex-start'),
                                             justifyContent: isInline ? (cellAlign === 'center' ? 'center' : cellAlign === 'right' ? 'flex-end' : 'flex-start') : undefined,
                                             padding: '4px',
                                             width: '100%'
@@ -1833,7 +1833,7 @@ function FormFillerInner({
                                               const currentValues = cellValue ? cellValue.split(',').filter(Boolean) : [];
                                               const isChecked = currentValues.includes(opt.value || opt.label);
                                               return (
-                                                <label key={oIdx} style={{ display: isInline ? 'inline-flex' : 'flex', alignItems: isInline ? 'center' : 'flex-start', gap: '6px', fontSize: '0.82rem', color: 'var(--text-primary)', cursor: 'pointer', margin: 0, width: isInline ? 'auto' : '100%', whiteSpace: isInline ? 'nowrap' : undefined }}>
+                                                <label key={oIdx} style={{ display: isInline ? 'inline-flex' : 'flex', alignItems: isInline ? 'center' : 'flex-start', gap: '6px', fontSize: '0.82rem', color: 'var(--text-primary)', cursor: 'pointer', margin: 0, width: isInline ? 'auto' : (cellAlign === 'center' || cellAlign === 'right' ? 'fit-content' : '100%'), textAlign: 'left', whiteSpace: isInline ? 'nowrap' : undefined }}>
                                                   <input 
                                                     type="checkbox" 
                                                     checked={isChecked} 
@@ -1849,7 +1849,7 @@ function FormFillerInner({
                                                     }} 
                                                     style={{ transform: 'scale(1.0)', cursor: 'pointer', marginTop: isInline ? 0 : '2px', flexShrink: 0 }}
                                                   />
-                                                  <span style={{ lineHeight: '1.35', whiteSpace: isInline ? 'nowrap' : 'pre-wrap', wordBreak: isInline ? 'normal' : 'break-word', flex: isInline ? undefined : 1 }}>{renderFormattedText(opt.label)}</span>
+                                                  <span style={{ lineHeight: '1.35', textAlign: 'left', whiteSpace: isInline ? 'nowrap' : 'pre-wrap', wordBreak: isInline ? 'normal' : 'break-word', flex: isInline ? undefined : (cellAlign === 'center' || cellAlign === 'right' ? undefined : 1) }}>{renderFormattedText(opt.label)}</span>
                                                 </label>
                                               );
                                             })}
@@ -1875,7 +1875,7 @@ function FormFillerInner({
                                           flexDirection: col.checkboxLayout === '2-column' ? undefined : isInline ? 'row' : 'column',
                                           flexWrap: isInline ? 'wrap' : undefined,
                                           gap: col.checkboxLayout === '2-column' ? '4px 12px' : isInline ? '4px 12px' : '5px',
-                                          alignItems: 'center',
+                                          alignItems: isInline ? 'center' : (cellAlign === 'center' ? 'center' : cellAlign === 'right' ? 'flex-end' : 'flex-start'),
                                           justifyContent: isInline ? (cellAlign === 'center' ? 'center' : cellAlign === 'right' ? 'flex-end' : 'flex-start') : undefined,
                                           padding: '4px',
                                           width: '100%'
@@ -1884,7 +1884,7 @@ function FormFillerInner({
                                             const val = opt.value || opt.label;
                                             const isChecked = cellValue === val;
                                             return (
-                                              <label key={oIdx} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', color: 'var(--text-primary)', cursor: 'pointer', margin: 0, width: isInline ? 'auto' : '100%', whiteSpace: isInline ? 'nowrap' : undefined }}>
+                                              <label key={oIdx} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', color: 'var(--text-primary)', cursor: 'pointer', margin: 0, width: isInline ? 'auto' : (cellAlign === 'center' || cellAlign === 'right' ? 'fit-content' : '100%'), textAlign: 'left', whiteSpace: isInline ? 'nowrap' : undefined }}>
                                                 <input 
                                                   type="radio" 
                                                   name={`radio_${cellKey}`}
@@ -1892,7 +1892,7 @@ function FormFillerInner({
                                                   onChange={() => setFormValues(prev => ({ ...prev, [cellKey]: val }))} 
                                                   style={{ cursor: 'pointer', marginTop: 0, flexShrink: 0 }}
                                                 />
-                                                <span style={{ lineHeight: '1.35', whiteSpace: isInline ? 'nowrap' : 'pre-wrap', wordBreak: isInline ? 'normal' : 'break-word', flex: isInline ? undefined : 1 }}>{renderFormattedText(opt.label)}</span>
+                                                <span style={{ lineHeight: '1.35', textAlign: 'left', whiteSpace: isInline ? 'nowrap' : 'pre-wrap', wordBreak: isInline ? 'normal' : 'break-word', flex: isInline ? undefined : (cellAlign === 'center' || cellAlign === 'right' ? undefined : 1) }}>{renderFormattedText(opt.label)}</span>
                                               </label>
                                             );
                                           })}
