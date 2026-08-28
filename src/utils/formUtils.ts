@@ -332,27 +332,49 @@ export { extractTableFields, extractAllFormFields } from './tableFieldExtractor'
 // SECTION GROUPING & PROGRESS TRACKING ENGINE (Focus Mode & Accordion)
 // ============================================================================
 
+export interface FormSubSectionGroup {
+  id: string;
+  index: number;
+  title: string;
+  description?: string;
+  titleFormat: TitleFormatISO;
+  headerBlock?: LayoutBlockISO;
+  blocks: LayoutBlockISO[];
+}
+
 export interface FormSectionGroup {
   id: string;
   index: number;
   title: string;
   description?: string;
   titleFormat: TitleFormatISO;
+  leadingBlocks: LayoutBlockISO[];
+  subSections: FormSubSectionGroup[];
   blocks: LayoutBlockISO[];
 }
 
 /**
- * Gom nhóm danh sách layoutBlocks thành các FormSectionGroup theo mốc SECTION_LABEL (hoặc block có titleFormat === 'H1').
+ * Gom nhóm danh sách layoutBlocks thành các FormSectionGroup theo mốc SECTION_LABEL (hoặc block có titleFormat === 'H1'),
+ * và tự động phân tách các phân đoạn con H2 (subSections) bên trong mỗi H1.
  * Nếu đầu biểu mẫu có các block trước SECTION_LABEL đầu tiên (ví dụ TITLE, INFO_GRID thông tin chung),
  * chúng được gom thành Section 0: "Thông tin chung".
  */
 export function groupBlocksIntoSections(layoutBlocks: LayoutBlockISO[]): FormSectionGroup[] {
   if (!layoutBlocks || layoutBlocks.length === 0) return [];
 
-  const sections: FormSectionGroup[] = [];
-  let currentSection: FormSectionGroup | null = null;
+  const rawH1Sections: {
+    id: string;
+    index: number;
+    title: string;
+    description?: string;
+    titleFormat: TitleFormatISO;
+    blocks: LayoutBlockISO[];
+  }[] = [];
+
+  let currentH1: typeof rawH1Sections[0] | null = null;
   let sectionCounter = 0;
 
+  // Bước 1: Gom các khối thành các Section H1
   layoutBlocks.forEach((block, idx) => {
     if ((block.type as string) === 'PAGE_BREAK') return;
 
@@ -361,18 +383,18 @@ export function groupBlocksIntoSections(layoutBlocks: LayoutBlockISO[]): FormSec
     const isSectionHeader = (block.type === 'SECTION_LABEL' && titleFmt === 'H1') || (idx > 0 && isH1);
 
     if (isSectionHeader) {
-      if (currentSection && currentSection.id === 'section_overview' && currentSection.blocks.every(b => b.type === 'TITLE' || !b.fields || b.fields.length === 0)) {
+      if (currentH1 && currentH1.id === 'section_overview' && currentH1.blocks.every(b => b.type === 'TITLE' || !b.fields || b.fields.length === 0)) {
         // Merge leading TITLE blocks into this first real section
-        const leadingBlocks = currentSection.blocks;
-        currentSection.id = block.id || `section_1`;
-        currentSection.title = block.title || `Phần 1`;
-        currentSection.description = block.description;
-        currentSection.titleFormat = 'H1';
-        currentSection.blocks = [...leadingBlocks, block];
+        const leadingBlocks = currentH1.blocks;
+        currentH1.id = block.id || `section_1`;
+        currentH1.title = block.title || `Phần 1`;
+        currentH1.description = block.description;
+        currentH1.titleFormat = 'H1';
+        currentH1.blocks = [...leadingBlocks, block];
         sectionCounter = 1;
       } else {
         sectionCounter++;
-        currentSection = {
+        currentH1 = {
           id: block.id || `section_${sectionCounter}`,
           index: sectionCounter - 1,
           title: block.title || `Phần ${sectionCounter}`,
@@ -380,29 +402,73 @@ export function groupBlocksIntoSections(layoutBlocks: LayoutBlockISO[]): FormSec
           titleFormat: 'H1',
           blocks: [block]
         };
-        sections.push(currentSection);
+        rawH1Sections.push(currentH1);
       }
     } else {
-      if (!currentSection) {
+      if (!currentH1) {
         sectionCounter++;
-        currentSection = {
+        currentH1 = {
           id: 'section_overview',
           index: 0,
           title: 'Thông tin chung',
           titleFormat: 'H1',
           blocks: []
         };
-        sections.push(currentSection);
+        rawH1Sections.push(currentH1);
       }
-      currentSection.blocks.push(block);
+      currentH1.blocks.push(block);
     }
   });
 
-  sections.forEach((s, idx) => {
-    s.index = idx;
-  });
+  // Bước 2: Tách từng H1 thành leadingBlocks và subSections (H2)
+  return rawH1Sections.map((sec, h1Idx) => {
+    const leadingBlocks: LayoutBlockISO[] = [];
+    const subSections: FormSubSectionGroup[] = [];
+    let currentSub: FormSubSectionGroup | null = null;
+    let subCounter = 0;
 
-  return sections;
+    sec.blocks.forEach((block, bIdx) => {
+      // Bỏ qua tiêu đề SECTION_LABEL H1 ở đầu
+      if (bIdx === 0 && block.type === 'SECTION_LABEL' && (block.titleFormat || 'H1') === 'H1') {
+        leadingBlocks.push(block);
+        return;
+      }
+
+      const blockFmt = block.titleFormat || (block.type === 'SECTION_LABEL' ? 'H1' : (block.title ? 'H2' : 'NONE'));
+      const isH2 = (block.type === 'SECTION_LABEL' && blockFmt === 'H2') || (blockFmt === 'H2' && !!block.title);
+
+      if (isH2) {
+        subCounter++;
+        currentSub = {
+          id: block.id || `subsec_${h1Idx}_${subCounter}`,
+          index: subCounter - 1,
+          title: block.title || `Mục ${subCounter}`,
+          description: block.description,
+          titleFormat: 'H2',
+          headerBlock: block,
+          blocks: [block]
+        };
+        subSections.push(currentSub);
+      } else {
+        if (currentSub) {
+          currentSub.blocks.push(block);
+        } else {
+          leadingBlocks.push(block);
+        }
+      }
+    });
+
+    return {
+      id: sec.id,
+      index: h1Idx,
+      title: sec.title,
+      description: sec.description,
+      titleFormat: sec.titleFormat,
+      leadingBlocks,
+      subSections,
+      blocks: sec.blocks
+    };
+  });
 }
 
 /**

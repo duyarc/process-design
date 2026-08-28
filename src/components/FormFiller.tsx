@@ -205,6 +205,7 @@ function FormFillerInner({
 
   // ── Section Grouping & Focus / Accordion Mode ──
   const [activeSectionIndex, setActiveSectionIndex] = useState<number>(0);
+  const [activeSubSectionMap, setActiveSubSectionMap] = useState<Record<number, number | null>>({ 0: 0 });
   const [viewMode, setViewMode] = useState<'focus' | 'all'>('all');
   const hasInitializedViewMode = useRef(false);
 
@@ -2565,7 +2566,12 @@ function FormFillerInner({
                       >
                         {/* Interactive H1 Header Row */}
                         <div
-                          onClick={() => setActiveSectionIndex(isActive ? -1 : sIdx)}
+                          onClick={() => {
+                            setActiveSectionIndex(isActive ? -1 : sIdx);
+                            if (!isActive) {
+                              setActiveSubSectionMap(prev => prev[sIdx] === undefined ? { ...prev, [sIdx]: 0 } : prev);
+                            }
+                          }}
                           style={{
                             display: 'flex',
                             alignItems: 'center',
@@ -2610,7 +2616,7 @@ function FormFillerInner({
                           </span>
                         </div>
 
-                        {/* Expanded Child Content (Only when active) */}
+                        {/* Expanded Child Content (Only when active H1) */}
                         {isActive && (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '0px', marginTop: '4px' }}>
                             {sec.description && (
@@ -2618,13 +2624,120 @@ function FormFillerInner({
                                 {renderFormattedText(sec.description)}
                               </p>
                             )}
-                            {sec.blocks.map((block, bIdx) => {
-                              // Skip the leading SECTION_LABEL since it was already rendered in the interactive H1 header row above
+
+                            {/* 1. Leading blocks (các khối nằm trước H2 đầu tiên) */}
+                            {sec.leadingBlocks && sec.leadingBlocks.map((block, bIdx) => {
                               if (bIdx === 0 && block.type === 'SECTION_LABEL' && (block.titleFormat || 'H1') === 'H1') {
                                 return null;
                               }
-                              return renderBlock(block, bIdx, sec.blocks);
+                              return renderBlock(block, bIdx, sec.leadingBlocks);
                             })}
+
+                            {/* 2. Danh sách phân đoạn con H2 Accordion (Single-Active) */}
+                            {sec.subSections && sec.subSections.length > 0 ? (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0px', marginTop: sec.leadingBlocks.length > 1 ? '12px' : '0px' }}>
+                                {sec.subSections.map((subSec, subIdx) => {
+                                  const activeSubIdx = activeSubSectionMap[sIdx] !== undefined ? activeSubSectionMap[sIdx] : 0;
+                                  const isH2Active = subIdx === activeSubIdx;
+
+                                  return (
+                                    <div
+                                      key={subSec.id}
+                                      id={`form-subsec-${subSec.id}`}
+                                      style={{
+                                        marginTop: subIdx === 0 ? '0px' : '8px',
+                                        marginBottom: isH2Active ? '12px' : '0px'
+                                      }}
+                                    >
+                                      {/* Interactive H2 Accordion Header Row */}
+                                      <div
+                                        onClick={() => {
+                                          setActiveSubSectionMap(prev => ({
+                                            ...prev,
+                                            [sIdx]: isH2Active ? null : subIdx
+                                          }));
+                                        }}
+                                        style={{
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'space-between',
+                                          padding: '0.35rem 0',
+                                          cursor: 'pointer',
+                                          borderBottom: isH2Active ? 'none' : '1px dashed var(--neutral-border)',
+                                          paddingBottom: isH2Active ? '0.2rem' : '0.45rem',
+                                          userSelect: 'none',
+                                          transition: 'opacity 0.15s ease'
+                                        }}
+                                        onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.75')}
+                                        onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
+                                        title={isH2Active ? 'Bấm để thu gọn mục này' : 'Bấm để mở rộng mục này'}
+                                      >
+                                        <h3 style={{
+                                          margin: 0,
+                                          fontSize: '0.95rem',
+                                          fontWeight: 700,
+                                          color: 'var(--text-primary)',
+                                          borderLeft: '3px solid var(--primary)',
+                                          paddingLeft: '8px',
+                                          background: 'transparent'
+                                        }}>
+                                          {renderFormattedText(subSec.title)}
+                                        </h3>
+
+                                        <span style={{
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          width: '20px',
+                                          height: '20px',
+                                          borderRadius: '4px',
+                                          background: isH2Active ? 'rgba(13, 148, 136, 0.08)' : '#f1f5f9',
+                                          color: isH2Active ? 'var(--primary)' : '#64748b',
+                                          fontWeight: 700,
+                                          fontSize: '0.95rem',
+                                          lineHeight: 1,
+                                          flexShrink: 0
+                                        }}>
+                                          {isH2Active ? '−' : '+'}
+                                        </span>
+                                      </div>
+
+                                      {/* Expanded H2 Child Blocks */}
+                                      {isH2Active && (
+                                        <div style={{
+                                          display: 'flex',
+                                          flexDirection: 'column',
+                                          gap: '0px',
+                                          marginTop: '4px',
+                                          paddingLeft: '10px',
+                                          borderLeft: '2px solid rgba(13, 148, 136, 0.15)'
+                                        }}>
+                                          {subSec.description && (
+                                            <p style={{ margin: '0 0 8px 0', fontSize: '0.82rem', color: 'var(--text-secondary)', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+                                              {renderFormattedText(subSec.description)}
+                                            </p>
+                                          )}
+                                          {subSec.blocks.map((block, bIdx) => {
+                                            if (bIdx === 0 && block.type === 'SECTION_LABEL' && (block.titleFormat || 'H1') === 'H2') {
+                                              return null;
+                                            }
+                                            return renderBlock(block, bIdx, subSec.blocks);
+                                          })}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            ) : (
+                              /* Fallback: Nếu không có H2, render toàn bộ blocks trực tiếp */
+                              sec.blocks.map((block, bIdx) => {
+                                if (bIdx === 0 && block.type === 'SECTION_LABEL' && (block.titleFormat || 'H1') === 'H1') {
+                                  return null;
+                                }
+                                return renderBlock(block, bIdx, sec.blocks);
+                              })
+                            )}
                           </div>
                         )}
                       </div>
