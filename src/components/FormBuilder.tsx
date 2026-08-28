@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import type { FormFieldISO, FormRevisionEntry, FormTemplateISO, LayoutBlockISO, RadioOption, MatrixConfigISO, TableColumnConfig, TableRowConfig, ColumnSummaryRowConfig, TitleFormatISO, SubtableColumn } from '../types';
 import { formatFormVersion, getColStyleWidth } from '../types';
-import { sanitizeLabel, getEffectiveTitleFormat, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, isSeamlessTableBlock, getInfoGridTemplateColumns, snap2ColWidth, snap3ColWidths, INFO_GRID_2COL_PRESETS, generateSmartFieldSlug } from '../utils/formUtils';
-import { applyTextFormat, handleFormatKeyDown } from '../utils/textFormatter';
+import { sanitizeLabel, getEffectiveTitleFormat, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, isSeamlessTableBlock, getInfoGridTemplateColumns, snap2ColWidth, snap3ColWidths, INFO_GRID_2COL_PRESETS, generateSmartFieldSlug, getCheckboxGridTemplate } from '../utils/formUtils';
+import { applyTextFormat, handleFormatKeyDown, renderFormattedText } from '../utils/textFormatter';
 import { 
   Plus, 
   Trash2, 
@@ -4211,125 +4211,45 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                              }}
                                            >
                                              {isOptionCell ? (() => {
-                                                const isInline = canTableOptionsFitInline(cellOptions, col.width, col.checkboxLayout);
-                                                return (
-                                                <div style={{
-                                                  display: 'flex',
-                                                  flexDirection: isInline ? 'row' : 'column',
-                                                  flexWrap: isInline ? 'wrap' : undefined,
-                                                  gap: isInline ? '4px 12px' : '4px',
-                                                  alignItems: isInline ? 'center' : 'flex-start',
-                                                  justifyContent: isInline ? (cellAlign === 'center' ? 'center' : cellAlign === 'right' ? 'flex-end' : 'flex-start') : undefined,
-                                                  padding: '2px 0',
-                                                  width: '100%'
-                                                }}>
-                                                   {isCustomCellOpts && !isLocked && (
-                                                     <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '2px', width: isInline ? '100%' : undefined }}>
-                                                       <button
-                                                         type="button"
-                                                         onClick={(e) => { e.stopPropagation(); handleResetCellOptions(block.id, row.id, col.id); }}
-                                                         style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '3px', color: '#c2410c', cursor: 'pointer', fontSize: '0.62rem', padding: '1px 5px' }}
-                                                         title="Khôi phục về dùng chung cấu hình Cột"
-                                                       >
-                                                         🔄 Reset
-                                                       </button>
-                                                     </div>
-                                                   )}
-                                                 
-                                                 {cellOptions.map((opt, oIdx) => (
-                                                   <div key={oIdx} style={{ display: isInline ? 'inline-flex' : 'flex', alignItems: isInline ? 'center' : 'flex-start', gap: '4px', fontSize: '0.75rem', width: isInline ? 'auto' : '100%' }}>
-                                                     <input type={col.type} disabled style={{ pointerEvents: 'none', flexShrink: 0, marginTop: isInline ? 0 : '3px' }} />
-                                                     <div style={{ display: 'grid', flex: isInline ? undefined : 1, minWidth: isInline ? '30px' : 0, minHeight: '18px', boxSizing: 'border-box' }}>
-                                                       <span
-                                                         aria-hidden="true"
-                                                         style={{
-                                                           gridArea: '1 / 1 / 2 / 2',
-                                                           visibility: 'hidden',
-                                                           whiteSpace: isInline ? 'nowrap' : 'pre-wrap',
-                                                           wordBreak: isInline ? 'normal' : 'break-word',
-                                                           fontSize: '0.75rem',
-                                                           lineHeight: 1.35,
-                                                           fontFamily: 'inherit',
-                                                           padding: '1px 2px',
-                                                           minHeight: '16px'
+                                                 const isInline = canTableOptionsFitInline(cellOptions, col.width, col.checkboxLayout);
+                                                 return (
+                                                   <div style={{
+                                                     display: col.checkboxLayout === '2-column' ? 'grid' : 'flex',
+                                                     gridTemplateColumns: col.checkboxLayout === '2-column' ? getCheckboxGridTemplate(cellOptions) : undefined,
+                                                     flexDirection: col.checkboxLayout === '2-column' ? undefined : isInline ? 'row' : 'column',
+                                                     flexWrap: isInline ? 'wrap' : undefined,
+                                                     gap: col.checkboxLayout === '2-column' ? '4px 12px' : isInline ? '4px 12px' : '4px',
+                                                     alignItems: 'center',
+                                                     justifyContent: isInline ? (cellAlign === 'center' ? 'center' : cellAlign === 'right' ? 'flex-end' : 'flex-start') : undefined,
+                                                     padding: '4px 6px',
+                                                     width: '100%'
+                                                   }}>
+                                                     {cellOptions.map((opt, oIdx) => (
+                                                       <div 
+                                                         key={oIdx} 
+                                                         style={{ 
+                                                           display: 'inline-flex', 
+                                                           alignItems: 'center', 
+                                                           gap: '6px', 
+                                                           fontSize: '0.82rem', 
+                                                           color: 'var(--text-primary)', 
+                                                           width: isInline ? 'auto' : '100%', 
+                                                           whiteSpace: isInline ? 'nowrap' : undefined 
                                                          }}
                                                        >
-                                                         {(opt.label || '') + ' '}
-                                                       </span>
-                                                       <textarea
-                                                         disabled={isLocked}
-                                                         rows={1}
-                                                         value={opt.label}
-                                                         placeholder="Tùy chọn..."
-                                                         onClick={(e) => e.stopPropagation()}
-                                                         onChange={(e) => {
-                                                           const newOpts = [...cellOptions];
-                                                           newOpts[oIdx] = { ...newOpts[oIdx], label: e.target.value };
-                                                           handleUpdateCellOptions(block.id, row.id, col.id, newOpts);
-                                                         }}
-                                                         style={{
-                                                           gridArea: '1 / 1 / 2 / 2',
-                                                           width: '100%',
-                                                           height: '100%',
-                                                           fontSize: '0.75rem',
-                                                           lineHeight: 1.35,
-                                                           fontFamily: 'inherit',
-                                                           color: 'var(--text-primary)',
-                                                           border: 'none',
-                                                           borderBottom: '1px dotted #cbd5e1',
-                                                           borderRadius: 0,
-                                                           background: 'transparent',
-                                                           outline: 'none',
-                                                           padding: '1px 2px',
-                                                           margin: 0,
-                                                           resize: 'none',
-                                                           overflow: 'hidden',
-                                                           whiteSpace: isInline ? 'nowrap' : 'pre-wrap',
-                                                           wordBreak: isInline ? 'normal' : 'break-word',
-                                                           cursor: isLocked ? 'default' : 'text'
-                                                         }}
-                                                         onFocus={(e) => {
-                                                           e.target.style.borderBottom = '1px solid var(--primary)';
-                                                           e.target.style.background = 'rgba(255, 255, 255, 0.8)';
-                                                         }}
-                                                         onBlur={(e) => {
-                                                           e.target.style.borderBottom = '1px dotted #cbd5e1';
-                                                           e.target.style.background = 'transparent';
-                                                         }}
-                                                       />
-                                                     </div>
-                                                     {!isLocked && (
-                                                       <button 
-                                                         type="button" 
-                                                         onClick={(e) => { 
-                                                           e.stopPropagation(); 
-                                                           const newOpts = cellOptions.filter((_, i) => i !== oIdx); 
-                                                           handleUpdateCellOptions(block.id, row.id, col.id, newOpts); 
-                                                         }} 
-                                                         style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '0 2px', fontSize: '0.7rem', lineHeight: 1 }}
-                                                         title="Xóa lựa chọn này khỏi ô"
-                                                       >
-                                                         ✕
-                                                       </button>
-                                                     )}
+                                                         <input 
+                                                           type={col.type} 
+                                                           disabled 
+                                                           style={{ pointerEvents: 'none', flexShrink: 0, marginTop: 0, transform: 'scale(1.0)' }} 
+                                                         />
+                                                         <span style={{ lineHeight: '1.35', whiteSpace: isInline ? 'nowrap' : 'pre-wrap', wordBreak: isInline ? 'normal' : 'break-word', flex: isInline ? undefined : 1 }}>
+                                                           {renderFormattedText(opt.label)}
+                                                         </span>
+                                                       </div>
+                                                     ))}
                                                    </div>
-                                                 ))}
-                                                 {!isLocked && (
-                                                   <button 
-                                                     type="button" 
-                                                     onClick={(e) => { 
-                                                       e.stopPropagation(); 
-                                                       const newOpts = [...cellOptions, { label: 'Lựa chọn mới', value: `OPT_${Date.now()}`, isPass: true }]; 
-                                                       handleUpdateCellOptions(block.id, row.id, col.id, newOpts); 
-                                                     }} 
-                                                     style={{ display: 'flex', alignItems: 'center', gap: '2px', padding: '1px 4px', fontSize: '0.65rem', borderRadius: '3px', border: '1px dashed #94a3b8', background: 'none', color: 'var(--text-secondary)', cursor: 'pointer', width: 'fit-content', marginTop: isInline ? 0 : '2px', alignSelf: isInline ? 'center' : 'flex-start' }}
-                                                   >
-                                                     + Thêm lựa chọn
-                                                   </button>
-                                                 )}
-                                               </div>
-                                                );
-                                              })() : (
+                                                  );
+                                                })() : (
                                                 <>
                                                   {col.type === 'static_text' || col.type === 'text' ? (
                                                     <div style={{ display: 'grid', width: '100%', minHeight: `${28 * lc}px`, padding: '4px 6px', boxSizing: 'border-box' }}>
