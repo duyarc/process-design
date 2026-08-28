@@ -6234,6 +6234,91 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                         );
                       })()}
 
+                      {/* Card tùy biến Lựa chọn cho Ô được chọn (Cell Options Override Inspector - Hiển thị ưu tiên ở trên cùng) */}
+                      {activeCellKey && activeBlock?.type === 'TABLE' && (() => {
+                        const [cellRowId, cellColId] = activeCellKey.split('_');
+                        const cellCol = activeBlock.tableColumns?.find(c => c.id === cellColId);
+                        if (!cellCol || (cellCol.type !== 'checkbox' && cellCol.type !== 'radio')) return null;
+
+                        const rowIdx = activeBlock.tableRows?.findIndex(r => r.id === cellRowId) ?? 0;
+                        const staticCol = activeBlock.tableColumns?.find(c => c.type === 'static_text');
+                        const rowLabel = staticCol ? (activeBlock.tableData?.[cellRowId]?.[staticCol.id] || `Dòng ${rowIdx + 1}`) : `Dòng ${rowIdx + 1}`;
+
+                        const isCustom = activeBlock.cellOptionsMap?.[activeCellKey] !== undefined;
+                        const currentCellOptions = getEffectiveCellOptions(activeBlock, cellRowId, cellColId);
+
+                        return (
+                          <div style={{ marginBottom: '0.25rem' }}>
+                            <div style={{ background: isCustom ? '#eff6ff' : '#f0fdf4', border: `1.5px solid ${isCustom ? '#3b82f6' : '#86efac'}`, borderRadius: '6px', padding: '0.65rem' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                                <span style={{ fontWeight: 700, fontSize: '0.8rem', color: isCustom ? '#1e40af' : '#166534' }}>
+                                  ✨ Tùy biến Lựa chọn cho Ô này
+                                </span>
+                                {isCustom && (
+                                  <button
+                                    type="button"
+                                    disabled={isLocked}
+                                    onClick={() => handleResetCellOptions(activeBlock.id, cellRowId, cellColId)}
+                                    style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', fontSize: '0.7rem', textDecoration: 'underline', padding: 0 }}
+                                    title="Khôi phục về dùng chung cấu hình Cột"
+                                  >
+                                    🔄 Dùng lại Cột
+                                  </button>
+                                )}
+                              </div>
+                              <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginBottom: '0.5rem', lineHeight: 1.35 }}>
+                                Vị trí: <strong style={{ color: '#0f172a' }}>{rowLabel}</strong><br />
+                                Cột: <strong style={{ color: '#0f172a' }}>"{cellCol.label}"</strong> ({cellCol.type === 'checkbox' ? 'Checkbox' : 'Radio'})
+                              </div>
+                              
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', marginBottom: '0.5rem' }}>
+                                {currentCellOptions.map((opt, oIdx) => (
+                                  <div key={oIdx} style={{ display: 'flex', gap: '0.3rem', alignItems: 'center' }}>
+                                    <input
+                                      type="text"
+                                      disabled={isLocked}
+                                      placeholder="Nhãn lựa chọn"
+                                      value={opt.label}
+                                      onChange={(e) => {
+                                        const newOpts = [...currentCellOptions];
+                                        newOpts[oIdx] = { ...newOpts[oIdx], label: e.target.value };
+                                        handleUpdateCellOptions(activeBlock.id, cellRowId, cellColId, newOpts);
+                                      }}
+                                      style={{ flex: 1, padding: '0.2rem 0.3rem', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', backgroundColor: '#ffffff' }}
+                                    />
+                                    <button
+                                      type="button"
+                                      disabled={isLocked}
+                                      onClick={() => {
+                                        const newOpts = currentCellOptions.filter((_, i) => i !== oIdx);
+                                        handleUpdateCellOptions(activeBlock.id, cellRowId, cellColId, newOpts);
+                                      }}
+                                      style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '0 4px', fontSize: '0.8rem' }}
+                                      title="Xóa lựa chọn này khỏi ô"
+                                    >
+                                      ✕
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+
+                              {!isLocked && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const newOpts = [...currentCellOptions, { label: 'Lựa chọn mới', value: `OPT_${Date.now()}`, isPass: true }];
+                                    handleUpdateCellOptions(activeBlock.id, cellRowId, cellColId, newOpts);
+                                  }}
+                                  style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '0.25rem 0.5rem', fontSize: '0.72rem', borderRadius: '4px', border: '1px dashed #3b82f6', background: '#ffffff', color: '#1d4ed8', cursor: 'pointer', fontWeight: 500 }}
+                                >
+                                  <Plus size={11} /> Thêm tùy chọn cho Ô
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })()}
+
                       <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Cấu hình Cột</label>
                       
 
@@ -6757,90 +6842,6 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                         <Plus size={12} />
                         <span>Thêm Cột Mới</span>
                       </button>
-
-                      {/* Card tùy biến Lựa chọn cho Ô được chọn (Cell Options Override Inspector) */}
-                      {activeCellKey && activeBlock?.type === 'TABLE' && (() => {
-                        const [cellRowId, cellColId] = activeCellKey.split('_');
-                        const cellCol = activeBlock.tableColumns?.find(c => c.id === cellColId);
-                        if (!cellCol || (cellCol.type !== 'checkbox' && cellCol.type !== 'radio')) return null;
-
-                        const rowIdx = activeBlock.tableRows?.findIndex(r => r.id === cellRowId) ?? 0;
-                        const staticCol = activeBlock.tableColumns?.find(c => c.type === 'static_text');
-                        const rowLabel = staticCol ? (activeBlock.tableData?.[cellRowId]?.[staticCol.id] || `Dòng ${rowIdx + 1}`) : `Dòng ${rowIdx + 1}`;
-
-                        const isCustom = activeBlock.cellOptionsMap?.[activeCellKey] !== undefined;
-                        const currentCellOptions = getEffectiveCellOptions(activeBlock, cellRowId, cellColId);
-
-                        return (
-                          <div style={{ marginTop: '1rem', borderTop: '2px dashed #cbd5e1', paddingTop: '0.75rem' }}>
-                            <div style={{ background: isCustom ? '#eff6ff' : '#f8fafc', border: `1px solid ${isCustom ? '#93c5fd' : '#e2e8f0'}`, borderRadius: '6px', padding: '0.65rem' }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-                                <span style={{ fontWeight: 700, fontSize: '0.8rem', color: isCustom ? '#1e40af' : 'var(--text-primary)' }}>
-                                  ✨ Tùy biến Lựa chọn cho Ô này
-                                </span>
-                                {isCustom && (
-                                  <button
-                                    type="button"
-                                    disabled={isLocked}
-                                    onClick={() => handleResetCellOptions(activeBlock.id, cellRowId, cellColId)}
-                                    style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', fontSize: '0.7rem', textDecoration: 'underline', padding: 0 }}
-                                    title="Khôi phục về dùng chung cấu hình Cột"
-                                  >
-                                    🔄 Dùng lại Cột
-                                  </button>
-                                )}
-                              </div>
-                              <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
-                                Vị trí: <strong>{rowLabel}</strong> — Cột <strong>"{cellCol.label}"</strong> ({cellCol.type === 'checkbox' ? 'Checkbox' : 'Radio'})
-                              </div>
-                              
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', marginBottom: '0.5rem' }}>
-                                {currentCellOptions.map((opt, oIdx) => (
-                                  <div key={oIdx} style={{ display: 'flex', gap: '0.3rem', alignItems: 'center' }}>
-                                    <input
-                                      type="text"
-                                      disabled={isLocked}
-                                      placeholder="Nhãn lựa chọn"
-                                      value={opt.label}
-                                      onChange={(e) => {
-                                        const newOpts = [...currentCellOptions];
-                                        newOpts[oIdx] = { ...newOpts[oIdx], label: e.target.value };
-                                        handleUpdateCellOptions(activeBlock.id, cellRowId, cellColId, newOpts);
-                                      }}
-                                      style={{ flex: 1, padding: '0.2rem 0.3rem', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', backgroundColor: '#ffffff' }}
-                                    />
-                                    <button
-                                      type="button"
-                                      disabled={isLocked}
-                                      onClick={() => {
-                                        const newOpts = currentCellOptions.filter((_, i) => i !== oIdx);
-                                        handleUpdateCellOptions(activeBlock.id, cellRowId, cellColId, newOpts);
-                                      }}
-                                      style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '0 4px', fontSize: '0.8rem' }}
-                                      title="Xóa lựa chọn này khỏi ô"
-                                    >
-                                      ✕
-                                    </button>
-                                  </div>
-                                ))}
-                              </div>
-
-                              {!isLocked && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const newOpts = [...currentCellOptions, { label: 'Lựa chọn mới', value: `OPT_${Date.now()}`, isPass: true }];
-                                    handleUpdateCellOptions(activeBlock.id, cellRowId, cellColId, newOpts);
-                                  }}
-                                  style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '0.25rem 0.5rem', fontSize: '0.72rem', borderRadius: '4px', border: '1px dashed #3b82f6', background: '#ffffff', color: '#1d4ed8', cursor: 'pointer', fontWeight: 500 }}
-                                >
-                                  <Plus size={11} /> Thêm tùy chọn cho Ô
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })()}
                     </div>
                   );
                 })()}
