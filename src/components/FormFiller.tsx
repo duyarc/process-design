@@ -1849,7 +1849,7 @@ function FormFillerInner({
                                                     }} 
                                                     style={{ transform: 'scale(1.0)', cursor: 'pointer', marginTop: isInline ? 0 : '2px', flexShrink: 0 }}
                                                   />
-                                                  <span style={{ lineHeight: '1.35', whiteSpace: isInline ? 'nowrap' : 'pre-wrap', wordBreak: isInline ? 'normal' : 'break-word', flex: isInline ? undefined : 1 }}>{opt.label}</span>
+                                                  <span style={{ lineHeight: '1.35', whiteSpace: isInline ? 'nowrap' : 'pre-wrap', wordBreak: isInline ? 'normal' : 'break-word', flex: isInline ? undefined : 1 }}>{renderFormattedText(opt.label)}</span>
                                                 </label>
                                               );
                                             })}
@@ -1892,7 +1892,7 @@ function FormFillerInner({
                                                   onChange={() => setFormValues(prev => ({ ...prev, [cellKey]: val }))} 
                                                   style={{ cursor: 'pointer', marginTop: 0, flexShrink: 0 }}
                                                 />
-                                                <span style={{ lineHeight: '1.35', whiteSpace: isInline ? 'nowrap' : 'pre-wrap', wordBreak: isInline ? 'normal' : 'break-word', flex: isInline ? undefined : 1 }}>{opt.label}</span>
+                                                <span style={{ lineHeight: '1.35', whiteSpace: isInline ? 'nowrap' : 'pre-wrap', wordBreak: isInline ? 'normal' : 'break-word', flex: isInline ? undefined : 1 }}>{renderFormattedText(opt.label)}</span>
                                               </label>
                                             );
                                           })}

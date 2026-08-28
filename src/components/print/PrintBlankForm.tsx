@@ -1346,7 +1346,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                                   flexShrink: 0
                                                 }}
                                               />
-                                              <span style={{ fontSize: '0.80rem', lineHeight: 1.3, whiteSpace: isInline ? 'nowrap' : 'pre-wrap', wordBreak: isInline ? 'normal' : 'break-word', flex: isInline ? undefined : 1 }}>{opt.label}</span>
+                                              <span style={{ fontSize: '0.80rem', lineHeight: 1.3, whiteSpace: isInline ? 'nowrap' : 'pre-wrap', wordBreak: isInline ? 'normal' : 'break-word', flex: isInline ? undefined : 1 }}>{renderFormattedText(opt.label)}</span>
                                             </div>
                                           ))}
                                         </div>

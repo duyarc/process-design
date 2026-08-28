@@ -4353,6 +4353,31 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                         disabled={isLocked}
                                                         rows={1}
                                                         value={block.tableData?.[row.id]?.[col.id] || ''}
+                                                        onKeyDown={(e) => {
+                                                           const currentVal = block.tableData?.[row.id]?.[col.id] || '';
+                                                           handleFormatKeyDown(e, currentVal, (val) => {
+                                                             setLayoutBlocks(prev => prev.map(b => {
+                                                               if (b.id === block.id) {
+                                                                 const updatedData = { ...b.tableData || {} };
+                                                                 if (val === '') {
+                                                                   if (updatedData[row.id]) {
+                                                                     const newRowData = { ...updatedData[row.id] };
+                                                                     delete newRowData[col.id];
+                                                                     if (Object.keys(newRowData).length === 0) {
+                                                                       delete updatedData[row.id];
+                                                                     } else {
+                                                                       updatedData[row.id] = newRowData;
+                                                                     }
+                                                                   }
+                                                                 } else {
+                                                                   updatedData[row.id] = { ...updatedData[row.id] || {}, [col.id]: val };
+                                                                 }
+                                                                 return { ...b, tableData: updatedData };
+                                                               }
+                                                               return b;
+                                                             }));
+                                                           });
+                                                         }}
                                                         onChange={(e) => {
                                                           const val = e.target.value;
                                                           setLayoutBlocks(prev => prev.map(b => {
