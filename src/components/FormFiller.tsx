@@ -2627,14 +2627,14 @@ function FormFillerInner({
 
                             {/* 1. Leading blocks (các khối nằm trước H2 đầu tiên) */}
                             {sec.leadingBlocks && sec.leadingBlocks.map((block, bIdx) => {
-                              if (bIdx === 0 && block.type === 'SECTION_LABEL' && getEffectiveTitleFormat(block) === 'H1') {
+                              if (block.type === 'SECTION_LABEL' && getEffectiveTitleFormat(block) === 'H1') {
                                 return null;
                               }
                               return renderBlock(block, bIdx, sec.leadingBlocks);
                             })}
 
                             {/* 2. Danh sách phân đoạn con H2 Accordion (Single-Active) */}
-                            {sec.subSections && sec.subSections.length > 0 ? (
+                            {sec.subSections && sec.subSections.length > 0 && (
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '0px', marginTop: sec.leadingBlocks.length > 1 ? '12px' : '0px' }}>
                                 {sec.subSections.map((subSec, subIdx) => {
                                   const activeSubIdx = activeSubSectionMap[sIdx] !== undefined ? activeSubSectionMap[sIdx] : 0;
@@ -2718,7 +2718,7 @@ function FormFillerInner({
                                             </p>
                                           )}
                                           {subSec.blocks.map((block, bIdx) => {
-                                            if (bIdx === 0 && block.type === 'SECTION_LABEL' && getEffectiveTitleFormat(block) === 'H2') {
+                                            if (block.type === 'SECTION_LABEL' && getEffectiveTitleFormat(block) === 'H2') {
                                               return null;
                                             }
                                             return renderBlock(block, bIdx, subSec.blocks);
@@ -2729,14 +2729,6 @@ function FormFillerInner({
                                   );
                                 })}
                               </div>
-                            ) : (
-                              /* Fallback: Nếu không có H2, render toàn bộ blocks trực tiếp */
-                              sec.blocks.map((block, bIdx) => {
-                                if (bIdx === 0 && block.type === 'SECTION_LABEL' && getEffectiveTitleFormat(block) === 'H1') {
-                                  return null;
-                                }
-                                return renderBlock(block, bIdx, sec.blocks);
-                              })
                             )}
                           </div>
                         )}
