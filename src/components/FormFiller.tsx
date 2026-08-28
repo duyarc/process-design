@@ -59,8 +59,7 @@ import {
   getCheckboxGridTemplate, 
   isSeamlessTableBlock, 
   getInfoGridTemplateColumns,
-  groupBlocksIntoSections,
-  type FormSectionGroup
+  groupBlocksIntoSections
 } from '../utils/formUtils';
 import { renderFormattedText } from '../utils/textFormatter';
 import PrintFilledForm from './print/PrintFilledForm';
@@ -217,8 +216,8 @@ function FormFillerInner({
     }
   }, [rawFormTemplate]);
 
-  const sections: FormSectionGroup[] = useMemo(() => {
-    if (!rawFormTemplate?.layoutBlocks) return [];
+  const { preambleBlocks, sections, postambleBlocks } = useMemo(() => {
+    if (!rawFormTemplate?.layoutBlocks) return { preambleBlocks: [], sections: [], postambleBlocks: [] };
     return groupBlocksIntoSections(rawFormTemplate.layoutBlocks);
   }, [rawFormTemplate?.layoutBlocks]);
 
@@ -901,7 +900,7 @@ function FormFillerInner({
     );
   }
 
-  const renderBlock = (block: any, index: number, currentList?: any[]) => {
+  const renderBlock = (block: any, index: number, currentList?: any[], hideH1Title?: boolean) => {
     const list = currentList || formTemplate?.layoutBlocks || [];
     if (block.type === 'PAGE_BREAK') return null;
     if ((!block.fields || block.fields.length === 0) && block.type !== 'TITLE' && block.type !== 'SECTION_LABEL' && block.type !== 'TABLE') return null;
@@ -988,7 +987,7 @@ function FormFillerInner({
               flexDirection: 'column',
               gap: '6px'
             }}>
-              {blockTitleFmt !== 'NONE' && block.type !== 'TITLE' && (
+              {blockTitleFmt !== 'NONE' && block.type !== 'TITLE' && !(hideH1Title && blockTitleFmt === 'H1') && (
                 blockTitleFmt === 'H1' ? (
                   <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: 'var(--text-primary)' }}>
                     {renderFormattedText(block.title)}
@@ -2549,6 +2548,14 @@ function FormFillerInner({
               {/* Checklist Groups / Sections */}
               {viewMode === 'focus' && sections.length > 1 ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0px' }}>
+                  {/* 1. PREAMBLE (Mở đầu - Luôn Uncollapsed) */}
+                  {preambleBlocks && preambleBlocks.length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0px', marginBottom: '16px' }}>
+                      {preambleBlocks.map((block, pIdx) => renderBlock(block, pIdx, preambleBlocks))}
+                    </div>
+                  )}
+
+                  {/* 2. SECTIONS BODY (Thân form - Collapsible H1 & H2 Accordion) */}
                   {sections.map((sec, sIdx) => {
                     const isActive = sIdx === activeSectionIndex;
 
@@ -2560,7 +2567,7 @@ function FormFillerInner({
                           display: 'flex',
                           flexDirection: 'column',
                           gap: '0px',
-                          marginTop: sIdx === 0 ? '0' : '24px',
+                          marginTop: sIdx === 0 && (!preambleBlocks || preambleBlocks.length === 0) ? '0' : '20px',
                           marginBottom: isActive ? '16px' : '4px'
                         }}
                       >
@@ -2630,7 +2637,7 @@ function FormFillerInner({
                               if (block.type === 'SECTION_LABEL' && getEffectiveTitleFormat(block) === 'H1') {
                                 return null;
                               }
-                              return renderBlock(block, bIdx, sec.leadingBlocks);
+                              return renderBlock(block, bIdx, sec.leadingBlocks, true);
                             })}
 
                             {/* 2. Danh sách phân đoạn con H2 Accordion (Single-Active) */}
@@ -2735,6 +2742,13 @@ function FormFillerInner({
                       </div>
                     );
                   })}
+
+                  {/* 3. POSTAMBLE (Kết thúc - Luôn Uncollapsed, ví dụ SIGN block) */}
+                  {postambleBlocks && postambleBlocks.length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0px', marginTop: '20px' }}>
+                      {postambleBlocks.map((block, poIdx) => renderBlock(block, poIdx, postambleBlocks))}
+                    </div>
+                  )}
                 </div>
               ) : (
                 /* Continuous / All View Mode */

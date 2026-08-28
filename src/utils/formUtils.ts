@@ -353,15 +353,64 @@ export interface FormSectionGroup {
   blocks: LayoutBlockISO[];
 }
 
-/**
- * Gom nhóm danh sách layoutBlocks thành các FormSectionGroup theo mốc SECTION_LABEL (hoặc block có titleFormat === 'H1'),
- * và tự động phân tách các phân đoạn con H2 (subSections) bên trong mỗi H1.
- * Nếu đầu biểu mẫu có các block trước SECTION_LABEL đầu tiên (ví dụ TITLE, INFO_GRID thông tin chung),
- * chúng được gom thành Section 0: "Thông tin chung".
- */
-export function groupBlocksIntoSections(layoutBlocks: LayoutBlockISO[]): FormSectionGroup[] {
-  if (!layoutBlocks || layoutBlocks.length === 0) return [];
+export interface FormGroupingResult {
+  preambleBlocks: LayoutBlockISO[];
+  sections: FormSectionGroup[];
+  postambleBlocks: LayoutBlockISO[];
+}
 
+/**
+ * Gom nhóm danh sách layoutBlocks thành cấu trúc 3 tầng đối xứng:
+ * 1. preambleBlocks: Toàn bộ khối trước mốc H1 đầu tiên (TITLE, hướng dẫn...) -> Hiển thị cố định ở đầu trang (Uncollapsed).
+ * 2. sections: Các phân đoạn H1 (và phân đoạn con H2) từ H1 đầu tiên đến trước khối SIGN cuối -> Thu gọn / mở rộng Accordion.
+ * 3. postambleBlocks: Khối SIGN ở cuối form (và các khối sau SIGN) -> Hiển thị cố định ở chân trang (Uncollapsed).
+ */
+export function groupBlocksIntoSections(layoutBlocks: LayoutBlockISO[]): FormGroupingResult {
+  if (!layoutBlocks || layoutBlocks.length === 0) {
+    return { preambleBlocks: [], sections: [], postambleBlocks: [] };
+  }
+
+  // 1. Tìm vị trí mốc H1 đầu tiên
+  const firstH1Index = layoutBlocks.findIndex((block) => {
+    if ((block.type as string) === 'PAGE_BREAK') return false;
+    const effectiveFmt = getEffectiveTitleFormat(block);
+    return (block.type === 'SECTION_LABEL' && effectiveFmt === 'H1') || (effectiveFmt === 'H1' && !!block.title?.trim());
+  });
+
+  // 2. Tìm vị trí mốc Postamble (khối SIGN ở cuối form)
+  let lastSignIndex = -1;
+  for (let i = layoutBlocks.length - 1; i >= 0; i--) {
+    if (layoutBlocks[i].type === 'SIGN') {
+      lastSignIndex = i;
+      break;
+    }
+  }
+
+  // Nếu không có H1 nào trong biểu mẫu -> toàn bộ hiển thị dạng continuous
+  if (firstH1Index === -1) {
+    return {
+      preambleBlocks: [],
+      sections: [],
+      postambleBlocks: []
+    };
+  }
+
+  // Preamble: Tất cả các khối đứng trước mốc H1 đầu tiên
+  const preambleBlocks = layoutBlocks.slice(0, firstH1Index).filter(b => (b.type as string) !== 'PAGE_BREAK');
+
+  // Postamble: Khối SIGN ở cuối form (và các khối đi sau SIGN nếu có)
+  const isPostambleActive = lastSignIndex !== -1 && lastSignIndex >= firstH1Index;
+  const postambleBlocks = isPostambleActive
+    ? layoutBlocks.slice(lastSignIndex).filter(b => (b.type as string) !== 'PAGE_BREAK')
+    : [];
+
+  // Sections Body: Các khối nằm giữa firstH1Index và điểm bắt đầu Postamble
+  const bodyBlocks = layoutBlocks.slice(
+    firstH1Index,
+    isPostambleActive ? lastSignIndex : layoutBlocks.length
+  ).filter(b => (b.type as string) !== 'PAGE_BREAK');
+
+  // Gom bodyBlocks thành các Section H1
   const rawH1Sections: {
     id: string;
     index: number;
@@ -374,43 +423,29 @@ export function groupBlocksIntoSections(layoutBlocks: LayoutBlockISO[]): FormSec
   let currentH1: typeof rawH1Sections[0] | null = null;
   let sectionCounter = 0;
 
-  // Bước 1: Gom các khối thành các Section H1 (CHỈ KHI getEffectiveTitleFormat === 'H1')
-  layoutBlocks.forEach((block, idx) => {
-    if ((block.type as string) === 'PAGE_BREAK') return;
-
+  bodyBlocks.forEach((block) => {
     const effectiveFmt = getEffectiveTitleFormat(block);
     const isH1 = effectiveFmt === 'H1' && !!block.title?.trim();
-    const isSectionHeader = (block.type === 'SECTION_LABEL' && effectiveFmt === 'H1') || (idx > 0 && isH1);
+    const isSectionHeader = (block.type === 'SECTION_LABEL' && effectiveFmt === 'H1') || isH1;
 
     if (isSectionHeader) {
-      if (currentH1 && currentH1.id === 'section_overview' && currentH1.blocks.every(b => b.type === 'TITLE' || !b.fields || b.fields.length === 0)) {
-        // Merge leading TITLE blocks into this first real section
-        const leadingBlocks = currentH1.blocks;
-        currentH1.id = block.id || `section_1`;
-        currentH1.title = block.title || `Phần 1`;
-        currentH1.description = block.description;
-        currentH1.titleFormat = 'H1';
-        currentH1.blocks = [...leadingBlocks, block];
-        sectionCounter = 1;
-      } else {
-        sectionCounter++;
-        currentH1 = {
-          id: block.id || `section_${sectionCounter}`,
-          index: sectionCounter - 1,
-          title: block.title || `Phần ${sectionCounter}`,
-          description: block.description,
-          titleFormat: 'H1',
-          blocks: [block]
-        };
-        rawH1Sections.push(currentH1);
-      }
+      sectionCounter++;
+      currentH1 = {
+        id: block.id || `section_${sectionCounter}`,
+        index: sectionCounter - 1,
+        title: block.title || `Phần ${sectionCounter}`,
+        description: block.description,
+        titleFormat: 'H1',
+        blocks: [block]
+      };
+      rawH1Sections.push(currentH1);
     } else {
       if (!currentH1) {
         sectionCounter++;
         currentH1 = {
-          id: 'section_overview',
-          index: 0,
-          title: 'Thông tin chung',
+          id: `section_${sectionCounter}`,
+          index: sectionCounter - 1,
+          title: `Phần ${sectionCounter}`,
           titleFormat: 'H1',
           blocks: []
         };
@@ -420,8 +455,8 @@ export function groupBlocksIntoSections(layoutBlocks: LayoutBlockISO[]): FormSec
     }
   });
 
-  // Bước 2: Tách từng H1 thành leadingBlocks và subSections (CHỈ KHI getEffectiveTitleFormat === 'H2')
-  return rawH1Sections.map((sec, h1Idx) => {
+  // Tách từng H1 thành leadingBlocks và subSections (H2)
+  const sections = rawH1Sections.map((sec, h1Idx) => {
     const leadingBlocks: LayoutBlockISO[] = [];
     const subSections: FormSubSectionGroup[] = [];
     let currentSub: FormSubSectionGroup | null = null;
@@ -436,7 +471,7 @@ export function groupBlocksIntoSections(layoutBlocks: LayoutBlockISO[]): FormSec
         return;
       }
 
-      // CHỈ KHI thực sự là 'H2' và có tiêu đề không rỗng
+      // CHỈ KHI thực sự là H2 và có tiêu đề không rỗng
       const isH2 = effectiveFmt === 'H2' && !!block.title?.trim();
 
       if (isH2) {
@@ -452,7 +487,6 @@ export function groupBlocksIntoSections(layoutBlocks: LayoutBlockISO[]): FormSec
         };
         subSections.push(currentSub);
       } else {
-        // Các khối khác (kể cả BODY, NONE, INFO_GRID, TABLE...) gom vào danh sách nội dung
         if (currentSub) {
           currentSub.blocks.push(block);
         } else {
@@ -472,6 +506,8 @@ export function groupBlocksIntoSections(layoutBlocks: LayoutBlockISO[]): FormSec
       blocks: sec.blocks
     };
   });
+
+  return { preambleBlocks, sections, postambleBlocks };
 }
 
 /**
