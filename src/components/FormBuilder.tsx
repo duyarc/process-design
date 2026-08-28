@@ -4034,8 +4034,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                             style={{
                                               padding: '6px 10px',
                                               verticalAlign: 'middle',
-                                              fontWeight: 600,
-                                              fontSize: '0.80rem',
+                                              fontWeight: 400,
+                                              fontSize: '0.82rem',
                                               color: '#1e293b',
                                               outline: isSelected ? '1.5px solid #3b82f6' : 'none'
                                             }}
@@ -4048,9 +4048,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                   visibility: 'hidden',
                                                   whiteSpace: 'pre-wrap',
                                                   wordBreak: 'break-word',
-                                                  fontSize: '0.80rem',
-                                                  fontWeight: 600,
-                                                  lineHeight: 1.4,
+                                                  fontSize: '0.82rem',
+                                                  fontWeight: 400,
+                                                  lineHeight: 1.45,
                                                   fontFamily: 'inherit',
                                                   minHeight: '18px'
                                                 }}
@@ -4096,9 +4096,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                   outline: 'none',
                                                   padding: 0,
                                                   margin: 0,
-                                                  fontWeight: 600,
-                                                  fontSize: '0.80rem',
-                                                  lineHeight: 1.4,
+                                                  fontWeight: 400,
+                                                  fontSize: '0.82rem',
+                                                  lineHeight: 1.45,
                                                   fontFamily: 'inherit',
                                                   color: '#1e293b',
                                                   resize: 'none',
@@ -6190,7 +6190,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                   placeholder="Tên phân nhóm (ví dụ: I. Bao bì và đóng gói)..."
                                   onKeyDown={(e) => handleFormatKeyDown(e, currentTitle, updateGroupTitle)}
                                   onChange={(e) => updateGroupTitle(e.target.value)}
-                                  style={{ flex: 1, padding: '0.3rem 0.4rem', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', fontWeight: 600, fontFamily: 'inherit', lineHeight: 1.4, resize: 'vertical' }}
+                                  style={{ flex: 1, padding: '0.3rem 0.4rem', fontSize: '0.82rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', fontWeight: 400, fontFamily: 'inherit', lineHeight: 1.45, resize: 'vertical' }}
                                 />
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                                   <button

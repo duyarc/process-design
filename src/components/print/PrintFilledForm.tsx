@@ -893,7 +893,10 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                       style={{
                                         border: cellBorder,
                                         borderBottom: cellBorderBottom,
-                                        background: bStyle === 'borderless' ? 'transparent' : '#f8fafc', fontWeight: 'var(--pw-weight-medium)', fontSize: '0.80rem',
+                                        background: bStyle === 'borderless' ? 'transparent' : '#f8fafc',
+                                        fontWeight: 'var(--pw-weight-regular)',
+                                        fontSize: 'var(--pw-font-body)',
+                                        lineHeight: 1.45,
                                         padding: '5px 8px',
                                         color: '#000000',
                                         whiteSpace: 'pre-wrap',

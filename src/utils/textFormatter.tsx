@@ -36,7 +36,7 @@ function parseInlineTokens(str: string): React.ReactNode[] {
     if ((part.startsWith('**') && part.endsWith('**') && part.length >= 4) ||
         (part.startsWith('__') && part.endsWith('__') && part.length >= 4)) {
       const inner = part.slice(2, -2);
-      return <strong key={idx} style={{ fontWeight: 600 }}>{parseInlineTokens(inner)}</strong>;
+      return <strong key={idx} style={{ fontWeight: 700 }}>{parseInlineTokens(inner)}</strong>;
     }
 
     // Underline: <u>text</u> or ~text~

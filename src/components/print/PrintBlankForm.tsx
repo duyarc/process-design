@@ -1126,18 +1126,21 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                         </tr>
                         {grp.groupHeaderRow && (
                           <tr key={grp.groupHeaderRow.id} style={{ pageBreakInside: 'avoid', pageBreakAfter: 'avoid', breakAfter: 'avoid' }}>
-                            <td
-                              colSpan={(block.tableColumns || []).length}
-                              style={{
-                                border: cellBorder,
-                                borderBottom: cellBorderBottom,
-                                background: bStyle === 'borderless' ? 'transparent' : '#f8fafc', fontWeight: 'var(--pw-weight-medium)', fontSize: '0.80rem',
-                                padding: '5px 8px',
-                                color: '#000000',
-                                whiteSpace: 'pre-wrap',
-                                wordBreak: 'break-word'
-                              }}
-                            >
+                              <td
+                                colSpan={(block.tableColumns || []).length}
+                                style={{
+                                  border: cellBorder,
+                                  borderBottom: cellBorderBottom,
+                                  background: bStyle === 'borderless' ? 'transparent' : '#f8fafc',
+                                  fontWeight: 'var(--pw-weight-regular)',
+                                  fontSize: 'var(--pw-font-body)',
+                                  lineHeight: 1.45,
+                                  padding: '5px 8px',
+                                  color: '#000000',
+                                  whiteSpace: 'pre-wrap',
+                                  wordBreak: 'break-word'
+                                }}
+                              >
                               {renderFormattedText(grp.groupHeaderRow.groupTitle || block.tableData?.[grp.groupHeaderRow.id]?.['_groupTitle'] || '')}
                             </td>
                           </tr>

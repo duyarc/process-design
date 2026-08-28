@@ -1757,9 +1757,10 @@ function FormFillerInner({
                                     colSpan={(block.tableColumns || []).length + 1}
                                     style={{
                                       padding: '6px 10px',
-                                      fontWeight: 600,
-                                      fontSize: '0.80rem',
-                                      color: '#1e293b',
+                                      fontWeight: 400,
+                                      fontSize: '0.82rem',
+                                      lineHeight: 1.45,
+                                      color: 'var(--text-primary)',
                                       whiteSpace: 'pre-wrap',
                                       wordBreak: 'break-word'
                                     }}
