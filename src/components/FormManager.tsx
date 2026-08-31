@@ -67,19 +67,23 @@ export default function FormManager({ processId, formName, onOpenFormFiller, onB
     try {
       setLoading(true);
       
-      // Fetch processes
-      const procRes = await fetch('/api/processes');
+      // Fetch processes & submissions in parallel
+      const [procRes, subRes] = await Promise.all([
+        fetch('/api/processes'),
+        fetch('/api/submissions')
+      ]);
       if (!procRes.ok) throw new Error('Failed to fetch processes');
-      const procList: Process[] = await procRes.json();
+      if (!subRes.ok) throw new Error('Failed to fetch submissions');
+
+      const [procList, subData]: [Process[], any[]] = await Promise.all([
+        procRes.json(),
+        subRes.json()
+      ]);
+
       const foundProc = procList.find(p => p.id === processId);
       if (foundProc) {
         setProcess(foundProc);
       }
-
-      // Fetch submissions
-      const subRes = await fetch('/api/submissions');
-      if (!subRes.ok) throw new Error('Failed to fetch submissions');
-      const subData: Submission[] = await subRes.json();
       
       // Parse JSON columns and normalize snake_case properties from DB
       const parsedSubs: Submission[] = subData.map((sub: any) => {

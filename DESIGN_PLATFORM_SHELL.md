@@ -9,7 +9,7 @@
 | **Module Name** | Platform Shell |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-08-27) — Section 3 and App.tsx clean path routing /f/:identifier checked |
+| **Verified At Commit** | (2026-08-31) — Section 3, 6 (Short link flow resolution and FormFiller isShortLinkFlow coordination checked). |
 
 ### Quick File Index
 
@@ -216,3 +216,4 @@ lives in `git log`; run `git show <commit>` for the full diff of any entry below
 | 2026-07-09 | `1385a38` | Fix ProcessReader back-navigation by explicitly calling `setPage('dashboard')` — a consequence of state-based routing with no formal router (see Section 7). |
 | 2026-07-09 | `8df2f3c` | Document created. Initial full write based on codebase review. |
 | 2026-08-27 | `CURRENT` | **Clean Path Routing for Form Fill (`/f/:identifier`):** Added direct route resolution in `App.tsx` matching `/f/:identifier`, calling `/api/forms/resolve/:identifier` to render `FormFiller` directly without lengthy query strings. |
+| 2026-08-31 | `CURRENT` | **Unified Short-Link Loading State Coordination:** Added `isShortLinkFlow` prop coordination between `App.tsx` and `FormFiller.tsx` to eliminate redundant secondary loading screen when opening forms via short path `/f/:identifier`. |

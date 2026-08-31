@@ -366,8 +366,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchProcess();
-    fetchFormsList();
+    Promise.all([fetchProcess(), fetchFormsList()]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [processId]);
 

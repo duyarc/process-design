@@ -67,10 +67,17 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
     try {
       setLoading(true);
       
-      // Fetch submissions
-      const subRes = await fetch('/api/submissions');
+      // Fetch submissions & processes in parallel — processes ready before first render
+      const [subRes, procRes] = await Promise.all([
+        fetch('/api/submissions'),
+        fetch('/api/processes')
+      ]);
       if (!subRes.ok) throw new Error('Failed to fetch submissions');
-      const subData: Submission[] = await subRes.json();
+      
+      const [subData, procData]: [any[], Process[]] = await Promise.all([
+        subRes.json(),
+        procRes.ok ? procRes.json() : Promise.resolve([])
+      ]);
       
       // Parse JSON columns and normalize snake_case properties from DB
       const parsedSubs: Submission[] = subData.map((sub: any) => {
@@ -92,13 +99,7 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
         };
       });
       setSubmissions(parsedSubs);
-
-      // Fetch processes to map titles
-      const procRes = await fetch('/api/processes');
-      if (procRes.ok) {
-        const procData = await procRes.json();
-        setProcesses(procData);
-      }
+      setProcesses(procData);
     } catch (err) {
       console.error(err);
       alert('Error fetching submission logs.');

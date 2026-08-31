@@ -9,7 +9,7 @@
 | **Module Name** | Process Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | `90da324` (2026-07-29) — Added `subprocess` BPMN shape support and `subProcessId` field on `ProcessStep`. |
+| **Verified At Commit** | (2026-08-31) — Section 3 (Parallel Promise.all data fetching in ProcessReader). |
 
 > **⚠️ Note:** Several architectural facts here are not obvious from the code — see Sections 4.5, 6.2, and 7.
 
@@ -546,3 +546,4 @@ full diff of any entry below.
 | 2026-07-23 | `4f741e4` | **Schema change:** retired the `frequency` property — removed initialization in ProcessEditor and the Frequency column and badge from ProcessReader. |
 | 2026-07-23 | `88d96bd` | SOP PDF filenames standardized to Digital 5S rules via `to5SFileName()`, producing `SOP_[Normalized_Title]`. |
 | 2026-07-18 | `24d0ea5` | Process description preserves newlines in ProcessReader via `whiteSpace: 'pre-line'`. |
+| 2026-08-31 | `CURRENT` | **ProcessReader Parallel Fetching:** Converted sequential calls of `fetchProcess()` and `fetchFormsList()` in `ProcessReader.tsx`'s `useEffect` to `Promise.all([fetchProcess(), fetchFormsList()])`. |

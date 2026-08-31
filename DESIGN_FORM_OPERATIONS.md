@@ -9,7 +9,7 @@
 | **Module Name** | Form Operations |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-08-27) — Section 2, 4 (Section Focus & Accordion Mode for Long Forms in FormFiller). |
+| **Verified At Commit** | (2026-08-31) — Section 2, 4 (Parallel Promise.all data fetching in FormManager/SubmissionManager, unified short-link loading flow in FormFiller). |
 
 ### Quick File Index
 
@@ -447,6 +447,7 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 | 2026-08-27 | `CURRENT` | **Zero-Interruption Submission Flow & Non-Blocking Toast Feedback:** Eliminated full-page Success Screen. Form submission now triggers non-blocking toast notifications (`✓ Đã gửi phiếu thành công! (Mã: ID)`) and automatically navigates back to previous screen (or auto-resets form on public guest URLs). |
 | 2026-08-27 | `CURRENT` | **Read-Only Full Online Form View & Drawer Interaction Partitioning:** Added `readOnly` mode to `FormFiller.tsx` (locking inputs, disabling editing, rendering top metadata banner, and footer action bar). Clicking table rows opens the Slide-over Drawer (Quick Glance & Audit), while clicking Eye icon or Drawer's `[Toàn văn]` button opens the full digital online form view. |
 | 2026-08-28 | `CURRENT` | **3-Tier Symmetrical Form Layout in Focus Mode:** (1) Generalized form structure into 3 distinct layers via `groupBlocksIntoSections`: `preambleBlocks` (all blocks preceding first H1, e.g. TITLE, intro notes -> always uncollapsed at top), `sections` (H1 accordion sections & H2 sub-accordions -> single-active collapsible body), and `postambleBlocks` (trailing SIGN blocks -> always uncollapsed at bottom). (2) Suppressed duplicate H1 block headers inside expanded accordion content (`hideH1Title = true`). |
+| 2026-08-31 | `CURRENT` | **Parallel Data Fetching & Unified Short-Link Loading:** Converted sequential `await` calls in `FormManager.tsx` and `SubmissionManager.tsx` to `Promise.all` parallel fetching, eliminating ~300ms latency and table flash. Added `isShortLinkFlow` prop to `FormFiller.tsx` to suppress secondary loading screen when App.tsx already presents an entry loading screen. |
 
 
 

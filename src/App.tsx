@@ -188,6 +188,7 @@ const MainApp: React.FC = () => {
             formName={resolvedShortForm.formName}
             onBack={() => { window.location.href = '/'; }}
             isPublicGuestMode={true}
+            isShortLinkFlow={true}
           />
         </div>
       );
@@ -200,6 +201,7 @@ const MainApp: React.FC = () => {
             formName={qFormName!}
             onBack={() => { window.location.href = '/'; }}
             isPublicGuestMode={true}
+            isShortLinkFlow={false}
           />
         </div>
       );
@@ -396,6 +398,7 @@ const MainApp: React.FC = () => {
           <FormFiller
             processId={selectedProcessId!}
             formName={selectedFormName!}
+            isShortLinkFlow={Boolean(resolvedShortForm)}
             onSubmitSuccess={(subId) => {
               setToastMessage(`Đã gửi phiếu thành công! (Mã: ${subId})`);
               setPage('form-manager');
