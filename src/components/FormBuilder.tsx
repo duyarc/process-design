@@ -37,7 +37,8 @@ import {
   Check,
   SlidersHorizontal,
   Sparkles,
-  RotateCcw
+  RotateCcw,
+  PanelTop
 } from 'lucide-react';
 import PrintBlankForm from './print/PrintBlankForm';
 
@@ -694,6 +695,7 @@ interface InCanvasTitleHeaderProps {
   onUpdateDescription?: (desc: string) => void;
   onUpdateTitleFormat: (fmt: TitleFormatISO) => void;
   onSelectBlock: () => void;
+  extraControls?: React.ReactNode;
 }
 
 function InCanvasTitleHeader({
@@ -703,7 +705,8 @@ function InCanvasTitleHeader({
   onUpdateTitle,
   onUpdateDescription,
   onUpdateTitleFormat,
-  onSelectBlock
+  onSelectBlock,
+  extraControls
 }: InCanvasTitleHeaderProps) {
   const titleFmt = getEffectiveTitleFormat(block);
 
@@ -751,6 +754,18 @@ function InCanvasTitleHeader({
     </div>
   );
 
+  const renderControlGroup = () => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+      {renderStylePill()}
+      {extraControls && (
+        <>
+          <div style={{ width: '1px', height: '14px', background: '#cbd5e1' }} />
+          {extraControls}
+        </>
+      )}
+    </div>
+  );
+
   if (titleFmt === 'NONE') {
     if (block.type === 'SECTION_LABEL' || isBlockSelected) {
       return (
@@ -772,7 +787,7 @@ function InCanvasTitleHeader({
           <span style={{ fontSize: '0.74rem', color: '#64748b', fontStyle: 'italic' }}>
             {block.type === 'SECTION_LABEL' ? '⚠️ Section Label đang ẩn (Format: NONE) — Bấm chọn Style để hiển thị:' : 'Tiêu đề khối đang ẩn — Bấm chọn Style để hiển thị:'}
           </span>
-          {renderStylePill()}
+          {renderControlGroup()}
         </div>
       );
     }
@@ -3088,6 +3103,95 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                 setActiveBlockId(block.id);
                                 setActiveFieldId(null);
                               }}
+                              extraControls={!isLocked && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }} onClick={(e) => e.stopPropagation()}>
+                                  {/* Border Style Selector (3 icon pill) */}
+                                  <div style={{ display: 'inline-flex', background: '#f1f5f9', padding: '2px', borderRadius: '5px', border: '1px solid #cbd5e1', gap: '2px' }}>
+                                    <button
+                                      type="button"
+                                      disabled={isLocked}
+                                      onClick={() => handleUpdateBlockBorderStyle(block.id, 'grid')}
+                                      style={{
+                                        padding: '1px 5px',
+                                        borderRadius: '3px',
+                                        border: 'none',
+                                        background: (block.borderStyle || 'grid') === 'grid' ? 'var(--primary)' : 'transparent',
+                                        color: (block.borderStyle || 'grid') === 'grid' ? '#ffffff' : 'var(--text-secondary)',
+                                        cursor: isLocked ? 'not-allowed' : 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        lineHeight: '16px'
+                                      }}
+                                      title="Viền bảng: Lưới đầy đủ (Full Grid)"
+                                    >
+                                      <Grid size={12} />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      disabled={isLocked}
+                                      onClick={() => handleUpdateBlockBorderStyle(block.id, 'horizontal_only')}
+                                      style={{
+                                        padding: '1px 5px',
+                                        borderRadius: '3px',
+                                        border: 'none',
+                                        background: block.borderStyle === 'horizontal_only' ? 'var(--primary)' : 'transparent',
+                                        color: block.borderStyle === 'horizontal_only' ? '#ffffff' : 'var(--text-secondary)',
+                                        cursor: isLocked ? 'not-allowed' : 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        lineHeight: '16px'
+                                      }}
+                                      title="Viền bảng: Chỉ đường ngang (Horizontal Only)"
+                                    >
+                                      <Rows2 size={12} />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      disabled={isLocked}
+                                      onClick={() => handleUpdateBlockBorderStyle(block.id, 'borderless')}
+                                      style={{
+                                        padding: '1px 5px',
+                                        borderRadius: '3px',
+                                        border: 'none',
+                                        background: block.borderStyle === 'borderless' ? 'var(--primary)' : 'transparent',
+                                        color: block.borderStyle === 'borderless' ? '#ffffff' : 'var(--text-secondary)',
+                                        cursor: isLocked ? 'not-allowed' : 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        lineHeight: '16px'
+                                      }}
+                                      title="Viền bảng: Không viền (Borderless)"
+                                    >
+                                      <SquareDashed size={12} />
+                                    </button>
+                                  </div>
+
+                                  {/* Header Toggle Button with PanelTop Icon */}
+                                  <button
+                                    type="button"
+                                    disabled={isLocked}
+                                    onClick={() => handleToggleBlockHideHeader(block.id)}
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      padding: '3px 5px',
+                                      borderRadius: '5px',
+                                      border: '1px solid #cbd5e1',
+                                      background: block.hideHeader ? '#f1f5f9' : 'var(--primary)',
+                                      color: block.hideHeader ? 'var(--text-muted)' : '#ffffff',
+                                      cursor: isLocked ? 'not-allowed' : 'pointer',
+                                      transition: 'all 0.15s ease'
+                                    }}
+                                    title={block.hideHeader ? 'Dòng tiêu đề cột: Đang ẨN (Click để Bật)' : 'Dòng tiêu đề cột: Đang HIỂN THỊ (Click để Ẩn)'}
+                                  >
+                                    <PanelTop size={13} style={{ opacity: block.hideHeader ? 0.6 : 1 }} />
+                                  </button>
+                                </div>
+                              )}
                             />
                             <div style={{
                               display: 'grid',
