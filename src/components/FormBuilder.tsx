@@ -5881,11 +5881,10 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.8rem' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.75rem', margin: 0 }}>Title</label>
-                    
-                    {activeBlock.type !== 'TITLE' && (
-                      <div style={{ display: 'flex', background: '#f1f5f9', padding: '2px', borderRadius: '5px', border: '1px solid var(--neutral-border)' }}>
+                  {activeBlock.type !== 'TITLE' && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'nowrap' }}>
+                      {/* Title Format Pills */}
+                      <div style={{ display: 'inline-flex', background: '#f1f5f9', padding: '2px', borderRadius: '5px', border: '1px solid #cbd5e1', gap: '2px' }}>
                         {(['H1', 'H2', 'BODY', 'NONE'] as const).map(fmt => {
                           const activeFmt = getEffectiveTitleFormat(activeBlock);
                           const isSelected = activeFmt === fmt;
@@ -5898,7 +5897,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                               onClick={() => handleUpdateBlockTitleFormat(activeBlockId!, fmt)}
                               style={{
                                 padding: '1px 6px',
-                                fontSize: '0.68rem',
+                                fontSize: '0.65rem',
                                 fontWeight: isSelected ? 700 : 500,
                                 border: 'none',
                                 borderRadius: '3px',
@@ -5906,7 +5905,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                 background: isSelected ? 'var(--primary)' : 'transparent',
                                 color: isSelected ? '#ffffff' : 'var(--text-secondary)',
                                 boxShadow: isSelected ? '0 1px 2px rgba(0,0,0,0.1)' : 'none',
-                                transition: 'all 0.15s ease',
+                                transition: 'all 0.12s ease',
                                 lineHeight: '16px'
                               }}
                               title={`Định dạng tiêu đề: ${labelText}`}
@@ -5916,8 +5915,102 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                           );
                         })}
                       </div>
-                    )}
-                  </div>
+
+                      {/* Dynamic Table Extra Controls (Border & Header) */}
+                      {activeBlock.type === 'TABLE' && (
+                        <>
+                          <div style={{ width: '1px', height: '14px', background: '#cbd5e1' }} />
+                          
+                          {/* Border Style Selector (3 icon pill) */}
+                          <div style={{ display: 'inline-flex', background: '#f1f5f9', padding: '2px', borderRadius: '5px', border: '1px solid #cbd5e1', gap: '2px' }}>
+                            <button
+                              type="button"
+                              disabled={isLocked}
+                              onClick={() => handleUpdateBlockBorderStyle(activeBlockId!, 'grid')}
+                              style={{
+                                padding: '1px 5px',
+                                borderRadius: '3px',
+                                border: 'none',
+                                background: (activeBlock.borderStyle || 'grid') === 'grid' ? 'var(--primary)' : 'transparent',
+                                color: (activeBlock.borderStyle || 'grid') === 'grid' ? '#ffffff' : 'var(--text-secondary)',
+                                cursor: isLocked ? 'not-allowed' : 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                lineHeight: '16px'
+                              }}
+                              title="Viền bảng: Lưới đầy đủ (Full Grid)"
+                            >
+                              <Grid size={12} />
+                            </button>
+                            <button
+                              type="button"
+                              disabled={isLocked}
+                              onClick={() => handleUpdateBlockBorderStyle(activeBlockId!, 'horizontal_only')}
+                              style={{
+                                padding: '1px 5px',
+                                borderRadius: '3px',
+                                border: 'none',
+                                background: activeBlock.borderStyle === 'horizontal_only' ? 'var(--primary)' : 'transparent',
+                                color: activeBlock.borderStyle === 'horizontal_only' ? '#ffffff' : 'var(--text-secondary)',
+                                cursor: isLocked ? 'not-allowed' : 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                lineHeight: '16px'
+                              }}
+                              title="Viền bảng: Chỉ đường ngang (Horizontal Only)"
+                            >
+                              <Rows2 size={12} />
+                            </button>
+                            <button
+                              type="button"
+                              disabled={isLocked}
+                              onClick={() => handleUpdateBlockBorderStyle(activeBlockId!, 'borderless')}
+                              style={{
+                                padding: '1px 5px',
+                                borderRadius: '3px',
+                                border: 'none',
+                                background: activeBlock.borderStyle === 'borderless' ? 'var(--primary)' : 'transparent',
+                                color: activeBlock.borderStyle === 'borderless' ? '#ffffff' : 'var(--text-secondary)',
+                                cursor: isLocked ? 'not-allowed' : 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                lineHeight: '16px'
+                              }}
+                              title="Viền bảng: Không viền (Borderless)"
+                            >
+                              <SquareDashed size={12} />
+                            </button>
+                          </div>
+
+                          {/* Header Toggle Button with PanelTop Icon */}
+                          <button
+                            type="button"
+                            disabled={isLocked}
+                            onClick={() => handleToggleBlockHideHeader(activeBlockId!)}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              padding: '3px 5px',
+                              borderRadius: '5px',
+                              border: '1px solid #cbd5e1',
+                              background: activeBlock.hideHeader ? '#f1f5f9' : 'var(--primary)',
+                              color: activeBlock.hideHeader ? 'var(--text-muted)' : '#ffffff',
+                              cursor: isLocked ? 'not-allowed' : 'pointer',
+                              transition: 'all 0.15s ease'
+                            }}
+                            title={activeBlock.hideHeader ? 'Dòng tiêu đề cột: Đang ẨN (Click để Bật)' : 'Dòng tiêu đề cột: Đang HIỂN THỊ (Click để Ẩn)'}
+                          >
+                            <PanelTop size={13} style={{ opacity: activeBlock.hideHeader ? 0.6 : 1 }} />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  )}
+
                   <input
                     type="text"
                     disabled={isLocked}
@@ -5934,109 +6027,6 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                     }}
                   />
                 </div>
-
-                {activeBlock.type === 'TABLE' && (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginTop: '0.1rem', padding: '2px 0' }}>
-                    {/* Border Option Group */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.75rem', margin: 0 }}>Border</label>
-                      <div style={{ display: 'flex', border: '1px solid var(--neutral-border)', borderRadius: '4px', overflow: 'hidden', height: '22px' }}>
-                        <button
-                          type="button"
-                          disabled={isLocked}
-                          onClick={() => handleUpdateBlockBorderStyle(activeBlockId!, 'grid')}
-                          style={{
-                            padding: '0 6px',
-                            background: (activeBlock.borderStyle || 'grid') === 'grid' ? '#cbd5e1' : '#ffffff',
-                            border: 'none',
-                            cursor: isLocked ? 'not-allowed' : 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                          }}
-                          title="Lưới đầy đủ (Full Grid)"
-                        >
-                          <Grid size={12} style={{ color: (activeBlock.borderStyle || 'grid') === 'grid' ? 'var(--text-primary)' : 'var(--text-muted)' }} />
-                        </button>
-                        <button
-                          type="button"
-                          disabled={isLocked}
-                          onClick={() => handleUpdateBlockBorderStyle(activeBlockId!, 'horizontal_only')}
-                          style={{
-                            padding: '0 6px',
-                            background: activeBlock.borderStyle === 'horizontal_only' ? '#cbd5e1' : '#ffffff',
-                            borderLeft: '1px solid var(--neutral-border)',
-                            borderRight: '1px solid var(--neutral-border)',
-                            borderTop: 'none',
-                            borderBottom: 'none',
-                            cursor: isLocked ? 'not-allowed' : 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                          }}
-                          title="Chỉ đường ngang (Horizontal Only)"
-                        >
-                          <Rows2 size={12} style={{ color: activeBlock.borderStyle === 'horizontal_only' ? 'var(--text-primary)' : 'var(--text-muted)' }} />
-                        </button>
-                        <button
-                          type="button"
-                          disabled={isLocked}
-                          onClick={() => handleUpdateBlockBorderStyle(activeBlockId!, 'borderless')}
-                          style={{
-                            padding: '0 6px',
-                            background: activeBlock.borderStyle === 'borderless' ? '#cbd5e1' : '#ffffff',
-                            border: 'none',
-                            cursor: isLocked ? 'not-allowed' : 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                          }}
-                          title="Không viền (Borderless)"
-                        >
-                          <SquareDashed size={12} style={{ color: activeBlock.borderStyle === 'borderless' ? 'var(--text-primary)' : 'var(--text-muted)' }} />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Header Minimalist Toggle Switch */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.75rem', margin: 0 }}>Header</label>
-                      <button
-                        type="button"
-                        disabled={isLocked}
-                        onClick={() => handleToggleBlockHideHeader(activeBlockId!)}
-                        style={{
-                          width: '32px',
-                          height: '18px',
-                          borderRadius: '9px',
-                          background: activeBlock.hideHeader ? '#cbd5e1' : 'var(--primary)',
-                          border: 'none',
-                          cursor: isLocked ? 'not-allowed' : 'pointer',
-                          position: 'relative',
-                          padding: '2px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          transition: 'background-color 0.2s ease',
-                          outline: 'none'
-                        }}
-                        title={activeBlock.hideHeader ? 'Tiêu đề đang Tắt (Click để Bật)' : 'Tiêu đề đang Bật (Click để Tắt)'}
-                      >
-                        <span
-                          style={{
-                            width: '14px',
-                            height: '14px',
-                            borderRadius: '50%',
-                            background: '#ffffff',
-                            boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
-                            transform: activeBlock.hideHeader ? 'translateX(0px)' : 'translateX(14px)',
-                            transition: 'transform 0.2s ease',
-                            display: 'block'
-                          }}
-                        />
-                      </button>
-                    </div>
-                  </div>
-                )}
 
                 {activeBlock.type === 'SECTION_LABEL' && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', borderTop: '1px solid var(--neutral-border)', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
