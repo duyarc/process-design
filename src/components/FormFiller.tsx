@@ -539,7 +539,9 @@ function FormFillerInner({
 
   // When arriving from short link: App.tsx has already displayed loading screen #1.
   // Suppress FormFiller's secondary loading screen to avoid redundant transition.
-  if (loading && !isShortLinkFlow) {
+  // Return null while still loading (brief blank) to avoid false "not found" error flash.
+  if (loading) {
+    if (isShortLinkFlow) return null;
     return (
       <div style={{ textAlign: 'center', padding: '5rem 2rem' }}>
         <div style={{ fontSize: '1.2rem', color: 'var(--text-secondary)' }}>Loading digital template form...</div>
