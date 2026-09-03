@@ -17,7 +17,8 @@ const CSV_PATH = path.join(__dirname, 'data', 'processes.csv');
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const JWT_SECRET = process.env.JWT_SECRET || 'process_optimization_secure_jwt_secret_key_2026';
 
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 
 const DATABASE_URL = process.env.DATABASE_URL;

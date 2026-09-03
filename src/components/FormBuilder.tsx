@@ -1110,7 +1110,16 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
       });
       
       if (!res.ok) {
-        throw new Error('Failed to save form template to database');
+        let errMsg = 'Failed to save form template to database';
+        try {
+          const errData = await res.json();
+          if (errData?.error) errMsg = errData.error;
+        } catch {
+          if (res.status === 413) {
+            errMsg = 'Dung lượng biểu mẫu vượt quá giới hạn máy chủ (413 Payload Too Large).';
+          }
+        }
+        throw new Error(errMsg);
       }
       
       const savedForm = await res.json();

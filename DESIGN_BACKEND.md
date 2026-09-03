@@ -9,7 +9,7 @@
 | **Module Name** | Backend & Persistence |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-08-26) — Sections 4 and 6 checked against server.cjs (POST /api/submissions sequential ID) |
+| **Verified At Commit** | (2026-09-03) — Sections 1 and 2 checked against server.cjs (express body parser payload limit) |
 
 ### Quick File Index
 
@@ -305,3 +305,4 @@ Architectural changes only — schema, endpoints, invariants. UI polish lives in
 | 2026-08-26 | `CURRENT` | **Daily Sequential Submission ID Generation:** Implemented `generateDailySequentialSubmissionId` in `server.cjs` and updated `POST /api/submissions` to automatically assign human-friendly daily sequential IDs (`YYMMDD-XX`, e.g. `260826-01`). |
 | 2026-08-27 | `CURRENT` | **Vercel SPA Rewrites & Form Resolution:** Configured `vercel.json` rewrites for `/f/:path*` to `index.html` (resolving Vercel 404 on direct URL visits) and added case-insensitive matching in `GET /api/forms/resolve/*identifier`. |
 | 2026-08-27 | `CURRENT` | **Form-Centric Dynamic Process Link Resolution:** Updated `GET /api/submissions` with `LEFT JOIN LATERAL process_forms` so `COALESCE(pf.process_id, s.process_id, 'unlinked')` always reflects the current active process when forms are re-linked/unlinked. Added auto-resolution in `POST /api/submissions`. |
+| 2026-09-03 | `CURRENT` | **Fix 413 Payload Too Large on Large Forms:** Configured `express.json({ limit: '50mb' })` and `express.urlencoded({ extended: true, limit: '50mb' })` in `server.cjs`, removing default 100kb limit that blocked saving forms with extensive layout blocks (e.g. 5C-Scorecard at 144KB+). |
