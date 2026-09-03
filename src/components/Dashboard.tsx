@@ -44,13 +44,34 @@ export const Dashboard: React.FC<DashboardProps> = ({
   initialFormFilter = null,
   onClearFormFilter
 }) => {
-  const [processes, setProcesses] = useState<Process[]>([]);
-  const [allForms, setAllForms] = useState<any[]>([]);
-  const [reportTemplates, setReportTemplates] = useState<ReportTemplateISO[]>([]);
+  const [processes, setProcesses] = useState<Process[]>(() => {
+    try {
+      const cached = sessionStorage.getItem('swr_processes');
+      return cached ? JSON.parse(cached) : [];
+    } catch { return []; }
+  });
+  const [allForms, setAllForms] = useState<any[]>(() => {
+    try {
+      const cached = sessionStorage.getItem('swr_forms');
+      return cached ? JSON.parse(cached) : [];
+    } catch { return []; }
+  });
+  const [reportTemplates, setReportTemplates] = useState<ReportTemplateISO[]>(() => {
+    try {
+      const cached = sessionStorage.getItem('swr_reports');
+      return cached ? JSON.parse(cached) : [];
+    } catch { return []; }
+  });
   const [selectedFormVersions, setSelectedFormVersions] = useState<Record<string, string>>({});
   const [printTemplateData, setPrintTemplateData] = useState<any | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => {
+    try {
+      return !sessionStorage.getItem('swr_processes');
+    } catch {
+      return true;
+    }
+  });
   const [error, setError] = useState<string | null>(null);
   const [selectedProcessVersions, setSelectedProcessVersions] = useState<Record<string, string>>({});
   const [retiredCollapsed, setRetiredCollapsed] = useState(true);
@@ -82,9 +103,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
   };
   const { hasPermission } = useAuth();
 
-  const fetchProcesses = async () => {
+  const fetchProcesses = async (isBackground = false) => {
     try {
-      setLoading(true);
+      if (!isBackground) {
+        setLoading(true);
+      }
       const [procRes, formsRes, repRes] = await Promise.all([
         fetch('/api/processes'),
         fetch('/api/forms'),
@@ -94,27 +117,33 @@ export const Dashboard: React.FC<DashboardProps> = ({
       if (!procRes.ok) throw new Error('Failed to fetch processes');
       const data = await procRes.json();
       setProcesses(data);
+      try { sessionStorage.setItem('swr_processes', JSON.stringify(data)); } catch (e) { console.warn('Could not cache processes in sessionStorage', e); }
 
       if (formsRes.ok) {
         const formsData = await formsRes.json();
         setAllForms(formsData);
+        try { sessionStorage.setItem('swr_forms', JSON.stringify(formsData)); } catch (e) { console.warn('Could not cache forms in sessionStorage', e); }
       }
       if (repRes.ok) {
         const repsData = await repRes.json();
         setReportTemplates(repsData);
+        try { sessionStorage.setItem('swr_reports', JSON.stringify(repsData)); } catch (e) { console.warn('Could not cache reports in sessionStorage', e); }
       }
       setError(null);
     } catch (err) {
       console.error(err);
-      setError('Could not load processes. Please check if the backend server is running.');
+      if (!isBackground && processes.length === 0) {
+        setError('Could not load processes. Please check if the backend server is running.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
+    const hasCache = !!sessionStorage.getItem('swr_processes');
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchProcesses();
+    fetchProcesses(hasCache);
   }, []);
 
 
