@@ -531,15 +531,18 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
   const fetchProcess = async (id: string) => {
     try {
       setLoading(true);
-      // Fetch latest forms list first for normalization
+      // Fetch latest forms list and processes in parallel
+      const [formsRes, res] = await Promise.all([
+        fetch('/api/forms'),
+        fetch('/api/processes')
+      ]);
+
       let formsList: any[] = [];
-      const formsRes = await fetch('/api/forms');
       if (formsRes.ok) {
         formsList = await formsRes.json();
         setAllForms(formsList);
       }
 
-      const res = await fetch('/api/processes');
       if (!res.ok) throw new Error('Failed to fetch');
       const list: Process[] = await res.json();
       const proc = list.find(p => p.id === id);
@@ -1244,7 +1247,6 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
       // eslint-disable-next-line react-hooks/set-state-in-effect
       fetchProcess(processId);
       fetchQuotaStatus();
-      fetchFormsList();
     } else {
       // Initialize with default Start step and one form field
       setStatus('Draft');

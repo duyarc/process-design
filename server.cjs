@@ -1408,8 +1408,10 @@ app.get('/api/processes/check-id', async (req, res) => {
 app.get('/api/processes', async (req, res) => {
   try {
     if (dbPool) {
-      const result = await dbPool.query('SELECT * FROM processes');
-      const formsRes = await dbPool.query('SELECT * FROM process_forms');
+      const [result, formsRes] = await Promise.all([
+        dbPool.query('SELECT * FROM processes'),
+        dbPool.query('SELECT * FROM process_forms')
+      ]);
       
       // Build a map: process_id → { formName → { formId, formVersion } }
       const formsByProcess = {};

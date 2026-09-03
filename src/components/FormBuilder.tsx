@@ -1007,56 +1007,93 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     const fetchFormTemplate = async () => {
       const targetId = initialData?.formId || formName;
       if (!targetId) return;
+
+      const hasPreloadedBlocks = !!(initialData?.layoutBlocks && initialData.layoutBlocks.length > 0);
+
       try {
-        setLoading(true);
-        // 1. Fetch current form details
-        const res = await fetch(`/api/forms/${encodeURIComponent(targetId)}`);
-        if (res.ok) {
-          const data = await res.json();
-          const targetFormId = data.form_id || targetId;
-          const targetFormTitle = data.form_title || data.form_name || targetId;
-          const targetVersion = (data.version || 'v0.1').replace(/\s*\([^)]*\)/g, '').trim();
-          const targetEffectiveDate = data.effective_date ? data.effective_date.split('T')[0] : undefined;
-          const targetStatus = data.status || 'DRAFT';
-          const targetPageSize = data.page_size || data.pageSize || 'A4';
-          const targetIsPublic = data.is_public ?? data.isPublic ?? false;
-          const targetDefaultFocusMode = data.default_focus_mode ?? data.defaultFocusMode ?? false;
-          const targetBlocks = data.layout_blocks
-            ? (typeof data.layout_blocks === 'string' ? JSON.parse(data.layout_blocks) : data.layout_blocks)
-            : [];
-
-          setFormId(targetFormId);
-          setFormTitle(targetFormTitle);
-          setVersion(targetVersion);
-          if (targetEffectiveDate) {
-            setEffectiveDate(targetEffectiveDate);
+        if (hasPreloadedBlocks) {
+          // ═══════════════════════════════════════════════════════════
+          // HOT PATH: Blocks are already preloaded from initialData.
+          // Zero-delay paint (NO full-screen spinner!).
+          // Fetch unified revision history in background to keep timeline synced.
+          // ═══════════════════════════════════════════════════════════
+          try {
+            const historyRes = await fetch(`/api/forms/${encodeURIComponent(targetId)}/history`);
+            if (historyRes.ok) {
+              const targetHistory: FormRevisionEntry[] = await historyRes.json();
+              setRevisionHistory(targetHistory);
+              // Update saved snapshot WITH targetHistory to prevent false dirty state
+              setLastSavedSnapshot(getFormSnapshot({
+                formId: initialData?.formId || targetId,
+                formTitle: initialData?.formTitle || targetId,
+                version: initialData?.version ? initialData.version.replace(/\s*\([^)]*\)/g, '').trim() : 'v0.1',
+                status: initialData?.status || 'DRAFT',
+                pageSize: initialData?.pageSize || (initialData as any)?.page_size || 'A4',
+                isPublic: initialData?.isPublic ?? (initialData as any)?.is_public ?? false,
+                defaultFocusMode: initialData?.defaultFocusMode ?? (initialData as any)?.default_focus_mode ?? false,
+                effectiveDate: (initialData as any)?.effectiveDate || (initialData as any)?.effective_date,
+                layoutBlocks: initialData?.layoutBlocks || [],
+                revisionHistory: targetHistory
+              }));
+            }
+          } catch (err) {
+            console.error("Error fetching form history in background:", err);
           }
-          setStatus(targetStatus);
-          setPageSize(targetPageSize);
-          setIsPublic(targetIsPublic);
-          setDefaultFocusMode(targetDefaultFocusMode);
-          setLayoutBlocks(targetBlocks);
+        } else {
+          // ═══════════════════════════════════════════════════════════
+          // COLD PATH: No preloaded blocks → Show spinner, fetch form and history in parallel!
+          // ═══════════════════════════════════════════════════════════
+          setLoading(true);
+          const [res, historyRes] = await Promise.all([
+            fetch(`/api/forms/${encodeURIComponent(targetId)}`),
+            fetch(`/api/forms/${encodeURIComponent(targetId)}/history`)
+          ]);
 
-          // 2. Fetch unified form revision history (including historical and bug duplicates)
-          let targetHistory: FormRevisionEntry[] = [];
-          const historyRes = await fetch(`/api/forms/${encodeURIComponent(targetId)}/history`);
-          if (historyRes.ok) {
-            targetHistory = await historyRes.json();
-            setRevisionHistory(targetHistory);
+          if (res.ok) {
+            const data = await res.json();
+            const targetFormId = data.form_id || targetId;
+            const targetFormTitle = data.form_title || data.form_name || targetId;
+            const targetVersion = (data.version || 'v0.1').replace(/\s*\([^)]*\)/g, '').trim();
+            const targetEffectiveDate = data.effective_date ? data.effective_date.split('T')[0] : undefined;
+            const targetStatus = data.status || 'DRAFT';
+            const targetPageSize = data.page_size || data.pageSize || 'A4';
+            const targetIsPublic = data.is_public ?? data.isPublic ?? false;
+            const targetDefaultFocusMode = data.default_focus_mode ?? data.defaultFocusMode ?? false;
+            const targetBlocks = data.layout_blocks
+              ? (typeof data.layout_blocks === 'string' ? JSON.parse(data.layout_blocks) : data.layout_blocks)
+              : [];
+
+            setFormId(targetFormId);
+            setFormTitle(targetFormTitle);
+            setVersion(targetVersion);
+            if (targetEffectiveDate) {
+              setEffectiveDate(targetEffectiveDate);
+            }
+            setStatus(targetStatus);
+            setPageSize(targetPageSize);
+            setIsPublic(targetIsPublic);
+            setDefaultFocusMode(targetDefaultFocusMode);
+            setLayoutBlocks(targetBlocks);
+
+            let targetHistory: FormRevisionEntry[] = [];
+            if (historyRes.ok) {
+              targetHistory = await historyRes.json();
+              setRevisionHistory(targetHistory);
+            }
+
+            setLastSavedSnapshot(getFormSnapshot({
+              formId: targetFormId,
+              formTitle: targetFormTitle,
+              version: targetVersion,
+              status: targetStatus,
+              pageSize: targetPageSize,
+              isPublic: targetIsPublic,
+              defaultFocusMode: targetDefaultFocusMode,
+              effectiveDate: targetEffectiveDate,
+              layoutBlocks: targetBlocks,
+              revisionHistory: targetHistory
+            }));
           }
-
-          setLastSavedSnapshot(getFormSnapshot({
-            formId: targetFormId,
-            formTitle: targetFormTitle,
-            version: targetVersion,
-            status: targetStatus,
-            pageSize: targetPageSize,
-            isPublic: targetIsPublic,
-            defaultFocusMode: targetDefaultFocusMode,
-            effectiveDate: targetEffectiveDate,
-            layoutBlocks: targetBlocks,
-            revisionHistory: targetHistory
-          }));
         }
       } catch (err) {
         console.error("Error fetching form template and history:", err);

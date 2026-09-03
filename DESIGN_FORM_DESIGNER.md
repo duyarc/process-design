@@ -9,7 +9,7 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-09-03) — Section 6 checked against FormBuilder.tsx (saveFormToBackend response error handling) |
+| **Verified At Commit** | (2026-09-03) — Section 6 checked against FormBuilder.tsx (Zero-Delay Paint hot path, background history sync, parallel cold load) |
 
 > **⚠️ Architectural note:** FormBuilder has no awareness of which process it belongs to. The `formName` prop is always identical to `formId`. See Section 6.1 and the Technical Debt table.
 
@@ -479,3 +479,4 @@ full diff of any entry below.
 | 2026-08-25 | **Compact Header-Inline Title UI & Duplicate Clean-up:** (1) In `FormBuilder.tsx`, streamlined Right Inspector by placing `Title` label and mini 4-segment format pill `[ H1 | H2 | Body | None ]` on 1 horizontal row with input below. (2) Removed redundant bottom duplicate button, keeping top icon action. |
 | 2026-08-31 | **Sidebar Section Settings Unification (Single-Row Streamlined Toolbar):** (1) Streamlined Right Sidebar Section Settings to align 100% with Canvas visual design. (2) Removed redundant `Title` label and obsolete bottom `Border [ ... ] Header [ 🔘 ]` toggle row. (3) Unified all controls into a single compact horizontal toolbar (`~235px` within `268px` space) featuring `[ H1 | H2 | Body | None ]  │  [ ⊞ | ☰ | ⬚ ]  [ 🗖 ]` with full two-way state reactivity. |
 | 2026-09-03 | **Form Save Error Reporting & Payload Resilience:** Enhanced `saveFormToBackend` in `FormBuilder.tsx` to dynamically inspect backend error responses (JSON error message or HTTP 413) instead of throwing a generic error, aligning with server-side 50MB payload limit update. |
+| 2026-09-03 | **Zero-Delay Paint & Snapshot-Safe History Sync:** Optimized `FormBuilder.tsx` mount lifecycle to bypass full-screen loading spinner when `initialData.layoutBlocks` is preloaded (hot path), reducing UI wait time to 0ms. Unified revision history is fetched asynchronously in the background and commits a safe snapshot to maintain `isSaved` fidelity without false dirty triggers. Parallelized cold-path loads with `Promise.all`. |

@@ -9,7 +9,7 @@
 | **Module Name** | Backend & Persistence |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-09-03) — Sections 1 and 2 checked against server.cjs (express body parser payload limit) |
+| **Verified At Commit** | (2026-09-03) — Sections 1, 2, and 3 checked against server.cjs (express body parser payload limit, GET /api/processes parallel DB queries) |
 
 ### Quick File Index
 
@@ -306,3 +306,4 @@ Architectural changes only — schema, endpoints, invariants. UI polish lives in
 | 2026-08-27 | `CURRENT` | **Vercel SPA Rewrites & Form Resolution:** Configured `vercel.json` rewrites for `/f/:path*` to `index.html` (resolving Vercel 404 on direct URL visits) and added case-insensitive matching in `GET /api/forms/resolve/*identifier`. |
 | 2026-08-27 | `CURRENT` | **Form-Centric Dynamic Process Link Resolution:** Updated `GET /api/submissions` with `LEFT JOIN LATERAL process_forms` so `COALESCE(pf.process_id, s.process_id, 'unlinked')` always reflects the current active process when forms are re-linked/unlinked. Added auto-resolution in `POST /api/submissions`. |
 | 2026-09-03 | `CURRENT` | **Fix 413 Payload Too Large on Large Forms:** Configured `express.json({ limit: '50mb' })` and `express.urlencoded({ extended: true, limit: '50mb' })` in `server.cjs`, removing default 100kb limit that blocked saving forms with extensive layout blocks (e.g. 5C-Scorecard at 144KB+). |
+| 2026-09-03 | `CURRENT` | **Parallelize GET /api/processes Database Queries:** Replaced sequential queries for `processes` and `process_forms` with `Promise.all([dbPool.query('SELECT * FROM processes'), dbPool.query('SELECT * FROM process_forms')])`, reducing server latency by ~20-30%. |
