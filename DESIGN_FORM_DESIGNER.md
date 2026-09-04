@@ -9,7 +9,7 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-09-04) — Section 2 (Table option cell footer actions & delete hover checked against FormBuilder.tsx) |
+| **Verified At Commit** | (2026-09-04) — Section 2 (Row LineCount Mini Popover Pill & Action column 88px width checked against FormBuilder.tsx) |
 
 > **⚠️ Architectural note:** FormBuilder has no awareness of which process it belongs to. The `formName` prop is always identical to `formId`. See Section 6.1 and the Technical Debt table.
 
@@ -76,6 +76,7 @@ FormBuilder renders as an edge-to-edge **Fullscreen Studio Workspace** (`positio
 | **Logo upload** | On TITLE blocks: upload a new logo file, or open a gallery of previously uploaded logos |
 | **Conditional Badge (`⚡`)** | Visual indicator on Canvas showing block visibility condition summary (e.g. `Hiện khi "..." = [...]`) |
 | **Table Option Cell Footer Actions** | In-cell Checkbox/Radio options render in a clean vertical flow with bottom Footer Action Bar (`[+ Thêm]`, `[🔄 Khôi phục]`), eliminating top-right coordinate collisions with individual option delete buttons (`✕`). |
+| **Table Row LineCount Mini Popover Pill** | In-row handwritten line count selector replaced with compact Pill button (`[ 1↕ ]`, 22px) and floating Mini Popover (`[ 1 ]..[ 5 ]`), expanding action column width to 88px and eliminating right-edge icon clipping. |
 
 ### Right Panel — Two Tabs
 | Tab | Purpose |
@@ -498,3 +499,4 @@ full diff of any entry below.
 | 2026-09-04 | **Block-level Conditional Visibility (Display Logic):** (1) Added `BlockVisibilityCondition` interface to `types.ts` and extended `LayoutBlockISO` with `visibilityCondition?`. (2) In `FormBuilder.tsx`, added Right Inspector `Logic Hiển Thị` section scanning preceding `TABLE` (likert/radio) rows and `INFO_GRID` fields as triggers with quick-select tags and default `'in'` operator. (3) Added `⚡` status badge on Canvas blocks. |
 | 2026-09-04 | **Dropdown (`select`) Field & Table Column Type:** (1) Added `'select'` to `FormFieldISO.type`, `TableColumnConfig.type`, and `SubtableColumn.type`. (2) Added Dropdown option to `FIELD_TYPE_OPTIONS` and Table Column type select in `FormBuilder.tsx`, initializing default options and displaying Canvas preview. (3) Unified options editor for fields and table columns with full support for conditional visibility triggers. |
 | 2026-09-04 | **Table Cell Options Footer Actions & Hover Polish:** Decoupled mini action toolbar from `position: absolute` in table option cells (`isOptionCell`). Relocated `[+ Thêm]` and `[🔄 Khôi phục]` to an in-flow Footer Action Bar under the option list, completely eliminating coordinate overlap with option 1 delete button (`✕`), and enhanced delete button hover states with scale and opacity transitions. |
+| 2026-09-04 | **Table Row LineCount Mini Popover Pill & 88px Action Column:** Replaced native `<select>` dropdown (34px) in table row actions with a compact Trigger Pill (`[ 1↕ ]`, 22px) and floating Mini Popover (`[ 1 ]..[ 5 ]`). Expanded action column width to 88px across colgroup, thead, and tbody to completely eliminate right-side icon clipping on the trash can button (`🗑`). |
