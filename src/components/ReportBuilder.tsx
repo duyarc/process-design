@@ -2187,55 +2187,29 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
             <div style={{ flex: 1, overflowY: 'auto', padding: '0.75rem' }}>
               {activeBlock ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  {/* 1. Block Title & Title Format */}
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
-                      <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Tiêu đề khối</label>
-                      {activeBlock.type !== 'TITLE' && (
-                        <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: '4px', padding: '1px', border: '1px solid #cbd5e1' }}>
-                          {(['H1', 'H2', 'BODY', 'NONE'] as TitleFormatISO[]).map(fmt => (
-                            <button
-                              key={fmt}
-                              type="button"
-                              onClick={() => {
-                                setTemplate(prev => ({
-                                  ...prev,
-                                  layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, titleFormat: fmt } : b)
-                                }));
-                              }}
-                              style={{
-                                padding: '1px 5px',
-                                fontSize: '0.65rem',
-                                fontWeight: (activeBlock.titleFormat || 'H2') === fmt ? 700 : 500,
-                                background: (activeBlock.titleFormat || 'H2') === fmt ? 'var(--primary)' : 'transparent',
-                                color: (activeBlock.titleFormat || 'H2') === fmt ? '#ffffff' : 'var(--text-secondary)',
-                                border: 'none',
-                                borderRadius: '3px',
-                                cursor: 'pointer'
-                              }}
-                            >
-                              {fmt === 'BODY' ? 'Body' : fmt === 'NONE' ? 'None' : fmt}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <input
-                      type="text"
-                      value={activeBlock.title}
-                      onChange={e => {
-                        const val = e.target.value;
-                        setTemplate(prev => ({
-                          ...prev,
-                          layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, title: val } : b)
-                        }));
-                      }}
-                      style={{ width: '100%', padding: '0.35rem 0.5rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px' }}
-                    />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h3 style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-primary)', margin: 0 }}>
+                      {activeBlock.type === 'TABLE' ? 'Table Properties' :
+                       activeBlock.type === 'INFO_GRID' ? 'Info Grid Properties' :
+                       activeBlock.type === 'SECTION_LABEL' ? 'Section Label Properties' :
+                       activeBlock.type === 'SIGN' ? 'Signatures Properties' :
+                       activeBlock.type === 'TITLE' ? 'Report Header Properties' : 'Block Properties'}
+                    </h3>
+                    {activeBlock.type !== 'TITLE' && (
+                      <button 
+                        type="button" 
+                        disabled={isLocked}
+                        onClick={() => handleDeleteBlock(activeBlock.id)}
+                        style={{ border: 'none', background: 'none', color: isLocked ? 'var(--text-muted)' : 'var(--danger)', cursor: isLocked ? 'not-allowed' : 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}
+                        title="Xóa khối"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
                   </div>
 
                   {activeBlock.type === 'SECTION_LABEL' && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', borderTop: '1px solid var(--neutral-border)', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Mô tả phân đoạn (Description)</label>
                         <div style={{ display: 'flex', gap: '4px' }}>
@@ -2310,6 +2284,24 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                   {/* TITLE Block Special Controls: Logo, Description, Date */}
                   {activeBlock.type === 'TITLE' && (
                     <>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Tiêu đề báo cáo</label>
+                        <input
+                          type="text"
+                          disabled={isLocked}
+                          value={activeBlock.title}
+                          onChange={e => {
+                            const val = e.target.value;
+                            setTemplate(prev => ({
+                              ...prev,
+                              layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, title: val } : b)
+                            }));
+                          }}
+                          placeholder="Nhập tiêu đề báo cáo..."
+                          style={{ width: '100%', padding: '0.35rem 0.5rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px' }}
+                        />
+                      </div>
+
                       {/* Logo Section */}
                       <div style={{ borderTop: '1px solid var(--neutral-border)', paddingTop: '0.6rem' }}>
                         <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.35rem' }}>
@@ -2448,7 +2440,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
 
                   {/* INFO_GRID Special Controls */}
                   {activeBlock.type === 'INFO_GRID' && (
-                    <div style={{ borderTop: '1px solid var(--neutral-border)', paddingTop: '0.6rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Columns</label>
                         <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: '4px', padding: '1px', border: '1px solid #cbd5e1' }}>
@@ -2501,7 +2493,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
 
                   {/* TABLE Special Controls */}
                   {activeBlock.type === 'TABLE' && (
-                    <div style={{ borderTop: '1px solid var(--neutral-border)', paddingTop: '0.6rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Border Style</label>
                         <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: '4px', padding: '1px', border: '1px solid #cbd5e1' }}>

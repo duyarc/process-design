@@ -9,7 +9,7 @@
 | **Module Name** | Report Builder |
 | **Status** | Implemented & Verified |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-09-04) — Section 2 (In-Canvas Title Header editable greyout input parity checked against ReportBuilder.tsx) |
+| **Verified At Commit** | (2026-09-04) — Section 3 (Streamlined Right Inspector & duplicate Canvas controls elimination checked against ReportBuilder.tsx) |
 
 ### Quick File Index
 
@@ -83,6 +83,7 @@ The module operates on a linear 4-stage processing and rendering pipeline:
 
 | Date | Change |
 |---|---|
+| 2026-09-04 | **Streamlined Right Inspector & Contextual Header Parity:** (1) Streamlined ReportBuilder Right Inspector by removing redundant title format pills `[ H1 | H2 | Body | None ]` and title input that duplicate In-Canvas controls for non-TITLE blocks. (2) Added dynamic contextual header (`Table Properties`, `Info Grid Properties`, etc.) with delete block action. (3) Added dedicated `Tiêu đề báo cáo` input in `TITLE` block. (4) Promoted block-specific controls to top-1 view. |
 | 2026-09-04 | **In-Canvas Title Header Greyout Input Parity:** In `InCanvasTitleHeader` of `ReportBuilder.tsx`, replaced static notice text with inline editable greyed-out `<input>` for `NONE` title format (placeholder `(Tiêu đề đang ẩn)`, opacity 0.6, focus highlight), matching FormBuilder Canvas and Right Inspector parity. |
 | 2026-08-27 | **Executive Editorial Pair 1 H1-H2 Typography & Spacing Standardization:** (1) Standardized **H1** in `ReportBuilder.tsx`, `FormReport.tsx`, and `PrintReport.tsx` to bold uppercase typography (`fontSize: var(--pw-font-h1)`, `fontWeight: 700`, `letterSpacing: 0.6px`, `border: 'none'`, `background: 'transparent'`), eliminating divisive horizontal underlines. (2) Standardized **H2** to use a sleek Left Accent Bar (`borderLeft: '3px solid var(--primary)'` / `3px solid #000`, `padding: '2px 0 2px 8px'`) with transparent background (`background: 'transparent'`), eliminating gray boxes for smooth visual flow. |
 | 2026-08-27 | **Section Label Description Auto-Grow Mirror & Markdown Formatting Parity:** (1) Upgraded Canvas `InCanvasTitleHeader` description in `ReportBuilder.tsx` to CSS Grid Auto-Grow Textarea Mirror, preventing multiline text clipping. (2) Added keyboard shortcuts `handleFormatKeyDown` (`Ctrl+B`, `Ctrl+I`, `Ctrl+U`) on Canvas description. (3) Added `[ B ] [ I ] [ U ]` format buttons and `sectionDescRef` to Right Inspector for `SECTION_LABEL`. (4) Synchronized `PrintReport.tsx` and `FormReport.tsx` to render markdown `renderFormattedText` with `whiteSpace: 'pre-wrap'` and `lineHeight: 1.5`. |
@@ -99,5 +100,3 @@ The module operates on a linear 4-stage processing and rendering pipeline:
 | 2026-08-27 | **Save State Machine & Minimalist Close Icon:** (1) Implemented `getReportSnapshot` and `isSaved` state machine on the Save button (`[✓ Saved]` / `[Save]`). (2) Replaced text `Close` button with a minimalist `<X size={18} />` icon button with confirmation dialog for unsaved changes (`handleDiscardChangesAndClose`). |
 | 2026-08-27 | **Versions Tab & Publish Relocation (FormBuilder Parity):** (1) Removed Publish button from Top Action Bar to match FormBuilder's clean layout. (2) Replicated FormBuilder's 3-card Versions tab: Card 1 (Version Control & Status with Major/Minor inputs & New Draft trigger), Card 2 (Change Summary with auto-suggest `generateReportChangeSummary`, Release Date & green Publish action), Card 3 (Revision History with Read-only preview & Rollback, status badges, and yellow top warning banner). |
 | 2026-08-27 | **Header & Top Toolbar Alignment with FormBuilder:** (1) Restructured ReportBuilder Top Action Bar into 3 clusters: Left (Identity & Status), Center (Pill block adders toolbar: `+ Title`, `+ Info Grid`, `+ Table`, `+ Sign`, `+ Label`), Right (`[A4 Dọc]`, `[Print]`, `[Save]`, `Close`). (2) Removed in-canvas floating toolbar. (3) Moved Report ID and Title inputs to Right Inspector Properties tab. |
-| 2026-08-27 | **Report Builder Implementation Complete:** Built 3-panel `ReportBuilder.tsx` authoring canvas, `reportCompute.ts` hybrid engine, `FormReport.tsx` single-record viewer with empty-state fallback, `PrintReport.tsx` A4 portal, and wired 4th `[Reports]` Hub in `Dashboard.tsx` and `App.tsx`. Verified with `npm run build`. |
-| 2026-08-27 | **Finalized Architecture:** Locked in 5 core decisions: dedicated `report_templates` table, starter blocks (`TITLE`, `SECTION_LABEL`, `INFO_GRID`, `TABLE`, `SIGN`), blank page initialization, hybrid compute engine, and empty state fallback. |
