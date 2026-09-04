@@ -713,6 +713,16 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                       return <td key={col.id} style={commonStyle}>{specText}</td>;
                                     }
                                     if (col.id === 'col_target') {
+                                      if (field.type === 'select') {
+                                        const opts = field.options ?? [];
+                                        const matched = opts.find((o: any) => o.value === fieldVal || o.label === fieldVal);
+                                        const display = matched ? matched.label : fieldVal;
+                                        return (
+                                          <td key={col.id} style={{ ...commonStyle, textAlign: 'left', paddingLeft: '8px' }}>
+                                            <span>{display || ''}</span>
+                                          </td>
+                                        );
+                                      }
                                       if (field.type === 'radio' || field.type === 'checkbox') {
                                         const opts = field.options
                                           ?? [{ label: 'Đ', value: 'PASS', isPass: true }, { label: 'KĐ', value: 'FAIL', isPass: false }];
@@ -976,6 +986,18 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                                 </span>
                                               )}
                                             </div>
+                                          </td>
+                                        );
+                                      }
+
+                                      if (col.type === 'select') {
+                                        const customOpts = (block as any).cellOptionsMap?.[row.id]?.[col.id];
+                                        const opts = (customOpts && customOpts.length > 0) ? customOpts : (col.options || []);
+                                        const matchedOpt = opts.find((o: any) => o.value === cellVal || o.label === cellVal);
+                                        const displayVal = matchedOpt ? matchedOpt.label : cellVal;
+                                        return (
+                                          <td key={col.id} style={{ border: cellBorder, borderBottom: cellBorderBottom, padding: '4px 6px', fontSize: '0.82rem', verticalAlign: 'middle', minHeight: '28px', textAlign: cellAlign as any, width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
+                                            <span>{displayVal ? renderFormattedText(displayVal) : ''}</span>
                                           </td>
                                         );
                                       }

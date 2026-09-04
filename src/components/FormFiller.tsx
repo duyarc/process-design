@@ -665,7 +665,7 @@ function FormFillerInner({
           fieldStatus = 'FAIL';
           isOverallPass = false;
         }
-      } else if (field.type === 'radio' || field.type === 'checkbox') {
+      } else if (field.type === 'radio' || field.type === 'checkbox' || field.type === 'select') {
         targetRange = field.options ? field.options.filter((o: any) => o.isPass).map((o: any) => o.label).join(' / ') : (field.targetRange || 'Checked & Ok');
         if (field.type === 'checkbox') {
           const selectedVals = val ? val.split(',').filter(Boolean) : [];
@@ -680,8 +680,8 @@ function FormFillerInner({
             }
           }
         } else {
-          const selectedOpt = field.options?.find((o: any) => o.value === val);
-          if (selectedOpt && !selectedOpt.isPass) {
+          const selectedOpt = field.options?.find((o: any) => o.value === val || o.label === val);
+          if (selectedOpt && selectedOpt.isPass === false) {
             fieldStatus = 'FAIL';
             isOverallPass = false;
           }
@@ -1214,7 +1214,7 @@ function FormFillerInner({
                               })}
                             </div>
                           );
-                        })() : field.type === 'radio' ? (
+                        })() : (field.type === 'radio' || field.type === 'select') ? (
                           <select
                             value={value}
                             onChange={(e) => setFormValues(prev => ({ ...prev, [field.id]: e.target.value }))}
@@ -1655,6 +1655,26 @@ function FormFillerInner({
                                   </label>
                                 ))}
                               </div>
+                            ) : field.type === 'select' ? (
+                              <select
+                                value={value}
+                                disabled={readOnly}
+                                onChange={(e) => setFormValues(prev => ({ ...prev, [field.id]: e.target.value }))}
+                                style={{
+                                  width: '100%',
+                                  padding: '0.45rem 0.5rem',
+                                  fontSize: '0.82rem',
+                                  border: '1px solid var(--neutral-border)',
+                                  borderRadius: '4px',
+                                  background: readOnly ? '#f8fafc' : '#ffffff',
+                                  cursor: readOnly ? 'default' : 'pointer'
+                                }}
+                              >
+                                <option value="">{field.placeholder || '-- Chọn --'}</option>
+                                {(field.options ?? [{ label: 'Lựa chọn 1', value: 'OPT_1' }, { label: 'Lựa chọn 2', value: 'OPT_2' }]).map((opt: any) => (
+                                  <option key={opt.value} value={opt.value || opt.label}>{opt.label}</option>
+                                ))}
+                              </select>
                             ) : (
                               <AutoResizingTextarea 
                                 value={value}
@@ -1950,6 +1970,34 @@ function FormFillerInner({
                                           />
                                         </div>
                                       )
+                                      );
+                                    })() : col.type === 'select' ? (() => {
+                                      return (
+                                        <div style={{ padding: '2px 4px', width: '100%' }}>
+                                          <select
+                                            value={cellValue}
+                                            disabled={readOnly}
+                                            onChange={(e) => setFormValues(prev => ({ ...prev, [cellKey]: e.target.value }))}
+                                            style={{
+                                              width: '100%',
+                                              padding: '3px 6px',
+                                              fontSize: '0.82rem',
+                                              borderRadius: '4px',
+                                              border: '1px solid var(--neutral-border)',
+                                              background: readOnly ? '#f8fafc' : '#ffffff',
+                                              textAlign: cellAlign,
+                                              cursor: readOnly ? 'default' : 'pointer'
+                                            }}
+                                          >
+                                            <option value="">-- Chọn --</option>
+                                            {effectiveOpts.map((opt: any, oIdx: number) => {
+                                              const val = opt.value || opt.label;
+                                              return (
+                                                <option key={oIdx} value={val}>{opt.label}</option>
+                                              );
+                                            })}
+                                          </select>
+                                        </div>
                                       );
                                     })() : col.type === 'likert_scale' ? (() => {
                                       const scaleOptions = col.scaleOptions || ['Easy to Answer', 'Could Answer', 'Difficult to Answer'];

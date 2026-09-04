@@ -9,7 +9,7 @@
 | **Module Name** | Form Operations |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-09-04) — Section 2, 4 (evaluateBlockVisibility, visible prevBlock seamless handling, and conditional validation in FormFiller.tsx) |
+| **Verified At Commit** | (2026-09-04) — Section 2, 4 (Dropdown select rendering and options resolution in FormFiller, ProcessReader, and PrintFilledForm) |
 
 ### Quick File Index
 
@@ -434,6 +434,7 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 | 2026-08-28 | `CURRENT` | **3-Tier Symmetrical Form Layout in Focus Mode:** (1) Generalized form structure into 3 distinct layers via `groupBlocksIntoSections`: `preambleBlocks` (all blocks preceding first H1, e.g. TITLE, intro notes -> always uncollapsed at top), `sections` (H1 accordion sections & H2 sub-accordions -> single-active collapsible body), and `postambleBlocks` (trailing SIGN blocks -> always uncollapsed at bottom). (2) Suppressed duplicate H1 block headers inside expanded accordion content (`hideH1Title = true`). |
 | 2026-08-31 | `CURRENT` | **Parallel Data Fetching & Unified Short-Link Loading:** Converted sequential `await` calls in `FormManager.tsx` and `SubmissionManager.tsx` to `Promise.all` parallel fetching, eliminating ~300ms latency and table flash. Added `isShortLinkFlow` prop to `FormFiller.tsx` to suppress secondary loading screen when App.tsx already presents an entry loading screen. |
 | 2026-09-04 | `CURRENT` | **Block-level Conditional Visibility & Non-Destructive Hiding:** (1) Added `evaluateBlockVisibility(block, formValues)` in `FormFiller.tsx` to conditionally hide blocks whose upstream triggers are not met, returning `null` in `renderBlock` while preserving all entered `formValues` intact for instant recovery. (2) Updated `renderBlock` to resolve visible `prevBlock` backward across hidden blocks, preserving `isSeamlessTableBlock` continuity. (3) Filtered out hidden blocks before executing `validateFormSubmission` so hidden required fields do not block submission. |
+| 2026-09-04 | `CURRENT` | **Dropdown (`select`) Field & Table Cell Rendering:** (1) Integrated `<select>` menu rendering with `-- Chọn --` placeholder across `INFO_GRID` fields and `TABLE` cells in `FormFiller.tsx` and `ProcessReader.tsx`. (2) Updated `buildSubmissionSnapshots` to evaluate pass/fail quality criteria based on selected option's `isPass` flag. (3) Standardized `PrintFilledForm.tsx` to print clean option labels instead of empty inputs. |
 
 
 

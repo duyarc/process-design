@@ -189,7 +189,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
             fieldStatus = 'FAIL';
             isOverallPass = false;
           }
-        } else if (field.type === 'radio' || field.type === 'checkbox') {
+        } else if (field.type === 'radio' || field.type === 'checkbox' || field.type === 'select') {
           targetRange = field.options ? field.options.filter((o: any) => o.isPass).map((o: any) => o.label).join(' / ') : (field.targetRange || 'Checked & Ok');
           if (field.type === 'checkbox') {
             const selectedVals = val ? val.split(',').filter(Boolean) : [];
@@ -1567,7 +1567,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                                           })}
                                         </div>
                                       );
-                                    })() : field.type === 'radio' ? (
+                                    })() : (field.type === 'radio' || field.type === 'select') ? (
                                       <select
                                         value={value}
                                         onChange={(e) => setFormValues(prev => ({ ...prev, [field.id]: e.target.value }))}
@@ -1776,7 +1776,7 @@ setFormValues(prev => ({ ...prev, [field.id]: stringifySubtableValue(newRows) })
                                   if (isNaN(num) || num < min || num > max) {
                                     isOutOfSpec = true;
                                   }
-                                } else if (field.type === 'radio' || field.type === 'checkbox') {
+                                } else if (field.type === 'radio' || field.type === 'checkbox' || field.type === 'select') {
                                   const passLabels = field.options ? field.options.filter((o: any) => o.isPass).map((o: any) => o.label).join(' / ') : 'Đạt';
                                   specHint = `Target: ${passLabels}`;
                                   if (field.type === 'checkbox') {
@@ -2340,7 +2340,32 @@ setFormValues(prev => ({ ...prev, [field.id]: stringifySubtableValue(newRows) })
                                                         </div>
                                                       )
                                                     );
-                                                  })() : col.type === 'date' ? (
+                                                  })() : col.type === 'select' ? (
+                                                  <div style={{ padding: '2px 4px', width: '100%' }}>
+                                                    <select
+                                                      value={cellValue}
+                                                      onChange={(e) => setFormValues(prev => ({ ...prev, [cellKey]: e.target.value }))}
+                                                      style={{
+                                                        width: '100%',
+                                                        padding: '3px 6px',
+                                                        fontSize: '0.82rem',
+                                                        borderRadius: '4px',
+                                                        border: '1px solid var(--neutral-border)',
+                                                        background: '#ffffff',
+                                                        textAlign: cellAlign,
+                                                        cursor: 'pointer'
+                                                      }}
+                                                    >
+                                                      <option value="">-- Chọn --</option>
+                                                      {effectiveOpts.map((opt: any, oIdx: number) => {
+                                                        const val = opt.value || opt.label;
+                                                        return (
+                                                          <option key={oIdx} value={val}>{opt.label}</option>
+                                                        );
+                                                      })}
+                                                    </select>
+                                                  </div>
+                                                ) : col.type === 'date' ? (
                                                    <input 
                                                      type="date" 
                                                      value={cellValue} 

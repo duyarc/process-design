@@ -471,7 +471,7 @@ function InfoGridSteppedSplitter({ columns, columnWidths, onChange, disabled }: 
 }
 
 export interface FieldTypeOptionItem {
-  value: 'label' | 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo' | 'subtable' | 'likert_scale' | 'rating';
+  value: 'label' | 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo' | 'subtable' | 'likert_scale' | 'rating' | 'select';
   label: string;
   icon: React.ComponentType<{ size?: number; strokeWidth?: number; className?: string; style?: React.CSSProperties }>;
 }
@@ -509,6 +509,7 @@ export const FIELD_TYPE_OPTIONS: FieldTypeOptionItem[] = [
   { value: 'time', label: 'Time', icon: Clock },
   { value: 'radio', label: 'Radio', icon: CircleDot },
   { value: 'checkbox', label: 'Checkbox', icon: CheckSquare },
+  { value: 'select', label: 'Dropdown', icon: ChevronDown },
   { value: 'likert_scale', label: 'Scale', icon: SlidersHorizontal },
   { value: 'photo', label: 'Photo', icon: Camera },
   { value: 'signature', label: 'Sign-off', icon: PenTool },
@@ -517,8 +518,8 @@ export const FIELD_TYPE_OPTIONS: FieldTypeOptionItem[] = [
 ];
 
 interface FieldTypeDropdownProps {
-  value: 'label' | 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo' | 'rating' | 'subtable' | 'likert_scale';
-  onChange: (newType: 'label' | 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo' | 'rating' | 'subtable' | 'likert_scale') => void;
+  value: 'label' | 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo' | 'rating' | 'subtable' | 'likert_scale' | 'select';
+  onChange: (newType: 'label' | 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo' | 'rating' | 'subtable' | 'likert_scale' | 'select') => void;
   disabled?: boolean;
   compact?: boolean;
 }
@@ -1981,7 +1982,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     }
   };
 
-  const handleChangeFieldType = (blockId: string, fieldId: string, newType: 'label' | 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo' | 'subtable' | 'likert_scale' | 'rating') => {
+  const handleChangeFieldType = (blockId: string, fieldId: string, newType: 'label' | 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo' | 'subtable' | 'likert_scale' | 'rating' | 'select') => {
     if (isLocked) return;
     
     // Find current field to inspect its options
@@ -2007,13 +2008,15 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
       updates.minSpec = undefined;
       updates.maxSpec = undefined;
       updates.unit = undefined;
-    } else if (newType === 'radio' || newType === 'checkbox') {
+    } else if (newType === 'radio' || newType === 'checkbox' || newType === 'select') {
       updates.minSpec = undefined;
       updates.maxSpec = undefined;
       updates.unit = undefined;
       // If options do not exist, initialize them
       if (!field?.options || field.options.length === 0) {
-        updates.options = [...DEFAULT_RADIO_OPTIONS];
+        updates.options = newType === 'select'
+          ? [{ label: 'Lựa chọn 1', value: 'OPT_1', isPass: true }, { label: 'Lựa chọn 2', value: 'OPT_2', isPass: false }]
+          : [...DEFAULT_RADIO_OPTIONS];
       }
     } else if (newType === 'subtable') {
       updates.minSpec = undefined;
@@ -3717,6 +3720,29 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                       );
                                     })()}
 
+                                    {f.type === 'select' && (() => {
+                                      const options = f.options ?? [{ label: 'Lựa chọn 1', value: 'OPT_1' }, { label: 'Lựa chọn 2', value: 'OPT_2' }];
+                                      return (
+                                        <div style={{ marginTop: '4px', paddingTop: '2px', width: '100%' }}>
+                                          <div style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between',
+                                            padding: '4px 8px',
+                                            border: '1px solid #cbd5e1',
+                                            borderRadius: '4px',
+                                            background: '#f8fafc',
+                                            color: '#64748b',
+                                            fontSize: '0.78rem',
+                                            width: '100%'
+                                          }}>
+                                            <span>{f.placeholder || (options.length > 0 ? `-- Chọn (${options.length} mục) --` : '-- Chọn --')}</span>
+                                            <ChevronDown size={14} style={{ color: '#94a3b8' }} />
+                                          </div>
+                                        </div>
+                                      );
+                                    })()}
+
                                     {f.type === 'subtable' && (() => {
                                       const cols = f.subtableColumns ?? [];
                                       const previewRowCount = f.subtableDefaultRows ?? 3;
@@ -4811,6 +4837,11 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                             </div>
                                                           ))}
                                                         </div>
+                                                      ) : col.type === 'select' ? (
+                                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '2px 6px', border: '1px solid #cbd5e1', borderRadius: '4px', background: '#f8fafc', color: '#64748b', fontSize: '0.72rem', width: '100%' }}>
+                                                          <span>-- Chọn --</span>
+                                                          <ChevronDown size={12} style={{ color: '#94a3b8' }} />
+                                                        </div>
                                                       ) : col.type === 'date' ? (
                                                         <span style={{ color: '#cbd5e1', fontSize: '0.7rem', display: 'block', textAlign: 'center', width: '100%' }}>[Ngày]</span>
                                                       ) : col.type === 'time' ? (
@@ -5740,9 +5771,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                   </>
                 )}
 
-                {(activeField.type === 'radio' || activeField.type === 'checkbox') && (
+                {(activeField.type === 'radio' || activeField.type === 'checkbox' || activeField.type === 'select') && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', borderTop: '1px solid var(--neutral-border)', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
-                    <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Radio Options</label>
+                    <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>{activeField.type === 'select' ? 'Dropdown Options' : activeField.type === 'checkbox' ? 'Checkbox Options' : 'Radio Options'}</label>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                       {(activeField.options ?? DEFAULT_RADIO_OPTIONS).map((opt, idx) => (
                         <div key={idx} style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
@@ -5936,7 +5967,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                   );
                 })()}
 
-                {(activeField.type === 'radio' || activeField.type === 'checkbox' || activeField.type === 'number') && (
+                {(activeField.type === 'radio' || activeField.type === 'checkbox' || activeField.type === 'number' || activeField.type === 'select') && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
                     <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Reaction Protocol (Out of Spec)</label>
                     <textarea
@@ -6409,8 +6440,10 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                   onChange={(e) => {
                                     const nextType = e.target.value as any;
                                     const updates: Partial<TableColumnConfig> = { type: nextType };
-                                    if ((nextType === 'radio' || nextType === 'checkbox') && (!col.options || col.options.length === 0)) {
-                                      updates.options = [{ label: 'Đạt', value: 'PASS', isPass: true }, { label: 'Không Đạt', value: 'FAIL', isPass: false }];
+                                    if ((nextType === 'radio' || nextType === 'checkbox' || nextType === 'select') && (!col.options || col.options.length === 0)) {
+                                      updates.options = nextType === 'select'
+                                        ? [{ label: 'Lựa chọn 1', value: 'OPT_1', isPass: true }, { label: 'Lựa chọn 2', value: 'OPT_2', isPass: false }]
+                                        : [{ label: 'Đạt', value: 'PASS', isPass: true }, { label: 'Không Đạt', value: 'FAIL', isPass: false }];
                                     }
                                     handleUpdateTableColumn(activeBlock.id, col.id, updates);
                                   }}
@@ -6783,6 +6816,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                   <option value="number">Số</option>
                                   <option value="checkbox">Checkbox</option>
                                   <option value="radio">Radio</option>
+                                  <option value="select">Dropdown</option>
                                   <option value="rating">Đánh giá sao</option>
                                   <option value="likert_scale">Scale</option>
                                   <option value="date">Ngày</option>
@@ -6970,7 +7004,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                   )}
                                 </div>
                               )}
-                              {(col.type === 'checkbox' || col.type === 'radio') && (
+                              {(col.type === 'checkbox' || col.type === 'radio' || col.type === 'select') && (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', marginTop: '0.2rem', padding: '0.4rem', borderTop: '1px dashed var(--neutral-border)' }}>
                                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                                     {(col.options || []).map((opt, oIdx) => (
@@ -7437,7 +7471,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                     if (b.type === 'TABLE' || b.type === 'CHECKLIST_TABLE') {
                       const firstCol = (b.tableColumns || [])[0];
                       const scaleCols = (b.tableColumns || []).filter(c =>
-                        c.type === 'likert_scale' || c.type === 'radio'
+                        c.type === 'likert_scale' || c.type === 'radio' || c.type === 'select'
                       );
                       (b.tableRows || []).forEach(row => {
                         if (row.isGroupHeader) return;
@@ -7462,7 +7496,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                       });
                     } else if (b.type === 'INFO_GRID') {
                       (b.fields || []).forEach(f => {
-                        if (f.type === 'radio' || f.type === 'likert_scale') {
+                        if (f.type === 'radio' || f.type === 'likert_scale' || f.type === 'select') {
                           const opts = f.type === 'likert_scale'
                             ? (f.scaleOptions || ['1', '2', '3', '4', '5'])
                             : (f.options || []).map(o => o.label);

@@ -89,15 +89,16 @@ export interface Process {
 export interface SubtableColumn {
   id: string;
   label: string;
-  type: 'static_text' | 'text' | 'number' | 'date' | 'time' | 'rating';
+  type: 'static_text' | 'text' | 'number' | 'date' | 'time' | 'rating' | 'select';
   width?: string;
   align?: 'left' | 'center' | 'right';
   ratingScale?: 3 | 5;
+  options?: RadioOption[];
 }
 
 export interface FormFieldISO {
   id: string;
-  type: 'label' | 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo' | 'subtable' | 'rating' | 'likert_scale';
+  type: 'label' | 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo' | 'subtable' | 'rating' | 'likert_scale' | 'select';
   checkItem: string;
   placeholder?: string; // For input/photo placeholder or instruction text
   locationCode: string;
@@ -153,7 +154,7 @@ export interface TableColumnConfig {
   id: string;
   label: string;
   width: string; // e.g. "20%" or "150px"
-  type: 'static_text' | 'text' | 'number' | 'checkbox' | 'radio' | 'date' | 'time' | 'rating' | 'likert_scale';
+  type: 'static_text' | 'text' | 'number' | 'checkbox' | 'radio' | 'date' | 'time' | 'rating' | 'likert_scale' | 'select';
   options?: RadioOption[];
   align?: 'left' | 'center' | 'right';
   checkboxLayout?: '1-column' | '2-column';

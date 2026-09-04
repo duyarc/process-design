@@ -90,6 +90,7 @@ const getFieldBadgeStyle = (type?: string) => {
     case 'likert_scale': return { bg: '#f3e8ff', color: '#7e22ce', label: 'LIKERT' }; // Purple
     case 'rating': return { bg: '#fef3c7', color: '#b45309', label: 'RATING' };       // Amber
     case 'radio': return { bg: '#e0f2fe', color: '#0369a1', label: 'RADIO' };        // Sky
+    case 'select': return { bg: '#e0f2fe', color: '#0369a1', label: 'DROPDOWN' };    // Sky
     case 'number': return { bg: '#ccfbf1', color: '#0f766e', label: 'NUMBER' };       // Teal
     case 'checkbox': return { bg: '#e0e7ff', color: '#4338ca', label: 'CHECKBOX' };   // Indigo
     default: return { bg: '#f1f5f9', color: '#475569', label: (type || 'TEXT').toUpperCase() }; // Slate
