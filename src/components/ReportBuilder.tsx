@@ -358,28 +358,127 @@ function InCanvasTitleHeader({
     </div>
   );
 
+  const renderDescription = () => {
+    if (block.type !== 'SECTION_LABEL') return null;
+    return (
+      <div style={{ display: 'grid', width: '100%', marginTop: '4px', position: 'relative' }}>
+        {/* CSS Grid Auto-Grow Textarea mirror span */}
+        <span
+          aria-hidden="true"
+          style={{
+            gridArea: '1 / 1 / 2 / 2',
+            visibility: 'hidden',
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-word',
+            fontSize: '0.8rem',
+            lineHeight: 1.5,
+            fontFamily: 'inherit',
+            padding: '0.2rem 0.35rem',
+            minHeight: '26px'
+          }}
+        >
+          {(block.description || '') + ' '}
+        </span>
+
+        {/* Overlay Textarea */}
+        <textarea
+          disabled={isLocked}
+          rows={1}
+          value={block.description || ''}
+          onClick={onSelectBlock}
+          onKeyDown={(e) => handleFormatKeyDown(e, block.description || '', (val) => onUpdateDescription?.(val))}
+          onChange={(e) => onUpdateDescription?.(e.target.value)}
+          placeholder="Gõ mô tả hoặc ghi chú hướng dẫn (hỗ trợ **in đậm**, *in nghiêng*, __gạch chân__)..."
+          style={{
+            gridArea: '1 / 1 / 2 / 2',
+            width: '100%',
+            height: '100%',
+            fontSize: '0.8rem',
+            color: '#475569',
+            border: '1px solid transparent',
+            borderRadius: '4px',
+            background: 'transparent',
+            outline: 'none',
+            padding: '0.2rem 0.35rem',
+            margin: 0,
+            resize: 'none',
+            overflow: 'hidden',
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-word',
+            fontFamily: 'inherit',
+            lineHeight: 1.5,
+            cursor: isLocked ? 'default' : 'text',
+            transition: 'all 0.15s ease'
+          }}
+          onFocus={(e) => {
+            e.currentTarget.style.borderColor = 'var(--primary)';
+            e.currentTarget.style.background = '#ffffff';
+          }}
+          onBlur={(e) => {
+            e.currentTarget.style.borderColor = 'transparent';
+            e.currentTarget.style.background = 'transparent';
+          }}
+        />
+      </div>
+    );
+  };
+
   if (titleFmt === 'NONE') {
     if (block.type === 'SECTION_LABEL' || isBlockSelected) {
       return (
-        <div
-          onClick={onSelectBlock}
-          style={{
-            padding: '0.35rem 0.6rem',
-            border: '1.5px dashed #cbd5e1',
-            borderRadius: '4px',
-            background: '#f8fafc',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '0.5rem',
-            marginBottom: '0.5rem',
-            cursor: 'pointer'
-          }}
-        >
-          <span style={{ fontSize: '0.74rem', color: '#64748b', fontStyle: 'italic' }}>
-            {block.type === 'SECTION_LABEL' ? '⚠️ Section Label đang ẩn (Format: NONE) — Bấm chọn Style để hiển thị:' : 'Tiêu đề khối đang ẩn — Bấm chọn Style để hiển thị:'}
-          </span>
-          {renderStylePill()}
+        <div style={{ marginBottom: '0.5rem' }}>
+          <div
+            onClick={onSelectBlock}
+            style={{
+              padding: '0.35rem 0.6rem',
+              border: '1.5px dashed #cbd5e1',
+              borderRadius: '4px',
+              background: '#f8fafc',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '0.5rem',
+              cursor: 'pointer'
+            }}
+          >
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
+              <input
+                type="text"
+                disabled={isLocked}
+                value={block.title}
+                onClick={onSelectBlock}
+                onChange={(e) => onUpdateTitle(e.target.value)}
+                placeholder={block.type === 'SECTION_LABEL' ? '(Section Label đang ẩn - Format: NONE)' : '(Tiêu đề đang ẩn)'}
+                style={{
+                  width: '100%',
+                  fontSize: '0.85rem',
+                  fontStyle: 'italic',
+                  fontWeight: 500,
+                  color: 'var(--text-secondary)',
+                  opacity: 0.6,
+                  border: '1px solid transparent',
+                  borderRadius: '3px',
+                  background: 'transparent',
+                  outline: 'none',
+                  padding: '0.15rem 0.35rem',
+                  cursor: isLocked ? 'default' : 'text',
+                  transition: 'all 0.15s ease'
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.opacity = '1';
+                  e.currentTarget.style.background = '#ffffff';
+                  e.currentTarget.style.borderColor = 'var(--neutral-border)';
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.opacity = '0.6';
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.borderColor = 'transparent';
+                }}
+              />
+            </div>
+            {renderStylePill()}
+          </div>
+          {renderDescription()}
         </div>
       );
     }
@@ -388,7 +487,7 @@ function InCanvasTitleHeader({
 
   return (
     <div style={{ marginBottom: '0.5rem' }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.5rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
         <div style={{ flex: 1 }}>
           {titleFmt === 'H1' ? (
             <input
@@ -484,67 +583,7 @@ function InCanvasTitleHeader({
         {renderStylePill()}
       </div>
 
-      {block.type === 'SECTION_LABEL' && (
-        <div style={{ display: 'grid', width: '100%', marginTop: '4px', position: 'relative' }}>
-          {/* CSS Grid Auto-Grow Textarea mirror span */}
-          <span
-            aria-hidden="true"
-            style={{
-              gridArea: '1 / 1 / 2 / 2',
-              visibility: 'hidden',
-              whiteSpace: 'pre-wrap',
-              wordBreak: 'break-word',
-              fontSize: '0.8rem',
-              lineHeight: 1.5,
-              fontFamily: 'inherit',
-              padding: '0.2rem 0.35rem',
-              minHeight: '26px'
-            }}
-          >
-            {(block.description || '') + ' '}
-          </span>
-
-          {/* Overlay Textarea */}
-          <textarea
-            disabled={isLocked}
-            rows={1}
-            value={block.description || ''}
-            onClick={onSelectBlock}
-            onKeyDown={(e) => handleFormatKeyDown(e, block.description || '', (val) => onUpdateDescription?.(val))}
-            onChange={(e) => onUpdateDescription?.(e.target.value)}
-            placeholder="Gõ mô tả hoặc ghi chú hướng dẫn (hỗ trợ **in đậm**, *in nghiêng*, __gạch chân__)..."
-            style={{
-              gridArea: '1 / 1 / 2 / 2',
-              width: '100%',
-              height: '100%',
-              fontSize: '0.8rem',
-              color: '#475569',
-              border: '1px solid transparent',
-              borderRadius: '4px',
-              background: 'transparent',
-              outline: 'none',
-              padding: '0.2rem 0.35rem',
-              margin: 0,
-              resize: 'none',
-              overflow: 'hidden',
-              whiteSpace: 'pre-wrap',
-              wordBreak: 'break-word',
-              fontFamily: 'inherit',
-              lineHeight: 1.5,
-              cursor: isLocked ? 'default' : 'text',
-              transition: 'all 0.15s ease'
-            }}
-            onFocus={(e) => {
-              e.currentTarget.style.borderColor = 'var(--primary)';
-              e.currentTarget.style.background = '#ffffff';
-            }}
-            onBlur={(e) => {
-              e.currentTarget.style.borderColor = 'transparent';
-              e.currentTarget.style.background = 'transparent';
-            }}
-          />
-        </div>
-      )}
+      {renderDescription()}
     </div>
   );
 }

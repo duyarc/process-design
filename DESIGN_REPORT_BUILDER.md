@@ -9,7 +9,7 @@
 | **Module Name** | Report Builder |
 | **Status** | Implemented & Verified |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-08-27) — Section 1 to 4 (Executive Editorial Pair 1 H1-H2 Typography & Spacing Standardization across Canvas, Viewer, and Print). |
+| **Verified At Commit** | (2026-09-04) — Section 2 (In-Canvas Title Header editable greyout input parity checked against ReportBuilder.tsx) |
 
 ### Quick File Index
 
@@ -58,22 +58,14 @@ The module operates on a linear 4-stage processing and rendering pipeline:
 - Ingests the raw single submission payload and its corresponding form template metadata.
 - Exposes a field data tree on the left panel for drag-and-drop binding.
 
-### Stage 2: Compute (Hybrid Calculation Engine)
-- Headless calculation engine (`reportCompute.ts`).
-- Inherits form-level validation rules (`minSpec`, `maxSpec`, `isPass`) by default, while supporting report-level rule overrides defined in `ReportBuilder`.
+### Stage 2: Compute (Hybrid Engine)
+- Headless TypeScript calculation worker executing field rules.
 
-### Stage 3: Layout (Visual Canvas & Block Composition)
-- Renders an A4 page container initialized as a **Blank Page**.
-- Reuses `FormBuilder` block designs:
-  - `TITLE`: ISO header, title, logo, metadata.
-  - `SECTION_LABEL`: Visual separators and section descriptions.
-  - `INFO_GRID`: Grid layout of metadata and single-value fields.
-  - `TABLE`: Tabular data rows with spec comparison and pass/fail badges.
-  - `SIGN`: Inspector & supervisor signature verification stamps.
+### Stage 3: Layout (Visual Builder & Canvas)
+- 3-panel UI with live Canvas previewing report structure.
 
-### Stage 4: Distribute (Multi-Channel Presenters)
-- **Interactive Screen Presenter (`FormReport.tsx`):** Responsive viewing with back-navigation and print trigger.
-- **Print/PDF Presenter (`PrintReport.tsx`):** Pixel-perfect A4 pagination adhering to `DESIGN_UI_UX.md`.
+### Stage 4: Distribute (Interactive & Print)
+- Interactive viewer and A4/PDF portal.
 
 ---
 
@@ -91,6 +83,7 @@ The module operates on a linear 4-stage processing and rendering pipeline:
 
 | Date | Change |
 |---|---|
+| 2026-09-04 | **In-Canvas Title Header Greyout Input Parity:** In `InCanvasTitleHeader` of `ReportBuilder.tsx`, replaced static notice text with inline editable greyed-out `<input>` for `NONE` title format (placeholder `(Tiêu đề đang ẩn)`, opacity 0.6, focus highlight), matching FormBuilder Canvas and Right Inspector parity. |
 | 2026-08-27 | **Executive Editorial Pair 1 H1-H2 Typography & Spacing Standardization:** (1) Standardized **H1** in `ReportBuilder.tsx`, `FormReport.tsx`, and `PrintReport.tsx` to bold uppercase typography (`fontSize: var(--pw-font-h1)`, `fontWeight: 700`, `letterSpacing: 0.6px`, `border: 'none'`, `background: 'transparent'`), eliminating divisive horizontal underlines. (2) Standardized **H2** to use a sleek Left Accent Bar (`borderLeft: '3px solid var(--primary)'` / `3px solid #000`, `padding: '2px 0 2px 8px'`) with transparent background (`background: 'transparent'`), eliminating gray boxes for smooth visual flow. |
 | 2026-08-27 | **Section Label Description Auto-Grow Mirror & Markdown Formatting Parity:** (1) Upgraded Canvas `InCanvasTitleHeader` description in `ReportBuilder.tsx` to CSS Grid Auto-Grow Textarea Mirror, preventing multiline text clipping. (2) Added keyboard shortcuts `handleFormatKeyDown` (`Ctrl+B`, `Ctrl+I`, `Ctrl+U`) on Canvas description. (3) Added `[ B ] [ I ] [ U ]` format buttons and `sectionDescRef` to Right Inspector for `SECTION_LABEL`. (4) Synchronized `PrintReport.tsx` and `FormReport.tsx` to render markdown `renderFormattedText` with `whiteSpace: 'pre-wrap'` and `lineHeight: 1.5`. |
 | 2026-08-27 | **Section Label Parity with FormBuilder & In-Canvas Style Switcher:** (1) Standardized `SECTION_LABEL` creation default to `H1`. (2) Integrated `InCanvasTitleHeader` component into `ReportBuilder.tsx` Canvas for `SECTION_LABEL`, `INFO_GRID`, `TABLE`, and `SIGN` with WYSIWYG direct inline editable title/description inputs and quick-switch pill group `[ H1 | H2 | Body | None ]`. (3) Added `Description` textarea to Right Inspector for `SECTION_LABEL`. (4) Synchronized `PrintReport.tsx` and `FormReport.tsx` with full ISO typography and description rendering. |

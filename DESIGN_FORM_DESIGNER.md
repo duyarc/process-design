@@ -9,7 +9,7 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-09-04) — Section 2 (Row LineCount Mini Popover Pill & Action column 88px width checked against FormBuilder.tsx) |
+| **Verified At Commit** | (2026-09-04) — Section 2 (In-Canvas Title Header editable greyout input & extraControls preservation checked against FormBuilder.tsx) |
 
 > **⚠️ Architectural note:** FormBuilder has no awareness of which process it belongs to. The `formName` prop is always identical to `formId`. See Section 6.1 and the Technical Debt table.
 
@@ -77,6 +77,7 @@ FormBuilder renders as an edge-to-edge **Fullscreen Studio Workspace** (`positio
 | **Conditional Badge (`⚡`)** | Visual indicator on Canvas showing block visibility condition summary (e.g. `Hiện khi "..." = [...]`) |
 | **Table Option Cell Footer Actions** | In-cell Checkbox/Radio options render in a clean vertical flow with bottom Footer Action Bar (`[+ Thêm]`, `[🔄 Khôi phục]`), eliminating top-right coordinate collisions with individual option delete buttons (`✕`). |
 | **Table Row LineCount Mini Popover Pill** | In-row handwritten line count selector replaced with compact Pill button (`[ 1↕ ]`, 22px) and floating Mini Popover (`[ 1 ]..[ 5 ]`), expanding action column width to 88px and eliminating right-edge icon clipping. |
+| **In-Canvas Title Header & Hidden Style Behavior** | When title format is `NONE`, replaces static notice message with an in-place editable greyed-out `<input>` (placeholder `(Tiêu đề đang ẩn)`, opacity 0.6) with focus state highlight; preserves `extraControls` across all format modes. |
 
 ### Right Panel — Two Tabs
 | Tab | Purpose |
@@ -485,7 +486,6 @@ full diff of any entry below.
 
 | Date | Change |
 |---|---|
-| 2026-08-27 | **Smart Clean Slug for Field IDs & 1-Click Upgrade Engine:** (1) Implemented `generateSmartFieldSlug(label, existingIds, type)` in `formUtils.ts`, stripping Markdown syntax `**`, measurement units in parentheses `(...)`, and transliterating Vietnamese to concise `snake_case` with collision deduplication (`_2`, `_3`). (2) Updated `handleAddField`, `handleCloneBlock`, and `handleExecuteCopy` in `FormBuilder.tsx` to generate clean semantic slugs instead of raw 13-digit timestamps. (3) Added editable `Field ID (Mã trường)` input with validation (`[a-z0-9_]`) and a `[🪄 Tự động]` quick upgrade button in Right Inspector `FIELD PROPERTIES`, enabling seamless 1-click upgrade of legacy timestamped field IDs. |
 | 2026-08-27 | **Fullscreen Studio Workspace Upgrade:** (1) Upgraded FormBuilder root container from an 85vh floating modal card to a full-viewport edge-to-edge studio workspace (`position: fixed; inset: 0; zIndex: 1000`). (2) Removed modal backdrop wrapper in `ProcessEditor.tsx`. (3) Standardized 56px Top Action Bar and high-contrast `#f1f5f9` canvas background, achieving 100% design system parity with `ReportBuilder`. |
 | 2026-08-25 | **Rich Inline Text Formatting (Bold, Italic, Underline):** (1) Created `textFormatter.tsx` containing recursive JSX parser `renderFormattedText`, selection wrapper `applyTextFormat`, and shortcut listener `handleFormatKeyDown`. (2) In `FormBuilder.tsx`, enabled `Ctrl+B / I / U` on Canvas textarea and added mini `[ B ] [ I ] [ U ]` toolbar in Right Inspector. (3) Propagated uniform inline rendering across `FormFiller.tsx`, `ProcessReader.tsx`, `PrintBlankForm.tsx`, `PrintFilledForm.tsx`, and `PrintRecord.tsx`. |
 | 2026-08-25 | **Typography Scale, Hierarchy & 1px Border Standardization:** (1) Standardized table column headers (`<th>`) to bold `fontWeight: 700` (`var(--pw-weight-heavy)`), `fontSize: '0.82rem'`, and high-contrast color `#0f172a` / `#000000` on clean `#f1f5f9` across Canvas, Filler, Reader, and Print templates. (2) Normalized group separator rows to subtle `#f8fafc` tint, `fontWeight: 600`, `fontSize: '0.80rem'`, `#1e293b` / `#000000`, with `renderFormattedText`. (3) Standardized all table borders from `1.5px` to crisp `1px solid #000000` (print/PDF) and `1px solid #cbd5e1` (screen). |
@@ -500,3 +500,4 @@ full diff of any entry below.
 | 2026-09-04 | **Dropdown (`select`) Field & Table Column Type:** (1) Added `'select'` to `FormFieldISO.type`, `TableColumnConfig.type`, and `SubtableColumn.type`. (2) Added Dropdown option to `FIELD_TYPE_OPTIONS` and Table Column type select in `FormBuilder.tsx`, initializing default options and displaying Canvas preview. (3) Unified options editor for fields and table columns with full support for conditional visibility triggers. |
 | 2026-09-04 | **Table Cell Options Footer Actions & Hover Polish:** Decoupled mini action toolbar from `position: absolute` in table option cells (`isOptionCell`). Relocated `[+ Thêm]` and `[🔄 Khôi phục]` to an in-flow Footer Action Bar under the option list, completely eliminating coordinate overlap with option 1 delete button (`✕`), and enhanced delete button hover states with scale and opacity transitions. |
 | 2026-09-04 | **Table Row LineCount Mini Popover Pill & 88px Action Column:** Replaced native `<select>` dropdown (34px) in table row actions with a compact Trigger Pill (`[ 1↕ ]`, 22px) and floating Mini Popover (`[ 1 ]..[ 5 ]`). Expanded action column width to 88px across colgroup, thead, and tbody to completely eliminate right-side icon clipping on the trash can button (`🗑`). |
+| 2026-09-04 | **In-Canvas Title Header Greyout Input & ExtraControls Preservation:** (1) In `InCanvasTitleHeader`, replaced static notice text with an inline editable greyed-out `<input>` for `NONE` title format (placeholder `(Tiêu đề đang ẩn)`, opacity 0.6, focus highlight), matching Right Inspector Section Settings behavior. (2) Replaced `renderStylePill()` with `renderControlGroup()` at non-NONE branch, preserving `extraControls` (border styles & header toggle) when switching between styles. |
