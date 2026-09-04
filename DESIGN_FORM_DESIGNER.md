@@ -9,7 +9,7 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-09-04) — Section 2, 4 (Dropdown/select field & column type, FormBuilder options editor and preview checked against FormBuilder.tsx) |
+| **Verified At Commit** | (2026-09-04) — Section 2 (Table option cell footer actions & delete hover checked against FormBuilder.tsx) |
 
 > **⚠️ Architectural note:** FormBuilder has no awareness of which process it belongs to. The `formName` prop is always identical to `formId`. See Section 6.1 and the Technical Debt table.
 
@@ -75,6 +75,7 @@ FormBuilder renders as an edge-to-edge **Fullscreen Studio Workspace** (`positio
 | **Field row controls** | Reorder, delete fields within a block |
 | **Logo upload** | On TITLE blocks: upload a new logo file, or open a gallery of previously uploaded logos |
 | **Conditional Badge (`⚡`)** | Visual indicator on Canvas showing block visibility condition summary (e.g. `Hiện khi "..." = [...]`) |
+| **Table Option Cell Footer Actions** | In-cell Checkbox/Radio options render in a clean vertical flow with bottom Footer Action Bar (`[+ Thêm]`, `[🔄 Khôi phục]`), eliminating top-right coordinate collisions with individual option delete buttons (`✕`). |
 
 ### Right Panel — Two Tabs
 | Tab | Purpose |
@@ -496,3 +497,4 @@ full diff of any entry below.
 | 2026-09-03 | **Zero-Delay Paint & Snapshot-Safe History Sync:** Optimized `FormBuilder.tsx` mount lifecycle to bypass full-screen loading spinner when `initialData.layoutBlocks` is preloaded (hot path), reducing UI wait time to 0ms. Unified revision history is fetched asynchronously in the background and commits a safe snapshot to maintain `isSaved` fidelity without false dirty triggers. Parallelized cold-path loads with `Promise.all`. |
 | 2026-09-04 | **Block-level Conditional Visibility (Display Logic):** (1) Added `BlockVisibilityCondition` interface to `types.ts` and extended `LayoutBlockISO` with `visibilityCondition?`. (2) In `FormBuilder.tsx`, added Right Inspector `Logic Hiển Thị` section scanning preceding `TABLE` (likert/radio) rows and `INFO_GRID` fields as triggers with quick-select tags and default `'in'` operator. (3) Added `⚡` status badge on Canvas blocks. |
 | 2026-09-04 | **Dropdown (`select`) Field & Table Column Type:** (1) Added `'select'` to `FormFieldISO.type`, `TableColumnConfig.type`, and `SubtableColumn.type`. (2) Added Dropdown option to `FIELD_TYPE_OPTIONS` and Table Column type select in `FormBuilder.tsx`, initializing default options and displaying Canvas preview. (3) Unified options editor for fields and table columns with full support for conditional visibility triggers. |
+| 2026-09-04 | **Table Cell Options Footer Actions & Hover Polish:** Decoupled mini action toolbar from `position: absolute` in table option cells (`isOptionCell`). Relocated `[+ Thêm]` and `[🔄 Khôi phục]` to an in-flow Footer Action Bar under the option list, completely eliminating coordinate overlap with option 1 delete button (`✕`), and enhanced delete button hover states with scale and opacity transitions. |

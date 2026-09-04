@@ -4534,31 +4534,157 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                   const isInline = canTableOptionsFitInline(cellOptions, col.width, col.checkboxLayout);
                                                   return (
                                                     <div style={{
-                                                      position: 'relative',
-                                                      display: col.checkboxLayout === '2-column' ? 'grid' : 'flex',
-                                                      gridTemplateColumns: col.checkboxLayout === '2-column' ? getCheckboxGridTemplate(cellOptions) : undefined,
-                                                      flexDirection: col.checkboxLayout === '2-column' ? undefined : isInline ? 'row' : 'column',
-                                                      flexWrap: isInline ? 'wrap' : undefined,
-                                                      gap: col.checkboxLayout === '2-column' ? '4px 12px' : isInline ? '4px 12px' : '4px',
-                                                      alignItems: isInline ? 'center' : (cellAlign === 'center' ? 'center' : cellAlign === 'right' ? 'flex-end' : 'flex-start'),
-                                                      justifyContent: isInline ? (cellAlign === 'center' ? 'center' : cellAlign === 'right' ? 'flex-end' : 'flex-start') : undefined,
+                                                      display: 'flex',
+                                                      flexDirection: 'column',
                                                       padding: '4px 6px',
                                                       width: '100%',
                                                       boxSizing: 'border-box'
                                                     }}>
-                                                      {/* Mini Action Toolbar ở góc trên bên phải (➕ Thêm lựa chọn & 🔄 Khôi phục mặc định không viền cam) */}
+                                                      {/* 1. Vùng chứa danh sách các lựa chọn */}
+                                                      <div style={{
+                                                        display: col.checkboxLayout === '2-column' ? 'grid' : 'flex',
+                                                        gridTemplateColumns: col.checkboxLayout === '2-column' ? getCheckboxGridTemplate(cellOptions) : undefined,
+                                                        flexDirection: col.checkboxLayout === '2-column' ? undefined : isInline ? 'row' : 'column',
+                                                        flexWrap: isInline ? 'wrap' : undefined,
+                                                        gap: col.checkboxLayout === '2-column' ? '4px 12px' : isInline ? '4px 12px' : '4px',
+                                                        alignItems: isInline ? 'center' : (cellAlign === 'center' ? 'center' : cellAlign === 'right' ? 'flex-end' : 'flex-start'),
+                                                        justifyContent: isInline ? (cellAlign === 'center' ? 'center' : cellAlign === 'right' ? 'flex-end' : 'flex-start') : undefined,
+                                                        width: '100%',
+                                                        boxSizing: 'border-box'
+                                                      }}>
+                                                        {cellOptions.map((opt, oIdx) => (
+                                                          <div 
+                                                            key={oIdx} 
+                                                            style={{ 
+                                                              display: 'inline-flex', 
+                                                              alignItems: 'center', 
+                                                              gap: '4px', 
+                                                              fontSize: '0.82rem', 
+                                                              color: 'var(--text-primary)',
+                                                              width: isInline ? 'auto' : (cellAlign === 'center' || cellAlign === 'right' ? 'fit-content' : '100%'),
+                                                              textAlign: 'left',
+                                                              whiteSpace: isInline ? 'nowrap' : undefined 
+                                                            }}
+                                                          >
+                                                            <input 
+                                                              type={col.type} 
+                                                              disabled 
+                                                              style={{ pointerEvents: 'none', flexShrink: 0, marginTop: 0, transform: 'scale(1.0)' }} 
+                                                            />
+                                                            
+                                                            {/* Direct In-Cell Editable Label with Auto-grow Mirror */}
+                                                            <div style={{ display: 'grid', flex: isInline ? undefined : 1, minWidth: isInline ? '32px' : 0, boxSizing: 'border-box' }}>
+                                                              <span
+                                                                aria-hidden="true"
+                                                                style={{
+                                                                  gridArea: '1 / 1 / 2 / 2',
+                                                                  visibility: 'hidden',
+                                                                  whiteSpace: isInline ? 'nowrap' : 'pre-wrap',
+                                                                  wordBreak: isInline ? 'normal' : 'break-word',
+                                                                  fontSize: '0.82rem',
+                                                                  lineHeight: 1.35,
+                                                                  fontFamily: 'inherit',
+                                                                  padding: '1px 3px',
+                                                                  minHeight: '18px'
+                                                                }}
+                                                              >
+                                                                {(opt.label || '') + ' '}
+                                                              </span>
+                                                              <textarea
+                                                                disabled={isLocked}
+                                                                rows={1}
+                                                                value={opt.label}
+                                                                placeholder="Tùy chọn..."
+                                                                onClick={(e) => e.stopPropagation()}
+                                                                onKeyDown={(e) => handleFormatKeyDown(e, opt.label, (val) => {
+                                                                  const newOpts = [...cellOptions];
+                                                                  newOpts[oIdx] = { ...newOpts[oIdx], label: val };
+                                                                  handleUpdateCellOptions(block.id, row.id, col.id, newOpts);
+                                                                })}
+                                                                onChange={(e) => {
+                                                                  const newOpts = [...cellOptions];
+                                                                  newOpts[oIdx] = { ...newOpts[oIdx], label: e.target.value };
+                                                                  handleUpdateCellOptions(block.id, row.id, col.id, newOpts);
+                                                                }}
+                                                                style={{
+                                                                  gridArea: '1 / 1 / 2 / 2',
+                                                                  width: '100%',
+                                                                  height: '100%',
+                                                                  fontSize: '0.82rem',
+                                                                  lineHeight: 1.35,
+                                                                  fontFamily: 'inherit',
+                                                                  color: 'var(--text-primary)',
+                                                                  border: 'none',
+                                                                  borderBottom: '1px dotted transparent',
+                                                                  borderRadius: 0,
+                                                                  background: 'transparent',
+                                                                  outline: 'none',
+                                                                  padding: '1px 3px',
+                                                                  margin: 0,
+                                                                  resize: 'none',
+                                                                  overflow: 'hidden',
+                                                                  whiteSpace: isInline ? 'nowrap' : 'pre-wrap',
+                                                                  wordBreak: isInline ? 'normal' : 'break-word',
+                                                                  cursor: isLocked ? 'default' : 'text'
+                                                                }}
+                                                                onFocus={(e) => {
+                                                                  e.target.style.borderBottom = '1px solid var(--primary)';
+                                                                  e.target.style.background = 'rgba(255, 255, 255, 0.9)';
+                                                                }}
+                                                                onBlur={(e) => {
+                                                                  e.target.style.borderBottom = '1px dotted transparent';
+                                                                  e.target.style.background = 'transparent';
+                                                                }}
+                                                              />
+                                                            </div>
+
+                                                            {/* Nút xóa lựa chọn ✕ (Chỉ hiển thị khi có từ 2 lựa chọn trở lên) */}
+                                                            {!isLocked && cellOptions.length > 1 && (
+                                                              <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                  e.stopPropagation();
+                                                                  const newOpts = cellOptions.filter((_, i) => i !== oIdx);
+                                                                  handleUpdateCellOptions(block.id, row.id, col.id, newOpts);
+                                                                }}
+                                                                style={{
+                                                                  background: 'none',
+                                                                  border: 'none',
+                                                                  color: '#ef4444',
+                                                                  cursor: 'pointer',
+                                                                  padding: '0 2px',
+                                                                  fontSize: '0.72rem',
+                                                                  lineHeight: 1,
+                                                                  opacity: 0.45,
+                                                                  transition: 'all 0.15s ease'
+                                                                }}
+                                                                onMouseEnter={(e) => {
+                                                                  e.currentTarget.style.opacity = '1';
+                                                                  e.currentTarget.style.transform = 'scale(1.15)';
+                                                                }}
+                                                                onMouseLeave={(e) => {
+                                                                  e.currentTarget.style.opacity = '0.45';
+                                                                  e.currentTarget.style.transform = 'scale(1)';
+                                                                }}
+                                                                title="Xóa lựa chọn này"
+                                                              >
+                                                                ✕
+                                                              </button>
+                                                            )}
+                                                          </div>
+                                                        ))}
+                                                      </div>
+
+                                                      {/* 2. Footer Action Bar: Nằm gọn gàng bên dưới danh sách lựa chọn */}
                                                       {!isLocked && (
-                                                        <div 
-                                                          style={{
-                                                            position: 'absolute',
-                                                            top: '2px',
-                                                            right: '2px',
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            gap: '2px',
-                                                            zIndex: 2
-                                                          }}
-                                                        >
+                                                        <div style={{
+                                                          display: 'flex',
+                                                          alignItems: 'center',
+                                                          gap: '4px',
+                                                          marginTop: '4px',
+                                                          paddingTop: '2px',
+                                                          justifyContent: cellAlign === 'right' ? 'flex-end' : cellAlign === 'center' ? 'center' : 'flex-start'
+                                                        }}>
                                                           {/* Nút ➕ Thêm lựa chọn mới vào ô */}
                                                           <button
                                                             type="button"
@@ -4568,23 +4694,32 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                               handleUpdateCellOptions(block.id, row.id, col.id, newOpts);
                                                             }}
                                                             style={{
-                                                              background: 'transparent',
-                                                              border: 'none',
-                                                              color: '#3b82f6',
-                                                              cursor: 'pointer',
-                                                              padding: '1px 2px',
-                                                              display: 'flex',
+                                                              display: 'inline-flex',
                                                               alignItems: 'center',
-                                                              justifyContent: 'center',
-                                                              lineHeight: 1,
-                                                              borderRadius: '3px'
+                                                              gap: '2px',
+                                                              padding: '1px 5px',
+                                                              fontSize: '0.68rem',
+                                                              borderRadius: '3px',
+                                                              border: '1px dashed #94a3b8',
+                                                              background: '#ffffff',
+                                                              color: 'var(--text-secondary)',
+                                                              cursor: 'pointer',
+                                                              transition: 'all 0.15s ease'
+                                                            }}
+                                                            onMouseEnter={(e) => {
+                                                              e.currentTarget.style.borderColor = 'var(--primary)';
+                                                              e.currentTarget.style.color = 'var(--primary)';
+                                                            }}
+                                                            onMouseLeave={(e) => {
+                                                              e.currentTarget.style.borderColor = '#94a3b8';
+                                                              e.currentTarget.style.color = 'var(--text-secondary)';
                                                             }}
                                                             title="Thêm lựa chọn mới vào ô này"
                                                           >
-                                                            <Plus size={12} />
+                                                            <Plus size={10} /> Thêm
                                                           </button>
 
-                                                          {/* Nút 🔄 Khôi phục về cấu hình Cột (trong suốt, không viền cam) */}
+                                                          {/* Nút 🔄 Khôi phục về cấu hình Cột */}
                                                           {isCustomCellOpts && (
                                                             <button
                                                               type="button"
@@ -4593,137 +4728,31 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                                 handleResetCellOptions(block.id, row.id, col.id);
                                                               }}
                                                               style={{
-                                                                background: 'transparent',
-                                                                border: 'none',
+                                                                display: 'inline-flex',
+                                                                alignItems: 'center',
+                                                                gap: '2px',
+                                                                padding: '1px 5px',
+                                                                fontSize: '0.68rem',
+                                                                borderRadius: '3px',
+                                                                border: '1px dashed #ea580c',
+                                                                background: 'rgba(254, 215, 170, 0.2)',
                                                                 color: '#ea580c',
                                                                 cursor: 'pointer',
-                                                                padding: '1px 2px',
-                                                                display: 'flex',
-                                                                alignItems: 'center',
-                                                                justifyContent: 'center',
-                                                                lineHeight: 1,
-                                                                borderRadius: '3px'
-                                                            }}
-                                                            title="Khôi phục về dùng chung cấu hình Cột"
-                                                          >
-                                                            <RotateCcw size={11} />
-                                                          </button>
-                                                          )}
-                                                        </div>
-                                                      )}
-
-                                                      {cellOptions.map((opt, oIdx) => (
-                                                        <div 
-                                                          key={oIdx} 
-                                                          style={{ 
-                                                            display: 'inline-flex', 
-                                                            alignItems: 'center', 
-                                                            gap: '4px', 
-                                                            fontSize: '0.82rem', 
-                                                            color: 'var(--text-primary)', width: isInline ? 'auto' : (cellAlign === 'center' || cellAlign === 'right' ? 'fit-content' : '100%'), textAlign: 'left', whiteSpace: isInline ? 'nowrap' : undefined 
-                                                          }}
-                                                        >
-                                                          <input 
-                                                            type={col.type} 
-                                                            disabled 
-                                                            style={{ pointerEvents: 'none', flexShrink: 0, marginTop: 0, transform: 'scale(1.0)' }} 
-                                                          />
-                                                          
-                                                          {/* Direct In-Cell Editable Label with Auto-grow Mirror */}
-                                                          <div style={{ display: 'grid', flex: isInline ? undefined : 1, minWidth: isInline ? '32px' : 0, boxSizing: 'border-box' }}>
-                                                            <span
-                                                              aria-hidden="true"
-                                                              style={{
-                                                                gridArea: '1 / 1 / 2 / 2',
-                                                                visibility: 'hidden',
-                                                                whiteSpace: isInline ? 'nowrap' : 'pre-wrap',
-                                                                wordBreak: isInline ? 'normal' : 'break-word',
-                                                                fontSize: '0.82rem',
-                                                                lineHeight: 1.35,
-                                                                fontFamily: 'inherit',
-                                                                padding: '1px 3px',
-                                                                minHeight: '18px'
-                                                             }}
+                                                                transition: 'all 0.15s ease'
+                                                              }}
+                                                              onMouseEnter={(e) => {
+                                                                e.currentTarget.style.background = 'rgba(254, 215, 170, 0.4)';
+                                                              }}
+                                                              onMouseLeave={(e) => {
+                                                                e.currentTarget.style.background = 'rgba(254, 215, 170, 0.2)';
+                                                              }}
+                                                              title="Khôi phục về dùng chung cấu hình Cột"
                                                             >
-                                                              {(opt.label || '') + ' '}
-                                                            </span>
-                                                            <textarea
-                                                              disabled={isLocked}
-                                                              rows={1}
-                                                              value={opt.label}
-                                                              placeholder="Tùy chọn..."
-                                                              onClick={(e) => e.stopPropagation()}
-                                                              onKeyDown={(e) => handleFormatKeyDown(e, opt.label, (val) => {
-                                                                const newOpts = [...cellOptions];
-                                                                newOpts[oIdx] = { ...newOpts[oIdx], label: val };
-                                                                handleUpdateCellOptions(block.id, row.id, col.id, newOpts);
-                                                              })}
-                                                              onChange={(e) => {
-                                                                const newOpts = [...cellOptions];
-                                                                newOpts[oIdx] = { ...newOpts[oIdx], label: e.target.value };
-                                                                handleUpdateCellOptions(block.id, row.id, col.id, newOpts);
-                                                              }}
-                                                              style={{
-                                                                gridArea: '1 / 1 / 2 / 2',
-                                                                width: '100%',
-                                                                height: '100%',
-                                                                fontSize: '0.82rem',
-                                                                lineHeight: 1.35,
-                                                                fontFamily: 'inherit',
-                                                                color: 'var(--text-primary)',
-                                                                border: 'none',
-                                                                borderBottom: '1px dotted transparent',
-                                                                borderRadius: 0,
-                                                                background: 'transparent',
-                                                                outline: 'none',
-                                                                padding: '1px 3px',
-                                                                margin: 0,
-                                                                resize: 'none',
-                                                                overflow: 'hidden',
-                                                                whiteSpace: isInline ? 'nowrap' : 'pre-wrap',
-                                                                wordBreak: isInline ? 'normal' : 'break-word',
-                                                                cursor: isLocked ? 'default' : 'text'
-                                                              }}
-                                                              onFocus={(e) => {
-                                                                e.target.style.borderBottom = '1px solid var(--primary)';
-                                                                e.target.style.background = 'rgba(255, 255, 255, 0.9)';
-                                                              }}
-                                                              onBlur={(e) => {
-                                                                e.target.style.borderBottom = '1px dotted transparent';
-                                                                e.target.style.background = 'transparent';
-                                                              }}
-                                                            />
-                                                          </div>
-
-                                                          {/* Nút xóa lựa chọn ✕ (Chỉ hiển thị khi có từ 2 lựa chọn trở lên) */}
-                                                          {!isLocked && cellOptions.length > 1 && (
-                                                            <button
-                                                              type="button"
-                                                              onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                const newOpts = cellOptions.filter((_, i) => i !== oIdx);
-                                                                handleUpdateCellOptions(block.id, row.id, col.id, newOpts);
-                                                              }}
-                                                              style={{
-                                                                background: 'none',
-                                                                border: 'none',
-                                                                color: '#ef4444',
-                                                                cursor: 'pointer',
-                                                                padding: '0 2px',
-                                                                fontSize: '0.72rem',
-                                                                lineHeight: 1,
-                                                                opacity: 0.6,
-                                                                transition: 'opacity 0.15s ease'
-                                                              }}
-                                                              onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
-                                                              onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.6')}
-                                                              title="Xóa lựa chọn này"
-                                                            >
-                                                              ✕
+                                                              <RotateCcw size={10} /> Khôi phục
                                                             </button>
                                                           )}
                                                         </div>
-                                                      ))}
+                                                      )}
                                                     </div>
                                                    );
                                                  })() : (
