@@ -174,6 +174,17 @@ export interface TableRowConfig {
 
 export type TitleFormatISO = 'H1' | 'H2' | 'BODY' | 'NONE';
 
+export interface BlockVisibilityCondition {
+  enabled: boolean;
+  sourceType: 'table_row' | 'field';
+  triggerBlockId: string;
+  triggerRowId?: string;
+  triggerColId?: string;
+  triggerFieldId?: string;
+  operator: 'in' | 'equals' | 'not_equals';
+  expectedValues: string[];
+}
+
 export interface LayoutBlockISO {
   id: string;
   /** 
@@ -206,6 +217,7 @@ export interface LayoutBlockISO {
   datePosition?: 'A' | 'B';
   hideSTT?: boolean;
   hideHeader?: boolean;
+  visibilityCondition?: BlockVisibilityCondition;
 }
 
 export interface FormTemplateISO {

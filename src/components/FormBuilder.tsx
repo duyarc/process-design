@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import type { FormFieldISO, FormRevisionEntry, FormTemplateISO, LayoutBlockISO, RadioOption, MatrixConfigISO, TableColumnConfig, TableRowConfig, ColumnSummaryRowConfig, TitleFormatISO, SubtableColumn } from '../types';
+import type { FormFieldISO, FormRevisionEntry, FormTemplateISO, LayoutBlockISO, RadioOption, MatrixConfigISO, TableColumnConfig, TableRowConfig, ColumnSummaryRowConfig, TitleFormatISO, SubtableColumn, BlockVisibilityCondition } from '../types';
 import { formatFormVersion, getColStyleWidth } from '../types';
 import { sanitizeLabel, getEffectiveTitleFormat, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, isSeamlessTableBlock, getInfoGridTemplateColumns, snap2ColWidth, snap3ColWidths, INFO_GRID_2COL_PRESETS, generateSmartFieldSlug, getCheckboxGridTemplate } from '../utils/formUtils';
 import { applyTextFormat, handleFormatKeyDown } from '../utils/textFormatter';
@@ -38,7 +38,8 @@ import {
   SlidersHorizontal,
   Sparkles,
   RotateCcw,
-  PanelTop
+  PanelTop,
+  Zap
 } from 'lucide-react';
 import PrintBlankForm from './print/PrintBlankForm';
 
@@ -1887,6 +1888,31 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     });
   };
 
+  const handleUpdateBlockVisibilityCondition = (blockId: string, condition?: BlockVisibilityCondition) => {
+    setLayoutBlocks(prev => prev.map(b => b.id === blockId ? { ...b, visibilityCondition: condition } : b));
+  };
+
+  const formatConditionSummary = (cond: BlockVisibilityCondition, allBlocks: LayoutBlockISO[]): string => {
+    const triggerBlock = allBlocks.find(b => b.id === cond.triggerBlockId);
+    if (!triggerBlock) return 'Điều kiện không xác định';
+
+    let questionLabel = '';
+    if (cond.sourceType === 'table_row' && cond.triggerRowId) {
+      const firstCol = (triggerBlock.tableColumns || [])[0];
+      const staticText = firstCol ? triggerBlock.tableData?.[cond.triggerRowId]?.[firstCol.id] : '';
+      questionLabel = staticText
+        ? `"${staticText.length > 30 ? staticText.slice(0, 30) + '...' : staticText}"`
+        : `Dòng ${cond.triggerRowId}`;
+    } else if (cond.sourceType === 'field' && cond.triggerFieldId) {
+      const field = triggerBlock.fields?.find(f => f.id === cond.triggerFieldId);
+      questionLabel = field?.checkItem
+        ? `"${field.checkItem.length > 30 ? field.checkItem.slice(0, 30) + '...' : field.checkItem}"`
+        : 'Trường';
+    }
+
+    return `Hiện khi ${questionLabel} = [${cond.expectedValues.join(', ')}]`;
+  };
+
   // 3. Field Handlers inside Blocks
   const DEFAULT_RADIO_OPTIONS: RadioOption[] = [
     { label: 'Đạt',   value: 'PASS', isPass: true  },
@@ -3049,6 +3075,34 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                         <Trash2 size={10} />
                       </button>
                     </div>
+
+                    {/* Conditional Visibility Canvas Badge */}
+                    {block.visibilityCondition?.enabled && (
+                      <div style={{
+                        position: 'absolute',
+                        top: '-10px',
+                        left: '12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        background: '#f0fdf4',
+                        border: '1px solid #86efac',
+                        borderRadius: '10px',
+                        padding: '1px 8px',
+                        fontSize: '0.62rem',
+                        fontWeight: 600,
+                        color: '#15803d',
+                        zIndex: 10,
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                        maxWidth: 'calc(100% - 200px)',
+                        overflow: 'hidden',
+                        whiteSpace: 'nowrap',
+                        textOverflow: 'ellipsis'
+                      }}>
+                        <Zap size={10} style={{ color: '#16a34a', flexShrink: 0 }} />
+                        <span>{formatConditionSummary(block.visibilityCondition, layoutBlocks)}</span>
+                      </div>
+                    )}
 
                     {/* Block Content Render */}
                     <div style={{ marginTop: '0.25rem' }}>
@@ -7353,6 +7407,195 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                     )}
                   </div>
                 )}
+
+                {/* CONDITIONAL VISIBILITY SETTINGS */}
+                {activeBlock.type !== 'TITLE' && (() => {
+                  const currentBlockIdx = layoutBlocks.findIndex(b => b.id === activeBlock.id);
+                  const precedingBlocks = layoutBlocks.slice(0, currentBlockIdx);
+                  const cond: BlockVisibilityCondition = activeBlock.visibilityCondition || {
+                    enabled: false,
+                    sourceType: 'table_row' as const,
+                    triggerBlockId: '',
+                    operator: 'in' as const,
+                    expectedValues: []
+                  };
+
+                  // Quét câu hỏi ứng viên từ các khối phía trước
+                  const triggerCandidates: {
+                    id: string;
+                    label: string;
+                    group: string;
+                    sourceType: 'table_row' | 'field';
+                    blockId: string;
+                    rowId?: string;
+                    colId?: string;
+                    fieldId?: string;
+                    availableOptions: string[];
+                  }[] = [];
+
+                  precedingBlocks.forEach(b => {
+                    if (b.type === 'TABLE' || b.type === 'CHECKLIST_TABLE') {
+                      const firstCol = (b.tableColumns || [])[0];
+                      const scaleCols = (b.tableColumns || []).filter(c =>
+                        c.type === 'likert_scale' || c.type === 'radio'
+                      );
+                      (b.tableRows || []).forEach(row => {
+                        if (row.isGroupHeader) return;
+                        const rowText = firstCol ? (b.tableData?.[row.id]?.[firstCol.id] || '') : '';
+                        const rowLabel = rowText.trim() || `Dòng ${row.id}`;
+
+                        scaleCols.forEach(col => {
+                          const opts = col.type === 'likert_scale'
+                            ? (col.scaleOptions || ['Easy to Answer', 'Could Answer', 'Difficult to Answer'])
+                            : (col.options || []).map(o => o.label);
+                          triggerCandidates.push({
+                            id: `${b.id}__row__${row.id}__col__${col.id}`,
+                            label: `${rowLabel}`,
+                            group: b.title || `Khối ${b.type}`,
+                            sourceType: 'table_row',
+                            blockId: b.id,
+                            rowId: row.id,
+                            colId: col.id,
+                            availableOptions: opts
+                          });
+                        });
+                      });
+                    } else if (b.type === 'INFO_GRID') {
+                      (b.fields || []).forEach(f => {
+                        if (f.type === 'radio' || f.type === 'likert_scale') {
+                          const opts = f.type === 'likert_scale'
+                            ? (f.scaleOptions || ['1', '2', '3', '4', '5'])
+                            : (f.options || []).map(o => o.label);
+                          triggerCandidates.push({
+                            id: `${b.id}__field__${f.id}`,
+                            label: f.checkItem || f.id,
+                            group: b.title || 'Khối Grid',
+                            sourceType: 'field',
+                            blockId: b.id,
+                            fieldId: f.id,
+                            availableOptions: opts
+                          });
+                        }
+                      });
+                    }
+                  });
+
+                  if (triggerCandidates.length === 0) return null;
+
+                  const selectedCandidateId = cond.sourceType === 'table_row'
+                    ? `${cond.triggerBlockId}__row__${cond.triggerRowId}__col__${cond.triggerColId}`
+                    : `${cond.triggerBlockId}__field__${cond.triggerFieldId}`;
+                  const selectedCandidate = triggerCandidates.find(c => c.id === selectedCandidateId) || triggerCandidates[0];
+                  const currentOptions = selectedCandidate?.availableOptions || [];
+
+                  return (
+                    <div style={{ borderTop: '1px solid var(--neutral-border)', paddingTop: '0.75rem', marginTop: '0.25rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontWeight: 700, fontSize: '0.72rem', textTransform: 'uppercase', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <Zap size={11} style={{ color: cond.enabled ? '#16a34a' : 'var(--text-muted)' }} />
+                          Logic Hiển Thị
+                        </span>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: isLocked ? 'not-allowed' : 'pointer', fontSize: '0.7rem', fontWeight: 600 }}>
+                          <input
+                            type="checkbox"
+                            disabled={isLocked}
+                            checked={cond.enabled}
+                            onChange={(e) => {
+                              const enabled = e.target.checked;
+                              if (enabled && !cond.triggerBlockId && triggerCandidates.length > 0) {
+                                const first = triggerCandidates[0];
+                                handleUpdateBlockVisibilityCondition(activeBlock.id, {
+                                  enabled: true,
+                                  sourceType: first.sourceType,
+                                  triggerBlockId: first.blockId,
+                                  triggerRowId: first.rowId,
+                                  triggerColId: first.colId,
+                                  triggerFieldId: first.fieldId,
+                                  operator: 'in',
+                                  expectedValues: first.availableOptions.slice(0, 2)
+                                });
+                              } else {
+                                handleUpdateBlockVisibilityCondition(activeBlock.id, { ...cond, enabled });
+                              }
+                            }}
+                          />
+                          {cond.enabled ? 'Bật' : 'Tắt'}
+                        </label>
+                      </div>
+
+                      {cond.enabled && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', background: '#f8fafc', padding: '0.5rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                            <label style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Câu hỏi kích hoạt:</label>
+                            <select
+                              disabled={isLocked}
+                              value={selectedCandidateId}
+                              onChange={(e) => {
+                                const cand = triggerCandidates.find(c => c.id === e.target.value);
+                                if (cand) {
+                                  handleUpdateBlockVisibilityCondition(activeBlock.id, {
+                                    ...cond,
+                                    sourceType: cand.sourceType,
+                                    triggerBlockId: cand.blockId,
+                                    triggerRowId: cand.rowId,
+                                    triggerColId: cand.colId,
+                                    triggerFieldId: cand.fieldId,
+                                    expectedValues: cand.availableOptions.slice(0, 2)
+                                  });
+                                }
+                              }}
+                              style={{ width: '100%', padding: '0.25rem', fontSize: '0.7rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', background: '#ffffff' }}
+                            >
+                              {triggerCandidates.map(c => (
+                                <option key={c.id} value={c.id}>
+                                  [{c.group}] {c.label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                            <label style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Hiển thị khi giá trị là:</label>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                              {currentOptions.map(opt => {
+                                const isSelected = cond.expectedValues.includes(opt);
+                                return (
+                                  <button
+                                    key={opt}
+                                    type="button"
+                                    disabled={isLocked}
+                                    onClick={() => {
+                                      const nextValues = isSelected
+                                        ? cond.expectedValues.filter(v => v !== opt)
+                                        : [...cond.expectedValues, opt];
+                                      handleUpdateBlockVisibilityCondition(activeBlock.id, {
+                                        ...cond,
+                                        expectedValues: nextValues
+                                      });
+                                    }}
+                                    style={{
+                                      padding: '2px 7px',
+                                      fontSize: '0.68rem',
+                                      borderRadius: '12px',
+                                      border: isSelected ? '1px solid var(--primary)' : '1px solid #cbd5e1',
+                                      background: isSelected ? 'var(--primary)' : '#ffffff',
+                                      color: isSelected ? '#ffffff' : 'var(--text-secondary)',
+                                      cursor: isLocked ? 'not-allowed' : 'pointer',
+                                      fontWeight: isSelected ? 600 : 400,
+                                      transition: 'all 0.15s ease'
+                                    }}
+                                  >
+                                    {isSelected ? `✓ ${opt}` : opt}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           ) : (

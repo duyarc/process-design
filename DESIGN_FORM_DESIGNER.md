@@ -9,7 +9,7 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-09-03) — Section 6 checked against FormBuilder.tsx (Zero-Delay Paint hot path, background history sync, parallel cold load) |
+| **Verified At Commit** | (2026-09-04) — Section 2, 4, 6 (BlockVisibilityCondition schema, FormBuilder Conditional Logic Inspector & Canvas badge checked against FormBuilder.tsx) |
 
 > **⚠️ Architectural note:** FormBuilder has no awareness of which process it belongs to. The `formName` prop is always identical to `formId`. See Section 6.1 and the Technical Debt table.
 
@@ -22,7 +22,7 @@
 | [`src/utils/pdf/backgroundGenerator.ts`](src/utils/pdf/backgroundGenerator.ts) | Generates 300 DPI A4 background PDF via `html2canvas` & `jsPDF` |
 | [`src/utils/pdf/acroFormOverlay.ts`](src/utils/pdf/acroFormOverlay.ts) | Overlays interactive AcroForm fields onto PDF pages via `pdf-lib` |
 | [`src/utils/pdf/downloadHelper.ts`](src/utils/pdf/downloadHelper.ts) | Browser 5S PDF download helper |
-| [`src/types.ts`](src/types.ts) | Shared types: `FormTemplateISO`, `LayoutBlockISO`, `FormFieldISO`, `FormRevisionEntry`, `MatrixConfigISO`, `TableColumnConfig` (**owning doc** for these types) |
+| [`src/types.ts`](src/types.ts) | Shared types: `FormTemplateISO`, `LayoutBlockISO`, `FormFieldISO`, `FormRevisionEntry`, `MatrixConfigISO`, `TableColumnConfig`, `BlockVisibilityCondition` (**owning doc** for these types) |
 
 > **Update rule:** Whenever any of the above files is modified in a session, update the
 > "Verified At Commit" field and add an entry to the [Change Log](#8-change-log) at the
@@ -38,6 +38,7 @@ The Form Designer is the **authoring and publishing system for reusable operatio
 It lets authorized users:
 - Create and edit a form template by assembling **layout blocks** — each block is a self-contained section with a type (checklist table, info grid, matrix, sign-off, etc.).
 - Configure **fields** within each block (type, label, acceptance spec, unit, reaction protocol, options).
+- Configure **conditional visibility rules** (`BlockVisibilityCondition`) so blocks appear dynamically based on upstream answers.
 - Manage a company logo on the form header.
 - **Version** form templates: Draft → Active (published) — with a full revision history that stores a layout snapshot per version.
 - **Restore** any past version's layout back into the current draft.
@@ -73,11 +74,12 @@ FormBuilder renders as an edge-to-edge **Fullscreen Studio Workspace** (`positio
 | **Add Field button** | Add a field to the selected block (type: text / number / date / time / radio / signature / photo) |
 | **Field row controls** | Reorder, delete fields within a block |
 | **Logo upload** | On TITLE blocks: upload a new logo file, or open a gallery of previously uploaded logos |
+| **Conditional Badge (`⚡`)** | Visual indicator on Canvas showing block visibility condition summary (e.g. `Hiện khi "..." = [...]`) |
 
 ### Right Panel — Two Tabs
 | Tab | Purpose |
 |---|---|
-| **Properties** | Edit the selected block's title, column count, column header labels; edit the selected field's label, type, min/max spec, unit, target range, reaction protocol, frequency, radio options |
+| **Properties** | Edit the selected block's title, column count, column header labels, conditional visibility rules; edit the selected field's label, type, min/max spec, unit, target range, reaction protocol, frequency, radio options |
 | **Versions** | View full revision history; restore a past layout; create a new draft version; delete a specific version; set effective date and change summary before publishing |
 
 ### Top Action Bar
@@ -128,6 +130,17 @@ interface FormTemplateISO {
 ### Layout Block: `LayoutBlockISO`
 
 ```typescript
+export interface BlockVisibilityCondition {
+  enabled: boolean;
+  sourceType: 'table_row' | 'field';
+  triggerBlockId: string;
+  triggerRowId?: string;
+  triggerColId?: string;
+  triggerFieldId?: string;
+  operator: 'in' | 'equals' | 'not_equals';
+  expectedValues: string[];
+}
+
 export interface TableRowConfig {
   id: string;
   lineCount?: number; // Number of handwriting lines per row. Default = 1. Range: 1–5.
@@ -151,6 +164,7 @@ interface LayoutBlockISO {
   tableColumns?: TableColumnConfig[]; // TABLE block column definitions
   tableRows?: TableRowConfig[];       // TABLE block row definitions
   tableData?: { [rowId: string]: { [colId: string]: string } }; // TABLE static cell values
+  visibilityCondition?: BlockVisibilityCondition; // Block-level conditional logic
 }
 ```
 
@@ -480,3 +494,4 @@ full diff of any entry below.
 | 2026-08-31 | **Sidebar Section Settings Unification (Single-Row Streamlined Toolbar):** (1) Streamlined Right Sidebar Section Settings to align 100% with Canvas visual design. (2) Removed redundant `Title` label and obsolete bottom `Border [ ... ] Header [ 🔘 ]` toggle row. (3) Unified all controls into a single compact horizontal toolbar (`~235px` within `268px` space) featuring `[ H1 | H2 | Body | None ]  │  [ ⊞ | ☰ | ⬚ ]  [ 🗖 ]` with full two-way state reactivity. |
 | 2026-09-03 | **Form Save Error Reporting & Payload Resilience:** Enhanced `saveFormToBackend` in `FormBuilder.tsx` to dynamically inspect backend error responses (JSON error message or HTTP 413) instead of throwing a generic error, aligning with server-side 50MB payload limit update. |
 | 2026-09-03 | **Zero-Delay Paint & Snapshot-Safe History Sync:** Optimized `FormBuilder.tsx` mount lifecycle to bypass full-screen loading spinner when `initialData.layoutBlocks` is preloaded (hot path), reducing UI wait time to 0ms. Unified revision history is fetched asynchronously in the background and commits a safe snapshot to maintain `isSaved` fidelity without false dirty triggers. Parallelized cold-path loads with `Promise.all`. |
+| 2026-09-04 | **Block-level Conditional Visibility (Display Logic):** (1) Added `BlockVisibilityCondition` interface to `types.ts` and extended `LayoutBlockISO` with `visibilityCondition?`. (2) In `FormBuilder.tsx`, added Right Inspector `Logic Hiển Thị` section scanning preceding `TABLE` (likert/radio) rows and `INFO_GRID` fields as triggers with quick-select tags and default `'in'` operator. (3) Added `⚡` status badge on Canvas blocks. |

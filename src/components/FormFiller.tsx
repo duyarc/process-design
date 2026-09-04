@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, Component } from 'react';
-import type { Process, FormTemplateISO, SubmissionFieldSnapshot, Submission } from '../types';
+import type { Process, FormTemplateISO, SubmissionFieldSnapshot, Submission, BlockVisibilityCondition } from '../types';
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
@@ -615,6 +615,23 @@ function FormFillerInner({
     }
   };
 
+  // Helper: Check if a block is conditionally visible
+  const evaluateBlockVisibility = (block: any, values: Record<string, string>): boolean => {
+    const cond: BlockVisibilityCondition | undefined = block?.visibilityCondition;
+    if (!cond || !cond.enabled) return true;
+
+    let actualVal = '';
+    if (cond.sourceType === 'table_row' && cond.triggerBlockId && cond.triggerRowId && cond.triggerColId) {
+      const cellKey = `${cond.triggerBlockId}_${cond.triggerRowId}_${cond.triggerColId}`;
+      actualVal = values[cellKey] || '';
+    } else if (cond.sourceType === 'field' && cond.triggerFieldId) {
+      actualVal = values[cond.triggerFieldId] || '';
+    }
+
+    if (!actualVal) return false;
+    return (cond.expectedValues || []).includes(actualVal);
+  };
+
   // Helper: Collect snapshots from UI state
   const buildSubmissionSnapshots = (_forPrint: boolean = false) => {
     const allFields = formTemplate?.layoutBlocks?.flatMap((b: any) => b.fields || []) || [];
@@ -825,7 +842,14 @@ function FormFillerInner({
       ? signValues[mandatorySignField.id]!.name
       : operatorId;
 
-    const validationResult = validateFormSubmission(formTemplate, formValues);
+    // Tạo bản copy formTemplate với layout_blocks đã lọc bỏ khối ẩn bởi conditional logic
+    const visibleTemplate = formTemplate ? {
+      ...formTemplate,
+      layoutBlocks: (formTemplate.layoutBlocks || []).filter(
+        (b: any) => evaluateBlockVisibility(b, formValues)
+      )
+    } : formTemplate;
+    const validationResult = validateFormSubmission(visibleTemplate, formValues);
     if (!validationResult.isValid) {
       alert(validationResult.errors.join('\n'));
       return;
@@ -911,7 +935,20 @@ function FormFillerInner({
     if (block.type === 'PAGE_BREAK') return null;
     if ((!block.fields || block.fields.length === 0) && block.type !== 'TITLE' && block.type !== 'SECTION_LABEL' && block.type !== 'TABLE') return null;
 
-    const prevBlock = index > 0 ? list[index - 1] : undefined;
+    // ── CONDITIONAL VISIBILITY: ẩn khối nếu điều kiện không thỏa mãn ──
+    // formValues KHÔNG bị xóa → dữ liệu bảo toàn 100% khi ẩn/hiện
+    if (!evaluateBlockVisibility(block, formValues)) {
+      return null;
+    }
+
+    // Tìm khối HIỂN THỊ gần nhất phía trước (bỏ qua các khối bị ẩn bởi conditional logic)
+    let prevBlock: any = undefined;
+    for (let i = index - 1; i >= 0; i--) {
+      if (evaluateBlockVisibility(list[i], formValues)) {
+        prevBlock = list[i];
+        break;
+      }
+    }
     const isSeamless = isSeamlessTableBlock(block, prevBlock);
     const isPrevSection = prevBlock?.type === 'SECTION_LABEL' && getEffectiveTitleFormat(prevBlock) !== 'NONE';
 
