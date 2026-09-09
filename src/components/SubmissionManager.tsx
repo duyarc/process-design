@@ -71,10 +71,22 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
   const [submissionToDelete, setSubmissionToDelete] = useState<Submission | null>(null);
   const [deleting, setDeleting] = useState(false);
 
+  // Toast and Error States
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
+  // Auto-dismiss toast
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
   // 1. Fetch data from backend
   const fetchData = async () => {
     try {
       setLoading(true);
+      setFetchError(null);
       
       // Fetch submissions & processes in parallel — processes ready before first render
       const [subRes, procRes] = await Promise.all([
@@ -109,9 +121,10 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
       });
       setSubmissions(parsedSubs);
       setProcesses(procData);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert('Error fetching submission logs.');
+      setFetchError(err?.message || 'Error fetching submission logs');
+      setToast({ message: 'Không thể tải nhật ký phiếu. Đang thử kết nối lại...', type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -188,7 +201,7 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
   // 3. Supervisor sign-off handler
   const handleSignOffSubmit = async (subId: string) => {
     if (!supervisorName.trim()) {
-      alert('Please enter your supervisor verification signature name.');
+      setToast({ message: 'Vui lòng nhập họ tên người ký xác nhận.', type: 'error' });
       return;
     }
 
@@ -206,7 +219,7 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
       if (!res.ok) throw new Error('Failed to verify record');
       const { signoffData } = await res.json();
       
-      alert('Submission record verified and signed off successfully!');
+      setToast({ message: 'Đã ký xác nhận bản ghi thành công!', type: 'success' });
       
       // Update local state
       setSubmissions(prev => prev.map(sub => sub.id === subId ? { ...sub, supervisorSignoff: signoffData } : sub));
@@ -217,7 +230,7 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
       setVerificationNotes('');
     } catch (err) {
       console.error(err);
-      alert('Error signing off verification.');
+      setToast({ message: 'Lỗi khi ký xác nhận bản ghi.', type: 'error' });
     } finally {
       setSigningOff(false);
     }
@@ -238,10 +251,11 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
         setSelectedSubmission(null);
       }
       setSubmissionToDelete(null);
+      setToast({ message: 'Đã xóa bản ghi phiếu thành công!', type: 'success' });
       await fetchData();
     } catch (err) {
       console.error(err);
-      alert('Error deleting submission record.');
+      setToast({ message: 'Lỗi khi xóa bản ghi phiếu.', type: 'error' });
     } finally {
       setDeleting(false);
     }
@@ -493,6 +507,24 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
           <div className="paper-card" style={{ padding: '0.5rem 0', overflowX: 'auto' }}>
             {loading ? (
               <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem 0' }}>Loading audit trails...</p>
+            ) : fetchError && submissions.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '2.5rem 1rem' }}>
+                <AlertTriangle size={32} style={{ color: 'var(--danger)', margin: '0 auto 0.75rem', display: 'block' }} />
+                <p style={{ color: 'var(--text-primary)', fontWeight: 600, marginBottom: '0.25rem' }}>
+                  Không thể kết nối đến máy chủ để tải dữ liệu
+                </p>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '1rem' }}>
+                  Vui lòng kiểm tra đường truyền hoặc bấm thử lại.
+                </p>
+                <button 
+                  type="button" 
+                  className="btn btn-secondary btn-sm"
+                  onClick={fetchData}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                >
+                  Thử lại
+                </button>
+              </div>
             ) : filteredSubmissions.length === 0 ? (
               <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem 0', fontStyle: 'italic' }}>No submissions matching filters.</p>
             ) : (
@@ -899,6 +931,48 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
         onConfirm={handleDeleteSubmission}
         onCancel={() => setSubmissionToDelete(null)}
       />
+
+      {/* Floating Toast Notification */}
+      {toast && (
+        <div 
+          style={{
+            position: 'fixed',
+            bottom: '1.5rem',
+            right: '1.5rem',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.6rem',
+            padding: '0.75rem 1.1rem',
+            background: toast.type === 'success' ? '#065f46' : '#991b1b',
+            color: '#ffffff',
+            borderRadius: '8px',
+            boxShadow: '0 4px 14px rgba(0, 0, 0, 0.25)',
+            fontSize: '0.85rem',
+            fontWeight: 500,
+            animation: 'fadeIn 0.2s ease-out'
+          }}
+        >
+          {toast.type === 'success' ? <CheckCircle size={18} /> : <AlertTriangle size={18} />}
+          <span>{toast.message}</span>
+          <button
+            type="button"
+            onClick={() => setToast(null)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: '#ffffff',
+              cursor: 'pointer',
+              marginLeft: '0.5rem',
+              padding: 0,
+              display: 'flex',
+              alignItems: 'center'
+            }}
+          >
+            <XCircle size={16} />
+          </button>
+        </div>
+      )}
     </div>
   );
 }

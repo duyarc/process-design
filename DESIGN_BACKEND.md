@@ -9,7 +9,7 @@
 | **Module Name** | Backend & Persistence |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-09-09) — Sections 1, 2, 3 (submissions access_token column, batch-lookup, view/:id, and token-guarded PUT). |
+| **Verified At Commit** | (2026-09-09) — Sections 2, 8 (Supabase transaction pooler port 6543 normalization and pool sizing in server.cjs). |
 
 ### Quick File Index
 
@@ -63,7 +63,7 @@ Browser
 
 | Variable | Purpose | Fallback behaviour if absent |
 |---|---|---|
-| `DATABASE_URL` | Postgres connection string | `dbPool` stays `null`; **offline CSV mode** activates |
+| `DATABASE_URL` | Postgres connection string (automatically rewritten from port 5432 to 6543 for Supabase pooler transaction mode) | `dbPool` stays `null`; **offline CSV mode** activates |
 | `JWT_SECRET` | JWT signing key | Falls back to a **hardcoded literal** in source — see Technical Debt |
 | `GOOGLE_CLIENT_ID` | Google OAuth audience for ID token verification | Google login fails |
 | R2 credentials | Bucket access | `r2Client` stays `null`; upload endpoints disabled |
@@ -292,7 +292,6 @@ Architectural changes only — schema, endpoints, invariants. UI polish lives in
 
 | Date | Commit | Change |
 |---|---|---|
-| 2026-07-10 | `294e5bb` | **Schema change:** added `forms.effective_date`; standardized form version strings across server and client. |
 | 2026-07-13 | `143bec7` | Added `/api/storage/download-inline` to proxy logos as base64 data URLs, fixing cross-origin print rendering. |
 | 2026-07-20 | `5bea009` | **Critical fix + invariant:** `isLogoKeyUsed()` rewritten to query `forms.layout_blocks` instead of `processes.workflowFormsData`. The old version always returned `false`, deleting every logo from R2 on the next process save. See Section 4. |
 | 2026-07-09 | `c9a5696` | Fixed Supabase connection leaks and Vercel serverless cold-start timeouts. |
@@ -307,3 +306,4 @@ Architectural changes only — schema, endpoints, invariants. UI polish lives in
 | 2026-09-03 | `CURRENT` | **Fix 413 Payload Too Large on Large Forms:** Configured `express.json({ limit: '50mb' })` and `express.urlencoded({ extended: true, limit: '50mb' })` in `server.cjs`, removing default 100kb limit that blocked saving forms with extensive layout blocks (e.g. 5C-Scorecard at 144KB+). |
 | 2026-09-03 | `CURRENT` | **Parallelize GET /api/processes Database Queries:** Replaced sequential queries for `processes` and `process_forms` with `Promise.all([dbPool.query('SELECT * FROM processes'), dbPool.query('SELECT * FROM process_forms')])`, reducing server latency by ~20-30%. |
 | 2026-09-09 | `CURRENT` | **Public Submission Review & Amendment API:** Added `access_token` column to `submissions` table; added `POST /api/submissions/batch-lookup` for device ownership verification; added `GET /api/submissions/view/:id?token=TOKEN` for public view; updated `PUT /api/submissions/:id` with token & sign-off validation. |
+| 2026-09-09 | `CURRENT` | **Supabase Transaction Pooler (Port 6543):** Auto-normalized Supabase connection string port from 5432 (Session mode) to 6543 (Transaction mode) and set pool limits (`max: 10`, `idleTimeoutMillis: 5000`) in `server.cjs` to eliminate serverless `(EMAXCONNSESSION)` errors. |

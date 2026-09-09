@@ -27,11 +27,26 @@ let dbPool = null;
 
 if (DATABASE_URL) {
   console.log('Connecting to database...');
+  // Normalize Supabase Pooler port: port 5432 (Session mode) has pool_size: 15 limit,
+  // causing EMAXCONNSESSION crashes on multi-client / serverless.
+  // Port 6543 (Transaction mode) supports thousands of concurrent connections.
+  let effectiveDatabaseUrl = DATABASE_URL;
+  try {
+    const parsedUrl = new URL(DATABASE_URL);
+    if (parsedUrl.hostname.includes('pooler.supabase.com') && (parsedUrl.port === '5432' || !parsedUrl.port)) {
+      parsedUrl.port = '6543';
+      effectiveDatabaseUrl = parsedUrl.toString();
+    }
+  } catch (e) {}
+
   dbPool = new Pool({
-    connectionString: DATABASE_URL,
+    connectionString: effectiveDatabaseUrl,
     ssl: {
       rejectUnauthorized: false
-    }
+    },
+    max: 10,
+    idleTimeoutMillis: 5000,
+    connectionTimeoutMillis: 10000
   });
   dbPool.on('error', (err) => {
     console.error('Unexpected error on idle database client:', err.message || err);

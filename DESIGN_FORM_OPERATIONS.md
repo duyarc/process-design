@@ -9,7 +9,7 @@
 | **Module Name** | Form Operations |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-09-09) — Section 2, 4, 6 (Near full-screen view coordination and onViewingChange in SubmissionManager) |
+| **Verified At Commit** | (2026-09-09) — Sections 2, 7, 8 (SubmissionManager floating toast notifications, zero window.alert(), and inline retry UI) |
 
 ### Quick File Index
 
@@ -406,7 +406,7 @@ Form submission validation logic is modularized in `src/utils/formUtils.ts` unde
 | **`GET /api/submissions` loads ALL records** | Poor scalability as submission volume grows | Both `FormManager` and `SubmissionManager` fetch the entire submissions table and filter client-side. No pagination or server-side filter by `formId`. |
 | **`GET /api/processes` loaded to resolve template** | Extra network round-trip | FormFiller and FormManager load the full process list just to find `workflowFormsData[formName]`. The form template should be fetched directly from `GET /api/forms/:formId` instead |
 | **`status: 'FAIL'` is a dead value on `Submission`** | Confusion between `Submission.status` and `SubmissionFieldSnapshot.status` | `Submission.status` is stored as `ABNORMALITY` when any field fails; `FAIL` is used only on individual field snapshots. The type definition includes `FAIL` on both but it is never written to `Submission.status` |
-| **`window.alert()` used extensively** | Blocking dialogs disrupt UX | Error handling, success confirmations, and photo upload feedback all use native browser `alert()` |
+| **`window.alert()` legacy debt** | Blocking dialogs disrupt UX | Progressively replaced: `SubmissionManager` completely converted to non-blocking floating toasts. Remaining alerts in `FormFiller` / `FormManager` to follow. |
 | **Photo evidence keys not tracked by submission ID** | Storage management is difficult | Photos are uploaded to R2 using the `processId` and `formName` as path prefix — not scoped to the submission ID. Orphaned photos cannot easily be detected or cleaned up |
 | **Operator ID is free-text, not authenticated** | Attributability is not verified | The `operatorId` field accepts any string. There is no tie to the authenticated `currentUser` — an operator can enter any name |
 | **Supervisor name pre-fill is role-based but unverified** | Supervisor sign-off can be made by anyone who types a name | `supervisorName` is pre-filled from `currentUser.full_name` if role is `admin` or `supervisor`, but the field is editable and there is no server-side permission check on the signoff endpoint |
@@ -421,9 +421,6 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 
 | Date | Commit | Change |
 |---|---|---|
-| 2026-08-25 | `a18181b` | **Table Block Border Styles Parity & Bottom Row Border Fix:** Updated `FormFiller.tsx`, `ProcessReader.tsx`, `PrintFilledForm.tsx`, and `PrintRecord.tsx` with explicit `borderBottom` definitions on `td` and `borderTop` on `horizontal_only` tables. |
-| 2026-08-25 | `3bd2477` | **INFO_GRID Horizontal Alignment & Label Typography Refinement:** Standardized `alignItems: 'center'`, `minHeight: 'var(--pw-line-h)'`, and `lineHeight: 1.4` on all INFO_GRID fields across `PrintFilledForm.tsx` and `PrintRecord.tsx`. Adjusted `label` field font weight to regular (400) and `lineHeight: 1.5` in `FormFiller.tsx` and `ProcessReader.tsx`. |
-| 2026-08-26 | `CURRENT` | **Fallback Operator Block Relocation & Vietnamese Localization:** Moved fallback operator identification block from top to bottom of `FormFiller.tsx` (above static footer strip, visible only when form has no `SIGN` block). Localized label to `Người điền phiếu *`, placeholder to `Nhập họ và tên người điền phiếu`, and validation alert to Vietnamese. |
 | 2026-08-26 | `CURRENT` | **Smart Public Link Access Control & Guest Bypass Route:** Integrated Smart Status Pill (`[🌐 Link công khai / 🔒 Cần đăng nhập] + [🔗 Sao chép link]`) in `FormFiller.tsx`. Updated `App.tsx` with public guest route bypass allowing guest users to fill out forms directly without login when `mode=public` query parameter is present. |
 | 2026-08-26 | `CURRENT` | **FormFiller Auto-Expanding Multi-line Text Area Support:** Integrated `AutoResizingTextarea` in `FormFiller.tsx`, replacing single-line `<input type="text">` across INFO_GRID fields, Checklist groups, Action notes, and dynamic `TABLE` cells with auto-expanding multi-line textareas without vertical scrollbars. |
 | 2026-08-26 | `CURRENT` | **Human-Friendly Daily Sequential Submission ID:** Upgraded `FormFiller.tsx` and `ProcessReader.tsx` submission flow to receive compact 9-character daily sequential IDs (`YYMMDD-XX`, e.g. `260826-01`) assigned by backend. |
@@ -439,6 +436,7 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 | 2026-09-09 | `CURRENT` | **Public Submission Review & Amendment UI:** Created `SubmissionViewer.tsx` orchestrating token-based read-only and edit modes. Updated `FormFiller.tsx` with access token persistence in `localStorage`, submission success screen with copyable review link, and dynamic local device history card powered by batch-lookup. |
 | 2026-09-09 | `CURRENT` | **Minimalist Executive Toolbar & Single Edit Button in Form View:** Unified submission viewing across internal and public access into a single executive header in `FormFiller.tsx`. In view mode, exactly one edit button is rendered (in the header), while the footer action strip is completely suppressed. In edit mode, fields unlock and minimalist footer appears with Cancel and Save actions. `SubmissionViewer.tsx` delegates directly to `FormFiller` to eliminate duplicate outer headers. |
 | 2026-09-09 | `CURRENT` | **Near Full-Screen Submission View Coordination:** Added `onViewingChange` prop in `SubmissionManager.tsx` and lifecycle coordination to suppress outer dashboard quote card and tabs when viewing/copying a submission record, achieving visual parity with fill-form. |
+| 2026-09-09 | `CURRENT` | **SubmissionManager Toast Feedback & Connection Error Recovery:** Replaced all 5 blocking `window.alert()` calls in `SubmissionManager.tsx` with floating toast notifications (`setToast`) and auto-dismiss timer. Added inline server connection error banner with retry button for serverless resilience. |
 
 
 
