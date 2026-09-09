@@ -2764,15 +2764,15 @@ function FormFillerInner({
 
       {/* Unified Executive Header Toolbar for Submission View / Edit / Fill */}
       {initialSubmission ? (
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'nowrap', gap: '0.5rem', width: '100%' }}>
           {/* Left Context: Back button + Submission ID + Status badge + Submitter info */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'nowrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'nowrap', flexShrink: 0 }}>
             {onBack && (
               <button
                 type="button"
                 className="btn btn-secondary btn-sm"
                 onClick={isEditModeActive ? handleCancelEdit : onBack}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.25rem 0.5rem' }}
                 title={isEditModeActive ? "Hủy bỏ các thay đổi và quay lại xem" : (isPublicGuestMode ? "Về biểu mẫu" : "Quay lại")}
               >
                 <ArrowLeft size={14} />
@@ -2785,14 +2785,14 @@ function FormFillerInner({
                 <Pencil size={13} /> Sửa phiếu <code style={{ fontFamily: 'monospace' }}>{initialSubmission.id}</code>
               </span>
             ) : (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'nowrap' }}>
-                <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'nowrap' }}>
+                <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
                   Phiếu <code style={{ fontFamily: 'monospace', color: 'var(--primary)' }}>{initialSubmission.id}</code>
                 </span>
 
                 <span
                   className={`badge ${initialSubmission.status === 'PASS' ? 'badge-success' : 'badge-danger'}`}
-                  style={{ fontSize: '0.68rem', padding: '0.12rem 0.4rem' }}
+                  style={{ fontSize: '0.65rem', padding: '0.1rem 0.35rem', whiteSpace: 'nowrap' }}
                 >
                   {initialSubmission.status}
                 </span>
@@ -2800,8 +2800,8 @@ function FormFillerInner({
                 {initialSubmission.supervisorSignoff && (
                   <span
                     style={{
-                      fontSize: '0.7rem',
-                      padding: '0.12rem 0.4rem',
+                      fontSize: '0.68rem',
+                      padding: '0.1rem 0.35rem',
                       borderRadius: '4px',
                       background: '#ffffff',
                       border: '1px solid var(--neutral-border)',
@@ -2809,7 +2809,8 @@ function FormFillerInner({
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: '2px',
-                      fontWeight: 500
+                      fontWeight: 500,
+                      whiteSpace: 'nowrap'
                     }}
                     title={`Đã ký xác nhận bởi ${initialSubmission.supervisorSignoff.signedBy} lúc ${new Date(initialSubmission.supervisorSignoff.signedAt).toLocaleString('vi-VN')}`}
                   >
@@ -2818,7 +2819,7 @@ function FormFillerInner({
                 )}
 
                 <span 
-                  style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}
+                  style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap', maxWidth: '90px', overflow: 'hidden', textOverflow: 'ellipsis' }}
                   title={`${initialSubmission.operatorId} — ${new Date(initialSubmission.submittedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}, ${new Date(initialSubmission.submittedAt).toLocaleDateString('vi-VN')}`}
                 >
                   • {initialSubmission.operatorId}
@@ -2828,13 +2829,13 @@ function FormFillerInner({
           </div>
 
           {/* Right Actions: Focus mode + Print + Copy + Single Edit button (when in View Mode) or Save (when in Edit Mode) */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'nowrap', flexShrink: 0 }}>
             {/* Focus Mode Switch Toggle */}
             {sections.length > 1 && (
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginRight: '0.25rem' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', marginRight: '0.15rem' }}>
                 <label
                   onClick={() => setViewMode(prev => prev === 'focus' ? 'all' : 'focus')}
-                  style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.8rem', margin: 0, cursor: 'pointer', userSelect: 'none' }}
+                  style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.78rem', margin: 0, cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}
                 >
                   Focus mode
                 </label>
@@ -2842,9 +2843,9 @@ function FormFillerInner({
                   type="button"
                   onClick={() => setViewMode(prev => prev === 'focus' ? 'all' : 'focus')}
                   style={{
-                    width: '32px',
-                    height: '18px',
-                    borderRadius: '9px',
+                    width: '30px',
+                    height: '16px',
+                    borderRadius: '8px',
                     background: viewMode === 'focus' ? 'var(--primary)' : '#cbd5e1',
                     border: 'none',
                     cursor: 'pointer',
@@ -2853,14 +2854,15 @@ function FormFillerInner({
                     display: 'flex',
                     alignItems: 'center',
                     transition: 'background-color 0.2s ease',
-                    outline: 'none'
+                    outline: 'none',
+                    flexShrink: 0
                   }}
                   title={viewMode === 'focus' ? 'Chế độ Focus từng phân đoạn (Đang Bật)' : 'Chế độ xem toàn bộ (Đang Tắt)'}
                 >
                   <span
                     style={{
-                      width: '14px',
-                      height: '14px',
+                      width: '12px',
+                      height: '12px',
                       borderRadius: '50%',
                       background: '#ffffff',
                       boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
@@ -2879,7 +2881,7 @@ function FormFillerInner({
                 className="btn btn-primary btn-sm"
                 onClick={handleSubmitForm}
                 disabled={submitting}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', padding: '0.25rem 0.85rem' }}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', padding: '0.25rem 0.75rem', whiteSpace: 'nowrap' }}
               >
                 {submitting ? 'Đang lưu...' : '💾 Lưu thay đổi'}
               </button>
@@ -2894,7 +2896,7 @@ function FormFillerInner({
                       setPrintCurrentSubmission(initialSubmission);
                     }
                   }}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem' }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.78rem', padding: '0.25rem 0.55rem', whiteSpace: 'nowrap' }}
                   title="In bản khai"
                 >
                   <Printer size={13} style={{ color: '#0d9488' }} />
@@ -2907,7 +2909,7 @@ function FormFillerInner({
                     type="button"
                     className="btn btn-secondary btn-sm"
                     onClick={() => onCopySubmission(initialSubmission)}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem' }}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.78rem', padding: '0.25rem 0.55rem', whiteSpace: 'nowrap' }}
                     title="Sao chép thành bản ghi mới"
                   >
                     <Copy size={13} />
@@ -2921,7 +2923,7 @@ function FormFillerInner({
                     type="button"
                     className="btn btn-primary btn-sm"
                     onClick={() => setIsEditModeActive(true)}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', padding: '0.25rem 0.75rem' }}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.78rem', padding: '0.25rem 0.65rem', whiteSpace: 'nowrap' }}
                   >
                     <Pencil size={13} />
                     <span>Chỉnh sửa</span>
@@ -2933,16 +2935,16 @@ function FormFillerInner({
         </div>
       ) : (
         /* Standalone Header for regular form filling */
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
-          <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'nowrap', gap: '0.5rem', width: '100%' }}>
+          <div style={{ flexShrink: 0 }}>
             {!isPublicGuestMode && (
-              <button className="btn btn-secondary btn-sm" onClick={onBack} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              <button className="btn btn-secondary btn-sm" onClick={onBack} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.25rem 0.5rem' }}>
                 <ArrowLeft size={14} /> Back
               </button>
             )}
           </div>
 
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center', flexWrap: 'nowrap', flexShrink: 0 }}>
             {/* Focus Mode Switch Toggle */}
             {sections.length > 1 && (
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginRight: '0.25rem' }}>
