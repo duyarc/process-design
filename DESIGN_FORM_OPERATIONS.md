@@ -9,7 +9,7 @@
 | **Module Name** | Form Operations |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-09-09) — Section 2, 4, 6 (Minimalist unified header, single edit button, and footer suppression in FormFiller and SubmissionViewer) |
+| **Verified At Commit** | (2026-09-09) — Section 2, 4, 6 (Near full-screen view coordination and onViewingChange in SubmissionManager) |
 
 ### Quick File Index
 
@@ -351,6 +351,9 @@ reworking the snapshot-to-layout mapping, which is wider than the print layer.
 | `onBack` | `() => void` (optional) | Back button callback; omitted when embedded |
 | `initialFormFilter` | `string \| null` (optional) | Pre-populates the search bar (used when launched from Dashboard with a specific form context) |
 | `isEmbedded` | `boolean` (optional, default `false`) | When `true`, hides the Back button — used when rendered inside Dashboard's Submissions tab |
+| `layoutMode` | `'grid' \| 'list'` (optional) | View layout mode for the submissions list |
+| `onOpenReport` | `(submissionId: string) => void` (optional) | Callback to open report view for the submission |
+| `onViewingChange` | `(isViewing: boolean) => void` (optional) | Callback fired when entering/exiting full-screen submission view or copy mode |
 
 **PrintRecord** (`interface PrintRecordProps` in [`src/components/print/PrintRecord.tsx`](src/components/print/PrintRecord.tsx))
 
@@ -435,6 +438,7 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 | 2026-09-04 | `CURRENT` | **Dropdown (`select`) Field & Table Cell Rendering:** (1) Integrated `<select>` menu rendering with `-- Chọn --` placeholder across `INFO_GRID` fields and `TABLE` cells in `FormFiller.tsx` and `ProcessReader.tsx`. (2) Updated `buildSubmissionSnapshots` to evaluate pass/fail quality criteria based on selected option's `isPass` flag. (3) Standardized `PrintFilledForm.tsx` to print clean option labels instead of empty inputs. |
 | 2026-09-09 | `CURRENT` | **Public Submission Review & Amendment UI:** Created `SubmissionViewer.tsx` orchestrating token-based read-only and edit modes. Updated `FormFiller.tsx` with access token persistence in `localStorage`, submission success screen with copyable review link, and dynamic local device history card powered by batch-lookup. |
 | 2026-09-09 | `CURRENT` | **Minimalist Executive Toolbar & Single Edit Button in Form View:** Unified submission viewing across internal and public access into a single executive header in `FormFiller.tsx`. In view mode, exactly one edit button is rendered (in the header), while the footer action strip is completely suppressed. In edit mode, fields unlock and minimalist footer appears with Cancel and Save actions. `SubmissionViewer.tsx` delegates directly to `FormFiller` to eliminate duplicate outer headers. |
+| 2026-09-09 | `CURRENT` | **Near Full-Screen Submission View Coordination:** Added `onViewingChange` prop in `SubmissionManager.tsx` and lifecycle coordination to suppress outer dashboard quote card and tabs when viewing/copying a submission record, achieving visual parity with fill-form. |
 
 
 

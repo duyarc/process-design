@@ -26,9 +26,10 @@ interface SubmissionManagerProps {
   isEmbedded?: boolean;
   layoutMode?: 'grid' | 'list';
   onOpenReport?: (submissionId: string) => void;
+  onViewingChange?: (isViewing: boolean) => void;
 }
 
-export default function SubmissionManager({ onBack, initialFormFilter, isEmbedded = false, layoutMode = 'list', onOpenReport }: SubmissionManagerProps) {
+export default function SubmissionManager({ onBack, initialFormFilter, isEmbedded = false, layoutMode = 'list', onOpenReport, onViewingChange }: SubmissionManagerProps) {
   const { currentUser } = useAuth();
   
   // Data States
@@ -47,6 +48,14 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
 
   // Copy / Clone Submission State
   const [copyingSubmission, setCopyingSubmission] = useState<Submission | null>(null);
+
+  // Notify parent container (e.g. Dashboard) when full-screen form view is active
+  useEffect(() => {
+    onViewingChange?.(Boolean(viewingSubmission || copyingSubmission || printSubmission));
+    return () => {
+      onViewingChange?.(false);
+    };
+  }, [viewingSubmission, copyingSubmission, printSubmission, onViewingChange]);
   
   // Supervisor verification states
   const [supervisorName, setSupervisorName] = useState(currentUser?.role_id === 'admin' || currentUser?.role_id === 'supervisor' ? currentUser.full_name : '');

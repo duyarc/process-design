@@ -80,6 +80,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     const saved = localStorage.getItem('dashboard_layout_mode');
     return (saved === 'grid' || saved === 'list') ? saved : 'list';
   });
+  const [isViewingSubmission, setIsViewingSubmission] = useState(false);
 
   const handleLayoutModeChange = (mode: 'grid' | 'list') => {
     setLayoutMode(mode);
@@ -605,6 +606,19 @@ export const Dashboard: React.FC<DashboardProps> = ({
     );
   };
 
+  if (isViewingSubmission && viewMode === 'submissions') {
+    return (
+      <SubmissionManager 
+        isEmbedded={true} 
+        initialFormFilter={initialFormFilter} 
+        onBack={onClearFormFilter} 
+        layoutMode={layoutMode}
+        onOpenReport={onOpenFormReport}
+        onViewingChange={setIsViewingSubmission}
+      />
+    );
+  }
+
   return (
     <div>
       <div className="quote-card">
@@ -755,6 +769,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           onBack={onClearFormFilter} 
           layoutMode={layoutMode}
           onOpenReport={onOpenFormReport}
+          onViewingChange={setIsViewingSubmission}
         />
       ) : viewMode === 'guide' ? (
         <BPMNGuide />
