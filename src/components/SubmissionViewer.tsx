@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { Submission } from '../types';
 import FormFiller from './FormFiller';
-import { ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
 
 export interface SubmissionViewerProps {
   formName: string;
@@ -79,8 +79,7 @@ export const SubmissionViewer: React.FC<SubmissionViewerProps> = ({
   const effectiveProcessId = submission.processId || 'unlinked';
 
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-      
+    <div style={{ maxWidth: '800px', margin: '0 auto', width: '100%' }}>
       {/* Toast Notification */}
       {toastMessage && (
         <div style={{
@@ -103,106 +102,20 @@ export const SubmissionViewer: React.FC<SubmissionViewerProps> = ({
         </div>
       )}
 
-      {/* Viewer Header Navigation Bar */}
-      <div style={{
-        background: 'var(--surface, #ffffff)',
-        border: '1px solid var(--neutral-border)',
-        borderRadius: '8px',
-        padding: '0.85rem 1.25rem',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: '0.75rem',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            onClick={onBack || (() => { window.location.href = `/f/${encodeURIComponent(formName)}`; })}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
-          >
-            <ArrowLeft size={14} /> Về biểu mẫu
-          </button>
-          <div>
-            <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-              Phiếu <code style={{ fontFamily: 'monospace', color: 'var(--primary)', fontWeight: 700 }}>{submission.id}</code>
-            </span>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginLeft: '0.5rem' }}>
-              • Nộp lúc: {new Date(submission.submittedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}, {new Date(submission.submittedAt).toLocaleDateString('vi-VN')}
-            </span>
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          {submission.supervisorSignoff ? (
-            <span style={{
-              fontSize: '0.75rem',
-              padding: '0.35rem 0.75rem',
-              borderRadius: '6px',
-              background: 'var(--neutral-bg, #f8fafc)',
-              border: '1px solid var(--neutral-border)',
-              color: 'var(--text-secondary)',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              fontWeight: 500
-            }}>
-              🔒 Đã ký xác nhận ({submission.supervisorSignoff.signedBy})
-            </span>
-          ) : isEditing ? (
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={() => setIsEditing(false)}
-            >
-              Hủy chỉnh sửa
-            </button>
-          ) : canEdit ? (
-            <button
-              type="button"
-              className="btn btn-primary btn-sm"
-              onClick={() => setIsEditing(true)}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-            >
-              ✏️ Điều chỉnh phiếu
-            </button>
-          ) : null}
-        </div>
-      </div>
-
-      {/* Editing Notice Banner */}
-      {isEditing && (
-        <div style={{
-          background: 'var(--primary-light, #eff6ff)',
-          border: '1px solid #bfdbfe',
-          borderRadius: '8px',
-          padding: '0.75rem 1.25rem',
-          fontSize: '0.85rem',
-          color: '#1e40af',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between'
-        }}>
-          <span>
-            ✏️ Bạn đang ở chế độ <strong>điều chỉnh thông tin phiếu</strong>. Hãy cập nhật các trường và nhấn nút lưu ở cuối biểu mẫu.
-          </span>
-        </div>
-      )}
-
-      {/* Render FormFiller */}
+      {/* FormFiller handles the unified executive toolbar & minimalist form canvas */}
       <FormFiller
         processId={effectiveProcessId}
         formName={formName}
         initialSubmission={submission}
-        editSubmissionId={isEditing ? submission.id : undefined}
-        editToken={isEditing ? token : undefined}
-        readOnly={!isEditing}
+        editSubmissionId={submission.id}
+        editToken={token}
+        canEditSubmission={canEdit}
+        initialEditMode={initialEditMode}
+        readOnly={true}
         isPublicGuestMode={true}
+        onBack={onBack || (() => { window.location.href = `/f/${encodeURIComponent(formName)}`; })}
         onSubmitSuccess={async () => {
           setToastMessage('Đã cập nhật dữ liệu phiếu thành công!');
-          setIsEditing(false);
           await fetchSubmission();
         }}
       />

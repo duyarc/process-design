@@ -9,7 +9,7 @@
 | **Module Name** | Form Operations |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-09-09) — Section 2, 4 (Public submission review, amendment with token, local history card in FormFiller and SubmissionViewer) |
+| **Verified At Commit** | (2026-09-09) — Section 2, 4, 6 (Minimalist unified header, single edit button, and footer suppression in FormFiller and SubmissionViewer) |
 
 ### Quick File Index
 
@@ -322,7 +322,18 @@ reworking the snapshot-to-layout mapping, which is wider than the print layer.
 |---|---|---|
 | `processId` | `string` | ID of the process version. Pass `'unlinked'` to load the form directly by `formName` from the forms DB table |
 | `formName` | `string` | The `formId` of the form template to fill (e.g. `"FM-QC-F01"`) |
-| `onBack` | `() => void` | Called when user clicks Back or after a successful submission chooses to return |
+| `onBack` | `() => void` (optional) | Called when user clicks Back, Cancel, or returns from viewer |
+| `onSubmitSuccess` | `(submissionId: string) => void` (optional) | Callback fired after submission or amendment succeeds |
+| `onSubmitSuccessWithToken` | `(submissionId: string, token: string) => void` (optional) | Callback with submission ID and access token for guest flow |
+| `onCopySubmission` | `(sub: Submission) => void` (optional) | Triggered when operator clones an existing submission record |
+| `initialSubmission` | `Submission` (optional) | Preloaded submission data for read-only view or cloning/editing |
+| `editSubmissionId` | `string` (optional) | ID of submission to overwrite on edit operations |
+| `editToken` | `string` (optional) | Guest access token authorizing amendment via PUT endpoint |
+| `canEditSubmission` | `boolean` (optional) | Whether token allows amendment on the current submission record |
+| `initialEditMode` | `boolean` (optional) | Auto-open directly in edit mode instead of read-only view |
+| `isPublicGuestMode` | `boolean` (optional) | When true, renders guest-friendly navigation controls |
+| `readOnly` | `boolean` (optional) | Locks input fields into read-only mode; executive toolbar handles actions |
+| `isShortLinkFlow` | `boolean` (optional) | Suppresses secondary loading indicator on short link redirects |
 
 **FormManager** (`interface FormManagerProps` in [`src/components/FormManager.tsx`](src/components/FormManager.tsx))
 
@@ -407,20 +418,6 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 
 | Date | Commit | Change |
 |---|---|---|
-| 2026-07-09 | `8df2f3c` | Document created. Initial full write based on codebase review. |
-| 2026-07-14 | `cce673b` | Multi-option checkbox table columns: values stored as comma-separated strings in the field snapshot. Affects FormFiller and PrintRecord. |
-| 2026-07-14 | `7a0890c` | Column-scoped table footer summary rows (Auto Sum, Manual, Percentage, Sum Rows). |
-| 2026-07-24 | `395767b` | SIGN block gains an interactive 3-state Click-to-Sign UI in FormFiller; SIGN values are now collected into the submission snapshot dynamically. |
-| 2026-07-24 | `4a81811` | **Subtable support across the operations path.** Dynamic row input in FormFiller/ProcessReader with add/delete row; values serialized as JSON in the snapshot. PrintRecord renders the subtable grid with column headers resolved from the form layout. `static_text` column type renders `subtableStaticData` row labels. |
-| 2026-07-24 | `536e08a` | `static_text` label alignment strictly follows the configured `col.align`. |
-| 2026-07-24 | `f9b190e` | Subtable rows support editable custom static-text labels. |
-| 2026-07-24 | `446b552` | Removed `print-block-avoid` on `INFO_GRID` (was producing a blank page 1); Subtable titles bound to their tables during page splits via `breakAfter: 'avoid'`. |
-| 2026-07-27 | `001af74` | Table headers across FormFiller use the Executive Slate Header Bar treatment to separate headers from fillable input cells. |
-| 2026-07-27 | `cbace2b` | Added "In form trắng" (Print Blank Form) button in FormFiller header toolbar, triggering PrintBlankForm overlay for instant A4 paper template printing. |
-| 2026-07-28 | `62b1a98` | **Print whitespace normalization propagated to `PrintRecord`.** INFO_GRID renders row-major via `.print-info-grid` and reads its column count from the layout's `INFO_GRID` block instead of hardcoding 2. Subtables span the grid through `.print-field-full`. All per-block inline margins removed so `.print-block + .print-block` in `print.css` is the sole owner of inter-block spacing; the portal root carries `.print-doc`. Also fixed a latent type error: static-text subtable cells read `subtableStaticData` from the form-layout field, not from `SubmissionFieldSnapshot`, which never carried it. See Flow H and [DESIGN_UI_UX.md](DESIGN_UI_UX.md) §4.2. |
-| 2026-08-17 | `3504b80` | **TABLE Full-Width Group Header Rows Support:** Updated `PrintFilledForm.tsx`, `FormFiller.tsx`, and `ProcessReader.tsx` to render `row.isGroupHeader` rows as full-width category banners (`colSpan=cols.length`, `#E5E7EB`), preserving 100% visual parity with FormBuilder. |
-| 2026-08-17 | `f5e93b8` | **PrintFilledForm Multi-`<tbody>` Group Page Breaking:** Updated `PrintFilledForm.tsx` to group rows into `.print-table-group` (`<tbody>` with `page-break-inside: avoid`), allowing filled forms to break cleanly across pages by group unit. |
-| 2026-08-17 | `237f540` | **`<colgroup>` Dynamic Column Width Enforcement:** Added `<colgroup>` and `<col>` elements across `FormFiller.tsx`, `ProcessReader.tsx`, and `PrintFilledForm.tsx` to ensure 100% stable column alignments. |
 | 2026-08-25 | `a18181b` | **Table Block Border Styles Parity & Bottom Row Border Fix:** Updated `FormFiller.tsx`, `ProcessReader.tsx`, `PrintFilledForm.tsx`, and `PrintRecord.tsx` with explicit `borderBottom` definitions on `td` and `borderTop` on `horizontal_only` tables. |
 | 2026-08-25 | `3bd2477` | **INFO_GRID Horizontal Alignment & Label Typography Refinement:** Standardized `alignItems: 'center'`, `minHeight: 'var(--pw-line-h)'`, and `lineHeight: 1.4` on all INFO_GRID fields across `PrintFilledForm.tsx` and `PrintRecord.tsx`. Adjusted `label` field font weight to regular (400) and `lineHeight: 1.5` in `FormFiller.tsx` and `ProcessReader.tsx`. |
 | 2026-08-26 | `CURRENT` | **Fallback Operator Block Relocation & Vietnamese Localization:** Moved fallback operator identification block from top to bottom of `FormFiller.tsx` (above static footer strip, visible only when form has no `SIGN` block). Localized label to `Người điền phiếu *`, placeholder to `Nhập họ và tên người điền phiếu`, and validation alert to Vietnamese. |
@@ -437,6 +434,7 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 | 2026-09-04 | `CURRENT` | **Block-level Conditional Visibility & Non-Destructive Hiding:** (1) Added `evaluateBlockVisibility(block, formValues)` in `FormFiller.tsx` to conditionally hide blocks whose upstream triggers are not met, returning `null` in `renderBlock` while preserving all entered `formValues` intact for instant recovery. (2) Updated `renderBlock` to resolve visible `prevBlock` backward across hidden blocks, preserving `isSeamlessTableBlock` continuity. (3) Filtered out hidden blocks before executing `validateFormSubmission` so hidden required fields do not block submission. |
 | 2026-09-04 | `CURRENT` | **Dropdown (`select`) Field & Table Cell Rendering:** (1) Integrated `<select>` menu rendering with `-- Chọn --` placeholder across `INFO_GRID` fields and `TABLE` cells in `FormFiller.tsx` and `ProcessReader.tsx`. (2) Updated `buildSubmissionSnapshots` to evaluate pass/fail quality criteria based on selected option's `isPass` flag. (3) Standardized `PrintFilledForm.tsx` to print clean option labels instead of empty inputs. |
 | 2026-09-09 | `CURRENT` | **Public Submission Review & Amendment UI:** Created `SubmissionViewer.tsx` orchestrating token-based read-only and edit modes. Updated `FormFiller.tsx` with access token persistence in `localStorage`, submission success screen with copyable review link, and dynamic local device history card powered by batch-lookup. |
+| 2026-09-09 | `CURRENT` | **Minimalist Executive Toolbar & Single Edit Button in Form View:** Unified submission viewing across internal and public access into a single executive header in `FormFiller.tsx`. In view mode, exactly one edit button is rendered (in the header), while the footer action strip is completely suppressed. In edit mode, fields unlock and minimalist footer appears with Cancel and Save actions. `SubmissionViewer.tsx` delegates directly to `FormFiller` to eliminate duplicate outer headers. |
 
 
 

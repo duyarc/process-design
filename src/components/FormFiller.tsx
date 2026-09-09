@@ -62,6 +62,7 @@ import {
   groupBlocksIntoSections
 } from '../utils/formUtils';
 import { renderFormattedText } from '../utils/textFormatter';
+import { useAuth } from '../context/AuthContext';
 import PrintFilledForm from './print/PrintFilledForm';
 import { 
   ArrowLeft, 
@@ -71,6 +72,7 @@ import {
   AlertTriangle, 
   Link2,
   PenTool,
+  Pencil,
   Trash2,
   Printer,
   Star,
@@ -155,6 +157,8 @@ interface FormFillerProps {
   initialSubmission?: Submission;
   editSubmissionId?: string;
   editToken?: string;
+  canEditSubmission?: boolean;
+  initialEditMode?: boolean;
   isPublicGuestMode?: boolean;
   readOnly?: boolean;
   isShortLinkFlow?: boolean;
@@ -171,6 +175,8 @@ function FormFillerInner({
   initialSubmission, 
   editSubmissionId,
   editToken,
+  canEditSubmission,
+  initialEditMode,
   isPublicGuestMode,
   readOnly,
   isShortLinkFlow
@@ -200,6 +206,32 @@ function FormFillerInner({
   const [printCurrentSubmission, setPrintCurrentSubmission] = useState<Submission | null>(null);
   const [submitResult, setSubmitResult] = useState<{ id: string; token: string } | null>(null);
   const [localSubmissions, setLocalSubmissions] = useState<Array<{ id: string; token: string; status: string; submittedAt: string; signedOff: boolean }>>([]);
+
+  const { currentUser } = useAuth();
+  const canAdminEdit = currentUser?.role_id === 'admin';
+  const canAmend = canAdminEdit || Boolean(editToken && canEditSubmission && !initialSubmission?.supervisorSignoff);
+  const [isEditModeActive, setIsEditModeActive] = useState<boolean>(Boolean(initialEditMode && canAmend));
+  const effectiveReadOnly = Boolean(readOnly && !isEditModeActive);
+
+  const handleCancelEdit = () => {
+    if (initialSubmission && process && formTemplate) {
+      const restoredValues: { [fieldId: string]: string } = {};
+      const restoredReactions: { [fieldId: string]: string } = {};
+      initialSubmission.formData.forEach((snapshot: any) => {
+        let baseValue = snapshot.value;
+        const actionMatch = snapshot.value.match(/^(.*?) \(Action: (.*?)\)$/);
+        if (actionMatch) {
+          baseValue = actionMatch[1];
+          restoredReactions[snapshot.id] = actionMatch[2];
+        }
+        restoredValues[snapshot.id] = baseValue;
+      });
+      setFormValues(restoredValues);
+      setFieldReactions(restoredReactions);
+      setOperatorId(initialSubmission.operatorId || '');
+    }
+    setIsEditModeActive(false);
+  };
 
   const refreshLocalSubmissions = (currentFormId?: string) => {
     const fId = currentFormId || rawFormTemplate?.formId || formName;
@@ -1004,24 +1036,25 @@ function FormFillerInner({
       });
 
       setSubmitting(true);
-      const submissionId = editSubmissionId;
+      const targetSubId = editSubmissionId || (isEditModeActive ? initialSubmission?.id : undefined);
+      const isEditOperation = Boolean(targetSubId);
       
       const payload: any = {
-        id: submissionId,
+        id: targetSubId,
         processId: process.id,
         formId: formTemplate.formId,
         formVersion: formTemplate.version,
         operatorId: effectiveOperatorId,
         status: isOverallPass ? 'PASS' : 'ABNORMALITY',
         formData: snapshots,
-        mediaUrls: editSubmissionId ? (initialSubmission?.mediaUrls || []) : allMediaKeys
+        mediaUrls: isEditOperation ? (initialSubmission?.mediaUrls || []) : allMediaKeys
       };
 
-      if (editSubmissionId && editToken) {
+      if (isEditOperation && editToken) {
         payload.accessToken = editToken;
       }
 
-      if (editSubmissionId && allMediaKeys.length > 0) {
+      if (isEditOperation && allMediaKeys.length > 0) {
         const uniqueKeys = new Set([...(initialSubmission?.mediaUrls || []), ...allMediaKeys]);
         payload.mediaUrls = Array.from(uniqueKeys);
       }
@@ -1032,8 +1065,8 @@ function FormFillerInner({
         headers['Authorization'] = `Bearer ${jwtToken}`;
       }
  
-      const res = await fetch(editSubmissionId ? `/api/submissions/${editSubmissionId}` : '/api/submissions', {
-        method: editSubmissionId ? 'PUT' : 'POST',
+      const res = await fetch(isEditOperation ? `/api/submissions/${targetSubId}` : '/api/submissions', {
+        method: isEditOperation ? 'PUT' : 'POST',
         headers,
         body: JSON.stringify(payload)
       });
@@ -1043,7 +1076,7 @@ function FormFillerInner({
         throw new Error(errJson.error || 'Submission server error');
       }
       const resData = await res.json();
-      const finalId = resData.id || submissionId;
+      const finalId = resData.id || targetSubId;
       const returnedAccessToken: string | undefined = resData.accessToken || editToken;
 
       // Update localStorage submission_history
@@ -1062,27 +1095,40 @@ function FormFillerInner({
         }
       }
        
-      // Reset active editing states
-      setFormValues({});
-      setFieldReactions({});
-      setUploadedPhotos({});
-      setOperatorId('');
-      setSignValues({});
-      setSignInputs({});
-      setSignOpen({});
-
-      if (returnedAccessToken && isPublicGuestMode && !editSubmissionId) {
-        setSubmitResult({ id: finalId, token: returnedAccessToken });
-      } else {
-        const successMsg = editSubmissionId ? `Đã cập nhật phiếu thành công! (Mã: ${finalId})` : `Đã gửi phiếu thành công! (Mã: ${finalId})`;
+      if (isEditModeActive && initialSubmission) {
+        initialSubmission.formData = snapshots;
+        initialSubmission.status = isOverallPass ? 'PASS' : 'ABNORMALITY';
+        initialSubmission.operatorId = effectiveOperatorId;
+        initialSubmission.submittedAt = new Date().toISOString();
+        setIsEditModeActive(false);
+        const successMsg = `Đã cập nhật bản ghi thành công! (Mã: ${finalId})`;
         setLocalToast({ message: successMsg, id: finalId });
-
-        if (onSubmitSuccessWithToken && returnedAccessToken) {
-          onSubmitSuccessWithToken(finalId, returnedAccessToken);
-        } else if (onSubmitSuccess) {
+        if (onSubmitSuccess) {
           onSubmitSuccess(finalId);
-        } else if (onBack && !isPublicGuestMode) {
-          onBack();
+        }
+      } else {
+        // Reset active editing states
+        setFormValues({});
+        setFieldReactions({});
+        setUploadedPhotos({});
+        setOperatorId('');
+        setSignValues({});
+        setSignInputs({});
+        setSignOpen({});
+
+        if (returnedAccessToken && isPublicGuestMode && !isEditOperation) {
+          setSubmitResult({ id: finalId, token: returnedAccessToken });
+        } else {
+          const successMsg = isEditOperation ? `Đã cập nhật phiếu thành công! (Mã: ${finalId})` : `Đã gửi phiếu thành công! (Mã: ${finalId})`;
+          setLocalToast({ message: successMsg, id: finalId });
+
+          if (onSubmitSuccessWithToken && returnedAccessToken) {
+            onSubmitSuccessWithToken(finalId, returnedAccessToken);
+          } else if (onSubmitSuccess) {
+            onSubmitSuccess(finalId);
+          } else if (onBack && !isPublicGuestMode) {
+            onBack();
+          }
         }
       }
     } catch (err) {
@@ -1832,7 +1878,7 @@ function FormFillerInner({
                             ) : field.type === 'select' ? (
                               <select
                                 value={value}
-                                disabled={readOnly}
+                                disabled={effectiveReadOnly}
                                 onChange={(e) => setFormValues(prev => ({ ...prev, [field.id]: e.target.value }))}
                                 style={{
                                   width: '100%',
@@ -1840,8 +1886,8 @@ function FormFillerInner({
                                   fontSize: '0.82rem',
                                   border: '1px solid var(--neutral-border)',
                                   borderRadius: '4px',
-                                  background: readOnly ? '#f8fafc' : '#ffffff',
-                                  cursor: readOnly ? 'default' : 'pointer'
+                                  background: effectiveReadOnly ? '#f8fafc' : '#ffffff',
+                                  cursor: effectiveReadOnly ? 'default' : 'pointer'
                                 }}
                               >
                                 <option value="">{field.placeholder || '-- Chọn --'}</option>
@@ -2150,7 +2196,7 @@ function FormFillerInner({
                                         <div style={{ padding: '2px 4px', width: '100%' }}>
                                           <select
                                             value={cellValue}
-                                            disabled={readOnly}
+                                            disabled={effectiveReadOnly}
                                             onChange={(e) => setFormValues(prev => ({ ...prev, [cellKey]: e.target.value }))}
                                             style={{
                                               width: '100%',
@@ -2158,9 +2204,9 @@ function FormFillerInner({
                                               fontSize: '0.82rem',
                                               borderRadius: '4px',
                                               border: '1px solid var(--neutral-border)',
-                                              background: readOnly ? '#f8fafc' : '#ffffff',
+                                              background: effectiveReadOnly ? '#f8fafc' : '#ffffff',
                                               textAlign: cellAlign,
-                                              cursor: readOnly ? 'default' : 'pointer'
+                                              cursor: effectiveReadOnly ? 'default' : 'pointer'
                                             }}
                                           >
                                             <option value="">-- Chọn --</option>
@@ -2665,36 +2711,7 @@ function FormFillerInner({
   return (
     <div style={{ maxWidth: '800px', margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       
-      {/* Read-Only Mode Banner */}
-      {readOnly && initialSubmission && (
-        <div style={{
-          background: '#f8fafc',
-          border: '1px solid var(--neutral-border)',
-          padding: '0.85rem 1.25rem',
-          borderRadius: '8px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: '1rem',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-        }}>
-          <div>
-            <span style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.5px' }}>Chế độ xem toàn văn biểu mẫu (Chỉ đọc)</span>
-            <div style={{ fontSize: '0.92rem', fontWeight: 600, color: 'var(--text-primary)', marginTop: '0.15rem' }}>
-              Mã bản ghi: <code style={{ fontFamily: 'monospace', color: 'var(--primary)' }}>{initialSubmission.id}</code>
-              <span style={{ marginLeft: '0.75rem', fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 400 }}>
-                Người điền: <strong style={{ color: 'var(--text-primary)' }}>{initialSubmission.operatorId}</strong> — Ngày nộp: {new Date(initialSubmission.submittedAt).toLocaleString('vi-VN')}
-              </span>
-            </div>
-          </div>
-          <span 
-            className={`badge ${initialSubmission.status === 'PASS' ? 'badge-success' : 'badge-danger'}`}
-            style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem' }}
-          >
-            {initialSubmission.status}
-          </span>
-        </div>
-      )}
+
 
       {/* Local Device Submission History Card */}
       {!readOnly && isPublicGuestMode && localSubmissions.length > 0 && (
@@ -2745,119 +2762,295 @@ function FormFillerInner({
         </div>
       )}
 
-      {/* Standalone Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
-        <div>
-          {!isPublicGuestMode && (
-            <button className="btn btn-secondary btn-sm" onClick={onBack} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-              <ArrowLeft size={14} /> Back
-            </button>
-          )}
-        </div>
-
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-          {/* Focus Mode Switch Toggle */}
-          {sections.length > 1 && (
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginRight: '0.25rem' }}>
-              <label
-                onClick={() => setViewMode(prev => prev === 'focus' ? 'all' : 'focus')}
-                style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.8rem', margin: 0, cursor: 'pointer', userSelect: 'none' }}
-              >
-                Focus mode
-              </label>
+      {/* Unified Executive Header Toolbar for Submission View / Edit / Fill */}
+      {initialSubmission ? (
+        <div style={{
+          background: isEditModeActive ? 'var(--primary-light, #eff6ff)' : 'var(--surface, #ffffff)',
+          border: isEditModeActive ? '1px solid #bfdbfe' : '1px solid var(--neutral-border)',
+          borderRadius: '8px',
+          padding: '0.65rem 1rem',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '0.75rem',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+        }}>
+          {/* Left Context: Back button + Submission ID + Status badge + Submitter info */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+            {onBack && (
               <button
                 type="button"
-                onClick={() => setViewMode(prev => prev === 'focus' ? 'all' : 'focus')}
-                style={{
-                  width: '32px',
-                  height: '18px',
-                  borderRadius: '9px',
-                  background: viewMode === 'focus' ? 'var(--primary)' : '#cbd5e1',
-                  border: 'none',
-                  cursor: 'pointer',
-                  position: 'relative',
-                  padding: '2px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  transition: 'background-color 0.2s ease',
-                  outline: 'none'
-                }}
-                title={viewMode === 'focus' ? 'Chế độ Focus từng phân đoạn (Đang Bật)' : 'Chế độ xem toàn bộ (Đang Tắt)'}
+                className="btn btn-secondary btn-sm"
+                onClick={isEditModeActive ? handleCancelEdit : onBack}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.25rem 0.5rem' }}
+                title={isEditModeActive ? "Hủy bỏ các thay đổi và quay lại xem" : (isPublicGuestMode ? "Về biểu mẫu" : "Quay lại")}
               >
+                <ArrowLeft size={13} />
+                <span>{isEditModeActive ? 'Hủy' : (isPublicGuestMode ? 'Về biểu mẫu' : 'Back')}</span>
+              </button>
+            )}
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                {isEditModeActive ? (
+                  <span style={{ color: '#1e40af', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <Pencil size={13} /> Sửa phiếu <code style={{ fontFamily: 'monospace' }}>{initialSubmission.id}</code>
+                  </span>
+                ) : (
+                  <span>
+                    Phiếu <code style={{ fontFamily: 'monospace', color: 'var(--primary)' }}>{initialSubmission.id}</code>
+                  </span>
+                )}
+              </span>
+
+              <span
+                className={`badge ${initialSubmission.status === 'PASS' ? 'badge-success' : 'badge-danger'}`}
+                style={{ fontSize: '0.68rem', padding: '0.15rem 0.45rem' }}
+              >
+                {initialSubmission.status}
+              </span>
+
+              {initialSubmission.supervisorSignoff && (
                 <span
                   style={{
-                    width: '14px',
-                    height: '14px',
-                    borderRadius: '50%',
-                    background: '#ffffff',
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
-                    transform: viewMode === 'focus' ? 'translateX(14px)' : 'translateX(0px)',
-                    transition: 'transform 0.2s ease',
-                    display: 'block'
+                    fontSize: '0.72rem',
+                    padding: '0.15rem 0.5rem',
+                    borderRadius: '4px',
+                    background: 'var(--neutral-bg, #f8fafc)',
+                    border: '1px solid var(--neutral-border)',
+                    color: 'var(--text-secondary)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '3px',
+                    fontWeight: 500
                   }}
-                />
-              </button>
+                  title={`Đã ký xác nhận bởi ${initialSubmission.supervisorSignoff.signedBy} lúc ${new Date(initialSubmission.supervisorSignoff.signedAt).toLocaleString('vi-VN')}`}
+                >
+                  🔒 Đã ký ({initialSubmission.supervisorSignoff.signedBy})
+                </span>
+              )}
+
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                • {initialSubmission.operatorId} — {new Date(initialSubmission.submittedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}, {new Date(initialSubmission.submittedAt).toLocaleDateString('vi-VN')}
+              </span>
             </div>
-          )}
+          </div>
 
-          {/* In bản khai */}
-          <button 
-            className="btn btn-secondary btn-sm" 
-            onClick={() => {
-              const signBlocks = formTemplate?.layoutBlocks?.filter((b: any) => b.type === 'SIGN' && b.fields.length > 0) || [];
-              const mandatorySignField = signBlocks[0]?.fields[0];
-              const effectiveOperatorId = mandatorySignField && signValues[mandatorySignField.id]
-                ? signValues[mandatorySignField.id]!.name
-                : operatorId;
+          {/* Right Actions: Focus mode + Print + Copy + Single Edit button (when in View Mode) or Save (when in Edit Mode) */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
+            {/* Focus Mode Switch Toggle */}
+            {sections.length > 1 && (
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginRight: '0.25rem' }}>
+                <label
+                  onClick={() => setViewMode(prev => prev === 'focus' ? 'all' : 'focus')}
+                  style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.78rem', margin: 0, cursor: 'pointer', userSelect: 'none' }}
+                >
+                  Focus mode
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setViewMode(prev => prev === 'focus' ? 'all' : 'focus')}
+                  style={{
+                    width: '32px',
+                    height: '18px',
+                    borderRadius: '9px',
+                    background: viewMode === 'focus' ? 'var(--primary)' : '#cbd5e1',
+                    border: 'none',
+                    cursor: 'pointer',
+                    position: 'relative',
+                    padding: '2px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    transition: 'background-color 0.2s ease',
+                    outline: 'none'
+                  }}
+                  title={viewMode === 'focus' ? 'Chế độ Focus từng phân đoạn (Đang Bật)' : 'Chế độ xem toàn bộ (Đang Tắt)'}
+                >
+                  <span
+                    style={{
+                      width: '14px',
+                      height: '14px',
+                      borderRadius: '50%',
+                      background: '#ffffff',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                      transform: viewMode === 'focus' ? 'translateX(14px)' : 'translateX(0px)',
+                      transition: 'transform 0.2s ease',
+                      display: 'block'
+                    }}
+                  />
+                </button>
+              </div>
+            )}
 
-              const { snapshots, isOverallPass } = buildSubmissionSnapshots(true);
-              const allMediaKeys: string[] = [];
-              Object.values(uploadedPhotos).forEach(keys => {
-                allMediaKeys.push(...keys);
-              });
-
-              const draftSub: Submission = {
-                id: editSubmissionId || `draft_${Date.now()}`,
-                processId: processId,
-                formId: formTemplate.formId,
-                formVersion: formTemplate.version,
-                operatorId: effectiveOperatorId || 'DRAFT',
-                submittedAt: new Date().toISOString(),
-                status: isOverallPass ? 'PASS' : 'ABNORMALITY',
-                formData: snapshots,
-                mediaUrls: editSubmissionId ? (initialSubmission?.mediaUrls || []) : allMediaKeys
-              };
-              if (editSubmissionId && allMediaKeys.length > 0) {
-                const uniqueKeys = new Set([...(initialSubmission?.mediaUrls || []), ...allMediaKeys]);
-                draftSub.mediaUrls = Array.from(uniqueKeys);
-              }
-              setPrintCurrentSubmission(draftSub);
-            }}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.35rem 0.75rem' }}
-            title="In bản khai hiện tại cùng dữ liệu đang nhập"
-          >
-            <Printer size={13} style={{ color: '#0d9488' }} />
-            <span>In bản khai</span>
-          </button>
-
-          {/* Single Copy Link Button */}
-          {!isPublicGuestMode && !readOnly && (
-            <button
+            {/* In bản khai */}
+            <button 
               type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={handleCopyShareLink}
-              style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.35rem 0.75rem' }}
-              title={isPublic ? "Sao chép link công khai cho khách điền" : "Sao chép link biểu mẫu (yêu cầu đăng nhập)"}
+              className="btn btn-secondary btn-sm" 
+              onClick={() => {
+                if (initialSubmission && formTemplate) {
+                  setPrintCurrentSubmission(initialSubmission);
+                }
+              }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', padding: '0.25rem 0.6rem' }}
+              title="In bản khai"
             >
-              <Link2 size={13} />
-              <span>Sao chép link</span>
+              <Printer size={13} style={{ color: '#0d9488' }} />
+              <span>In bản khai</span>
             </button>
-          )}
-        </div>
-      </div>
 
-            {/* Main Form Paper Card */}
-            <fieldset disabled={readOnly} style={{ border: 'none', padding: 0, margin: 0, minWidth: 0 }}>
+            {/* Sao chép phiếu này (nếu có callback onCopySubmission) */}
+            {effectiveReadOnly && onCopySubmission && (
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => onCopySubmission(initialSubmission)}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', padding: '0.25rem 0.6rem' }}
+                title="Sao chép thành bản ghi mới"
+              >
+                <Copy size={13} />
+                <span>Sao chép</span>
+              </button>
+            )}
+
+            {/* DUY NHẤT 1 NÚT CHỈNH SỬA Ở CHẾ ĐỘ VIEW */}
+            {effectiveReadOnly && canAmend && (
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={() => setIsEditModeActive(true)}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', padding: '0.25rem 0.75rem' }}
+              >
+                <Pencil size={13} />
+                <span>Chỉnh sửa</span>
+              </button>
+            )}
+
+            {/* Khi đang ở chế độ Edit: Nút Lưu trực tiếp trên Header */}
+            {isEditModeActive && (
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={handleSubmitForm}
+                disabled={submitting}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', padding: '0.25rem 0.85rem' }}
+              >
+                {submitting ? 'Đang lưu...' : '💾 Lưu thay đổi'}
+              </button>
+            )}
+          </div>
+        </div>
+      ) : (
+        /* Standalone Header for regular form filling */
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
+          <div>
+            {!isPublicGuestMode && (
+              <button className="btn btn-secondary btn-sm" onClick={onBack} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                <ArrowLeft size={14} /> Back
+              </button>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            {/* Focus Mode Switch Toggle */}
+            {sections.length > 1 && (
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginRight: '0.25rem' }}>
+                <label
+                  onClick={() => setViewMode(prev => prev === 'focus' ? 'all' : 'focus')}
+                  style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.8rem', margin: 0, cursor: 'pointer', userSelect: 'none' }}
+                >
+                  Focus mode
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setViewMode(prev => prev === 'focus' ? 'all' : 'focus')}
+                  style={{
+                    width: '32px',
+                    height: '18px',
+                    borderRadius: '9px',
+                    background: viewMode === 'focus' ? 'var(--primary)' : '#cbd5e1',
+                    border: 'none',
+                    cursor: 'pointer',
+                    position: 'relative',
+                    padding: '2px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    transition: 'background-color 0.2s ease',
+                    outline: 'none'
+                  }}
+                  title={viewMode === 'focus' ? 'Chế độ Focus từng phân đoạn (Đang Bật)' : 'Chế độ xem toàn bộ (Đang Tắt)'}
+                >
+                  <span
+                    style={{
+                      width: '14px',
+                      height: '14px',
+                      borderRadius: '50%',
+                      background: '#ffffff',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                      transform: viewMode === 'focus' ? 'translateX(14px)' : 'translateX(0px)',
+                      transition: 'transform 0.2s ease',
+                      display: 'block'
+                    }}
+                  />
+                </button>
+              </div>
+            )}
+
+            {/* In bản khai */}
+            <button 
+              className="btn btn-secondary btn-sm" 
+              onClick={() => {
+                const signBlocks = formTemplate?.layoutBlocks?.filter((b: any) => b.type === 'SIGN' && b.fields.length > 0) || [];
+                const mandatorySignField = signBlocks[0]?.fields[0];
+                const effectiveOperatorId = mandatorySignField && signValues[mandatorySignField.id]
+                  ? signValues[mandatorySignField.id]!.name
+                  : operatorId;
+
+                const { snapshots, isOverallPass } = buildSubmissionSnapshots(true);
+                const allMediaKeys: string[] = [];
+                Object.values(uploadedPhotos).forEach(keys => {
+                  allMediaKeys.push(...keys);
+                });
+
+                const draftSub: Submission = {
+                  id: editSubmissionId || `draft_${Date.now()}`,
+                  processId: processId,
+                  formId: formTemplate.formId,
+                  formVersion: formTemplate.version,
+                  operatorId: effectiveOperatorId || 'DRAFT',
+                  submittedAt: new Date().toISOString(),
+                  status: isOverallPass ? 'PASS' : 'ABNORMALITY',
+                  formData: snapshots,
+                  mediaUrls: allMediaKeys
+                };
+                setPrintCurrentSubmission(draftSub);
+              }}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.35rem 0.75rem' }}
+              title="In bản khai hiện tại cùng dữ liệu đang nhập"
+            >
+              <Printer size={13} style={{ color: '#0d9488' }} />
+              <span>In bản khai</span>
+            </button>
+
+            {/* Single Copy Link Button */}
+            {!isPublicGuestMode && !effectiveReadOnly && (
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={handleCopyShareLink}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.35rem 0.75rem' }}
+                title={isPublic ? "Sao chép link công khai cho khách điền" : "Sao chép link biểu mẫu (yêu cầu đăng nhập)"}
+              >
+                <Link2 size={13} />
+                <span>Sao chép link</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Main Form Paper Card */}
+      <fieldset disabled={effectiveReadOnly} style={{ border: 'none', padding: 0, margin: 0, minWidth: 0 }}>
             <div className="paper-card" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '0px' }}>
               
               {/* Checklist Groups / Sections */}
@@ -3126,57 +3319,42 @@ function FormFillerInner({
       </div>
       </fieldset>
 
-      {/* Action Footer Bar */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        gap: '0.75rem',
-        padding: '0.5rem 0 2rem 0'
-      }}>
-        <div>
-          {onBack && (
-            <button 
-              type="button" 
-              className="btn btn-secondary" 
-              onClick={onBack}
-              disabled={submitting}
-              style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
-            >
-              <ArrowLeft size={14} />
-              <span>{readOnly ? 'Quay lại danh sách' : 'Hủy bỏ'}</span>
-            </button>
-          )}
-        </div>
+      {/* Action Footer Bar (Only shown in Edit or Fill mode, completely hidden in View mode) */}
+      {!effectiveReadOnly && (
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: '0.75rem',
+          padding: '0.5rem 0 2rem 0'
+        }}>
+          <div>
+            {isEditModeActive ? (
+              <button 
+                type="button" 
+                className="btn btn-secondary" 
+                onClick={handleCancelEdit}
+                disabled={submitting}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+              >
+                <ArrowLeft size={14} />
+                <span>Hủy bỏ</span>
+              </button>
+            ) : onBack ? (
+              <button 
+                type="button" 
+                className="btn btn-secondary" 
+                onClick={onBack}
+                disabled={submitting}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+              >
+                <ArrowLeft size={14} />
+                <span>Hủy bỏ</span>
+              </button>
+            ) : null}
+          </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          {readOnly && initialSubmission && onCopySubmission && (
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={() => onCopySubmission(initialSubmission)}
-              style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
-            >
-              <Copy size={14} />
-              <span>Sao chép phiếu này</span>
-            </button>
-          )}
-          {readOnly && (
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={() => {
-                if (initialSubmission && formTemplate) {
-                  setPrintCurrentSubmission(initialSubmission);
-                }
-              }}
-              style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
-            >
-              <Printer size={14} />
-              <span>In A4 / Xuất PDF</span>
-            </button>
-          )}
-          {!readOnly && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <button 
               type="button" 
               className="btn btn-primary" 
@@ -3184,11 +3362,13 @@ function FormFillerInner({
               disabled={submitting}
               style={{ padding: '0.5rem 2rem' }}
             >
-              {submitting ? 'Submitting...' : 'Submit'}
+              {submitting 
+                ? (isEditModeActive ? 'Đang lưu...' : 'Submitting...') 
+                : (isEditModeActive ? '💾 Lưu thay đổi' : 'Submit')}
             </button>
-          )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Floating Local Toast Notification */}
       {localToast && (
