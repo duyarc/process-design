@@ -48,6 +48,12 @@ const MainApp: React.FC = () => {
   const [viewerToken, setViewerToken] = useState<string | null>(null);
   const [viewerEditMode, setViewerEditMode] = useState<boolean>(false);
 
+  // Form view tracking across Dashboard & FormManager
+  const [isViewingSubmissionInChild, setIsViewingSubmissionInChild] = useState(false);
+
+  // Active form canvas check: hides platform navbar to maximize screen estate
+  const isFormCanvasActive = page === 'fill-form' || page === 'submission-viewer' || isViewingSubmissionInChild;
+
   useEffect(() => {
     if (toastMessage) {
       const timer = setTimeout(() => {
@@ -253,84 +259,66 @@ const MainApp: React.FC = () => {
 
   return (
     <div className="app-container">
-      {/* Navbar Panel */}
-      <header className="app-header no-print">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
-          <div
-            className="logo-container"
-            style={{ cursor: 'pointer' }}
-            onClick={() => { setPage('dashboard'); setSelectedProcessId(null); setInitialFormFilter(null); }}
-          >
-            <BookOpen size={24} style={{ color: 'var(--primary)' }} />
-            <span className="logo-text">Process Design</span>
+      {/* Navbar Panel: Hidden when filling or viewing forms to maximize screen estate */}
+      {!isFormCanvasActive && (
+        <header className="app-header no-print">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
+            <div
+              className="logo-container"
+              style={{ cursor: 'pointer' }}
+              onClick={() => { setPage('dashboard'); setSelectedProcessId(null); setInitialFormFilter(null); }}
+            >
+              <BookOpen size={24} style={{ color: 'var(--primary)' }} />
+              <span className="logo-text">Process Design</span>
+            </div>
+
           </div>
 
-        </div>
-
-        {/* Current user info & Dropdown Menu */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <div style={{ position: 'relative' }}>
-            <button
-              onClick={() => setUserMenuOpen(!userMenuOpen)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '0.5rem',
-                background: '#f3f4f6', padding: '0.375rem 0.75rem',
-                borderRadius: '20px', border: '1px solid var(--neutral-border)',
-                cursor: 'pointer', outline: 'none',
-              }}
-            >
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
-                {currentUser.full_name}
-              </span>
-              <span style={{
-                fontSize: '0.7rem', fontWeight: 700, color: 'var(--primary)',
-                background: 'var(--primary-light, #eff6ff)',
-                padding: '0.1rem 0.45rem', borderRadius: '10px',
-              }}>
-                {currentUser.role_id.toUpperCase()}
-              </span>
-              <ChevronDown size={12} style={{ color: 'var(--text-secondary)', transform: userMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
-            </button>
-
-            {userMenuOpen && (
-              <>
-                <div 
-                  onClick={() => setUserMenuOpen(false)} 
-                  style={{ position: 'fixed', inset: 0, zIndex: 998 }} 
-                />
-                <div style={{
-                  position: 'absolute', right: 0, marginTop: '0.5rem',
-                  background: 'var(--surface, #fff)', borderRadius: '10px',
-                  border: '1px solid var(--neutral-border)',
-                  boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)',
-                  width: '160px', padding: '0.25rem 0', zIndex: 999,
-                  display: 'flex', flexDirection: 'column',
-                  overflow: 'hidden',
+          {/* Current user info & Dropdown Menu */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{ position: 'relative' }}>
+              <button
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '0.5rem',
+                  background: '#f3f4f6', padding: '0.375rem 0.75rem',
+                  borderRadius: '20px', border: '1px solid var(--neutral-border)',
+                  cursor: 'pointer', outline: 'none',
+                }}
+              >
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
+                  {currentUser.full_name}
+                </span>
+                <span style={{
+                  fontSize: '0.7rem', fontWeight: 700, color: 'var(--primary)',
+                  background: 'var(--primary-light, #eff6ff)',
+                  padding: '0.1rem 0.45rem', borderRadius: '10px',
                 }}>
-                  <button
-                    onClick={() => {
-                      setUserMenuOpen(false);
-                      setPage('dashboard');
-                      setDashboardViewMode('guide');
-                    }}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: '0.5rem',
-                      width: '100%', padding: '0.6rem 1rem', border: 'none',
-                      background: 'none', textAlign: 'left', cursor: 'pointer',
-                      fontSize: '0.85rem', color: 'var(--text-primary)',
-                      transition: 'background 0.15s',
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = '#f3f4f6')}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
-                  >
-                    <BookOpen size={14} />
-                    <span>Guide</span>
-                  </button>
-                  {hasPermission('manage_users') && (
+                  {currentUser.role_id.toUpperCase()}
+                </span>
+                <ChevronDown size={12} style={{ color: 'var(--text-secondary)', transform: userMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+              </button>
+
+              {userMenuOpen && (
+                <>
+                  <div 
+                    onClick={() => setUserMenuOpen(false)} 
+                    style={{ position: 'fixed', inset: 0, zIndex: 998 }} 
+                  />
+                  <div style={{
+                    position: 'absolute', right: 0, marginTop: '0.5rem',
+                    background: 'var(--surface, #fff)', borderRadius: '10px',
+                    border: '1px solid var(--neutral-border)',
+                    boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)',
+                    width: '160px', padding: '0.25rem 0', zIndex: 999,
+                    display: 'flex', flexDirection: 'column',
+                    overflow: 'hidden',
+                  }}>
                     <button
                       onClick={() => {
                         setUserMenuOpen(false);
-                        navigateToUserManagement();
+                        setPage('dashboard');
+                        setDashboardViewMode('guide');
                       }}
                       style={{
                         display: 'flex', alignItems: 'center', gap: '0.5rem',
@@ -338,43 +326,63 @@ const MainApp: React.FC = () => {
                         background: 'none', textAlign: 'left', cursor: 'pointer',
                         fontSize: '0.85rem', color: 'var(--text-primary)',
                         transition: 'background 0.15s',
-                        borderTop: '1px solid var(--neutral-border)',
                       }}
                       onMouseEnter={(e) => (e.currentTarget.style.background = '#f3f4f6')}
                       onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
                     >
-                      <Users size={14} />
-                      <span>Users</span>
+                      <BookOpen size={14} />
+                      <span>Guide</span>
                     </button>
-                  )}
-                  <button
-                    onClick={() => {
-                      setUserMenuOpen(false);
-                      logout();
-                    }}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: '0.5rem',
-                      width: '100%', padding: '0.6rem 1rem', border: 'none',
-                      background: 'none', textAlign: 'left', cursor: 'pointer',
-                      fontSize: '0.85rem', color: 'var(--danger, #ef4444)',
-                      transition: 'background 0.15s',
-                      borderTop: '1px solid var(--neutral-border)',
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = '#fef2f2')}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
-                  >
-                    <LogOut size={14} />
-                    <span>Đăng xuất</span>
-                  </button>
-                </div>
-              </>
-            )}
+                    {hasPermission('manage_users') && (
+                      <button
+                        onClick={() => {
+                          setUserMenuOpen(false);
+                          navigateToUserManagement();
+                        }}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '0.5rem',
+                          width: '100%', padding: '0.6rem 1rem', border: 'none',
+                          background: 'none', textAlign: 'left', cursor: 'pointer',
+                          fontSize: '0.85rem', color: 'var(--text-primary)',
+                          transition: 'background 0.15s',
+                          borderTop: '1px solid var(--neutral-border)',
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = '#f3f4f6')}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+                      >
+                        <Users size={14} />
+                        <span>Users</span>
+                      </button>
+                    )}
+                    <button
+                      onClick={() => {
+                        setUserMenuOpen(false);
+                        logout();
+                      }}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '0.5rem',
+                        width: '100%', padding: '0.6rem 1rem', border: 'none',
+                        background: 'none', textAlign: 'left', cursor: 'pointer',
+                        fontSize: '0.85rem', color: 'var(--danger, #ef4444)',
+                        transition: 'background 0.15s',
+                        borderTop: '1px solid var(--neutral-border)',
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = '#fef2f2')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+                    >
+                      <LogOut size={14} />
+                      <span>Đăng xuất</span>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
+      )}
 
       {/* Main Page Render */}
-      <main className="main-content">
+      <main className="main-content" style={{ padding: isFormCanvasActive ? '1.5rem 1rem 3rem 1rem' : undefined }}>
         {page === 'dashboard' && (
           <Dashboard
             onSelectProcess={handleSelectProcess}
@@ -390,6 +398,7 @@ const MainApp: React.FC = () => {
             onViewModeChange={setDashboardViewMode}
             initialFormFilter={initialFormFilter}
             onClearFormFilter={() => setInitialFormFilter(null)}
+            onViewingSubmissionChange={setIsViewingSubmissionInChild}
           />
         )}
         {page === 'editor' && (
@@ -434,6 +443,7 @@ const MainApp: React.FC = () => {
             formName={selectedFormName!}
             onOpenFormFiller={handleOpenFormFiller}
             onBack={() => setPage(prevPage)}
+            onViewingChange={setIsViewingSubmissionInChild}
           />
         )}
         {page === 'fill-form' && (

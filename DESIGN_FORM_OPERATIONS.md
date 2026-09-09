@@ -9,7 +9,7 @@
 | **Module Name** | Form Operations |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-09-09) — Sections 2, 7, 8 (SubmissionManager floating toast notifications, zero window.alert(), and inline retry UI) |
+| **Verified At Commit** | (2026-09-09) — Sections 2, 8 (Form Viewer header redesign to transparent single-line toolbar matching Form Filler, and FormManager onViewingChange propagation) |
 
 ### Quick File Index
 
@@ -422,7 +422,6 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 | Date | Commit | Change |
 |---|---|---|
 | 2026-08-26 | `CURRENT` | **Smart Public Link Access Control & Guest Bypass Route:** Integrated Smart Status Pill (`[🌐 Link công khai / 🔒 Cần đăng nhập] + [🔗 Sao chép link]`) in `FormFiller.tsx`. Updated `App.tsx` with public guest route bypass allowing guest users to fill out forms directly without login when `mode=public` query parameter is present. |
-| 2026-08-26 | `CURRENT` | **FormFiller Auto-Expanding Multi-line Text Area Support:** Integrated `AutoResizingTextarea` in `FormFiller.tsx`, replacing single-line `<input type="text">` across INFO_GRID fields, Checklist groups, Action notes, and dynamic `TABLE` cells with auto-expanding multi-line textareas without vertical scrollbars. |
 | 2026-08-26 | `CURRENT` | **Human-Friendly Daily Sequential Submission ID:** Upgraded `FormFiller.tsx` and `ProcessReader.tsx` submission flow to receive compact 9-character daily sequential IDs (`YYMMDD-XX`, e.g. `260826-01`) assigned by backend. |
 | 2026-08-27 | `CURRENT` | **Short, Beautiful & Secure Public Link Generator:** Upgraded `handleCopyShareLink` in `FormFiller.tsx` to generate clean 38-character short links (`/f/:formName`) backed by smart route resolution and backward compatibility. |
 | 2026-08-27 | `CURRENT` | **Submission Validation Logic Fix:** Removed hard blocks on failed checks (action note & photo requirements) in `FormFiller.tsx` and `ProcessReader.tsx`, allowing non-compliant inspection records to be submitted normally with `status: 'ABNORMALITY'`. |
@@ -437,6 +436,7 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 | 2026-09-09 | `CURRENT` | **Minimalist Executive Toolbar & Single Edit Button in Form View:** Unified submission viewing across internal and public access into a single executive header in `FormFiller.tsx`. In view mode, exactly one edit button is rendered (in the header), while the footer action strip is completely suppressed. In edit mode, fields unlock and minimalist footer appears with Cancel and Save actions. `SubmissionViewer.tsx` delegates directly to `FormFiller` to eliminate duplicate outer headers. |
 | 2026-09-09 | `CURRENT` | **Near Full-Screen Submission View Coordination:** Added `onViewingChange` prop in `SubmissionManager.tsx` and lifecycle coordination to suppress outer dashboard quote card and tabs when viewing/copying a submission record, achieving visual parity with fill-form. |
 | 2026-09-09 | `CURRENT` | **SubmissionManager Toast Feedback & Connection Error Recovery:** Replaced all 5 blocking `window.alert()` calls in `SubmissionManager.tsx` with floating toast notifications (`setToast`) and auto-dismiss timer. Added inline server connection error banner with retry button for serverless resilience. |
+| 2026-09-09 | `CURRENT` | **Form Viewer Header Single-Line Parity & FormManager View Coordination:** Redesigned `FormFiller.tsx` submission view header from boxy white card to transparent, single-row toolbar matching Form Filler exactly (left: Back, ID, QMS status, compact submitter; right: Focus mode, Print, Copy, Edit/Save). Added `onViewingChange` in `FormManager.tsx` to coordinate app-header suppression. |
 
 
 

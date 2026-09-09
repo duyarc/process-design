@@ -2764,77 +2764,67 @@ function FormFillerInner({
 
       {/* Unified Executive Header Toolbar for Submission View / Edit / Fill */}
       {initialSubmission ? (
-        <div style={{
-          background: isEditModeActive ? 'var(--primary-light, #eff6ff)' : 'var(--surface, #ffffff)',
-          border: isEditModeActive ? '1px solid #bfdbfe' : '1px solid var(--neutral-border)',
-          borderRadius: '8px',
-          padding: '0.65rem 1rem',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '0.75rem',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-        }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
           {/* Left Context: Back button + Submission ID + Status badge + Submitter info */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'nowrap' }}>
             {onBack && (
               <button
                 type="button"
                 className="btn btn-secondary btn-sm"
                 onClick={isEditModeActive ? handleCancelEdit : onBack}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.25rem 0.5rem' }}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
                 title={isEditModeActive ? "Hủy bỏ các thay đổi và quay lại xem" : (isPublicGuestMode ? "Về biểu mẫu" : "Quay lại")}
               >
-                <ArrowLeft size={13} />
+                <ArrowLeft size={14} />
                 <span>{isEditModeActive ? 'Hủy' : (isPublicGuestMode ? 'Về biểu mẫu' : 'Back')}</span>
               </button>
             )}
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-              <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                {isEditModeActive ? (
-                  <span style={{ color: '#1e40af', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                    <Pencil size={13} /> Sửa phiếu <code style={{ fontFamily: 'monospace' }}>{initialSubmission.id}</code>
-                  </span>
-                ) : (
-                  <span>
-                    Phiếu <code style={{ fontFamily: 'monospace', color: 'var(--primary)' }}>{initialSubmission.id}</code>
+            {isEditModeActive ? (
+              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#1e40af', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                <Pencil size={13} /> Sửa phiếu <code style={{ fontFamily: 'monospace' }}>{initialSubmission.id}</code>
+              </span>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'nowrap' }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                  Phiếu <code style={{ fontFamily: 'monospace', color: 'var(--primary)' }}>{initialSubmission.id}</code>
+                </span>
+
+                <span
+                  className={`badge ${initialSubmission.status === 'PASS' ? 'badge-success' : 'badge-danger'}`}
+                  style={{ fontSize: '0.68rem', padding: '0.12rem 0.4rem' }}
+                >
+                  {initialSubmission.status}
+                </span>
+
+                {initialSubmission.supervisorSignoff && (
+                  <span
+                    style={{
+                      fontSize: '0.7rem',
+                      padding: '0.12rem 0.4rem',
+                      borderRadius: '4px',
+                      background: '#ffffff',
+                      border: '1px solid var(--neutral-border)',
+                      color: 'var(--text-secondary)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '2px',
+                      fontWeight: 500
+                    }}
+                    title={`Đã ký xác nhận bởi ${initialSubmission.supervisorSignoff.signedBy} lúc ${new Date(initialSubmission.supervisorSignoff.signedAt).toLocaleString('vi-VN')}`}
+                  >
+                    🔒 Đã ký
                   </span>
                 )}
-              </span>
 
-              <span
-                className={`badge ${initialSubmission.status === 'PASS' ? 'badge-success' : 'badge-danger'}`}
-                style={{ fontSize: '0.68rem', padding: '0.15rem 0.45rem' }}
-              >
-                {initialSubmission.status}
-              </span>
-
-              {initialSubmission.supervisorSignoff && (
-                <span
-                  style={{
-                    fontSize: '0.72rem',
-                    padding: '0.15rem 0.5rem',
-                    borderRadius: '4px',
-                    background: 'var(--neutral-bg, #f8fafc)',
-                    border: '1px solid var(--neutral-border)',
-                    color: 'var(--text-secondary)',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '3px',
-                    fontWeight: 500
-                  }}
-                  title={`Đã ký xác nhận bởi ${initialSubmission.supervisorSignoff.signedBy} lúc ${new Date(initialSubmission.supervisorSignoff.signedAt).toLocaleString('vi-VN')}`}
+                <span 
+                  style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}
+                  title={`${initialSubmission.operatorId} — ${new Date(initialSubmission.submittedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}, ${new Date(initialSubmission.submittedAt).toLocaleDateString('vi-VN')}`}
                 >
-                  🔒 Đã ký ({initialSubmission.supervisorSignoff.signedBy})
+                  • {initialSubmission.operatorId}
                 </span>
-              )}
-
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                • {initialSubmission.operatorId} — {new Date(initialSubmission.submittedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}, {new Date(initialSubmission.submittedAt).toLocaleDateString('vi-VN')}
-              </span>
-            </div>
+              </div>
+            )}
           </div>
 
           {/* Right Actions: Focus mode + Print + Copy + Single Edit button (when in View Mode) or Save (when in Edit Mode) */}
@@ -2844,7 +2834,7 @@ function FormFillerInner({
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginRight: '0.25rem' }}>
                 <label
                   onClick={() => setViewMode(prev => prev === 'focus' ? 'all' : 'focus')}
-                  style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.78rem', margin: 0, cursor: 'pointer', userSelect: 'none' }}
+                  style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.8rem', margin: 0, cursor: 'pointer', userSelect: 'none' }}
                 >
                   Focus mode
                 </label>
@@ -2883,51 +2873,7 @@ function FormFillerInner({
               </div>
             )}
 
-            {/* In bản khai */}
-            <button 
-              type="button"
-              className="btn btn-secondary btn-sm" 
-              onClick={() => {
-                if (initialSubmission && formTemplate) {
-                  setPrintCurrentSubmission(initialSubmission);
-                }
-              }}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', padding: '0.25rem 0.6rem' }}
-              title="In bản khai"
-            >
-              <Printer size={13} style={{ color: '#0d9488' }} />
-              <span>In bản khai</span>
-            </button>
-
-            {/* Sao chép phiếu này (nếu có callback onCopySubmission) */}
-            {effectiveReadOnly && onCopySubmission && (
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                onClick={() => onCopySubmission(initialSubmission)}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', padding: '0.25rem 0.6rem' }}
-                title="Sao chép thành bản ghi mới"
-              >
-                <Copy size={13} />
-                <span>Sao chép</span>
-              </button>
-            )}
-
-            {/* DUY NHẤT 1 NÚT CHỈNH SỬA Ở CHẾ ĐỘ VIEW */}
-            {effectiveReadOnly && canAmend && (
-              <button
-                type="button"
-                className="btn btn-primary btn-sm"
-                onClick={() => setIsEditModeActive(true)}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', padding: '0.25rem 0.75rem' }}
-              >
-                <Pencil size={13} />
-                <span>Chỉnh sửa</span>
-              </button>
-            )}
-
-            {/* Khi đang ở chế độ Edit: Nút Lưu trực tiếp trên Header */}
-            {isEditModeActive && (
+            {isEditModeActive ? (
               <button
                 type="button"
                 className="btn btn-primary btn-sm"
@@ -2937,6 +2883,51 @@ function FormFillerInner({
               >
                 {submitting ? 'Đang lưu...' : '💾 Lưu thay đổi'}
               </button>
+            ) : (
+              <>
+                {/* In bản khai */}
+                <button 
+                  type="button"
+                  className="btn btn-secondary btn-sm" 
+                  onClick={() => {
+                    if (initialSubmission && formTemplate) {
+                      setPrintCurrentSubmission(initialSubmission);
+                    }
+                  }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem' }}
+                  title="In bản khai"
+                >
+                  <Printer size={13} style={{ color: '#0d9488' }} />
+                  <span>In bản khai</span>
+                </button>
+
+                {/* Sao chép phiếu này (nếu có callback onCopySubmission) */}
+                {effectiveReadOnly && onCopySubmission && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => onCopySubmission(initialSubmission)}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem' }}
+                    title="Sao chép thành bản ghi mới"
+                  >
+                    <Copy size={13} />
+                    <span>Sao chép</span>
+                  </button>
+                )}
+
+                {/* DUY NHẤT 1 NÚT CHỈNH SỬA Ở CHẾ ĐỘ VIEW */}
+                {effectiveReadOnly && canAmend && (
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    onClick={() => setIsEditModeActive(true)}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', padding: '0.25rem 0.75rem' }}
+                  >
+                    <Pencil size={13} />
+                    <span>Chỉnh sửa</span>
+                  </button>
+                )}
+              </>
             )}
           </div>
         </div>

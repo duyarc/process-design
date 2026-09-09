@@ -26,9 +26,10 @@ interface FormManagerProps {
   formName: string;
   onOpenFormFiller: (processId: string, formName: string) => void;
   onBack: () => void;
+  onViewingChange?: (isViewing: boolean) => void;
 }
 
-export default function FormManager({ processId, formName, onOpenFormFiller, onBack }: FormManagerProps) {
+export default function FormManager({ processId, formName, onOpenFormFiller, onBack, onViewingChange }: FormManagerProps) {
   const { currentUser } = useAuth();
   
   // Data States
@@ -57,6 +58,14 @@ export default function FormManager({ processId, formName, onOpenFormFiller, onB
 
   // Copy Submission State
   const [copySubmission, setCopySubmission] = useState<Submission | null>(null);
+
+  // Notify parent container (e.g. App.tsx) when full form view/copy/print is active
+  useEffect(() => {
+    onViewingChange?.(Boolean(viewingSubmission || copySubmission || printSubmission));
+    return () => {
+      onViewingChange?.(false);
+    };
+  }, [viewingSubmission, copySubmission, printSubmission, onViewingChange]);
 
   // Deletion States
   const [submissionToDelete, setSubmissionToDelete] = useState<Submission | null>(null);

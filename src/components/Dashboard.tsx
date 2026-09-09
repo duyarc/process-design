@@ -20,6 +20,7 @@ interface DashboardProps {
   onViewModeChange?: (mode: 'processes' | 'forms' | 'submissions' | 'reports' | 'guide') => void;
   initialFormFilter?: string | null;
   onClearFormFilter?: () => void;
+  onViewingSubmissionChange?: (isViewing: boolean) => void;
 }
 
 const statusColors: { [key: string]: { bg: string, text: string, border: string } } = {
@@ -42,7 +43,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
   viewMode = 'processes',
   onViewModeChange,
   initialFormFilter = null,
-  onClearFormFilter
+  onClearFormFilter,
+  onViewingSubmissionChange
 }) => {
   const [processes, setProcesses] = useState<Process[]>(() => {
     try {
@@ -760,7 +762,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
           onBack={onClearFormFilter} 
           layoutMode={layoutMode}
           onOpenReport={onOpenFormReport}
-          onViewingChange={setIsViewingSubmission}
+          onViewingChange={(isViewing) => {
+            setIsViewingSubmission(isViewing);
+            onViewingSubmissionChange?.(isViewing);
+          }}
         />
       ) : viewMode === 'guide' ? (
         <BPMNGuide />

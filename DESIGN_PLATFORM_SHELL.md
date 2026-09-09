@@ -9,7 +9,7 @@
 | **Module Name** | Platform Shell |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-09-09) — Section 2, 3 (Near full-screen submission view in Dashboard by suppressing quote banner and tabs) |
+| **Verified At Commit** | (2026-09-09) — Sections 2, 3, 8 (App header navbar suppression in Form Filler and Form Viewer for screen estate optimization) |
 
 ### Quick File Index
 
@@ -220,3 +220,4 @@ lives in `git log`; run `git show <commit>` for the full diff of any entry below
 | 2026-09-03 | `CURRENT` | **Dashboard Stale-While-Revalidate (SWR) Instant Paint:** Implemented sessionStorage-backed SWR caching in `Dashboard.tsx` for `processes`, `allForms`, and `reportTemplates`. Eliminates the 3.7s–5.3s "Loading processes database..." spinner on every browser refresh by initializing state synchronously from cache and revalidating silently in the background. |
 | 2026-09-09 | `CURRENT` | **Submission Review & Amendment Routing (`/f/:formName/s/:id`):** Added deep route matching in `App.tsx` for `/f/:formName/s/:submissionId?token=TOKEN` with `SubmissionViewer` integration for both guest and authenticated states. |
 | 2026-09-09 | `CURRENT` | **Near Full-Screen Submission View Coordination:** Added `isViewingSubmission` state in `Dashboard.tsx` coordinating with `SubmissionManager`. When viewing or copying a submission record, the quote card and view switcher tabs are suppressed, rendering `FormFiller` in near full-screen mode with visual parity to fill-form. |
+| 2026-09-09 | `CURRENT` | **Screen Estate Optimization — Global App Header Suppression:** Configured `isFormCanvasActive` in `App.tsx` coordinating with `Dashboard.tsx` and `FormManager.tsx` (`onViewingSubmissionChange` / `onViewingChange`). Completely hides the "Process Design" `<header className="app-header">` when users are filling or viewing form records, maximizing vertical document view space by ~65px while preserving full back-navigation. |
