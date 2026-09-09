@@ -606,31 +606,21 @@ export const Dashboard: React.FC<DashboardProps> = ({
     );
   };
 
-  if (isViewingSubmission && viewMode === 'submissions') {
-    return (
-      <SubmissionManager 
-        isEmbedded={true} 
-        initialFormFilter={initialFormFilter} 
-        onBack={onClearFormFilter} 
-        layoutMode={layoutMode}
-        onOpenReport={onOpenFormReport}
-        onViewingChange={setIsViewingSubmission}
-      />
-    );
-  }
-
   return (
     <div>
-      <div className="quote-card">
-        <p className="quote-text">
-          We believe <span className="highlight">common sense</span> and <span className="highlight">simplicity</span> are usually better guidelines than unnecessary sophistication and complexity.
-        </p>
-        <p className="quote-author">
-          — AB Inbev’s 7<sup>th</sup> principle
-        </p>
-      </div>
+      {!(isViewingSubmission && viewMode === 'submissions') && (
+        <div className="quote-card">
+          <p className="quote-text">
+            We believe <span className="highlight">common sense</span> and <span className="highlight">simplicity</span> are usually better guidelines than unnecessary sophistication and complexity.
+          </p>
+          <p className="quote-author">
+            — AB Inbev's 7<sup>th</sup> principle
+          </p>
+        </div>
+      )}
 
       {/* View Switcher Tabs */}
+      {!(isViewingSubmission && viewMode === 'submissions') && (
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--neutral-border)', paddingBottom: '0.75rem' }}>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button
@@ -712,6 +702,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
         )}
       </div>
+      )}
 
       {viewMode !== 'submissions' && viewMode !== 'guide' && (
         <div className="paper-card" style={{ padding: '0.75rem 1rem', display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '2rem' }}>
