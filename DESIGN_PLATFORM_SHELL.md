@@ -9,7 +9,7 @@
 | **Module Name** | Platform Shell |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-09-03) — Section 3 (Dashboard Stale-While-Revalidate caching with sessionStorage checked against Dashboard.tsx). |
+| **Verified At Commit** | (2026-09-09) — Section 3 (Added /f/:formName/s/:submissionId public routing and SubmissionViewer in App.tsx). |
 
 ### Quick File Index
 
@@ -218,3 +218,4 @@ lives in `git log`; run `git show <commit>` for the full diff of any entry below
 | 2026-08-27 | `CURRENT` | **Clean Path Routing for Form Fill (`/f/:identifier`):** Added direct route resolution in `App.tsx` matching `/f/:identifier`, calling `/api/forms/resolve/:identifier` to render `FormFiller` directly without lengthy query strings. |
 | 2026-08-31 | `CURRENT` | **Unified Short-Link Loading State Coordination:** Added `isShortLinkFlow` prop coordination between `App.tsx` and `FormFiller.tsx` to eliminate redundant secondary loading screen when opening forms via short path `/f/:identifier`. |
 | 2026-09-03 | `CURRENT` | **Dashboard Stale-While-Revalidate (SWR) Instant Paint:** Implemented sessionStorage-backed SWR caching in `Dashboard.tsx` for `processes`, `allForms`, and `reportTemplates`. Eliminates the 3.7s–5.3s "Loading processes database..." spinner on every browser refresh by initializing state synchronously from cache and revalidating silently in the background. |
+| 2026-09-09 | `CURRENT` | **Submission Review & Amendment Routing (`/f/:formName/s/:id`):** Added deep route matching in `App.tsx` for `/f/:formName/s/:submissionId?token=TOKEN` with `SubmissionViewer` integration for both guest and authenticated states. |

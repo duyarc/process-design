@@ -150,9 +150,11 @@ interface FormFillerProps {
   formName: string;
   onBack?: () => void;
   onSubmitSuccess?: (submissionId: string) => void;
+  onSubmitSuccessWithToken?: (submissionId: string, token: string) => void;
   onCopySubmission?: (sub: Submission) => void;
   initialSubmission?: Submission;
   editSubmissionId?: string;
+  editToken?: string;
   isPublicGuestMode?: boolean;
   readOnly?: boolean;
   isShortLinkFlow?: boolean;
@@ -164,9 +166,11 @@ function FormFillerInner({
   formName, 
   onBack, 
   onSubmitSuccess,
+  onSubmitSuccessWithToken,
   onCopySubmission,
   initialSubmission, 
   editSubmissionId,
+  editToken,
   isPublicGuestMode,
   readOnly,
   isShortLinkFlow
@@ -194,9 +198,54 @@ function FormFillerInner({
   }, [localToast]);
 
   const [printCurrentSubmission, setPrintCurrentSubmission] = useState<Submission | null>(null);
+  const [submitResult, setSubmitResult] = useState<{ id: string; token: string } | null>(null);
+  const [localSubmissions, setLocalSubmissions] = useState<Array<{ id: string; token: string; status: string; submittedAt: string; signedOff: boolean }>>([]);
+
+  const refreshLocalSubmissions = (currentFormId?: string) => {
+    const fId = currentFormId || rawFormTemplate?.formId || formName;
+    if (!fId) return;
+    try {
+      const raw = localStorage.getItem('submission_history');
+      const history = raw ? JSON.parse(raw) : {};
+      const entries: Array<{ id: string; token: string }> = history[fId] || [];
+      if (!Array.isArray(entries) || entries.length === 0) {
+        setLocalSubmissions([]);
+        return;
+      }
+      fetch('/api/submissions/batch-lookup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entries })
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data)) {
+            const merged = data.map((item: any) => {
+              const matched = entries.find((e: any) => e.id === item.id);
+              return {
+                ...item,
+                token: matched?.token || ''
+              };
+            });
+            setLocalSubmissions(merged);
+          }
+        })
+        .catch(err => {
+          console.error('Failed to batch lookup local submissions:', err);
+        });
+    } catch (e) {
+      console.error('Error reading submission history:', e);
+    }
+  };
 
   // Smart Public Link State
   const rawFormTemplate = (process?.workflowFormsData?.[formName] || null) as FormTemplateISO | null;
+
+  useEffect(() => {
+    if (isPublicGuestMode && rawFormTemplate?.formId) {
+      refreshLocalSubmissions(rawFormTemplate.formId);
+    }
+  }, [isPublicGuestMode, rawFormTemplate?.formId]);
 
   const isPublic = useMemo(() => {
     const params = new URLSearchParams(window.location.search);
@@ -566,6 +615,97 @@ function FormFillerInner({
 
   const formTemplate = process.workflowFormsData[formName] as FormTemplateISO;
 
+  if (submitResult) {
+    const viewUrl = `${window.location.origin}/f/${encodeURIComponent(formName)}/s/${submitResult.id}?token=${submitResult.token}`;
+    return (
+      <div style={{ maxWidth: '640px', margin: '3rem auto', padding: '0 1rem' }}>
+        <div className="paper-card" style={{ padding: '2.5rem 2rem', textAlign: 'center' }}>
+          <div style={{
+            width: '56px',
+            height: '56px',
+            borderRadius: '50%',
+            background: '#ecfdf5',
+            color: '#10b981',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 1.25rem',
+            fontSize: '1.75rem',
+            fontWeight: 'bold'
+          }}>
+            ✓
+          </div>
+          <h3 style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.4rem' }}>
+            {editSubmissionId ? 'Phiếu đã được cập nhật thành công!' : 'Phiếu đã gửi thành công!'}
+          </h3>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1.75rem' }}>
+            Mã định danh phiếu: <code style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--primary)', fontSize: '1.05rem', background: 'var(--neutral-bg, #f1f5f9)', padding: '0.15rem 0.5rem', borderRadius: '4px' }}>{submitResult.id}</code>
+          </p>
+
+          <div style={{ background: 'var(--neutral-bg, #f8fafc)', borderRadius: '8px', padding: '1.25rem', marginBottom: '1.25rem', textAlign: 'left', border: '1px solid var(--neutral-border)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+              <Link2 size={16} style={{ color: 'var(--primary)' }} />
+              <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                Link xem lại & điều chỉnh phiếu của bạn:
+              </span>
+            </div>
+            <div style={{
+              background: 'var(--surface, #fff)',
+              border: '1px solid var(--neutral-border)',
+              borderRadius: '6px',
+              padding: '0.6rem 0.85rem',
+              fontSize: '0.8rem',
+              color: 'var(--text-primary)',
+              wordBreak: 'break-all',
+              fontFamily: 'monospace',
+              userSelect: 'all'
+            }}>
+              {viewUrl}
+            </div>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              style={{ width: '100%', marginTop: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+              onClick={() => {
+                navigator.clipboard.writeText(viewUrl);
+                setLocalToast({ message: 'Đã sao chép liên kết xem phiếu vào bộ nhớ tạm!', id: 'copied_link' });
+              }}
+            >
+              <Copy size={15} /> Sao chép link
+            </button>
+          </div>
+
+          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted, #64748b)', lineHeight: '1.5', marginBottom: '1.75rem' }}>
+            💡 Bạn có thể dùng link trên để xem lại hoặc điều chỉnh phiếu từ bất kỳ thiết bị nào.<br />
+            Phiếu sẽ bị khoá chỉ khi cấp quản lý đã ký xác nhận duyệt.
+          </p>
+
+          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => {
+                setSubmitResult(null);
+                if (formTemplate?.formId) {
+                  refreshLocalSubmissions(formTemplate.formId);
+                }
+              }}
+            >
+              + Điền phiếu mới
+            </button>
+            <a
+              href={viewUrl}
+              className="btn btn-secondary"
+              style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
+            >
+              Xem phiếu vừa nộp
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Photo uploading callback
   const handlePhotoUpload = async (fieldId: string, file: File) => {
     setIsPhotoUploading(prev => ({ ...prev, [fieldId]: true }));
@@ -866,7 +1006,7 @@ function FormFillerInner({
       setSubmitting(true);
       const submissionId = editSubmissionId;
       
-      const payload = {
+      const payload: any = {
         id: submissionId,
         processId: process.id,
         formId: formTemplate.formId,
@@ -877,20 +1017,50 @@ function FormFillerInner({
         mediaUrls: editSubmissionId ? (initialSubmission?.mediaUrls || []) : allMediaKeys
       };
 
+      if (editSubmissionId && editToken) {
+        payload.accessToken = editToken;
+      }
+
       if (editSubmissionId && allMediaKeys.length > 0) {
         const uniqueKeys = new Set([...(initialSubmission?.mediaUrls || []), ...allMediaKeys]);
         payload.mediaUrls = Array.from(uniqueKeys);
       }
+
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const jwtToken = localStorage.getItem('jwt_token');
+      if (jwtToken) {
+        headers['Authorization'] = `Bearer ${jwtToken}`;
+      }
  
       const res = await fetch(editSubmissionId ? `/api/submissions/${editSubmissionId}` : '/api/submissions', {
         method: editSubmissionId ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(payload)
       });
  
-      if (!res.ok) throw new Error('Submission server error');
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.error || 'Submission server error');
+      }
       const resData = await res.json();
       const finalId = resData.id || submissionId;
+      const returnedAccessToken: string | undefined = resData.accessToken || editToken;
+
+      // Update localStorage submission_history
+      if (returnedAccessToken && finalId && (formTemplate?.formId || formName)) {
+        try {
+          const storageKey = 'submission_history';
+          const rawHistory = localStorage.getItem(storageKey);
+          const historyObj: Record<string, Array<{ id: string; token: string }>> = rawHistory ? JSON.parse(rawHistory) : {};
+          const targetFormKey = formTemplate?.formId || formName;
+          const currentList = historyObj[targetFormKey] || [];
+          const filtered = currentList.filter(item => item.id !== finalId);
+          historyObj[targetFormKey] = [{ id: finalId, token: returnedAccessToken }, ...filtered];
+          localStorage.setItem(storageKey, JSON.stringify(historyObj));
+        } catch (e) {
+          console.error('Failed to update submission_history in localStorage:', e);
+        }
+      }
        
       // Reset active editing states
       setFormValues({});
@@ -901,15 +1071,19 @@ function FormFillerInner({
       setSignInputs({});
       setSignOpen({});
 
-      // Trigger success toast
-      const successMsg = `Đã gửi phiếu thành công! (Mã: ${finalId})`;
-      setLocalToast({ message: successMsg, id: finalId });
+      if (returnedAccessToken && isPublicGuestMode && !editSubmissionId) {
+        setSubmitResult({ id: finalId, token: returnedAccessToken });
+      } else {
+        const successMsg = editSubmissionId ? `Đã cập nhật phiếu thành công! (Mã: ${finalId})` : `Đã gửi phiếu thành công! (Mã: ${finalId})`;
+        setLocalToast({ message: successMsg, id: finalId });
 
-      // Auto-return or notify parent
-      if (onSubmitSuccess) {
-        onSubmitSuccess(finalId);
-      } else if (onBack && !isPublicGuestMode) {
-        onBack();
+        if (onSubmitSuccessWithToken && returnedAccessToken) {
+          onSubmitSuccessWithToken(finalId, returnedAccessToken);
+        } else if (onSubmitSuccess) {
+          onSubmitSuccess(finalId);
+        } else if (onBack && !isPublicGuestMode) {
+          onBack();
+        }
       }
     } catch (err) {
       console.error(err);
@@ -2519,6 +2693,55 @@ function FormFillerInner({
           >
             {initialSubmission.status}
           </span>
+        </div>
+      )}
+
+      {/* Local Device Submission History Card */}
+      {!readOnly && isPublicGuestMode && localSubmissions.length > 0 && (
+        <div className="paper-card" style={{ padding: '0.85rem 1.25rem', border: '1px solid var(--neutral-border)', background: 'var(--neutral-bg, #f8fafc)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+            <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              📋 Phiếu đã gửi từ thiết bị này ({localSubmissions.length})
+            </span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            {localSubmissions.map(item => (
+              <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--surface, #ffffff)', padding: '0.5rem 0.75rem', borderRadius: '6px', border: '1px solid var(--neutral-border)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                  <code style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary)' }}>{item.id}</code>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                    {new Date(item.submittedAt).toLocaleDateString('vi-VN')} {new Date(item.submittedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                  <span className={`badge ${item.status === 'PASS' ? 'badge-success' : 'badge-danger'}`} style={{ fontSize: '0.65rem', padding: '0.15rem 0.4rem' }}>
+                    {item.status}
+                  </span>
+                  {item.signedOff && (
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+                      🔒 Đã ký duyệt
+                    </span>
+                  )}
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <a
+                    href={`/f/${encodeURIComponent(formName)}/s/${item.id}?token=${item.token}`}
+                    className="btn btn-secondary btn-sm"
+                    style={{ fontSize: '0.75rem', padding: '0.2rem 0.6rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                  >
+                    👁 Xem
+                  </a>
+                  {!item.signedOff && (
+                    <a
+                      href={`/f/${encodeURIComponent(formName)}/s/${item.id}?token=${item.token}&mode=edit`}
+                      className="btn btn-primary btn-sm"
+                      style={{ fontSize: '0.75rem', padding: '0.2rem 0.6rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                    >
+                      ✏️ Sửa
+                    </a>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

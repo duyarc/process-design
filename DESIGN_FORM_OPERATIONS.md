@@ -9,13 +9,14 @@
 | **Module Name** | Form Operations |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-09-04) — Section 2, 4 (Dropdown select rendering and options resolution in FormFiller, ProcessReader, and PrintFilledForm) |
+| **Verified At Commit** | (2026-09-09) — Section 2, 4 (Public submission review, amendment with token, local history card in FormFiller and SubmissionViewer) |
 
 ### Quick File Index
 
 | File | Role |
 |---|---|
 | [`src/components/FormFiller.tsx`](src/components/FormFiller.tsx) | Digital form fill-out UI for operators |
+| [`src/components/SubmissionViewer.tsx`](src/components/SubmissionViewer.tsx) | **NEW** — Public submission review & amendment container |
 | [`src/components/FormManager.tsx`](src/components/FormManager.tsx) | Per-form submission log + supervisor sign-off |
 | [`src/components/SubmissionManager.tsx`](src/components/SubmissionManager.tsx) | Cross-form global submission log (embedded in Dashboard) |
 | [`src/components/print/PrintFilledForm.tsx`](src/components/print/PrintFilledForm.tsx) | **NEW** — Filled submission print renderer; layout mirrors blank form exactly; self-contained |
@@ -435,6 +436,7 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 | 2026-08-31 | `CURRENT` | **Parallel Data Fetching & Unified Short-Link Loading:** Converted sequential `await` calls in `FormManager.tsx` and `SubmissionManager.tsx` to `Promise.all` parallel fetching, eliminating ~300ms latency and table flash. Added `isShortLinkFlow` prop to `FormFiller.tsx` to suppress secondary loading screen when App.tsx already presents an entry loading screen. |
 | 2026-09-04 | `CURRENT` | **Block-level Conditional Visibility & Non-Destructive Hiding:** (1) Added `evaluateBlockVisibility(block, formValues)` in `FormFiller.tsx` to conditionally hide blocks whose upstream triggers are not met, returning `null` in `renderBlock` while preserving all entered `formValues` intact for instant recovery. (2) Updated `renderBlock` to resolve visible `prevBlock` backward across hidden blocks, preserving `isSeamlessTableBlock` continuity. (3) Filtered out hidden blocks before executing `validateFormSubmission` so hidden required fields do not block submission. |
 | 2026-09-04 | `CURRENT` | **Dropdown (`select`) Field & Table Cell Rendering:** (1) Integrated `<select>` menu rendering with `-- Chọn --` placeholder across `INFO_GRID` fields and `TABLE` cells in `FormFiller.tsx` and `ProcessReader.tsx`. (2) Updated `buildSubmissionSnapshots` to evaluate pass/fail quality criteria based on selected option's `isPass` flag. (3) Standardized `PrintFilledForm.tsx` to print clean option labels instead of empty inputs. |
+| 2026-09-09 | `CURRENT` | **Public Submission Review & Amendment UI:** Created `SubmissionViewer.tsx` orchestrating token-based read-only and edit modes. Updated `FormFiller.tsx` with access token persistence in `localStorage`, submission success screen with copyable review link, and dynamic local device history card powered by batch-lookup. |
 
 
 

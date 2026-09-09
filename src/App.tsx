@@ -6,6 +6,7 @@ import { ProcessEditor } from './components/ProcessEditor';
 import { ProcessReader } from './components/ProcessReader';
 import FormManager from './components/FormManager';
 import FormFiller from './components/FormFiller';
+import SubmissionViewer from './components/SubmissionViewer';
 import UserManagement from './components/UserManagement';
 import LoginPage from './components/LoginPage';
 import ReportBuilder from './components/ReportBuilder';
@@ -23,6 +24,7 @@ type PageId =
   | 'submissions'
   | 'form-manager'
   | 'fill-form'
+  | 'submission-viewer'
   | 'user-management';
 
 const MainApp: React.FC = () => {
@@ -40,6 +42,11 @@ const MainApp: React.FC = () => {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [reportBuilderState, setReportBuilderState] = useState<{ isOpen: boolean; formId?: string; reportId?: string }>({ isOpen: false });
   const [formReportState, setFormReportState] = useState<{ isOpen: boolean; submissionId?: string }>({ isOpen: false });
+
+  // Public submission viewer state
+  const [viewerSubmissionId, setViewerSubmissionId] = useState<string | null>(null);
+  const [viewerToken, setViewerToken] = useState<string | null>(null);
+  const [viewerEditMode, setViewerEditMode] = useState<boolean>(false);
 
   useEffect(() => {
     if (toastMessage) {
@@ -59,11 +66,33 @@ const MainApp: React.FC = () => {
     return window.location.pathname.startsWith('/f/');
   });
 
-  // Detect and resolve shareable form links (Clean path /f/:identifier or legacy query params)
+  // Detect and resolve shareable form links (Clean path /f/:identifier, /f/:formName/s/:submissionId, or legacy query params)
   // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
     const pathname = window.location.pathname;
     if (pathname.startsWith('/f/')) {
+      const submissionMatch = pathname.match(/^\/f\/([^/]+)\/s\/([^/]+)$/);
+      if (submissionMatch) {
+        const formName = decodeURIComponent(submissionMatch[1]);
+        const subId = decodeURIComponent(submissionMatch[2]);
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
+        const mode = urlParams.get('mode');
+
+        if (!token) {
+          window.location.replace(`/f/${encodeURIComponent(formName)}`);
+          return;
+        }
+
+        setViewerSubmissionId(subId);
+        setViewerToken(token);
+        setViewerEditMode(mode === 'edit');
+        setSelectedFormName(formName);
+        setPage('submission-viewer');
+        setShortLinkLoading(false);
+        return;
+      }
+
       const rawIdentifier = pathname.replace(/^\/f\//, '').trim();
       if (rawIdentifier) {
         fetch(`/api/forms/resolve/${encodeURIComponent(rawIdentifier)}`)
@@ -189,6 +218,19 @@ const MainApp: React.FC = () => {
             onBack={() => { window.location.href = '/'; }}
             isPublicGuestMode={true}
             isShortLinkFlow={true}
+          />
+        </div>
+      );
+    }
+    if (page === 'submission-viewer' && viewerSubmissionId && viewerToken && selectedFormName) {
+      return (
+        <div className="app-container" style={{ minHeight: '100vh', background: 'var(--neutral-bg)', padding: '2rem 1rem' }}>
+          <SubmissionViewer
+            formName={selectedFormName}
+            submissionId={viewerSubmissionId}
+            token={viewerToken}
+            initialEditMode={viewerEditMode}
+            onBack={() => { window.location.href = `/f/${encodeURIComponent(selectedFormName)}`; }}
           />
         </div>
       );
@@ -404,6 +446,19 @@ const MainApp: React.FC = () => {
               setPage('form-manager');
             }}
             onBack={() => setPage('form-manager')}
+          />
+        )}
+        {page === 'submission-viewer' && viewerSubmissionId && viewerToken && selectedFormName && (
+          <SubmissionViewer
+            formName={selectedFormName}
+            submissionId={viewerSubmissionId}
+            token={viewerToken}
+            initialEditMode={viewerEditMode}
+            onBack={() => {
+              setPage('dashboard');
+              setViewerSubmissionId(null);
+              setViewerToken(null);
+            }}
           />
         )}
 

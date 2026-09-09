@@ -260,6 +260,7 @@ export interface Submission {
     signedAt: string;
     notes?: string;
   } | null;
+  accessToken?: string;
 }
 
 /**

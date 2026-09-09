@@ -9,7 +9,7 @@
 | **Module Name** | Backend & Persistence |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-09-03) — Sections 1, 2, and 3 checked against server.cjs (express body parser payload limit, GET /api/processes parallel DB queries) |
+| **Verified At Commit** | (2026-09-09) — Sections 1, 2, 3 (submissions access_token column, batch-lookup, view/:id, and token-guarded PUT). |
 
 ### Quick File Index
 
@@ -292,7 +292,6 @@ Architectural changes only — schema, endpoints, invariants. UI polish lives in
 
 | Date | Commit | Change |
 |---|---|---|
-| 2026-07-27 | `001af74` | Document created. Initial write based on `server.cjs` review. Backfilled entries below from git history. |
 | 2026-07-10 | `294e5bb` | **Schema change:** added `forms.effective_date`; standardized form version strings across server and client. |
 | 2026-07-13 | `143bec7` | Added `/api/storage/download-inline` to proxy logos as base64 data URLs, fixing cross-origin print rendering. |
 | 2026-07-20 | `5bea009` | **Critical fix + invariant:** `isLogoKeyUsed()` rewritten to query `forms.layout_blocks` instead of `processes.workflowFormsData`. The old version always returned `false`, deleting every logo from R2 on the next process save. See Section 4. |
@@ -307,3 +306,4 @@ Architectural changes only — schema, endpoints, invariants. UI polish lives in
 | 2026-08-27 | `CURRENT` | **Form-Centric Dynamic Process Link Resolution:** Updated `GET /api/submissions` with `LEFT JOIN LATERAL process_forms` so `COALESCE(pf.process_id, s.process_id, 'unlinked')` always reflects the current active process when forms are re-linked/unlinked. Added auto-resolution in `POST /api/submissions`. |
 | 2026-09-03 | `CURRENT` | **Fix 413 Payload Too Large on Large Forms:** Configured `express.json({ limit: '50mb' })` and `express.urlencoded({ extended: true, limit: '50mb' })` in `server.cjs`, removing default 100kb limit that blocked saving forms with extensive layout blocks (e.g. 5C-Scorecard at 144KB+). |
 | 2026-09-03 | `CURRENT` | **Parallelize GET /api/processes Database Queries:** Replaced sequential queries for `processes` and `process_forms` with `Promise.all([dbPool.query('SELECT * FROM processes'), dbPool.query('SELECT * FROM process_forms')])`, reducing server latency by ~20-30%. |
+| 2026-09-09 | `CURRENT` | **Public Submission Review & Amendment API:** Added `access_token` column to `submissions` table; added `POST /api/submissions/batch-lookup` for device ownership verification; added `GET /api/submissions/view/:id?token=TOKEN` for public view; updated `PUT /api/submissions/:id` with token & sign-off validation. |

@@ -2,6 +2,7 @@ require('dotenv').config();
 const { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand, ListObjectsV2Command } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const express = require('express');
+const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const csvParser = require('csv-parser');
@@ -121,7 +122,8 @@ const INITIALIZE_SCHEMA_QUERY = `
     status TEXT NOT NULL,
     form_data JSONB NOT NULL,
     media_urls JSONB DEFAULT '[]'::jsonb,
-    supervisor_signoff JSONB DEFAULT NULL
+    supervisor_signoff JSONB DEFAULT NULL,
+    access_token TEXT DEFAULT NULL
   );
 
   CREATE INDEX IF NOT EXISTS idx_submissions_process_id ON submissions(process_id);
@@ -166,6 +168,7 @@ const INITIALIZE_SCHEMA_QUERY = `
   ALTER TABLE forms ADD COLUMN IF NOT EXISTS page_size TEXT DEFAULT 'A4';
   ALTER TABLE forms ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT false;
   ALTER TABLE forms ADD COLUMN IF NOT EXISTS default_focus_mode BOOLEAN DEFAULT false;
+  ALTER TABLE submissions ADD COLUMN IF NOT EXISTS access_token TEXT DEFAULT NULL;
 `;
 
 // ─── Sample Data for Fresh Seed ──────────────────────────────────────────────
@@ -2426,6 +2429,94 @@ async function generateDailySequentialSubmissionId(dbPool) {
   return `${datePrefix}-${paddedSeq}`;
 }
 
+function generateAccessToken() {
+  return crypto.randomBytes(16).toString('hex');
+}
+
+// POST /api/submissions/batch-lookup - Public: verify ownership and get fresh status by token
+app.post('/api/submissions/batch-lookup', async (req, res) => {
+  try {
+    if (!dbPool) {
+      return res.status(503).json({ error: 'Database connection not available.' });
+    }
+    const { entries } = req.body; // [{ id, token }, ...]
+    if (!Array.isArray(entries) || entries.length === 0) {
+      return res.json([]);
+    }
+
+    const validEntries = entries.filter(e => e && typeof e.id === 'string' && typeof e.token === 'string' && e.id.trim() && e.token.trim());
+    if (validEntries.length === 0) {
+      return res.json([]);
+    }
+
+    const conditions = validEntries.map((_, i) =>
+      `(id = $${i * 2 + 1} AND access_token = $${i * 2 + 2})`
+    ).join(' OR ');
+    const params = validEntries.flatMap(e => [e.id.trim(), e.token.trim()]);
+
+    const result = await dbPool.query(`
+      SELECT id, status, submitted_at, (supervisor_signoff IS NOT NULL) AS signed_off
+      FROM submissions
+      WHERE ${conditions}
+      ORDER BY submitted_at DESC
+    `, params);
+
+    res.json(result.rows.map(r => ({
+      id: r.id,
+      status: r.status,
+      submittedAt: r.submitted_at,
+      signedOff: r.signed_off
+    })));
+  } catch (err) {
+    console.error('batch-lookup error:', err);
+    res.status(500).json({ error: 'Lookup failed' });
+  }
+});
+
+// GET /api/submissions/view/:id - Public: view submission with access token
+app.get('/api/submissions/view/:id', async (req, res) => {
+  try {
+    if (!dbPool) {
+      return res.status(503).json({ error: 'Database connection not available.' });
+    }
+    const { id } = req.params;
+    const token = req.query.token;
+    if (!token) {
+      return res.status(403).json({ error: 'Access token is required.' });
+    }
+
+    const result = await dbPool.query(
+      `SELECT id, process_id, form_id, form_version, operator_id,
+              status, submitted_at, form_data, media_urls, supervisor_signoff
+       FROM submissions
+       WHERE id = $1 AND access_token = $2`,
+      [id, token]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(403).json({ error: 'Invalid token or submission not found.' });
+    }
+
+    const row = result.rows[0];
+    res.json({
+      id: row.id,
+      processId: row.process_id,
+      formId: row.form_id,
+      formVersion: row.form_version,
+      operatorId: row.operator_id,
+      status: row.status,
+      submittedAt: row.submitted_at,
+      formData: typeof row.form_data === 'string' ? JSON.parse(row.form_data) : row.form_data,
+      mediaUrls: typeof row.media_urls === 'string' ? JSON.parse(row.media_urls) : (row.media_urls || []),
+      supervisorSignoff: typeof row.supervisor_signoff === 'string' ? JSON.parse(row.supervisor_signoff) : row.supervisor_signoff,
+      canEdit: row.supervisor_signoff === null
+    });
+  } catch (err) {
+    console.error('view submission error:', err);
+    res.status(500).json({ error: 'Failed to fetch submission record.' });
+  }
+});
+
 // POST /api/submissions - Save a completed form submission
 app.post('/api/submissions', async (req, res) => {
   try {
@@ -2453,10 +2544,12 @@ app.post('/api/submissions', async (req, res) => {
       id = await generateDailySequentialSubmissionId(dbPool);
     }
 
+    const accessToken = generateAccessToken();
+
     await dbPool.query(`
       INSERT INTO submissions (
-        id, process_id, form_id, form_version, operator_id, status, form_data, media_urls
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        id, process_id, form_id, form_version, operator_id, status, form_data, media_urls, access_token
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
     `, [
       id,
       processId,
@@ -2465,10 +2558,11 @@ app.post('/api/submissions', async (req, res) => {
       operatorId,
       status,
       JSON.stringify(formData),
-      JSON.stringify(mediaUrls || [])
+      JSON.stringify(mediaUrls || []),
+      accessToken
     ]);
 
-    res.json({ success: true, id });
+    res.json({ success: true, id, accessToken });
   } catch (err) {
     console.error('Error saving submission:', err);
     res.status(500).json({ error: 'Failed to save submission record.' });
@@ -2482,9 +2576,40 @@ app.put('/api/submissions/:id', async (req, res) => {
       return res.status(503).json({ error: 'Database connection not available.' });
     }
     const { id } = req.params;
-    const { processId, formId, formVersion, operatorId, status, formData, mediaUrls } = req.body;
+    const { processId, formId, formVersion, operatorId, status, formData, mediaUrls, accessToken } = req.body;
     if (!processId || !formId || !operatorId || !status || !formData) {
       return res.status(400).json({ error: 'Missing required submission fields.' });
+    }
+
+    // Check if request is authenticated as admin / supervisor via JWT
+    let isAdminRequest = false;
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        if (decoded) isAdminRequest = true;
+      } catch (e) {
+        // invalid jwt
+      }
+    }
+
+    // If not authenticated admin, guest must have valid access_token and submission must NOT be signed off
+    if (!isAdminRequest) {
+      const tokenToCheck = accessToken || req.query.token;
+      if (!tokenToCheck) {
+        return res.status(403).json({ error: 'Access token required to amend submission.' });
+      }
+      const check = await dbPool.query(
+        `SELECT supervisor_signoff FROM submissions WHERE id = $1 AND access_token = $2`,
+        [id, tokenToCheck]
+      );
+      if (check.rows.length === 0) {
+        return res.status(403).json({ error: 'Invalid access token or submission not found.' });
+      }
+      if (check.rows[0].supervisor_signoff !== null) {
+        return res.status(409).json({ error: 'Submission has already been signed off and cannot be edited.' });
+      }
     }
 
     const result = await dbPool.query(`
@@ -2495,7 +2620,8 @@ app.put('/api/submissions/:id', async (req, res) => {
           operator_id = $4,
           status = $5,
           form_data = $6,
-          media_urls = $7
+          media_urls = $7,
+          submitted_at = CURRENT_TIMESTAMP
       WHERE id = $8
     `, [
       processId,
