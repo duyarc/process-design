@@ -16,6 +16,7 @@ import { getInfoGridTemplateColumns, snap2ColWidth, snap3ColWidths } from '../ut
 import { applyTextFormat, handleFormatKeyDown } from '../utils/textFormatter';
 import ConfirmModal from './common/ConfirmModal';
 import PrintReport from './print/PrintReport';
+import { useAuth } from '../context/AuthContext';
 import {
   FileText,
   Grid,
@@ -601,6 +602,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
   onSave,
   onClose
 }) => {
+  const { currentUser } = useAuth();
   const [template, setTemplate] = useState<ReportTemplateISO>({
     reportId: initialReportId || (initialFormId ? `RP-${initialFormId}` : 'RP-NEW'),
     reportTitle: 'BÁO CÁO ĐÁNH GIÁ CHẤT LƯỢNG',
@@ -976,21 +978,30 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
     }
 
     const publishDate = effectiveDate || new Date().toISOString().split('T')[0];
+    const cleanNewVer = template.version.replace(/\s*\([^)]*\)/g, '').trim();
     const newEntry: ReportRevisionEntry = {
-      version: template.version,
+      version: cleanNewVer,
       date: publishDate,
-      author: 'Admin',
+      author: currentUser?.full_name || currentUser?.username || 'Admin',
       change: activeSummary,
       status: 'ACTIVE',
       layoutBlocks: JSON.parse(JSON.stringify(template.layoutBlocks))
     };
 
-    const updatedHistory = [newEntry, ...template.revisionHistory];
+    const olderEntries = (template.revisionHistory || [])
+      .filter(h => {
+        const cleanH = (h.version || '').replace(/\s*\([^)]*\)/g, '').trim();
+        return cleanH !== cleanNewVer && h.status !== 'DRAFT';
+      })
+      .map(h => ({ ...h, status: 'RETIRED' as const }));
+
+    const updatedHistory = [newEntry, ...olderEntries];
 
     try {
       setSaving(true);
       const payload: ReportTemplateISO = {
         ...template,
+        version: cleanNewVer,
         status: 'ACTIVE',
         effectiveDate: publishDate,
         revisionHistory: updatedHistory
@@ -3000,9 +3011,14 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', maxHeight: '350px', overflowY: 'auto', paddingRight: '4px' }}>
                     {template.revisionHistory.map((h, i) => {
                       const hasLayout = !!(h.layoutBlocks && h.layoutBlocks.length > 0);
-                      const isCurrentActive = h.version === template.version && template.status === 'ACTIVE';
-                      const isCurrentDraft = h.version === template.version && template.status === 'DRAFT';
-                      const itemStatus = isCurrentActive ? 'ACTIVE' : (isCurrentDraft || h.status === 'DRAFT' ? 'DRAFT' : (h.status || 'RETIRED'));
+                      const cleanTemplateVer = template.version.replace(/\s*\([^)]*\)/g, '').trim();
+                      const isCurrentActive = h.version === cleanTemplateVer && template.status === 'ACTIVE';
+                      const isCurrentDraft = h.version === cleanTemplateVer && template.status === 'DRAFT';
+                      const itemStatus = isCurrentActive
+                        ? 'ACTIVE'
+                        : (h.status === 'ACTIVE'
+                            ? 'ACTIVE'
+                            : (isCurrentDraft || h.status === 'DRAFT' ? 'DRAFT' : 'RETIRED'));
                       
                       const statusColor = 
                         itemStatus === 'ACTIVE' ? { bg: '#d1fae5', text: '#065f46', border: '#6ee7b7', label: 'Active' } :

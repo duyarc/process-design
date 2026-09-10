@@ -675,18 +675,8 @@ app.get('/api/forms/*formId/history', async (req, res) => {
     }
 
     const mergedHistoryMap = new Map();
-    allFormRows.forEach(row => {
-      const cleanVer = row.version ? row.version.replace(/\s*\([^)]*\)/g, '').trim() : 'v0.1';
-      mergedHistoryMap.set(cleanVer, {
-        version: cleanVer,
-        date: row.updated_at ? new Date(row.updated_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-        author: 'System Generated',
-        change: row.status === 'ACTIVE' ? 'Published version' : '',
-        layoutBlocks: typeof row.layout_blocks === 'string' ? JSON.parse(row.layout_blocks) : (row.layout_blocks || []),
-        status: row.status,
-        rawVersion: row.version
-      });
-    });
+
+    // 1. First, parse explicit revision_history from all rows (highest fidelity authored entries)
     allFormRows.forEach(row => {
       if (row.revision_history) {
         let historyArray = [];
@@ -700,21 +690,40 @@ app.get('/api/forms/*formId/history', async (req, res) => {
               const cleanVer = entry.version.replace(/\s*\([^)]*\)/g, '').trim();
               const existing = mergedHistoryMap.get(cleanVer);
               const hasLayout = entry.layoutBlocks && entry.layoutBlocks.length > 0;
-              const existingHasLayout = existing && existing.layoutBlocks && existing.layoutBlocks.length > 0;
-              if (!existing || (hasLayout && !existingHasLayout)) {
+              const isBetterAuthor = existing && existing.author === 'System Generated' && entry.author && entry.author !== 'System Generated';
+
+              if (!existing || (!existing.layoutBlocks?.length && hasLayout) || isBetterAuthor) {
                 mergedHistoryMap.set(cleanVer, {
                   version: cleanVer,
-                  date: entry.date || new Date().toISOString().split('T')[0],
-                  author: entry.author || 'QA Administrator',
+                  date: entry.date || (row.updated_at ? new Date(row.updated_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]),
+                  author: entry.author || 'Admin',
                   change: entry.change || 'Published version',
                   layoutBlocks: entry.layoutBlocks || [],
-                  status: entry.status || 'RETIRED',
+                  status: entry.status || (row.status === 'ACTIVE' && cleanVer === (row.version || '').replace(/\s*\([^)]*\)/g, '').trim() ? 'ACTIVE' : 'RETIRED'),
                   rawVersion: entry.version
                 });
               }
             }
           });
         }
+      }
+    });
+
+    // 2. Fallback: For legacy rows in forms table that don't have explicit revision_history entries,
+    // only include published rows (ACTIVE, RETIRED, ARCHIVED). NEVER synthesize history from DRAFT rows!
+    allFormRows.forEach(row => {
+      if (row.status === 'DRAFT') return; // Strictly skip un-published drafts
+      const cleanVer = row.version ? row.version.replace(/\s*\([^)]*\)/g, '').trim() : 'v0.1';
+      if (!mergedHistoryMap.has(cleanVer)) {
+        mergedHistoryMap.set(cleanVer, {
+          version: cleanVer,
+          date: row.updated_at ? new Date(row.updated_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          author: 'System Generated',
+          change: row.status === 'ACTIVE' ? 'Published version' : '',
+          layoutBlocks: typeof row.layout_blocks === 'string' ? JSON.parse(row.layout_blocks) : (row.layout_blocks || []),
+          status: row.status,
+          rawVersion: row.version
+        });
       }
     });
     const sortedHistory = Array.from(mergedHistoryMap.values()).sort((a, b) => {

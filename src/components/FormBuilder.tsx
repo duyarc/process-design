@@ -42,6 +42,7 @@ import {
   Zap
 } from 'lucide-react';
 import PrintBlankForm from './print/PrintBlankForm';
+import { useAuth } from '../context/AuthContext';
 
 interface FormBuilderProps {
   formName: string;
@@ -999,6 +1000,7 @@ function InCanvasTitleHeader({
 }
 
 export default function FormBuilder({ formName, initialData, onSave, onClose, linkedProcessId, onUnlinkFromProcess }: FormBuilderProps) {
+  const { currentUser } = useAuth();
   // 1. Core Layout State
   const [formId, setFormId] = useState(initialData?.formId || `FM-${formName.toUpperCase().replace(/[^A-Z0-9]/g, '-')}-001`);
   const [formTitle, setFormTitle] = useState(initialData?.formTitle || formName);
@@ -2205,14 +2207,22 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     const newActiveVersion = `v${major}.${minor}`;
     
     const newHistoryEntry: FormRevisionEntry = {
-      version: `v${major}.${minor}`,
+      version: newActiveVersion,
       date: approveDate,
-      author: 'QA Administrator',
-      change: changeSummary,
+      author: currentUser?.full_name || currentUser?.username || 'Admin',
+      change: activeSummary,
+      status: 'ACTIVE',
       layoutBlocks: JSON.parse(JSON.stringify(layoutBlocks))
     };
 
-    const updatedHistory = [newHistoryEntry, ...revisionHistory];
+    const olderEntries = (revisionHistory || [])
+      .filter(h => {
+        const cleanH = (h.version || '').replace(/\s*\([^)]*\)/g, '').trim();
+        return cleanH !== newActiveVersion && h.status !== 'DRAFT';
+      })
+      .map(h => ({ ...h, status: 'RETIRED' as const }));
+
+    const updatedHistory = [newHistoryEntry, ...olderEntries];
     
     setVersion(newActiveVersion);
     setStatus('ACTIVE');
@@ -8154,7 +8164,11 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                     const hasLayout = !!(h.layoutBlocks && h.layoutBlocks.length > 0);
                     const isCurrentActive = h.version === `v${major}.${minor}` && status === 'ACTIVE';
                     const isCurrentDraft = h.version === `v${major}.${minor}` && status === 'DRAFT';
-                    const itemStatus = isCurrentActive ? 'ACTIVE' : (isCurrentDraft || h.status === 'DRAFT' ? 'DRAFT' : (h.status || 'RETIRED'));
+                    const itemStatus = isCurrentActive
+                      ? 'ACTIVE'
+                      : (h.status === 'ACTIVE'
+                          ? 'ACTIVE'
+                          : (isCurrentDraft || h.status === 'DRAFT' ? 'DRAFT' : 'RETIRED'));
                     
                     // Status colors matching ProcessEditor
                     const statusColor = 

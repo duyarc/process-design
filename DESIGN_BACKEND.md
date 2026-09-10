@@ -9,7 +9,7 @@
 | **Module Name** | Backend & Persistence |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-09-10) — Sections 2, 8 (Submissions amendment authorization via JWT ignoreExpiration & s.access_token query mapping, 90d token expiry) |
+| **Verified At Commit** | (2026-09-10) — Sections 2, 8 (History endpoint draft exclusion & revision deduplication in GET /api/forms/*formId/history, Submissions auth & token mapping) |
 
 ### Quick File Index
 
@@ -292,7 +292,6 @@ Architectural changes only — schema, endpoints, invariants. UI polish lives in
 
 | Date | Commit | Change |
 |---|---|---|
-| 2026-07-20 | `5bea009` | **Critical fix + invariant:** `isLogoKeyUsed()` rewritten to query `forms.layout_blocks` instead of `processes.workflowFormsData`. The old version always returned `false`, deleting every logo from R2 on the next process save. See Section 4. |
 | 2026-07-09 | `c9a5696` | Fixed Supabase connection leaks and Vercel serverless cold-start timeouts. |
 | 2026-07-09 | `11902a5` | **Schema change:** dropped the `online_url` column from `process_forms` along with the online form link feature. |
 | 2026-07-27 | `9a555cb` | **New endpoints:** `POST /api/auth/check-email` and `POST /api/auth/register` for email-first progressive disclosure login; `/api/auth/login` now matches either email or username. |
@@ -307,3 +306,4 @@ Architectural changes only — schema, endpoints, invariants. UI polish lives in
 | 2026-09-09 | `CURRENT` | **Public Submission Review & Amendment API:** Added `access_token` column to `submissions` table; added `POST /api/submissions/batch-lookup` for device ownership verification; added `GET /api/submissions/view/:id?token=TOKEN` for public view; updated `PUT /api/submissions/:id` with token & sign-off validation. |
 | 2026-09-09 | `CURRENT` | **Supabase Transaction Pooler (Port 6543):** Auto-normalized Supabase connection string port from 5432 (Session mode) to 6543 (Transaction mode) and set pool limits (`max: 10`, `idleTimeoutMillis: 5000`) in `server.cjs` to eliminate serverless `(EMAXCONNSESSION)` errors. |
 | 2026-09-10 | `CURRENT` | **Submissions Amendment Auth & Access Token Exposure:** (1) Added `s.access_token` to `GET /api/submissions` SELECT and response mapping. (2) Enhanced `PUT /api/submissions/:id` JWT check with `{ ignoreExpiration: true }` and fallback secret to support supervisor/admin session longevity. (3) Extended JWT lifetime from `7d` to `90d` on login/registration. |
+| 2026-09-10 | `CURRENT` | **Form Revision History Draft Exclusion & Deduplication:** Updated `GET /api/forms/*formId/history` in `server.cjs` to strictly ignore `status === 'DRAFT'` database rows and deduplicate revision entries by clean version number, returning only authentic published active/retired revisions. |
