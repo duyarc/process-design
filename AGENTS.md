@@ -214,6 +214,8 @@ git add <file cụ thể>; git commit -m "<message>"; git push origin main; git 
 - **Mục tiêu:** Chuẩn bị sẵn sàng 100% các khối code trước khi can thiệp vào mã nguồn thực tế.
 - **Hành động bắt buộc:** Sau khi Người dùng duyệt `Proceed`, **TUYỆT ĐỐI KHÔNG vội vàng sửa code ngay**.
 - Agent phải thực hiện:
+  0. **Đọc `SESSION_LOG.md`**, mục `Bài học Tích lũy` — đối chiếu với danh sách
+     file cần sửa để áp dụng biện pháp phòng ngừa tương ứng.
   1. Đọc chính xác các vùng mã nguồn liên quan trong codebase thực tế (bằng `view_file` / search targeted).
   2. Soạn thảo chi tiết các đoạn code thay thế hoàn chỉnh (Exact Code Blocks / Replacement Snippets): hook, import, logic xử lý, script migration DB (nếu có).
   3. **Cập nhật ngay các khối code chi tiết này vào `implementation_plan.md`**.
@@ -224,8 +226,134 @@ git add <file cụ thể>; git commit -m "<message>"; git push origin main; git 
 - **Trình tự thực thi:**
   1. Tuần tự chỉnh sửa tất cả các file mã nguồn theo đúng các khối code đã định nghĩa trong `implementation_plan.md` (bằng `replace_file_content` hoặc `write_to_file`).
   2. Chạy migration / script cập nhật database (nếu có).
-  3. Chạy `npm run build` để kiểm chứng toàn bộ TypeScript và đóng gói Vite.
+  3. Sau mỗi file `.tsx`/`.ts`, chạy `npx tsc --noEmit` (Mục 12.3). Chạy `npm run build` ở bước cuối để xác nhận Vite bundle.
   4. Cập nhật tài liệu thiết kế module tương ứng (`DESIGN_*.md`) và tổng kết vào `walkthrough.md`.
   5. Thực hiện đúng **1 lần commit & push nguyên tử duy nhất** theo Mục 10.
+  6. Chạy `scripts/measure_session.py` để đo KPIs tự động, ghi Performance Scorecard vào `walkthrough.md`, sau đó phân tích lỗi và cập nhật `SESSION_LOG.md` theo Mục 13.2.
 
+---
+
+## 12. Quy tắc An toàn khi Sửa mã (Safe Code Patching)
+
+Các quy tắc dưới đây rút ra từ post-mortem phiên thực thi trước đó, nhằm phòng ngừa
+các lỗi lặp lại khi sửa code trong file lớn (monolith).
+
+### 12.1 Đọc trước khi viết replacement
+
+Trước khi viết bất kỳ `TargetContent` nào cho `replace_file_content`, agent **PHẢI**
+`view_file` đúng vùng code cần patch và copy-paste chính xác target string từ output.
+**Cấm** viết target string từ trí nhớ hoặc từ blueprint — whitespace và indentation
+phải khớp 100%.
+
+### 12.2 Ưu tiên `replace_file_content` gốc
+
+- Mặc định luôn dùng tool `replace_file_content` do platform cung cấp.
+- **Chỉ** dùng Python patch script khi `replace_file_content` thất bại (ví dụ: target
+  string trùng lặp nhiều nơi, hoặc cần regex).
+- Khi buộc dùng Python, **ưu tiên** `content.replace(exact_old, exact_new, 1)`.
+  **Tránh** index slicing `content[:start] + new + content[end:]` vì dễ sai biên,
+  gây duplicate closing tags.
+
+### 12.3 Kiểm tra TypeScript sau mỗi file
+
+Sau khi patch xong **mỗi file `.tsx` / `.ts`**, chạy ngay:
+
+```powershell
+npx tsc --noEmit
+```
+
+Nếu có lỗi, sửa ngay file đó trước khi chuyển sang file tiếp theo.
+**Cấm** gom tất cả rồi chạy build cuối cùng — lỗi tích lũy gây khó debug.
+
+### 12.4 Không chạy Python inline chứa JSX
+
+Khi nội dung Python chứa ký tự `()`, `=>`, `{}`, `<>` (thường gặp trong JSX):
+- **Cấm** `python -c "..."` — PowerShell sẽ parse sai.
+- **Bắt buộc** ghi ra file `.py` rồi chạy `python path/to/script.py`.
+
+### 12.5 Assertion cấu trúc sau patch
+
+Khi dùng Python patch script, sau khi ghi file, đếm các marker cấu trúc quan trọng
+(ví dụ `</div>`, `});`, `})()`) trước và sau patch. Nếu count thay đổi bất thường
+(tăng lên), dừng lại và kiểm tra duplicate.
+
+---
+
+## 13. Vòng lặp Tự học Liên tục (Continuous Improvement Loop)
+
+Mục đích: Agent tự cải thiện performance qua từng phiên chạy bằng cách ghi nhận lỗi,
+rút bài học, và đo lường xu hướng cải thiện. File [`SESSION_LOG.md`](SESSION_LOG.md)
+ở repo root là bộ nhớ phiên (episodic memory) duy nhất.
+
+### 13.1 Trước khi thực thi (PLAN — Đọc bài học cũ)
+
+Ở Giai đoạn 2 của Mục 11 (sau khi nhận Proceed), trước khi đọc code:
+1. **Đọc `SESSION_LOG.md`**, mục `## Bài học Tích lũy` — đây là danh sách
+   các lỗi đã gặp kèm biện pháp phòng ngừa.
+2. Đối chiếu bài học với file cần sửa: nếu file xuất hiện trong lịch sử lỗi,
+   áp dụng biện pháp phòng ngừa tương ứng.
+
+### 13.2 Sau khi thực thi (CHECK + ACT — Đo và ghi)
+
+Sau khi git push thành công, agent **PHẢI** thực hiện 2 việc:
+
+#### A. Đo KPIs tự động bằng script
+
+Chạy `scripts/measure_session.py` với conversation ID hiện tại:
+
+```powershell
+python scripts/measure_session.py <conversation-id> [--start-step N] [--end-step M]
+```
+
+Script sẽ đọc transcript và xuất ra Performance Scorecard.
+Paste kết quả vào `walkthrough.md`.
+
+#### B. Agent phân tích & ghi bài học (reasoning task)
+
+Dựa trên scorecard từ script + quan sát trong session, agent thực hiện:
+1. Phân loại lỗi phát sinh theo Error Taxonomy (Mục 13.3).
+2. Xác định lỗi nào là **mới** vs **lặp lại** (so với `SESSION_LOG.md`).
+3. Đề xuất biện pháp phòng ngừa cho lỗi mới.
+4. Cập nhật `SESSION_LOG.md`: thêm entry mới vào `Nhật ký Phiên`,
+   bổ sung lỗi mới vào `Bài học Tích lũy`.
+
+### 13.3 Phân loại lỗi (Error Taxonomy)
+
+Mỗi lỗi ghi vào `SESSION_LOG.md` phải được phân loại theo 1 trong 5 nhóm:
+
+| Mã | Nhóm | Ví dụ |
+|---|---|---|
+| `CTX` | Context / Đọc sai ngữ cảnh | Viết target string từ trí nhớ, whitespace sai |
+| `TOOL` | Dùng tool sai cách | Python inline trong PowerShell, index slicing sai biên |
+| `LOGIC` | Lỗi logic code | Thiếu null check, sai điều kiện, import sai |
+| `SCOPE` | Thiếu sót phạm vi | Quên patch 1 file, quên update 1 context |
+| `ENV` | Môi trường / Hạ tầng | Service unavailable, network timeout, disk lock |
+
+### 13.4 Quy tắc tiến hóa (Rule Evolution)
+
+Khi cùng một loại lỗi (`CTX`, `TOOL`, ...) xuất hiện **≥ 2 lần** trong
+`SESSION_LOG.md`, agent **PHẢI** đề xuất thêm quy tắc mới vào Section 12
+hoặc Section phù hợp khác trong `AGENTS.md`, để biến bài học thành quy tắc
+bắt buộc — không còn phụ thuộc vào việc agent có đọc SESSION_LOG hay không.
+
+### 13.5 Giới hạn kích thước
+
+- `## Bài học Tích lũy`: Tối đa **20 entries**. Khi vượt, gộp các entries
+  cùng nhóm thành 1 entry tổng hợp, hoặc chuyển thành quy tắc trong `AGENTS.md`
+  rồi xoá khỏi đây.
+- `## Nhật ký Phiên`: Tối đa **10 entries** gần nhất. Xoá entry cũ nhất khi vượt.
+
+### 13.6 Nguyên tắc Script-First
+
+Mọi tác vụ lặp lại, xác định, có đầu vào/đầu ra rõ ràng **PHẢI** được script hóa
+để giảm workload LLM và ổn định kết quả đầu ra. LLM chỉ tập trung vào tác vụ
+không thể thực hiện bằng script thông thường: phân tích nguyên nhân gốc, đánh giá
+thiết kế, đề xuất giải pháp sáng tạo, reasoning trên ngữ cảnh phức tạp.
+
+Áp dụng cho:
+- **Đo performance**: dùng `scripts/measure_session.py` (không đếm thủ công).
+- **Migration database**: viết script SQL/JS (không chạy từng lệnh thủ công).
+- **Batch file edits**: khi cần sửa cùng pattern ở nhiều file, viết script quét
+  và thay thế (không lặp lại `replace_file_content` cho từng file).
+- **Kiểm tra cấu trúc**: viết assertion script đếm marker (Mục 12.5).
 
