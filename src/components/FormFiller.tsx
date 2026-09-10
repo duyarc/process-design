@@ -76,7 +76,8 @@ import {
   Trash2,
   Printer,
   Star,
-  Copy
+  Copy,
+  Save
 } from 'lucide-react';
 
 const parseSubtableValue = (val: string): Record<string, string>[] => {
@@ -3080,7 +3081,8 @@ function FormFillerInner({
                 disabled={submitting}
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', padding: '0.25rem 0.75rem', whiteSpace: 'nowrap' }}
               >
-                {submitting ? 'Đang lưu...' : '💾 Lưu thay đổi'}
+                <Save size={13} />
+                <span>{submitting ? 'Đang lưu...' : 'Lưu thay đổi'}</span>
               </button>
             ) : (
               <>
@@ -3550,11 +3552,14 @@ function FormFillerInner({
               className="btn btn-primary" 
               onClick={handleSubmitForm}
               disabled={submitting}
-              style={{ padding: '0.5rem 2rem' }}
+              style={{ padding: '0.5rem 2rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
             >
-              {submitting 
-                ? (isEditModeActive ? 'Đang lưu...' : 'Submitting...') 
-                : (isEditModeActive ? '💾 Lưu thay đổi' : 'Submit')}
+              {isEditModeActive && <Save size={15} />}
+              <span>
+                {submitting 
+                  ? (isEditModeActive ? 'Đang lưu...' : 'Submitting...') 
+                  : (isEditModeActive ? 'Lưu thay đổi' : 'Submit')}
+              </span>
             </button>
           </div>
         </div>
