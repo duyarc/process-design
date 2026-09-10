@@ -9,7 +9,7 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-09-10) — Sections 6, 7, 8 (handlePublish author binding to currentUser, ACTIVE status assignment, draft/version deduplication, and database cleanup) |
+| **Verified At Commit** | (2026-09-10) — Custom "Khác" Option in FormBuilder (Canvas pill, Right Inspector toggle switch, options ordering invariant) & PrintBlankForm verified against source |
 
 > **⚠️ Architectural note:** FormBuilder has no awareness of which process it belongs to. The `formName` prop is always identical to `formId`. See Section 6.1 and the Technical Debt table.
 
@@ -22,7 +22,7 @@
 | [`src/utils/pdf/backgroundGenerator.ts`](src/utils/pdf/backgroundGenerator.ts) | Generates 300 DPI A4 background PDF via `html2canvas` & `jsPDF` |
 | [`src/utils/pdf/acroFormOverlay.ts`](src/utils/pdf/acroFormOverlay.ts) | Overlays interactive AcroForm fields onto PDF pages via `pdf-lib` |
 | [`src/utils/pdf/downloadHelper.ts`](src/utils/pdf/downloadHelper.ts) | Browser 5S PDF download helper |
-| [`src/types.ts`](src/types.ts) | Shared types: `FormTemplateISO`, `LayoutBlockISO`, `FormFieldISO`, `FormRevisionEntry`, `MatrixConfigISO`, `TableColumnConfig`, `BlockVisibilityCondition` (**owning doc** for these types) |
+| [`src/types.ts`](src/types.ts) | Shared types: `FormTemplateISO`, `LayoutBlockISO`, `FormFieldISO`, `FormRevisionEntry`, `MatrixConfigISO`, `TableColumnConfig`, `BlockVisibilityCondition`, `RadioOption` (`isOther?`) (**owning doc** for these types) |
 
 > **Update rule:** Whenever any of the above files is modified in a session, update the
 > "Verified At Commit" field and add an entry to the [Change Log](#8-change-log) at the
@@ -486,7 +486,6 @@ full diff of any entry below.
 
 | Date | Change |
 |---|---|
-| 2026-08-25 | **Typography Scale, Hierarchy & 1px Border Standardization:** (1) Standardized table column headers (`<th>`) to bold `fontWeight: 700` (`var(--pw-weight-heavy)`), `fontSize: '0.82rem'`, and high-contrast color `#0f172a` / `#000000` on clean `#f1f5f9` across Canvas, Filler, Reader, and Print templates. (2) Normalized group separator rows to subtle `#f8fafc` tint, `fontWeight: 600`, `fontSize: '0.80rem'`, `#1e293b` / `#000000`, with `renderFormattedText`. (3) Standardized all table borders from `1.5px` to crisp `1px solid #000000` (print/PDF) and `1px solid #cbd5e1` (screen). |
 | 2026-08-25 | **Context-Aware Checkbox/Radio Layout & Space Optimization:** (1) Refactored `getAutoCheckboxLayoutMode(field, blockColumns)` in `formUtils.ts` to dynamically calculate row width and column density. (2) Added `hasLongOptions(field)` helper. (3) In `PrintBlankForm.tsx` & `PrintFilledForm.tsx`, enabled `auto 1fr` grid for 1-column layouts and compact horizontal options rendering in `OPTION_C` for short options, reducing vertical space usage from 3 lines to 1-2 lines. |
 | 2026-08-25 | **Form Engine Typography Token System & Unified 0.82rem Font Sizing:** (1) Added `--pw-font-body: 0.82rem` and size token hierarchy in `print.css`. (2) Unified all body text across `INFO_GRID` (labels, questions) and `TABLE` (row cells, static text, open inputs, Likert headers) to 0.82rem. (3) Added `renderFormattedText` support inside table static cells for bold/italic/underline formatting. |
 | 2026-08-25 | **Hide Table Header Option & Single-Line Settings Bar:** (1) Added `hideHeader?: boolean` to `LayoutBlockISO`. (2) In `FormBuilder.tsx`, placed `Border` and `Header` on a single horizontal row with an animated On/Off pill toggle switch. (3) Dims `<thead>` (`opacity: 0.45`) on Canvas and omits `<thead>` on Print Blank/Filled/Record, FormFiller, ProcessReader, and PDF export while preserving `<colgroup>`. |
@@ -501,3 +500,4 @@ full diff of any entry below.
 | 2026-09-04 | **Streamlined Right Inspector & Canvas Redundancy Elimination:** (1) Streamlined FormBuilder Right Inspector by removing duplicate Title Format pills `[ H1 | H2 | Body | None ]`, Table Border pills `[ ⊞ | ☰ | ⬚ ]`, Table Header toggle `[ 🗖 ]`, and title input that 100% duplicate Canvas `InCanvasTitleHeader`. (2) Replaced static `Section Settings` with dynamic contextual headers (`Table Properties`, `Info Grid Properties`, etc.). (3) Promoted deep block settings (`Cấu hình Cột`, `Columns`, `InfoGridSteppedSplitter`) directly to top-1 position. (4) Preserved dedicated `Tên Biểu mẫu` in `TITLE` block. |
 | 2026-09-04 | **In-Canvas Title Header Greyout Input & ExtraControls Preservation:** (1) In `InCanvasTitleHeader`, replaced static notice text with an inline editable greyed-out `<input>` for `NONE` title format (placeholder `(Tiêu đề đang ẩn)`, opacity 0.6, focus highlight), matching Right Inspector Section Settings behavior. (2) Replaced `renderStylePill()` with `renderControlGroup()` at non-NONE branch, preserving `extraControls` (border styles & header toggle) when switching between styles. |
 | 2026-09-10 | **Form Publish Revision Deduplication & Author Binding:** (1) In `FormBuilder.tsx`, bound revision author to `currentUser` (`useAuth`), set `status: 'ACTIVE'` on newly published entry, and filtered out matching clean versions and draft entries (`status !== 'DRAFT'`) while retiring older entries. (2) Updated `itemStatus` in Revision History list render to prioritize `h.status === 'ACTIVE'` even during subsequent drafting. (3) Ran `scripts/cleanupDuplicateRevisions.cjs` to purge polluted draft/duplicate revisions across 35 form records in PostgreSQL. |
+| 2026-09-10 | **Custom "Khác" (Other) Option Support:** (1) Extended `RadioOption` in `types.ts` with `isOther?: boolean` (`value: '__other__'`). (2) Enforced single-instance invariant pinned at the end with customizable label. (3) Added system toggle switch `Mục "Khác" [🔘]` in Right Inspector and `[ ➕ Khác... ]` dashed pill in Canvas options editor. (4) Updated `PrintBlankForm.tsx` to render dotted handwriting line for physical shop-floor use. |

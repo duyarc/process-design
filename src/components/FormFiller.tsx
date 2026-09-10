@@ -59,7 +59,10 @@ import {
   getCheckboxGridTemplate, 
   isSeamlessTableBlock, 
   getInfoGridTemplateColumns,
-  groupBlocksIntoSections
+  groupBlocksIntoSections,
+  isOtherValue,
+  extractOtherText,
+  encodeOtherValue
 } from '../utils/formUtils';
 import { renderFormattedText } from '../utils/textFormatter';
 import { useAuth } from '../context/AuthContext';
@@ -958,7 +961,7 @@ function FormFillerInner({
           const selectedVals = val ? val.split(',').filter(Boolean) : [];
           if (selectedVals.length > 0) {
             const hasFail = selectedVals.some(v => {
-              const opt = field.options?.find((o: any) => o.value === v);
+              const opt = field.options?.find((o: any) => o.value === v || (isOtherValue(v) && (o.isOther || o.value === '__other__')));
               return opt && !opt.isPass;
             });
             if (hasFail) {
@@ -967,7 +970,7 @@ function FormFillerInner({
             }
           }
         } else {
-          const selectedOpt = field.options?.find((o: any) => o.value === val || o.label === val);
+          const selectedOpt = field.options?.find((o: any) => o.value === val || o.label === val || (isOtherValue(val) && (o.isOther || o.value === '__other__')));
           if (selectedOpt && selectedOpt.isPass === false) {
             fieldStatus = 'FAIL';
             isOverallPass = false;
@@ -1562,43 +1565,97 @@ function FormFillerInner({
                               paddingLeft: isOptionC ? '1rem' : '0'
                             }}>
                               {(field.options ?? [{ label: 'Có', value: 'YES' }, { label: 'Không', value: 'NO' }]).map((opt: any) => {
+                                const isOtherOpt = opt.isOther || opt.value === '__other__';
                                 const currentValues = value ? value.split(',').filter(Boolean) : [];
-                                const isChecked = currentValues.includes(opt.value || opt.label);
+                                const isChecked = currentValues.some((v: string) => v === (opt.value || opt.label) || (isOtherOpt && isOtherValue(v)));
+                                const otherText = isOtherOpt ? extractOtherText(currentValues.find((v: string) => isOtherValue(v))) : '';
                                 return (
-                                  <label key={opt.value} style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', fontSize: '0.8rem', cursor: 'pointer', margin: 0 }}>
-                                    <input 
-                                      type="checkbox" 
-                                      checked={isChecked}
-                                      style={{ marginTop: '2px', flexShrink: 0 }}
-                                      onChange={(e) => {
-                                        const val = opt.value || opt.label;
-                                        let nextValues;
-                                        if (e.target.checked) {
-                                          nextValues = [...currentValues, val];
-                                        } else {
-                                          nextValues = currentValues.filter((v: string) => v !== val);
-                                        }
-                                        setFormValues(prev => ({ ...prev, [field.id]: nextValues.join(',') }));
-                                      }} 
-                                    />
-                                    <span style={{ lineHeight: '1.3' }}>{opt.label}</span>
-                                  </label>
+                                  <div key={opt.value} style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                                    <label style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', fontSize: '0.8rem', cursor: effectiveReadOnly ? 'default' : 'pointer', margin: 0 }}>
+                                      <input 
+                                        type="checkbox" 
+                                        checked={isChecked}
+                                        disabled={effectiveReadOnly}
+                                        style={{ marginTop: '2px', flexShrink: 0 }}
+                                        onChange={(e) => {
+                                          let nextValues;
+                                          if (e.target.checked) {
+                                            const entryValue = isOtherOpt ? encodeOtherValue(otherText) : (opt.value || opt.label);
+                                            nextValues = [...currentValues.filter((v: string) => !(isOtherOpt && isOtherValue(v))), entryValue];
+                                          } else {
+                                            nextValues = currentValues.filter((v: string) => v !== (opt.value || opt.label) && !(isOtherOpt && isOtherValue(v)));
+                                          }
+                                          setFormValues(prev => ({ ...prev, [field.id]: nextValues.join(',') }));
+                                        }} 
+                                      />
+                                      <span style={{ lineHeight: '1.3' }}>{opt.label}</span>
+                                    </label>
+                                    {isOtherOpt && isChecked && (
+                                      <div style={{ paddingLeft: '1.25rem', marginTop: '2px' }}>
+                                        <input
+                                          type="text"
+                                          disabled={effectiveReadOnly}
+                                          value={otherText}
+                                          placeholder="Vui lòng ghi rõ..."
+                                          onChange={(e) => {
+                                            const newText = e.target.value;
+                                            const updatedOtherVal = encodeOtherValue(newText);
+                                            const nextValues = currentValues.filter((v: string) => !isOtherValue(v));
+                                            nextValues.push(updatedOtherVal);
+                                            setFormValues(prev => ({ ...prev, [field.id]: nextValues.join(',') }));
+                                          }}
+                                          style={{ width: '100%', maxWidth: '240px', padding: '0.25rem 0.45rem', fontSize: '0.78rem', borderRadius: '4px', border: '1px solid var(--primary)', outline: 'none', background: '#ffffff' }}
+                                          autoFocus
+                                        />
+                                      </div>
+                                    )}
+                                  </div>
                                 );
                               })}
                             </div>
                           );
-                        })() : (field.type === 'radio' || field.type === 'select') ? (
-                          <select
-                            value={value}
-                            onChange={(e) => setFormValues(prev => ({ ...prev, [field.id]: e.target.value }))}
-                            style={inputStyle}
-                          >
-                            <option value="">-- Chọn --</option>
-                            {(field.options ?? [{ label: 'Đạt', value: 'PASS', isPass: true }, { label: 'Không Đạt', value: 'FAIL', isPass: false }]).map((opt: any) => (
-                              <option key={opt.value} value={opt.value}>{opt.label}</option>
-                            ))}
-                          </select>
-                        ) : field.type === 'photo' ? (() => {
+                        })() : (field.type === 'radio' || field.type === 'select') ? (() => {
+                          const isOtherSelected = isOtherValue(value);
+                          const selectVal = isOtherSelected ? '__other__' : value;
+                          const otherText = isOtherSelected ? extractOtherText(value) : '';
+                          return (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%' }}>
+                              <select
+                                value={selectVal}
+                                disabled={effectiveReadOnly}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  if (val === '__other__') {
+                                    setFormValues(prev => ({ ...prev, [field.id]: encodeOtherValue(otherText) }));
+                                  } else {
+                                    setFormValues(prev => ({ ...prev, [field.id]: val }));
+                                  }
+                                }}
+                                style={inputStyle}
+                              >
+                                <option value="">-- Chọn --</option>
+                                {(field.options ?? [{ label: 'Đạt', value: 'PASS', isPass: true }, { label: 'Không Đạt', value: 'FAIL', isPass: false }]).map((opt: any) => (
+                                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                ))}
+                              </select>
+                              {isOtherSelected && (
+                                <div style={{ marginTop: '2px' }}>
+                                  <input
+                                    type="text"
+                                    disabled={effectiveReadOnly}
+                                    value={otherText}
+                                    placeholder="Vui lòng ghi rõ..."
+                                    onChange={(e) => {
+                                      setFormValues(prev => ({ ...prev, [field.id]: encodeOtherValue(e.target.value) }));
+                                    }}
+                                    style={{ width: '100%', padding: '0.3rem 0.5rem', fontSize: '0.78rem', borderRadius: '4px', border: '1px solid var(--primary)', outline: 'none', background: '#ffffff' }}
+                                    autoFocus
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })() : field.type === 'photo' ? (() => {
                           const photoKeys = uploadedPhotos[field.id] || [];
                           const singleKey = photoKeys[0];
                           const isUploading = isPhotoUploading[field.id];
@@ -1804,14 +1861,14 @@ function FormFillerInner({
                       if (field.type === 'checkbox') {
                         const selectedVals = value ? value.split(',').filter(Boolean) : [];
                         const hasFail = selectedVals.some((v: string) => {
-                          const opt = field.options?.find((o: any) => o.value === v);
+                          const opt = field.options?.find((o: any) => o.value === v || (isOtherValue(v) && (o.isOther || o.value === '__other__')));
                           return opt && !opt.isPass;
                         });
                         if (hasFail) {
                           isOutOfSpec = true;
                         }
                       } else {
-                        const selectedOpt = field.options?.find((o: any) => o.value === value);
+                        const selectedOpt = field.options?.find((o: any) => o.value === value || (isOtherValue(value) && (o.isOther || o.value === '__other__')));
                         if (value !== '' && !selectedOpt?.isPass) {
                           isOutOfSpec = true;
                         }
@@ -1893,26 +1950,51 @@ function FormFillerInner({
                             ) : field.type === 'checkbox' ? (
                               <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', maxWidth: '100%' }}>
                                 {(field.options ?? [{ label: 'Đạt', value: 'PASS', isPass: true }, { label: 'Không Đạt', value: 'FAIL', isPass: false }]).map((opt: any) => {
+                                  const isOtherOpt = opt.isOther || opt.value === '__other__';
                                   const currentValues = value ? value.split(',').filter(Boolean) : [];
-                                  const isChecked = currentValues.includes(opt.value);
+                                  const isChecked = currentValues.some((v: string) => v === opt.value || (isOtherOpt && isOtherValue(v)));
+                                  const otherText = isOtherOpt ? extractOtherText(currentValues.find((v: string) => isOtherValue(v))) : '';
                                   return (
-                                    <label key={opt.value} style={{ display: 'inline-flex', alignItems: 'flex-start', gap: '0.35rem', fontSize: '0.82rem', cursor: 'pointer', wordBreak: 'break-word', maxWidth: '100%' }}>
-                                      <input 
-                                        type="checkbox" 
-                                        checked={isChecked}
-                                        style={{ marginTop: '2px', flexShrink: 0 }}
-                                        onChange={(e) => {
-                                          let nextValues;
-                                          if (e.target.checked) {
-                                            nextValues = [...currentValues, opt.value];
-                                          } else {
-                                            nextValues = currentValues.filter((v: string) => v !== opt.value);
-                                          }
-                                          setFormValues(prev => ({ ...prev, [field.id]: nextValues.join(',') }));
-                                        }}
-                                      />
-                                      <span style={{ lineHeight: '1.3' }}>{opt.label}</span>
-                                    </label>
+                                    <div key={opt.value} style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                                      <label style={{ display: 'inline-flex', alignItems: 'flex-start', gap: '0.35rem', fontSize: '0.82rem', cursor: effectiveReadOnly ? 'default' : 'pointer', wordBreak: 'break-word', maxWidth: '100%' }}>
+                                        <input 
+                                          type="checkbox" 
+                                          checked={isChecked}
+                                          disabled={effectiveReadOnly}
+                                          style={{ marginTop: '2px', flexShrink: 0 }}
+                                          onChange={(e) => {
+                                            let nextValues;
+                                            if (e.target.checked) {
+                                              const entryValue = isOtherOpt ? encodeOtherValue(otherText) : opt.value;
+                                              nextValues = [...currentValues.filter((v: string) => !(isOtherOpt && isOtherValue(v))), entryValue];
+                                            } else {
+                                              nextValues = currentValues.filter((v: string) => v !== opt.value && !(isOtherOpt && isOtherValue(v)));
+                                            }
+                                            setFormValues(prev => ({ ...prev, [field.id]: nextValues.join(',') }));
+                                          }}
+                                        />
+                                        <span style={{ lineHeight: '1.3' }}>{opt.label}</span>
+                                      </label>
+                                      {isOtherOpt && isChecked && (
+                                        <div style={{ paddingLeft: '1.25rem', marginTop: '2px' }}>
+                                          <input
+                                            type="text"
+                                            disabled={effectiveReadOnly}
+                                            value={otherText}
+                                            placeholder="Vui lòng ghi rõ..."
+                                            onChange={(e) => {
+                                              const newText = e.target.value;
+                                              const updatedOtherVal = encodeOtherValue(newText);
+                                              const nextValues = currentValues.filter((v: string) => !isOtherValue(v));
+                                              nextValues.push(updatedOtherVal);
+                                              setFormValues(prev => ({ ...prev, [field.id]: nextValues.join(',') }));
+                                            }}
+                                            style={{ width: '100%', maxWidth: '240px', padding: '0.25rem 0.45rem', fontSize: '0.78rem', borderRadius: '4px', border: '1px solid var(--primary)', outline: 'none', background: '#ffffff' }}
+                                            autoFocus
+                                          />
+                                        </div>
+                                      )}
+                                    </div>
                                   );
                                 })}
                               </div>
@@ -2014,41 +2096,96 @@ function FormFillerInner({
                           );
                         })() : field.type === 'radio' ? (
                               <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', maxWidth: '100%' }}>
-                                {(field.options ?? [{ label: 'Đạt', value: 'PASS', isPass: true }, { label: 'Không Đạt', value: 'FAIL', isPass: false }]).map((opt: any) => (
-                                  <label key={opt.value} style={{ display: 'inline-flex', alignItems: 'flex-start', gap: '0.35rem', fontSize: '0.82rem', cursor: 'pointer', wordBreak: 'break-word', maxWidth: '100%' }}>
-                                    <input 
-                                      type="radio" 
-                                      name={field.id}
-                                      value={opt.value}
-                                      checked={value === opt.value}
-                                      style={{ marginTop: '2px', flexShrink: 0 }}
-                                      onChange={() => setFormValues(prev => ({ ...prev, [field.id]: opt.value }))}
-                                    />
-                                    <span style={{ lineHeight: '1.3' }}>{opt.label}</span>
-                                  </label>
-                                ))}
+                                {(field.options ?? [{ label: 'Đạt', value: 'PASS', isPass: true }, { label: 'Không Đạt', value: 'FAIL', isPass: false }]).map((opt: any) => {
+                                  const isOtherOpt = opt.isOther || opt.value === '__other__';
+                                  const isChecked = isOtherOpt ? isOtherValue(value) : value === opt.value;
+                                  const otherText = isOtherOpt ? extractOtherText(value) : '';
+                                  return (
+                                    <div key={opt.value} style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                                      <label style={{ display: 'inline-flex', alignItems: 'flex-start', gap: '0.35rem', fontSize: '0.82rem', cursor: effectiveReadOnly ? 'default' : 'pointer', wordBreak: 'break-word', maxWidth: '100%' }}>
+                                        <input 
+                                          type="radio" 
+                                          name={field.id}
+                                          value={opt.value}
+                                          checked={isChecked}
+                                          disabled={effectiveReadOnly}
+                                          style={{ marginTop: '2px', flexShrink: 0 }}
+                                          onChange={() => {
+                                            const entryValue = isOtherOpt ? encodeOtherValue(otherText) : opt.value;
+                                            setFormValues(prev => ({ ...prev, [field.id]: entryValue }));
+                                          }}
+                                        />
+                                        <span style={{ lineHeight: '1.3' }}>{opt.label}</span>
+                                      </label>
+                                      {isOtherOpt && isChecked && (
+                                        <div style={{ paddingLeft: '1.25rem', marginTop: '2px' }}>
+                                          <input
+                                            type="text"
+                                            disabled={effectiveReadOnly}
+                                            value={otherText}
+                                            placeholder="Vui lòng ghi rõ..."
+                                            onChange={(e) => {
+                                              setFormValues(prev => ({ ...prev, [field.id]: encodeOtherValue(e.target.value) }));
+                                            }}
+                                            style={{ width: '100%', maxWidth: '240px', padding: '0.25rem 0.45rem', fontSize: '0.78rem', borderRadius: '4px', border: '1px solid var(--primary)', outline: 'none', background: '#ffffff' }}
+                                            autoFocus
+                                          />
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
                               </div>
-                            ) : field.type === 'select' ? (
-                              <select
-                                value={value}
-                                disabled={effectiveReadOnly}
-                                onChange={(e) => setFormValues(prev => ({ ...prev, [field.id]: e.target.value }))}
-                                style={{
-                                  width: '100%',
-                                  padding: '0.45rem 0.5rem',
-                                  fontSize: '0.82rem',
-                                  border: '1px solid var(--neutral-border)',
-                                  borderRadius: '4px',
-                                  background: effectiveReadOnly ? '#f8fafc' : '#ffffff',
-                                  cursor: effectiveReadOnly ? 'default' : 'pointer'
-                                }}
-                              >
-                                <option value="">{field.placeholder || '-- Chọn --'}</option>
-                                {(field.options ?? [{ label: 'Lựa chọn 1', value: 'OPT_1' }, { label: 'Lựa chọn 2', value: 'OPT_2' }]).map((opt: any) => (
-                                  <option key={opt.value} value={opt.value || opt.label}>{opt.label}</option>
-                                ))}
-                              </select>
-                            ) : (
+                            ) : field.type === 'select' ? (() => {
+                              const isOtherSelected = isOtherValue(value);
+                              const selectVal = isOtherSelected ? '__other__' : value;
+                              const otherText = isOtherSelected ? extractOtherText(value) : '';
+                              return (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%' }}>
+                                  <select
+                                    value={selectVal}
+                                    disabled={effectiveReadOnly}
+                                    onChange={(e) => {
+                                      const val = e.target.value;
+                                      if (val === '__other__') {
+                                        setFormValues(prev => ({ ...prev, [field.id]: encodeOtherValue(otherText) }));
+                                      } else {
+                                        setFormValues(prev => ({ ...prev, [field.id]: val }));
+                                      }
+                                    }}
+                                    style={{
+                                      width: '100%',
+                                      padding: '0.45rem 0.5rem',
+                                      fontSize: '0.82rem',
+                                      border: '1px solid var(--neutral-border)',
+                                      borderRadius: '4px',
+                                      background: effectiveReadOnly ? '#f8fafc' : '#ffffff',
+                                      cursor: effectiveReadOnly ? 'default' : 'pointer'
+                                    }}
+                                  >
+                                    <option value="">{field.placeholder || '-- Chọn --'}</option>
+                                    {(field.options ?? [{ label: 'Lựa chọn 1', value: 'OPT_1' }, { label: 'Lựa chọn 2', value: 'OPT_2' }]).map((opt: any) => (
+                                      <option key={opt.value} value={opt.value || opt.label}>{opt.label}</option>
+                                    ))}
+                                  </select>
+                                  {isOtherSelected && (
+                                    <div style={{ marginTop: '2px' }}>
+                                      <input
+                                        type="text"
+                                        disabled={effectiveReadOnly}
+                                        value={otherText}
+                                        placeholder="Vui lòng ghi rõ..."
+                                        onChange={(e) => {
+                                          setFormValues(prev => ({ ...prev, [field.id]: encodeOtherValue(e.target.value) }));
+                                        }}
+                                        style={{ width: '100%', padding: '0.3rem 0.5rem', fontSize: '0.78rem', borderRadius: '4px', border: '1px solid var(--primary)', outline: 'none', background: '#ffffff' }}
+                                        autoFocus
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })() : (
                               <AutoResizingTextarea 
                                 value={value}
                                 onChange={(val) => setFormValues(prev => ({ ...prev, [field.id]: val }))}
@@ -2287,27 +2424,51 @@ function FormFillerInner({
                                             width: '100%'
                                           }}>
                                             {effectiveOpts.map((opt: any, oIdx: number) => {
+                                              const isOtherOpt = opt.isOther || opt.value === '__other__';
                                               const currentValues = cellValue ? cellValue.split(',').filter(Boolean) : [];
-                                              const isChecked = currentValues.includes(opt.value || opt.label);
+                                              const isChecked = currentValues.some((v: string) => v === (opt.value || opt.label) || (isOtherOpt && isOtherValue(v)));
+                                              const otherText = isOtherOpt ? extractOtherText(currentValues.find((v: string) => isOtherValue(v))) : '';
                                               return (
-                                                <label key={oIdx} style={{ display: isInline ? 'inline-flex' : 'flex', alignItems: isInline ? 'center' : 'flex-start', gap: '6px', fontSize: '0.82rem', color: 'var(--text-primary)', cursor: 'pointer', margin: 0, width: isInline ? 'auto' : (cellAlign === 'center' || cellAlign === 'right' ? 'fit-content' : '100%'), textAlign: 'left', whiteSpace: isInline ? 'nowrap' : undefined }}>
-                                                  <input 
-                                                    type="checkbox" 
-                                                    checked={isChecked} 
-                                                    onChange={(e) => {
-                                                      const val = opt.value || opt.label;
-                                                      let nextValues;
-                                                      if (e.target.checked) {
-                                                        nextValues = [...currentValues, val];
-                                                      } else {
-                                                        nextValues = currentValues.filter((v: string) => v !== val);
-                                                      }
-                                                      setFormValues(prev => ({ ...prev, [cellKey]: nextValues.join(',') }));
-                                                    }} 
-                                                    style={{ transform: 'scale(1.0)', cursor: 'pointer', marginTop: isInline ? 0 : '2px', flexShrink: 0 }}
-                                                  />
-                                                  <span style={{ lineHeight: '1.35', textAlign: 'left', whiteSpace: isInline ? 'nowrap' : 'pre-wrap', wordBreak: isInline ? 'normal' : 'break-word', flex: isInline ? undefined : (cellAlign === 'center' || cellAlign === 'right' ? undefined : 1) }}>{renderFormattedText(opt.label)}</span>
-                                                </label>
+                                                <div key={oIdx} style={{ display: isInline ? 'inline-flex' : 'flex', flexDirection: 'column', gap: '2px', width: isInline ? 'auto' : (cellAlign === 'center' || cellAlign === 'right' ? 'fit-content' : '100%') }}>
+                                                  <label style={{ display: isInline ? 'inline-flex' : 'flex', alignItems: isInline ? 'center' : 'flex-start', gap: '6px', fontSize: '0.82rem', color: 'var(--text-primary)', cursor: effectiveReadOnly ? 'default' : 'pointer', margin: 0, textAlign: 'left', whiteSpace: isInline ? 'nowrap' : undefined }}>
+                                                    <input 
+                                                      type="checkbox" 
+                                                      checked={isChecked} 
+                                                      disabled={effectiveReadOnly}
+                                                      onChange={(e) => {
+                                                        let nextValues;
+                                                        if (e.target.checked) {
+                                                          const entryValue = isOtherOpt ? encodeOtherValue(otherText) : (opt.value || opt.label);
+                                                          nextValues = [...currentValues.filter((v: string) => !(isOtherOpt && isOtherValue(v))), entryValue];
+                                                        } else {
+                                                          nextValues = currentValues.filter((v: string) => v !== (opt.value || opt.label) && !(isOtherOpt && isOtherValue(v)));
+                                                        }
+                                                        setFormValues(prev => ({ ...prev, [cellKey]: nextValues.join(',') }));
+                                                      }} 
+                                                      style={{ transform: 'scale(1.0)', cursor: effectiveReadOnly ? 'default' : 'pointer', marginTop: isInline ? 0 : '2px', flexShrink: 0 }}
+                                                    />
+                                                    <span style={{ lineHeight: '1.35', textAlign: 'left', whiteSpace: isInline ? 'nowrap' : 'pre-wrap', wordBreak: isInline ? 'normal' : 'break-word', flex: isInline ? undefined : (cellAlign === 'center' || cellAlign === 'right' ? undefined : 1) }}>{renderFormattedText(opt.label)}</span>
+                                                  </label>
+                                                  {isOtherOpt && isChecked && (
+                                                    <div style={{ paddingLeft: '1.25rem', marginTop: '2px' }}>
+                                                      <input
+                                                        type="text"
+                                                        disabled={effectiveReadOnly}
+                                                        value={otherText}
+                                                        placeholder="Ghi rõ..."
+                                                        onChange={(e) => {
+                                                          const newText = e.target.value;
+                                                          const updatedOtherVal = encodeOtherValue(newText);
+                                                          const nextValues = currentValues.filter((v: string) => !isOtherValue(v));
+                                                          nextValues.push(updatedOtherVal);
+                                                          setFormValues(prev => ({ ...prev, [cellKey]: nextValues.join(',') }));
+                                                        }}
+                                                        style={{ width: '100%', minWidth: '120px', maxWidth: '200px', padding: '0.2rem 0.35rem', fontSize: '0.75rem', borderRadius: '3px', border: '1px solid var(--primary)', outline: 'none', background: '#ffffff' }}
+                                                        autoFocus
+                                                      />
+                                                    </div>
+                                                  )}
+                                                </div>
                                               );
                                             })}
                                           </div>
@@ -2338,19 +2499,41 @@ function FormFillerInner({
                                           width: '100%'
                                         }}>
                                           {effectiveOpts.map((opt: any, oIdx: number) => {
-                                            const val = opt.value || opt.label;
-                                            const isChecked = cellValue === val;
+                                            const isOtherOpt = opt.isOther || opt.value === '__other__';
+                                            const isChecked = isOtherOpt ? isOtherValue(cellValue) : cellValue === (opt.value || opt.label);
+                                            const otherText = isOtherOpt ? extractOtherText(cellValue) : '';
                                             return (
-                                              <label key={oIdx} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', color: 'var(--text-primary)', cursor: 'pointer', margin: 0, width: isInline ? 'auto' : (cellAlign === 'center' || cellAlign === 'right' ? 'fit-content' : '100%'), textAlign: 'left', whiteSpace: isInline ? 'nowrap' : undefined }}>
-                                                <input 
-                                                  type="radio" 
-                                                  name={`radio_${cellKey}`}
-                                                  checked={isChecked} 
-                                                  onChange={() => setFormValues(prev => ({ ...prev, [cellKey]: val }))} 
-                                                  style={{ cursor: 'pointer', marginTop: 0, flexShrink: 0 }}
-                                                />
-                                                <span style={{ lineHeight: '1.35', textAlign: 'left', whiteSpace: isInline ? 'nowrap' : 'pre-wrap', wordBreak: isInline ? 'normal' : 'break-word', flex: isInline ? undefined : (cellAlign === 'center' || cellAlign === 'right' ? undefined : 1) }}>{renderFormattedText(opt.label)}</span>
-                                              </label>
+                                              <div key={oIdx} style={{ display: isInline ? 'inline-flex' : 'flex', flexDirection: 'column', gap: '2px', width: isInline ? 'auto' : (cellAlign === 'center' || cellAlign === 'right' ? 'fit-content' : '100%') }}>
+                                                <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', color: 'var(--text-primary)', cursor: effectiveReadOnly ? 'default' : 'pointer', margin: 0, textAlign: 'left', whiteSpace: isInline ? 'nowrap' : undefined }}>
+                                                  <input 
+                                                    type="radio" 
+                                                    name={`radio_${cellKey}`}
+                                                    checked={isChecked} 
+                                                    disabled={effectiveReadOnly}
+                                                    onChange={() => {
+                                                      const entryValue = isOtherOpt ? encodeOtherValue(otherText) : (opt.value || opt.label);
+                                                      setFormValues(prev => ({ ...prev, [cellKey]: entryValue }));
+                                                    }} 
+                                                    style={{ cursor: effectiveReadOnly ? 'default' : 'pointer', marginTop: 0, flexShrink: 0 }}
+                                                  />
+                                                  <span style={{ lineHeight: '1.35', textAlign: 'left', whiteSpace: isInline ? 'nowrap' : 'pre-wrap', wordBreak: isInline ? 'normal' : 'break-word', flex: isInline ? undefined : (cellAlign === 'center' || cellAlign === 'right' ? undefined : 1) }}>{renderFormattedText(opt.label)}</span>
+                                                </label>
+                                                {isOtherOpt && isChecked && (
+                                                  <div style={{ paddingLeft: '1.25rem', marginTop: '2px' }}>
+                                                    <input
+                                                      type="text"
+                                                      disabled={effectiveReadOnly}
+                                                      value={otherText}
+                                                      placeholder="Ghi rõ..."
+                                                      onChange={(e) => {
+                                                        setFormValues(prev => ({ ...prev, [cellKey]: encodeOtherValue(e.target.value) }));
+                                                      }}
+                                                      style={{ width: '100%', minWidth: '120px', maxWidth: '200px', padding: '0.2rem 0.35rem', fontSize: '0.75rem', borderRadius: '3px', border: '1px solid var(--primary)', outline: 'none', background: '#ffffff' }}
+                                                      autoFocus
+                                                    />
+                                                  </div>
+                                                )}
+                                              </div>
                                             );
                                           })}
                                         </div>
@@ -2366,12 +2549,22 @@ function FormFillerInner({
                                       )
                                       );
                                     })() : col.type === 'select' ? (() => {
+                                      const isOtherSelected = isOtherValue(cellValue);
+                                      const selectVal = isOtherSelected ? '__other__' : cellValue;
+                                      const otherText = isOtherSelected ? extractOtherText(cellValue) : '';
                                       return (
-                                        <div style={{ padding: '2px 4px', width: '100%' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', padding: '2px 4px', width: '100%' }}>
                                           <select
-                                            value={cellValue}
+                                            value={selectVal}
                                             disabled={effectiveReadOnly}
-                                            onChange={(e) => setFormValues(prev => ({ ...prev, [cellKey]: e.target.value }))}
+                                            onChange={(e) => {
+                                              const val = e.target.value;
+                                              if (val === '__other__') {
+                                                setFormValues(prev => ({ ...prev, [cellKey]: encodeOtherValue(otherText) }));
+                                              } else {
+                                                setFormValues(prev => ({ ...prev, [cellKey]: val }));
+                                              }
+                                            }}
                                             style={{
                                               width: '100%',
                                               padding: '3px 6px',
@@ -2391,6 +2584,21 @@ function FormFillerInner({
                                               );
                                             })}
                                           </select>
+                                          {isOtherSelected && (
+                                            <div style={{ marginTop: '2px' }}>
+                                              <input
+                                                type="text"
+                                                disabled={effectiveReadOnly}
+                                                value={otherText}
+                                                placeholder="Ghi rõ..."
+                                                onChange={(e) => {
+                                                  setFormValues(prev => ({ ...prev, [cellKey]: encodeOtherValue(e.target.value) }));
+                                                }}
+                                                style={{ width: '100%', padding: '0.25rem 0.4rem', fontSize: '0.78rem', borderRadius: '3px', border: '1px solid var(--primary)', outline: 'none', background: '#ffffff' }}
+                                                autoFocus
+                                              />
+                                            </div>
+                                          )}
                                         </div>
                                       );
                                     })() : col.type === 'likert_scale' ? (() => {

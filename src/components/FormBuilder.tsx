@@ -3716,6 +3716,11 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                 }}
                                                 placeholder="Nhãn..."
                                               />
+                                              {(opt.isOther || opt.value === '__other__') && (
+                                                <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontStyle: 'italic', borderBottom: '1px dashed #cbd5e1', paddingBottom: '1px', userSelect: 'none', marginLeft: '4px' }}>
+                                                  (Ô nhập tự do)
+                                                </span>
+                                              )}
                                               {isFieldSelected && !isLocked && options.length > 1 && (
                                                 <button
                                                   type="button"
@@ -3741,31 +3746,66 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                               )}
                                             </span>
                                           ))}
-                                          {isFieldSelected && !isLocked && (
-                                            <button
-                                              type="button"
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                const newOptions = [...options, { label: `Tùy chọn ${options.length + 1}`, value: `opt_${Date.now()}` }];
-                                                handleUpdateField(block.id, f.id, { options: newOptions });
-                                              }}
-                                              style={{
-                                                display: 'inline-flex',
-                                                alignItems: 'center',
-                                                gap: '2px',
-                                                padding: '1px 5px',
-                                                fontSize: '0.68rem',
-                                                borderRadius: '3px',
-                                                border: '1px dashed #94a3b8',
-                                                background: '#ffffff',
-                                                color: 'var(--text-secondary)',
-                                                cursor: 'pointer'
-                                              }}
-                                              title="Thêm tùy chọn mới"
-                                            >
-                                              <Plus size={10} /> Thêm
-                                            </button>
-                                          )}
+                                          {isFieldSelected && !isLocked && (() => {
+                                            const hasOther = options.some((o: any) => o.isOther || o.value === '__other__');
+                                            return (
+                                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                                <button
+                                                  type="button"
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    const otherIndex = options.findIndex((o: any) => o.isOther || o.value === '__other__');
+                                                    const newOpt = { label: `Tùy chọn ${options.length + 1}`, value: `opt_${Date.now()}` };
+                                                    const newOptions = otherIndex !== -1
+                                                      ? [...options.slice(0, otherIndex), newOpt, ...options.slice(otherIndex)]
+                                                      : [...options, newOpt];
+                                                    handleUpdateField(block.id, f.id, { options: newOptions });
+                                                  }}
+                                                  style={{
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    gap: '2px',
+                                                    padding: '1px 5px',
+                                                    fontSize: '0.68rem',
+                                                    borderRadius: '3px',
+                                                    border: '1px dashed #94a3b8',
+                                                    background: '#ffffff',
+                                                    color: 'var(--text-secondary)',
+                                                    cursor: 'pointer'
+                                                  }}
+                                                  title="Thêm tùy chọn mới"
+                                                >
+                                                  <Plus size={10} /> Thêm
+                                                </button>
+
+                                                {!hasOther && (
+                                                  <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      const newOptions = [...options, { label: 'Khác:', value: '__other__', isOther: true, isPass: true }];
+                                                      handleUpdateField(block.id, f.id, { options: newOptions });
+                                                    }}
+                                                    style={{
+                                                      display: 'inline-flex',
+                                                      alignItems: 'center',
+                                                      gap: '2px',
+                                                      padding: '1px 5px',
+                                                      fontSize: '0.68rem',
+                                                      borderRadius: '3px',
+                                                      border: '1px dashed #94a3b8',
+                                                      background: '#ffffff',
+                                                      color: 'var(--primary)',
+                                                      cursor: 'pointer'
+                                                    }}
+                                                    title="Thêm mục Khác (cho phép người điền tự ghi)"
+                                                  >
+                                                    <Plus size={10} /> Khác...
+                                                  </button>
+                                                )}
+                                              </div>
+                                            );
+                                          })()}
                                         </div>
                                       );
                                     })()}
@@ -4687,6 +4727,11 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                                 }}
                                                               />
                                                             </div>
+                                                            {(opt.isOther || opt.value === '__other__') && (
+                                                              <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontStyle: 'italic', borderBottom: '1px dashed #cbd5e1', paddingBottom: '1px', userSelect: 'none', marginLeft: '4px', whiteSpace: 'nowrap' }}>
+                                                                (Ô nhập tự do)
+                                                              </span>
+                                                            )}
 
                                                             {/* Nút xóa lựa chọn ✕ (Chỉ hiển thị khi có từ 2 lựa chọn trở lên) */}
                                                             {!isLocked && cellOptions.length > 1 && (
@@ -4736,38 +4781,76 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                           justifyContent: cellAlign === 'right' ? 'flex-end' : cellAlign === 'center' ? 'center' : 'flex-start'
                                                         }}>
                                                           {/* Nút ➕ Thêm lựa chọn mới vào ô */}
-                                                          <button
-                                                            type="button"
-                                                            onClick={(e) => {
-                                                              e.stopPropagation();
-                                                              const newOpts = [...cellOptions, { label: 'Lựa chọn mới', value: `OPT_${Date.now()}`, isPass: true }];
-                                                              handleUpdateCellOptions(block.id, row.id, col.id, newOpts);
-                                                            }}
-                                                            style={{
-                                                              display: 'inline-flex',
-                                                              alignItems: 'center',
-                                                              gap: '2px',
-                                                              padding: '1px 5px',
-                                                              fontSize: '0.68rem',
-                                                              borderRadius: '3px',
-                                                              border: '1px dashed #94a3b8',
-                                                              background: '#ffffff',
-                                                              color: 'var(--text-secondary)',
-                                                              cursor: 'pointer',
-                                                              transition: 'all 0.15s ease'
-                                                            }}
-                                                            onMouseEnter={(e) => {
-                                                              e.currentTarget.style.borderColor = 'var(--primary)';
-                                                              e.currentTarget.style.color = 'var(--primary)';
-                                                            }}
-                                                            onMouseLeave={(e) => {
-                                                              e.currentTarget.style.borderColor = '#94a3b8';
-                                                              e.currentTarget.style.color = 'var(--text-secondary)';
-                                                            }}
-                                                            title="Thêm lựa chọn mới vào ô này"
-                                                          >
-                                                            <Plus size={10} /> Thêm
-                                                          </button>
+                                                          {(() => {
+                                                            const hasOther = cellOptions.some((o: any) => o.isOther || o.value === '__other__');
+                                                            return (
+                                                              <>
+                                                                <button
+                                                                  type="button"
+                                                                  onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    const otherIndex = cellOptions.findIndex((o: any) => o.isOther || o.value === '__other__');
+                                                                    const newOpt = { label: 'Lựa chọn mới', value: `OPT_${Date.now()}`, isPass: true };
+                                                                    const newOpts = otherIndex !== -1
+                                                                      ? [...cellOptions.slice(0, otherIndex), newOpt, ...cellOptions.slice(otherIndex)]
+                                                                      : [...cellOptions, newOpt];
+                                                                    handleUpdateCellOptions(block.id, row.id, col.id, newOpts);
+                                                                  }}
+                                                                  style={{
+                                                                    display: 'inline-flex',
+                                                                    alignItems: 'center',
+                                                                    gap: '2px',
+                                                                    padding: '1px 5px',
+                                                                    fontSize: '0.68rem',
+                                                                    borderRadius: '3px',
+                                                                    border: '1px dashed #94a3b8',
+                                                                    background: '#ffffff',
+                                                                    color: 'var(--text-secondary)',
+                                                                    cursor: 'pointer',
+                                                                    transition: 'all 0.15s ease'
+                                                                  }}
+                                                                  onMouseEnter={(e) => {
+                                                                    e.currentTarget.style.borderColor = 'var(--primary)';
+                                                                    e.currentTarget.style.color = 'var(--primary)';
+                                                                  }}
+                                                                  onMouseLeave={(e) => {
+                                                                    e.currentTarget.style.borderColor = '#94a3b8';
+                                                                    e.currentTarget.style.color = 'var(--text-secondary)';
+                                                                  }}
+                                                                  title="Thêm lựa chọn mới vào ô này"
+                                                                >
+                                                                  <Plus size={10} /> Thêm
+                                                                </button>
+
+                                                                {!hasOther && (
+                                                                  <button
+                                                                    type="button"
+                                                                    onClick={(e) => {
+                                                                      e.stopPropagation();
+                                                                      const newOpts = [...cellOptions, { label: 'Khác:', value: '__other__', isOther: true, isPass: true }];
+                                                                      handleUpdateCellOptions(block.id, row.id, col.id, newOpts);
+                                                                    }}
+                                                                    style={{
+                                                                      display: 'inline-flex',
+                                                                      alignItems: 'center',
+                                                                      gap: '2px',
+                                                                      padding: '1px 5px',
+                                                                      fontSize: '0.68rem',
+                                                                      borderRadius: '3px',
+                                                                      border: '1px dashed #94a3b8',
+                                                                      background: '#ffffff',
+                                                                      color: 'var(--primary)',
+                                                                      cursor: 'pointer',
+                                                                      transition: 'all 0.15s ease'
+                                                                    }}
+                                                                    title="Thêm mục Khác (cho phép người điền tự ghi)"
+                                                                  >
+                                                                    <Plus size={10} /> Khác...
+                                                                  </button>
+                                                                )}
+                                                              </>
+                                                            );
+                                                          })()}
 
                                                           {/* Nút 🔄 Khôi phục về cấu hình Cột */}
                                                           {isCustomCellOpts && (
@@ -5982,18 +6065,85 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                         </div>
                       ))}
                     </div>
-                    {!isLocked && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const newOpts = [...(activeField.options ?? DEFAULT_RADIO_OPTIONS), { label: 'Lựa chọn mới', value: `OPT_${Date.now()}`, isPass: true }];
-                          handleUpdateField(activeBlockId!, activeFieldId!, { options: newOpts });
-                        }}
-                        style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '0.25rem 0.5rem', fontSize: '0.7rem', borderRadius: '4px', border: '1px dashed #94a3b8', background: 'none', color: 'var(--text-secondary)', cursor: 'pointer', } }
-                      >
-                        <Plus size={11} /> Thêm lựa chọn
-                      </button>
-                    )}
+                    {!isLocked && (() => {
+                      const currentOpts = activeField.options ?? DEFAULT_RADIO_OPTIONS;
+                      const hasOther = currentOpts.some((o: any) => o.isOther || o.value === '__other__');
+                      
+                      const handleAddRegularOption = () => {
+                        const otherIndex = currentOpts.findIndex((o: any) => o.isOther || o.value === '__other__');
+                        const newOpt = { label: `Lựa chọn ${currentOpts.length + 1}`, value: `OPT_${Date.now()}`, isPass: true };
+                        const nextOpts = otherIndex !== -1
+                          ? [...currentOpts.slice(0, otherIndex), newOpt, ...currentOpts.slice(otherIndex)]
+                          : [...currentOpts, newOpt];
+                        handleUpdateField(activeBlockId!, activeFieldId!, { options: nextOpts });
+                      };
+
+                      const handleToggleOther = () => {
+                        if (hasOther) {
+                          const nextOpts = currentOpts.filter((o: any) => !o.isOther && o.value !== '__other__');
+                          handleUpdateField(activeBlockId!, activeFieldId!, { options: nextOpts });
+                        } else {
+                          const nextOpts = [...currentOpts, { label: 'Khác:', value: '__other__', isOther: true, isPass: true }];
+                          handleUpdateField(activeBlockId!, activeFieldId!, { options: nextOpts });
+                        }
+                      };
+
+                      return (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.4rem', paddingTop: '0.35rem', borderTop: '1px dashed var(--neutral-border)' }}>
+                          <button
+                            type="button"
+                            onClick={handleAddRegularOption}
+                            style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '0.2rem 0.45rem', fontSize: '0.7rem', borderRadius: '4px', border: '1px dashed #94a3b8', background: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}
+                          >
+                            <Plus size={11} /> Thêm lựa chọn
+                          </button>
+
+                          {/* Toggle Switch chuẩn 16px x 28px */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <span
+                              onClick={handleToggleOther}
+                              style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-secondary)', cursor: 'pointer', userSelect: 'none' }}
+                            >
+                              Mục "Khác"
+                            </span>
+                            <button
+                              type="button"
+                              role="switch"
+                              aria-checked={hasOther}
+                              onClick={handleToggleOther}
+                              style={{
+                                width: '28px',
+                                height: '16px',
+                                borderRadius: '8px',
+                                background: hasOther ? 'var(--primary)' : '#cbd5e1',
+                                border: 'none',
+                                cursor: 'pointer',
+                                position: 'relative',
+                                padding: '1px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                transition: 'background-color 0.2s ease',
+                                outline: 'none'
+                              }}
+                              title={hasOther ? 'Tắt lựa chọn Khác' : 'Bật lựa chọn Khác (cho phép người điền tự ghi)'}
+                            >
+                              <span
+                                style={{
+                                  width: '14px',
+                                  height: '14px',
+                                  borderRadius: '50%',
+                                  background: '#ffffff',
+                                  boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                                  transform: hasOther ? 'translateX(12px)' : 'translateX(0px)',
+                                  transition: 'transform 0.2s ease',
+                                  display: 'block'
+                                }}
+                              />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
 
@@ -6529,11 +6679,79 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                       </div>
                                     ))}
                                   </div>
-                                  {!isLocked && (
-                                    <button type="button" onClick={() => { const newOpts = [...(col.options || []), { label: 'Lựa chọn mới', value: `OPT_${Date.now()}`, isPass: true }]; handleUpdateTableColumn(activeBlock.id, col.id, { options: newOpts }); }} style={{ display: 'flex', alignItems: 'center', gap: '2px', padding: '0.15rem 0.3rem', fontSize: '0.65rem', borderRadius: '4px', border: '1px dashed #94a3b8', background: 'none', color: 'var(--text-secondary)', cursor: 'pointer', width: 'fit-content' }}>
-                                      <Plus size={10} /> Thêm lựa chọn
-                                    </button>
-                                  )}
+                                  {!isLocked && (() => {
+                                    const currentOpts = col.options || [];
+                                    const hasOther = currentOpts.some((o: any) => o.isOther || o.value === '__other__');
+
+                                    const handleAddColOpt = () => {
+                                      const otherIndex = currentOpts.findIndex((o: any) => o.isOther || o.value === '__other__');
+                                      const newOpt = { label: `Lựa chọn ${currentOpts.length + 1}`, value: `OPT_${Date.now()}`, isPass: true };
+                                      const nextOpts = otherIndex !== -1
+                                        ? [...currentOpts.slice(0, otherIndex), newOpt, ...currentOpts.slice(otherIndex)]
+                                        : [...currentOpts, newOpt];
+                                      handleUpdateTableColumn(activeBlock.id, col.id, { options: nextOpts });
+                                    };
+
+                                    const handleToggleColOther = () => {
+                                      if (hasOther) {
+                                        const nextOpts = currentOpts.filter((o: any) => !o.isOther && o.value !== '__other__');
+                                        handleUpdateTableColumn(activeBlock.id, col.id, { options: nextOpts });
+                                      } else {
+                                        const nextOpts = [...currentOpts, { label: 'Khác:', value: '__other__', isOther: true, isPass: true }];
+                                        handleUpdateTableColumn(activeBlock.id, col.id, { options: nextOpts });
+                                      }
+                                    };
+
+                                    return (
+                                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.3rem', paddingTop: '0.25rem', borderTop: '1px dashed var(--neutral-border)' }}>
+                                        <button
+                                          type="button"
+                                          onClick={handleAddColOpt}
+                                          style={{ display: 'flex', alignItems: 'center', gap: '2px', padding: '0.15rem 0.35rem', fontSize: '0.65rem', borderRadius: '4px', border: '1px dashed #94a3b8', background: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}
+                                        >
+                                          <Plus size={10} /> Thêm lựa chọn
+                                        </button>
+
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                          <span onClick={handleToggleColOther} style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--text-secondary)', cursor: 'pointer', userSelect: 'none' }}>
+                                            Mục "Khác"
+                                          </span>
+                                          <button
+                                            type="button"
+                                            role="switch"
+                                            aria-checked={hasOther}
+                                            onClick={handleToggleColOther}
+                                            style={{
+                                              width: '26px',
+                                              height: '15px',
+                                              borderRadius: '8px',
+                                              background: hasOther ? 'var(--primary)' : '#cbd5e1',
+                                              border: 'none',
+                                              cursor: 'pointer',
+                                              position: 'relative',
+                                              padding: '1px',
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              transition: 'background-color 0.2s ease',
+                                              outline: 'none'
+                                            }}
+                                            title={hasOther ? 'Tắt lựa chọn Khác' : 'Bật lựa chọn Khác'}
+                                          >
+                                            <span style={{
+                                              width: '13px',
+                                              height: '13px',
+                                              borderRadius: '50%',
+                                              background: '#ffffff',
+                                              boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                                              transform: hasOther ? 'translateX(11px)' : 'translateX(0px)',
+                                              transition: 'transform 0.2s ease',
+                                              display: 'block'
+                                            }} />
+                                          </button>
+                                        </div>
+                                      </div>
+                                    );
+                                  })()}
                                 </div>
                               )}
 
@@ -6547,11 +6765,79 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                       </div>
                                     ))}
                                   </div>
-                                  {!isLocked && (
-                                    <button type="button" onClick={() => { const newOpts = [...(col.options || []), { label: 'Lựa chọn mới', value: `OPT_${Date.now()}`, isPass: true }]; handleUpdateTableColumn(activeBlock.id, col.id, { options: newOpts }); }} style={{ display: 'flex', alignItems: 'center', gap: '2px', padding: '0.15rem 0.3rem', fontSize: '0.65rem', borderRadius: '4px', border: '1px dashed #94a3b8', background: 'none', color: 'var(--text-secondary)', cursor: 'pointer', width: 'fit-content' }}>
-                                      <Plus size={10} /> Thêm lựa chọn
-                                    </button>
-                                  )}
+                                  {!isLocked && (() => {
+                                    const currentOpts = col.options || [];
+                                    const hasOther = currentOpts.some((o: any) => o.isOther || o.value === '__other__');
+
+                                    const handleAddColOpt = () => {
+                                      const otherIndex = currentOpts.findIndex((o: any) => o.isOther || o.value === '__other__');
+                                      const newOpt = { label: `Lựa chọn ${currentOpts.length + 1}`, value: `OPT_${Date.now()}`, isPass: true };
+                                      const nextOpts = otherIndex !== -1
+                                        ? [...currentOpts.slice(0, otherIndex), newOpt, ...currentOpts.slice(otherIndex)]
+                                        : [...currentOpts, newOpt];
+                                      handleUpdateTableColumn(activeBlock.id, col.id, { options: nextOpts });
+                                    };
+
+                                    const handleToggleColOther = () => {
+                                      if (hasOther) {
+                                        const nextOpts = currentOpts.filter((o: any) => !o.isOther && o.value !== '__other__');
+                                        handleUpdateTableColumn(activeBlock.id, col.id, { options: nextOpts });
+                                      } else {
+                                        const nextOpts = [...currentOpts, { label: 'Khác:', value: '__other__', isOther: true, isPass: true }];
+                                        handleUpdateTableColumn(activeBlock.id, col.id, { options: nextOpts });
+                                      }
+                                    };
+
+                                    return (
+                                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.3rem', paddingTop: '0.25rem', borderTop: '1px dashed var(--neutral-border)' }}>
+                                        <button
+                                          type="button"
+                                          onClick={handleAddColOpt}
+                                          style={{ display: 'flex', alignItems: 'center', gap: '2px', padding: '0.15rem 0.35rem', fontSize: '0.65rem', borderRadius: '4px', border: '1px dashed #94a3b8', background: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}
+                                        >
+                                          <Plus size={10} /> Thêm lựa chọn
+                                        </button>
+
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                          <span onClick={handleToggleColOther} style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--text-secondary)', cursor: 'pointer', userSelect: 'none' }}>
+                                            Mục "Khác"
+                                          </span>
+                                          <button
+                                            type="button"
+                                            role="switch"
+                                            aria-checked={hasOther}
+                                            onClick={handleToggleColOther}
+                                            style={{
+                                              width: '26px',
+                                              height: '15px',
+                                              borderRadius: '8px',
+                                              background: hasOther ? 'var(--primary)' : '#cbd5e1',
+                                              border: 'none',
+                                              cursor: 'pointer',
+                                              position: 'relative',
+                                              padding: '1px',
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              transition: 'background-color 0.2s ease',
+                                              outline: 'none'
+                                            }}
+                                            title={hasOther ? 'Tắt lựa chọn Khác' : 'Bật lựa chọn Khác'}
+                                          >
+                                            <span style={{
+                                              width: '13px',
+                                              height: '13px',
+                                              borderRadius: '50%',
+                                              background: '#ffffff',
+                                              boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                                              transform: hasOther ? 'translateX(11px)' : 'translateX(0px)',
+                                              transition: 'transform 0.2s ease',
+                                              display: 'block'
+                                            }} />
+                                          </button>
+                                        </div>
+                                      </div>
+                                    );
+                                  })()}
                                 </div>
                               )}
                             </div>

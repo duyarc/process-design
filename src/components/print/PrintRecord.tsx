@@ -3,7 +3,7 @@ import { Star } from 'lucide-react';
 import ReactDOM from 'react-dom';
 import type { Submission, LayoutBlockISO, TableColumnConfig } from '../../types';
 import { formatFormVersion, getColStyleWidth } from '../../types';
-import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock, getInfoGridTemplateColumns } from '../../utils/formUtils';
+import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock, getInfoGridTemplateColumns, isOtherValue, extractOtherText, formatOptionDisplay } from '../../utils/formUtils';
 import { renderFormattedText } from '../../utils/textFormatter';
 
 // Helper: derive CHECKLIST_TABLE columns — falls back to columnLabels for backward compat
@@ -679,7 +679,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                       <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'center', minHeight: 'var(--pw-line-h)', gap: '8px', fontSize: '0.85rem' }}>
                         <span style={{ fontWeight: 'var(--pw-weight-regular)', whiteSpace: 'nowrap', lineHeight: 1.4 }}>{f.checkItem ? <>{renderFormattedText(f.checkItem)}:</> : ''}</span>
                         <span style={{ borderBottom: '1px solid #94a3b8', flex: 1, paddingBottom: '2px', fontWeight: 'var(--pw-weight-regular)' }}>
-                          {f.value}
+                          {isOtherValue(f.value) ? formatOptionDisplay(f.value, matchedField?.options) : f.value}
                         </span>
                       </div>
                     );
@@ -819,7 +819,9 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                               <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', flexWrap: 'wrap' }}>
                                 {fieldOptions.map((opt: any) => {
                                   const selectedValues = field.value ? field.value.split(',').filter(Boolean) : [];
-                                  const isSelected = selectedValues.includes(opt.value) || field.value === opt.value || (field.value.startsWith(opt.value + ' '));
+                                  const isOther = opt.isOther || opt.value === '__other__';
+                                  const isSelected = selectedValues.includes(opt.value) || field.value === opt.value || (field.value.startsWith(opt.value + ' ')) || (isOther && (isOtherValue(field.value) || selectedValues.some((v: string) => isOtherValue(v))));
+                                  const otherText = isOther && isSelected ? (isOtherValue(field.value) ? extractOtherText(field.value) : extractOtherText(selectedValues.find((v: string) => isOtherValue(v)))) : '';
                                   const activeColor = opt.isPass ? '#10b981' : '#ef4444';
                                   return (
                                     <span key={opt.value} style={{
@@ -835,10 +837,9 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                                       background: isSelected ? activeColor : 'transparent',
                                       color: isSelected ? '#ffffff' : '#cbd5e1',
                                       border: isSelected ? `1px solid ${activeColor}` : '1px solid #cbd5e1'
-                                    }}>{opt.label}</span>
+                                    }}>{opt.label}{otherText ? `: ${otherText}` : ''}</span>
                                   );
-                                })}
-                              </div>
+                                })}</div>
                             )}
                           </td>
                         );
@@ -1221,32 +1222,39 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                                         width: '100%'
                                       }}>
                                         {(col.options || []).map((opt: any, oIdx: number) => {
-                                         const currentValues = cellValue ? cellValue.split(',').filter(Boolean) : [];
-                                         const isChecked = currentValues.includes(opt.value || opt.label);
-                                         return (
-                                           <div key={oIdx} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#000000', width: isInline ? 'auto' : (cellAlign === 'center' || cellAlign === 'right' ? 'fit-content' : '100%'), textAlign: 'left', whiteSpace: isInline ? 'nowrap' : undefined }}>
-                                             <span style={{
-                                               display: 'inline-flex',
-                                               justifyContent: 'center',
-                                               alignItems: 'center',
-                                               width: '12px',
-                                               height: '12px',
-                                               border: '1px solid #000000',
-                                               background: isChecked ? '#e2e8f0' : '#ffffff',
-                                               borderRadius: '2px',
-                                               flexShrink: 0,
-                                               fontSize: '9px',
-                                               fontWeight: 'var(--pw-weight-heavy)',
-                                               lineHeight: 1,
-                                               marginTop: '2px'
-                                             }}>
-                                               {isChecked ? '✓' : ''}
-                                             </span>
-                                             <span style={{ color: isChecked ? '#000000' : '#64748b', lineHeight: 1.3, textAlign: 'left', whiteSpace: isInline ? 'nowrap' : 'pre-wrap', wordBreak: isInline ? 'normal' : 'break-word', flex: isInline ? undefined : (cellAlign === 'center' || cellAlign === 'right' ? undefined : 1) }}>{renderFormattedText(opt.label)}</span>
-                                           </div>
-                                         );
-                                       })}
-                                     </div>
+                                          const currentValues = cellValue ? cellValue.split(',').filter(Boolean) : [];
+                                          const isOther = opt.isOther || opt.value === '__other__';
+                                          const isChecked = currentValues.includes(opt.value || opt.label) || (isOther && currentValues.some(v => isOtherValue(v)));
+                                          const otherText = isOther && isChecked ? extractOtherText(currentValues.find(v => isOtherValue(v))) : '';
+                                          return (
+                                            <div key={oIdx} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: '#000000', width: isInline ? 'auto' : (cellAlign === 'center' || cellAlign === 'right' ? 'fit-content' : '100%'), textAlign: 'left', whiteSpace: isInline ? 'nowrap' : undefined }}>
+                                              <span style={{
+                                                display: 'inline-flex',
+                                                justifyContent: 'center',
+                                                alignItems: 'center',
+                                                width: '12px',
+                                                height: '12px',
+                                                border: '1px solid #000000',
+                                                background: isChecked ? '#e2e8f0' : '#ffffff',
+                                                borderRadius: '2px',
+                                                flexShrink: 0,
+                                                fontSize: '9px',
+                                                fontWeight: 'var(--pw-weight-heavy)',
+                                                lineHeight: 1,
+                                                marginTop: '2px'
+                                              }}>
+                                                {isChecked ? '✓' : ''}
+                                              </span>
+                                              <span style={{ color: isChecked ? '#000000' : '#64748b', lineHeight: 1.3, textAlign: 'left', whiteSpace: isInline ? 'nowrap' : 'pre-wrap', wordBreak: isInline ? 'normal' : 'break-word', flex: isInline ? undefined : (cellAlign === 'center' || cellAlign === 'right' ? undefined : 1) }}>
+                                                {renderFormattedText(opt.label)}
+                                                {isOther && isChecked && otherText && (
+                                                  <span style={{ fontWeight: 600, textDecoration: 'underline', marginLeft: '4px' }}>: {otherText}</span>
+                                                )}
+                                              </span>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
                                    ) : (
                                      <div style={{ display: 'flex', justifyContent: 'center' }}>
                                        <input type="checkbox" checked={cellValue === 'true'} readOnly style={{ transform: 'scale(1.1)' }} />
@@ -1270,28 +1278,35 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                                        width: '100%'
                                      }}>
                                        {opts.map((opt: any, oIdx: number) => {
-                                        const isChecked = cellValue === (opt.value || opt.label);
-                                        return (
-                                          <div key={oIdx} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', color: '#000000', width: isInline ? 'auto' : (cellAlign === 'center' || cellAlign === 'right' ? 'fit-content' : '100%'), textAlign: 'left', whiteSpace: isInline ? 'nowrap' : undefined }}>
-                                            <span style={{
-                                              display: 'inline-flex',
-                                              justifyContent: 'center',
-                                              alignItems: 'center',
-                                              width: '12px',
-                                              height: '12px',
-                                              border: '1px solid #000000',
-                                              background: isChecked ? '#000000' : '#ffffff',
-                                              borderRadius: '50%',
-                                              flexShrink: 0,
-                                              marginTop: 0
-                                            }}>
-                                              {isChecked && <span style={{ width: '4px', height: '4px', background: '#ffffff', borderRadius: '50%' }} />}
-                                            </span>
-                                            <span style={{ color: isChecked ? '#000000' : '#64748b', lineHeight: 1.3, textAlign: 'left', whiteSpace: isInline ? 'nowrap' : 'pre-wrap', wordBreak: isInline ? 'normal' : 'break-word', flex: isInline ? undefined : (cellAlign === 'center' || cellAlign === 'right' ? undefined : 1) }}>{renderFormattedText(opt.label)}</span>
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
+                                          const isOther = opt.isOther || opt.value === '__other__';
+                                          const isChecked = cellValue === (opt.value || opt.label) || (isOther && isOtherValue(cellValue));
+                                          const otherText = isOther && isChecked ? extractOtherText(cellValue) : '';
+                                          return (
+                                            <div key={oIdx} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', color: '#000000', width: isInline ? 'auto' : (cellAlign === 'center' || cellAlign === 'right' ? 'fit-content' : '100%'), textAlign: 'left', whiteSpace: isInline ? 'nowrap' : undefined }}>
+                                              <span style={{
+                                                display: 'inline-flex',
+                                                justifyContent: 'center',
+                                                alignItems: 'center',
+                                                width: '12px',
+                                                height: '12px',
+                                                border: '1px solid #000000',
+                                                background: isChecked ? '#000000' : '#ffffff',
+                                                borderRadius: '50%',
+                                                flexShrink: 0,
+                                                marginTop: 0
+                                              }}>
+                                                {isChecked && <span style={{ width: '4px', height: '4px', background: '#ffffff', borderRadius: '50%' }} />}
+                                              </span>
+                                              <span style={{ color: isChecked ? '#000000' : '#64748b', lineHeight: 1.3, textAlign: 'left', whiteSpace: isInline ? 'nowrap' : 'pre-wrap', wordBreak: isInline ? 'normal' : 'break-word', flex: isInline ? undefined : (cellAlign === 'center' || cellAlign === 'right' ? undefined : 1) }}>
+                                                {renderFormattedText(opt.label)}
+                                                {isOther && isChecked && otherText && (
+                                                  <span style={{ fontWeight: 600, textDecoration: 'underline', marginLeft: '4px' }}>: {otherText}</span>
+                                                )}
+                                              </span>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
                                   ) : (
                                     <div style={{ display: 'flex', justifyContent: 'center' }}>
                                       <input type="radio" checked={cellValue === 'true'} readOnly style={{ transform: 'scale(1.1)' }} />
@@ -1324,7 +1339,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                                     </div>
                                   );
                                 })() : (
-                                  <span style={{ display: 'block', textAlign: cellAlign }}>{cellValue}</span>
+                                  <span style={{ display: 'block', textAlign: cellAlign }}>{isOtherValue(cellValue) ? formatOptionDisplay(cellValue, col.options) : cellValue}</span>
                                 )}
                               </td>
                             );

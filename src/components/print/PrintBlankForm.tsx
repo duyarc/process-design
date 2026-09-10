@@ -593,7 +593,12 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                             marginTop: isLongOpt ? '2px' : '0'
                                           }}
                                         />
-                                        <span style={{ lineHeight: '1.3' }}>{opt.label}</span>
+                                        <span style={{ lineHeight: '1.3', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                          <span>{opt.label}</span>
+                                          {(opt.isOther || opt.value === '__other__') && (
+                                            <span style={{ borderBottom: '1px dotted #000000', width: '80px', display: 'inline-block', height: '10px' }} />
+                                          )}
+                                        </span>
                                       </span>
                                     ))}
                                   </div>
@@ -631,7 +636,12 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                           borderRadius: f.type === 'radio' ? '50%' : '2px'
                                         }}
                                       />
-                                      <span style={{ lineHeight: '1.3' }}>{opt.label}</span>
+                                      <span style={{ lineHeight: '1.3', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                          <span>{opt.label}</span>
+                                          {(opt.isOther || opt.value === '__other__') && (
+                                            <span style={{ borderBottom: '1px dotted #000000', width: '80px', display: 'inline-block', height: '10px' }} />
+                                          )}
+                                        </span>
                                     </span>
                                   ))}
                                 </div>
@@ -907,7 +917,12 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                             data-field-radiovalue={opt.value}
                                             style={{ borderRadius: field.type === 'radio' ? '50%' : '2px' }}
                                           />
-                                          <span>{opt.label}</span>
+                                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                            <span>{opt.label}</span>
+                                            {(opt.isOther || opt.value === '__other__') && (
+                                              <span style={{ borderBottom: '1px dotted #000000', width: '70px', display: 'inline-block', height: '10px' }} />
+                                            )}
+                                          </span>
                                         </span>
                                       ))}
                                     </div>
@@ -1345,7 +1360,12 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                                   flexShrink: 0
                                                 }}
                                               />
-                                              <span style={{ fontSize: '0.80rem', lineHeight: 1.3, textAlign: 'left', whiteSpace: isInline ? 'nowrap' : 'pre-wrap', wordBreak: isInline ? 'normal' : 'break-word', flex: isInline ? undefined : (cellAlign === 'center' || cellAlign === 'right' ? undefined : 1) }}>{renderFormattedText(opt.label)}</span>
+                                              <span style={{ fontSize: '0.80rem', lineHeight: 1.3, textAlign: 'left', whiteSpace: isInline ? 'nowrap' : 'pre-wrap', wordBreak: isInline ? 'normal' : 'break-word', flex: isInline ? undefined : (cellAlign === 'center' || cellAlign === 'right' ? undefined : 1) }}>
+                                                {renderFormattedText(opt.label)}
+                                                {(opt.isOther || opt.value === '__other__') && (
+                                                  <span style={{ borderBottom: '1px dotted #000000', width: '70px', display: 'inline-block', height: '10px', marginLeft: '4px' }} />
+                                                )}
+                                              </span>
                                             </div>
                                           ))}
                                         </div>

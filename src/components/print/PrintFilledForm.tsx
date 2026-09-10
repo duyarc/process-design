@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import { Star } from 'lucide-react';
 import type { Submission, SubmissionFieldSnapshot, FormTemplateISO, LayoutBlockISO, TableColumnConfig } from '../../types';
 import { formatFormVersion, getColStyleWidth } from '../../types';
-import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock, getInfoGridTemplateColumns } from '../../utils/formUtils';
+import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock, getInfoGridTemplateColumns, isOtherValue, extractOtherText, formatOptionDisplay } from '../../utils/formUtils';
 import { renderFormattedText } from '../../utils/textFormatter';
 
 // ─── Helpers (mirrored from PrintBlankForm) ───────────────────────────────────
@@ -44,8 +44,14 @@ function getChecklistColumns(block: LayoutBlockISO): TableColumnConfig[] {
 /** Check whether a stored field value means a specific option is selected */
 function isOptionSelected(fieldValue: string, optValue: string, colType: 'radio' | 'checkbox'): boolean {
   if (!fieldValue) return false;
-  if (colType === 'radio') return fieldValue.trim() === optValue;
-  return fieldValue.split(',').map(v => v.trim()).includes(optValue);
+  const isOther = optValue === '__other__';
+  if (colType === 'radio') {
+    if (isOther) return isOtherValue(fieldValue);
+    return fieldValue.trim() === optValue;
+  }
+  const parts = fieldValue.split(',').map(v => v.trim());
+  if (isOther) return parts.some(v => isOtherValue(v));
+  return parts.includes(optValue);
 }
 
 /** Parse a signature snapshot value: "Name [Xác thực: timestamp]" */
@@ -579,6 +585,8 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                     }}>
                                       {options.map((opt: any) => {
                                         const selected = isOptionSelected(val, opt.value, f.type as 'radio' | 'checkbox');
+                                        const isOther = opt.isOther || opt.value === '__other__';
+                                        const otherText = isOther && selected ? extractOtherText(val) : '';
                                         return (
                                           <span key={opt.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', whiteSpace: 'normal', wordBreak: 'break-word', maxWidth: '100%' }}>
                                             <span style={{
@@ -591,7 +599,12 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                             }}>
                                               {selected ? '✓' : ''}
                                             </span>
-                                            <span style={{ lineHeight: '1.3' }}>{opt.label}</span>
+                                            <span style={{ lineHeight: '1.3' }}>
+                                              {opt.label}
+                                              {isOther && selected && otherText && (
+                                                <span style={{ fontWeight: 600, textDecoration: 'underline', marginLeft: '4px' }}>: {otherText}</span>
+                                              )}
+                                            </span>
                                           </span>
                                         );
                                       })}
@@ -618,6 +631,8 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 20px', alignItems: 'center', maxWidth: '100%' }}>
                                     {options.map((opt: any) => {
                                       const selected = isOptionSelected(val, opt.value, f.type as 'radio' | 'checkbox');
+                                      const isOther = opt.isOther || opt.value === '__other__';
+                                      const otherText = isOther && selected ? extractOtherText(val) : '';
                                       return (
                                         <span key={opt.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.8rem', whiteSpace: 'normal', wordBreak: 'break-word', maxWidth: '100%' }}>
                                           <span style={{
@@ -629,7 +644,12 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                           }}>
                                             {selected ? '✓' : ''}
                                           </span>
-                                          <span style={{ lineHeight: '1.3' }}>{opt.label}</span>
+                                          <span style={{ lineHeight: '1.3' }}>
+                                            {opt.label}
+                                            {isOther && selected && otherText && (
+                                              <span style={{ fontWeight: 600, textDecoration: 'underline', marginLeft: '4px' }}>: {otherText}</span>
+                                            )}
+                                          </span>
                                         </span>
                                       );
                                     })}
@@ -796,6 +816,8 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                             <div style={{ display: 'flex', justifyContent: 'center', gap: '15px', flexWrap: 'wrap', alignItems: 'center' }}>
                                               {opts.map((opt: any) => {
                                                 const selected = isOptionSelected(fieldVal, opt.value, field.type as 'radio' | 'checkbox');
+                                                const isOther = opt.isOther || opt.value === '__other__';
+                                                const otherText = isOther && selected ? extractOtherText(fieldVal) : '';
                                                 return (
                                                   <span key={opt.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem' }}>
                                                     <span style={{
@@ -807,7 +829,12 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                                     }}>
                                                       {selected ? '✓' : ''}
                                                     </span>
-                                                    <span>{opt.label}</span>
+                                                    <span>
+                                                      {opt.label}
+                                                      {isOther && selected && otherText && (
+                                                        <span style={{ fontWeight: 600, textDecoration: 'underline', marginLeft: '4px' }}>: {otherText}</span>
+                                                      )}
+                                                    </span>
                                                   </span>
                                                 );
                                               })}
@@ -1091,7 +1118,9 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                                   width: '100%'
                                                 }}>
                                                   {opts.map((opt: any, oIdx: number) => {
-                                                    const isChecked = currentValues.includes(opt.value) || currentValues.includes(opt.label);
+                                                    const isOther = opt.isOther || opt.value === '__other__';
+                                                    const isChecked = currentValues.includes(opt.value) || currentValues.includes(opt.label) || (isOther && currentValues.some(v => isOtherValue(v)));
+                                                    const otherText = isOther && isChecked ? extractOtherText(currentValues.find(v => isOtherValue(v))) : '';
                                                     return (
                                                       <div key={oIdx} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', color: '#000000', width: isInline ? 'auto' : (cellAlign === 'center' || cellAlign === 'right' ? 'fit-content' : '100%'), textAlign: 'left', whiteSpace: isInline ? 'nowrap' : undefined }}>
                                                         <span style={{
@@ -1112,6 +1141,9 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                                         </span>
                                                         <span style={{ color: isChecked ? '#000000' : '#64748b', lineHeight: 1.3, textAlign: 'left', whiteSpace: isInline ? 'nowrap' : 'pre-wrap', wordBreak: isInline ? 'normal' : 'break-word', flex: isInline ? undefined : (cellAlign === 'center' || cellAlign === 'right' ? undefined : 1) }}>
                                                           {renderFormattedText(opt.label)}
+                                                          {isOther && isChecked && otherText && (
+                                                            <span style={{ fontWeight: 600, textDecoration: 'underline', marginLeft: '4px' }}>: {otherText}</span>
+                                                          )}
                                                         </span>
                                                       </div>
                                                     );
@@ -1141,7 +1173,9 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                                   width: '100%'
                                                 }}>
                                                   {opts.map((opt: any, oIdx: number) => {
-                                                    const isChecked = cellVal === opt.value || cellVal === opt.label;
+                                                    const isOther = opt.isOther || opt.value === '__other__';
+                                                    const isChecked = cellVal === opt.value || cellVal === opt.label || (isOther && isOtherValue(cellVal));
+                                                    const otherText = isOther && isChecked ? extractOtherText(cellVal) : '';
                                                     return (
                                                       <div key={oIdx} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', color: '#000000', width: isInline ? 'auto' : (cellAlign === 'center' || cellAlign === 'right' ? 'fit-content' : '100%'), textAlign: 'left', whiteSpace: isInline ? 'nowrap' : undefined }}>
                                                         <span style={{
@@ -1159,6 +1193,9 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                                         </span>
                                                         <span style={{ color: isChecked ? '#000000' : '#64748b', lineHeight: 1.3, textAlign: 'left', whiteSpace: isInline ? 'nowrap' : 'pre-wrap', wordBreak: isInline ? 'normal' : 'break-word', flex: isInline ? undefined : (cellAlign === 'center' || cellAlign === 'right' ? undefined : 1) }}>
                                                           {renderFormattedText(opt.label)}
+                                                          {isOther && isChecked && otherText && (
+                                                            <span style={{ fontWeight: 600, textDecoration: 'underline', marginLeft: '4px' }}>: {otherText}</span>
+                                                          )}
                                                         </span>
                                                       </div>
                                                     );
@@ -1194,7 +1231,7 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                               wordBreak: 'break-word',
                                               lineHeight: 1.4
                                             }}>
-                                              {effectiveText ? renderFormattedText(effectiveText) : '\u00A0'}
+                                              {effectiveText ? renderFormattedText(isOtherValue(effectiveText) ? formatOptionDisplay(effectiveText, col.options) : effectiveText) : '\u00A0'}
                                             </div>
                                           </td>
                                         );

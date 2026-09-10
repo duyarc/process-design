@@ -9,7 +9,7 @@
 | **Module Name** | Form Operations |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-09-10) — Sections 2, 8 (Unified Table print rendering & row reconstruction in PrintFilledForm) |
+| **Verified At Commit** | (2026-09-10) — Custom "Khác" Option in FormFiller, PrintFilledForm, and PrintRecord (compound prefix storage, progressive disclosure, and print formatting) |
 
 ### Quick File Index
 
@@ -397,6 +397,15 @@ Form submission validation logic is modularized in `src/utils/formUtils.ts` unde
 - **Arbitrary rule removal:** The legacy hardcoded mandatory fill check (`Please fill out all check items`) was removed to prevent blocking form submissions when operators leave optional or non-applicable fields blank. Unfilled fields record empty strings without throwing corrective action errors.
 - **Single Source of Truth for Validation:** `validateFormSubmission` accepts `(formTemplate, formValues)` and returns `{ isValid: boolean, errors: string[] }`. Future domain validation rules (e.g., field-level required flags, step-based criteria, or custom specification boundaries) must be added inside `validateFormSubmission()` rather than scattering ad-hoc alerts inside `FormFiller.tsx`.
 
+### 6.5 Custom "Khác" (Other) Option Value Storage & Progressive Disclosure
+
+Fields with options (`checkbox`, `radio`, `select`) support an expandable "Khác" (free-text entry) option:
+- **Zero-Migration Compound Storage:** Free-form user input is encoded directly within the string value using the prefix `__other__:<text>` via `encodeOtherValue()` in `formUtils.ts`.
+  - For single selection (`radio`, `select`): value is stored as `__other__:<text>` (or `__other__` when blank).
+  - For multiple selection (`checkbox`): value is stored as a comma-separated list where the custom entry is included as `__other__:<text>` (e.g., `OPT_1,__other__:Chi tiết bổ sung`).
+- **Progressive Disclosure:** `FormFiller.tsx` conditionally reveals an auto-focusing `<input type="text">` immediately below the option when "Khác" is checked or selected, seamlessly synchronizing compound values.
+- **Print & View Rendering:** `PrintFilledForm.tsx` and `PrintRecord.tsx` use `isOtherValue()`, `extractOtherText()`, and `formatOptionDisplay()` to detect custom options and format them as `[Nhãn]: [Văn bản nhập]` with underlined text formatting.
+
 ---
 
 ## 7. Known Design Constraints & Technical Debt
@@ -421,7 +430,6 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 
 | Date | Commit | Change |
 |---|---|---|
-| 2026-08-27 | `CURRENT` | **Submission Validation Logic Fix:** Removed hard blocks on failed checks (action note & photo requirements) in `FormFiller.tsx` and `ProcessReader.tsx`, allowing non-compliant inspection records to be submitted normally with `status: 'ABNORMALITY'`. |
 | 2026-08-27 | `CURRENT` | **Minimal Copy Submission Workflow & Admin Deletion:** Replaced in-place editing with an immutable Copy-to-New workflow (Copy button in Submission Detail Drawer and Success Screen only, keeping list views clean). Submissions created via Copy receive fresh sequential IDs upon submit. Admin deletion guarded by `ConfirmModal`. |
 | 2026-08-27 | `CURRENT` | **Zero-Interruption Submission Flow & Non-Blocking Toast Feedback:** Eliminated full-page Success Screen. Form submission now triggers non-blocking toast notifications (`✓ Đã gửi phiếu thành công! (Mã: ID)`) and automatically navigates back to previous screen (or auto-resets form on public guest URLs). |
 | 2026-08-27 | `CURRENT` | **Read-Only Full Online Form View & Drawer Interaction Partitioning:** Added `readOnly` mode to `FormFiller.tsx` (locking inputs, disabling editing, rendering top metadata banner, and footer action bar). Clicking table rows opens the Slide-over Drawer (Quick Glance & Audit), while clicking Eye icon or Drawer's `[Toàn văn]` button opens the full digital online form view. |
@@ -437,6 +445,7 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 | 2026-09-10 | `CURRENT` | **Dynamic Table Rows Persistence, Reconstruction & Blank Filtering:** Updated `FormFiller.tsx` to collect dynamic rows from `tableRowsMap` during submit/update, automatically dropping completely blank dynamic rows to prevent ghost trailing rows. Added `reconstructTableRows` to restore dynamic rows from `formData` snapshots upon loading and on edit cancellation, and hidden delete icons when read-only with explicit `+ Thêm dòng` buttons. |
 | 2026-09-10 | `CURRENT` | **Submission Amendment Authorization & Token Fallback Resolution:** Fixed 403 error on submission update (`PUT /api/submissions/:id`). (1) In `FormManager.tsx` and `SubmissionManager.tsx`, passed `editSubmissionId`, `editToken`, and `canEditSubmission` to `FormFiller`. (2) In `FormFiller.tsx`, expanded `canAdminEdit` to include `supervisor` role and added cascading fallback for `resolvedEditToken` from `initialSubmission.accessToken` and `localStorage` `submission_history`. (3) Replaced submission error `alert()` with non-blocking red toast. |
 | 2026-09-10 | `CURRENT` | **Unified Table Render Engine & Dynamic Structure Reconstruction in PrintFilledForm:** (1) Replaced `buildTableRowMap` with `reconstructTableRows` to preserve 100% template rows (including `isGroupHeader` and static question labels) while dynamically inserting user-added rows from submission snapshots. (2) Unified print table rendering into a single flow with automatic fallback to `block.tableData` for static labels, enforced `minHeight` with `\u00A0` to prevent empty cell collapse, and removed global `pageBreakInside: avoid` from `<tbody>` down to individual `<tr>` to prevent duplicate row cloning across page boundaries. |
+| 2026-09-10 | `CURRENT` | **Custom "Khác" (Other) Progressive Input & Print Rendering:** (1) Implemented compound prefix storage `__other__:<text>` with zero DB schema changes. (2) Added progressive disclosure text input in `FormFiller.tsx` for Checkbox, Radio, and Select across Info Grid, Checklist, and Tables. (3) Updated `PrintFilledForm.tsx` and `PrintRecord.tsx` to render custom text alongside option labels. |
 
 
 

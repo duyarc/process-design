@@ -598,6 +598,51 @@ export function computeSectionProgress(
   };
 }
 
+// ═══════════════════════════════════════════════════════════════
+// OTHER / CUSTOM OPTION HELPERS
+// ═══════════════════════════════════════════════════════════════
 
+export const OTHER_OPTION_VALUE = '__other__';
+export const OTHER_PREFIX = '__other__:';
 
+/**
+ * Kiểm tra xem một giá trị đã lưu có phải là lựa chọn "Khác" hay không.
+ */
+export function isOtherValue(val?: string | null): boolean {
+  if (!val) return false;
+  return val === OTHER_OPTION_VALUE || val.startsWith(OTHER_PREFIX);
+}
 
+/**
+ * Trích xuất phần nội dung người dùng tự gõ từ giá trị "Khác".
+ */
+export function extractOtherText(val?: string | null): string {
+  if (!val) return '';
+  if (val.startsWith(OTHER_PREFIX)) {
+    return val.slice(OTHER_PREFIX.length);
+  }
+  return '';
+}
+
+/**
+ * Đóng gói nội dung tự gõ thành giá trị chuẩn: "__other__:Nội dung".
+ */
+export function encodeOtherValue(text: string): string {
+  const trimmed = text.trim();
+  return trimmed ? `${OTHER_PREFIX}${trimmed}` : OTHER_OPTION_VALUE;
+}
+
+/**
+ * Định dạng hiển thị nhãn và nội dung tự gõ cho báo cáo và bản in.
+ */
+export function formatOptionDisplay(val: string, options?: { label: string; value: string; isOther?: boolean }[]): string {
+  if (!val) return '';
+  if (isOtherValue(val)) {
+    const customText = extractOtherText(val);
+    const otherOpt = options?.find(o => o.isOther || o.value === OTHER_OPTION_VALUE);
+    const label = otherOpt?.label || 'Khác:';
+    return customText ? `${label} ${customText}` : label;
+  }
+  const matched = options?.find(o => o.value === val);
+  return matched ? matched.label : val;
+}
