@@ -24,6 +24,26 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-10 — In-Canvas Dropdown (Select) Accordion Option Editor
+
+**Scope:** 2 files, 201 insertions, 15 deletions (`caecf2e`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian thực thi (Proceed → Push) | 12.7 min |
+| Số file nguồn chỉnh sửa | 1 |
+| Tổng lượt edit source | 1 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 2 |
+| Lần build đầu thành công? | Có |
+| Số lệnh thất bại | 0 (code), 3 (tool/background checks) |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Lỗi phát sinh:** Không có lỗi mã nguồn hoặc cú pháp phát sinh. 100% build pass ngay lần đầu nhờ áp dụng Mục 12 (Safe Code Patching).
+
+---
+
 ### 2026-09-10 — Custom "Khác" (Other) Option
 
 **Scope:** 9 files, 896 insertions, 275 deletions
