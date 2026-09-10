@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { Star } from 'lucide-react';
-import type { Submission, FormTemplateISO, LayoutBlockISO, TableColumnConfig } from '../../types';
+import type { Submission, SubmissionFieldSnapshot, FormTemplateISO, LayoutBlockISO, TableColumnConfig } from '../../types';
 import { formatFormVersion, getColStyleWidth } from '../../types';
 import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock, getInfoGridTemplateColumns } from '../../utils/formUtils';
 import { renderFormattedText } from '../../utils/textFormatter';
@@ -55,34 +55,99 @@ function parseSignature(value: string): { name: string; timestamp: string } {
   return { name: value, timestamp: '' };
 }
 
-/** Reconstruct TABLE rows from formData snapshots (safer than trusting block.tableRows for dynamic submissions) */
-function buildTableRowMap(
-  blockId: string,
-  formData: Submission['formData'],
-  tableColumns: TableColumnConfig[]
-): Array<{ rowId: string; cells: Map<string, string> }> {
-  const prefix = blockId + '_';
-  const knownColIds = new Set(tableColumns.map(c => c.id));
-  const rowOrder: string[] = [];
-  const rowCells = new Map<string, Map<string, string>>();
+/**
+ * Tái cấu trúc danh sách dòng của khối TABLE từ snapshot formData của submission.
+ * - Giữ nguyên 100% các dòng tĩnh trong block.tableRows (bao gồm dòng tiêu đề nhóm isGroupHeader, câu hỏi mẫu, gợi ý).
+ * - Phát hiện và chèn các dòng động (có trong formData) vào đúng vị trí sau template row tương ứng.
+ */
+function reconstructTableRows(block: any, formData: SubmissionFieldSnapshot[]): any[] {
+  const templateRows = block.tableRows || [];
+  if (!formData || !Array.isArray(formData) || templateRows.length === 0) {
+    return templateRows;
+  }
 
+  const prefix = `${block.id}_`;
+  const knownColIds = new Set<string>((block.tableColumns || []).map((c: any) => String(c.id)));
+
+  // Trích xuất các rowId xuất hiện trong formData theo đúng thứ tự (bỏ qua summary rows)
+  const formDataRowIds: string[] = [];
   formData.forEach(s => {
-    if (!s.id.startsWith(prefix)) return;
+    if (!s.id || !s.id.startsWith(prefix) || s.id.startsWith(`${prefix}summary_`)) return;
     const rest = s.id.slice(prefix.length);
     for (const colId of knownColIds) {
-      if (rest.endsWith('_' + colId)) {
+      if (rest.endsWith(`_${colId}`)) {
         const rowId = rest.slice(0, rest.length - colId.length - 1);
-        if (!rowCells.has(rowId)) {
-          rowCells.set(rowId, new Map());
-          rowOrder.push(rowId);
+        if (rowId && !formDataRowIds.includes(rowId)) {
+          formDataRowIds.push(rowId);
         }
-        rowCells.get(rowId)!.set(colId, s.value);
         break;
       }
     }
   });
 
-  return rowOrder.map(rowId => ({ rowId, cells: rowCells.get(rowId)! }));
+  const templateRowMap = new Map(templateRows.map((r: any) => [r.id, r]));
+  const dynamicRowIds = formDataRowIds.filter(id => !templateRowMap.has(id));
+
+  // Nếu không có dòng động nào, trả về danh sách template nguyên bản
+  if (dynamicRowIds.length === 0) {
+    return templateRows;
+  }
+
+  // Ghép các dòng động vào đúng vị trí tương đối
+  const reconstructed: any[] = [];
+  let currentGroupId: string | undefined = undefined;
+  const insertedDynRowIds = new Set<string>();
+
+  const dynPrecededBy = new Map<string, string>();
+  for (let i = 0; i < formDataRowIds.length; i++) {
+    const rId = formDataRowIds[i];
+    if (!templateRowMap.has(rId) && i > 0) {
+      dynPrecededBy.set(rId, formDataRowIds[i - 1]);
+    }
+  }
+
+  templateRows.forEach((tRow: any) => {
+    if (tRow.isGroupHeader) {
+      currentGroupId = tRow.id;
+    } else if (tRow.groupId) {
+      currentGroupId = tRow.groupId;
+    }
+    reconstructed.push(tRow);
+
+    // Chèn dòng động liền sau template row này nếu có
+    let lastInsertedId = tRow.id;
+    while (true) {
+      const nextDyn = formDataRowIds.find(id =>
+        !insertedDynRowIds.has(id) &&
+        !templateRowMap.has(id) &&
+        dynPrecededBy.get(id) === lastInsertedId
+      );
+      if (!nextDyn) break;
+      insertedDynRowIds.add(nextDyn);
+      reconstructed.push({
+        id: nextDyn,
+        isDynamic: true,
+        groupId: currentGroupId,
+        lineCount: tRow.lineCount || 1
+      });
+      lastInsertedId = nextDyn;
+    }
+  });
+
+  // Chèn các dòng động còn sót lại nếu có
+  dynamicRowIds.forEach(dId => {
+    if (!insertedDynRowIds.has(dId)) {
+      reconstructed.push({
+        id: dId,
+        isDynamic: true,
+        groupId: currentGroupId,
+        lineCount: 1
+      });
+      insertedDynRowIds.add(dId);
+    }
+  });
+
+  return reconstructed;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -779,9 +844,24 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                     const cellBorder = bStyle === 'borderless' ? 'none' : bStyle === 'horizontal_only' ? 'none' : '1px solid #000000';
                     const cellBorderBottom = bStyle === 'horizontal_only' ? '1px solid #000000' : (bStyle === 'borderless' ? 'none' : '1px solid #000000');
                     const tableCols: TableColumnConfig[] = block.tableColumns || [];
-                    const reconstructedRows = buildTableRowMap(block.id, submission.formData, tableCols);
-                    // Fall back to template rows (static) if no snapshot rows found
-                    const useTemplateRows = reconstructedRows.length === 0;
+                    const allRows = reconstructTableRows(block, submission.formData || []);
+
+                    const groups: { groupHeaderRow?: any; rows: any[] }[] = [];
+                    let curGroup: { groupHeaderRow?: any; rows: any[] } = { rows: [] };
+
+                    allRows.forEach((row: any) => {
+                      if (row.isGroupHeader) {
+                        if (curGroup.groupHeaderRow || curGroup.rows.length > 0) {
+                          groups.push(curGroup);
+                        }
+                        curGroup = { groupHeaderRow: row, rows: [] };
+                      } else {
+                        curGroup.rows.push(row);
+                      }
+                    });
+                    if (curGroup.groupHeaderRow || curGroup.rows.length > 0) {
+                      groups.push(curGroup);
+                    }
                     return (
                       <div style={{ marginTop: '0' }}>
                         {titleFmt !== 'NONE' && (
@@ -843,38 +923,18 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                               </tr>
                             </thead>
                           )}
-                          {useTemplateRows ? (() => {
-                            const rawRows = block.tableRows || [];
-                            if (rawRows.length === 0) {
-                              return (
-                                <tbody className="print-table-group" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                                  <tr><td colSpan={tableCols.length} style={{ border: cellBorder, padding: '8px', textAlign: 'center', color: '#64748b', fontStyle: 'italic', fontSize: '0.8rem' }}>Không có dữ liệu.</td></tr>
-                                </tbody>
-                              );
-                            }
-
-                            const groups: { groupHeaderRow?: any; rows: any[] }[] = [];
-                            let curGroup: { groupHeaderRow?: any; rows: any[] } = { rows: [] };
-
-                            rawRows.forEach((row: any) => {
-                              if (row.isGroupHeader) {
-                                if (curGroup.groupHeaderRow || curGroup.rows.length > 0) {
-                                  groups.push(curGroup);
-                                }
-                                curGroup = { groupHeaderRow: row, rows: [] };
-                              } else {
-                                curGroup.rows.push(row);
-                              }
-                            });
-                            if (curGroup.groupHeaderRow || curGroup.rows.length > 0) {
-                              groups.push(curGroup);
-                            }
-
-                            return groups.map((grp, gIdx) => (
-                              <tbody key={grp.groupHeaderRow?.id || `grp_${gIdx}`} className="print-table-group" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                                {/* Anchor row: invisible zero-height row so Chrome uses individual
-                                    cell widths (not the colSpan group header) when this tbody
-                                    starts on a new print page. */}
+                          {allRows.length === 0 ? (
+                            <tbody className="print-table-group">
+                              <tr>
+                                <td colSpan={tableCols.length} style={{ border: cellBorder, padding: '8px', textAlign: 'center', color: '#64748b', fontStyle: 'italic', fontSize: '0.8rem' }}>
+                                  Không có dữ liệu.
+                                </td>
+                              </tr>
+                            </tbody>
+                          ) : (
+                            groups.map((grp, gIdx) => (
+                              <tbody key={grp.groupHeaderRow?.id || `grp_${gIdx}`} className="print-table-group">
+                                {/* Anchor row: invisible row to stabilize fixed table column widths across pages */}
                                 <tr aria-hidden="true" style={{ height: 0, lineHeight: 0, overflow: 'hidden' }}>
                                   {tableCols.map((col) => {
                                     const colWidth = getColStyleWidth(col.id, col.width, tableCols);
@@ -896,6 +956,8 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                     );
                                   })}
                                 </tr>
+
+                                {/* Tiêu đề nhóm (Group Header Row) */}
                                 {grp.groupHeaderRow && (
                                   <tr key={grp.groupHeaderRow.id} style={{ pageBreakInside: 'avoid', pageBreakAfter: 'avoid', breakAfter: 'avoid' }}>
                                     <td
@@ -904,10 +966,10 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                         border: cellBorder,
                                         borderBottom: cellBorderBottom,
                                         background: bStyle === 'borderless' ? 'transparent' : '#f8fafc',
-                                        fontWeight: 'var(--pw-weight-regular)',
+                                        fontWeight: 'var(--pw-weight-bold)',
                                         fontSize: 'var(--pw-font-body)',
                                         lineHeight: 1.45,
-                                        padding: '5px 8px',
+                                        padding: '6px 8px',
                                         color: '#000000',
                                         whiteSpace: 'pre-wrap',
                                         wordBreak: 'break-word'
@@ -917,374 +979,231 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                     </td>
                                   </tr>
                                 )}
-                                {grp.rows.map(row => (
-                                  <tr key={row.id} style={{ pageBreakInside: 'avoid' }}>
-                                    {tableCols.map(col => {
-                                      const colWidth = getColStyleWidth(col.id, col.width, tableCols);
-                                      const hasOptions = col.type === 'checkbox' && col.options && col.options.length > 0;
-                                      const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? (hasOptions ? 'left' : 'center') : col.type === 'likert_scale' ? 'center' : 'left'));
-                                      const snapKey = `${block.id}_${row.id}_${col.id}`;
-                                      const cellVal = getVal(snapKey);
-                                      const staticVal = block.tableData?.[row.id]?.[col.id];
-                                      const isStaticLabel = (col.type === 'static_text' || col.type === 'text') && staticVal !== undefined && staticVal !== null && staticVal.toString().trim() !== '';
-                                      
-                                      if (col.type === 'likert_scale') {
-                                        const scaleOptions = col.scaleOptions || ['Easy to Answer', 'Could Answer', 'Difficult to Answer'];
-                                        return (
-                                          <td key={col.id} style={{ border: cellBorder, borderBottom: cellBorderBottom, padding: '4px 6px', fontSize: '0.82rem', verticalAlign: 'middle', height: '28px', textAlign: 'center', width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
-                                            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${scaleOptions.length}, 1fr)`, gap: '4px', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
-                                              {scaleOptions.map((opt, sIdx) => {
-                                                const isSelected = cellVal === opt;
-                                                return (
-                                                  <div key={sIdx} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                                                    <span
+
+                                {/* Các dòng dữ liệu (Template rows + Dynamic rows) */}
+                                {grp.rows.map(row => {
+                                  const lineCount = row.lineCount ?? 1;
+                                  const minCellHeight = Math.max(26, lineCount * 22);
+
+                                  return (
+                                    <tr key={row.id} style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                                      {tableCols.map(col => {
+                                        const colWidth = getColStyleWidth(col.id, col.width, tableCols);
+                                        const snapKey = `${block.id}_${row.id}_${col.id}`;
+                                        const cellVal = getVal(snapKey);
+                                        const staticVal = block.tableData?.[row.id]?.[col.id];
+                                        const hasStaticVal = staticVal !== undefined && staticVal !== null && staticVal.toString().trim() !== '';
+
+                                        // Fallback lấy giá trị từ template tableData nếu snapshot rỗng
+                                        const effectiveText = (cellVal && cellVal.trim() !== '') 
+                                          ? cellVal 
+                                          : (hasStaticVal ? String(staticVal) : '');
+
+                                        const hasOptions = (col.type === 'checkbox' || col.type === 'radio') && col.options && col.options.length > 0;
+                                        const cellAlign = col.align || (
+                                          col.type === 'number' ? 'right' : 
+                                          (col.type === 'checkbox' || col.type === 'radio' ? (hasOptions ? 'left' : 'center') : 
+                                          (col.type === 'likert_scale' || col.type === 'rating' ? 'center' : 'left'))
+                                        );
+
+                                        // 1. LIKERT SCALE (Hiển thị radio tròn đen theo lựa chọn)
+                                        if (col.type === 'likert_scale') {
+                                          const scaleOptions = col.scaleOptions || ['Easy to Answer', 'Could Answer', 'Difficult to Answer'];
+                                          return (
+                                            <td key={col.id} style={{ border: cellBorder, borderBottom: cellBorderBottom, padding: '4px 6px', fontSize: '0.82rem', verticalAlign: 'middle', minHeight: `${minCellHeight}px`, textAlign: 'center', width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
+                                              <div style={{ display: 'grid', gridTemplateColumns: `repeat(${scaleOptions.length}, 1fr)`, gap: '4px', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+                                                {scaleOptions.map((opt, sIdx) => {
+                                                  const isSelected = cellVal === opt;
+                                                  return (
+                                                    <div key={sIdx} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                                      <span
+                                                        style={{
+                                                          display: 'inline-flex',
+                                                          alignItems: 'center',
+                                                          justifyContent: 'center',
+                                                          width: '13px',
+                                                          height: '13px',
+                                                          borderRadius: '50%',
+                                                          border: '1px solid #000000',
+                                                          background: '#ffffff'
+                                                        }}
+                                                      >
+                                                        {isSelected && (
+                                                          <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#000000' }} />
+                                                        )}
+                                                      </span>
+                                                    </div>
+                                                  );
+                                                })}
+                                              </div>
+                                            </td>
+                                          );
+                                        }
+
+                                        // 2. RATING (Hiển thị các ngôi sao sao đặc/sao rỗng)
+                                        if (col.type === 'rating') {
+                                          const scale = col.ratingScale === 3 ? 3 : 5;
+                                          const currentRating = parseInt(cellVal, 10) || 0;
+                                          return (
+                                            <td key={col.id} style={{ border: cellBorder, borderBottom: cellBorderBottom, padding: '4px 6px', fontSize: '0.82rem', verticalAlign: 'middle', minHeight: `${minCellHeight}px`, textAlign: 'center', width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
+                                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
+                                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+                                                  {Array.from({ length: scale }).map((_, idx) => (
+                                                    <Star
+                                                      key={idx}
+                                                      size={13}
                                                       style={{
-                                                        display: 'inline-flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'center',
-                                                        width: '13px',
-                                                        height: '13px',
-                                                        borderRadius: '50%',
-                                                        border: '1px solid #000000',
-                                                        background: '#ffffff'
+                                                        color: '#000000',
+                                                        fill: idx < currentRating ? '#000000' : 'none',
+                                                        strokeWidth: 1.4
                                                       }}
-                                                    >
-                                                      {isSelected && (
-                                                        <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#000000' }} />
-                                                      )}
-                                                    </span>
-                                                  </div>
-                                                );
-                                              })}
-                                            </div>
-                                          </td>
-                                        );
-                                      }
-
-                                      if (col.type === 'rating') {
-                                        const scale = col.ratingScale === 3 ? 3 : 5;
-                                        const currentRating = parseInt(cellVal, 10) || 0;
-                                        return (
-                                          <td key={col.id} style={{ border: cellBorder, borderBottom: cellBorderBottom, padding: '4px 6px', fontSize: '0.82rem', verticalAlign: 'middle', height: '28px', textAlign: 'center', width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
-                                              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
-                                                {Array.from({ length: scale }).map((_, idx) => (
-                                                  <Star
-                                                    key={idx}
-                                                    size={13}
-                                                    style={{
-                                                      color: '#000000',
-                                                      fill: idx < currentRating ? '#000000' : 'none',
-                                                      strokeWidth: 1.4
-                                                    }}
-                                                  />
-                                                ))}
-                                              </div>
-                                              {currentRating > 0 && (
-                                                <span style={{ fontSize: '0.72rem', fontWeight: 'var(--pw-weight-heavy)', marginLeft: '3px' }}>
-                                                  ({currentRating}/{scale})
-                                                </span>
-                                              )}
-                                            </div>
-                                          </td>
-                                        );
-                                      }
-
-                                      if (col.type === 'select') {
-                                        const customOpts = (block as any).cellOptionsMap?.[row.id]?.[col.id];
-                                        const opts = (customOpts && customOpts.length > 0) ? customOpts : (col.options || []);
-                                        const matchedOpt = opts.find((o: any) => o.value === cellVal || o.label === cellVal);
-                                        const displayVal = matchedOpt ? matchedOpt.label : cellVal;
-                                        return (
-                                          <td key={col.id} style={{ border: cellBorder, borderBottom: cellBorderBottom, padding: '4px 6px', fontSize: '0.82rem', verticalAlign: 'middle', minHeight: '28px', textAlign: cellAlign as any, width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
-                                            <span>{displayVal ? renderFormattedText(displayVal) : ''}</span>
-                                          </td>
-                                        );
-                                      }
-
-                                      if (col.type === 'radio') {
-                                        const customOpts = (block as any).cellOptionsMap?.[row.id]?.[col.id];
-                                        const opts = (customOpts && customOpts.length > 0) ? customOpts : (col.options || []);
-                                        if (opts.length > 0) {
-                                          const isInline = canTableOptionsFitInline(opts, col.width, col.checkboxLayout);
-                                          return (
-                                            <td key={col.id} style={{ border: cellBorder, borderBottom: cellBorderBottom, padding: '4px 6px', fontSize: '0.82rem', verticalAlign: 'middle', minHeight: '28px', textAlign: cellAlign as any, width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
-                                              <div style={{
-                                                display: col.checkboxLayout === '2-column' ? 'grid' : 'flex',
-                                                gridTemplateColumns: col.checkboxLayout === '2-column' ? getCheckboxGridTemplate(opts) : undefined,
-                                                flexDirection: col.checkboxLayout === '2-column' ? undefined : isInline ? 'row' : 'column',
-                                                flexWrap: isInline ? 'wrap' : undefined,
-                                                gap: col.checkboxLayout === '2-column' ? '4px 12px' : isInline ? '4px 12px' : '5px',
-                                                alignItems: isInline ? 'center' : (cellAlign === 'center' ? 'center' : cellAlign === 'right' ? 'flex-end' : 'flex-start'),
-                                                justifyContent: isInline ? (cellAlign === 'center' ? 'center' : cellAlign === 'right' ? 'flex-end' : 'flex-start') : undefined,
-                                                padding: '2px 0',
-                                                width: '100%'
-                                              }}>
-                                                {opts.map((opt: any, oIdx: number) => {
-                                                  const isChecked = cellVal === (opt.value || opt.label);
-                                                  return (
-                                                    <div key={oIdx} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', color: '#000000', width: isInline ? 'auto' : (cellAlign === 'center' || cellAlign === 'right' ? 'fit-content' : '100%'), textAlign: 'left', whiteSpace: isInline ? 'nowrap' : undefined }}>
-                                                      <span style={{
-                                                        display: 'inline-flex',
-                                                        justifyContent: 'center',
-                                                        alignItems: 'center',
-                                                        width: '12px',
-                                                        height: '12px',
-                                                        border: '1px solid #000000',
-                                                        background: isChecked ? '#000000' : '#ffffff',
-                                                        borderRadius: '50%',
-                                                        flexShrink: 0,
-                                                        marginTop: 0
-                                                      }}>
-                                                        {isChecked && <span style={{ width: '4px', height: '4px', background: '#ffffff', borderRadius: '50%' }} />}
-                                                      </span>
-                                                      <span style={{ color: isChecked ? '#000000' : '#64748b', lineHeight: 1.3, textAlign: 'left', whiteSpace: isInline ? 'nowrap' : 'pre-wrap', wordBreak: isInline ? 'normal' : 'break-word', flex: isInline ? undefined : (cellAlign === 'center' || cellAlign === 'right' ? undefined : 1) }}>{renderFormattedText(opt.label)}</span>
-                                                    </div>
-                                                  );
-                                                })}
+                                                    />
+                                                  ))}
+                                                </div>
+                                                {currentRating > 0 && (
+                                                  <span style={{ fontSize: '0.78rem', color: '#000000', fontWeight: 'var(--pw-weight-medium)', marginLeft: '3px' }}>
+                                                    ({currentRating}/{scale})
+                                                  </span>
+                                                )}
                                               </div>
                                             </td>
                                           );
                                         }
-                                      }
 
-                                      if (col.type === 'checkbox') {
-                                        const customOpts = (block as any).cellOptionsMap?.[row.id]?.[col.id];
-                                        const opts = (customOpts && customOpts.length > 0) ? customOpts : (col.options || []);
-                                        if (opts.length > 0) {
-                                          const isInline = canTableOptionsFitInline(opts, col.width, col.checkboxLayout);
-                                          const currentValues = cellVal ? cellVal.split(',').filter(Boolean) : [];
-                                          return (
-                                            <td key={col.id} style={{ border: cellBorder, borderBottom: cellBorderBottom, padding: '4px 6px', fontSize: '0.82rem', verticalAlign: 'middle', minHeight: '28px', textAlign: cellAlign as any, width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
-                                              <div style={{
-                                                display: col.checkboxLayout === '2-column' ? 'grid' : 'flex',
-                                                gridTemplateColumns: col.checkboxLayout === '2-column' ? getCheckboxGridTemplate(opts) : undefined,
-                                                flexDirection: col.checkboxLayout === '2-column' ? undefined : isInline ? 'row' : 'column',
-                                                flexWrap: isInline ? 'wrap' : undefined,
-                                                gap: col.checkboxLayout === '2-column' ? '4px 12px' : isInline ? '4px 12px' : '5px',
-                                                alignItems: isInline ? 'center' : (cellAlign === 'center' ? 'center' : cellAlign === 'right' ? 'flex-end' : 'flex-start'),
-                                                justifyContent: isInline ? (cellAlign === 'center' ? 'center' : cellAlign === 'right' ? 'flex-end' : 'flex-start') : undefined,
-                                                padding: '2px 0',
-                                                width: '100%'
-                                              }}>
-                                                {opts.map((opt: any, oIdx: number) => {
-                                                  const isChecked = currentValues.includes(opt.value || opt.label);
-                                                  return (
-                                                    <div key={oIdx} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', color: '#000000', width: isInline ? 'auto' : (cellAlign === 'center' || cellAlign === 'right' ? 'fit-content' : '100%'), textAlign: 'left', whiteSpace: isInline ? 'nowrap' : undefined }}>
-                                                      <span style={{
-                                                        display: 'inline-flex',
-                                                        justifyContent: 'center',
-                                                        alignItems: 'center',
-                                                        width: '12px',
-                                                        height: '12px',
-                                                        border: '1px solid #000000',
-                                                        background: isChecked ? '#e2e8f0' : '#ffffff',
-                                                        borderRadius: '2px',
-                                                        flexShrink: 0,
-                                                        fontSize: '9px',
-                                                        fontWeight: 'var(--pw-weight-heavy)',
-                                                        lineHeight: 1,
-                                                        marginTop: 0
-                                                      }}>
-                                                        {isChecked ? '✓' : ''}
-                                                      </span>
-                                                      <span style={{ color: isChecked ? '#000000' : '#64748b', lineHeight: 1.3, textAlign: 'left', whiteSpace: isInline ? 'nowrap' : 'pre-wrap', wordBreak: isInline ? 'normal' : 'break-word', flex: isInline ? undefined : (cellAlign === 'center' || cellAlign === 'right' ? undefined : 1) }}>{renderFormattedText(opt.label)}</span>
-                                                    </div>
-                                                  );
-                                                })}
-                                              </div>
-                                            </td>
-                                          );
+                                        // 3. CHECKBOX (Hiển thị các ô vuông tích chọn)
+                                        if (col.type === 'checkbox') {
+                                          const customOpts = (block as any).cellOptionsMap?.[row.id]?.[col.id];
+                                          const opts = (customOpts && customOpts.length > 0) ? customOpts : (col.options || []);
+                                          if (opts.length > 0) {
+                                            const isInline = canTableOptionsFitInline(opts, col.width, col.checkboxLayout);
+                                            const currentValues = cellVal ? cellVal.split(',').map((v: string) => v.trim()).filter(Boolean) : [];
+                                            return (
+                                              <td key={col.id} style={{ border: cellBorder, borderBottom: cellBorderBottom, padding: '4px 6px', fontSize: '0.82rem', verticalAlign: 'middle', minHeight: `${minCellHeight}px`, textAlign: cellAlign as any, width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
+                                                <div style={{
+                                                  display: col.checkboxLayout === '2-column' ? 'grid' : 'flex',
+                                                  gridTemplateColumns: col.checkboxLayout === '2-column' ? getCheckboxGridTemplate(opts) : undefined,
+                                                  flexDirection: col.checkboxLayout === '2-column' ? undefined : isInline ? 'row' : 'column',
+                                                  flexWrap: isInline ? 'wrap' : undefined,
+                                                  gap: col.checkboxLayout === '2-column' ? '4px 12px' : isInline ? '4px 12px' : '5px',
+                                                  alignItems: isInline ? 'center' : (cellAlign === 'center' ? 'center' : cellAlign === 'right' ? 'flex-end' : 'flex-start'),
+                                                  justifyContent: isInline ? (cellAlign === 'center' ? 'center' : cellAlign === 'right' ? 'flex-end' : 'flex-start') : undefined,
+                                                  padding: '2px 0',
+                                                  width: '100%'
+                                                }}>
+                                                  {opts.map((opt: any, oIdx: number) => {
+                                                    const isChecked = currentValues.includes(opt.value) || currentValues.includes(opt.label);
+                                                    return (
+                                                      <div key={oIdx} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', color: '#000000', width: isInline ? 'auto' : (cellAlign === 'center' || cellAlign === 'right' ? 'fit-content' : '100%'), textAlign: 'left', whiteSpace: isInline ? 'nowrap' : undefined }}>
+                                                        <span style={{
+                                                          display: 'inline-flex',
+                                                          justifyContent: 'center',
+                                                          alignItems: 'center',
+                                                          width: '12px',
+                                                          height: '12px',
+                                                          border: '1px solid #000000',
+                                                          background: isChecked ? '#e2e8f0' : '#ffffff',
+                                                          borderRadius: '2px',
+                                                          flexShrink: 0,
+                                                          fontSize: '9px',
+                                                          fontWeight: 'var(--pw-weight-heavy)',
+                                                          lineHeight: 1
+                                                        }}>
+                                                          {isChecked ? '✓' : ''}
+                                                        </span>
+                                                        <span style={{ color: isChecked ? '#000000' : '#64748b', lineHeight: 1.3, textAlign: 'left', whiteSpace: isInline ? 'nowrap' : 'pre-wrap', wordBreak: isInline ? 'normal' : 'break-word', flex: isInline ? undefined : (cellAlign === 'center' || cellAlign === 'right' ? undefined : 1) }}>
+                                                          {renderFormattedText(opt.label)}
+                                                        </span>
+                                                      </div>
+                                                    );
+                                                  })}
+                                                </div>
+                                              </td>
+                                            );
+                                          }
                                         }
-                                      }
 
-                                      return (
-                                        <td key={col.id} style={{ border: cellBorder, borderBottom: cellBorderBottom, padding: '4px 6px', fontSize: '0.82rem', verticalAlign: 'middle', minHeight: '28px', textAlign: cellAlign as any, width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
-                                          {isStaticLabel ? (
-                                            <span style={{ fontWeight: 'var(--pw-weight-regular)', display: 'block', textAlign: cellAlign as any, whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: '0.82rem', lineHeight: 1.4 }}>
-                                              {renderFormattedText(staticVal)}
-                                            </span>
-                                          ) : cellVal}
-                                        </td>
-                                      );
-                                    })}
-                                  </tr>
-                                ))}
+                                        // 4. RADIO (Lựa chọn đơn)
+                                        if (col.type === 'radio') {
+                                          const customOpts = (block as any).cellOptionsMap?.[row.id]?.[col.id];
+                                          const opts = (customOpts && customOpts.length > 0) ? customOpts : (col.options || []);
+                                          if (opts.length > 0) {
+                                            const isInline = canTableOptionsFitInline(opts, col.width, (col as any).radioLayout);
+                                            return (
+                                              <td key={col.id} style={{ border: cellBorder, borderBottom: cellBorderBottom, padding: '4px 6px', fontSize: '0.82rem', verticalAlign: 'middle', minHeight: `${minCellHeight}px`, textAlign: cellAlign as any, width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
+                                                <div style={{
+                                                  display: 'flex',
+                                                  flexDirection: isInline ? 'row' : 'column',
+                                                  flexWrap: isInline ? 'wrap' : undefined,
+                                                  gap: isInline ? '4px 12px' : '5px',
+                                                  alignItems: isInline ? 'center' : (cellAlign === 'center' ? 'center' : cellAlign === 'right' ? 'flex-end' : 'flex-start'),
+                                                  justifyContent: isInline ? (cellAlign === 'center' ? 'center' : cellAlign === 'right' ? 'flex-end' : 'flex-start') : undefined,
+                                                  padding: '2px 0',
+                                                  width: '100%'
+                                                }}>
+                                                  {opts.map((opt: any, oIdx: number) => {
+                                                    const isChecked = cellVal === opt.value || cellVal === opt.label;
+                                                    return (
+                                                      <div key={oIdx} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', color: '#000000', width: isInline ? 'auto' : (cellAlign === 'center' || cellAlign === 'right' ? 'fit-content' : '100%'), textAlign: 'left', whiteSpace: isInline ? 'nowrap' : undefined }}>
+                                                        <span style={{
+                                                          display: 'inline-flex',
+                                                          justifyContent: 'center',
+                                                          alignItems: 'center',
+                                                          width: '12px',
+                                                          height: '12px',
+                                                          border: '1px solid #000000',
+                                                          background: '#ffffff',
+                                                          borderRadius: '50%',
+                                                          flexShrink: 0
+                                                        }}>
+                                                          {isChecked && <span style={{ width: '6px', height: '6px', background: '#000000', borderRadius: '50%' }} />}
+                                                        </span>
+                                                        <span style={{ color: isChecked ? '#000000' : '#64748b', lineHeight: 1.3, textAlign: 'left', whiteSpace: isInline ? 'nowrap' : 'pre-wrap', wordBreak: isInline ? 'normal' : 'break-word', flex: isInline ? undefined : (cellAlign === 'center' || cellAlign === 'right' ? undefined : 1) }}>
+                                                          {renderFormattedText(opt.label)}
+                                                        </span>
+                                                      </div>
+                                                    );
+                                                  })}
+                                                </div>
+                                              </td>
+                                            );
+                                          }
+                                        }
+
+                                        // 5. TEXT / STATIC_TEXT / NUMBER / DEFAULT
+                                        return (
+                                          <td
+                                            key={col.id}
+                                            style={{
+                                              border: cellBorder,
+                                              borderBottom: cellBorderBottom,
+                                              padding: '4px 6px',
+                                              fontSize: '0.82rem',
+                                              verticalAlign: 'middle',
+                                              textAlign: cellAlign as any,
+                                              width: colWidth,
+                                              maxWidth: colWidth,
+                                              boxSizing: 'border-box'
+                                            }}
+                                          >
+                                            <div style={{
+                                              minHeight: `${minCellHeight}px`,
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              justifyContent: cellAlign === 'right' ? 'flex-end' : cellAlign === 'center' ? 'center' : 'flex-start',
+                                              whiteSpace: 'pre-wrap',
+                                              wordBreak: 'break-word',
+                                              lineHeight: 1.4
+                                            }}>
+                                              {effectiveText ? renderFormattedText(effectiveText) : '\u00A0'}
+                                            </div>
+                                          </td>
+                                        );
+                                      })}
+                                    </tr>
+                                  );
+                                })}
                               </tbody>
-                            ));
-                          })() : (
-                            <tbody className="print-table-group" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                              {reconstructedRows.map(({ rowId, cells }) => (
-                                <tr key={rowId} style={{ pageBreakInside: 'avoid' }}>
-                                  {tableCols.map(col => {
-                                    const colWidth = getColStyleWidth(col.id, col.width, tableCols);
-                                    const hasOptions = col.type === 'checkbox' && col.options && col.options.length > 0;
-                                    const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? (hasOptions ? 'left' : 'center') : col.type === 'likert_scale' ? 'center' : 'left'));
-                                    const cellVal = cells.get(col.id) ?? '';
-                                    // static_text: try to find value from template tableData (static rows only)
-                                    const templateRow = (block.tableRows || []).find((r: any) => r.id === rowId);
-                                    if (col.type === 'static_text') {
-                                      return <td key={col.id} style={{ border: cellBorder, borderBottom: cellBorderBottom, padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'middle', height: '28px', textAlign: cellAlign as any, width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
-                                        <span style={{ fontWeight: 'var(--pw-weight-regular)', display: 'block' }}>{templateRow ? (block.tableData?.[rowId]?.[col.id] || '') : cellVal}</span>
-                                      </td>;
-                                    }
-                                    if (col.type === 'likert_scale') {
-                                      const scaleOptions = col.scaleOptions || ['Easy to Answer', 'Could Answer', 'Difficult to Answer'];
-                                      return (
-                                        <td key={col.id} style={{ border: cellBorder, borderBottom: cellBorderBottom, padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'middle', height: '28px', textAlign: 'center', width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
-                                          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${scaleOptions.length}, 1fr)`, gap: '4px', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
-                                            {scaleOptions.map((opt, sIdx) => {
-                                              const isSelected = cellVal === opt;
-                                              return (
-                                                <div key={sIdx} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                                                  <span
-                                                    style={{
-                                                      display: 'inline-flex',
-                                                      alignItems: 'center',
-                                                      justifyContent: 'center',
-                                                      width: '13px',
-                                                      height: '13px',
-                                                      borderRadius: '50%',
-                                                      border: '1px solid #000000',
-                                                      background: '#ffffff'
-                                                    }}
-                                                  >
-                                                    {isSelected && (
-                                                      <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#000000' }} />
-                                                    )}
-                                                  </span>
-                                                </div>
-                                              );
-                                            })}
-                                          </div>
-                                        </td>
-                                      );
-                                    }
-                                    if (col.type === 'rating') {
-                                      const scale = col.ratingScale === 3 ? 3 : 5;
-                                      const currentRating = parseInt(cellVal, 10) || 0;
-                                      return (
-                                        <td key={col.id} style={{ border: cellBorder, borderBottom: cellBorderBottom, padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'middle', height: '28px', textAlign: 'center', width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
-                                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
-                                            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
-                                              {Array.from({ length: scale }).map((_, idx) => (
-                                                <Star
-                                                  key={idx}
-                                                  size={13}
-                                                  style={{
-                                                    color: '#000000',
-                                                    fill: idx < currentRating ? '#000000' : 'none',
-                                                    strokeWidth: 1.4
-                                                  }}
-                                                />
-                                              ))}
-                                            </div>
-                                            {currentRating > 0 && (
-                                              <span style={{ fontSize: '0.72rem', fontWeight: 'var(--pw-weight-heavy)', marginLeft: '3px' }}>
-                                                ({currentRating}/{scale})
-                                              </span>
-                                            )}
-                                          </div>
-                                        </td>
-                                      );
-                                    }
-                                    if (col.type === 'radio' && col.options && col.options.length > 0) {
-                                      const opts = col.options;
-                                      const isInline = canTableOptionsFitInline(opts, col.width, col.checkboxLayout);
-                                      return (
-                                        <td key={col.id} style={{ border: cellBorder, borderBottom: cellBorderBottom, padding: '4px 6px', fontSize: '0.82rem', verticalAlign: 'middle', minHeight: '28px', textAlign: cellAlign as any, width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
-                                          <div style={{
-                                            display: col.checkboxLayout === '2-column' ? 'grid' : 'flex',
-                                            gridTemplateColumns: col.checkboxLayout === '2-column' ? getCheckboxGridTemplate(opts) : undefined,
-                                            flexDirection: col.checkboxLayout === '2-column' ? undefined : isInline ? 'row' : 'column',
-                                            flexWrap: isInline ? 'wrap' : undefined,
-                                            gap: col.checkboxLayout === '2-column' ? '4px 12px' : isInline ? '4px 12px' : '5px',
-                                            alignItems: isInline ? 'center' : (cellAlign === 'center' ? 'center' : cellAlign === 'right' ? 'flex-end' : 'flex-start'),
-                                            justifyContent: isInline ? (cellAlign === 'center' ? 'center' : cellAlign === 'right' ? 'flex-end' : 'flex-start') : undefined,
-                                            padding: '2px 0',
-                                            width: '100%'
-                                          }}>
-                                            {opts.map((opt: any, oIdx: number) => {
-                                              const isChecked = cellVal === (opt.value || opt.label);
-                                              return (
-                                                <div key={oIdx} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', color: '#000000', width: isInline ? 'auto' : (cellAlign === 'center' || cellAlign === 'right' ? 'fit-content' : '100%'), textAlign: 'left', whiteSpace: isInline ? 'nowrap' : undefined }}>
-                                                  <span style={{
-                                                    display: 'inline-flex',
-                                                    justifyContent: 'center',
-                                                    alignItems: 'center',
-                                                    width: '12px',
-                                                    height: '12px',
-                                                    border: '1px solid #000000',
-                                                    background: isChecked ? '#000000' : '#ffffff',
-                                                    borderRadius: '50%',
-                                                    flexShrink: 0,
-                                                    marginTop: 0
-                                                  }}>
-                                                    {isChecked && <span style={{ width: '4px', height: '4px', background: '#ffffff', borderRadius: '50%' }} />}
-                                                  </span>
-                                                  <span style={{ color: isChecked ? '#000000' : '#64748b', lineHeight: 1.3, textAlign: 'left', whiteSpace: isInline ? 'nowrap' : 'pre-wrap', wordBreak: isInline ? 'normal' : 'break-word', flex: isInline ? undefined : (cellAlign === 'center' || cellAlign === 'right' ? undefined : 1) }}>{opt.label}</span>
-                                                </div>
-                                              );
-                                            })}
-                                          </div>
-                                        </td>
-                                      );
-                                    }
-                                    if (col.type === 'checkbox' && col.options && col.options.length > 0) {
-                                      const opts = col.options;
-                                      const isInline = canTableOptionsFitInline(opts, col.width, col.checkboxLayout);
-                                      const currentValues = cellVal ? cellVal.split(',').filter(Boolean) : [];
-                                      return (
-                                        <td key={col.id} style={{ border: cellBorder, borderBottom: cellBorderBottom, padding: '4px 6px', fontSize: '0.82rem', verticalAlign: 'middle', minHeight: '28px', textAlign: cellAlign as any, width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
-                                          <div style={{
-                                            display: col.checkboxLayout === '2-column' ? 'grid' : 'flex',
-                                            gridTemplateColumns: col.checkboxLayout === '2-column' ? getCheckboxGridTemplate(opts) : undefined,
-                                            flexDirection: col.checkboxLayout === '2-column' ? undefined : isInline ? 'row' : 'column',
-                                            flexWrap: isInline ? 'wrap' : undefined,
-                                            gap: col.checkboxLayout === '2-column' ? '4px 12px' : isInline ? '4px 12px' : '5px',
-                                            alignItems: isInline ? 'center' : (cellAlign === 'center' ? 'center' : cellAlign === 'right' ? 'flex-end' : 'flex-start'),
-                                            justifyContent: isInline ? (cellAlign === 'center' ? 'center' : cellAlign === 'right' ? 'flex-end' : 'flex-start') : undefined,
-                                            padding: '2px 0',
-                                            width: '100%'
-                                          }}>
-                                            {opts.map((opt: any, oIdx: number) => {
-                                              const isChecked = currentValues.includes(opt.value || opt.label);
-                                              return (
-                                                <div key={oIdx} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', color: '#000000', width: isInline ? 'auto' : (cellAlign === 'center' || cellAlign === 'right' ? 'fit-content' : '100%'), textAlign: 'left', whiteSpace: isInline ? 'nowrap' : undefined }}>
-                                                  <span style={{
-                                                    display: 'inline-flex',
-                                                    justifyContent: 'center',
-                                                    alignItems: 'center',
-                                                    width: '12px',
-                                                    height: '12px',
-                                                    border: '1px solid #000000',
-                                                    background: isChecked ? '#e2e8f0' : '#ffffff',
-                                                    borderRadius: '2px',
-                                                    flexShrink: 0,
-                                                    fontSize: '9px',
-                                                    fontWeight: 'var(--pw-weight-heavy)',
-                                                    lineHeight: 1,
-                                                    marginTop: 0
-                                                  }}>
-                                                    {isChecked ? '✓' : ''}
-                                                  </span>
-                                                  <span style={{ color: isChecked ? '#000000' : '#64748b', lineHeight: 1.3, textAlign: 'left', whiteSpace: isInline ? 'nowrap' : 'pre-wrap', wordBreak: isInline ? 'normal' : 'break-word', flex: isInline ? undefined : (cellAlign === 'center' || cellAlign === 'right' ? undefined : 1) }}>{opt.label}</span>
-                                                </div>
-                                              );
-                                            })}
-                                          </div>
-                                        </td>
-                                      );
-                                    }
-                                    return (
-                                      <td key={col.id} style={{ border: cellBorder, borderBottom: cellBorderBottom, padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'middle', minHeight: '28px', textAlign: cellAlign as any, width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
-                                        <span style={{ display: 'block', whiteSpace: 'pre-wrap', wordBreak: 'break-word', textAlign: cellAlign as any }}>{cellVal}</span>
-                                      </td>
-                                    );
-                                  })}
-                                </tr>
-                              ))}
-                            </tbody>
+                            ))
                           )}
                           {/* Summary footer rows — labels from template, values blank (not stored in snapshot) */}
                           {(() => {
