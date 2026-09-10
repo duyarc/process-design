@@ -3812,23 +3812,207 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
 
                                     {f.type === 'select' && (() => {
                                       const options = f.options ?? [{ label: 'Lựa chọn 1', value: 'OPT_1' }, { label: 'Lựa chọn 2', value: 'OPT_2' }];
+                                      const hasOther = options.some((o: any) => o.isOther || o.value === '__other__');
                                       return (
                                         <div style={{ marginTop: '4px', paddingTop: '2px', width: '100%' }}>
-                                          <div style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'space-between',
-                                            padding: '4px 8px',
-                                            border: '1px solid #cbd5e1',
-                                            borderRadius: '4px',
-                                            background: '#f8fafc',
-                                            color: '#64748b',
-                                            fontSize: '0.78rem',
-                                            width: '100%'
-                                          }}>
-                                            <span>{f.placeholder || (options.length > 0 ? `-- Chọn (${options.length} mục) --` : '-- Chọn --')}</span>
-                                            <ChevronDown size={14} style={{ color: '#94a3b8' }} />
+                                          {/* Select Box Header */}
+                                          <div
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setActiveBlockId(block.id);
+                                              setActiveFieldId(f.id);
+                                            }}
+                                            style={{
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              justifyContent: 'space-between',
+                                              padding: '4px 8px',
+                                              border: `1px solid ${isFieldSelected ? 'var(--primary)' : '#cbd5e1'}`,
+                                              borderRadius: isFieldSelected ? '4px 4px 0 0' : '4px',
+                                              background: isFieldSelected ? 'rgba(13, 148, 136, 0.04)' : '#f8fafc',
+                                              color: isFieldSelected ? 'var(--primary)' : '#64748b',
+                                              fontSize: '0.78rem',
+                                              width: '100%',
+                                              cursor: 'pointer',
+                                              transition: 'all 0.15s ease'
+                                            }}
+                                          >
+                                            <span style={{ fontWeight: isFieldSelected ? 500 : 400 }}>
+                                              {f.placeholder || (options.length > 0 ? `-- Chọn (${options.length} mục) --` : '-- Chọn --')}
+                                            </span>
+                                            <ChevronDown
+                                              size={14}
+                                              style={{
+                                                color: isFieldSelected ? 'var(--primary)' : '#94a3b8',
+                                                transform: isFieldSelected ? 'rotate(180deg)' : 'none',
+                                                transition: 'transform 0.15s ease'
+                                              }}
+                                            />
                                           </div>
+
+                                          {/* Options Accordion List - Rendered when field is selected */}
+                                          {isFieldSelected && (
+                                            <div
+                                              onClick={(e) => e.stopPropagation()}
+                                              style={{
+                                                border: '1px solid var(--primary)',
+                                                borderTop: 'none',
+                                                borderRadius: '0 0 4px 4px',
+                                                background: '#ffffff',
+                                                padding: '6px 8px',
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                gap: '4px',
+                                                boxShadow: '0 2px 6px rgba(0,0,0,0.05)'
+                                              }}
+                                            >
+                                              {/* Options List */}
+                                              <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', maxHeight: '220px', overflowY: 'auto' }}>
+                                                {options.map((opt: any, optIdx: number) => {
+                                                  const isOtherOpt = opt.isOther || opt.value === '__other__';
+                                                  return (
+                                                    <div
+                                                      key={opt.value || optIdx}
+                                                      style={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: '6px',
+                                                        padding: '2px 4px',
+                                                        borderRadius: '3px',
+                                                        background: isOtherOpt ? 'rgba(147, 51, 234, 0.04)' : '#f8fafc',
+                                                        border: `1px solid ${isOtherOpt ? 'rgba(147, 51, 234, 0.2)' : '#e2e8f0'}`
+                                                      }}
+                                                    >
+                                                      <span style={{ fontSize: '0.7rem', color: '#94a3b8', minWidth: '16px', textAlign: 'right', userSelect: 'none' }}>
+                                                        {optIdx + 1}.
+                                                      </span>
+                                                      <input
+                                                        type="text"
+                                                        disabled={isLocked}
+                                                        value={opt.label}
+                                                        onChange={(e) => {
+                                                          const newOptions = [...options];
+                                                          newOptions[optIdx] = { ...newOptions[optIdx], label: e.target.value };
+                                                          handleUpdateField(block.id, f.id, { options: newOptions });
+                                                        }}
+                                                        style={{
+                                                          flex: 1,
+                                                          fontSize: '0.78rem',
+                                                          color: '#334155',
+                                                          border: '1px solid transparent',
+                                                          borderRadius: '3px',
+                                                          background: 'transparent',
+                                                          outline: 'none',
+                                                          cursor: isLocked ? 'default' : 'text',
+                                                          padding: '2px 4px',
+                                                          transition: 'all 0.15s ease'
+                                                        }}
+                                                        onFocus={(e) => {
+                                                          e.currentTarget.style.borderColor = 'var(--primary)';
+                                                          e.currentTarget.style.background = '#ffffff';
+                                                        }}
+                                                        onBlur={(e) => {
+                                                          e.currentTarget.style.borderColor = 'transparent';
+                                                          e.currentTarget.style.background = 'transparent';
+                                                        }}
+                                                        placeholder="Nhập nhãn lựa chọn..."
+                                                      />
+                                                      {isOtherOpt && (
+                                                        <span style={{ fontSize: '0.7rem', color: '#9333ea', fontStyle: 'italic', padding: '0 4px', userSelect: 'none', whiteSpace: 'nowrap' }}>
+                                                          (Ô nhập tự do)
+                                                        </span>
+                                                      )}
+                                                      {!isLocked && options.length > 1 && (
+                                                        <button
+                                                          type="button"
+                                                          onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            const newOptions = options.filter((_: any, i: number) => i !== optIdx);
+                                                            handleUpdateField(block.id, f.id, { options: newOptions });
+                                                          }}
+                                                          style={{
+                                                            background: 'none',
+                                                            border: 'none',
+                                                            color: '#ef4444',
+                                                            cursor: 'pointer',
+                                                            padding: '0 4px',
+                                                            fontSize: '11px',
+                                                            lineHeight: 1,
+                                                            opacity: 0.6,
+                                                            transition: 'opacity 0.15s ease'
+                                                          }}
+                                                          onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+                                                          onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.6')}
+                                                          title="Xóa lựa chọn này"
+                                                        >
+                                                          ✕
+                                                        </button>
+                                                      )}
+                                                    </div>
+                                                  );
+                                                })}
+                                              </div>
+
+                                              {/* Action Footer Bar */}
+                                              {!isLocked && (
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px', paddingTop: '4px', borderTop: '1px dashed #e2e8f0' }}>
+                                                  <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      const otherIndex = options.findIndex((o: any) => o.isOther || o.value === '__other__');
+                                                      const newOpt = { label: `Lựa chọn ${options.length + 1}`, value: `OPT_${Date.now()}` };
+                                                      const newOptions = otherIndex !== -1
+                                                        ? [...options.slice(0, otherIndex), newOpt, ...options.slice(otherIndex)]
+                                                        : [...options, newOpt];
+                                                      handleUpdateField(block.id, f.id, { options: newOptions });
+                                                    }}
+                                                    style={{
+                                                      display: 'inline-flex',
+                                                      alignItems: 'center',
+                                                      gap: '3px',
+                                                      padding: '2px 6px',
+                                                      fontSize: '0.7rem',
+                                                      borderRadius: '3px',
+                                                      border: '1px dashed #94a3b8',
+                                                      background: '#ffffff',
+                                                      color: 'var(--text-secondary)',
+                                                      cursor: 'pointer'
+                                                    }}
+                                                    title="Thêm lựa chọn mới"
+                                                  >
+                                                    <Plus size={11} /> Thêm lựa chọn
+                                                  </button>
+
+                                                  {!hasOther && (
+                                                    <button
+                                                      type="button"
+                                                      onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        const newOptions = [...options, { label: 'Khác:', value: '__other__', isOther: true, isPass: true }];
+                                                        handleUpdateField(block.id, f.id, { options: newOptions });
+                                                      }}
+                                                      style={{
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: '3px',
+                                                        padding: '2px 6px',
+                                                        fontSize: '0.7rem',
+                                                        borderRadius: '3px',
+                                                        border: '1px dashed #94a3b8',
+                                                        background: '#ffffff',
+                                                        color: 'var(--primary)',
+                                                        cursor: 'pointer'
+                                                      }}
+                                                      title="Thêm mục Khác (cho phép người điền tự ghi)"
+                                                    >
+                                                      <Plus size={11} /> Khác...
+                                                    </button>
+                                                  )}
+                                                </div>
+                                              )}
+                                            </div>
+                                          )}
                                         </div>
                                       );
                                     })()}

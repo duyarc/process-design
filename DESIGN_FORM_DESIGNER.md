@@ -9,7 +9,7 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-09-10) — Custom "Khác" Option in FormBuilder (Canvas pill, Right Inspector toggle switch, options ordering invariant) & PrintBlankForm verified against source |
+| **Verified At Commit** | (2026-09-10) — In-Canvas Dropdown (Select) Accordion Option Editor & Custom "Khác" Option in FormBuilder verified against source |
 
 > **⚠️ Architectural note:** FormBuilder has no awareness of which process it belongs to. The `formName` prop is always identical to `formId`. See Section 6.1 and the Technical Debt table.
 
@@ -78,6 +78,7 @@ FormBuilder renders as an edge-to-edge **Fullscreen Studio Workspace** (`positio
 | **Table Option Cell Footer Actions** | In-cell Checkbox/Radio options render in a clean vertical flow with bottom Footer Action Bar (`[+ Thêm]`, `[🔄 Khôi phục]`), eliminating top-right coordinate collisions with individual option delete buttons (`✕`). |
 | **Table Row LineCount Mini Popover Pill** | In-row handwritten line count selector replaced with compact Pill button (`[ 1↕ ]`, 22px) and floating Mini Popover (`[ 1 ]..[ 5 ]`), expanding action column width to 88px and eliminating right-edge icon clipping. |
 | **In-Canvas Title Header & Hidden Style Behavior** | When title format is `NONE`, replaces static notice message with an in-place editable greyed-out `<input>` (placeholder `(Tiêu đề đang ẩn)`, opacity 0.6) with focus state highlight; preserves `extraControls` across all format modes. |
+| **In-Canvas Dropdown (Select) Accordion Editor** | When field is selected (`isFieldSelected`), expands an in-place options list under the select box with inline label editing, deletion (`✕`), reorder-safe addition, and `[ ➕ Khác... ]` custom option support with auto-scroll. |
 
 ### Right Panel — Two Tabs
 | Tab | Purpose |
@@ -501,3 +502,4 @@ full diff of any entry below.
 | 2026-09-04 | **In-Canvas Title Header Greyout Input & ExtraControls Preservation:** (1) In `InCanvasTitleHeader`, replaced static notice text with an inline editable greyed-out `<input>` for `NONE` title format (placeholder `(Tiêu đề đang ẩn)`, opacity 0.6, focus highlight), matching Right Inspector Section Settings behavior. (2) Replaced `renderStylePill()` with `renderControlGroup()` at non-NONE branch, preserving `extraControls` (border styles & header toggle) when switching between styles. |
 | 2026-09-10 | **Form Publish Revision Deduplication & Author Binding:** (1) In `FormBuilder.tsx`, bound revision author to `currentUser` (`useAuth`), set `status: 'ACTIVE'` on newly published entry, and filtered out matching clean versions and draft entries (`status !== 'DRAFT'`) while retiring older entries. (2) Updated `itemStatus` in Revision History list render to prioritize `h.status === 'ACTIVE'` even during subsequent drafting. (3) Ran `scripts/cleanupDuplicateRevisions.cjs` to purge polluted draft/duplicate revisions across 35 form records in PostgreSQL. |
 | 2026-09-10 | **Custom "Khác" (Other) Option Support:** (1) Extended `RadioOption` in `types.ts` with `isOther?: boolean` (`value: '__other__'`). (2) Enforced single-instance invariant pinned at the end with customizable label. (3) Added system toggle switch `Mục "Khác" [🔘]` in Right Inspector and `[ ➕ Khác... ]` dashed pill in Canvas options editor. (4) Updated `PrintBlankForm.tsx` to render dotted handwriting line for physical shop-floor use. |
+| 2026-09-10 | **In-Canvas Dropdown (Select) Accordion Option Editor:** Upgraded `f.type === 'select'` in `FormBuilder.tsx` from a static read-only preview box into an interactive in-place accordion editor when `isFieldSelected` is true. Features direct option label inline editing, deletion (`✕`), reorder-safe addition (`[ ➕ Thêm lựa chọn ]`), custom "Khác" option (`[ ➕ Khác... ]`), and max-height scrolling. |
