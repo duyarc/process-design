@@ -84,6 +84,100 @@ const parseSubtableValue = (val: string): Record<string, string>[] => {
 };
 const stringifySubtableValue = (rows: Record<string, string>[]): string => JSON.stringify(rows);
 
+/**
+ * Tái cấu trúc danh sách dòng của khối TABLE từ snapshot formData của submission.
+ * - Giữ nguyên 100% các dòng tĩnh trong block.tableRows (kể cả dòng để trắng).
+ * - Phát hiện và chèn các dòng động (có trong formData) vào đúng vị trí và groupId.
+ */
+function reconstructTableRows(block: any, formData: SubmissionFieldSnapshot[]): any[] {
+  const templateRows = block.tableRows || [];
+  if (!formData || !Array.isArray(formData) || templateRows.length === 0) {
+    return templateRows;
+  }
+
+  const prefix = `${block.id}_`;
+  const knownColIds = new Set<string>((block.tableColumns || []).map((c: any) => String(c.id)));
+
+  // Trích xuất các rowId xuất hiện trong formData theo đúng thứ tự (bỏ qua summary rows)
+  const formDataRowIds: string[] = [];
+  formData.forEach(s => {
+    if (!s.id || !s.id.startsWith(prefix) || s.id.startsWith(`${prefix}summary_`)) return;
+    const rest = s.id.slice(prefix.length);
+    for (const colId of knownColIds) {
+      if (rest.endsWith(`_${colId}`)) {
+        const rowId = rest.slice(0, rest.length - colId.length - 1);
+        if (rowId && !formDataRowIds.includes(rowId)) {
+          formDataRowIds.push(rowId);
+        }
+        break;
+      }
+    }
+  });
+
+  const templateRowMap = new Map(templateRows.map((r: any) => [r.id, r]));
+  const dynamicRowIds = formDataRowIds.filter(id => !templateRowMap.has(id));
+
+  // Nếu không có dòng động nào, trả về danh sách template nguyên bản
+  if (dynamicRowIds.length === 0) {
+    return templateRows;
+  }
+
+  // Ghép các dòng động vào đúng vị trí tương đối
+  const reconstructed: any[] = [];
+  let currentGroupId: string | undefined = undefined;
+  const insertedDynRowIds = new Set<string>();
+
+  const dynPrecededBy = new Map<string, string>();
+  for (let i = 0; i < formDataRowIds.length; i++) {
+    const rId = formDataRowIds[i];
+    if (!templateRowMap.has(rId) && i > 0) {
+      dynPrecededBy.set(rId, formDataRowIds[i - 1]);
+    }
+  }
+
+  templateRows.forEach((tRow: any) => {
+    if (tRow.isGroupHeader) {
+      currentGroupId = tRow.id;
+    } else if (tRow.groupId) {
+      currentGroupId = tRow.groupId;
+    }
+    reconstructed.push(tRow);
+
+    // Chèn dòng động liền sau template row này nếu có
+    let lastInsertedId = tRow.id;
+    while (true) {
+      const nextDyn = formDataRowIds.find(id =>
+        !insertedDynRowIds.has(id) &&
+        !templateRowMap.has(id) &&
+        dynPrecededBy.get(id) === lastInsertedId
+      );
+      if (!nextDyn) break;
+      insertedDynRowIds.add(nextDyn);
+      reconstructed.push({
+        id: nextDyn,
+        isDynamic: true,
+        groupId: currentGroupId
+      });
+      lastInsertedId = nextDyn;
+    }
+  });
+
+  // Chèn các dòng động còn sót lại nếu có
+  dynamicRowIds.forEach(dId => {
+    if (!insertedDynRowIds.has(dId)) {
+      reconstructed.push({
+        id: dId,
+        isDynamic: true,
+        groupId: currentGroupId
+      });
+      insertedDynRowIds.add(dId);
+    }
+  });
+
+  return reconstructed;
+}
+
+
 interface AutoResizingTextareaProps {
   value: string;
   onChange: (val: string) => void;
@@ -214,7 +308,7 @@ function FormFillerInner({
   const effectiveReadOnly = Boolean(readOnly && !isEditModeActive);
 
   const handleCancelEdit = () => {
-    if (initialSubmission && process && formTemplate) {
+    if (initialSubmission && process && rawFormTemplate) {
       const restoredValues: { [fieldId: string]: string } = {};
       const restoredReactions: { [fieldId: string]: string } = {};
       initialSubmission.formData.forEach((snapshot: any) => {
@@ -226,6 +320,16 @@ function FormFillerInner({
         }
         restoredValues[snapshot.id] = baseValue;
       });
+
+      // Phục hồi lại danh sách dòng của TABLE về trạng thái ban đầu của submission
+      const restoredTableRowsMap: { [blockId: string]: any[] } = {};
+      (rawFormTemplate.layoutBlocks || []).forEach((block: any) => {
+        if (block.type === 'TABLE') {
+          restoredTableRowsMap[block.id] = reconstructTableRows(block, initialSubmission.formData);
+        }
+      });
+      setTableRowsMap(restoredTableRowsMap);
+
       setFormValues(restoredValues);
       setFieldReactions(restoredReactions);
       setOperatorId(initialSubmission.operatorId || '');
@@ -401,7 +505,7 @@ function FormFillerInner({
 
   // Load initial values if editing
   useEffect(() => {
-    if (initialSubmission && process && formTemplate) {
+    if (initialSubmission && process && rawFormTemplate) {
       const restoredValues: { [fieldId: string]: string } = {};
       const restoredReactions: { [fieldId: string]: string } = {};
       
@@ -416,7 +520,7 @@ function FormFillerInner({
         restoredValues[snapshot.id] = baseValue;
         
         // Parse signatures if signature field
-        const signBlocks = formTemplate.layoutBlocks?.filter((b: any) => b.type === 'SIGN') || [];
+        const signBlocks = rawFormTemplate.layoutBlocks?.filter((b: any) => b.type === 'SIGN') || [];
         const isSignField = signBlocks.some((b: any) => b.fields.some((f: any) => f.id === snapshot.id));
         if (isSignField && baseValue) {
           const signMatch = baseValue.match(/^(.*?) \[Xác thực: (.*?)\]$/);
@@ -434,11 +538,20 @@ function FormFillerInner({
         }
       });
       
+      // Tái tạo các dòng động cho khối TABLE từ snapshot formData
+      const restoredTableRowsMap: { [blockId: string]: any[] } = {};
+      (rawFormTemplate.layoutBlocks || []).forEach((block: any) => {
+        if (block.type === 'TABLE') {
+          restoredTableRowsMap[block.id] = reconstructTableRows(block, initialSubmission.formData);
+        }
+      });
+      setTableRowsMap(restoredTableRowsMap);
+
       setFormValues(restoredValues);
       setFieldReactions(restoredReactions);
       setOperatorId(initialSubmission.operatorId || '');
     }
-  }, [initialSubmission, process]);
+  }, [initialSubmission, process, rawFormTemplate]);
 
   const calculateSummaryValue = (
     col: any,
@@ -875,14 +988,33 @@ function FormFillerInner({
       });
     });
 
-    // Collect regular table values dynamically
+    // Collect regular table values dynamically (supporting both template rows & dynamic rows)
     formTemplate?.layoutBlocks?.forEach((block: any) => {
-      if (block.type === 'TABLE' && block.tableColumns && block.tableRows) {
-        block.tableRows.forEach((row: any, rIdx: number) => {
+      if (block.type === 'TABLE' && block.tableColumns) {
+        const activeRows = tableRowsMap[block.id] || block.tableRows || [];
+        activeRows.forEach((row: any, rIdx: number) => {
+          if (row.isGroupHeader) return;
+
+          const isDynamicRow = Boolean(row.isDynamic || row.id?.startsWith('row_dyn_'));
+          
+          // Quy tắc: Dòng động hoàn toàn trắng ở tất cả các cột sẽ được tự động bỏ qua (không lưu)
+          if (isDynamicRow) {
+            const hasAnyValue = block.tableColumns.some((col: any) => {
+              if (col.type === 'static_text') return false;
+              const key = `${block.id}_${row.id}_${col.id}`;
+              const val = formValues[key];
+              return val !== undefined && val !== null && String(val).trim() !== '';
+            });
+            if (!hasAnyValue) {
+              return; // Bỏ qua dòng động trắng
+            }
+          }
+
           const staticCols = block.tableColumns.filter((c: any) => c.type === 'static_text');
-          const rowLabel = staticCols.length > 0 
-            ? staticCols.map((c: any) => block.tableData?.[row.id]?.[c.id] || '').join(' ') 
-            : `Dòng ${rIdx + 1}`;
+          const staticLabel = staticCols.length > 0 
+            ? staticCols.map((c: any) => block.tableData?.[row.id]?.[c.id] || '').join(' ').trim() 
+            : '';
+          const rowLabel = staticLabel || `Dòng ${rIdx + 1}`;
 
           block.tableColumns.forEach((col: any) => {
             if (col.type !== 'static_text') {
@@ -2048,7 +2180,28 @@ function FormFillerInner({
                                       wordBreak: 'break-word'
                                     }}
                                   >
-                                    {renderFormattedText(groupTitle)}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                      <span>{renderFormattedText(groupTitle)}</span>
+                                      {!effectiveReadOnly && (
+                                        <button
+                                          type="button"
+                                          onClick={() => handleAddTableRowToGroup(block, row.id)}
+                                          style={{
+                                            fontSize: '0.7rem',
+                                            padding: '2px 8px',
+                                            border: '1px solid #cbd5e1',
+                                            borderRadius: '4px',
+                                            background: '#ffffff',
+                                            cursor: 'pointer',
+                                            color: 'var(--primary)',
+                                            fontWeight: 600
+                                          }}
+                                          title="Thêm dòng vào nhóm này"
+                                        >
+                                          + Thêm dòng vào nhóm
+                                        </button>
+                                      )}
+                                    </div>
                                   </td>
                                 </tr>
                               ];
@@ -2347,7 +2500,7 @@ function FormFillerInner({
                                 borderRight: bStyle === 'grid' ? '1px solid var(--neutral-border)' : 'none',
                                 borderBottom: bStyle === 'borderless' ? 'none' : '1px solid var(--neutral-border)'
                               }}>
-                                {isDeletable && (
+                                {!effectiveReadOnly && isDeletable && (
                                   <button
                                     type="button"
                                     onClick={() => handleDeleteTableRow(block.id, row.id, block)}
@@ -2460,6 +2613,30 @@ function FormFillerInner({
                       })()}
                     </table>
                   </div>
+
+                  {!effectiveReadOnly && (
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
+                      <button
+                        type="button"
+                        onClick={() => handleAddTableRowToGroup(block)}
+                        style={{
+                          fontSize: '0.75rem',
+                          padding: '3px 10px',
+                          border: '1px solid #cbd5e1',
+                          borderRadius: '4px',
+                          background: '#ffffff',
+                          cursor: 'pointer',
+                          color: 'var(--primary)',
+                          fontWeight: 600,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}
+                      >
+                        + Thêm dòng
+                      </button>
+                    </div>
+                  )}
 
                 </div>
                 );
