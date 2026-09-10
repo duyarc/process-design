@@ -159,6 +159,7 @@ agent khác bỏ qua.
     và hướng đi chi tiết.
   - *Agent làm Trợ lý thực thi (The Assistant)*: viết mã, kiểm tra build, viết tài liệu và
     giải đáp thông tin dưới sự kiểm soát của Người dùng.
+- **Quy trình Lập Kế hoạch & Thực thi**: Xem Mục 11 — áp dụng bắt buộc cho mọi task.
 - **Git Push Procedure**: Xem Mục 10 — áp dụng bắt buộc cho mọi lần push.
 
 ---
@@ -192,4 +193,39 @@ git add <file cụ thể>; git commit -m "<message>"; git push origin main; git 
    Remove-Item -Path .git\index.lock -Force -ErrorAction SilentlyContinue
    ```
 4. **Cam kết 1 Commit duy nhất (Atomic Single Commit):** Luôn gộp tất cả mã nguồn và tài liệu liên quan vào đúng **1 lần commit & push duy nhất**. Tuyệt đối không tạo commit phụ thứ hai để tránh lãng phí build trên CI/CD.
+
+---
+
+## 11. Quy trình Lập Kế hoạch & Thực thi 2 Giai đoạn (Two-Stage Planning & Batch Execution)
+
+Để tối ưu hóa thời gian xử lý, bảo toàn context window và tránh làm phiền Người dùng bằng việc duyệt code lắt nhắt hoặc sửa code dò dẫm từng bước, mọi agent phải tuân thủ nghiêm ngặt quy trình sau:
+
+### Giai đoạn 1: Kế hoạch Kiến trúc Sơ bộ (Architectural Implementation Plan) — Trước khi duyệt `Proceed`
+- **Mục tiêu:** Cung cấp bức tranh toàn cảnh ở mức kiến trúc để Người dùng (The Thinker) nắm bắt giải pháp và định hướng.
+- **Nội dung ghi vào `implementation_plan.md`:**
+  - Tóm tắt vấn đề & Phân tích nguyên nhân gốc (Root Cause Analysis).
+  - Danh sách các file bị ảnh hưởng (`[MODIFY]`, `[NEW]`, `[DELETE]`).
+  - Hướng tiếp cận logic tổng quan & các điểm rủi ro / breaking change / schema impact.
+  - Kế hoạch kiểm chứng (Verification Plan).
+- **Nguyên tắc cốt lõi:** **CHƯA CẦN viết chi tiết từng khối code thay thế dài dòng** ở giai đoạn này. Mục đích là để Người dùng review nhanh ý tưởng, giải pháp kiến trúc và bấm `Proceed` không mất thời gian đọc diffs phức tạp.
+- **Hành động:** Dừng lại chờ Người dùng duyệt (`Proceed`).
+
+### Giai đoạn 2: Chi tiết hóa Blueprint Code (Detailed Code Blueprinting) — Ngay sau khi nhận `Proceed`
+- **Mục tiêu:** Chuẩn bị sẵn sàng 100% các khối code trước khi can thiệp vào mã nguồn thực tế.
+- **Hành động bắt buộc:** Sau khi Người dùng duyệt `Proceed`, **TUYỆT ĐỐI KHÔNG vội vàng sửa code ngay**.
+- Agent phải thực hiện:
+  1. Đọc chính xác các vùng mã nguồn liên quan trong codebase thực tế (bằng `view_file` / search targeted).
+  2. Soạn thảo chi tiết các đoạn code thay thế hoàn chỉnh (Exact Code Blocks / Replacement Snippets): hook, import, logic xử lý, script migration DB (nếu có).
+  3. **Cập nhật ngay các khối code chi tiết này vào `implementation_plan.md`**.
+- **Lợi ích:** Tạo ra một bản thiết kế bất biến, chuẩn xác, sẵn sàng cho việc drop-in code vào file mà không phải vừa sửa vừa mò mẫm hay gặp lỗi bất ngờ.
+
+### Giai đoạn 3: Thực thi Hàng loạt một lượt (Batch Execution & Single Atomic Push)
+- **Mục tiêu:** Sửa code liên tục, dứt điểm, không lặp lại vòng lặp hỏi - đáp ngắt quãng.
+- **Trình tự thực thi:**
+  1. Tuần tự chỉnh sửa tất cả các file mã nguồn theo đúng các khối code đã định nghĩa trong `implementation_plan.md` (bằng `replace_file_content` hoặc `write_to_file`).
+  2. Chạy migration / script cập nhật database (nếu có).
+  3. Chạy `npm run build` để kiểm chứng toàn bộ TypeScript và đóng gói Vite.
+  4. Cập nhật tài liệu thiết kế module tương ứng (`DESIGN_*.md`) và tổng kết vào `walkthrough.md`.
+  5. Thực hiện đúng **1 lần commit & push nguyên tử duy nhất** theo Mục 10.
+
 
