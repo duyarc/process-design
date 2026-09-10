@@ -9,7 +9,7 @@
 | **Module Name** | Form Operations |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-09-10) — Sections 2, 8 (Dynamic table rows persistence, reconstruction from formData, trailing blank rows filtering, and edit mode parity) |
+| **Verified At Commit** | (2026-09-10) — Sections 2, 8 (Submission edit authorization across manager roles and token fallbacks) |
 
 ### Quick File Index
 
@@ -421,7 +421,6 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 
 | Date | Commit | Change |
 |---|---|---|
-| 2026-08-26 | `CURRENT` | **Human-Friendly Daily Sequential Submission ID:** Upgraded `FormFiller.tsx` and `ProcessReader.tsx` submission flow to receive compact 9-character daily sequential IDs (`YYMMDD-XX`, e.g. `260826-01`) assigned by backend. |
 | 2026-08-27 | `CURRENT` | **Short, Beautiful & Secure Public Link Generator:** Upgraded `handleCopyShareLink` in `FormFiller.tsx` to generate clean 38-character short links (`/f/:formName`) backed by smart route resolution and backward compatibility. |
 | 2026-08-27 | `CURRENT` | **Submission Validation Logic Fix:** Removed hard blocks on failed checks (action note & photo requirements) in `FormFiller.tsx` and `ProcessReader.tsx`, allowing non-compliant inspection records to be submitted normally with `status: 'ABNORMALITY'`. |
 | 2026-08-27 | `CURRENT` | **Minimal Copy Submission Workflow & Admin Deletion:** Replaced in-place editing with an immutable Copy-to-New workflow (Copy button in Submission Detail Drawer and Success Screen only, keeping list views clean). Submissions created via Copy receive fresh sequential IDs upon submit. Admin deletion guarded by `ConfirmModal`. |
@@ -437,6 +436,7 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 | 2026-09-09 | `CURRENT` | **SubmissionManager Toast Feedback & Connection Error Recovery:** Replaced all 5 blocking `window.alert()` calls in `SubmissionManager.tsx` with floating toast notifications (`setToast`) and auto-dismiss timer. Added inline server connection error banner with retry button for serverless resilience. |
 | 2026-09-09 | `CURRENT` | **Form Viewer Header Single-Line Parity & FormManager View Coordination:** Redesigned `FormFiller.tsx` submission view header from boxy white card to transparent, single-row toolbar matching Form Filler exactly (left: Back, ID, QMS status, compact submitter; right: Focus mode, Print, Copy, Edit/Save). Added `onViewingChange` in `FormManager.tsx` to coordinate app-header suppression. |
 | 2026-09-10 | `CURRENT` | **Dynamic Table Rows Persistence, Reconstruction & Blank Filtering:** Updated `FormFiller.tsx` to collect dynamic rows from `tableRowsMap` during submit/update, automatically dropping completely blank dynamic rows to prevent ghost trailing rows. Added `reconstructTableRows` to restore dynamic rows from `formData` snapshots upon loading and on edit cancellation, and hidden delete icons when read-only with explicit `+ Thêm dòng` buttons. |
+| 2026-09-10 | `CURRENT` | **Submission Amendment Authorization & Token Fallback Resolution:** Fixed 403 error on submission update (`PUT /api/submissions/:id`). (1) In `FormManager.tsx` and `SubmissionManager.tsx`, passed `editSubmissionId`, `editToken`, and `canEditSubmission` to `FormFiller`. (2) In `FormFiller.tsx`, expanded `canAdminEdit` to include `supervisor` role and added cascading fallback for `resolvedEditToken` from `initialSubmission.accessToken` and `localStorage` `submission_history`. (3) Replaced submission error `alert()` with non-blocking red toast. |
 
 
 

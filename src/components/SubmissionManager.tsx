@@ -268,6 +268,9 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
         processId={viewingSubmission.processId}
         formName={viewingSubmission.formId}
         initialSubmission={viewingSubmission}
+        editSubmissionId={viewingSubmission.id}
+        editToken={viewingSubmission.accessToken || (viewingSubmission as any).access_token}
+        canEditSubmission={!viewingSubmission.supervisorSignoff}
         readOnly={true}
         onCopySubmission={(sub) => {
           setViewingSubmission(null);

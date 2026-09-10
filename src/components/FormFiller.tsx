@@ -288,7 +288,7 @@ function FormFillerInner({
   const [signInputs, setSignInputs] = useState<{ [fieldId: string]: string }>({});
   const [signOpen, setSignOpen] = useState<{ [fieldId: string]: boolean }>({});
   const [submitting, setSubmitting] = useState(false);
-  const [localToast, setLocalToast] = useState<{ message: string; id: string } | null>(null);
+  const [localToast, setLocalToast] = useState<{ message: string; id?: string; type?: 'success' | 'error' } | null>(null);
 
   useEffect(() => {
     if (localToast) {
@@ -302,8 +302,9 @@ function FormFillerInner({
   const [localSubmissions, setLocalSubmissions] = useState<Array<{ id: string; token: string; status: string; submittedAt: string; signedOff: boolean }>>([]);
 
   const { currentUser } = useAuth();
-  const canAdminEdit = currentUser?.role_id === 'admin';
-  const canAmend = canAdminEdit || Boolean(editToken && canEditSubmission && !initialSubmission?.supervisorSignoff);
+  const canAdminEdit = currentUser?.role_id === 'admin' || currentUser?.role_id === 'supervisor';
+  const effectiveEditToken = editToken || initialSubmission?.accessToken || (initialSubmission as any)?.access_token;
+  const canAmend = canAdminEdit || Boolean(effectiveEditToken && (canEditSubmission ?? true) && !initialSubmission?.supervisorSignoff);
   const [isEditModeActive, setIsEditModeActive] = useState<boolean>(Boolean(initialEditMode && canAmend));
   const effectiveReadOnly = Boolean(readOnly && !isEditModeActive);
 
@@ -1159,6 +1160,8 @@ function FormFillerInner({
       return;
     }
 
+    const targetSubId = editSubmissionId || (isEditModeActive ? initialSubmission?.id : undefined);
+
     try {
       const { snapshots, isOverallPass } = buildSubmissionSnapshots(false);
 
@@ -1168,7 +1171,6 @@ function FormFillerInner({
       });
 
       setSubmitting(true);
-      const targetSubId = editSubmissionId || (isEditModeActive ? initialSubmission?.id : undefined);
       const isEditOperation = Boolean(targetSubId);
       
       const payload: any = {
@@ -1182,8 +1184,25 @@ function FormFillerInner({
         mediaUrls: isEditOperation ? (initialSubmission?.mediaUrls || []) : allMediaKeys
       };
 
-      if (isEditOperation && editToken) {
-        payload.accessToken = editToken;
+      const resolvedEditToken = editToken ||
+        initialSubmission?.accessToken ||
+        (initialSubmission as any)?.access_token ||
+        (() => {
+          try {
+            const raw = localStorage.getItem('submission_history');
+            if (raw) {
+              const hist = JSON.parse(raw);
+              for (const fId of Object.keys(hist)) {
+                const found = (hist[fId] || []).find((e: any) => e.id === targetSubId);
+                if (found?.token) return found.token;
+              }
+            }
+          } catch (_) {}
+          return undefined;
+        })();
+
+      if (isEditOperation && resolvedEditToken) {
+        payload.accessToken = resolvedEditToken;
       }
 
       if (isEditOperation && allMediaKeys.length > 0) {
@@ -1209,7 +1228,7 @@ function FormFillerInner({
       }
       const resData = await res.json();
       const finalId = resData.id || targetSubId;
-      const returnedAccessToken: string | undefined = resData.accessToken || editToken;
+      const returnedAccessToken: string | undefined = resData.accessToken || resolvedEditToken;
 
       // Update localStorage submission_history
       if (returnedAccessToken && finalId && (formTemplate?.formId || formName)) {
@@ -1234,7 +1253,7 @@ function FormFillerInner({
         initialSubmission.submittedAt = new Date().toISOString();
         setIsEditModeActive(false);
         const successMsg = `Đã cập nhật bản ghi thành công! (Mã: ${finalId})`;
-        setLocalToast({ message: successMsg, id: finalId });
+        setLocalToast({ message: successMsg, id: finalId, type: 'success' });
         if (onSubmitSuccess) {
           onSubmitSuccess(finalId);
         }
@@ -1252,7 +1271,7 @@ function FormFillerInner({
           setSubmitResult({ id: finalId, token: returnedAccessToken });
         } else {
           const successMsg = isEditOperation ? `Đã cập nhật phiếu thành công! (Mã: ${finalId})` : `Đã gửi phiếu thành công! (Mã: ${finalId})`;
-          setLocalToast({ message: successMsg, id: finalId });
+          setLocalToast({ message: successMsg, id: finalId, type: 'success' });
 
           if (onSubmitSuccessWithToken && returnedAccessToken) {
             onSubmitSuccessWithToken(finalId, returnedAccessToken);
@@ -1265,7 +1284,8 @@ function FormFillerInner({
       }
     } catch (err) {
       console.error(err);
-      alert(`Failed to submit: ${err instanceof Error ? err.message : 'Server error'}`);
+      const errMsg = err instanceof Error ? err.message : 'Server error';
+      setLocalToast({ message: `Lỗi khi lưu phiếu: ${errMsg}`, id: targetSubId || '', type: 'error' });
     } finally {
       setSubmitting(false);
     }
@@ -3546,7 +3566,7 @@ function FormFillerInner({
           position: 'fixed',
           bottom: '24px',
           right: '24px',
-          backgroundColor: '#0f172a',
+          backgroundColor: localToast.type === 'error' ? '#991b1b' : '#0f172a',
           color: '#ffffff',
           padding: '0.75rem 1.25rem',
           borderRadius: '8px',
@@ -3560,7 +3580,11 @@ function FormFillerInner({
           border: '1px solid rgba(255,255,255,0.1)',
           animation: 'toast-slide-in 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards'
         }}>
-          <CheckCircle2 size={16} style={{ color: '#10b981' }} />
+          {localToast.type === 'error' ? (
+            <AlertTriangle size={16} style={{ color: '#fca5a5' }} />
+          ) : (
+            <CheckCircle2 size={16} style={{ color: '#10b981' }} />
+          )}
           <span>{localToast.message}</span>
         </div>
       )}
