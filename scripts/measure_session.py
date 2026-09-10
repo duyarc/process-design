@@ -160,11 +160,12 @@ def analyze(steps: list[tuple[int, dict]]) -> dict:
                 if "npm run build" in cmd or "tsc" in cmd.lower():
                     m["build_attempts"] += 1
 
-            # Git push
+            # Git push (only match real git command lines, exclude python/node scripts analyzing git)
             if name == "run_command":
-                cmd = get_arg(tc, "CommandLine")
-                if "git push" in cmd.lower():
-                    m["git_push_ts"] = ts
+                cmd = get_arg(tc, "CommandLine").strip()
+                if not cmd.startswith("python") and not cmd.startswith("node"):
+                    if re.search(r'(?:^|[;&|]\s*)git\s+push\b', cmd):
+                        m["git_push_ts"] = ts
 
         # --- Response content analysis ---
         content = d.get("content", "") or ""
@@ -271,15 +272,67 @@ def format_scorecard(m: dict) -> str:
     return "\n".join(lines)
 
 
+def detect_last_task_range(path: Path) -> tuple[int, int | None]:
+    """Auto-detect the start and end step of the most recent task.
+    
+    Principle: A task begins at the first substantive USER_INPUT immediately following
+    the PREVIOUS git push, and ends at the git push completing the current task.
+    """
+    all_steps = []
+    with open(path, encoding="utf-8") as f:
+        for idx, line in enumerate(f):
+            line = line.strip()
+            if line:
+                try:
+                    all_steps.append((idx, json.loads(line)))
+                except json.JSONDecodeError:
+                    continue
+
+    # Find all actual git pushes (exclude python/node analysis scripts)
+    git_pushes = []
+    for idx, d in all_steps:
+        for tc in d.get("tool_calls", []):
+            if tc.get("name") == "run_command":
+                cmd = get_arg(tc, "CommandLine").strip()
+                if not cmd.startswith("python") and not cmd.startswith("node"):
+                    if re.search(r'(?:^|[;&|]\s*)git\s+push\b', cmd):
+                        git_pushes.append((idx, d.get("created_at", "")))
+
+    if not git_pushes:
+        return 0, None
+
+    # Find the feature git push (the most recent or second-to-last if the very last was a doc-only push)
+    # The current task's push is the last push before any subsequent user questions
+    last_push_step, _ = git_pushes[-1]
+    
+    # If there are previous pushes, the previous task ended at git_pushes[-2]
+    prev_push_step = git_pushes[-2][0] if len(git_pushes) >= 2 else 0
+
+    # The current task starts at the first USER_INPUT after prev_push_step
+    task_start = None
+    for idx, d in all_steps:
+        if idx > prev_push_step and idx < last_push_step:
+            if d.get("type") == "USER_INPUT":
+                task_start = idx
+                break
+
+    if task_start is None:
+        task_start = prev_push_step
+
+    return task_start, last_push_step
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Đo KPIs tự động từ transcript Antigravity session."
     )
     parser.add_argument("conversation_id", help="Conversation ID")
-    parser.add_argument("--start-step", type=int, default=0,
-                        help="Step bắt đầu scope đo (default: 0)")
+    parser.add_argument("--start-step", type=int, default=None,
+                        help="Step bắt đầu scope đo (default: tự động phát hiện task gần nhất)")
     parser.add_argument("--end-step", type=int, default=None,
-                        help="Step kết thúc scope đo (default: cuối file)")
+                        help="Step kết thúc scope đo (default: tự động phát hiện git push của task)")
+    parser.add_argument("--last-task", action="store_true",
+                        help="Tự động phát hiện phạm vi task gần nhất (mặc định nếu không truyền start-step)")
     parser.add_argument("--app-data-dir", type=str,
                         default=os.path.expanduser("~/.gemini/antigravity"),
                         help="Đường dẫn app data directory")
@@ -291,10 +344,20 @@ def main():
         print(f"ERROR: {e}", file=sys.stderr)
         sys.exit(1)
 
-    print(f"Reading: {path}", file=sys.stderr)
-    print(f"Scope: steps {args.start_step} → {args.end_step or 'END'}", file=sys.stderr)
+    # Auto-detect task boundary if start-step not provided
+    start_step = args.start_step
+    end_step = args.end_step
+    if start_step is None:
+        auto_start, auto_end = detect_last_task_range(path)
+        start_step = auto_start
+        if end_step is None:
+            end_step = auto_end
+        print(f"Auto-detected last task scope: steps {start_step} → {end_step}", file=sys.stderr)
 
-    steps = load_steps(path, args.start_step, args.end_step)
+    print(f"Reading: {path}", file=sys.stderr)
+    print(f"Scope: steps {start_step} → {end_step or 'END'}", file=sys.stderr)
+
+    steps = load_steps(path, start_step, end_step)
     if not steps:
         print("ERROR: No steps found in the specified range.", file=sys.stderr)
         sys.exit(1)

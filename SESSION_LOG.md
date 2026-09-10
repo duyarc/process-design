@@ -30,13 +30,15 @@ Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
 | Chỉ số | Giá trị |
 |---|---|
-| Thời gian thực thi (Proceed → Push) | 12.7 min |
+| Thời gian lập plan (Request → Proceed) | 2.4 min (15:36:16 → 15:38:41) |
+| Thời gian thực thi (Proceed → Push) | 1.2 min (15:38:41 → 15:39:55) |
+| Thời gian tổng (Request → Push) | 3.6 min (3 phút 39 giây) |
 | Số file nguồn chỉnh sửa | 1 |
 | Tổng lượt edit source | 1 |
 | Lượt edit sửa lỗi (rework) | 0 |
 | Số lần build | 2 |
 | Lần build đầu thành công? | Có |
-| Số lệnh thất bại | 0 (code), 3 (tool/background checks) |
+| Số lệnh thất bại | 0 |
 | Số lỗi mới phát sinh | 0 |
 | Số lỗi cũ lặp lại | 0 |
 
