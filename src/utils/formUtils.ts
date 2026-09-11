@@ -673,3 +673,20 @@ export function reorderOptionsArray<T extends { isOther?: boolean; value?: strin
   return result;
 }
 
+/**
+ * Tái sắp xếp phần tử trong mảng an toàn khi kéo - thả (Drag to Reorder)
+ */
+export function reorderArray<T>(
+  list: T[],
+  fromIndex: number,
+  toIndex: number
+): T[] {
+  if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0 || fromIndex >= list.length || toIndex >= list.length) {
+    return list;
+  }
+  const result = [...list];
+  const [movedItem] = result.splice(fromIndex, 1);
+  result.splice(toIndex, 0, movedItem);
+  return result;
+}
+

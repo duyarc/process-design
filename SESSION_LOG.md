@@ -17,12 +17,37 @@ phiên thực thi để không lặp lại lỗi cũ.
 | 3 | `TOOL` | Index slicing `c[:start]+new+c[end:]` tìm sai biên end → duplicate closing tags | Dùng `content.replace(exact_old, exact_new, 1)` thay vì index slicing. Xem Mục 12.2 | 3 |
 | 4 | `CTX` | Patch boundary overlap: replacement content chồng lấn với code gốc còn lại → stray `)`, duplicate ternary | Verify vùng biên bằng `view_file` sau mỗi patch. Xem Mục 12.1, 12.3 | 2 |
 | 5 | `SCOPE` | Gom `npm run build` cuối cùng → lỗi tích lũy nhiều file, khó debug | Chạy `npx tsc --noEmit` sau mỗi file. Xem Mục 12.3 | 1 |
+| 6 | `CTX` | Chuyển arrow func `=> (` sang `=> { return (` quên đổi closing `))` thành `); })}` hoặc patch tag ngắn thiếu context độc nhất trong file monolith | Patch đồng thời mở và đóng block hàm; luôn bao gồm ≥ 3 dòng context độc nhất xung quanh closing tag | 1 |
 
 ---
 
 ## Nhật ký Phiên
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
+
+### 2026-09-11 — Drag to Reorder Options Across Canvas & Inspector
+
+**Scope:** 5 files, 477 insertions, 111 deletions (`c363793`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian lập plan (Request → Proceed) | 2.2 min |
+| Thời gian thực thi (Proceed → Push) | 10.3 min |
+| Thời gian tổng (Request → Push) | 12.6 min |
+| Số file nguồn chỉnh sửa | 2 |
+| Tổng lượt edit source | 12 |
+| Lượt edit sửa lỗi (rework) | 3 (do lệch closing tag khi convert arrow function và whitespace) |
+| Số lần build | 10 |
+| Lần build đầu thành công? | Không |
+| Số lệnh thất bại | 3 (do assertion script và tsc -b) |
+| Số lỗi mới phát sinh | 1 (lệch closing tag khi chuyển `=> (` sang `=> { return (`) |
+| Số lỗi cũ lặp lại | 1 (whitespace indentation 30 vs 31 spaces trong monolith) |
+
+**Lỗi phát sinh:**
+1. `CTX`: Khi chuyển `options.map((opt) => (` sang `options.map((opt) => { return (`, closing tag ở cuối danh sách vẫn giữ nguyên `))` dẫn đến TS1005 lúc `tsc -b`. Đã sửa bằng script chèn đúng `); })}`.
+2. `CTX`: `replace_file_content` với closing tag ngắn `)}` khớp nhầm ở vùng khác của file monolith. Khắc phục bằng script nhắm chuẩn dòng mục tiêu.
+
+---
 
 ### 2026-09-11 — Decoupled Saving State & Optimistic Workflow Form Sync
 

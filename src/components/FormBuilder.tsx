@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import type { FormFieldISO, FormRevisionEntry, FormTemplateISO, LayoutBlockISO, RadioOption, MatrixConfigISO, TableColumnConfig, TableRowConfig, ColumnSummaryRowConfig, TitleFormatISO, SubtableColumn, BlockVisibilityCondition } from '../types';
 import { formatFormVersion, getColStyleWidth } from '../types';
-import { sanitizeLabel, getEffectiveTitleFormat, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, isSeamlessTableBlock, getInfoGridTemplateColumns, snap2ColWidth, snap3ColWidths, INFO_GRID_2COL_PRESETS, generateSmartFieldSlug, getCheckboxGridTemplate, reorderOptionsArray } from '../utils/formUtils';
+import { sanitizeLabel, getEffectiveTitleFormat, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, isSeamlessTableBlock, getInfoGridTemplateColumns, snap2ColWidth, snap3ColWidths, INFO_GRID_2COL_PRESETS, generateSmartFieldSlug, getCheckboxGridTemplate, reorderOptionsArray, reorderArray } from '../utils/formUtils';
 import { applyTextFormat, handleFormatKeyDown } from '../utils/textFormatter';
 import { 
   Plus, 
@@ -1030,6 +1030,12 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
   // Drag-and-drop state for reordering options across Canvas and Property Bar
   const [draggedOption, setDraggedOption] = useState<{ listId: string; index: number } | null>(null);
   const [dragOverOption, setDragOverOption] = useState<{ listId: string; index: number } | null>(null);
+  // Drag-and-drop state for reordering Table rows on Canvas
+  const [draggedTableRow, setDraggedTableRow] = useState<{ blockId: string; rowId: string; index: number } | null>(null);
+  const [dragOverTableRow, setDragOverTableRow] = useState<{ blockId: string; rowId: string; index: number } | null>(null);
+  // Drag-and-drop state for reordering Table columns across Canvas and Property Bar
+  const [draggedTableColumn, setDraggedTableColumn] = useState<{ blockId: string; colId: string; index: number } | null>(null);
+  const [dragOverTableColumn, setDragOverTableColumn] = useState<{ blockId: string; colId: string; index: number } | null>(null);
   const inspectorLabelRef = useRef<HTMLTextAreaElement>(null);
   const sectionDescRef = useRef<HTMLTextAreaElement>(null);
   const inspectorGroupTitleRef = useRef<HTMLTextAreaElement>(null);
@@ -1859,20 +1865,14 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     }));
   };
 
-  const handleMoveColumn = (blockId: string, colId: string, direction: 'left' | 'right') => {
+  const handleReorderColumns = (blockId: string, fromIndex: number, toIndex: number) => {
+    if (isLocked || fromIndex === toIndex) return;
     setLayoutBlocks(prev => prev.map(b => {
-      if (b.id === blockId) {
-        const cols = [...(b.tableColumns || [])];
-        const idx = cols.findIndex(c => c.id === colId);
-        if (idx === -1) return b;
-        const targetIdx = direction === 'left' ? idx - 1 : idx + 1;
-        if (targetIdx < 0 || targetIdx >= cols.length) return b;
-        const temp = cols[idx];
-        cols[idx] = cols[targetIdx];
-        cols[targetIdx] = temp;
-        return { ...b, tableColumns: cols };
-      }
-      return b;
+      if (b.id !== blockId) return b;
+      const cols = b.tableColumns || [];
+      if (fromIndex < 0 || fromIndex >= cols.length || toIndex < 0 || toIndex >= cols.length) return b;
+      const updatedCols = reorderArray(cols, fromIndex, toIndex);
+      return { ...b, tableColumns: updatedCols };
     }));
   };
 
@@ -2143,6 +2143,30 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
       const temp = updatedRows[index];
       updatedRows[index] = updatedRows[targetIndex];
       updatedRows[targetIndex] = temp;
+      
+      // Auto-renumber the first column if it's static_text
+      const updatedData = { ...b.tableData || {} };
+      const firstCol = b.tableColumns?.[0];
+      if (firstCol && firstCol.type === 'static_text') {
+        updatedRows.forEach((r, idx) => {
+          updatedData[r.id] = {
+            ...updatedData[r.id] || {},
+            [firstCol.id]: String(idx + 1)
+          };
+        });
+      }
+      
+      return { ...b, tableRows: updatedRows, tableData: updatedData };
+    }));
+  };
+
+  const handleReorderRows = (blockId: string, fromIndex: number, toIndex: number) => {
+    if (isLocked || fromIndex === toIndex) return;
+    setLayoutBlocks(prev => prev.map(b => {
+      if (b.id !== blockId) return b;
+      const rows = b.tableRows || [];
+      if (fromIndex < 0 || fromIndex >= rows.length || toIndex < 0 || toIndex >= rows.length) return b;
+      const updatedRows = reorderArray(rows, fromIndex, toIndex);
       
       // Auto-renumber the first column if it's static_text
       const updatedData = { ...b.tableData || {} };
@@ -4636,102 +4660,163 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                   return <col key={col.id} style={{ width: colWidth }} />;
                                 })}
                                 {!isLocked && (
-                                  <col style={{ width: '88px' }} />
+                                  <col style={{ width: '54px' }} />
                                 )}
                               </colgroup>
                               <thead style={{ opacity: block.hideHeader ? 0.45 : 1, transition: 'opacity 0.2s ease' }} title={block.hideHeader ? 'Tiêu đề đang ẨN trên bản in & biểu mẫu' : undefined}>
                                 <tr style={{ background: bStyle === 'borderless' ? (block.hideHeader ? '#f8fafc' : 'transparent') : '#f1f5f9', borderBottom: bStyle === 'borderless' ? (block.hideHeader ? '1px dashed #cbd5e1' : 'none') : (block.hideHeader ? '1px dashed #94a3b8' : '1px solid #cbd5e1') }}>
-                                  {(block.tableColumns || []).map((col) => {
+                                  {(block.tableColumns || []).map((col, cIdx) => {
                                     const colWidth = getColStyleWidth(col.id, col.width, block.tableColumns || []);
                                     const headerAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'date' || col.type === 'time' || col.type === 'likert_scale' ? 'center' : 'left'));
+                                    const isDraggingCol = draggedTableColumn?.blockId === block.id && draggedTableColumn.colId === col.id;
+                                    const isDragOverCol = dragOverTableColumn?.blockId === block.id && dragOverTableColumn.colId === col.id;
+                                    const canDragCol = !isLocked && !col.locked && (block.tableColumns || []).length > 1;
+
                                     return (
                                       <th
                                         key={col.id}
+                                        onDragOver={(e) => {
+                                          if (draggedTableColumn?.blockId === block.id) {
+                                            e.preventDefault();
+                                            e.dataTransfer.dropEffect = 'move';
+                                          }
+                                        }}
+                                        onDragEnter={() => {
+                                          if (draggedTableColumn?.blockId === block.id && !col.locked) {
+                                            setDragOverTableColumn({ blockId: block.id, colId: col.id, index: cIdx });
+                                          }
+                                        }}
+                                        onDrop={(e) => {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          if (draggedTableColumn?.blockId === block.id && draggedTableColumn.index !== cIdx) {
+                                            handleReorderColumns(block.id, draggedTableColumn.index, cIdx);
+                                          }
+                                          setDraggedTableColumn(null);
+                                          setDragOverTableColumn(null);
+                                        }}
+                                        onDragEnd={() => {
+                                          setDraggedTableColumn(null);
+                                          setDragOverTableColumn(null);
+                                        }}
                                         style={{
                                           padding: '4px 6px',
-                                          borderRight: bStyle === 'grid' ? '1px solid #cbd5e1' : 'none',
+                                          borderRight: isDragOverCol && draggedTableColumn && draggedTableColumn.index < cIdx ? '3px solid var(--primary)' : (bStyle === 'grid' ? '1px solid #cbd5e1' : 'none'),
+                                          borderLeft: isDragOverCol && draggedTableColumn && draggedTableColumn.index > cIdx ? '3px solid var(--primary)' : undefined,
                                           borderBottom: bStyle === 'borderless' ? 'none' : '1px solid #cbd5e1',
                                           width: colWidth,
                                           verticalAlign: 'top',
-                                          boxSizing: 'border-box'
+                                          boxSizing: 'border-box',
+                                          opacity: isDraggingCol ? 0.45 : 1,
+                                          transition: 'opacity 0.15s ease'
                                         }}
                                       >
-                                        {col.type === 'likert_scale' ? (
-                                          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${(col.scaleOptions || []).length || 3}, 1fr)`, gap: '4px', textAlign: 'center', width: '100%', minHeight: '22px' }}>
-                                            {(col.scaleOptions || ['Easy to Answer', 'Could Answer', 'Difficult to Answer']).map((opt, sIdx) => (
-                                              <div key={sIdx} style={{ fontSize: '0.75rem', fontWeight: 700, color: '#0f172a', padding: '2px 2px', wordBreak: 'break-word', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                {opt}
-                                              </div>
-                                            ))}
-                                          </div>
-                                        ) : (
-                                          <div style={{ display: 'grid', width: '100%', minHeight: '22px', boxSizing: 'border-box' }}>
-                                            <span
-                                              aria-hidden="true"
-                                              style={{
-                                                gridArea: '1 / 1 / 2 / 2',
-                                                visibility: 'hidden',
-                                                whiteSpace: 'pre-wrap',
-                                                wordBreak: 'break-word',
-                                                fontSize: '0.82rem',
-                                                fontWeight: 700,
-                                                lineHeight: 1.35,
-                                                fontFamily: 'inherit',
-                                                textAlign: headerAlign as any,
-                                                padding: '2px 4px',
-                                                minHeight: '18px'
-                                              }}
-                                            >
-                                              {(col.label || '') + ' '}
-                                            </span>
-                                            <textarea
-                                              disabled={isLocked}
-                                              rows={1}
-                                              value={col.label || ''}
-                                              placeholder="Tên cột..."
-                                              onClick={(e) => {
+                                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '3px', width: '100%' }}>
+                                          {canDragCol && (
+                                            <div
+                                              draggable
+                                              onDragStart={(e) => {
                                                 e.stopPropagation();
-                                                setActiveBlockId(block.id);
+                                                setDraggedTableColumn({ blockId: block.id, colId: col.id, index: cIdx });
+                                                e.dataTransfer.effectAllowed = 'move';
                                               }}
-                                              onChange={(e) => handleUpdateTableColumn(block.id, col.id, { label: e.target.value })}
+                                              title="Kéo để đổi thứ tự cột"
                                               style={{
-                                                gridArea: '1 / 1 / 2 / 2',
-                                                width: '100%',
-                                                height: '100%',
-                                                fontWeight: 700,
-                                                fontSize: '0.82rem',
-                                                lineHeight: 1.35,
-                                                fontFamily: 'inherit',
-                                                color: '#0f172a',
-                                                textAlign: headerAlign as any,
-                                                border: '1px solid transparent',
-                                                borderRadius: '3px',
-                                                background: 'transparent',
-                                                outline: 'none',
-                                                padding: '2px 4px',
-                                                margin: 0,
-                                                resize: 'none',
-                                                overflow: 'hidden',
-                                                whiteSpace: 'pre-wrap',
-                                                wordBreak: 'break-word',
-                                                cursor: isLocked ? 'default' : 'text'
+                                                cursor: 'grab',
+                                                color: '#94a3b8',
+                                                padding: '2px 0',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                userSelect: 'none',
+                                                flexShrink: 0,
+                                                opacity: 0.5,
+                                                transition: 'opacity 0.15s ease'
                                               }}
-                                              onFocus={(e) => {
-                                                e.target.style.borderColor = 'var(--primary)';
-                                                e.target.style.background = '#ffffff';
-                                              }}
-                                              onBlur={(e) => {
-                                                e.target.style.borderColor = 'transparent';
-                                                e.target.style.background = 'transparent';
-                                              }}
-                                            />
+                                              onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+                                              onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.5')}
+                                            >
+                                              <GripVertical size={12} style={{ pointerEvents: 'none' }} />
+                                            </div>
+                                          )}
+                                          <div style={{ flex: 1, minWidth: 0 }}>
+                                            {col.type === 'likert_scale' ? (
+                                              <div style={{ display: 'grid', gridTemplateColumns: `repeat(${(col.scaleOptions || []).length || 3}, 1fr)`, gap: '4px', textAlign: 'center', width: '100%', minHeight: '22px' }}>
+                                                {(col.scaleOptions || ['Easy to Answer', 'Could Answer', 'Difficult to Answer']).map((opt, sIdx) => (
+                                                  <div key={sIdx} style={{ fontSize: '0.75rem', fontWeight: 700, color: '#0f172a', padding: '2px 2px', wordBreak: 'break-word', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                    {opt}
+                                                  </div>
+                                                ))}
+                                              </div>
+                                            ) : (
+                                              <div style={{ display: 'grid', width: '100%', minHeight: '22px', boxSizing: 'border-box' }}>
+                                                <span
+                                                  aria-hidden="true"
+                                                  style={{
+                                                    gridArea: '1 / 1 / 2 / 2',
+                                                    visibility: 'hidden',
+                                                    whiteSpace: 'pre-wrap',
+                                                    wordBreak: 'break-word',
+                                                    fontSize: '0.82rem',
+                                                    fontWeight: 700,
+                                                    lineHeight: 1.35,
+                                                    fontFamily: 'inherit',
+                                                    textAlign: headerAlign as any,
+                                                    padding: '2px 4px',
+                                                    minHeight: '18px'
+                                                  }}
+                                                >
+                                                  {(col.label || '') + ' '}
+                                                </span>
+                                                <textarea
+                                                  disabled={isLocked}
+                                                  rows={1}
+                                                  value={col.label || ''}
+                                                  placeholder="Tên cột..."
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setActiveBlockId(block.id);
+                                                  }}
+                                                  onChange={(e) => handleUpdateTableColumn(block.id, col.id, { label: e.target.value })}
+                                                  style={{
+                                                    gridArea: '1 / 1 / 2 / 2',
+                                                    width: '100%',
+                                                    height: '100%',
+                                                    fontWeight: 700,
+                                                    fontSize: '0.82rem',
+                                                    lineHeight: 1.35,
+                                                    fontFamily: 'inherit',
+                                                    color: '#0f172a',
+                                                    textAlign: headerAlign as any,
+                                                    border: '1px solid transparent',
+                                                    borderRadius: '3px',
+                                                    background: 'transparent',
+                                                    outline: 'none',
+                                                    padding: '2px 4px',
+                                                    margin: 0,
+                                                    resize: 'none',
+                                                    overflow: 'hidden',
+                                                    whiteSpace: 'pre-wrap',
+                                                    wordBreak: 'break-word',
+                                                    cursor: isLocked ? 'default' : 'text'
+                                                  }}
+                                                  onFocus={(e) => {
+                                                    e.target.style.borderColor = 'var(--primary)';
+                                                    e.target.style.background = '#ffffff';
+                                                  }}
+                                                  onBlur={(e) => {
+                                                    e.target.style.borderColor = 'transparent';
+                                                    e.target.style.background = 'transparent';
+                                                  }}
+                                                />
+                                              </div>
+                                            )}
                                           </div>
-                                        )}
+                                        </div>
                                       </th>
                                     );
                                   })}
                                   {!isLocked && (
-                                    <th style={{ width: '88px', padding: '0', border: 'none', background: 'transparent' }} />
+                                    <th style={{ width: '54px', padding: '0', border: 'none', background: 'transparent' }} />
                                   )}
                                 </tr>
                               </thead>
@@ -4743,14 +4828,48 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                     </td>
                                   </tr>
                                 ) : (
-                                  (block.tableRows || []).map((row) => {
+                                  (block.tableRows || []).map((row, rIdx) => {
+                                    const isDraggingRow = draggedTableRow?.blockId === block.id && draggedTableRow.rowId === row.id;
+                                    const isDragOverRow = dragOverTableRow?.blockId === block.id && dragOverTableRow.rowId === row.id;
+                                    const canDragRow = !isLocked && (block.tableRows || []).length > 1;
+
                                     if (row.isGroupHeader) {
                                       const isSelected = activeCellKey === `${row.id}_group`;
                                       const groupTitleVal = row.groupTitle !== undefined ? row.groupTitle : (block.tableData?.[row.id]?.['_groupTitle'] || '');
                                       return (
                                         <tr
                                           key={row.id}
-                                          style={{ borderBottom: bStyle === 'borderless' ? 'none' : '1px solid #cbd5e1', background: bStyle === 'borderless' ? 'transparent' : '#f8fafc' }}
+                                          onDragOver={(e) => {
+                                            if (draggedTableRow?.blockId === block.id) {
+                                              e.preventDefault();
+                                              e.dataTransfer.dropEffect = 'move';
+                                            }
+                                          }}
+                                          onDragEnter={() => {
+                                            if (draggedTableRow?.blockId === block.id) {
+                                              setDragOverTableRow({ blockId: block.id, rowId: row.id, index: rIdx });
+                                            }
+                                          }}
+                                          onDrop={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            if (draggedTableRow?.blockId === block.id && draggedTableRow.index !== rIdx) {
+                                              handleReorderRows(block.id, draggedTableRow.index, rIdx);
+                                            }
+                                            setDraggedTableRow(null);
+                                            setDragOverTableRow(null);
+                                          }}
+                                          onDragEnd={() => {
+                                            setDraggedTableRow(null);
+                                            setDragOverTableRow(null);
+                                          }}
+                                          style={{
+                                            borderBottom: isDragOverRow && draggedTableRow && draggedTableRow.index < rIdx ? '2px solid var(--primary)' : (bStyle === 'borderless' ? 'none' : '1px solid #cbd5e1'),
+                                            borderTop: isDragOverRow && draggedTableRow && draggedTableRow.index > rIdx ? '2px solid var(--primary)' : undefined,
+                                            background: bStyle === 'borderless' ? 'transparent' : '#f8fafc',
+                                            opacity: isDraggingRow ? 0.45 : 1,
+                                            transition: 'all 0.1s ease'
+                                          }}
                                           onMouseEnter={() => !isLocked && setHoveredTableRowId(row.id)}
                                           onMouseLeave={() => setHoveredTableRowId(null)}
                                         >
@@ -4840,24 +4959,28 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                             </div>
                                           </td>
                                           {!isLocked && (
-                                            <td style={{ width: '88px', padding: '0 4px', border: 'none', textAlign: 'center', background: '#e5e7eb' }}>
+                                            <td style={{ width: '54px', padding: '0 2px', border: 'none', textAlign: 'center', background: '#e5e7eb' }}>
                                               <div style={{ display: 'flex', gap: '2px', justifyContent: 'center', alignItems: 'center', opacity: hoveredTableRowId === row.id ? 1 : 0, transition: 'opacity 0.15s ease' }}>
-                                                <button
-                                                  type="button"
-                                                  onClick={() => handleMoveRow(block.id, row.id, 'up')}
-                                                  style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}
-                                                  title="Di chuyển phân nhóm lên"
+                                                <div
+                                                  draggable={canDragRow}
+                                                  onDragStart={(e) => {
+                                                    e.stopPropagation();
+                                                    setDraggedTableRow({ blockId: block.id, rowId: row.id, index: rIdx });
+                                                    e.dataTransfer.effectAllowed = 'move';
+                                                  }}
+                                                  style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    cursor: canDragRow ? 'grab' : 'default',
+                                                    color: '#475569',
+                                                    padding: '2px',
+                                                    userSelect: 'none'
+                                                  }}
+                                                  title="Kéo để đổi thứ tự phân nhóm"
                                                 >
-                                                  <ArrowUp size={11} style={{ pointerEvents: 'none' }} />
-                                                </button>
-                                                <button
-                                                  type="button"
-                                                  onClick={() => handleMoveRow(block.id, row.id, 'down')}
-                                                  style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}
-                                                  title="Di chuyển phân nhóm xuống"
-                                                >
-                                                  <ArrowDown size={11} style={{ pointerEvents: 'none' }} />
-                                                </button>
+                                                  <GripVertical size={13} style={{ pointerEvents: 'none' }} />
+                                                </div>
                                                 <button
                                                   type="button"
                                                   onClick={() => {
@@ -4904,7 +5027,36 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                     return (
                                     <tr
                                       key={row.id}
-                                      style={{ borderBottom: '1px solid #cbd5e1' }}
+                                      onDragOver={(e) => {
+                                        if (draggedTableRow?.blockId === block.id) {
+                                          e.preventDefault();
+                                          e.dataTransfer.dropEffect = 'move';
+                                        }
+                                      }}
+                                      onDragEnter={() => {
+                                        if (draggedTableRow?.blockId === block.id) {
+                                          setDragOverTableRow({ blockId: block.id, rowId: row.id, index: rIdx });
+                                        }
+                                      }}
+                                      onDrop={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        if (draggedTableRow?.blockId === block.id && draggedTableRow.index !== rIdx) {
+                                          handleReorderRows(block.id, draggedTableRow.index, rIdx);
+                                        }
+                                        setDraggedTableRow(null);
+                                        setDragOverTableRow(null);
+                                      }}
+                                      onDragEnd={() => {
+                                        setDraggedTableRow(null);
+                                        setDragOverTableRow(null);
+                                      }}
+                                      style={{
+                                        borderBottom: isDragOverRow && draggedTableRow && draggedTableRow.index < rIdx ? '2px solid var(--primary)' : '1px solid #cbd5e1',
+                                        borderTop: isDragOverRow && draggedTableRow && draggedTableRow.index > rIdx ? '2px solid var(--primary)' : undefined,
+                                        opacity: isDraggingRow ? 0.45 : 1,
+                                        transition: 'all 0.1s ease'
+                                      }}
                                       onMouseEnter={() => !isLocked && setHoveredTableRowId(row.id)}
                                       onMouseLeave={() => setHoveredTableRowId(null)}
                                     >
@@ -5394,24 +5546,28 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                          );
                                        })}
                                       {!isLocked && (
-                                          <td style={{ width: '88px', padding: '0 4px', border: 'none', textAlign: 'center' }}>
-                                            <div style={{ display: 'flex', gap: '3px', justifyContent: 'center', alignItems: 'center', opacity: (hoveredTableRowId === row.id || activeLineCountRowId === row.id) ? 1 : 0, transition: 'opacity 0.15s ease' }}>
-                                              <button
-                                                type="button"
-                                                onClick={() => handleMoveRow(block.id, row.id, 'up')}
-                                                style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}
-                                                title="Di chuyển dòng lên"
+                                          <td style={{ width: '54px', padding: '0 2px', border: 'none', textAlign: 'center' }}>
+                                            <div style={{ display: 'flex', gap: '2px', justifyContent: 'center', alignItems: 'center', opacity: (hoveredTableRowId === row.id || activeLineCountRowId === row.id) ? 1 : 0, transition: 'opacity 0.15s ease' }}>
+                                              <div
+                                                draggable={canDragRow}
+                                                onDragStart={(e) => {
+                                                  e.stopPropagation();
+                                                  setDraggedTableRow({ blockId: block.id, rowId: row.id, index: rIdx });
+                                                  e.dataTransfer.effectAllowed = 'move';
+                                                }}
+                                                style={{
+                                                  display: 'flex',
+                                                  alignItems: 'center',
+                                                  justifyContent: 'center',
+                                                  cursor: canDragRow ? 'grab' : 'default',
+                                                  color: '#64748b',
+                                                  padding: '2px',
+                                                  userSelect: 'none'
+                                                }}
+                                                title="Kéo để đổi thứ tự dòng"
                                               >
-                                                <ArrowUp size={11} style={{ pointerEvents: 'none' }} />
-                                              </button>
-                                              <button
-                                                type="button"
-                                                onClick={() => handleMoveRow(block.id, row.id, 'down')}
-                                                style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}
-                                                title="Di chuyển dòng xuống"
-                                              >
-                                                <ArrowDown size={11} style={{ pointerEvents: 'none' }} />
-                                              </button>
+                                                <GripVertical size={13} style={{ pointerEvents: 'none' }} />
+                                              </div>
 
                                               {/* Nút Pill kích hoạt Mini Popover chọn số dòng viết tay */}
                                               <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
@@ -6993,9 +7149,72 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                         {clCols.map((col, cIdx, arr) => {
                           const isLast = cIdx === arr.length - 1;
                           const isLockedCol = !!col.locked;
+                          const isDraggingCol = draggedTableColumn?.blockId === activeBlock.id && draggedTableColumn.colId === col.id;
+                          const isDragOverCol = dragOverTableColumn?.blockId === activeBlock.id && dragOverTableColumn.colId === col.id;
+                          const canDragCol = !isLocked && !isLockedCol && arr.length > 1;
+
                           return (
-                            <div key={col.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', border: `1px solid ${isLockedCol ? '#e2e8f0' : 'var(--neutral-border)'}`, padding: '6px', borderRadius: '4px', background: isLockedCol ? '#f1f5f9' : '#f8fafc', opacity: col.hidden ? 0.6 : 1 }}>
+                            <div
+                              key={col.id}
+                              onDragOver={(e) => {
+                                if (draggedTableColumn?.blockId === activeBlock.id && !isLockedCol) {
+                                  e.preventDefault();
+                                  e.dataTransfer.dropEffect = 'move';
+                                }
+                              }}
+                              onDragEnter={() => {
+                                if (draggedTableColumn?.blockId === activeBlock.id && !isLockedCol) {
+                                  setDragOverTableColumn({ blockId: activeBlock.id, colId: col.id, index: cIdx });
+                                }
+                              }}
+                              onDrop={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                if (draggedTableColumn?.blockId === activeBlock.id && draggedTableColumn.index !== cIdx && !isLockedCol) {
+                                  handleReorderColumns(activeBlock.id, draggedTableColumn.index, cIdx);
+                                }
+                                setDraggedTableColumn(null);
+                                setDragOverTableColumn(null);
+                              }}
+                              onDragEnd={() => {
+                                setDraggedTableColumn(null);
+                                setDragOverTableColumn(null);
+                              }}
+                              style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '0.35rem',
+                                border: `1px solid ${isDragOverCol ? 'var(--primary)' : isLockedCol ? '#e2e8f0' : 'var(--neutral-border)'}`,
+                                borderTop: isDragOverCol && draggedTableColumn && draggedTableColumn.index > cIdx ? '2px solid var(--primary)' : undefined,
+                                borderBottom: isDragOverCol && draggedTableColumn && draggedTableColumn.index < cIdx ? '2px solid var(--primary)' : undefined,
+                                padding: '6px',
+                                borderRadius: '4px',
+                                background: isLockedCol ? '#f1f5f9' : '#f8fafc',
+                                opacity: isDraggingCol ? 0.45 : (col.hidden ? 0.6 : 1),
+                                transition: 'all 0.1s ease'
+                              }}
+                            >
                               <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
+                                <div
+                                  draggable={canDragCol}
+                                  onDragStart={(e) => {
+                                    e.stopPropagation();
+                                    setDraggedTableColumn({ blockId: activeBlock.id, colId: col.id, index: cIdx });
+                                    e.dataTransfer.effectAllowed = 'move';
+                                  }}
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    cursor: canDragCol ? 'grab' : isLockedCol ? 'not-allowed' : 'default',
+                                    color: isLockedCol ? '#cbd5e1' : '#64748b',
+                                    padding: '2px',
+                                    userSelect: 'none'
+                                  }}
+                                  title={isLockedCol ? "Cột cố định không thể di chuyển" : "Kéo để đổi thứ tự cột"}
+                                >
+                                  <GripVertical size={13} style={{ pointerEvents: 'none' }} />
+                                </div>
                                 {isLockedCol && (
                                   <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', padding: '1px 4px', background: '#e2e8f0', borderRadius: '3px', whiteSpace: 'nowrap' }}>🔒 Cố định</span>
                                 )}
@@ -7007,24 +7226,6 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                   placeholder="Tên cột"
                                   style={{ flex: 1, padding: '0.2rem 0.3rem', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
                                 />
-                                <button
-                                  type="button"
-                                  disabled={isLocked || cIdx === 0 || isLockedCol}
-                                  onClick={() => handleMoveColumn(activeBlock.id, col.id, 'left')}
-                                  style={{ width: '24px', height: '24px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: isLocked || cIdx === 0 || isLockedCol ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: isLocked || cIdx === 0 || isLockedCol ? 0.4 : 1, padding: 0 }}
-                                  title="Di chuyển lên"
-                                >
-                                  <ArrowUp size={13} style={{ color: '#0f172a' }} />
-                                </button>
-                                <button
-                                  type="button"
-                                  disabled={isLocked || cIdx === arr.length - 1 || isLockedCol}
-                                  onClick={() => handleMoveColumn(activeBlock.id, col.id, 'right')}
-                                  style={{ width: '24px', height: '24px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: isLocked || cIdx === arr.length - 1 || isLockedCol ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: isLocked || cIdx === arr.length - 1 || isLockedCol ? 0.4 : 1, padding: 0 }}
-                                  title="Di chuyển xuống"
-                                >
-                                  <ArrowDown size={13} style={{ color: '#0f172a' }} />
-                                </button>
                                 {isLockedCol ? (
                                   <button
                                     type="button"
@@ -7469,9 +7670,72 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingRight: '4px' }}>
                         {cols.map((col, cIdx, arr) => {
                           const isLast = cIdx === arr.length - 1;
+                          const isDraggingCol = draggedTableColumn?.blockId === activeBlock.id && draggedTableColumn.colId === col.id;
+                          const isDragOverCol = dragOverTableColumn?.blockId === activeBlock.id && dragOverTableColumn.colId === col.id;
+                          const canDragCol = !isLocked && arr.length > 1;
+
                           return (
-                            <div key={col.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', border: '1px solid var(--neutral-border)', padding: '6px', borderRadius: '4px', background: '#f8fafc' }}>
+                            <div
+                              key={col.id}
+                              onDragOver={(e) => {
+                                if (draggedTableColumn?.blockId === activeBlock.id) {
+                                  e.preventDefault();
+                                  e.dataTransfer.dropEffect = 'move';
+                                }
+                              }}
+                              onDragEnter={() => {
+                                if (draggedTableColumn?.blockId === activeBlock.id) {
+                                  setDragOverTableColumn({ blockId: activeBlock.id, colId: col.id, index: cIdx });
+                                }
+                              }}
+                              onDrop={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                if (draggedTableColumn?.blockId === activeBlock.id && draggedTableColumn.index !== cIdx) {
+                                  handleReorderColumns(activeBlock.id, draggedTableColumn.index, cIdx);
+                                }
+                                setDraggedTableColumn(null);
+                                setDragOverTableColumn(null);
+                              }}
+                              onDragEnd={() => {
+                                setDraggedTableColumn(null);
+                                setDragOverTableColumn(null);
+                              }}
+                              style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '0.35rem',
+                                border: `1px solid ${isDragOverCol ? 'var(--primary)' : 'var(--neutral-border)'}`,
+                                borderTop: isDragOverCol && draggedTableColumn && draggedTableColumn.index > cIdx ? '2px solid var(--primary)' : undefined,
+                                borderBottom: isDragOverCol && draggedTableColumn && draggedTableColumn.index < cIdx ? '2px solid var(--primary)' : undefined,
+                                padding: '6px',
+                                borderRadius: '4px',
+                                background: '#f8fafc',
+                                opacity: isDraggingCol ? 0.45 : 1,
+                                transition: 'all 0.1s ease'
+                              }}
+                            >
                               <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
+                                <div
+                                  draggable={canDragCol}
+                                  onDragStart={(e) => {
+                                    e.stopPropagation();
+                                    setDraggedTableColumn({ blockId: activeBlock.id, colId: col.id, index: cIdx });
+                                    e.dataTransfer.effectAllowed = 'move';
+                                  }}
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    cursor: canDragCol ? 'grab' : 'default',
+                                    color: '#64748b',
+                                    padding: '2px',
+                                    userSelect: 'none'
+                                  }}
+                                  title="Kéo để đổi thứ tự cột"
+                                >
+                                  <GripVertical size={13} style={{ pointerEvents: 'none' }} />
+                                </div>
                                 <input
                                   type="text"
                                   disabled={isLocked}
@@ -7481,48 +7745,6 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                   style={{ flex: 1, padding: '0.2rem 0.3rem', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
                                 />
                                 
-                                <button
-                                  type="button"
-                                  disabled={isLocked || cIdx === 0}
-                                  onClick={() => handleMoveColumn(activeBlock.id, col.id, 'left')}
-                                  style={{
-                                    width: '24px',
-                                    height: '24px',
-                                    background: '#ffffff',
-                                    border: '1px solid #cbd5e1',
-                                    borderRadius: '4px',
-                                    cursor: isLocked || cIdx === 0 ? 'not-allowed' : 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    opacity: isLocked || cIdx === 0 ? 0.4 : 1,
-                                    padding: 0
-                                  }}
-                                  title="Di chuyển lên"
-                                >
-                                  <ArrowUp size={13} style={{ color: '#0f172a' }} />
-                                </button>
-                                <button
-                                  type="button"
-                                  disabled={isLocked || cIdx === arr.length - 1}
-                                  onClick={() => handleMoveColumn(activeBlock.id, col.id, 'right')}
-                                  style={{
-                                    width: '24px',
-                                    height: '24px',
-                                    background: '#ffffff',
-                                    border: '1px solid #cbd5e1',
-                                    borderRadius: '4px',
-                                    cursor: isLocked || cIdx === arr.length - 1 ? 'not-allowed' : 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    opacity: isLocked || cIdx === arr.length - 1 ? 0.4 : 1,
-                                    padding: 0
-                                  }}
-                                  title="Di chuyển xuống"
-                                >
-                                  <ArrowDown size={13} style={{ color: '#0f172a' }} />
-                                </button>
                                 <button
                                   type="button"
                                   disabled={isLocked || arr.length <= 1}
