@@ -27,6 +27,28 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-11 — Table Rows Floating Hover Overlay & Action Column Elimination
+
+**Scope:** 2 files, 249 insertions, 196 deletions (`9cddedb`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian lập plan (Request → Proceed) | 5.3 min |
+| Thời gian thực thi (Proceed → Push) | 7.7 min |
+| Thời gian tổng (Request → Push) | 12.9 min |
+| Số file nguồn chỉnh sửa | 1 (`FormBuilder.tsx`) |
+| Tổng lượt edit source | 7 |
+| Lượt edit sửa lỗi (rework) | 0 (các edit là non-adjacent chunks theo Mục 12) |
+| Số lần build | 2 |
+| Lần build đầu thành công? | Có (100% pass ngay lần build đầu) |
+| Số lệnh thất bại | 0 |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Lỗi phát sinh:** Không có lỗi mã nguồn hay cú pháp phát sinh. 100% build pass ngay lần đầu. Áp dụng triệt để Mục 12.6 (Chunk Bounding Invariant < 50 dòng) và Mục 13.7 (Dead-Code Pruning Invariant), dọn sạch 196 dòng mã cột thao tác cũ, đạt Refactor Ratio 78.7%.
+
+---
+
 ### 2026-09-11 — Drag to Reorder Table Rows & Columns (Canvas & Inspector)
 
 **Scope:** 4 files, 452 insertions, 187 deletions (`1ddf197`)

@@ -5015,31 +5015,36 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                       return b;
                                                     }));
                                                   }}
-                                                  style={{ background: 'none', border: 'none', color: '#475569', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center', fontSize: '0.65rem' }}
-                                                  title="Chuyển thành dòng dữ liệu thường"
-                                                >
-                                                  🔄
-                                                </button>
-                                                <button
-                                                  type="button"
-                                                  onClick={() => {
-                                                    setLayoutBlocks(prev => prev.map(b => {
-                                                      if (b.id === block.id) {
-                                                        const updatedRows = (b.tableRows || []).filter(r => r.id !== row.id);
-                                                        const updatedData = { ...b.tableData || {} };
-                                                        delete updatedData[row.id];
-                                                        return { ...b, tableRows: updatedRows, tableData: updatedData };
-                                                      }
-                                                      return b;
-                                                    }));
-                                                    setHoveredTableRowId(null);
-                                                  }}
-                                                  style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                                                  title="Xóa phân nhóm"
-                                                >
-                                                  <Trash2 size={11} />
-                                                </button>
-                                              </div>
+                                                   style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: '2px 4px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '3px', transition: 'all 0.1s ease' }}
+                                                   onMouseEnter={(e) => e.currentTarget.style.background = '#f1f5f9'}
+                                                   onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                                   title="Chuyển thành dòng dữ liệu thường"
+                                                 >
+                                                   <RotateCcw size={11} />
+                                                 </button>
+                                                 <div style={{ width: '1px', height: '12px', background: '#e2e8f0', margin: '0 1px' }} />
+                                                 <button
+                                                   type="button"
+                                                   onClick={() => {
+                                                     setLayoutBlocks(prev => prev.map(b => {
+                                                       if (b.id === block.id) {
+                                                         const updatedRows = (b.tableRows || []).filter(r => r.id !== row.id);
+                                                         const updatedData = { ...b.tableData || {} };
+                                                         delete updatedData[row.id];
+                                                         return { ...b, tableRows: updatedRows, tableData: updatedData };
+                                                       }
+                                                       return b;
+                                                     }));
+                                                     setHoveredTableRowId(null);
+                                                   }}
+                                                   style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '2px 4px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '3px', transition: 'all 0.1s ease' }}
+                                                   onMouseEnter={(e) => e.currentTarget.style.background = '#fee2e2'}
+                                                   onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                                   title="Xóa phân nhóm"
+                                                 >
+                                                   <Trash2 size={11} />
+                                                 </button>
+                                               </div>
                                             )}
                                           </td>
                                         </tr>
@@ -5621,31 +5626,39 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                 >
                                                   {/* Nút Pill chọn số dòng viết tay */}
                                                   <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
-                                                    <button
-                                                      type="button"
-                                                      onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setActiveLineCountRowId(prev => prev === row.id ? null : row.id);
-                                                      }}
-                                                      style={{
-                                                        display: 'inline-flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'center',
-                                                        padding: '1px 4px',
-                                                        fontSize: '0.66rem',
-                                                        fontWeight: lc > 1 ? 600 : 400,
-                                                        borderRadius: '3px',
-                                                        border: lc > 1 ? '1px solid #93c5fd' : '1px solid #cbd5e1',
-                                                        background: lc > 1 ? 'rgba(59, 130, 246, 0.1)' : '#f8fafc',
-                                                        color: lc > 1 ? '#2563eb' : 'var(--text-secondary)',
-                                                        cursor: 'pointer',
-                                                        lineHeight: 1.2,
-                                                        transition: 'all 0.15s ease'
-                                                      }}
-                                                      title={`Số dòng viết tay: ${lc} dòng (Click để đổi)`}
-                                                    >
-                                                      {lc}↕
-                                                    </button>
+                                                     <button
+                                                       type="button"
+                                                       onClick={(e) => {
+                                                         e.stopPropagation();
+                                                         setActiveLineCountRowId(prev => prev === row.id ? null : row.id);
+                                                       }}
+                                                       style={{
+                                                         display: 'inline-flex',
+                                                         alignItems: 'center',
+                                                         gap: '3px',
+                                                         padding: '2px 4px',
+                                                         fontSize: '0.68rem',
+                                                         fontWeight: lc > 1 ? 600 : 500,
+                                                         borderRadius: '3px',
+                                                         border: 'none',
+                                                         background: lc > 1 ? 'rgba(59, 130, 246, 0.1)' : activeLineCountRowId === row.id ? '#f1f5f9' : 'transparent',
+                                                         color: lc > 1 ? 'var(--primary)' : 'var(--text-secondary)',
+                                                         cursor: 'pointer',
+                                                         lineHeight: 1,
+                                                         transition: 'all 0.15s ease'
+                                                       }}
+                                                       onMouseEnter={(e) => {
+                                                         if (lc <= 1 && activeLineCountRowId !== row.id) e.currentTarget.style.background = '#f1f5f9';
+                                                       }}
+                                                       onMouseLeave={(e) => {
+                                                         if (lc <= 1 && activeLineCountRowId !== row.id) e.currentTarget.style.background = 'transparent';
+                                                       }}
+                                                       title={`Số dòng kẻ viết tay: ${lc} dòng (Click để đổi)`}
+                                                     >
+                                                       <Rows2 size={11} strokeWidth={1.75} style={{ opacity: lc > 1 ? 1 : 0.7 }} />
+                                                       <span>{lc}</span>
+                                                       <ChevronDown size={8} strokeWidth={2} style={{ opacity: 0.6, marginLeft: '-1px' }} />
+                                                     </button>
 
                                                     {/* Mini Popover nổi sang bên trái nút pill */}
                                                     {activeLineCountRowId === row.id && (
@@ -5713,30 +5726,34 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                         </div>
                                                       </>
                                                     )}
-                                                  </div>
+                                                   </div>
 
-                                                  <button
-                                                    type="button"
-                                                    onClick={(e) => {
-                                                      e.stopPropagation();
-                                                      setLayoutBlocks(prev => prev.map(b => {
-                                                        if (b.id === block.id) {
-                                                          const updatedRows = (b.tableRows || []).filter(r => r.id !== row.id);
-                                                          const updatedData = { ...b.tableData || {} };
-                                                          delete updatedData[row.id];
-                                                          return { ...b, tableRows: updatedRows, tableData: updatedData };
-                                                        }
-                                                        return b;
-                                                      }));
-                                                      setActiveLineCountRowId(null);
-                                                      setHoveredTableRowId(null);
-                                                    }}
-                                                    style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                                                    title="Xóa dòng"
-                                                  >
-                                                    <Trash2 size={11} />
-                                                  </button>
-                                                </div>
+                                                   <div style={{ width: '1px', height: '12px', background: '#e2e8f0', margin: '0 1px' }} />
+
+                                                   <button
+                                                     type="button"
+                                                     onClick={(e) => {
+                                                       e.stopPropagation();
+                                                       setLayoutBlocks(prev => prev.map(b => {
+                                                         if (b.id === block.id) {
+                                                           const updatedRows = (b.tableRows || []).filter(r => r.id !== row.id);
+                                                           const updatedData = { ...b.tableData || {} };
+                                                           delete updatedData[row.id];
+                                                           return { ...b, tableRows: updatedRows, tableData: updatedData };
+                                                         }
+                                                         return b;
+                                                       }));
+                                                       setActiveLineCountRowId(null);
+                                                       setHoveredTableRowId(null);
+                                                     }}
+                                                     style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '2px 4px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '3px', transition: 'all 0.1s ease' }}
+                                                     onMouseEnter={(e) => e.currentTarget.style.background = '#fee2e2'}
+                                                     onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                                     title="Xóa dòng"
+                                                   >
+                                                     <Trash2 size={11} />
+                                                   </button>
+                                                 </div>
                                               )}
                                             </td>
                                           );
