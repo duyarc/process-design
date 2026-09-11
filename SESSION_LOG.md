@@ -27,6 +27,28 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-11 — Table Row Line Count UI/UX Refinement & Segmented Action Pill
+
+**Scope:** 3 files, 116 insertions, 77 deletions (`aed930a`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian lập plan (Request → Proceed) | 2.9 min |
+| Thời gian thực thi (Proceed → Push) | 6.3 min |
+| Thời gian tổng (Request → Push) | 9.1 min |
+| Số file nguồn chỉnh sửa | 1 (`FormBuilder.tsx`) |
+| Tổng lượt edit source | 3 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 2 |
+| Lần build đầu thành công? | Có (100% pass ngay lần build đầu) |
+| Số lệnh thất bại | 0 |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Lỗi phát sinh:** Không có lỗi mã nguồn hoặc cú pháp phát sinh. 100% build pass ngay lần đầu. Nâng cấp thành công icon vector `Rows2` + số lượng + `ChevronDown`, loại bỏ viền hộp lồng hộp thô ráp, bổ sung divider phân đoạn và hover effect, đạt Refactor Ratio 66.4%.
+
+---
+
 ### 2026-09-11 — Table Rows Floating Hover Overlay & Action Column Elimination
 
 **Scope:** 2 files, 249 insertions, 196 deletions (`9cddedb`)

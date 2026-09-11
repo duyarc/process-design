@@ -1234,8 +1234,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
   const [currentDraftBackup, setCurrentDraftBackup] = useState<{ layoutBlocks: LayoutBlockISO[]; version: string; isLocked: boolean } | null>(null);
   const [viewingRevisionVersion, setViewingRevisionVersion] = useState<string | null>(null);
   const [rightTab, setRightTab] = useState<'properties' | 'versions'>('properties');
-  const [hoveredTableRowId, setHoveredTableRowId] = useState<string | null>(null);
-  const [activeLineCountRowId, setActiveLineCountRowId] = useState<string | null>(null);
+  const [hoveredTableRowKey, setHoveredTableRowKey] = useState<string | null>(null);
+  const [activeLineCountRowKey, setActiveLineCountRowKey] = useState<string | null>(null);
   const [activeCellKey, setActiveCellKey] = useState<string | null>(null);
 
   // Compute live snapshot & isSaved state
@@ -1535,8 +1535,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
         { id: 'col_3', label: 'Giá trị', width: '', type: 'number' }
       ] : undefined,
       tableRows: type === 'TABLE' ? [
-        { id: 'row_1' },
-        { id: 'row_2' }
+        { id: `row_${Date.now()}_1` },
+        { id: `row_${Date.now()}_2` }
       ] : undefined,
       tableData: type === 'TABLE' ? {
         row_1: { col_1: '1', col_2: 'Hạng mục kiểm tra A' },
@@ -4823,6 +4823,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                   </tr>
                                 ) : (
                                   (block.tableRows || []).map((row, rIdx) => {
+                                    const rowKey = `${block.id}:${row.id}`;
                                     const isDraggingRow = draggedTableRow?.blockId === block.id && draggedTableRow.rowId === row.id;
                                     const isDragOverRow = dragOverTableRow?.blockId === block.id && dragOverTableRow.rowId === row.id;
                                     const canDragRow = !isLocked && (block.tableRows || []).length > 1;
@@ -4864,8 +4865,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                             opacity: isDraggingRow ? 0.45 : 1,
                                             transition: 'all 0.1s ease'
                                           }}
-                                          onMouseEnter={() => !isLocked && setHoveredTableRowId(row.id)}
-                                          onMouseLeave={() => setHoveredTableRowId(null)}
+                                          onMouseEnter={() => !isLocked && setHoveredTableRowKey(rowKey)}
+                                          onMouseLeave={() => setHoveredTableRowKey(null)}
                                         >
                                           <td
                                             colSpan={(block.tableColumns || []).length}
@@ -4886,7 +4887,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                               outline: isSelected ? '1.5px solid #3b82f6' : 'none'
                                             }}
                                           >
-                                            {!isLocked && (hoveredTableRowId === row.id || isDraggingRow) && (
+                                            {!isLocked && (hoveredTableRowKey === rowKey || isDraggingRow) && (
                                               <div
                                                 draggable={canDragRow}
                                                 onDragStart={(e) => {
@@ -4985,7 +4986,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                 }}
                                               />
                                             </div>
-                                            {!isLocked && hoveredTableRowId === row.id && (
+                                            {!isLocked && hoveredTableRowKey === rowKey && (
                                               <div
                                                 onClick={(e) => e.stopPropagation()}
                                                 style={{
@@ -5035,7 +5036,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                        }
                                                        return b;
                                                      }));
-                                                     setHoveredTableRowId(null);
+                                                     setHoveredTableRowKey(null);
                                                    }}
                                                    style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '2px 4px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '3px', transition: 'all 0.1s ease' }}
                                                    onMouseEnter={(e) => e.currentTarget.style.background = '#fee2e2'}
@@ -5085,8 +5086,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                         opacity: isDraggingRow ? 0.45 : 1,
                                         transition: 'all 0.1s ease'
                                       }}
-                                      onMouseEnter={() => !isLocked && setHoveredTableRowId(row.id)}
-                                      onMouseLeave={() => setHoveredTableRowId(null)}
+                                      onMouseEnter={() => !isLocked && setHoveredTableRowKey(rowKey)}
+                                      onMouseLeave={() => setHoveredTableRowKey(null)}
                                     >
                                         {(block.tableColumns || []).map((col, cIdx) => {
                                           const isFirstCol = cIdx === 0;
@@ -5124,7 +5125,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                 cursor: 'pointer'
                                               }}
                                             >
-                                              {!isLocked && isFirstCol && (hoveredTableRowId === row.id || isDraggingRow) && (
+                                              {!isLocked && isFirstCol && (hoveredTableRowKey === rowKey || isDraggingRow) && (
                                                 <div
                                                   draggable={canDragRow}
                                                   onDragStart={(e) => {
@@ -5605,7 +5606,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                   ))}
                                                 </>
                                              )}
-                                              {!isLocked && isLastCol && (hoveredTableRowId === row.id || activeLineCountRowId === row.id) && (
+                                              {!isLocked && isLastCol && (hoveredTableRowKey === rowKey || activeLineCountRowKey === rowKey) && (
                                                 <div
                                                   onClick={(e) => e.stopPropagation()}
                                                   style={{
@@ -5630,7 +5631,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                        type="button"
                                                        onClick={(e) => {
                                                          e.stopPropagation();
-                                                         setActiveLineCountRowId(prev => prev === row.id ? null : row.id);
+                                                         setActiveLineCountRowKey(prev => prev === rowKey ? null : rowKey);
                                                        }}
                                                        style={{
                                                          display: 'inline-flex',
@@ -5641,17 +5642,17 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                          fontWeight: lc > 1 ? 600 : 500,
                                                          borderRadius: '3px',
                                                          border: 'none',
-                                                         background: lc > 1 ? 'rgba(59, 130, 246, 0.1)' : activeLineCountRowId === row.id ? '#f1f5f9' : 'transparent',
+                                                         background: lc > 1 ? 'rgba(59, 130, 246, 0.1)' : activeLineCountRowKey === rowKey ? '#f1f5f9' : 'transparent',
                                                          color: lc > 1 ? 'var(--primary)' : 'var(--text-secondary)',
                                                          cursor: 'pointer',
                                                          lineHeight: 1,
                                                          transition: 'all 0.15s ease'
                                                        }}
                                                        onMouseEnter={(e) => {
-                                                         if (lc <= 1 && activeLineCountRowId !== row.id) e.currentTarget.style.background = '#f1f5f9';
+                                                         if (lc <= 1 && activeLineCountRowKey !== rowKey) e.currentTarget.style.background = '#f1f5f9';
                                                        }}
                                                        onMouseLeave={(e) => {
-                                                         if (lc <= 1 && activeLineCountRowId !== row.id) e.currentTarget.style.background = 'transparent';
+                                                         if (lc <= 1 && activeLineCountRowKey !== rowKey) e.currentTarget.style.background = 'transparent';
                                                        }}
                                                        title={`Số dòng kẻ viết tay: ${lc} dòng (Click để đổi)`}
                                                      >
@@ -5661,11 +5662,11 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                      </button>
 
                                                     {/* Mini Popover nổi sang bên trái nút pill */}
-                                                    {activeLineCountRowId === row.id && (
+                                                    {activeLineCountRowKey === rowKey && (
                                                       <>
                                                         <div 
                                                           style={{ position: 'fixed', inset: 0, zIndex: 998 }} 
-                                                          onClick={(e) => { e.stopPropagation(); setActiveLineCountRowId(null); }} 
+                                                          onClick={(e) => { e.stopPropagation(); setActiveLineCountRowKey(null); }} 
                                                         />
                                                         <div
                                                           onClick={(e) => e.stopPropagation()}
@@ -5696,7 +5697,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                               onClick={(e) => {
                                                                 e.stopPropagation();
                                                                 handleUpdateRowLineCount(block.id, row.id, n);
-                                                                setActiveLineCountRowId(null);
+                                                                setActiveLineCountRowKey(null);
                                                               }}
                                                               style={{
                                                                 width: '20px',
@@ -5743,8 +5744,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                          }
                                                          return b;
                                                        }));
-                                                       setActiveLineCountRowId(null);
-                                                       setHoveredTableRowId(null);
+                                                       setActiveLineCountRowKey(null);
+                                                       setHoveredTableRowKey(null);
                                                      }}
                                                      style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '2px 4px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '3px', transition: 'all 0.1s ease' }}
                                                      onMouseEnter={(e) => e.currentTarget.style.background = '#fee2e2'}
