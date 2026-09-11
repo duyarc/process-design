@@ -36,6 +36,7 @@ import argparse
 import json
 import os
 import re
+import subprocess
 import sys
 from collections import defaultdict
 from datetime import datetime
@@ -209,7 +210,86 @@ def calc_minutes(t1_str: str | None, t2_str: str | None) -> float | None:
         return None
 
 
-def format_scorecard(m: dict) -> str:
+def get_git_churn_stats(repo_dir: str = ".", commit_ref: str = "HEAD") -> dict | None:
+    """Extract code churn statistics from git commit."""
+    try:
+        cmd = ["git", "show", "--shortstat", "--oneline", commit_ref]
+        res = subprocess.run(cmd, cwd=repo_dir, capture_output=True, text=True, timeout=10)
+        if res.returncode != 0:
+            return None
+        lines = [line.strip() for line in res.stdout.strip().splitlines() if line.strip()]
+        if not lines:
+            return None
+        commit_header = lines[0]
+        stat_line = lines[-1] if len(lines) > 1 else ""
+
+        files_changed = 0
+        insertions = 0
+        deletions = 0
+
+        m_files = re.search(r'(\d+)\s+file[s]?\s+changed', stat_line)
+        m_ins = re.search(r'(\d+)\s+insertion[s]?\(\+\)', stat_line)
+        m_del = re.search(r'(\d+)\s+deletion[s]?\(-\)', stat_line)
+
+        if m_files:
+            files_changed = int(m_files.group(1))
+        if m_ins:
+            insertions = int(m_ins.group(1))
+        if m_del:
+            deletions = int(m_del.group(1))
+
+        net_loc = insertions - deletions
+        refactor_ratio = (deletions / insertions * 100) if insertions > 0 else (100.0 if deletions > 0 else 0.0)
+
+        return {
+            "commit_header": commit_header,
+            "files_changed": files_changed,
+            "insertions": insertions,
+            "deletions": deletions,
+            "net_loc": net_loc,
+            "refactor_ratio": refactor_ratio
+        }
+    except Exception:
+        return None
+
+
+def get_monolith_file_stats(repo_dir: str = ".") -> list[dict]:
+    """Inspect lines of code for tracked monolithic files."""
+    tracked = [
+        {"path": "src/components/FormBuilder.tsx", "watch": 5000, "danger": 8000, "role": "Form Designer Monolith"},
+        {"path": "src/components/ProcessEditor.tsx", "watch": 3000, "danger": 5000, "role": "Process Editor Monolith"},
+        {"path": "src/components/FormFiller.tsx", "watch": 3000, "danger": 5000, "role": "Form Filler Component"},
+        {"path": "src/components/SubmissionManager.tsx", "watch": 1500, "danger": 3000, "role": "Submissions Manager"},
+    ]
+    results = []
+    base_path = Path(repo_dir)
+    for item in tracked:
+        fpath = base_path / item["path"]
+        if fpath.exists():
+            try:
+                lines = len(fpath.read_text(encoding="utf-8", errors="replace").splitlines())
+                if lines > item["danger"]:
+                    status = f"⚠️ Báo động (>{item['danger']:,})"
+                    recommendation = "Bắt buộc ưu tiên trích xuất logic sang utils hoặc tách sub-component"
+                elif lines > item["watch"]:
+                    status = f"ℹ️ Theo dõi (>{item['watch']:,})"
+                    recommendation = "Khuyến khích tách helpers ra utils khi có thêm tính năng"
+                else:
+                    status = "✅ An toàn"
+                    recommendation = "Bình thường"
+                results.append({
+                    "file": item["path"],
+                    "role": item["role"],
+                    "lines": lines,
+                    "status": status,
+                    "recommendation": recommendation
+                })
+            except Exception:
+                pass
+    return results
+
+
+def format_scorecard(m: dict, churn: dict | None = None, monoliths: list[dict] | None = None) -> str:
     """Generate markdown Performance Scorecard."""
     exec_time = calc_minutes(m["proceed_ts"], m["git_push_ts"])
     total_time = calc_minutes(m["first_request_ts"], m["git_push_ts"])
@@ -263,6 +343,42 @@ def format_scorecard(m: dict) -> str:
         for f, c in sorted(m["source_edit_counts"].items(), key=lambda x: -x[1]):
             rework_marker = " ⚠️" if c > 1 else ""
             lines.append(f"| `{f}` | {c}{rework_marker} |")
+
+    if churn:
+        lines.append("")
+        lines.append("### Code Health & Churn Radar")
+        lines.append("")
+        lines.append("| Chỉ số Churn | Giá trị | Nhận xét |")
+        lines.append("|---|---|---|")
+        lines.append(f"| Commit kiểm tra | `{churn['commit_header']}` | |")
+        lines.append(f"| Số file thay đổi | {churn['files_changed']} | |")
+        lines.append(f"| Lines Added (+) | +{churn['insertions']:,} | |")
+        lines.append(f"| Lines Deleted (-) | -{churn['deletions']:,} | |")
+        net_str = f"+{churn['net_loc']:,}" if churn['net_loc'] > 0 else f"{churn['net_loc']:,}"
+        if churn['net_loc'] < 0:
+            net_remark = "🎉 Xuất sắc (Giảm dòng code - Tối ưu hóa)"
+        elif churn['net_loc'] == 0:
+            net_remark = "Cân bằng hoàn hảo"
+        else:
+            net_remark = "Cộng dồn ròng"
+        lines.append(f"| Net LOC Delta | {net_str} | {net_remark} |")
+        ratio = churn['refactor_ratio']
+        if ratio >= 50:
+            ratio_remark = "Rất tốt (Thay thế / dọn dẹp mã cũ tích cực)"
+        elif ratio >= 20:
+            ratio_remark = "Lành mạnh (Có dọn dẹp / cập nhật)"
+        else:
+            ratio_remark = "⚠️ Cảnh báo phình to (Chủ yếu thêm mới, ít dọn code cũ)"
+        lines.append(f"| Refactor Ratio (Del / Ins) | {ratio:.1f}% | {ratio_remark} |")
+
+    if monoliths:
+        lines.append("")
+        lines.append("#### Monolith File Size Watch")
+        lines.append("")
+        lines.append("| Monolith Component | Lines | Trạng thái | Khuyến nghị |")
+        lines.append("|---|---|---|---|")
+        for mono in monoliths:
+            lines.append(f"| `{mono['file']}` | {mono['lines']:,} | {mono['status']} | {mono['recommendation']} |")
 
     lines.append("")
     lines.append(f"> Tổng steps: {m['total_steps']} | "
@@ -336,6 +452,12 @@ def main():
     parser.add_argument("--app-data-dir", type=str,
                         default=os.path.expanduser("~/.gemini/antigravity"),
                         help="Đường dẫn app data directory")
+    parser.add_argument("--repo-dir", type=str, default=".",
+                        help="Đường dẫn repository root để đo git churn & file sizes (default: .)")
+    parser.add_argument("--commit", type=str, default="HEAD",
+                        help="Git commit ref để trích xuất git churn (default: HEAD)")
+    parser.add_argument("--no-churn", action="store_true",
+                        help="Không đo git churn & monolith file stats")
     args = parser.parse_args()
 
     try:
@@ -365,7 +487,13 @@ def main():
     print(f"Loaded {len(steps)} steps.", file=sys.stderr)
 
     metrics = analyze(steps)
-    scorecard = format_scorecard(metrics)
+    churn = None
+    monoliths = None
+    if not args.no_churn:
+        churn = get_git_churn_stats(repo_dir=args.repo_dir, commit_ref=args.commit)
+        monoliths = get_monolith_file_stats(repo_dir=args.repo_dir)
+
+    scorecard = format_scorecard(metrics, churn=churn, monoliths=monoliths)
     print(scorecard)
 
 

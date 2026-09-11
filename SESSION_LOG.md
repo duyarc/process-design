@@ -18,12 +18,36 @@ phiên thực thi để không lặp lại lỗi cũ.
 | 4 | `CTX` | Patch boundary overlap: replacement content chồng lấn với code gốc còn lại → stray `)`, duplicate ternary | Verify vùng biên bằng `view_file` sau mỗi patch. Xem Mục 12.1, 12.3 | 2 |
 | 5 | `SCOPE` | Gom `npm run build` cuối cùng → lỗi tích lũy nhiều file, khó debug | Chạy `npx tsc --noEmit` sau mỗi file. Xem Mục 12.3 | 1 |
 | 6 | `CTX` | Chuyển arrow func `=> (` sang `=> { return (` quên đổi closing `))` thành `); })}` hoặc patch tag ngắn thiếu context độc nhất trong file monolith | Patch đồng thời mở và đóng block hàm; luôn bao gồm ≥ 3 dòng context độc nhất xung quanh closing tag | 1 |
+| 7 | `CTX` | Patch chunk quá dài (>100 dòng) trong file monolith lớn dễ bị fuzzy match lệch vị trí hoặc bỏ sót biến | Chia nhỏ patch thành các chunk tập trung (< 40-50 dòng) với context độc nhất. Đã tiến hóa thành quy tắc bắt buộc: Xem Mục 12.6 | 1 |
+| 8 | `BLOAT` | Để sót dead code (hàm cũ, props cũ như `handleMoveColumn`) khi thay thế giải pháp mới | Tuân thủ Mục 13.7 Dead-Code Pruning: rà soát toàn bộ call-site và xóa sạch code cũ trong cùng commit | 1 |
 
 ---
 
 ## Nhật ký Phiên
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
+
+### 2026-09-11 — Drag to Reorder Table Rows & Columns (Canvas & Inspector)
+
+**Scope:** 4 files, 452 insertions, 187 deletions (`1ddf197`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | 13.2 min |
+| Số file nguồn chỉnh sửa | 2 (`FormBuilder.tsx`, `formUtils.ts`) |
+| Tổng lượt edit source | 12 |
+| Lượt edit sửa lỗi (rework) | 2 (lệch khai báo biến rIdx do chunk lớn & xóa handleMoveColumn unused) |
+| Số lần build | 6 |
+| Lần build đầu thành công? | Không (dính TS6133 unused var & TS2304) |
+| Số lệnh thất bại | 1 |
+| Số lỗi mới phát sinh | 1 (TS6133 unused function handleMoveColumn khi thay thế toàn bộ bằng drag) |
+| Số lỗi cũ lặp lại | 0 |
+
+**Lỗi phát sinh:**
+1. `CTX`: `replace_file_content` với chunk quá dài (>150 dòng) trong monolith không khớp đúng phần đầu khai báo `(row, rIdx)` và group header `<tr>`. Khắc phục bằng việc chia nhỏ thành chunk hẹp (<40 dòng).
+2. `CTX`: `handleMoveColumn` bị bỏ quên khi toàn bộ call-site đã chuyển sang `handleReorderColumns`, gây lỗi TS6133 under `tsc -b`. Đã xóa sạch các hàm không còn sử dụng.
+
+---
 
 ### 2026-09-11 — Drag to Reorder Options Across Canvas & Inspector
 

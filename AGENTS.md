@@ -277,6 +277,12 @@ Khi dùng Python patch script, sau khi ghi file, đếm các marker cấu trúc 
 (ví dụ `</div>`, `});`, `})()`) trước và sau patch. Nếu count thay đổi bất thường
 (tăng lên), dừng lại và kiểm tra duplicate.
 
+### 12.6 Giới hạn độ dài Chunk Patch (Chunk Bounding Invariant)
+
+- Khi dùng `replace_file_content` trên các file monolith lớn (>2.000 dòng, đặc biệt là `FormBuilder.tsx`), mỗi lần thay thế **không được vượt quá 50 dòng** code.
+- Nếu cần thay đổi một khối lớn hơn, **bắt buộc** phải chia nhỏ thành các lần thay thế độc lập, có ngữ cảnh (context) trước và sau tối thiểu 3 dòng độc nhất để loại trừ triệt để nguy cơ khớp nhầm vị trí hoặc trôi thụt lề (indentation drift).
+- Quy tắc này tiến hóa trực tiếp từ **Bài học số 7** trong `SESSION_LOG.md`.
+
 ---
 
 ## 13. Vòng lặp Tự học Liên tục (Continuous Improvement Loop)
@@ -319,7 +325,7 @@ Dựa trên scorecard từ script + quan sát trong session, agent thực hiện
 
 ### 13.3 Phân loại lỗi (Error Taxonomy)
 
-Mỗi lỗi ghi vào `SESSION_LOG.md` phải được phân loại theo 1 trong 5 nhóm:
+Mỗi lỗi ghi vào `SESSION_LOG.md` phải được phân loại theo 1 trong 6 nhóm:
 
 | Mã | Nhóm | Ví dụ |
 |---|---|---|
@@ -328,6 +334,7 @@ Mỗi lỗi ghi vào `SESSION_LOG.md` phải được phân loại theo 1 trong 
 | `LOGIC` | Lỗi logic code | Thiếu null check, sai điều kiện, import sai |
 | `SCOPE` | Thiếu sót phạm vi | Quên patch 1 file, quên update 1 context |
 | `ENV` | Môi trường / Hạ tầng | Service unavailable, network timeout, disk lock |
+| `BLOAT` | Phình to mã nguồn / Bỏ sót mã chết | Bỏ sót hàm cũ không dùng (như `handleMoveColumn`), viết inline logic thuần túy thay vì tách utility, code trùng lặp |
 
 ### 13.4 Quy tắc tiến hóa (Rule Evolution)
 
@@ -356,4 +363,20 @@ thiết kế, đề xuất giải pháp sáng tạo, reasoning trên ngữ cản
 - **Batch file edits**: khi cần sửa cùng pattern ở nhiều file, viết script quét
   và thay thế (không lặp lại `replace_file_content` cho từng file).
 - **Kiểm tra cấu trúc**: viết assertion script đếm marker (Mục 12.5).
+
+### 13.7 Nguyên tắc Triệt tiêu Mã chết (Dead-Code Pruning Invariant)
+
+- Khi thay thế hoặc nâng cấp một tính năng (ví dụ: chuyển từ nút bấm sang Drag-and-Drop, hoặc thay đổi sang cơ chế quản lý state mới), Agent **BẮT BUỘC** phải rà soát toàn bộ các call-site và xóa sạch các hàm cũ, state cũ, biến tạm hoặc props không còn được sử dụng trong **cùng 1 commit nguyên tử**.
+- Tuyệt đối cấm để lại hàm mồ côi (orphaned code) trong codebase, vừa làm rác file vừa dẫn đến lỗi `TS6133` (unused declaration) khi build.
+
+### 13.8 Nguyên tắc Tách biệt Logic Thuần túy (Pure Utility Extraction Invariant)
+
+- Mọi logic tính toán dữ liệu, biến đổi mảng (reordering, sorting, filtering, lookup), chuẩn hóa schema, hoặc định dạng chuỗi KHÔNG phụ thuộc trực tiếp vào React state hook hay JSX **BẮT BUỘC** phải được định nghĩa dưới dạng hàm thuần túy (pure function) trong module utility phù hợp (ví dụ: `src/utils/formUtils.ts`, `src/utils/bpmnXmlGenerator.ts`), kèm type interface đầy đủ.
+- Các file monolith giao diện (`FormBuilder.tsx`, `ProcessEditor.tsx`) chỉ đảm nhận vai trò hiển thị UI, ủy quyền sự kiện (event delegation) và đồng bộ state cấp cao. Không được nhồi các thuật toán phức tạp vào component.
+
+### 13.9 Nguyên tắc Kiểm soát Phình to Monolith & Ngưỡng Tách Component
+
+- Đối với các file monolith lớn (>3.000 dòng, đặc biệt `FormBuilder.tsx` hiện đã ~9.700 dòng):
+  1. Khi bổ sung một phân hệ giao diện mới có phạm vi khép kín (như một modal lớn, panel inspector cấu hình độc lập, hoặc editor chuyên biệt), nếu khối JSX dự kiến vượt quá ~150 dòng, Agent **BẮT BUỘC** phải cân nhắc tách thành sub-component riêng trong thư mục module (ví dụ: `src/components/form/`) thay vì tiếp tục nối dài file cha.
+  2. Tuân thủ triệt để **Ưu tiên 1**: Tính năng và zero regression là tối thượng. Không tự ý refactor diện rộng ngoài phạm vi yêu cầu hiện tại để tránh gây lỗi ngoài ý muốn.
 
