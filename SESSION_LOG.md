@@ -24,6 +24,28 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-11 — Decoupled Saving State & Optimistic Workflow Form Sync
+
+**Scope:** 3 files, 97 insertions, 16 deletions (`988128c`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian lập plan (Request → Proceed) | 4.1 min |
+| Thời gian thực thi (Proceed → Push) | 3.3 min |
+| Thời gian tổng (Request → Push) | 7.4 min |
+| Số file nguồn chỉnh sửa | 2 |
+| Tổng lượt edit source | 5 |
+| Lượt edit sửa lỗi (rework) | 0 (các edit là non-adjacent chunks theo Mục 12) |
+| Số lần build | 3 (2 tsc + 1 vite) |
+| Lần build đầu thành công? | Có (100% pass) |
+| Số lệnh thất bại | 0 |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Lỗi phát sinh:** Không có lỗi mã nguồn hoặc cú pháp phát sinh. 100% build pass ngay lần đầu tiên nhờ áp dụng triệt để Mục 12 (đọc code thực tế trước khi patch, dùng replace_file_content gốc, chạy tsc --noEmit sau từng file).
+
+---
+
 ### 2026-09-10 — In-Canvas Dropdown (Select) Accordion Option Editor
 
 **Scope:** 2 files, 201 insertions, 15 deletions (`caecf2e`)

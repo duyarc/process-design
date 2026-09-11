@@ -646,3 +646,30 @@ export function formatOptionDisplay(val: string, options?: { label: string; valu
   const matched = options?.find(o => o.value === val);
   return matched ? matched.label : val;
 }
+
+/**
+ * Tái sắp xếp thứ tự các lựa chọn trong mảng options an toàn khi kéo - thả.
+ * Đảm bảo mục "Khác" (nếu có) luôn được giữ ở vị trí cuối cùng của danh sách.
+ */
+export function reorderOptionsArray<T extends { isOther?: boolean; value?: string }>(
+  options: T[],
+  fromIndex: number,
+  toIndex: number
+): T[] {
+  if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0 || fromIndex >= options.length || toIndex >= options.length) {
+    return options;
+  }
+  const result = [...options];
+  const [movedItem] = result.splice(fromIndex, 1);
+  result.splice(toIndex, 0, movedItem);
+
+  // Nếu có mục Khác, đảm bảo nó luôn nằm ở cuối cùng
+  const otherIdx = result.findIndex(o => o.isOther || o.value === '__other__');
+  if (otherIdx !== -1 && otherIdx !== result.length - 1) {
+    const [otherItem] = result.splice(otherIdx, 1);
+    result.push(otherItem);
+  }
+
+  return result;
+}
+

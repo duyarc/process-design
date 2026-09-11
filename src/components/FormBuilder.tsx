@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import type { FormFieldISO, FormRevisionEntry, FormTemplateISO, LayoutBlockISO, RadioOption, MatrixConfigISO, TableColumnConfig, TableRowConfig, ColumnSummaryRowConfig, TitleFormatISO, SubtableColumn, BlockVisibilityCondition } from '../types';
 import { formatFormVersion, getColStyleWidth } from '../types';
-import { sanitizeLabel, getEffectiveTitleFormat, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, isSeamlessTableBlock, getInfoGridTemplateColumns, snap2ColWidth, snap3ColWidths, INFO_GRID_2COL_PRESETS, generateSmartFieldSlug, getCheckboxGridTemplate } from '../utils/formUtils';
+import { sanitizeLabel, getEffectiveTitleFormat, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, isSeamlessTableBlock, getInfoGridTemplateColumns, snap2ColWidth, snap3ColWidths, INFO_GRID_2COL_PRESETS, generateSmartFieldSlug, getCheckboxGridTemplate, reorderOptionsArray } from '../utils/formUtils';
 import { applyTextFormat, handleFormatKeyDown } from '../utils/textFormatter';
 import { 
   Plus, 
@@ -39,7 +39,8 @@ import {
   Sparkles,
   RotateCcw,
   PanelTop,
-  Zap
+  Zap,
+  GripVertical
 } from 'lucide-react';
 import PrintBlankForm from './print/PrintBlankForm';
 import { useAuth } from '../context/AuthContext';
@@ -1026,6 +1027,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
   const [revisionHistory, setRevisionHistory] = useState<FormRevisionEntry[]>(initialData?.revisionHistory || []);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  // Drag-and-drop state for reordering options across Canvas and Property Bar
+  const [draggedOption, setDraggedOption] = useState<{ listId: string; index: number } | null>(null);
+  const [dragOverOption, setDragOverOption] = useState<{ listId: string; index: number } | null>(null);
   const inspectorLabelRef = useRef<HTMLTextAreaElement>(null);
   const sectionDescRef = useRef<HTMLTextAreaElement>(null);
   const inspectorGroupTitleRef = useRef<HTMLTextAreaElement>(null);
@@ -3688,28 +3692,90 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                           paddingLeft: isOptionC ? '1rem' : '0',
                                           maxWidth: '100%'
                                         }}>
-                                          {options.map((opt: any, optIdx: number) => (
-                                            <span key={opt.value || optIdx} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.78rem', color: '#334155', maxWidth: '100%' }}>
-                                              <span style={{
-                                                display: 'inline-block',
-                                                width: '12px',
-                                                height: '12px',
-                                                border: '1.5px solid #64748b',
-                                                borderRadius: f.type === 'radio' ? '50%' : '2px',
-                                                background: '#ffffff',
-                                                flexShrink: 0,
-                                                marginTop: isOptionC && isLongOpt ? '2px' : '0'
-                                              }} />
-                                              <input
-                                                type="text"
-                                                disabled={isLocked}
-                                                value={opt.label}
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  setActiveBlockId(block.id);
-                                                  setActiveFieldId(f.id);
+                                          {options.map((opt: any, optIdx: number) => {
+                                            const isOtherOpt = opt.isOther || opt.value === '__other__';
+                                            const listId = `field-canvas-${block.id}-${f.id}`;
+                                            const isDragging = draggedOption?.listId === listId && draggedOption.index === optIdx;
+                                            const isDragOver = dragOverOption?.listId === listId && dragOverOption.index === optIdx;
+                                            const canDrag = isFieldSelected && !isLocked && !isOtherOpt && options.length > 1;
+
+                                            return (
+                                              <span
+                                                key={opt.value || optIdx}
+                                                draggable={canDrag}
+                                                onDragStart={(e) => {
+                                                  e.dataTransfer.setData('text/plain', String(optIdx));
+                                                  e.dataTransfer.effectAllowed = 'move';
+                                                  setDraggedOption({ listId, index: optIdx });
                                                 }}
-                                                onChange={(e) => {
+                                                onDragOver={(e) => {
+                                                  if (draggedOption?.listId === listId) {
+                                                    e.preventDefault();
+                                                    e.dataTransfer.dropEffect = 'move';
+                                                  }
+                                                }}
+                                                onDragEnter={() => {
+                                                  if (draggedOption?.listId === listId && !isOtherOpt) {
+                                                    setDragOverOption({ listId, index: optIdx });
+                                                  }
+                                                }}
+                                                onDrop={(e) => {
+                                                  e.preventDefault();
+                                                  if (draggedOption?.listId === listId && draggedOption.index !== optIdx && !isOtherOpt) {
+                                                    const newOptions = reorderOptionsArray(options, draggedOption.index, optIdx);
+                                                    handleUpdateField(block.id, f.id, { options: newOptions });
+                                                  }
+                                                  setDraggedOption(null);
+                                                  setDragOverOption(null);
+                                                }}
+                                                onDragEnd={() => {
+                                                  setDraggedOption(null);
+                                                  setDragOverOption(null);
+                                                }}
+                                                style={{
+                                                  display: 'inline-flex',
+                                                  alignItems: 'center',
+                                                  gap: '4px',
+                                                  fontSize: '0.78rem',
+                                                  color: '#334155',
+                                                  maxWidth: '100%',
+                                                  opacity: isDragging ? 0.4 : 1,
+                                                  borderBottom: isDragOver && draggedOption && draggedOption.index < optIdx ? '2px solid var(--primary)' : undefined,
+                                                  borderTop: isDragOver && draggedOption && draggedOption.index > optIdx ? '2px solid var(--primary)' : undefined,
+                                                  borderRadius: '2px',
+                                                  transition: 'all 0.15s ease'
+                                                }}
+                                              >
+                                                {canDrag && (
+                                                  <span
+                                                    style={{ cursor: 'grab', display: 'inline-flex', alignItems: 'center', color: '#94a3b8', marginRight: '-2px' }}
+                                                    title="Kéo để đổi thứ tự"
+                                                  >
+                                                    <GripVertical size={11} />
+                                                  </span>
+                                                )}
+                                                <span style={{
+                                                  display: 'inline-block',
+                                                  width: '12px',
+                                                  height: '12px',
+                                                  border: '1.5px solid #64748b',
+                                                  borderRadius: f.type === 'radio' ? '50%' : '2px',
+                                                  background: '#ffffff',
+                                                  flexShrink: 0,
+                                                  marginTop: isOptionC && isLongOpt ? '2px' : '0'
+                                                }} />
+                                                <input
+                                                  type="text"
+                                                  disabled={isLocked}
+                                                  draggable={false}
+                                                  onMouseDown={(e) => e.stopPropagation()}
+                                                  value={opt.label}
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setActiveBlockId(block.id);
+                                                    setActiveFieldId(f.id);
+                                                  }}
+                                                  onChange={(e) => {
                                                   const newOptions = [...options];
                                                   newOptions[optIdx] = { ...newOptions[optIdx], label: e.target.value };
                                                   handleUpdateField(block.id, f.id, { options: newOptions });
@@ -3765,7 +3831,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                 </button>
                                               )}
                                             </span>
-                                          ))}
+                                            );
+                                          })}
                                           {isFieldSelected && !isLocked && (() => {
                                             const hasOther = options.some((o: any) => o.isOther || o.value === '__other__');
                                             return (
@@ -3890,9 +3957,44 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                               <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', maxHeight: '220px', overflowY: 'auto' }}>
                                                 {options.map((opt: any, optIdx: number) => {
                                                   const isOtherOpt = opt.isOther || opt.value === '__other__';
+                                                  const listId = `select-${block.id}-${f.id}`;
+                                                  const isDragging = draggedOption?.listId === listId && draggedOption.index === optIdx;
+                                                  const isDragOver = dragOverOption?.listId === listId && dragOverOption.index === optIdx;
+                                                  const canDrag = !isLocked && !isOtherOpt && options.length > 1;
+
                                                   return (
                                                     <div
                                                       key={opt.value || optIdx}
+                                                      draggable={canDrag}
+                                                      onDragStart={(e) => {
+                                                        e.dataTransfer.setData('text/plain', String(optIdx));
+                                                        e.dataTransfer.effectAllowed = 'move';
+                                                        setDraggedOption({ listId, index: optIdx });
+                                                      }}
+                                                      onDragOver={(e) => {
+                                                        if (draggedOption?.listId === listId) {
+                                                          e.preventDefault();
+                                                          e.dataTransfer.dropEffect = 'move';
+                                                        }
+                                                      }}
+                                                      onDragEnter={() => {
+                                                        if (draggedOption?.listId === listId && !isOtherOpt) {
+                                                          setDragOverOption({ listId, index: optIdx });
+                                                        }
+                                                      }}
+                                                      onDrop={(e) => {
+                                                        e.preventDefault();
+                                                        if (draggedOption?.listId === listId && draggedOption.index !== optIdx && !isOtherOpt) {
+                                                          const newOptions = reorderOptionsArray(options, draggedOption.index, optIdx);
+                                                          handleUpdateField(block.id, f.id, { options: newOptions });
+                                                        }
+                                                        setDraggedOption(null);
+                                                        setDragOverOption(null);
+                                                      }}
+                                                      onDragEnd={() => {
+                                                        setDraggedOption(null);
+                                                        setDragOverOption(null);
+                                                      }}
                                                       style={{
                                                         display: 'flex',
                                                         alignItems: 'center',
@@ -3900,15 +4002,29 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                         padding: '2px 4px',
                                                         borderRadius: '3px',
                                                         background: isOtherOpt ? 'rgba(147, 51, 234, 0.04)' : '#f8fafc',
-                                                        border: `1px solid ${isOtherOpt ? 'rgba(147, 51, 234, 0.2)' : '#e2e8f0'}`
+                                                        border: `1px solid ${isOtherOpt ? 'rgba(147, 51, 234, 0.2)' : isDragOver ? 'var(--primary)' : '#e2e8f0'}`,
+                                                        borderTop: isDragOver && draggedOption && draggedOption.index > optIdx ? '2px solid var(--primary)' : undefined,
+                                                        borderBottom: isDragOver && draggedOption && draggedOption.index < optIdx ? '2px solid var(--primary)' : undefined,
+                                                        opacity: isDragging ? 0.4 : 1,
+                                                        transition: 'all 0.15s ease'
                                                       }}
                                                     >
+                                                      {canDrag && (
+                                                        <span
+                                                          style={{ cursor: 'grab', display: 'flex', alignItems: 'center', color: '#94a3b8', padding: '0 1px' }}
+                                                          title="Kéo để đổi thứ tự"
+                                                        >
+                                                          <GripVertical size={12} />
+                                                        </span>
+                                                      )}
                                                       <span style={{ fontSize: '0.7rem', color: '#94a3b8', minWidth: '16px', textAlign: 'right', userSelect: 'none' }}>
                                                         {optIdx + 1}.
                                                       </span>
                                                       <input
                                                         type="text"
                                                         disabled={isLocked}
+                                                        draggable={false}
+                                                        onMouseDown={(e) => e.stopPropagation()}
                                                         value={opt.label}
                                                         onChange={(e) => {
                                                           const newOptions = [...options];
@@ -4846,26 +4962,75 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                         width: '100%',
                                                         boxSizing: 'border-box'
                                                       }}>
-                                                        {cellOptions.map((opt, oIdx) => (
-                                                          <div 
-                                                            key={oIdx} 
-                                                            style={{ 
-                                                              display: 'inline-flex', 
-                                                              alignItems: 'center', 
-                                                              gap: '4px', 
-                                                              fontSize: '0.82rem', 
-                                                              color: 'var(--text-primary)',
-                                                              width: isInline ? 'auto' : (cellAlign === 'center' || cellAlign === 'right' ? 'fit-content' : '100%'),
-                                                              textAlign: 'left',
-                                                              whiteSpace: isInline ? 'nowrap' : undefined 
-                                                            }}
-                                                          >
-                                                            <input 
-                                                              type={col.type} 
-                                                              disabled 
-                                                              style={{ pointerEvents: 'none', flexShrink: 0, marginTop: 0, transform: 'scale(1.0)' }} 
-                                                            />
-                                                            
+                                                        {cellOptions.map((opt, oIdx) => {
+                                                          const isOtherOpt = opt.isOther || opt.value === '__other__';
+                                                          const listId = `cell-${block.id}-${row.id}-${col.id}`;
+                                                          const isDragging = draggedOption?.listId === listId && draggedOption.index === oIdx;
+                                                          const isDragOver = dragOverOption?.listId === listId && dragOverOption.index === oIdx;
+                                                          const canDrag = isCellSelected && !isLocked && !isOtherOpt && cellOptions.length > 1;
+
+                                                          return (
+                                                            <div 
+                                                              key={oIdx} 
+                                                              draggable={canDrag}
+                                                              onDragStart={(e) => {
+                                                                e.dataTransfer.setData('text/plain', String(oIdx));
+                                                                e.dataTransfer.effectAllowed = 'move';
+                                                                setDraggedOption({ listId, index: oIdx });
+                                                              }}
+                                                              onDragOver={(e) => {
+                                                                if (draggedOption?.listId === listId) {
+                                                                  e.preventDefault();
+                                                                  e.dataTransfer.dropEffect = 'move';
+                                                                }
+                                                              }}
+                                                              onDragEnter={() => {
+                                                                if (draggedOption?.listId === listId && !isOtherOpt) {
+                                                                  setDragOverOption({ listId, index: oIdx });
+                                                                }
+                                                              }}
+                                                              onDrop={(e) => {
+                                                                e.preventDefault();
+                                                                if (draggedOption?.listId === listId && draggedOption.index !== oIdx && !isOtherOpt) {
+                                                                  const newOpts = reorderOptionsArray(cellOptions, draggedOption.index, oIdx);
+                                                                  handleUpdateCellOptions(block.id, row.id, col.id, newOpts);
+                                                                }
+                                                                setDraggedOption(null);
+                                                                setDragOverOption(null);
+                                                              }}
+                                                              onDragEnd={() => {
+                                                                setDraggedOption(null);
+                                                                setDragOverOption(null);
+                                                              }}
+                                                              style={{ 
+                                                                display: 'inline-flex', 
+                                                                alignItems: 'center', 
+                                                                gap: '4px', 
+                                                                fontSize: '0.82rem', 
+                                                                color: 'var(--text-primary)',
+                                                                width: isInline ? 'auto' : (cellAlign === 'center' || cellAlign === 'right' ? 'fit-content' : '100%'),
+                                                                textAlign: 'left',
+                                                                whiteSpace: isInline ? 'nowrap' : undefined,
+                                                                opacity: isDragging ? 0.4 : 1,
+                                                                borderBottom: isDragOver && draggedOption && draggedOption.index < oIdx ? '2px solid var(--primary)' : undefined,
+                                                                borderTop: isDragOver && draggedOption && draggedOption.index > oIdx ? '2px solid var(--primary)' : undefined,
+                                                                borderRadius: '2px',
+                                                                transition: 'all 0.15s ease'
+                                                              }}
+                                                            >
+                                                              {canDrag && (
+                                                                <span
+                                                                  style={{ cursor: 'grab', display: 'inline-flex', alignItems: 'center', color: '#94a3b8', marginRight: '-2px' }}
+                                                                  title="Kéo để đổi thứ tự"
+                                                                >
+                                                                  <GripVertical size={11} />
+                                                                </span>
+                                                              )}
+                                                              <input 
+                                                                type={col.type} 
+                                                                disabled 
+                                                                style={{ pointerEvents: 'none', flexShrink: 0, marginTop: 0, transform: 'scale(1.0)' }} 
+                                                              />
                                                             {/* Direct In-Cell Editable Label with Auto-grow Mirror */}
                                                             <div style={{ display: 'grid', flex: isInline ? undefined : 1, minWidth: isInline ? '32px' : 0, boxSizing: 'border-box' }}>
                                                               <span
@@ -4971,7 +5136,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                               </button>
                                                             )}
                                                           </div>
-                                                        ))}
+                                                            );
+                                                        })}
                                                       </div>
 
                                                       {/* 2. Footer Action Bar: Nằm gọn gàng bên dưới danh sách lựa chọn */}
@@ -6230,44 +6396,107 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', borderTop: '1px solid var(--neutral-border)', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
                     <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>{activeField.type === 'select' ? 'Dropdown Options' : activeField.type === 'checkbox' ? 'Checkbox Options' : 'Radio Options'}</label>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                      {(activeField.options ?? DEFAULT_RADIO_OPTIONS).map((opt, idx) => (
-                        <div key={idx} style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-                          <input
-                            type="text"
-                            disabled={isLocked}
-                            placeholder="Nhãn"
-                            value={opt.label}
-                            onChange={(e) => {
-                              const newOpts = [...(activeField.options ?? DEFAULT_RADIO_OPTIONS)];
-                              newOpts[idx] = { ...newOpts[idx], label: e.target.value };
-                              handleUpdateField(activeBlockId!, activeFieldId!, { options: newOpts });
-                            }}
-                            style={{ flex: 2, padding: '0.2rem 0.35rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', fontSize: '0.75rem' }}
-                          />
-                          <label style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.7rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap', cursor: 'pointer' }}>
-                            <input
-                              type="checkbox"
-                              disabled={isLocked}
-                              checked={opt.isPass}
-                              onChange={(e) => {
-                                const newOpts = [...(activeField.options ?? DEFAULT_RADIO_OPTIONS)];
-                                newOpts[idx] = { ...newOpts[idx], isPass: e.target.checked };
-                                handleUpdateField(activeBlockId!, activeFieldId!, { options: newOpts });
+                      {(() => {
+                        const currentOpts = activeField.options ?? DEFAULT_RADIO_OPTIONS;
+                        return currentOpts.map((opt, idx) => {
+                          const isOtherOpt = opt.isOther || opt.value === '__other__';
+                          const listId = `inspector-field-${activeFieldId}`;
+                          const isDragging = draggedOption?.listId === listId && draggedOption.index === idx;
+                          const isDragOver = dragOverOption?.listId === listId && dragOverOption.index === idx;
+                          const canDrag = !isLocked && !isOtherOpt && currentOpts.length > 1;
+
+                          return (
+                            <div
+                              key={idx}
+                              draggable={canDrag}
+                              onDragStart={(e) => {
+                                e.dataTransfer.setData('text/plain', String(idx));
+                                e.dataTransfer.effectAllowed = 'move';
+                                setDraggedOption({ listId, index: idx });
                               }}
-                            />
-                            Đạt
-                          </label>
-                          <button
-                            type="button"
-                            disabled={isLocked || (activeField.options ?? DEFAULT_RADIO_OPTIONS).length <= 1}
-                            onClick={() => {
-                              const newOpts = (activeField.options ?? DEFAULT_RADIO_OPTIONS).filter((_, i) => i !== idx);
-                              handleUpdateField(activeBlockId!, activeFieldId!, { options: newOpts });
-                            }}
-                            style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '0 2px', fontSize: '0.8rem', lineHeight: 1 }}
-                          >✕</button>
-                        </div>
-                      ))}
+                              onDragOver={(e) => {
+                                if (draggedOption?.listId === listId) {
+                                  e.preventDefault();
+                                  e.dataTransfer.dropEffect = 'move';
+                                }
+                              }}
+                              onDragEnter={() => {
+                                if (draggedOption?.listId === listId && !isOtherOpt) {
+                                  setDragOverOption({ listId, index: idx });
+                                }
+                              }}
+                              onDrop={(e) => {
+                                e.preventDefault();
+                                if (draggedOption?.listId === listId && draggedOption.index !== idx && !isOtherOpt) {
+                                  const reordered = reorderOptionsArray(currentOpts, draggedOption.index, idx);
+                                  handleUpdateField(activeBlockId!, activeFieldId!, { options: reordered });
+                                }
+                                setDraggedOption(null);
+                                setDragOverOption(null);
+                              }}
+                              onDragEnd={() => {
+                                setDraggedOption(null);
+                                setDragOverOption(null);
+                              }}
+                              style={{
+                                display: 'flex',
+                                gap: '0.4rem',
+                                alignItems: 'center',
+                                opacity: isDragging ? 0.4 : 1,
+                                borderTop: isDragOver && draggedOption && draggedOption.index > idx ? '2px solid var(--primary)' : undefined,
+                                borderBottom: isDragOver && draggedOption && draggedOption.index < idx ? '2px solid var(--primary)' : undefined,
+                                padding: '2px 0',
+                                transition: 'all 0.15s ease'
+                              }}
+                            >
+                              {canDrag && (
+                                <span
+                                  style={{ cursor: 'grab', display: 'flex', alignItems: 'center', color: '#94a3b8', padding: '0 1px' }}
+                                  title="Kéo để đổi thứ tự"
+                                >
+                                  <GripVertical size={13} />
+                                </span>
+                              )}
+                              <input
+                                type="text"
+                                disabled={isLocked}
+                                draggable={false}
+                                onMouseDown={(e) => e.stopPropagation()}
+                                placeholder="Nhãn"
+                                value={opt.label}
+                                onChange={(e) => {
+                                  const newOpts = [...currentOpts];
+                                  newOpts[idx] = { ...newOpts[idx], label: e.target.value };
+                                  handleUpdateField(activeBlockId!, activeFieldId!, { options: newOpts });
+                                }}
+                                style={{ flex: 2, padding: '0.2rem 0.35rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', fontSize: '0.75rem' }}
+                              />
+                              <label style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.7rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap', cursor: 'pointer' }}>
+                                <input
+                                  type="checkbox"
+                                  disabled={isLocked}
+                                  checked={opt.isPass}
+                                  onChange={(e) => {
+                                    const newOpts = [...currentOpts];
+                                    newOpts[idx] = { ...newOpts[idx], isPass: e.target.checked };
+                                    handleUpdateField(activeBlockId!, activeFieldId!, { options: newOpts });
+                                  }}
+                                />
+                                Đạt
+                              </label>
+                              <button
+                                type="button"
+                                disabled={isLocked || currentOpts.length <= 1}
+                                onClick={() => {
+                                  const newOpts = currentOpts.filter((_, i) => i !== idx);
+                                  handleUpdateField(activeBlockId!, activeFieldId!, { options: newOpts });
+                                }}
+                                style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '0 2px', fontSize: '0.8rem', lineHeight: 1 }}
+                              >✕</button>
+                            </div>
+                          );
+                        });
+                      })()}
                     </div>
                     {!isLocked && (() => {
                       const currentOpts = activeField.options ?? DEFAULT_RADIO_OPTIONS;
@@ -7533,31 +7762,94 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                               {(col.type === 'checkbox' || col.type === 'radio' || col.type === 'select') && (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', marginTop: '0.2rem', padding: '0.4rem', borderTop: '1px dashed var(--neutral-border)' }}>
                                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                                    {(col.options || []).map((opt, oIdx) => (
-                                      <div key={oIdx} style={{ display: 'flex', gap: '0.2rem', alignItems: 'center' }}>
-                                        <input
-                                          type="text"
-                                          disabled={isLocked}
-                                          placeholder="Nhãn"
-                                          value={opt.label}
-                                          onChange={(e) => {
-                                            const newOpts = [...(col.options || [])];
-                                            newOpts[oIdx] = { ...newOpts[oIdx], label: e.target.value };
-                                            handleUpdateTableColumn(activeBlock.id, col.id, { options: newOpts });
-                                          }}
-                                          style={{ flex: 1, padding: '0.15rem 0.25rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', fontSize: '0.7rem' }}
-                                        />
-                                        <button
-                                          type="button"
-                                          disabled={isLocked}
-                                          onClick={() => {
-                                            const newOpts = (col.options || []).filter((_, i) => i !== oIdx);
-                                            handleUpdateTableColumn(activeBlock.id, col.id, { options: newOpts });
-                                          }}
-                                          style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '0 2px', fontSize: '0.75rem', lineHeight: 1 }}
-                                        >✕</button>
-                                      </div>
-                                    ))}
+                                    {(() => {
+                                      const currentOpts = col.options || [];
+                                      return currentOpts.map((opt, oIdx) => {
+                                        const isOtherOpt = opt.isOther || opt.value === '__other__';
+                                        const listId = `inspector-col-${activeBlock.id}-${col.id}`;
+                                        const isDragging = draggedOption?.listId === listId && draggedOption.index === oIdx;
+                                        const isDragOver = dragOverOption?.listId === listId && dragOverOption.index === oIdx;
+                                        const canDrag = !isLocked && !isOtherOpt && currentOpts.length > 1;
+
+                                        return (
+                                          <div
+                                            key={oIdx}
+                                            draggable={canDrag}
+                                            onDragStart={(e) => {
+                                              e.dataTransfer.setData('text/plain', String(oIdx));
+                                              e.dataTransfer.effectAllowed = 'move';
+                                              setDraggedOption({ listId, index: oIdx });
+                                            }}
+                                            onDragOver={(e) => {
+                                              if (draggedOption?.listId === listId) {
+                                                e.preventDefault();
+                                                e.dataTransfer.dropEffect = 'move';
+                                              }
+                                            }}
+                                            onDragEnter={() => {
+                                              if (draggedOption?.listId === listId && !isOtherOpt) {
+                                                setDragOverOption({ listId, index: oIdx });
+                                              }
+                                            }}
+                                            onDrop={(e) => {
+                                              e.preventDefault();
+                                              if (draggedOption?.listId === listId && draggedOption.index !== oIdx && !isOtherOpt) {
+                                                const reordered = reorderOptionsArray(currentOpts, draggedOption.index, oIdx);
+                                                handleUpdateTableColumn(activeBlock.id, col.id, { options: reordered });
+                                              }
+                                              setDraggedOption(null);
+                                              setDragOverOption(null);
+                                            }}
+                                            onDragEnd={() => {
+                                              setDraggedOption(null);
+                                              setDragOverOption(null);
+                                            }}
+                                            style={{
+                                              display: 'flex',
+                                              gap: '0.2rem',
+                                              alignItems: 'center',
+                                              opacity: isDragging ? 0.4 : 1,
+                                              borderTop: isDragOver && draggedOption && draggedOption.index > oIdx ? '2px solid var(--primary)' : undefined,
+                                              borderBottom: isDragOver && draggedOption && draggedOption.index < oIdx ? '2px solid var(--primary)' : undefined,
+                                              padding: '2px 0',
+                                              transition: 'all 0.15s ease'
+                                            }}
+                                          >
+                                            {canDrag && (
+                                              <span
+                                                style={{ cursor: 'grab', display: 'flex', alignItems: 'center', color: '#94a3b8', padding: '0 1px' }}
+                                                title="Kéo để đổi thứ tự"
+                                              >
+                                                <GripVertical size={12} />
+                                              </span>
+                                              )}
+                                            <input
+                                              type="text"
+                                              disabled={isLocked}
+                                              draggable={false}
+                                              onMouseDown={(e) => e.stopPropagation()}
+                                              placeholder="Nhãn"
+                                              value={opt.label}
+                                              onChange={(e) => {
+                                                const newOpts = [...currentOpts];
+                                                newOpts[oIdx] = { ...newOpts[oIdx], label: e.target.value };
+                                                handleUpdateTableColumn(activeBlock.id, col.id, { options: newOpts });
+                                              }}
+                                              style={{ flex: 1, padding: '0.15rem 0.25rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', fontSize: '0.7rem' }}
+                                            />
+                                            <button
+                                              type="button"
+                                              disabled={isLocked}
+                                              onClick={() => {
+                                                const newOpts = currentOpts.filter((_, i) => i !== oIdx);
+                                                handleUpdateTableColumn(activeBlock.id, col.id, { options: newOpts });
+                                              }}
+                                              style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '0 2px', fontSize: '0.75rem', lineHeight: 1 }}
+                                            >✕</button>
+                                          </div>
+                                        );
+                                      });
+                                    })()}
                                   </div>
                                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.2rem' }}>
                                     {!isLocked && (

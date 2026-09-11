@@ -9,7 +9,7 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-09-11) — Decoupled saving/loading states in FormBuilder & Optimistic State Sync in ProcessEditor verified against source |
+| **Verified At Commit** | (2026-09-11) — Drag to Reorder Options in Canvas & Property Bar verified against source |
 
 > **⚠️ Architectural note:** FormBuilder has no awareness of which process it belongs to. The `formName` prop is always identical to `formId`. See Section 6.1 and the Technical Debt table.
 
@@ -79,11 +79,12 @@ FormBuilder renders as an edge-to-edge **Fullscreen Studio Workspace** (`positio
 | **Table Row LineCount Mini Popover Pill** | In-row handwritten line count selector replaced with compact Pill button (`[ 1↕ ]`, 22px) and floating Mini Popover (`[ 1 ]..[ 5 ]`), expanding action column width to 88px and eliminating right-edge icon clipping. |
 | **In-Canvas Title Header & Hidden Style Behavior** | When title format is `NONE`, replaces static notice message with an in-place editable greyed-out `<input>` (placeholder `(Tiêu đề đang ẩn)`, opacity 0.6) with focus state highlight; preserves `extraControls` across all format modes. |
 | **In-Canvas Dropdown (Select) Accordion Editor** | When field is selected (`isFieldSelected`), expands an in-place options list under the select box with inline label editing, deletion (`✕`), reorder-safe addition, and `[ ➕ Khác... ]` custom option support with auto-scroll. |
+| **Drag to Reorder Options (Canvas)** | Reorder options via HTML5 native drag & drop with `GripVertical` handle across select dropdown accordion, radio/checkbox chips, and table in-cell options with list-scoped drag isolation and anchored "Khác" option. |
 
 ### Right Panel — Two Tabs
 | Tab | Purpose |
 |---|---|
-| **Properties** | Displays contextual header (`Table Properties`, `Info Grid Properties`, etc.) with block clone/delete actions. Redundant title format and border controls are eliminated in favor of In-Canvas direct editing. Deep settings (`Cấu hình Cột`, `Columns`, `InfoGridSteppedSplitter`, `⚡ Logic Hiển Thị`) sit immediately at top-1 view. `TITLE` block retains dedicated `Tên Biểu mẫu` input. Edit selected field's label, type, specs, units, radio/dropdown options. |
+| **Properties** | Displays contextual header (`Table Properties`, `Info Grid Properties`, etc.) with block clone/delete actions. Redundant title format and border controls are eliminated in favor of In-Canvas direct editing. Deep settings (`Cấu hình Cột`, `Columns`, `InfoGridSteppedSplitter`, `⚡ Logic Hiển Thị`) sit immediately at top-1 view. `TITLE` block retains dedicated `Tên Biểu mẫu` input. Edit selected field's label, type, specs, units, radio/dropdown options with drag-to-reorder handles (`GripVertical`) for field options and table column options. |
 | **Versions** | View full revision history; restore a past layout; create a new draft version; delete a specific version; set effective date and change summary before publishing |
 
 ### Top Action Bar
@@ -487,7 +488,6 @@ full diff of any entry below.
 
 | Date | Change |
 |---|---|
-| 2026-08-25 | **Form Engine Typography Token System & Unified 0.82rem Font Sizing:** (1) Added `--pw-font-body: 0.82rem` and size token hierarchy in `print.css`. (2) Unified all body text across `INFO_GRID` (labels, questions) and `TABLE` (row cells, static text, open inputs, Likert headers) to 0.82rem. (3) Added `renderFormattedText` support inside table static cells for bold/italic/underline formatting. |
 | 2026-08-25 | **Hide Table Header Option & Single-Line Settings Bar:** (1) Added `hideHeader?: boolean` to `LayoutBlockISO`. (2) In `FormBuilder.tsx`, placed `Border` and `Header` on a single horizontal row with an animated On/Off pill toggle switch. (3) Dims `<thead>` (`opacity: 0.45`) on Canvas and omits `<thead>` on Print Blank/Filled/Record, FormFiller, ProcessReader, and PDF export while preserving `<colgroup>`. |
 | 2026-08-25 | **Compact Header-Inline Title UI & Duplicate Clean-up:** (1) In `FormBuilder.tsx`, streamlined Right Inspector by placing `Title` label and mini 4-segment format pill `[ H1 | H2 | Body | None ]` on 1 horizontal row with input below. (2) Removed redundant bottom duplicate button, keeping top icon action. |
 | 2026-08-31 | **Sidebar Section Settings Unification (Single-Row Streamlined Toolbar):** (1) Streamlined Right Sidebar Section Settings to align 100% with Canvas visual design. (2) Removed redundant `Title` label and obsolete bottom `Border [ ... ] Header [ 🔘 ]` toggle row. (3) Unified all controls into a single compact horizontal toolbar (`~235px` within `268px` space) featuring `[ H1 | H2 | Body | None ]  │  [ ⊞ | ☰ | ⬚ ]  [ 🗖 ]` with full two-way state reactivity. |
@@ -503,3 +503,4 @@ full diff of any entry below.
 | 2026-09-10 | **Custom "Khác" (Other) Option Support:** (1) Extended `RadioOption` in `types.ts` with `isOther?: boolean` (`value: '__other__'`). (2) Enforced single-instance invariant pinned at the end with customizable label. (3) Added system toggle switch `Mục "Khác" [🔘]` in Right Inspector and `[ ➕ Khác... ]` dashed pill in Canvas options editor. (4) Updated `PrintBlankForm.tsx` to render dotted handwriting line for physical shop-floor use. |
 | 2026-09-10 | **In-Canvas Dropdown (Select) Accordion Option Editor:** Upgraded `f.type === 'select'` in `FormBuilder.tsx` from a static read-only preview box into an interactive in-place accordion editor when `isFieldSelected` is true. Features direct option label inline editing, deletion (`✕`), reorder-safe addition (`[ ➕ Thêm lựa chọn ]`), custom "Khác" option (`[ ➕ Khác... ]`), and max-height scrolling. |
 | 2026-09-11 | **Decoupled Saving State & Optimistic Form Sync:** (1) Decoupled `saving` state from `loading` in `FormBuilder.tsx`, eliminating studio UI unmounting and false "Loading form template from database..." text during saves. (2) Added `position: fixed; inset: 0` to cold-path loading spinner to prevent parent page leaks. (3) In `ProcessEditor.tsx`, replaced `fetchFormsList()` DB round-trip with optimistic local state update for zero-delay card reflection. |
+| 2026-09-11 | **Drag to Reorder Options Across Canvas & Inspector:** Implemented zero-dependency HTML5 native drag-and-drop reordering with `GripVertical` handle icons for checkbox, radio, and dropdown (select) options across 5 interaction zones: (1) Canvas select accordion, (2) Canvas radio/checkbox chips, (3) Canvas in-cell table options, (4) Property Bar activeField options, and (5) Property Bar table column options. Employs list-scoped drag isolation and `reorderOptionsArray` invariant preserving "Khác" at the end. |

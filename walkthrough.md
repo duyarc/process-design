@@ -249,5 +249,29 @@ This walkthrough describes the implementation of automatic flowchart wrapping us
 - `npx tsc --noEmit` -> 0 errors.
 - `npm run build` -> 0 errors, Vite bundle completed successfully.
 
+---
+
+## 13. Drag to Reorder Options (Checkbox / Dropdown / Radio) Across Canvas & Inspector
+
+### Summary of Changes
+* **[formUtils.ts](file:///d:/Code/antigravity/process-optimization/src/utils/formUtils.ts) [MODIFY]**:
+  - Implemented `reorderOptionsArray(options, fromIndex, toIndex)` utility function ensuring immutability and enforcing the architectural invariant that "Khác" (`isOther: true` or `value === '__other__'`) remains permanently anchored at the end of the array.
+* **[FormBuilder.tsx](file:///d:/Code/antigravity/process-optimization/src/components/FormBuilder.tsx) [MODIFY]**:
+  - Added HTML5 native drag-and-drop state management (`draggedOption`, `dragOverOption`) with unique `listId` scoping to isolate concurrent drag contexts.
+  - Added `GripVertical` handle icon (11-13px) with `cursor: grab`/`grabbing` and visual drop indicators across 5 zones:
+    1. **Canvas Select Accordion**: In-place dropdown options list with inline labels, index numbers, and grip handles.
+    2. **Canvas Radio & Checkbox Chips**: Draggable chips when `isFieldSelected` is active.
+    3. **Canvas Table In-Cell Options**: In-cell checklist options with auto-grow textareas and grip handles when cell is active.
+    4. **Property Bar ActiveField Options**: Field inspector panel option list with pass/fail checkbox and grip handles.
+    5. **Property Bar Table Column Options**: Table column options list with delete and grip handles.
+  - Added `draggable={false}` and `onMouseDown={(e) => e.stopPropagation()}` on all inputs/textareas to prevent text selection interference.
+* **[DESIGN_FORM_DESIGNER.md](file:///d:/Code/antigravity/process-optimization/DESIGN_FORM_DESIGNER.md) [MODIFY]**:
+  - Updated Header Block (`Verified At Commit`), Section 2 (Center Panel & Right Panel), and Change Log.
+
+### Verification
+- `npx tsc --noEmit` -> 0 errors.
+- `npm run build` -> 0 errors, Vite bundle build completed in 14.14s.
+
+
 
 
