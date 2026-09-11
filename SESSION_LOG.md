@@ -27,6 +27,28 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-11 — Block-Scoped Table Row Keys & Cross-Block Hover Isolation
+
+**Scope:** 3 files, 47 insertions, 24 deletions (`3617fe5`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian lập plan (Request → Proceed) | 1.5 min |
+| Thời gian thực thi (Proceed → Push) | 2.5 min |
+| Thời gian tổng (Request → Push) | 4.0 min |
+| Số file nguồn chỉnh sửa | 1 (`FormBuilder.tsx`) |
+| Tổng lượt edit source | 1 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 2 |
+| Lần build đầu thành công? | Có (100% pass ngay lần build đầu) |
+| Số lệnh thất bại | 0 |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Lỗi phát sinh:** Không có lỗi mã nguồn hoặc cú pháp phát sinh. 100% build pass ngay lần đầu. Chuyển đổi thành công sang Composite Key `${block.id}:${row.id}`, cách ly hoàn toàn phạm vi hover và popover giữa các bảng, đạt Refactor Ratio 51.1%.
+
+---
+
 ### 2026-09-11 — Table Row Line Count UI/UX Refinement & Segmented Action Pill
 
 **Scope:** 3 files, 116 insertions, 77 deletions (`aed930a`)

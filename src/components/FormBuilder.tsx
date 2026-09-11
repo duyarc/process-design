@@ -1036,6 +1036,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
   // Drag-and-drop state for reordering Table columns across Canvas and Property Bar
   const [draggedTableColumn, setDraggedTableColumn] = useState<{ blockId: string; colId: string; index: number } | null>(null);
   const [dragOverTableColumn, setDragOverTableColumn] = useState<{ blockId: string; colId: string; index: number } | null>(null);
+  // Drag-and-drop state for reordering INFO_GRID fields on Canvas
+  const [draggedGridField, setDraggedGridField] = useState<{ blockId: string; fieldId: string; index: number } | null>(null);
+  const [dragOverGridField, setDragOverGridField] = useState<{ blockId: string; fieldId: string; index: number } | null>(null);
   const inspectorLabelRef = useRef<HTMLTextAreaElement>(null);
   const sectionDescRef = useRef<HTMLTextAreaElement>(null);
   const inspectorGroupTitleRef = useRef<HTMLTextAreaElement>(null);
@@ -2125,6 +2128,17 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
       const temp = updatedFields[index];
       updatedFields[index] = updatedFields[targetIndex];
       updatedFields[targetIndex] = temp;
+      return { ...b, fields: updatedFields };
+    }));
+  };
+
+  const handleReorderFields = (blockId: string, fromIndex: number, toIndex: number) => {
+    if (isLocked || fromIndex === toIndex) return;
+    setLayoutBlocks(prev => prev.map(b => {
+      if (b.id !== blockId) return b;
+      const fields = b.fields || [];
+      if (fromIndex < 0 || fromIndex >= fields.length || toIndex < 0 || toIndex >= fields.length) return b;
+      const updatedFields = reorderArray(fields, fromIndex, toIndex);
       return { ...b, fields: updatedFields };
     }));
   };
@@ -3401,8 +3415,11 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                               rowGap: '0.5rem',
                               gridAutoRows: 'minmax(38px, auto)',
                             }}>
-                              {block.fields.map((f, fIdx, fArr) => {
+                              {block.fields.map((f, fIdx) => {
                                 const isFieldSelected = activeFieldId === f.id;
+                                const isDragging = draggedGridField?.blockId === block.id && draggedGridField.fieldId === f.id;
+                                const isDragOver = dragOverGridField?.blockId === block.id && dragOverGridField.fieldId === f.id;
+                                const canDrag = !isLocked && (block.fields || []).length > 1;
                                 const parsedRSpan = f.type === 'subtable' ? undefined : (f.rowSpan ? Number(f.rowSpan) : undefined);
                                 const rSpan = parsedRSpan && !isNaN(parsedRSpan) && parsedRSpan > 1 ? parsedRSpan : undefined;
                                 const cSpan = f.type === 'subtable' ? -1 : (f.colSpan ? Number(f.colSpan) : undefined);
@@ -3415,12 +3432,36 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                       setActiveBlockId(block.id);
                                       setActiveFieldId(f.id);
                                     }}
+                                    onDragOver={(e) => {
+                                      if (draggedGridField?.blockId === block.id) {
+                                        e.preventDefault();
+                                        e.dataTransfer.dropEffect = 'move';
+                                      }
+                                    }}
+                                    onDragEnter={() => {
+                                      if (draggedGridField?.blockId === block.id) {
+                                        setDragOverGridField({ blockId: block.id, fieldId: f.id, index: fIdx });
+                                      }
+                                    }}
+                                    onDrop={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      if (draggedGridField?.blockId === block.id && draggedGridField.index !== fIdx) {
+                                        handleReorderFields(block.id, draggedGridField.index, fIdx);
+                                      }
+                                      setDraggedGridField(null);
+                                      setDragOverGridField(null);
+                                    }}
+                                    onDragEnd={() => {
+                                      setDraggedGridField(null);
+                                      setDragOverGridField(null);
+                                    }}
                                     style={{
                                       gridRow: rSpan ? `span ${rSpan}` : undefined,
                                       gridColumn: cSpan && cSpan > 1 ? `span ${cSpan}` : cSpan === -1 ? '1 / -1' : undefined,
                                       alignSelf: f.type === 'photo' ? 'stretch' : 'start',
                                       height: f.type === 'photo' ? '100%' : 'auto',
-                                      border: isFieldSelected ? '2px solid var(--primary)' : '1px dotted #cbd5e1',
+                                      border: isDragOver && draggedGridField && draggedGridField.index !== fIdx ? '2px solid var(--primary)' : isFieldSelected ? '2px solid var(--primary)' : '1px dotted #cbd5e1',
                                       borderRadius: '4px',
                                       padding: '6px',
                                       fontSize: '0.75rem',
@@ -3428,11 +3469,48 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                       flexDirection: 'column',
                                       justifyContent: 'space-between',
                                       gap: '4px',
-                                      background: isFieldSelected ? 'rgba(16, 163, 163, 0.05)' : 'none',
+                                      background: isDragOver && draggedGridField && draggedGridField.index !== fIdx ? 'rgba(16, 163, 163, 0.08)' : isFieldSelected ? 'rgba(16, 163, 163, 0.05)' : 'none',
+                                      opacity: isDragging ? 0.45 : 1,
+                                      transition: 'all 0.1s ease',
                                     }}
                                   >
-                                    {/* Header row: editable label (left) + move controls & type selector (right) */}
+                                    {/* Header row: drag handle (left) + editable label + type selector (right) */}
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '6px', width: '100%' }}>
+                                      {/* GripVertical Handle */}
+                                      {!isLocked && canDrag && (
+                                        <div
+                                          draggable={true}
+                                          onDragStart={(e) => {
+                                            e.stopPropagation();
+                                            setDraggedGridField({ blockId: block.id, fieldId: f.id, index: fIdx });
+                                            e.dataTransfer.effectAllowed = 'move';
+                                          }}
+                                          style={{
+                                            cursor: 'grab',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            color: '#94a3b8',
+                                            padding: '2px 1px',
+                                            marginTop: '2px',
+                                            borderRadius: '2px',
+                                            flexShrink: 0,
+                                            userSelect: 'none',
+                                            transition: 'all 0.15s ease'
+                                          }}
+                                          onMouseEnter={(e) => {
+                                            e.currentTarget.style.color = 'var(--primary)';
+                                            e.currentTarget.style.background = '#f1f5f9';
+                                          }}
+                                          onMouseLeave={(e) => {
+                                            e.currentTarget.style.color = '#94a3b8';
+                                            e.currentTarget.style.background = 'transparent';
+                                          }}
+                                          title="Kéo để đổi thứ tự trường"
+                                        >
+                                          <GripVertical size={13} style={{ pointerEvents: 'none' }} />
+                                        </div>
+                                      )}
                                       {/* CSS Grid Auto-Grow Textarea mirror */}
                                       <div style={{ display: 'grid', flex: 1, minWidth: '50px', minHeight: '24px', boxSizing: 'border-box' }}>
                                         <span
@@ -3496,34 +3574,6 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                         />
                                       </div>
                                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0, marginTop: '2px' }}>
-                                        {isFieldSelected && !isLocked && (
-                                          <div style={{ display: 'flex', alignItems: 'center', gap: '2px', marginRight: '2px' }}>
-                                            <button
-                                              type="button"
-                                              disabled={fIdx === 0}
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleMoveField(block.id, f.id, 'up');
-                                              }}
-                                              style={{ width: '18px', height: '18px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '3px', cursor: fIdx === 0 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: fIdx === 0 ? 0.3 : 1, padding: 0 }}
-                                              title="Di chuyển lên"
-                                            >
-                                              <ArrowUp size={10} style={{ color: '#0f172a' }} />
-                                            </button>
-                                            <button
-                                              type="button"
-                                              disabled={fIdx === fArr.length - 1}
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleMoveField(block.id, f.id, 'down');
-                                              }}
-                                              style={{ width: '18px', height: '18px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '3px', cursor: fIdx === fArr.length - 1 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: fIdx === fArr.length - 1 ? 0.3 : 1, padding: 0 }}
-                                              title="Di chuyển xuống"
-                                            >
-                                              <ArrowDown size={10} style={{ color: '#0f172a' }} />
-                                            </button>
-                                          </div>
-                                        )}
                                         <FieldTypeDropdown
                                           compact
                                           disabled={isLocked}
