@@ -1817,6 +1817,7 @@ function FormFillerInner({
                         })() : (
                           <AutoResizingTextarea
                             value={value}
+                            placeholder={field.placeholder}
                             onChange={(val) => setFormValues(prev => ({ ...prev, [field.id]: val }))}
                             style={inputStyle}
                           />
@@ -2391,6 +2392,7 @@ function FormFillerInner({
                                 const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? (hasOptions ? 'left' : 'center') : col.type === 'likert_scale' ? 'center' : 'left'));
                                 const staticVal = block.tableData?.[row.id]?.[col.id];
                                 const isStaticLabel = (col.type === 'static_text' || col.type === 'text') && staticVal !== undefined && staticVal !== null && staticVal.toString().trim() !== '';
+                                const cellPlaceholder = block.cellPlaceholderMap?.[`${row.id}_${col.id}`] || col.placeholder;
 
                                 return (
                                   <td
@@ -2707,12 +2709,14 @@ function FormFillerInner({
                                       <input 
                                         type="number" 
                                         value={cellValue} 
+                                        placeholder={cellPlaceholder}
                                         onChange={(e) => handleTableCellChangeWithAutoAppend(block, row.id, col.id, e.target.value, thisGroupHeaderId)} 
                                         style={{ width: '100%', padding: '0.35rem 0.45rem', fontSize: '0.8rem', border: '1px solid #e2e8f0', borderRadius: '4px', textAlign: 'right', backgroundColor: '#f8fafc' }}
                                       />
                                     ) : (
                                       <AutoResizingTextarea 
                                         value={cellValue} 
+                                        placeholder={cellPlaceholder}
                                         onChange={(val) => handleTableCellChangeWithAutoAppend(block, row.id, col.id, val, thisGroupHeaderId)} 
                                         style={{ width: '100%', padding: '0.35rem 0.45rem', fontSize: '0.8rem', border: '1px solid #e2e8f0', borderRadius: '4px', textAlign: 'left', backgroundColor: '#f8fafc' }}
                                       />

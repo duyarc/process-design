@@ -20,12 +20,63 @@ phiên thực thi để không lặp lại lỗi cũ.
 | 6 | `CTX` | Chuyển arrow func `=> (` sang `=> { return (` quên đổi closing `))` thành `); })}` hoặc patch tag ngắn thiếu context độc nhất trong file monolith | Patch đồng thời mở và đóng block hàm; luôn bao gồm ≥ 3 dòng context độc nhất xung quanh closing tag | 1 |
 | 7 | `CTX` | Patch chunk quá dài (>100 dòng) trong file monolith lớn dễ bị fuzzy match lệch vị trí hoặc bỏ sót biến | Chia nhỏ patch thành các chunk tập trung (< 40-50 dòng) với context độc nhất. Đã tiến hóa thành quy tắc bắt buộc: Xem Mục 12.6 | 1 |
 | 8 | `BLOAT` | Để sót dead code (hàm cũ, props cũ như `handleMoveColumn`) khi thay thế giải pháp mới | Tuân thủ Mục 13.7 Dead-Code Pruning: rà soát toàn bộ call-site và xóa sạch code cũ trong cùng commit | 1 |
+| 9 | `BLOAT` | Xóa logic con dùng tham số callback mảng (`fArr` trong `.map((f, fIdx, fArr) => ...)`) nhưng bỏ sót trong chữ ký hàm → TS6133 unused declaration | Khi xóa tính năng hoặc dọn dead code, rà soát luôn tham số của closure bao quanh để lược bỏ biến không còn đọc | 1 |
 
 ---
 
 ## Nhật ký Phiên
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
+
+### 2026-09-11 — Cell-Scoped Label vs Placeholder Direct Editing on Canvas & FormFiller Parity
+
+**Scope:** 4 files, 329 insertions, 100 deletions
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian lập plan (Request → Proceed) | 2.0 min |
+| Thời gian thực thi (Proceed → Push) | 4.3 min |
+| Thời gian tổng (Request → Push) | 6.3 min |
+| Số file nguồn chỉnh sửa | 3 (`types.ts`, `FormBuilder.tsx`, `FormFiller.tsx`) |
+| Tổng lượt edit source | 5 |
+| Lượt edit sửa lỗi (rework) | 1 (căn chỉnh handler textarea trong monolith) |
+| Số lần build | 3 (2 tsc + 1 vite) |
+| Lần build đầu thành công? | Có |
+| Số lệnh thất bại | 0 |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- Mở rộng `LayoutBlockISO` với `cellPlaceholderMap` và `TableColumnConfig`/`SubtableColumn` với `placeholder?`.
+- Triển khai gõ trực tiếp trên Canvas mặc định là `Label`, đi kèm thanh điều khiển nổi mini `[ Label | Placeholder ]` chuyển đổi trạng thái mượt mà không mất dữ liệu.
+- Định dạng WYSIWYG 100% khớp thực tế (`Label`: chữ đậm phẳng; `Placeholder`: viền nét đứt, nền xám, chữ nghiêng).
+- Áp dụng Rule 13.8 trích xuất `handleUpdateTableCellText` thu gọn ~46 dòng code lặp trong JSX.
+- Đồng bộ hiển thị sang `FormFiller.tsx` giải quyết placeholder theo cấp ô ưu tiên hơn cấp cột.
+- TypeScript và Vite build thành công 100% không lỗi.
+
+---
+
+### 2026-09-11 — INFO_GRID Field Drag-to-Reorder & Discrete Arrows Pruning
+
+**Scope:** 3 files, 106 insertions, 34 deletions (`6788fb4`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian lập plan (Request → Proceed) | 2.5 min |
+| Thời gian thực thi (Proceed → Push) | 4.5 min |
+| Thời gian tổng (Request → Push) | 7.0 min |
+| Số file nguồn chỉnh sửa | 1 (`FormBuilder.tsx`) |
+| Tổng lượt edit source | 5 |
+| Lượt edit sửa lỗi (rework) | 1 (dọn sạch tham số thừa `fArr` tránh TS6133) |
+| Số lần build | 3 (2 tsc + 1 vite) |
+| Lần build đầu thành công? | Có (pass sau khi dọn dead-code parameter `fArr`) |
+| Số lệnh thất bại | 0 |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Lỗi phát sinh:** Sau khi gỡ cụm nút `ArrowDown` (vốn đọc `fArr.length - 1`), TypeScript cảnh báo `TS6133: 'fArr' is declared but its value is never read`. Đã xử lý triệt để ngay lập tức theo Rule 13.7 (Dead-Code Pruning Invariant), đạt Refactor Ratio 32.1% và Vite build pass 100% trong 15.29s.
+
+---
 
 ### 2026-09-11 — Block-Scoped Table Row Keys & Cross-Block Hover Isolation
 

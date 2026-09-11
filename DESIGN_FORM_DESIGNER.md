@@ -9,7 +9,7 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-09-11) — Native HTML5 drag to reorder for INFO_GRID fields and dead-code pruning verified against source |
+| **Verified At Commit** | (2026-09-11) — Cell-scoped Label vs Placeholder direct editing on Canvas and FormFiller parity verified against source |
 
 > **⚠️ Architectural note:** FormBuilder has no awareness of which process it belongs to. The `formName` prop is always identical to `formId`. See Section 6.1 and the Technical Debt table.
 
@@ -22,7 +22,7 @@
 | [`src/utils/pdf/backgroundGenerator.ts`](src/utils/pdf/backgroundGenerator.ts) | Generates 300 DPI A4 background PDF via `html2canvas` & `jsPDF` |
 | [`src/utils/pdf/acroFormOverlay.ts`](src/utils/pdf/acroFormOverlay.ts) | Overlays interactive AcroForm fields onto PDF pages via `pdf-lib` |
 | [`src/utils/pdf/downloadHelper.ts`](src/utils/pdf/downloadHelper.ts) | Browser 5S PDF download helper |
-| [`src/types.ts`](src/types.ts) | Shared types: `FormTemplateISO`, `LayoutBlockISO`, `FormFieldISO`, `FormRevisionEntry`, `MatrixConfigISO`, `TableColumnConfig`, `BlockVisibilityCondition`, `RadioOption` (`isOther?`) (**owning doc** for these types) |
+| [`src/types.ts`](src/types.ts) | Shared types: `FormTemplateISO`, `LayoutBlockISO` (`cellPlaceholderMap`), `FormFieldISO`, `FormRevisionEntry`, `MatrixConfigISO`, `TableColumnConfig` (`placeholder`), `SubtableColumn` (`placeholder`), `BlockVisibilityCondition`, `RadioOption` (`isOther?`) (**owning doc** for these types) |
 
 > **Update rule:** Whenever any of the above files is modified in a session, update the
 > "Verified At Commit" field and add an entry to the [Change Log](#8-change-log) at the
@@ -489,8 +489,6 @@ full diff of any entry below.
 
 | Date | Change |
 |---|---|
-| 2026-09-03 | **Form Save Error Reporting & Payload Resilience:** Enhanced `saveFormToBackend` in `FormBuilder.tsx` to dynamically inspect backend error responses (JSON error message or HTTP 413) instead of throwing a generic error, aligning with server-side 50MB payload limit update. |
-| 2026-09-03 | **Zero-Delay Paint & Snapshot-Safe History Sync:** Optimized `FormBuilder.tsx` mount lifecycle to bypass full-screen loading spinner when `initialData.layoutBlocks` is preloaded (hot path), reducing UI wait time to 0ms. Unified revision history is fetched asynchronously in the background and commits a safe snapshot to maintain `isSaved` fidelity without false dirty triggers. Parallelized cold-path loads with `Promise.all`. |
 | 2026-09-04 | **Block-level Conditional Visibility (Display Logic):** (1) Added `BlockVisibilityCondition` interface to `types.ts` and extended `LayoutBlockISO` with `visibilityCondition?`. (2) In `FormBuilder.tsx`, added Right Inspector `Logic Hiển Thị` section scanning preceding `TABLE` (likert/radio) rows and `INFO_GRID` fields as triggers with quick-select tags and default `'in'` operator. (3) Added `⚡` status badge on Canvas blocks. |
 | 2026-09-04 | **Dropdown (`select`) Field & Table Column Type:** (1) Added `'select'` to `FormFieldISO.type`, `TableColumnConfig.type`, and `SubtableColumn.type`. (2) Added Dropdown option to `FIELD_TYPE_OPTIONS` and Table Column type select in `FormBuilder.tsx`, initializing default options and displaying Canvas preview. (3) Unified options editor for fields and table columns with full support for conditional visibility triggers. |
 | 2026-09-04 | **Table Cell Options Footer Actions & Hover Polish:** Decoupled mini action toolbar from `position: absolute` in table option cells (`isOptionCell`). Relocated `[+ Thêm]` and `[🔄 Khôi phục]` to an in-flow Footer Action Bar under the option list, completely eliminating coordinate overlap with option 1 delete button (`✕`), and enhanced delete button hover states with scale and opacity transitions. |
@@ -505,3 +503,5 @@ full diff of any entry below.
 | 2026-09-11 | **Drag to Reorder Table Rows & Columns (Canvas & Inspector) & 54px Action Column:** (1) Added generic `reorderArray` utility to `formUtils.ts`. (2) In `FormBuilder.tsx`, replaced discrete `ArrowUp`/`ArrowDown` buttons on table rows with a single `GripVertical` drag handle, reducing action column width from 88px to 54px (saving 34px) while supporting insertion line indicators and auto-renumbering STT. (3) Replaced arrow buttons on column cards in Right Inspector (`TABLE` and `CHECKLIST_TABLE`) with `GripVertical` drag handles. (4) Added direct manipulation drag-to-reorder on Canvas `<th>` headers with horizontal insertion drop lines. |
 | 2026-09-11 | **Table Floating Hover Overlay & Block-Scoped Row Keys:** (1) Completely eliminated 54px action column from table `<colgroup>`, `<thead>`, `<tbody>` for true WYSIWYG parity. (2) Relocated `GripVertical` drag handle to a floating pill at row start (`left: 3px`) and row action pill (`right: 4px`) with `Rows2` icon button and dividers. (3) Migrated `hoveredTableRowId` and `activeLineCountRowId` to block-scoped composite keys (`${block.id}:${row.id}`) and unique row initial IDs, completely eliminating cross-block hover/popover bleeding. |
 | 2026-09-11 | **Drag to Reorder INFO_GRID Fields & Arrow Controls Pruning:** (1) Implemented native HTML5 drag-and-drop field reordering with `<GripVertical size={13} />` handle on Canvas for `INFO_GRID` blocks. (2) Applied block-scoped drag state isolation (`draggedGridField`, `dragOverGridField`) and 2D grid visual highlight (`boxShadow: '0 0 0 2px var(--primary)'`, soft tinted background). (3) Reordered fields via pure utility `reorderArray` (Rule 13.8). (4) Completely pruned obsolete `ArrowUp` / `ArrowDown` buttons from field card header (Rule 13.7) to maximize space for field labels. |
+| 2026-09-11 | **Cell-Scoped Label vs Placeholder Direct Editing on Canvas & FormFiller Parity:** (1) Extended `LayoutBlockISO` with `cellPlaceholderMap`, `TableColumnConfig` and `SubtableColumn` with `placeholder?`. (2) In `FormBuilder.tsx`, enabled direct typing in table cells defaulting to Label mode, paired with a single-row floating toggle pill `[ Label | Placeholder ]` above selected cells. (3) Formatted Canvas cells with 100% WYSIWYG parity (Label: solid dark text; Placeholder: dashed box with muted italic text). (4) Added in-canvas placeholder input for `INFO_GRID` text/number fields. (5) In `FormFiller.tsx`, resolved cell-scoped placeholder falling back to column default for inputs and textareas. |
+

@@ -93,6 +93,7 @@ export interface SubtableColumn {
   type: 'static_text' | 'text' | 'number' | 'date' | 'time' | 'rating' | 'select';
   width?: string;
   align?: 'left' | 'center' | 'right';
+  placeholder?: string;
   ratingScale?: 3 | 5;
   options?: RadioOption[];
 }
@@ -163,6 +164,7 @@ export interface TableColumnConfig {
   ratingScale?: 3 | 5; // Rating scale: 3 or 5 stars (default: 5)
   scaleOptions?: string[]; // For 'likert_scale': list of scale labels, e.g. ['Easy to Answer', 'Could Answer', 'Difficult to Answer']
   summaryRows?: ColumnSummaryRowConfig[];
+  placeholder?: string;
   locked?: boolean; // If true: cannot delete or change type (used for structural cols in CHECKLIST_TABLE)
   hidden?: boolean; // If true: do not render in canvas/print layout
 }
@@ -215,6 +217,7 @@ export interface LayoutBlockISO {
   tableRows?: TableRowConfig[];
   tableData?: { [rowId: string]: { [colId: string]: string } };
   cellOptionsMap?: { [cellKey: string]: RadioOption[] };
+  cellPlaceholderMap?: { [cellKey: string]: string };
   showDate?: boolean;
   datePosition?: 'A' | 'B';
   hideSTT?: boolean;

@@ -1655,6 +1655,20 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
       });
     }
 
+    const newCellPlaceholderMap: { [cellKey: string]: string } = {};
+    if (sourceBlock.cellPlaceholderMap) {
+      Object.entries(sourceBlock.cellPlaceholderMap).forEach(([oldCellKey, ph]) => {
+        let mappedKey = oldCellKey;
+        for (const [oldRId, newRId] of rowIdMap.entries()) {
+          if (oldCellKey.startsWith(oldRId + '_')) {
+            mappedKey = newRId + oldCellKey.slice(oldRId.length);
+            break;
+          }
+        }
+        newCellPlaceholderMap[mappedKey] = ph;
+      });
+    }
+
     const newCols = sourceBlock.tableColumns ? sourceBlock.tableColumns.map(c => ({
       ...c,
       options: c.options ? [...c.options] : undefined,
@@ -1675,6 +1689,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
       tableColumns: sourceBlock.type === 'TABLE' ? newCols : sourceBlock.tableColumns,
       tableData: sourceBlock.type === 'TABLE' ? newTableData : sourceBlock.tableData,
       cellOptionsMap: sourceBlock.type === 'TABLE' ? newCellOptionsMap : sourceBlock.cellOptionsMap,
+      cellPlaceholderMap: sourceBlock.type === 'TABLE' ? newCellPlaceholderMap : sourceBlock.cellPlaceholderMap,
       matrixConfig: sourceBlock.type === 'MATRIX_TABLE' ? newMatrixConfig : sourceBlock.matrixConfig
     };
 
@@ -1858,6 +1873,79 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     }));
   };
 
+  // Helper: Toggle between Label and Placeholder mode for a specific cell
+  const handleSetCellMode = (blockId: string, rowId: string, colId: string, mode: 'label' | 'placeholder') => {
+    const cellKey = `${rowId}_${colId}`;
+    setLayoutBlocks(prev => prev.map(b => {
+      if (b.id !== blockId) return b;
+      const updatedTableData = { ...b.tableData || {} };
+      const updatedPlaceholderMap = { ...b.cellPlaceholderMap || {} };
+
+      if (mode === 'placeholder') {
+        const text = updatedTableData[rowId]?.[colId] || updatedPlaceholderMap[cellKey] || '';
+        if (updatedTableData[rowId]) {
+          const newRowData = { ...updatedTableData[rowId] };
+          delete newRowData[colId];
+          if (Object.keys(newRowData).length === 0) {
+            delete updatedTableData[rowId];
+          } else {
+            updatedTableData[rowId] = newRowData;
+          }
+        }
+        updatedPlaceholderMap[cellKey] = text;
+      } else {
+        const text = updatedPlaceholderMap[cellKey] || updatedTableData[rowId]?.[colId] || '';
+        delete updatedPlaceholderMap[cellKey];
+        if (text !== '') {
+          updatedTableData[rowId] = { ...updatedTableData[rowId] || {}, [colId]: text };
+        } else if (updatedTableData[rowId]) {
+          const newRowData = { ...updatedTableData[rowId] };
+          delete newRowData[colId];
+          if (Object.keys(newRowData).length === 0) {
+            delete updatedTableData[rowId];
+          } else {
+            updatedTableData[rowId] = newRowData;
+          }
+        }
+      }
+
+      return {
+        ...b,
+        tableData: updatedTableData,
+        cellPlaceholderMap: updatedPlaceholderMap
+      };
+    }));
+  };
+
+  // Helper: Update cell text in a TABLE block (either label in tableData or placeholder in cellPlaceholderMap)
+  const handleUpdateTableCellText = (blockId: string, rowId: string, colId: string, isPlaceholder: boolean, val: string) => {
+    const cellKey = `${rowId}_${colId}`;
+    setLayoutBlocks(prev => prev.map(b => {
+      if (b.id !== blockId) return b;
+      if (isPlaceholder) {
+        const updatedMap = { ...b.cellPlaceholderMap || {} };
+        updatedMap[cellKey] = val;
+        return { ...b, cellPlaceholderMap: updatedMap };
+      } else {
+        const updatedData = { ...b.tableData || {} };
+        if (val === '') {
+          if (updatedData[rowId]) {
+            const newRowData = { ...updatedData[rowId] };
+            delete newRowData[colId];
+            if (Object.keys(newRowData).length === 0) {
+              delete updatedData[rowId];
+            } else {
+              updatedData[rowId] = newRowData;
+            }
+          }
+        } else {
+          updatedData[rowId] = { ...updatedData[rowId] || {}, [colId]: val };
+        }
+        return { ...b, tableData: updatedData };
+      }
+    }));
+  };
+
   const handleUpdateTableColumn = (blockId: string, colId: string, updates: Partial<TableColumnConfig>) => {
     setLayoutBlocks(prev => prev.map(b => {
       if (b.id === blockId) {
@@ -1891,7 +1979,13 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
             updatedData[rowId] = rowData;
           }
         });
-        return { ...b, tableColumns: updatedCols, tableData: updatedData };
+        const updatedPlaceholderMap = { ...b.cellPlaceholderMap || {} };
+        Object.keys(updatedPlaceholderMap).forEach(k => {
+          if (k.endsWith(`_${colId}`)) {
+            delete updatedPlaceholderMap[k];
+          }
+        });
+        return { ...b, tableColumns: updatedCols, tableData: updatedData, cellPlaceholderMap: updatedPlaceholderMap };
       }
       return b;
     }));
@@ -3609,6 +3703,45 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                             fontWeight: 500
                                           }}
                                           placeholder="Gõ ghi chú/hướng dẫn ảnh..."
+                                        />
+                                      </div>
+                                    )}
+
+                                    {/* Text & Number field placeholder editable box */}
+                                    {(f.type === 'text' || f.type === 'number') && (
+                                      <div style={{ marginTop: '4px', width: '100%' }}>
+                                        <input
+                                          type="text"
+                                          disabled={isLocked}
+                                          value={f.placeholder ?? ''}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setActiveBlockId(block.id);
+                                            setActiveFieldId(f.id);
+                                          }}
+                                          onChange={(e) => handleUpdateField(block.id, f.id, { placeholder: e.target.value })}
+                                          placeholder="[Gõ placeholder...]"
+                                          style={{
+                                            width: '100%',
+                                            padding: '3px 6px',
+                                            fontSize: '0.78rem',
+                                            fontStyle: 'italic',
+                                            color: f.placeholder ? '#475569' : '#94a3b8',
+                                            background: '#f8fafc',
+                                            border: '1px dashed #cbd5e1',
+                                            borderRadius: '4px',
+                                            outline: 'none',
+                                            boxSizing: 'border-box',
+                                            cursor: isLocked ? 'default' : 'text'
+                                          }}
+                                          onFocus={(e) => {
+                                            e.currentTarget.style.borderColor = 'var(--primary)';
+                                            e.currentTarget.style.background = '#ffffff';
+                                          }}
+                                          onBlur={(e) => {
+                                            e.currentTarget.style.borderColor = '#cbd5e1';
+                                            e.currentTarget.style.background = '#f8fafc';
+                                          }}
                                         />
                                       </div>
                                     )}
@@ -5526,100 +5659,147 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                    );
                                                  })() : (
                                                 <>
-                                                  {col.type === 'static_text' || col.type === 'text' ? (
-                                                    <div style={{ display: 'grid', width: '100%', minHeight: `${28 * lc}px`, padding: '4px 6px', boxSizing: 'border-box' }}>
-                                                      <span
-                                                        aria-hidden="true"
-                                                        style={{
-                                                          gridArea: '1 / 1 / 2 / 2',
-                                                          visibility: 'hidden',
-                                                          whiteSpace: 'pre-wrap',
-                                                          wordBreak: 'break-word',
-                                                          fontSize: '0.82rem',
-                                                          lineHeight: 1.4,
-                                                          fontFamily: 'inherit',
-                                                          textAlign: cellAlign,
-                                                          minHeight: `${Math.max(20, 28 * lc - 8)}px`
-                                                        }}
-                                                      >
-                                                        {(block.tableData?.[row.id]?.[col.id] || '') + ' '}
-                                                      </span>
-                                                      <textarea
-                                                        disabled={isLocked}
-                                                        rows={1}
-                                                        value={block.tableData?.[row.id]?.[col.id] || ''}
-                                                        onKeyDown={(e) => {
-                                                           const currentVal = block.tableData?.[row.id]?.[col.id] || '';
-                                                           handleFormatKeyDown(e, currentVal, (val) => {
-                                                             setLayoutBlocks(prev => prev.map(b => {
-                                                               if (b.id === block.id) {
-                                                                 const updatedData = { ...b.tableData || {} };
-                                                                 if (val === '') {
-                                                                   if (updatedData[row.id]) {
-                                                                     const newRowData = { ...updatedData[row.id] };
-                                                                     delete newRowData[col.id];
-                                                                     if (Object.keys(newRowData).length === 0) {
-                                                                       delete updatedData[row.id];
-                                                                     } else {
-                                                                       updatedData[row.id] = newRowData;
-                                                                     }
-                                                                   }
-                                                                 } else {
-                                                                   updatedData[row.id] = { ...updatedData[row.id] || {}, [col.id]: val };
-                                                                 }
-                                                                 return { ...b, tableData: updatedData };
-                                                               }
-                                                               return b;
-                                                             }));
-                                                           });
-                                                         }}
-                                                        onChange={(e) => {
-                                                          const val = e.target.value;
-                                                          setLayoutBlocks(prev => prev.map(b => {
-                                                            if (b.id === block.id) {
-                                                              const updatedData = { ...b.tableData || {} };
-                                                              if (val === '') {
-                                                                if (updatedData[row.id]) {
-                                                                  const newRowData = { ...updatedData[row.id] };
-                                                                  delete newRowData[col.id];
-                                                                  if (Object.keys(newRowData).length === 0) {
-                                                                    delete updatedData[row.id];
-                                                                  } else {
-                                                                    updatedData[row.id] = newRowData;
-                                                                  }
-                                                                }
-                                                              } else {
-                                                                updatedData[row.id] = { ...updatedData[row.id] || {}, [col.id]: val };
-                                                              }
-                                                              return { ...b, tableData: updatedData };
-                                                            }
-                                                            return b;
-                                                          }));
-                                                        }}
-                                                        placeholder="[Nhập chữ]"
-                                                        style={{
-                                                          gridArea: '1 / 1 / 2 / 2',
-                                                          width: '100%',
-                                                          height: '100%',
-                                                          border: 'none',
-                                                          background: 'transparent',
-                                                          outline: 'none',
-                                                          padding: 0,
-                                                          margin: 0,
-                                                          fontSize: '0.82rem',
-                                                          lineHeight: 1.4,
-                                                          fontFamily: 'inherit',
-                                                          textAlign: cellAlign,
-                                                          resize: 'none',
-                                                          overflow: 'hidden',
-                                                          whiteSpace: 'pre-wrap',
-                                                          wordBreak: 'break-word',
-                                                          color: (block.tableData?.[row.id]?.[col.id] || '') !== '' ? '#0f172a' : undefined,
-                                                          fontWeight: (block.tableData?.[row.id]?.[col.id] || '') !== '' ? 500 : 400
-                                                        }}
-                                                      />
-                                                    </div>
-                                                  ) : (
+                                                   {col.type === 'static_text' || col.type === 'text' ? (() => {
+                                                     const isPlaceholder = block.cellPlaceholderMap?.[cellKey] !== undefined;
+                                                     const currentCellVal = isPlaceholder 
+                                                       ? (block.cellPlaceholderMap?.[cellKey] || '') 
+                                                       : (block.tableData?.[row.id]?.[col.id] || '');
+
+                                                     return (
+                                                       <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                                                         {/* Floating Toggle Pill */}
+                                                         {isCellSelected && !isLocked && (
+                                                           <div
+                                                             onClick={(e) => e.stopPropagation()}
+                                                             style={{
+                                                               position: 'absolute',
+                                                               top: '-24px',
+                                                               left: '2px',
+                                                               zIndex: 35,
+                                                               display: 'inline-flex',
+                                                               alignItems: 'center',
+                                                               background: '#ffffff',
+                                                               border: '1px solid #cbd5e1',
+                                                               borderRadius: '4px',
+                                                               padding: '2px',
+                                                               gap: '2px',
+                                                               boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+                                                             }}
+                                                           >
+                                                             <button
+                                                               type="button"
+                                                               onClick={() => handleSetCellMode(block.id, row.id, col.id, 'label')}
+                                                               style={{
+                                                                 padding: '2px 8px',
+                                                                 fontSize: '0.7rem',
+                                                                 fontWeight: 600,
+                                                                 borderRadius: '3px',
+                                                                 border: 'none',
+                                                                 background: !isPlaceholder ? 'var(--primary)' : 'transparent',
+                                                                 color: !isPlaceholder ? '#ffffff' : '#64748b',
+                                                                 cursor: 'pointer',
+                                                                 transition: 'all 0.15s ease'
+                                                             }}
+                                                           >
+                                                             Label
+                                                           </button>
+                                                           <button
+                                                             type="button"
+                                                             onClick={() => handleSetCellMode(block.id, row.id, col.id, 'placeholder')}
+                                                             style={{
+                                                               padding: '2px 8px',
+                                                               fontSize: '0.7rem',
+                                                               fontWeight: 600,
+                                                               borderRadius: '3px',
+                                                               border: 'none',
+                                                               background: isPlaceholder ? 'var(--primary)' : 'transparent',
+                                                               color: isPlaceholder ? '#ffffff' : '#64748b',
+                                                               cursor: 'pointer',
+                                                               transition: 'all 0.15s ease'
+                                                             }}
+                                                           >
+                                                             Placeholder
+                                                           </button>
+                                                         </div>
+                                                       )}
+
+                                                       {/* WYSIWYG Editable Cell Area */}
+                                                       <div style={{
+                                                         display: 'grid',
+                                                         width: '100%',
+                                                         minHeight: `${28 * lc}px`,
+                                                         padding: '4px 6px',
+                                                         boxSizing: 'border-box',
+                                                         background: isPlaceholder ? '#f8fafc' : 'transparent',
+                                                         border: isPlaceholder ? '1px dashed #cbd5e1' : 'none',
+                                                         borderRadius: isPlaceholder ? '4px' : undefined
+                                                       }}>
+                                                         <span
+                                                           aria-hidden="true"
+                                                           style={{
+                                                             gridArea: '1 / 1 / 2 / 2',
+                                                             visibility: 'hidden',
+                                                             whiteSpace: 'pre-wrap',
+                                                             wordBreak: 'break-word',
+                                                             fontSize: '0.82rem',
+                                                             lineHeight: 1.4,
+                                                             fontFamily: 'inherit',
+                                                             textAlign: cellAlign,
+                                                             fontStyle: isPlaceholder ? 'italic' : 'normal',
+                                                             fontWeight: !isPlaceholder && currentCellVal ? 500 : 400,
+                                                             minHeight: `${Math.max(20, 28 * lc - 8)}px`
+                                                           }}
+                                                         >
+                                                           {(currentCellVal || '') + ' '}
+                                                         </span>
+                                                         <textarea
+                                                           disabled={isLocked}
+                                                           rows={1}
+                                                           value={currentCellVal}
+                                                           onClick={(e) => {
+                                                             e.stopPropagation();
+                                                             setActiveBlockId(block.id);
+                                                             setActiveCellKey(cellKey);
+                                                           }}
+                                                           onFocus={() => {
+                                                             setActiveBlockId(block.id);
+                                                             setActiveCellKey(cellKey);
+                                                           }}
+                                                           onKeyDown={(e) => {
+                                                             handleFormatKeyDown(e, currentCellVal, (val) => {
+                                                               handleUpdateTableCellText(block.id, row.id, col.id, isPlaceholder, val);
+                                                             });
+                                                           }}
+                                                           onChange={(e) => {
+                                                             handleUpdateTableCellText(block.id, row.id, col.id, isPlaceholder, e.target.value);
+                                                           }}
+                                                           placeholder={isPlaceholder ? "[Gõ placeholder...]" : "[Nhập chữ]"}
+                                                           style={{
+                                                             gridArea: '1 / 1 / 2 / 2',
+                                                             width: '100%',
+                                                             height: '100%',
+                                                             border: 'none',
+                                                             background: 'transparent',
+                                                             outline: 'none',
+                                                             padding: 0,
+                                                             margin: 0,
+                                                             fontSize: '0.82rem',
+                                                             lineHeight: 1.4,
+                                                             fontFamily: 'inherit',
+                                                             textAlign: cellAlign,
+                                                             resize: 'none',
+                                                             overflow: 'hidden',
+                                                             whiteSpace: 'pre-wrap',
+                                                             wordBreak: 'break-word',
+                                                             color: isPlaceholder ? '#64748b' : (currentCellVal ? '#0f172a' : undefined),
+                                                             fontStyle: isPlaceholder ? 'italic' : 'normal',
+                                                             fontWeight: !isPlaceholder && currentCellVal ? 500 : 400
+                                                           }}
+                                                         />
+                                                     </div>
+                                                   </div>
+                                                 );
+                                               })() : (
                                                     <div style={{ height: `${28 * lc}px`, padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxSizing: 'border-box', overflow: 'hidden' }}>
                                                       {col.type === 'rating' ? (
                                                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2px', width: '100%' }}>
@@ -5790,7 +5970,13 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                            const updatedRows = (b.tableRows || []).filter(r => r.id !== row.id);
                                                            const updatedData = { ...b.tableData || {} };
                                                            delete updatedData[row.id];
-                                                           return { ...b, tableRows: updatedRows, tableData: updatedData };
+                                                           const updatedPlaceholderMap = { ...b.cellPlaceholderMap || {} };
+                                                           Object.keys(updatedPlaceholderMap).forEach(k => {
+                                                             if (k.startsWith(`${row.id}_`)) {
+                                                               delete updatedPlaceholderMap[k];
+                                                             }
+                                                           });
+                                                           return { ...b, tableRows: updatedRows, tableData: updatedData, cellPlaceholderMap: updatedPlaceholderMap };
                                                          }
                                                          return b;
                                                        }));
@@ -8247,6 +8433,19 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                       </button>
                                     </div>
                                   </div>
+                                </div>
+                              )}
+                              {(col.type === 'text' || col.type === 'number') && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', marginTop: '0.2rem', padding: '0.4rem', borderTop: '1px dashed var(--neutral-border)' }}>
+                                  <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Placeholder mặc định (toàn cột):</label>
+                                  <input
+                                    type="text"
+                                    disabled={isLocked}
+                                    placeholder="Gợi ý mờ cho cả cột..."
+                                    value={col.placeholder || ''}
+                                    onChange={(e) => handleUpdateTableColumn(activeBlock.id, col.id, { placeholder: e.target.value })}
+                                    style={{ width: '100%', padding: '0.2rem 0.35rem', fontSize: '0.72rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', background: '#ffffff', boxSizing: 'border-box' }}
+                                  />
                                 </div>
                               )}
                               {col.type === 'number' && (
