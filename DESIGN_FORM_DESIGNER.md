@@ -9,7 +9,7 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-09-10) — In-Canvas Dropdown (Select) Accordion Option Editor & Custom "Khác" Option in FormBuilder verified against source |
+| **Verified At Commit** | (2026-09-11) — Decoupled saving/loading states in FormBuilder & Optimistic State Sync in ProcessEditor verified against source |
 
 > **⚠️ Architectural note:** FormBuilder has no awareness of which process it belongs to. The `formName` prop is always identical to `formId`. See Section 6.1 and the Technical Debt table.
 
@@ -487,7 +487,6 @@ full diff of any entry below.
 
 | Date | Change |
 |---|---|
-| 2026-08-25 | **Context-Aware Checkbox/Radio Layout & Space Optimization:** (1) Refactored `getAutoCheckboxLayoutMode(field, blockColumns)` in `formUtils.ts` to dynamically calculate row width and column density. (2) Added `hasLongOptions(field)` helper. (3) In `PrintBlankForm.tsx` & `PrintFilledForm.tsx`, enabled `auto 1fr` grid for 1-column layouts and compact horizontal options rendering in `OPTION_C` for short options, reducing vertical space usage from 3 lines to 1-2 lines. |
 | 2026-08-25 | **Form Engine Typography Token System & Unified 0.82rem Font Sizing:** (1) Added `--pw-font-body: 0.82rem` and size token hierarchy in `print.css`. (2) Unified all body text across `INFO_GRID` (labels, questions) and `TABLE` (row cells, static text, open inputs, Likert headers) to 0.82rem. (3) Added `renderFormattedText` support inside table static cells for bold/italic/underline formatting. |
 | 2026-08-25 | **Hide Table Header Option & Single-Line Settings Bar:** (1) Added `hideHeader?: boolean` to `LayoutBlockISO`. (2) In `FormBuilder.tsx`, placed `Border` and `Header` on a single horizontal row with an animated On/Off pill toggle switch. (3) Dims `<thead>` (`opacity: 0.45`) on Canvas and omits `<thead>` on Print Blank/Filled/Record, FormFiller, ProcessReader, and PDF export while preserving `<colgroup>`. |
 | 2026-08-25 | **Compact Header-Inline Title UI & Duplicate Clean-up:** (1) In `FormBuilder.tsx`, streamlined Right Inspector by placing `Title` label and mini 4-segment format pill `[ H1 | H2 | Body | None ]` on 1 horizontal row with input below. (2) Removed redundant bottom duplicate button, keeping top icon action. |
@@ -503,3 +502,4 @@ full diff of any entry below.
 | 2026-09-10 | **Form Publish Revision Deduplication & Author Binding:** (1) In `FormBuilder.tsx`, bound revision author to `currentUser` (`useAuth`), set `status: 'ACTIVE'` on newly published entry, and filtered out matching clean versions and draft entries (`status !== 'DRAFT'`) while retiring older entries. (2) Updated `itemStatus` in Revision History list render to prioritize `h.status === 'ACTIVE'` even during subsequent drafting. (3) Ran `scripts/cleanupDuplicateRevisions.cjs` to purge polluted draft/duplicate revisions across 35 form records in PostgreSQL. |
 | 2026-09-10 | **Custom "Khác" (Other) Option Support:** (1) Extended `RadioOption` in `types.ts` with `isOther?: boolean` (`value: '__other__'`). (2) Enforced single-instance invariant pinned at the end with customizable label. (3) Added system toggle switch `Mục "Khác" [🔘]` in Right Inspector and `[ ➕ Khác... ]` dashed pill in Canvas options editor. (4) Updated `PrintBlankForm.tsx` to render dotted handwriting line for physical shop-floor use. |
 | 2026-09-10 | **In-Canvas Dropdown (Select) Accordion Option Editor:** Upgraded `f.type === 'select'` in `FormBuilder.tsx` from a static read-only preview box into an interactive in-place accordion editor when `isFieldSelected` is true. Features direct option label inline editing, deletion (`✕`), reorder-safe addition (`[ ➕ Thêm lựa chọn ]`), custom "Khác" option (`[ ➕ Khác... ]`), and max-height scrolling. |
+| 2026-09-11 | **Decoupled Saving State & Optimistic Form Sync:** (1) Decoupled `saving` state from `loading` in `FormBuilder.tsx`, eliminating studio UI unmounting and false "Loading form template from database..." text during saves. (2) Added `position: fixed; inset: 0` to cold-path loading spinner to prevent parent page leaks. (3) In `ProcessEditor.tsx`, replaced `fetchFormsList()` DB round-trip with optimistic local state update for zero-delay card reflection. |

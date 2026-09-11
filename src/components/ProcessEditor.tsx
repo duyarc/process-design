@@ -2974,11 +2974,31 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
               }
             };
             setWorkflowFormsData(nextFormsData);
+            // Optimistically update allForms in local state so cards immediately show fresh version/status with 0ms delay
+            setAllForms(prev => {
+              const updatedRecord = {
+                form_id: savedFormData.formId,
+                form_name: savedFormData.formId,
+                form_title: savedFormData.formTitle,
+                version: savedFormData.version,
+                status: savedFormData.status,
+                page_size: savedFormData.pageSize,
+                is_public: savedFormData.isPublic,
+                default_focus_mode: savedFormData.defaultFocusMode,
+                layout_blocks: savedFormData.layoutBlocks,
+                revision_history: savedFormData.revisionHistory,
+                updated_at: new Date().toISOString()
+              };
+              const exists = prev.some(f => f.form_id === savedFormData.formId && f.version === savedFormData.version);
+              if (exists) {
+                return prev.map(f => (f.form_id === savedFormData.formId && f.version === savedFormData.version) ? { ...f, ...updatedRecord } : f);
+              }
+              return [updatedRecord, ...prev];
+            });
             // Only auto-save the process data silently if it is a real process (not unlinked)
             if (processId && processId !== 'unlinked') {
               await handleSave(nextFormsData, true);
             }
-            fetchFormsList();
           }}
           onClose={() => {
             if (exitOnCloseForm) {

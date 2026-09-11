@@ -1025,6 +1025,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
   const [layoutBlocks, setLayoutBlocks] = useState<LayoutBlockISO[]>(initialData?.layoutBlocks || defaultBlocks);
   const [revisionHistory, setRevisionHistory] = useState<FormRevisionEntry[]>(initialData?.revisionHistory || []);
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
   const inspectorLabelRef = useRef<HTMLTextAreaElement>(null);
   const sectionDescRef = useRef<HTMLTextAreaElement>(null);
   const inspectorGroupTitleRef = useRef<HTMLTextAreaElement>(null);
@@ -2231,7 +2232,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     setChangeSummary('');
 
     try {
-      setLoading(true);
+      setSaving(true);
       await saveFormToBackend({
         versionOverride: newActiveVersion,
         statusOverride: 'ACTIVE',
@@ -2255,7 +2256,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     } catch (err) {
       console.error(err);
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
@@ -2503,7 +2504,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     }
 
     try {
-      setLoading(true);
+      setSaving(true);
       const initialCleanVersion = initialData?.version ? initialData.version.replace(/\s*\([^)]*\)/g, '').trim() : undefined;
       await saveFormToBackend({
         oldVersionOverride: initialCleanVersion && initialCleanVersion !== targetVersion ? initialCleanVersion : undefined
@@ -2523,7 +2524,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     } catch (err) {
       console.error(err);
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
 
@@ -2538,7 +2539,20 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
   // Render Loading spinner
   if (loading) {
     return (
-      <div style={{ textAlign: 'center', padding: '5rem', background: '#f8fafc', height: '80vh', display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column', gap: '1rem' }}>
+      <div style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 1000,
+        textAlign: 'center',
+        padding: '5rem',
+        background: '#f8fafc',
+        height: '100vh',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        flexDirection: 'column',
+        gap: '1rem'
+      }}>
         <div className="spinner-border text-primary" role="status" style={{ width: '3rem', height: '3rem' }}></div>
         <p style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Loading form template from database...</p>
       </div>
@@ -2906,8 +2920,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
           {!isLocked ? (
             <>
               <button 
-                type="button"
-                disabled={isSaved}
+                type="button" 
+                disabled={isSaved || saving}
                 onClick={handleSaveDraft} 
                 style={{
                   background: isSaved ? '#f1f5f9' : '#0f172a',
@@ -2917,17 +2931,23 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                   borderRadius: '4px',
                   fontSize: '0.78rem',
                   fontWeight: 600,
-                  cursor: isSaved ? 'default' : 'pointer',
+                  cursor: (isSaved || saving) ? 'default' : 'pointer',
                   transition: 'all 0.2s',
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '4px'
+                  gap: '4px',
+                  opacity: saving ? 0.75 : 1
                 }}
-                onMouseEnter={(e) => { if (!isSaved) e.currentTarget.style.background = '#1e293b'; }}
-                onMouseLeave={(e) => { if (!isSaved) e.currentTarget.style.background = '#0f172a'; }}
-                title={isSaved ? 'Đã lưu trạng thái mới nhất' : 'Lưu lại thay đổi'}
+                onMouseEnter={(e) => { if (!isSaved && !saving) e.currentTarget.style.background = '#1e293b'; }}
+                onMouseLeave={(e) => { if (!isSaved && !saving) e.currentTarget.style.background = '#0f172a'; }}
+                title={saving ? 'Đang lưu...' : isSaved ? 'Đã lưu trạng thái mới nhất' : 'Lưu lại thay đổi'}
               >
-                {isSaved ? (
+                {saving ? (
+                  <>
+                    <div className="spinner-border spinner-border-sm" role="status" style={{ width: '11px', height: '11px', borderWidth: '1.5px', color: '#ffffff' }} />
+                    <span>Saving...</span>
+                  </>
+                ) : isSaved ? (
                   <>
                     <Check size={13} strokeWidth={2.5} style={{ color: '#94a3b8' }} />
                     <span>Saved</span>
