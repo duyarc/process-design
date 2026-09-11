@@ -4659,9 +4659,6 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                   const colWidth = getColStyleWidth(col.id, col.width, block.tableColumns || []);
                                   return <col key={col.id} style={{ width: colWidth }} />;
                                 })}
-                                {!isLocked && (
-                                  <col style={{ width: '54px' }} />
-                                )}
                               </colgroup>
                               <thead style={{ opacity: block.hideHeader ? 0.45 : 1, transition: 'opacity 0.2s ease' }} title={block.hideHeader ? 'Tiêu đề đang ẨN trên bản in & biểu mẫu' : undefined}>
                                 <tr style={{ background: bStyle === 'borderless' ? (block.hideHeader ? '#f8fafc' : 'transparent') : '#f1f5f9', borderBottom: bStyle === 'borderless' ? (block.hideHeader ? '1px dashed #cbd5e1' : 'none') : (block.hideHeader ? '1px dashed #94a3b8' : '1px solid #cbd5e1') }}>
@@ -4815,15 +4812,12 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                       </th>
                                     );
                                   })}
-                                  {!isLocked && (
-                                    <th style={{ width: '54px', padding: '0', border: 'none', background: 'transparent' }} />
-                                  )}
                                 </tr>
                               </thead>
                               <tbody>
                                 {(block.tableRows || []).length === 0 ? (
                                   <tr>
-                                    <td colSpan={(block.tableColumns || []).length + (isLocked ? 0 : 1)} style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                                    <td colSpan={(block.tableColumns || []).length} style={{ textAlign: 'center', padding: '1rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
                                       Không có dòng nào. Bấm nút Thêm dòng dưới đây.
                                     </td>
                                   </tr>
@@ -4881,7 +4875,10 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                               setActiveCellKey(`${row.id}_group`);
                                             }}
                                             style={{
+                                              position: 'relative',
                                               padding: '6px 10px',
+                                              paddingLeft: !isLocked ? '24px' : '10px',
+                                              paddingRight: !isLocked ? '50px' : '10px',
                                               verticalAlign: 'middle',
                                               fontWeight: 400,
                                               fontSize: '0.82rem',
@@ -4889,6 +4886,37 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                               outline: isSelected ? '1.5px solid #3b82f6' : 'none'
                                             }}
                                           >
+                                            {!isLocked && (hoveredTableRowId === row.id || isDraggingRow) && (
+                                              <div
+                                                draggable={canDragRow}
+                                                onDragStart={(e) => {
+                                                  e.stopPropagation();
+                                                  setDraggedTableRow({ blockId: block.id, rowId: row.id, index: rIdx });
+                                                  e.dataTransfer.effectAllowed = 'move';
+                                                }}
+                                                style={{
+                                                  position: 'absolute',
+                                                  left: '4px',
+                                                  top: '50%',
+                                                  transform: 'translateY(-50%)',
+                                                  zIndex: 15,
+                                                  display: 'flex',
+                                                  alignItems: 'center',
+                                                  justifyContent: 'center',
+                                                  cursor: canDragRow ? 'grab' : 'default',
+                                                  color: '#64748b',
+                                                  background: '#ffffff',
+                                                  border: '1px solid #cbd5e1',
+                                                  borderRadius: '3px',
+                                                  padding: '2px',
+                                                  boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                                                  userSelect: 'none'
+                                                }}
+                                                title="Kéo để đổi thứ tự phân nhóm"
+                                              >
+                                                <GripVertical size={12} style={{ pointerEvents: 'none' }} />
+                                              </div>
+                                            )}
                                             <div style={{ display: 'grid', width: '100%', minHeight: '26px', boxSizing: 'border-box' }}>
                                               <span
                                                 aria-hidden="true"
@@ -4957,30 +4985,25 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                 }}
                                               />
                                             </div>
-                                          </td>
-                                          {!isLocked && (
-                                            <td style={{ width: '54px', padding: '0 2px', border: 'none', textAlign: 'center', background: '#e5e7eb' }}>
-                                              <div style={{ display: 'flex', gap: '2px', justifyContent: 'center', alignItems: 'center', opacity: hoveredTableRowId === row.id ? 1 : 0, transition: 'opacity 0.15s ease' }}>
-                                                <div
-                                                  draggable={canDragRow}
-                                                  onDragStart={(e) => {
-                                                    e.stopPropagation();
-                                                    setDraggedTableRow({ blockId: block.id, rowId: row.id, index: rIdx });
-                                                    e.dataTransfer.effectAllowed = 'move';
-                                                  }}
-                                                  style={{
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    cursor: canDragRow ? 'grab' : 'default',
-                                                    color: '#475569',
-                                                    padding: '2px',
-                                                    userSelect: 'none'
-                                                  }}
-                                                  title="Kéo để đổi thứ tự phân nhóm"
-                                                >
-                                                  <GripVertical size={13} style={{ pointerEvents: 'none' }} />
-                                                </div>
+                                            {!isLocked && hoveredTableRowId === row.id && (
+                                              <div
+                                                onClick={(e) => e.stopPropagation()}
+                                                style={{
+                                                  position: 'absolute',
+                                                  right: '6px',
+                                                  top: '50%',
+                                                  transform: 'translateY(-50%)',
+                                                  zIndex: 25,
+                                                  display: 'flex',
+                                                  alignItems: 'center',
+                                                  gap: '3px',
+                                                  background: '#ffffff',
+                                                  border: '1px solid #cbd5e1',
+                                                  borderRadius: '4px',
+                                                  padding: '2px 4px',
+                                                  boxShadow: '0 2px 6px rgba(0,0,0,0.12)'
+                                                }}
+                                              >
                                                 <button
                                                   type="button"
                                                   onClick={() => {
@@ -5017,8 +5040,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                   <Trash2 size={11} />
                                                 </button>
                                               </div>
-                                            </td>
-                                          )}
+                                            )}
+                                          </td>
                                         </tr>
                                       );
                                     }
@@ -5060,38 +5083,73 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                       onMouseEnter={() => !isLocked && setHoveredTableRowId(row.id)}
                                       onMouseLeave={() => setHoveredTableRowId(null)}
                                     >
-                                       {(block.tableColumns || []).map((col) => {
-                                         const colWidth = getColStyleWidth(col.id, col.width, block.tableColumns || []);
-                                         const cellKey = `${row.id}_${col.id}`;
-                                         const cellOptions = getEffectiveCellOptions(block, row.id, col.id);
-                                         const isCustomCellOpts = block.cellOptionsMap?.[cellKey] !== undefined;
-                                         const hasOpts = (col.type === 'checkbox' || col.type === 'radio') && cellOptions.length > 0;
-                                         const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? (hasOpts ? 'left' : 'center') : col.type === 'likert_scale' ? 'center' : 'left'));
-                                         const isCellSelected = activeCellKey === cellKey;
-                                         const isOptionCell = col.type === 'checkbox' || col.type === 'radio';
+                                        {(block.tableColumns || []).map((col, cIdx) => {
+                                          const isFirstCol = cIdx === 0;
+                                          const isLastCol = cIdx === (block.tableColumns || []).length - 1;
+                                          const colWidth = getColStyleWidth(col.id, col.width, block.tableColumns || []);
+                                          const cellKey = `${row.id}_${col.id}`;
+                                          const cellOptions = getEffectiveCellOptions(block, row.id, col.id);
+                                          const isCustomCellOpts = block.cellOptionsMap?.[cellKey] !== undefined;
+                                          const hasOpts = (col.type === 'checkbox' || col.type === 'radio') && cellOptions.length > 0;
+                                          const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? (hasOpts ? 'left' : 'center') : col.type === 'likert_scale' ? 'center' : 'left'));
+                                          const isCellSelected = activeCellKey === cellKey;
+                                          const isOptionCell = col.type === 'checkbox' || col.type === 'radio';
 
-                                         return (
-                                           <td 
-                                             key={col.id} 
-                                             onClick={(e) => {
-                                                e.stopPropagation();
-                                               setActiveBlockId(block.id);
-                                               setActiveCellKey(cellKey);
-                                             }}
-                                             style={{ 
-                                               padding: isOptionCell ? '4px' : '0', 
-                                               borderRight: bStyle === 'grid' ? '1px solid #cbd5e1' : 'none',
-                                               borderBottom: bStyle === 'borderless' ? 'none' : '1px solid #cbd5e1',
-                                               verticalAlign: 'top', 
-                                               textAlign: cellAlign,
+                                          return (
+                                            <td 
+                                              key={col.id} 
+                                              onClick={(e) => {
+                                                 e.stopPropagation();
+                                                setActiveBlockId(block.id);
+                                                setActiveCellKey(cellKey);
+                                              }}
+                                              style={{ 
+                                                position: 'relative',
+                                                padding: isOptionCell ? '4px' : '0', 
+                                                paddingLeft: (!isLocked && isFirstCol) ? (isOptionCell ? '22px' : '20px') : (isOptionCell ? '4px' : '0'),
+                                                borderRight: bStyle === 'grid' ? '1px solid #cbd5e1' : 'none',
+                                                borderBottom: bStyle === 'borderless' ? 'none' : '1px solid #cbd5e1',
+                                                verticalAlign: 'top', 
+                                                textAlign: cellAlign,
                                                 width: colWidth,
                                                 maxWidth: colWidth,
                                                 boxSizing: 'border-box',
-                                               background: isCellSelected ? 'rgba(59, 130, 246, 0.08)' : isCustomCellOpts ? 'rgba(254, 215, 170, 0.15)' : 'none',
-                                               outline: isCellSelected ? '1.5px solid #3b82f6' : 'none',
-                                               cursor: 'pointer'
-                                             }}
-                                           >
+                                                background: isCellSelected ? 'rgba(59, 130, 246, 0.08)' : isCustomCellOpts ? 'rgba(254, 215, 170, 0.15)' : 'none',
+                                                outline: isCellSelected ? '1.5px solid #3b82f6' : 'none',
+                                                cursor: 'pointer'
+                                              }}
+                                            >
+                                              {!isLocked && isFirstCol && (hoveredTableRowId === row.id || isDraggingRow) && (
+                                                <div
+                                                  draggable={canDragRow}
+                                                  onDragStart={(e) => {
+                                                    e.stopPropagation();
+                                                    setDraggedTableRow({ blockId: block.id, rowId: row.id, index: rIdx });
+                                                    e.dataTransfer.effectAllowed = 'move';
+                                                  }}
+                                                  style={{
+                                                    position: 'absolute',
+                                                    left: '3px',
+                                                    top: '50%',
+                                                    transform: 'translateY(-50%)',
+                                                    zIndex: 15,
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    cursor: canDragRow ? 'grab' : 'default',
+                                                    color: '#64748b',
+                                                    background: '#ffffff',
+                                                    border: '1px solid #cbd5e1',
+                                                    borderRadius: '3px',
+                                                    padding: '2px',
+                                                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                                                    userSelect: 'none'
+                                                  }}
+                                                  title="Kéo để đổi thứ tự dòng"
+                                                >
+                                                  <GripVertical size={12} style={{ pointerEvents: 'none' }} />
+                                                </div>
+                                              )}
                                               {isOptionCell ? (() => {
                                                   const isInline = canTableOptionsFitInline(cellOptions, col.width, col.checkboxLayout);
                                                   return (
@@ -5542,152 +5600,147 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                   ))}
                                                 </>
                                              )}
-                                           </td>
-                                         );
-                                       })}
-                                      {!isLocked && (
-                                          <td style={{ width: '54px', padding: '0 2px', border: 'none', textAlign: 'center' }}>
-                                            <div style={{ display: 'flex', gap: '2px', justifyContent: 'center', alignItems: 'center', opacity: (hoveredTableRowId === row.id || activeLineCountRowId === row.id) ? 1 : 0, transition: 'opacity 0.15s ease' }}>
-                                              <div
-                                                draggable={canDragRow}
-                                                onDragStart={(e) => {
-                                                  e.stopPropagation();
-                                                  setDraggedTableRow({ blockId: block.id, rowId: row.id, index: rIdx });
-                                                  e.dataTransfer.effectAllowed = 'move';
-                                                }}
-                                                style={{
-                                                  display: 'flex',
-                                                  alignItems: 'center',
-                                                  justifyContent: 'center',
-                                                  cursor: canDragRow ? 'grab' : 'default',
-                                                  color: '#64748b',
-                                                  padding: '2px',
-                                                  userSelect: 'none'
-                                                }}
-                                                title="Kéo để đổi thứ tự dòng"
-                                              >
-                                                <GripVertical size={13} style={{ pointerEvents: 'none' }} />
-                                              </div>
-
-                                              {/* Nút Pill kích hoạt Mini Popover chọn số dòng viết tay */}
-                                              <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
-                                                <button
-                                                  type="button"
-                                                  onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setActiveLineCountRowId(prev => prev === row.id ? null : row.id);
-                                                  }}
+                                              {!isLocked && isLastCol && (hoveredTableRowId === row.id || activeLineCountRowId === row.id) && (
+                                                <div
+                                                  onClick={(e) => e.stopPropagation()}
                                                   style={{
-                                                    display: 'inline-flex',
+                                                    position: 'absolute',
+                                                    right: '4px',
+                                                    top: '50%',
+                                                    transform: 'translateY(-50%)',
+                                                    zIndex: 25,
+                                                    display: 'flex',
                                                     alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    padding: '1px 4px',
-                                                    fontSize: '0.66rem',
-                                                    fontWeight: lc > 1 ? 600 : 400,
-                                                    borderRadius: '3px',
-                                                    border: lc > 1 ? '1px solid #93c5fd' : '1px solid #cbd5e1',
-                                                    background: lc > 1 ? 'rgba(59, 130, 246, 0.1)' : '#f8fafc',
-                                                    color: lc > 1 ? '#2563eb' : 'var(--text-secondary)',
-                                                    cursor: 'pointer',
-                                                    lineHeight: 1.2,
-                                                    transition: 'all 0.15s ease'
+                                                    gap: '3px',
+                                                    background: '#ffffff',
+                                                    border: '1px solid #cbd5e1',
+                                                    borderRadius: '4px',
+                                                    padding: '2px 4px',
+                                                    boxShadow: '0 2px 8px rgba(0,0,0,0.12)'
                                                   }}
-                                                  title={`Số dòng viết tay: ${lc} dòng (Click để đổi)`}
                                                 >
-                                                  {lc}↕
-                                                </button>
-
-                                                {/* Mini Popover nổi sang bên trái nút pill */}
-                                                {activeLineCountRowId === row.id && (
-                                                  <>
-                                                    <div 
-                                                      style={{ position: 'fixed', inset: 0, zIndex: 998 }} 
-                                                      onClick={(e) => { e.stopPropagation(); setActiveLineCountRowId(null); }} 
-                                                    />
-                                                    <div
-                                                      onClick={(e) => e.stopPropagation()}
-                                                      style={{
-                                                        position: 'absolute',
-                                                        right: 'calc(100% + 4px)',
-                                                        top: '50%',
-                                                        transform: 'translateY(-50%)',
-                                                        background: '#ffffff',
-                                                        border: '1px solid #cbd5e1',
-                                                        borderRadius: '5px',
-                                                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-                                                        padding: '2px 4px',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        gap: '2px',
-                                                        zIndex: 999,
-                                                        whiteSpace: 'nowrap'
+                                                  {/* Nút Pill chọn số dòng viết tay */}
+                                                  <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+                                                    <button
+                                                      type="button"
+                                                      onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setActiveLineCountRowId(prev => prev === row.id ? null : row.id);
                                                       }}
+                                                      style={{
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        padding: '1px 4px',
+                                                        fontSize: '0.66rem',
+                                                        fontWeight: lc > 1 ? 600 : 400,
+                                                        borderRadius: '3px',
+                                                        border: lc > 1 ? '1px solid #93c5fd' : '1px solid #cbd5e1',
+                                                        background: lc > 1 ? 'rgba(59, 130, 246, 0.1)' : '#f8fafc',
+                                                        color: lc > 1 ? '#2563eb' : 'var(--text-secondary)',
+                                                        cursor: 'pointer',
+                                                        lineHeight: 1.2,
+                                                        transition: 'all 0.15s ease'
+                                                      }}
+                                                      title={`Số dòng viết tay: ${lc} dòng (Click để đổi)`}
                                                     >
-                                                      <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', padding: '0 2px', userSelect: 'none' }}>
-                                                        Dòng:
-                                                      </span>
-                                                      {[1, 2, 3, 4, 5].map((n) => (
-                                                        <button
-                                                          key={n}
-                                                          type="button"
-                                                          onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            handleUpdateRowLineCount(block.id, row.id, n);
-                                                            setActiveLineCountRowId(null);
-                                                          }}
+                                                      {lc}↕
+                                                    </button>
+
+                                                    {/* Mini Popover nổi sang bên trái nút pill */}
+                                                    {activeLineCountRowId === row.id && (
+                                                      <>
+                                                        <div 
+                                                          style={{ position: 'fixed', inset: 0, zIndex: 998 }} 
+                                                          onClick={(e) => { e.stopPropagation(); setActiveLineCountRowId(null); }} 
+                                                        />
+                                                        <div
+                                                          onClick={(e) => e.stopPropagation()}
                                                           style={{
-                                                            width: '20px',
-                                                            height: '20px',
+                                                            position: 'absolute',
+                                                            right: 'calc(100% + 4px)',
+                                                            top: '50%',
+                                                            transform: 'translateY(-50%)',
+                                                            background: '#ffffff',
+                                                            border: '1px solid #cbd5e1',
+                                                            borderRadius: '5px',
+                                                            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                                                            padding: '2px 4px',
                                                             display: 'flex',
                                                             alignItems: 'center',
-                                                            justifyContent: 'center',
-                                                            borderRadius: '3px',
-                                                            border: 'none',
-                                                            fontSize: '0.7rem',
-                                                            fontWeight: n === lc ? 700 : 400,
-                                                            background: n === lc ? 'var(--primary)' : 'transparent',
-                                                            color: n === lc ? '#ffffff' : 'var(--text-primary)',
-                                                            cursor: 'pointer',
-                                                            transition: 'all 0.1s ease'
-                                                          }}
-                                                          onMouseEnter={(e) => {
-                                                            if (n !== lc) e.currentTarget.style.background = '#f1f5f9';
-                                                          }}
-                                                          onMouseLeave={(e) => {
-                                                            if (n !== lc) e.currentTarget.style.background = 'transparent';
+                                                            gap: '2px',
+                                                            zIndex: 999,
+                                                            whiteSpace: 'nowrap'
                                                           }}
                                                         >
-                                                          {n}
-                                                        </button>
-                                                      ))}
-                                                    </div>
-                                                  </>
-                                                )}
-                                              </div>
+                                                          <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', padding: '0 2px', userSelect: 'none' }}>
+                                                            Dòng:
+                                                          </span>
+                                                          {[1, 2, 3, 4, 5].map((n) => (
+                                                            <button
+                                                              key={n}
+                                                              type="button"
+                                                              onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleUpdateRowLineCount(block.id, row.id, n);
+                                                                setActiveLineCountRowId(null);
+                                                              }}
+                                                              style={{
+                                                                width: '20px',
+                                                                height: '20px',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center',
+                                                                borderRadius: '3px',
+                                                                border: 'none',
+                                                                fontSize: '0.7rem',
+                                                                fontWeight: n === lc ? 700 : 400,
+                                                                background: n === lc ? 'var(--primary)' : 'transparent',
+                                                                color: n === lc ? '#ffffff' : 'var(--text-primary)',
+                                                                cursor: 'pointer',
+                                                                transition: 'all 0.1s ease'
+                                                              }}
+                                                              onMouseEnter={(e) => {
+                                                                if (n !== lc) e.currentTarget.style.background = '#f1f5f9';
+                                                              }}
+                                                              onMouseLeave={(e) => {
+                                                                if (n !== lc) e.currentTarget.style.background = 'transparent';
+                                                              }}
+                                                            >
+                                                              {n}
+                                                            </button>
+                                                          ))}
+                                                        </div>
+                                                      </>
+                                                    )}
+                                                  </div>
 
-                                              <button
-                                                type="button"
-                                                onClick={() => {
-                                                  setLayoutBlocks(prev => prev.map(b => {
-                                                    if (b.id === block.id) {
-                                                      const updatedRows = (b.tableRows || []).filter(r => r.id !== row.id);
-                                                      const updatedData = { ...b.tableData || {} };
-                                                      delete updatedData[row.id];
-                                                      return { ...b, tableRows: updatedRows, tableData: updatedData };
-                                                    }
-                                                    return b;
-                                                  }));
-                                                  setActiveLineCountRowId(null);
-                                                  setHoveredTableRowId(null);
-                                                }}
-                                                style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                                                title="Xóa dòng"
-                                              >
-                                                <Trash2 size={11} />
-                                              </button>
-                                            </div>
-                                          </td>
-                                       )}
+                                                  <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      setLayoutBlocks(prev => prev.map(b => {
+                                                        if (b.id === block.id) {
+                                                          const updatedRows = (b.tableRows || []).filter(r => r.id !== row.id);
+                                                          const updatedData = { ...b.tableData || {} };
+                                                          delete updatedData[row.id];
+                                                          return { ...b, tableRows: updatedRows, tableData: updatedData };
+                                                        }
+                                                        return b;
+                                                      }));
+                                                      setActiveLineCountRowId(null);
+                                                      setHoveredTableRowId(null);
+                                                    }}
+                                                    style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                                    title="Xóa dòng"
+                                                  >
+                                                    <Trash2 size={11} />
+                                                  </button>
+                                                </div>
+                                              )}
+                                            </td>
+                                          );
+                                        })}
                                     </tr>
                                     );
                                   })
