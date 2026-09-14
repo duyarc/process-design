@@ -626,10 +626,10 @@ export function extractOtherText(val?: string | null): string {
 
 /**
  * Đóng gói nội dung tự gõ thành giá trị chuẩn: "__other__:Nội dung".
+ * Bảo toàn khoảng trắng (space) trong quá trình người dùng đang nhập liệu.
  */
 export function encodeOtherValue(text: string): string {
-  const trimmed = text.trim();
-  return trimmed ? `${OTHER_PREFIX}${trimmed}` : OTHER_OPTION_VALUE;
+  return text !== '' ? `${OTHER_PREFIX}${text}` : OTHER_OPTION_VALUE;
 }
 
 /**
@@ -638,7 +638,7 @@ export function encodeOtherValue(text: string): string {
 export function formatOptionDisplay(val: string, options?: { label: string; value: string; isOther?: boolean }[]): string {
   if (!val) return '';
   if (isOtherValue(val)) {
-    const customText = extractOtherText(val);
+    const customText = extractOtherText(val).trim();
     const otherOpt = options?.find(o => o.isOther || o.value === OTHER_OPTION_VALUE);
     const label = otherOpt?.label || 'Khác:';
     return customText ? `${label} ${customText}` : label;

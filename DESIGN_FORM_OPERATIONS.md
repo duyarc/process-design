@@ -9,7 +9,7 @@
 | **Module Name** | Form Operations |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-09-14) — Sections 2, 3, 5, 6, 8 (Dead-Code Pruning: Removed orphaned PrintRecord.tsx; PrintFilledForm is the single authoritative filled-form renderer) |
+| **Verified At Commit** | (2026-09-14) — Sections 2, 3, 5, 6.5, 8 (Spacebar preservation in encodeOtherValue; formatOptionDisplay print normalization) |
 
 ### Quick File Index
 
@@ -391,7 +391,7 @@ Form submission validation logic is modularized in `src/utils/formUtils.ts` unde
 ### 6.5 Custom "Khác" (Other) Option Value Storage & Progressive Disclosure
 
 Fields with options (`checkbox`, `radio`, `select`) support an expandable "Khác" (free-text entry) option:
-- **Zero-Migration Compound Storage:** Free-form user input is encoded directly within the string value using the prefix `__other__:<text>` via `encodeOtherValue()` in `formUtils.ts`.
+- **Zero-Migration Compound Storage:** Free-form user input is encoded directly within the string value using the prefix `__other__:<text>` via `encodeOtherValue()` in `formUtils.ts` (preserving space characters in real time; whitespace normalized during export/print via `formatOptionDisplay()`).
   - For single selection (`radio`, `select`): value is stored as `__other__:<text>` (or `__other__` when blank).
   - For multiple selection (`checkbox`): value is stored as a comma-separated list where the custom entry is included as `__other__:<text>` (e.g., `OPT_1,__other__:Chi tiết bổ sung`).
 - **Progressive Disclosure:** `FormFiller.tsx` conditionally reveals an auto-focusing `<input type="text">` immediately below the option when "Khác" is checked or selected, seamlessly synchronizing compound values.

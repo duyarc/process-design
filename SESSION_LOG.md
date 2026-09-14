@@ -29,6 +29,32 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-14 — Dead-Code Pruning: Pruning Orphaned PrintRecord.tsx & Design Doc Unification
+
+**Scope:** 6 files, 56 insertions, 1674 deletions (`3cb5c8d`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | 7.2 min |
+| Thời gian lập plan (Request → Proceed) | 4.8 min |
+| Thời gian thực thi (Proceed → Push) | 2.5 min |
+| Số file nguồn chỉnh sửa | 1 (`print.css`) |
+| Tổng lượt edit source | 2 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 2 (1 tsc + 1 vite) |
+| Lần build đầu thành công? | Có |
+| Số lệnh thất bại | 0 |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- Triệt tiêu 100% mã chết `PrintRecord.tsx` (1.636 dòng, ~89 KB) theo Mục 13.7 `AGENTS.md` (Dead-Code Pruning Invariant).
+- Khắc phục triệt để tình trạng bảo trì kép (double maintenance) kéo dài suốt 15+ commit qua do `PrintRecord.tsx` bị sót lại trong `AGENTS.md` và `DESIGN_FORM_OPERATIONS.md`.
+- Thống nhất duy nhất `PrintFilledForm.tsx` là component phụ trách render phiếu in bản khai trên toàn bộ hệ thống.
+- Tối ưu hóa dung lượng codebase: Net LOC Delta -1.618 dòng, tỷ lệ Refactor Ratio 2989.3%.
+
+---
+
 ### 2026-09-14 — Print Standardization: Likert/Radio Circle Checkmark & Checkbox Square Checkmark
 
 **Scope:** 3 files, 136 insertions, 56 deletions (`c4c0607`)
@@ -240,48 +266,6 @@ Entry mới nhất ở trên cùng. Tối đa 10 entries.
 1. `CTX`: Khi chuyển `options.map((opt) => (` sang `options.map((opt) => { return (`, closing tag ở cuối danh sách vẫn giữ nguyên `))` dẫn đến TS1005 lúc `tsc -b`. Đã sửa bằng script chèn đúng `); })}`.
 2. `CTX`: `replace_file_content` với closing tag ngắn `)}` khớp nhầm ở vùng khác của file monolith. Khắc phục bằng script nhắm chuẩn dòng mục tiêu.
 
----
 
-### 2026-09-11 — Decoupled Saving State & Optimistic Workflow Form Sync
-
-**Scope:** 3 files, 97 insertions, 16 deletions (`988128c`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian lập plan (Request → Proceed) | 4.1 min |
-| Thời gian thực thi (Proceed → Push) | 3.3 min |
-| Thời gian tổng (Request → Push) | 7.4 min |
-| Số file nguồn chỉnh sửa | 2 |
-| Tổng lượt edit source | 5 |
-| Lượt edit sửa lỗi (rework) | 0 (các edit là non-adjacent chunks theo Mục 12) |
-| Số lần build | 3 (2 tsc + 1 vite) |
-| Lần build đầu thành công? | Có (100% pass) |
-| Số lệnh thất bại | 0 |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Lỗi phát sinh:** Không có lỗi mã nguồn hoặc cú pháp phát sinh. 100% build pass ngay lần đầu tiên nhờ áp dụng triệt để Mục 12 (đọc code thực tế trước khi patch, dùng replace_file_content gốc, chạy tsc --noEmit sau từng file).
-
----
-
-### 2026-09-10 — In-Canvas Dropdown (Select) Accordion Option Editor
-
-**Scope:** 2 files, 201 insertions, 15 deletions (`caecf2e`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian lập plan (Request → Proceed) | 2.4 min (15:36:16 → 15:38:41) |
-| Thời gian thực thi (Proceed → Push) | 1.2 min (15:38:41 → 15:39:55) |
-| Thời gian tổng (Request → Push) | 3.6 min (3 phút 39 giây) |
-| Số file nguồn chỉnh sửa | 1 |
-| Tổng lượt edit source | 1 |
-| Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 2 |
-| Lần build đầu thành công? | Có |
-| Số lệnh thất bại | 0 |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Lỗi phát sinh:** Không có lỗi mã nguồn hoặc cú pháp phát sinh. 100% build pass ngay lần đầu nhờ áp dụng Mục 12 (Safe Code Patching).
 
 
