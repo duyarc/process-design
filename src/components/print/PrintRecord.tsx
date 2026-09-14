@@ -38,6 +38,17 @@ function getChecklistColumns(block: LayoutBlockISO | undefined, fallbackLabels?:
   return cols.filter(c => !c.hidden);
 }
 
+/** Check whether a stored Likert cell value matches a scale option (trimmed & case-insensitive, index-safe) */
+function isLikertSelected(cellVal: string, opt: string, optIndex: number): boolean {
+  if (!cellVal) return false;
+  const cleanVal = String(cellVal).trim();
+  const cleanOpt = String(opt).trim();
+  if (cleanVal === cleanOpt) return true;
+  if (cleanVal.toLowerCase() === cleanOpt.toLowerCase()) return true;
+  if (cleanVal === String(optIndex) || cleanVal === String(optIndex + 1)) return true;
+  return false;
+}
+
 interface PrintRecordProps {
   submission: Submission;
   processTitle: string;
@@ -323,6 +334,10 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
       {/* Dynamic CSS override to force portrait printing */}
       <style>{`
         @media print {
+          *, *::before, *::after {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
           #root {
             display: none !important;
           }
@@ -649,7 +664,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                           {f.checkItem && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', fontSize: '0.82rem' }}>{renderFormattedText(f.checkItem)}:</span>}
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', minHeight: '22px', paddingTop: '2px' }}>
                             {scales.map((opt: string, idx: number) => {
-                              const isSelected = f.value === opt;
+                              const isSelected = isLikertSelected(f.value, opt, idx);
                               return (
                                 <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', flex: 1, textAlign: 'center' }}>
                                   <span style={{ fontSize: '0.72rem', color: '#0f172a', fontWeight: isSelected ? 'var(--pw-weight-heavy)' : 500, lineHeight: 1.1 }}>{opt}</span>
@@ -658,14 +673,19 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                                       display: 'inline-flex',
                                       alignItems: 'center',
                                       justifyContent: 'center',
-                                      width: '12px',
-                                      height: '12px',
+                                      width: '13px',
+                                      height: '13px',
                                       borderRadius: '50%',
                                       border: '1.2px solid #000000',
-                                      background: isSelected ? '#000000' : '#ffffff'
+                                      background: '#ffffff',
+                                      color: '#000000',
+                                      fontSize: '9px',
+                                      fontWeight: 'bold',
+                                      lineHeight: 1,
+                                      boxSizing: 'border-box'
                                     }}
                                   >
-                                    {isSelected && <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#ffffff' }} />}
+                                    {isSelected ? '✓' : ''}
                                   </span>
                                 </div>
                               );
@@ -1181,7 +1201,7 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                                   return (
                                     <div style={{ display: 'grid', gridTemplateColumns: `repeat(${scaleOptions.length}, 1fr)`, gap: '4px', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
                                       {scaleOptions.map((opt: string, sIdx: number) => {
-                                        const isSelected = cellValue === opt;
+                                        const isSelected = isLikertSelected(cellValue, opt, sIdx);
                                         return (
                                           <div key={sIdx} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                                             <span
@@ -1192,13 +1212,16 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                                                 width: '13px',
                                                 height: '13px',
                                                 borderRadius: '50%',
-                                                border: '1px solid #000000',
-                                                background: '#ffffff'
+                                                border: '1.2px solid #000000',
+                                                background: '#ffffff',
+                                                color: '#000000',
+                                                fontSize: '9px',
+                                                fontWeight: 'bold',
+                                                lineHeight: 1,
+                                                boxSizing: 'border-box'
                                               }}
                                             >
-                                              {isSelected && (
-                                                <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#000000' }} />
-                                              )}
+                                              {isSelected ? '✓' : ''}
                                             </span>
                                           </div>
                                         );
@@ -1232,15 +1255,17 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                                                 display: 'inline-flex',
                                                 justifyContent: 'center',
                                                 alignItems: 'center',
-                                                width: '12px',
-                                                height: '12px',
-                                                border: '1px solid #000000',
-                                                background: isChecked ? '#e2e8f0' : '#ffffff',
+                                                width: '13px',
+                                                height: '13px',
+                                                border: '1.2px solid #000000',
+                                                background: '#ffffff',
                                                 borderRadius: '2px',
                                                 flexShrink: 0,
+                                                color: '#000000',
                                                 fontSize: '9px',
-                                                fontWeight: 'var(--pw-weight-heavy)',
+                                                fontWeight: 'bold',
                                                 lineHeight: 1,
+                                                boxSizing: 'border-box',
                                                 marginTop: '2px'
                                               }}>
                                                 {isChecked ? '✓' : ''}
@@ -1287,15 +1312,20 @@ export default function PrintRecord({ submission, processTitle, logoText, descri
                                                 display: 'inline-flex',
                                                 justifyContent: 'center',
                                                 alignItems: 'center',
-                                                width: '12px',
-                                                height: '12px',
-                                                border: '1px solid #000000',
-                                                background: isChecked ? '#000000' : '#ffffff',
+                                                width: '13px',
+                                                height: '13px',
+                                                border: '1.2px solid #000000',
+                                                background: '#ffffff',
                                                 borderRadius: '50%',
                                                 flexShrink: 0,
+                                                color: '#000000',
+                                                fontSize: '9px',
+                                                fontWeight: 'bold',
+                                                lineHeight: 1,
+                                                boxSizing: 'border-box',
                                                 marginTop: 0
                                               }}>
-                                                {isChecked && <span style={{ width: '4px', height: '4px', background: '#ffffff', borderRadius: '50%' }} />}
+                                                {isChecked ? '✓' : ''}
                                               </span>
                                               <span style={{ color: isChecked ? '#000000' : '#64748b', lineHeight: 1.3, textAlign: 'left', whiteSpace: isInline ? 'nowrap' : 'pre-wrap', wordBreak: isInline ? 'normal' : 'break-word', flex: isInline ? undefined : (cellAlign === 'center' || cellAlign === 'right' ? undefined : 1) }}>
                                                 {renderFormattedText(opt.label)}

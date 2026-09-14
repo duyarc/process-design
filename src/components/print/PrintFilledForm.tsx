@@ -61,6 +61,17 @@ function parseSignature(value: string): { name: string; timestamp: string } {
   return { name: value, timestamp: '' };
 }
 
+/** Check whether a stored Likert cell value matches a scale option (trimmed & case-insensitive, index-safe) */
+function isLikertSelected(cellVal: string, opt: string, optIndex: number): boolean {
+  if (!cellVal) return false;
+  const cleanVal = String(cellVal).trim();
+  const cleanOpt = String(opt).trim();
+  if (cleanVal === cleanOpt) return true;
+  if (cleanVal.toLowerCase() === cleanOpt.toLowerCase()) return true;
+  if (cleanVal === String(optIndex) || cleanVal === String(optIndex + 1)) return true;
+  return false;
+}
+
 /**
  * Tái cấu trúc danh sách dòng của khối TABLE từ snapshot formData của submission.
  * - Giữ nguyên 100% các dòng tĩnh trong block.tableRows (bao gồm dòng tiêu đề nhóm isGroupHeader, câu hỏi mẫu, gợi ý).
@@ -288,6 +299,10 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
       {/* Dynamic CSS — same @page rules as PrintBlankForm */}
       <style>{`
         @media print {
+          *, *::before, *::after {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
           #root { display: none !important; }
           .print-container {
             position: static !important; width: 100% !important;
@@ -524,7 +539,7 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                   {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a' }}>{renderFormattedText(cleanLabel)}</span>}
                                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', minHeight: '22px', paddingTop: '2px' }}>
                                     {scales.map((opt: string, idx: number) => {
-                                      const isSelected = val === opt;
+                                      const isSelected = isLikertSelected(val, opt, idx);
                                       return (
                                         <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', flex: 1, textAlign: 'center' }}>
                                           <span style={{ fontSize: '0.72rem', color: '#0f172a', fontWeight: isSelected ? 'var(--pw-weight-heavy)' : 500, lineHeight: 1.1 }}>{opt}</span>
@@ -533,14 +548,19 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                               display: 'inline-flex',
                                               alignItems: 'center',
                                               justifyContent: 'center',
-                                              width: '12px',
-                                              height: '12px',
+                                              width: '13px',
+                                              height: '13px',
                                               borderRadius: '50%',
                                               border: '1.2px solid #000000',
-                                              background: isSelected ? '#000000' : '#ffffff'
+                                              background: '#ffffff',
+                                              color: '#000000',
+                                              fontSize: '9px',
+                                              fontWeight: 'bold',
+                                              lineHeight: 1,
+                                              boxSizing: 'border-box'
                                             }}
                                           >
-                                            {isSelected && <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#ffffff' }} />}
+                                            {isSelected ? '✓' : ''}
                                           </span>
                                         </div>
                                       );
@@ -590,11 +610,21 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                         return (
                                           <span key={opt.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', whiteSpace: 'normal', wordBreak: 'break-word', maxWidth: '100%' }}>
                                             <span style={{
-                                              display: 'inline-block', width: '13px', height: '13px',
-                                              border: '1px solid #000000',
-                                              background: selected ? '#000000' : '#ffffff',
-                                              borderRadius: f.type === 'radio' ? '50%' : '2px', flexShrink: 0,
-                                              color: '#ffffff', fontSize: '10px', lineHeight: '13px', textAlign: 'center',
+                                              display: 'inline-flex',
+                                              alignItems: 'center',
+                                              justifyContent: 'center',
+                                              width: '13px',
+                                              height: '13px',
+                                              border: '1.2px solid #000000',
+                                              background: '#ffffff',
+                                              borderRadius: f.type === 'radio' ? '50%' : '2px',
+                                              flexShrink: 0,
+                                              color: '#000000',
+                                              fontSize: '9px',
+                                              fontWeight: 'bold',
+                                              lineHeight: 1,
+                                              textAlign: 'center',
+                                              boxSizing: 'border-box',
                                               marginTop: isLongOpt ? '2px' : '0'
                                             }}>
                                               {selected ? '✓' : ''}
@@ -636,11 +666,21 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                       return (
                                         <span key={opt.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.8rem', whiteSpace: 'normal', wordBreak: 'break-word', maxWidth: '100%' }}>
                                           <span style={{
-                                            display: 'inline-block', width: '13px', height: '13px',
-                                            border: '1px solid #000000',
-                                            background: selected ? '#000000' : '#ffffff',
-                                            borderRadius: f.type === 'radio' ? '50%' : '2px', flexShrink: 0,
-                                            color: '#ffffff', fontSize: '10px', lineHeight: '13px', textAlign: 'center'
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            width: '13px',
+                                            height: '13px',
+                                            border: '1.2px solid #000000',
+                                            background: '#ffffff',
+                                            borderRadius: f.type === 'radio' ? '50%' : '2px',
+                                            flexShrink: 0,
+                                            color: '#000000',
+                                            fontSize: '9px',
+                                            fontWeight: 'bold',
+                                            lineHeight: 1,
+                                            textAlign: 'center',
+                                            boxSizing: 'border-box'
                                           }}>
                                             {selected ? '✓' : ''}
                                           </span>
@@ -1033,14 +1073,14 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                           (col.type === 'likert_scale' || col.type === 'rating' ? 'center' : 'left'))
                                         );
 
-                                        // 1. LIKERT SCALE (Hiển thị radio tròn đen theo lựa chọn)
+                                        // 1. LIKERT SCALE (Hiển thị radio tròn có tick đen theo lựa chọn)
                                         if (col.type === 'likert_scale') {
                                           const scaleOptions = col.scaleOptions || ['Easy to Answer', 'Could Answer', 'Difficult to Answer'];
                                           return (
                                             <td key={col.id} style={{ border: cellBorder, borderBottom: cellBorderBottom, padding: '4px 6px', fontSize: '0.82rem', verticalAlign: 'middle', minHeight: `${minCellHeight}px`, textAlign: 'center', width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
                                               <div style={{ display: 'grid', gridTemplateColumns: `repeat(${scaleOptions.length}, 1fr)`, gap: '4px', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
                                                 {scaleOptions.map((opt, sIdx) => {
-                                                  const isSelected = cellVal === opt;
+                                                  const isSelected = isLikertSelected(cellVal, opt, sIdx);
                                                   return (
                                                     <div key={sIdx} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                                                       <span
@@ -1051,13 +1091,16 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                                           width: '13px',
                                                           height: '13px',
                                                           borderRadius: '50%',
-                                                          border: '1px solid #000000',
-                                                          background: '#ffffff'
+                                                          border: '1.2px solid #000000',
+                                                          background: '#ffffff',
+                                                          color: '#000000',
+                                                          fontSize: '9px',
+                                                          fontWeight: 'bold',
+                                                          lineHeight: 1,
+                                                          boxSizing: 'border-box'
                                                         }}
                                                       >
-                                                        {isSelected && (
-                                                          <span style={{ width: '7px', height: '7px', borderRadius: '50%', background: '#000000' }} />
-                                                        )}
+                                                        {isSelected ? '✓' : ''}
                                                       </span>
                                                     </div>
                                                   );
@@ -1127,15 +1170,17 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                                           display: 'inline-flex',
                                                           justifyContent: 'center',
                                                           alignItems: 'center',
-                                                          width: '12px',
-                                                          height: '12px',
-                                                          border: '1px solid #000000',
-                                                          background: isChecked ? '#e2e8f0' : '#ffffff',
+                                                          width: '13px',
+                                                          height: '13px',
+                                                          border: '1.2px solid #000000',
+                                                          background: '#ffffff',
                                                           borderRadius: '2px',
                                                           flexShrink: 0,
+                                                          color: '#000000',
                                                           fontSize: '9px',
-                                                          fontWeight: 'var(--pw-weight-heavy)',
-                                                          lineHeight: 1
+                                                          fontWeight: 'bold',
+                                                          lineHeight: 1,
+                                                          boxSizing: 'border-box'
                                                         }}>
                                                           {isChecked ? '✓' : ''}
                                                         </span>
@@ -1182,14 +1227,19 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                                           display: 'inline-flex',
                                                           justifyContent: 'center',
                                                           alignItems: 'center',
-                                                          width: '12px',
-                                                          height: '12px',
-                                                          border: '1px solid #000000',
+                                                          width: '13px',
+                                                          height: '13px',
+                                                          border: '1.2px solid #000000',
                                                           background: '#ffffff',
                                                           borderRadius: '50%',
-                                                          flexShrink: 0
+                                                          flexShrink: 0,
+                                                          color: '#000000',
+                                                          fontSize: '9px',
+                                                          fontWeight: 'bold',
+                                                          lineHeight: 1,
+                                                          boxSizing: 'border-box'
                                                         }}>
-                                                          {isChecked && <span style={{ width: '6px', height: '6px', background: '#000000', borderRadius: '50%' }} />}
+                                                          {isChecked ? '✓' : ''}
                                                         </span>
                                                         <span style={{ color: isChecked ? '#000000' : '#64748b', lineHeight: 1.3, textAlign: 'left', whiteSpace: isInline ? 'nowrap' : 'pre-wrap', wordBreak: isInline ? 'normal' : 'break-word', flex: isInline ? undefined : (cellAlign === 'center' || cellAlign === 'right' ? undefined : 1) }}>
                                                           {renderFormattedText(opt.label)}

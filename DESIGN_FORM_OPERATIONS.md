@@ -9,7 +9,7 @@
 | **Module Name** | Form Operations |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-09-14) — Sections 2, 8 (FormFiller table dynamic rows pure Auto-Append and button pruning) |
+| **Verified At Commit** | (2026-09-14) — Sections 2, 8 (Unified Print Selection Indicator: Circle with Checkmark for Radio/Likert, Square with Checkmark for Checkbox, print-color-adjust exact) |
 
 ### Quick File Index
 
@@ -430,7 +430,6 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 
 | Date | Commit | Change |
 |---|---|---|
-| 2026-08-27 | `CURRENT` | **Zero-Interruption Submission Flow & Non-Blocking Toast Feedback:** Eliminated full-page Success Screen. Form submission now triggers non-blocking toast notifications (`✓ Đã gửi phiếu thành công! (Mã: ID)`) and automatically navigates back to previous screen (or auto-resets form on public guest URLs). |
 | 2026-08-27 | `CURRENT` | **Read-Only Full Online Form View & Drawer Interaction Partitioning:** Added `readOnly` mode to `FormFiller.tsx` (locking inputs, disabling editing, rendering top metadata banner, and footer action bar). Clicking table rows opens the Slide-over Drawer (Quick Glance & Audit), while clicking Eye icon or Drawer's `[Toàn văn]` button opens the full digital online form view. |
 | 2026-08-28 | `CURRENT` | **3-Tier Symmetrical Form Layout in Focus Mode:** (1) Generalized form structure into 3 distinct layers via `groupBlocksIntoSections`: `preambleBlocks` (all blocks preceding first H1, e.g. TITLE, intro notes -> always uncollapsed at top), `sections` (H1 accordion sections & H2 sub-accordions -> single-active collapsible body), and `postambleBlocks` (trailing SIGN blocks -> always uncollapsed at bottom). (2) Suppressed duplicate H1 block headers inside expanded accordion content (`hideH1Title = true`). |
 | 2026-08-31 | `CURRENT` | **Parallel Data Fetching & Unified Short-Link Loading:** Converted sequential `await` calls in `FormManager.tsx` and `SubmissionManager.tsx` to `Promise.all` parallel fetching, eliminating ~300ms latency and table flash. Added `isShortLinkFlow` prop to `FormFiller.tsx` to suppress secondary loading screen when App.tsx already presents an entry loading screen. |
@@ -446,6 +445,7 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 | 2026-09-10 | `CURRENT` | **Unified Table Render Engine & Dynamic Structure Reconstruction in PrintFilledForm:** (1) Replaced `buildTableRowMap` with `reconstructTableRows` to preserve 100% template rows (including `isGroupHeader` and static question labels) while dynamically inserting user-added rows from submission snapshots. (2) Unified print table rendering into a single flow with automatic fallback to `block.tableData` for static labels, enforced `minHeight` with `\u00A0` to prevent empty cell collapse, and removed global `pageBreakInside: avoid` from `<tbody>` down to individual `<tr>` to prevent duplicate row cloning across page boundaries. |
 | 2026-09-10 | `CURRENT` | **Custom "Khác" (Other) Progressive Input & Print Rendering:** (1) Implemented compound prefix storage `__other__:<text>` with zero DB schema changes. (2) Added progressive disclosure text input in `FormFiller.tsx` for Checkbox, Radio, and Select across Info Grid, Checklist, and Tables. (3) Updated `PrintFilledForm.tsx` and `PrintRecord.tsx` to render custom text alongside option labels. |
 | 2026-09-14 | `CURRENT` | **FormFiller UI Streamlining — Pruning Manual Add Row Buttons in Favor of Pure Auto-Append:** Removed manual `+ Thêm dòng` buttons from both table footer and group headers in `FormFiller.tsx`. The interface now relies entirely on seamless `handleTableCellChangeWithAutoAppend` to dynamically generate new rows as users reach the end of data tables, while keeping fixed survey and Likert scale tables entirely clean and uncluttered. Trailing empty rows continue to be cleanly pruned upon submission. |
+| 2026-09-14 | `CURRENT` | **Unified Print Selection Indicators & Exact Print Color Enforcement:** Standardized print rendering in `PrintFilledForm.tsx` and `PrintRecord.tsx` under Option 1 (Semantics-Preserving Circle with Checkmark `(✓)` for Radio & Likert Scale, Square with Checkmark `[✓]` for Checkbox). Enforced text-based `#000000` black checkmarks on `#ffffff` white background to eliminate browser background graphics stripping. Added `print-color-adjust: exact !important` in global print CSS and added `isLikertSelected` helper with whitespace/case normalization. |
 
 
 
