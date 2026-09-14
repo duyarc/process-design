@@ -21,12 +21,38 @@ phiên thực thi để không lặp lại lỗi cũ.
 | 7 | `CTX` | Patch chunk quá dài (>100 dòng) trong file monolith lớn dễ bị fuzzy match lệch vị trí hoặc bỏ sót biến | Chia nhỏ patch thành các chunk tập trung (< 40-50 dòng) với context độc nhất. Đã tiến hóa thành quy tắc bắt buộc: Xem Mục 12.6 | 1 |
 | 8 | `BLOAT` | Để sót dead code (hàm cũ, props cũ như `handleMoveColumn`) khi thay thế giải pháp mới | Tuân thủ Mục 13.7 Dead-Code Pruning: rà soát toàn bộ call-site và xóa sạch code cũ trong cùng commit | 1 |
 | 9 | `BLOAT` | Xóa logic con dùng tham số callback mảng (`fArr` trong `.map((f, fIdx, fArr) => ...)`) nhưng bỏ sót trong chữ ký hàm → TS6133 unused declaration | Khi xóa tính năng hoặc dọn dead code, rà soát luôn tham số của closure bao quanh để lược bỏ biến không còn đọc | 1 |
+| 10 | `CTX` | Khi patch code trong khối JS trước `return`, chèn comment JSX `{/* */}` gây syntax error; hoặc patch thẻ con thiếu mốc neo độc nhất | Luôn phân biệt ngữ cảnh JS thuần vs JSX khi viết comment (`//` vs `{/* */}`); dùng thẻ cha làm mốc neo khi patch thẻ con | 1 |
 
 ---
 
 ## Nhật ký Phiên
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
+
+### 2026-09-14 — Print Standardization: Likert/Radio Circle Checkmark & Checkbox Square Checkmark
+
+**Scope:** 3 files, 136 insertions, 56 deletions (`c4c0607`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | 20.4 min |
+| Thời gian lập plan (Request → Proceed) | 13.2 min |
+| Thời gian thực thi (Proceed → Push) | 7.2 min |
+| Số file nguồn chỉnh sửa | 2 (`PrintFilledForm.tsx`, `PrintRecord.tsx`) |
+| Tổng lượt edit source | 10 |
+| Lượt edit sửa lỗi (rework) | 2 (lệch JSX comment và khôi phục return trong getEffectiveColumns) |
+| Số lần build | 3 (2 tsc + 1 vite) |
+| Lần build đầu thành công? | Có |
+| Số lệnh thất bại | 0 |
+| Số lỗi mới phát sinh | 1 (CTX: nhầm `{/* */}` trong block JS trước return) |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- Chuẩn hóa toàn bộ hiển thị in ấn theo Phương án 1: Radio/Likert hình TRÒN có dấu tick đen `(✓)`, Checkbox hình VUÔNG có dấu tick đen `[✓]`.
+- Giải quyết triệt để vấn đề mất dấu chọn khi in do trình duyệt tự động tắt "Background graphics" bằng cách chuyển dấu tick sang ký tự text UTF-8 đen `#000000` trên nền trắng `#ffffff`.
+- Thêm chỉ thị `print-color-adjust: exact !important` và helper `isLikertSelected` xử lý chuẩn hóa dữ liệu.
+
+---
 
 ### 2026-09-14 — FormFiller UI Streamlining: Pruning Manual Add Row Buttons in Favor of Pure Auto-Append
 

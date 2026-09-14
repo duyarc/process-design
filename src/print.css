@@ -75,7 +75,7 @@
   }
 
   /* Setup A4 Paper Page Margins.
-     RÀNG BUỘC: PrintBlankForm.tsx và PrintRecord.tsx khai lại @page thành
+     RÀNG BUỘC: PrintBlankForm.tsx và PrintFilledForm.tsx khai lại @page thành
      A4 portrait qua <style> nội tuyến và thắng rule này chỉ nhờ thứ tự DOM
      (cùng specificity). @page không nhận selector nên không scope được theo
      `.print-doc` — đừng chuyển khối này xuống sau trong tệp. */
@@ -212,7 +212,7 @@
 /* ─────────────────────────────────────────────────────────────
    PRINT DOCUMENT SPACING SCALE
    Nguồn duy nhất cho nhịp dọc của bản in biểu mẫu (PrintBlankForm /
-   PrintRecord). Không đặt trong @media print để preview trên màn hình
+   PrintFilledForm). Không đặt trong @media print để preview trên màn hình
    khớp với bản in trên giấy.
    ───────────────────────────────────────────────────────────── */
 .print-doc {

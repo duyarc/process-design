@@ -104,7 +104,7 @@ All buttons must use the base `.btn` class.
 ### 4.1 Page orientation — two conflicting `@page` rules by design
 
 `print.css` declares `@page { size: A4 landscape }` for the process/BPMN documents, which need the
-horizontal room. `PrintBlankForm.tsx` and `PrintRecord.tsx` each re-declare `@page { size: A4
+horizontal room. `PrintBlankForm.tsx` and `PrintFilledForm.tsx` each re-declare `@page { size: A4
 portrait; margin: 15mm 15mm 20mm 15mm }` in an inline `<style>`.
 
 `@page` accepts no selector, so the form portals **cannot** scope their override by `.print-doc`.

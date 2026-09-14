@@ -9,7 +9,7 @@
 | **Module Name** | Form Operations |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-09-14) — Sections 2, 8 (Unified Print Selection Indicator: Circle with Checkmark for Radio/Likert, Square with Checkmark for Checkbox, print-color-adjust exact) |
+| **Verified At Commit** | (2026-09-14) — Sections 2, 3, 5, 6, 8 (Dead-Code Pruning: Removed orphaned PrintRecord.tsx; PrintFilledForm is the single authoritative filled-form renderer) |
 
 ### Quick File Index
 
@@ -20,7 +20,6 @@
 | [`src/components/FormManager.tsx`](src/components/FormManager.tsx) | Per-form submission log + supervisor sign-off |
 | [`src/components/SubmissionManager.tsx`](src/components/SubmissionManager.tsx) | Cross-form global submission log (embedded in Dashboard) |
 | [`src/components/print/PrintFilledForm.tsx`](src/components/print/PrintFilledForm.tsx) | **NEW** — Filled submission print renderer; layout mirrors blank form exactly; self-contained |
-| [`src/components/print/PrintRecord.tsx`](src/components/print/PrintRecord.tsx) | Legacy print renderer — deprecated; kept for rollback safety |
 | [`src/components/common/ConfirmModal.tsx`](src/components/common/ConfirmModal.tsx) | **NEW** — Reusable confirmation dialog for critical actions across the project |
 | [`src/types.ts`](src/types.ts) | Shared types: `Submission`, `SubmissionFieldSnapshot` (owned by this doc) |
 
@@ -74,7 +73,7 @@ Form Operations is the **execution and tracking layer** for operational form rec
 | **Filter bar** | Search by operator ID or submission ID; filter by status (ALL / PASS / ABNORMALITY); filter by sign-off (ALL / PENDING / VERIFIED) |
 | **Submission detail panel** | Click a record to expand: shows all field values, PASS/FAIL status per field, photo evidence previews |
 | **Supervisor sign-off** | Name + notes fields; "Verify & Sign Off" button calls `POST /api/submissions/:id/signoff` |
-| **Print record** | "Print" button mounts `PrintRecord` with the full submission data |
+| **Print record** | "Print" button mounts `PrintFilledForm` with the full submission data and template |
 | **Fill new form** | "+ Fill New Record" button navigates to `FormFiller` via `onOpenFormFiller` callback |
 
 ### SubmissionManager (Global Dashboard View)
@@ -84,7 +83,7 @@ Form Operations is the **execution and tracking layer** for operational form rec
 | **All submissions across all forms** | Fetches the entire `submissions` table; enriches with process titles |
 | **Filter bar** | Search by process title, operator ID, submission ID, or form ID; filter by status and sign-off |
 | **Cross-form sign-off** | Same supervisor sign-off flow as FormManager, but accessible from the global log |
-| **Print record** | Same `PrintRecord` portal as FormManager |
+| **Print record** | Same `PrintFilledForm` portal as FormManager |
 | **Embedded mode** | `isEmbedded=true` prop renders without a Back button (used inside Dashboard tab) |
 | **Photo evidence preview** | Resolves R2 object keys to pre-signed download URLs for inline display |
 
@@ -95,15 +94,15 @@ Form Operations is the **execution and tracking layer** for operational form rec
 ```
 Form Operations Module
 │
-├── FormFiller.tsx          Operator fill-out form UI — standalone page (page='fill-form')
+├── FormFiller.tsx              Operator fill-out form UI — standalone page (page='fill-form')
 │
-├── FormManager.tsx         Per-form submission log — standalone page (page='form-manager')
-│   └── PrintRecord         Print renderer — mounted as React Portal on print trigger
+├── FormManager.tsx             Per-form submission log — standalone page (page='form-manager')
+│   └── PrintFilledForm         Print renderer — mounted as React Portal on print trigger
 │
-├── SubmissionManager.tsx   Global submission log — embedded inside Dashboard
-│   └── PrintRecord         Print renderer — mounted as React Portal on print trigger
+├── SubmissionManager.tsx       Global submission log — embedded inside Dashboard
+│   └── PrintFilledForm         Print renderer — mounted as React Portal on print trigger
 │
-└── print/PrintRecord.tsx   A4 filled-record print renderer; fetches photo pre-signed URLs
+└── print/PrintFilledForm.tsx   A4 filled-record print renderer; mirrors blank form layout
 ```
 
 ### Routing in App.tsx
@@ -119,7 +118,7 @@ Form Operations Module
 - **FormFiller** — Renders the live form template; manages `formValues`, `fieldReactions`, and `uploadedPhotos` state; validates fields against specs; builds and submits a `Submission` payload to the API.
 - **FormManager** — Loads submissions filtered by a specific `formId`; allows supervisors to sign off; triggers print for a selected record.
 - **SubmissionManager** — Loads all submissions across all forms/processes; enriches records with process metadata; supports cross-form filtering, sign-off, and print.
-- **PrintRecord** — A pure renderer mounted via `ReactDOM.createPortal`; resolves R2 keys to pre-signed URLs for logo and photo evidence; renders a complete A4-formatted record.
+- **PrintFilledForm** — A pure renderer mounted via `ReactDOM.createPortal`; mirrors the exact layout of the blank form with filled values, handles dynamic table rows and photo evidence; renders a complete A4-formatted record.
 
 ---
 
@@ -282,30 +281,25 @@ Supervisor opens a submission record in FormManager or SubmissionManager
 ### Flow H: Print a Completed Record
 
 ```
-User clicks "Print" on a submission row
-  └─ setPrintSubmission(submission) → component renders <PrintRecord ... />
+User clicks "Print" on a submission row or in FormFiller header
+  └─ setPrintSubmission(submission) → component renders <PrintFilledForm ... />
        ├─ Mounted via ReactDOM.createPortal into document.body
-       ├─ useEffect: resolves photo evidence R2 keys → GET /api/storage/download-url for each
-       ├─ useEffect: resolves logo R2 key → GET /api/storage/download-url
+       ├─ Self-fetches formTemplate if not provided (SubmissionManager path)
+       ├─ Builds valueMap from submission.formData snapshots
+       ├─ Reconstructs dynamic table rows via reconstructTableRows
+       ├─ Resolves photo evidence and logo URLs
        └─ User triggers browser print dialog (window.print())
-            └─ onClose → setPrintSubmission(null) → list view re-renders
+            └─ onClose → setPrintSubmission(null) → view re-renders
 ```
 
 **Print layout contract.** The portal root carries `print-container print-doc`. Vertical rhythm comes
 from the shared token scale in `print.css` — see [`DESIGN_UI_UX.md`](DESIGN_UI_UX.md) §4.2 — not from
-this component. Two consequences when editing `PrintRecord.tsx`:
+this component. Two consequences when editing `PrintFilledForm.tsx`:
 
 - A `.print-block` wrapper must not set its own outer `margin-top` / `margin-bottom`. Inline style
   beats the `.print-block + .print-block` selector and reintroduces uneven gaps. `SECTION_LABEL`
   wrappers get `.print-block--section`; inner (non-`.print-block`) wrappers are unaffected.
-- The INFO_GRID renders as `.print-info-grid`, a row-major grid whose column count is read from the
-  matching `INFO_GRID` block (`block.columns`) rather than hardcoded to 2, so a printed record matches
-  the FormBuilder canvas and the blank form.
-
-**Known limitation.** `PrintRecord` flattens every INFO_GRID field into one grid and takes its column
-count from the *first* `INFO_GRID` block found. A form with several INFO_GRID blocks at different
-column counts will render them all at the first block's count. Reconstructing per-block grids means
-reworking the snapshot-to-layout mapping, which is wider than the print layer.
+- The INFO_GRID renders as `.print-info-grid`, mirroring the FormBuilder canvas and blank form.
 
 **Propagation.** Per [`AGENTS.md`](AGENTS.md), any print layout change here must be mirrored in
 `PrintBlankForm.tsx` (Form Designer module) and vice versa.
@@ -355,15 +349,12 @@ reworking the snapshot-to-layout mapping, which is wider than the print layer.
 | `onOpenReport` | `(submissionId: string) => void` (optional) | Callback to open report view for the submission |
 | `onViewingChange` | `(isViewing: boolean) => void` (optional) | Callback fired when entering/exiting full-screen submission view or copy mode |
 
-**PrintRecord** (`interface PrintRecordProps` in [`src/components/print/PrintRecord.tsx`](src/components/print/PrintRecord.tsx))
+**PrintFilledForm** (`interface PrintFilledFormProps` in [`src/components/print/PrintFilledForm.tsx`](src/components/print/PrintFilledForm.tsx))
 
 | Prop | Type | Description |
 |---|---|---|
 | `submission` | `Submission` | The completed submission record to render |
-| `processTitle` | `string` | Display title for the process (shown in the print header) |
-| `logoText` | `string` (optional) | R2 object key (`"uploads/..."`) or inline URL for the form logo |
-| `descriptionText` | `string` (optional) | Description text from the form's TITLE block |
-| `columnLabels` | `object` (optional) | Custom column header labels from the form's CHECKLIST_TABLE block |
+| `formTemplate` | `FormTemplateISO` (optional) | The form template definition; auto-fetched if omitted |
 | `onClose` | `() => void` | Called to dismount the print view |
 
 ### 6.2 API Endpoints Consumed
@@ -377,7 +368,7 @@ reworking the snapshot-to-layout mapping, which is wider than the print layer.
 | `POST` | `/api/submissions/:id/signoff` | FormManager, SubmissionManager | Add supervisor sign-off to a submission |
 | `POST` | `/api/storage/presign-upload` | FormFiller | Get a pre-signed R2 URL for photo evidence upload |
 | `PUT` | `(presigned R2 URL)` | FormFiller | Direct upload of photo evidence to Cloudflare R2 |
-| `GET` | `/api/storage/download-url?key=...` | PrintRecord, SubmissionManager | Resolve R2 keys to pre-signed download URLs for photo evidence and logo display |
+| `GET` | `/api/storage/download-url?key=...` | PrintFilledForm, SubmissionManager | Resolve R2 keys to pre-signed download URLs for photo evidence and logo display |
 
 > Full endpoint reference, including request/response shapes and DB schema, lives in [DESIGN_BACKEND.md](DESIGN_BACKEND.md).
 
@@ -404,7 +395,7 @@ Fields with options (`checkbox`, `radio`, `select`) support an expandable "Khác
   - For single selection (`radio`, `select`): value is stored as `__other__:<text>` (or `__other__` when blank).
   - For multiple selection (`checkbox`): value is stored as a comma-separated list where the custom entry is included as `__other__:<text>` (e.g., `OPT_1,__other__:Chi tiết bổ sung`).
 - **Progressive Disclosure:** `FormFiller.tsx` conditionally reveals an auto-focusing `<input type="text">` immediately below the option when "Khác" is checked or selected, seamlessly synchronizing compound values.
-- **Print & View Rendering:** `PrintFilledForm.tsx` and `PrintRecord.tsx` use `isOtherValue()`, `extractOtherText()`, and `formatOptionDisplay()` to detect custom options and format them as `[Nhãn]: [Văn bản nhập]` with underlined text formatting.
+- **Print & View Rendering:** `PrintFilledForm.tsx` uses `isOtherValue()`, `extractOtherText()`, and `formatOptionDisplay()` to detect custom options and format them as `[Nhãn]: [Văn bản nhập]` with underlined text formatting.
 
 ---
 
@@ -430,7 +421,6 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 
 | Date | Commit | Change |
 |---|---|---|
-| 2026-08-27 | `CURRENT` | **Read-Only Full Online Form View & Drawer Interaction Partitioning:** Added `readOnly` mode to `FormFiller.tsx` (locking inputs, disabling editing, rendering top metadata banner, and footer action bar). Clicking table rows opens the Slide-over Drawer (Quick Glance & Audit), while clicking Eye icon or Drawer's `[Toàn văn]` button opens the full digital online form view. |
 | 2026-08-28 | `CURRENT` | **3-Tier Symmetrical Form Layout in Focus Mode:** (1) Generalized form structure into 3 distinct layers via `groupBlocksIntoSections`: `preambleBlocks` (all blocks preceding first H1, e.g. TITLE, intro notes -> always uncollapsed at top), `sections` (H1 accordion sections & H2 sub-accordions -> single-active collapsible body), and `postambleBlocks` (trailing SIGN blocks -> always uncollapsed at bottom). (2) Suppressed duplicate H1 block headers inside expanded accordion content (`hideH1Title = true`). |
 | 2026-08-31 | `CURRENT` | **Parallel Data Fetching & Unified Short-Link Loading:** Converted sequential `await` calls in `FormManager.tsx` and `SubmissionManager.tsx` to `Promise.all` parallel fetching, eliminating ~300ms latency and table flash. Added `isShortLinkFlow` prop to `FormFiller.tsx` to suppress secondary loading screen when App.tsx already presents an entry loading screen. |
 | 2026-09-04 | `CURRENT` | **Block-level Conditional Visibility & Non-Destructive Hiding:** (1) Added `evaluateBlockVisibility(block, formValues)` in `FormFiller.tsx` to conditionally hide blocks whose upstream triggers are not met, returning `null` in `renderBlock` while preserving all entered `formValues` intact for instant recovery. (2) Updated `renderBlock` to resolve visible `prevBlock` backward across hidden blocks, preserving `isSeamlessTableBlock` continuity. (3) Filtered out hidden blocks before executing `validateFormSubmission` so hidden required fields do not block submission. |
@@ -443,9 +433,10 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 | 2026-09-10 | `CURRENT` | **Dynamic Table Rows Persistence, Reconstruction & Blank Filtering:** Updated `FormFiller.tsx` to collect dynamic rows from `tableRowsMap` during submit/update, automatically dropping completely blank dynamic rows to prevent ghost trailing rows. Added `reconstructTableRows` to restore dynamic rows from `formData` snapshots upon loading and on edit cancellation, and hidden delete icons when read-only with explicit `+ Thêm dòng` buttons. |
 | 2026-09-10 | `CURRENT` | **Submission Amendment Authorization & Token Fallback Resolution:** Fixed 403 error on submission update (`PUT /api/submissions/:id`). (1) In `FormManager.tsx` and `SubmissionManager.tsx`, passed `editSubmissionId`, `editToken`, and `canEditSubmission` to `FormFiller`. (2) In `FormFiller.tsx`, expanded `canAdminEdit` to include `supervisor` role and added cascading fallback for `resolvedEditToken` from `initialSubmission.accessToken` and `localStorage` `submission_history`. (3) Replaced submission error `alert()` with non-blocking red toast. |
 | 2026-09-10 | `CURRENT` | **Unified Table Render Engine & Dynamic Structure Reconstruction in PrintFilledForm:** (1) Replaced `buildTableRowMap` with `reconstructTableRows` to preserve 100% template rows (including `isGroupHeader` and static question labels) while dynamically inserting user-added rows from submission snapshots. (2) Unified print table rendering into a single flow with automatic fallback to `block.tableData` for static labels, enforced `minHeight` with `\u00A0` to prevent empty cell collapse, and removed global `pageBreakInside: avoid` from `<tbody>` down to individual `<tr>` to prevent duplicate row cloning across page boundaries. |
-| 2026-09-10 | `CURRENT` | **Custom "Khác" (Other) Progressive Input & Print Rendering:** (1) Implemented compound prefix storage `__other__:<text>` with zero DB schema changes. (2) Added progressive disclosure text input in `FormFiller.tsx` for Checkbox, Radio, and Select across Info Grid, Checklist, and Tables. (3) Updated `PrintFilledForm.tsx` and `PrintRecord.tsx` to render custom text alongside option labels. |
+| 2026-09-10 | `CURRENT` | **Custom "Khác" (Other) Progressive Input & Print Rendering:** (1) Implemented compound prefix storage `__other__:<text>` with zero DB schema changes. (2) Added progressive disclosure text input in `FormFiller.tsx` for Checkbox, Radio, and Select across Info Grid, Checklist, and Tables. (3) Updated `PrintFilledForm.tsx` to render custom text alongside option labels. |
 | 2026-09-14 | `CURRENT` | **FormFiller UI Streamlining — Pruning Manual Add Row Buttons in Favor of Pure Auto-Append:** Removed manual `+ Thêm dòng` buttons from both table footer and group headers in `FormFiller.tsx`. The interface now relies entirely on seamless `handleTableCellChangeWithAutoAppend` to dynamically generate new rows as users reach the end of data tables, while keeping fixed survey and Likert scale tables entirely clean and uncluttered. Trailing empty rows continue to be cleanly pruned upon submission. |
-| 2026-09-14 | `CURRENT` | **Unified Print Selection Indicators & Exact Print Color Enforcement:** Standardized print rendering in `PrintFilledForm.tsx` and `PrintRecord.tsx` under Option 1 (Semantics-Preserving Circle with Checkmark `(✓)` for Radio & Likert Scale, Square with Checkmark `[✓]` for Checkbox). Enforced text-based `#000000` black checkmarks on `#ffffff` white background to eliminate browser background graphics stripping. Added `print-color-adjust: exact !important` in global print CSS and added `isLikertSelected` helper with whitespace/case normalization. |
+| 2026-09-14 | `CURRENT` | **Unified Print Selection Indicators & Exact Print Color Enforcement:** Standardized print rendering in `PrintFilledForm.tsx` under Option 1 (Semantics-Preserving Circle with Checkmark `(✓)` for Radio & Likert Scale, Square with Checkmark `[✓]` for Checkbox). Enforced text-based `#000000` black checkmarks on `#ffffff` white background to eliminate browser background graphics stripping. Added `print-color-adjust: exact !important` in global print CSS and added `isLikertSelected` helper with whitespace/case normalization. |
+| 2026-09-14 | `CURRENT` | **Dead-Code Pruning — Pruned Orphaned PrintRecord.tsx:** Removed 1,636 lines of dead code in `PrintRecord.tsx` which had been fully superseded by `PrintFilledForm.tsx` since 2026-08-03. Unified Module Ownership Map in `AGENTS.md`, `DESIGN_FORM_OPERATIONS.md`, and `DESIGN_UI_UX.md` to designate `PrintFilledForm.tsx` as the sole authoritative filled-submission print renderer, permanently eliminating double maintenance overhead. |
 
 
 
