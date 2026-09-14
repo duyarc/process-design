@@ -29,6 +29,30 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-14 — Form Operations & Print: Unified Table Cell Custom Options Resolution
+
+**Scope:** 7 files, ~45 insertions, ~30 deletions
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa | 6 (`formUtils.ts`, `PrintFilledForm.tsx`, `ProcessReader.tsx`, `FormFiller.tsx`, `PrintBlankForm.tsx`, `FormBuilder.tsx`) |
+| Tổng lượt edit source | 10 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 7 (6 tsc + 1 vite) |
+| Lần build đầu thành công? | Có (100% pass ngay lần build đầu) |
+| Số lệnh thất bại | 0 |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- Trích xuất hàm thuần túy `getEffectiveCellOptions` vào `formUtils.ts` hỗ trợ Dual-Compatibility key lookup (`${rowId}_${colId}` phẳng và `[rowId]?.[colId]` lồng).
+- Khắc phục lỗi lệch key `cellOptionsMap?.[row.id]?.[col.id]` trong `PrintFilledForm.tsx` và `ProcessReader.tsx`, đảm bảo in chính xác options và checkmark của từng ô bảng.
+- Đồng bộ hóa 100% cả 5 components (`PrintFilledForm`, `PrintBlankForm`, `FormFiller`, `ProcessReader`, `FormBuilder`).
+- Bổ sung hiển thị `col.checkboxLayout === '2-column'` cho Radio cell trong `PrintFilledForm.tsx`.
+- 100% build pass ngay lần đầu (tsc & vite build 14.76s).
+
+---
+
 ### 2026-09-14 — FormBuilder & ReportBuilder: Simplify SECTION_LABEL Description Placeholder Text
 
 **Scope:** 2 files, 2 insertions, 2 deletions
@@ -247,26 +271,4 @@ Entry mới nhất ở trên cùng. Tối đa 10 entries.
 | Số lỗi cũ lặp lại | 0 |
 
 **Lỗi phát sinh:** Không có lỗi mã nguồn hoặc cú pháp phát sinh. 100% build pass ngay lần đầu. Chuyển đổi thành công sang Composite Key `${block.id}:${row.id}`, cách ly hoàn toàn phạm vi hover và popover giữa các bảng, đạt Refactor Ratio 51.1%.
-
----
-
-### 2026-09-11 — Table Row Line Count UI/UX Refinement & Segmented Action Pill
-
-**Scope:** 3 files, 116 insertions, 77 deletions (`aed930a`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian lập plan (Request → Proceed) | 2.9 min |
-| Thời gian thực thi (Proceed → Push) | 6.3 min |
-| Thời gian tổng (Request → Push) | 9.1 min |
-| Số file nguồn chỉnh sửa | 1 (`FormBuilder.tsx`) |
-| Tổng lượt edit source | 3 |
-| Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 2 |
-| Lần build đầu thành công? | Có (100% pass ngay lần build đầu) |
-| Số lệnh thất bại | 0 |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Lỗi phát sinh:** Không có lỗi mã nguồn hoặc cú pháp phát sinh. 100% build pass ngay lần đầu. Nâng cấp thành công icon vector `Rows2` + số lượng + `ChevronDown`, loại bỏ viền hộp lồng hộp thô ráp, bổ sung divider phân đoạn và hover effect, đạt Refactor Ratio 66.4%.
 

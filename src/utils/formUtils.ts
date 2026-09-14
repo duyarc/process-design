@@ -1,4 +1,4 @@
-import type { FormFieldISO, TitleFormatISO, LayoutBlockISO } from '../types';
+import type { FormFieldISO, TitleFormatISO, LayoutBlockISO, RadioOption } from '../types';
 
 /**
  * Automatically determines whether a checkbox or radio field should render using
@@ -688,5 +688,26 @@ export function reorderArray<T>(
   const [movedItem] = result.splice(fromIndex, 1);
   result.splice(toIndex, 0, movedItem);
   return result;
+}
+
+/**
+ * Lấy danh sách lựa chọn thực tế của một ô trong bảng TABLE:
+ * Ưu tiên custom cell options trong cellOptionsMap (hỗ trợ cả key phẳng "rowId_colId" và key lồng nhau map[rowId][colId]),
+ * nếu không có sẽ dùng columnOptions mặc định của cột.
+ */
+export function getEffectiveCellOptions(
+  cellOptionsMap: { [cellKey: string]: RadioOption[] } | undefined,
+  rowId: string,
+  colId: string,
+  columnOptions?: RadioOption[]
+): RadioOption[] {
+  if (cellOptionsMap) {
+    const flatKey = `${rowId}_${colId}`;
+    const custom = cellOptionsMap[flatKey] ?? (cellOptionsMap as any)?.[rowId]?.[colId];
+    if (custom !== undefined && Array.isArray(custom)) {
+      return custom;
+    }
+  }
+  return columnOptions || [];
 }
 

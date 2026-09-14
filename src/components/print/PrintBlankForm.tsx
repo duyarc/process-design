@@ -2,7 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import type { FormTemplateISO, LayoutBlockISO, TableColumnConfig } from '../../types';
 import { formatFormVersion, getColStyleWidth } from '../../types';
-import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock, getInfoGridTemplateColumns } from '../../utils/formUtils';
+import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock, getInfoGridTemplateColumns, getEffectiveCellOptions } from '../../utils/formUtils';
 import { renderFormattedText } from '../../utils/textFormatter';
 
 import { exportFillablePdfFromDOM } from '../../utils/pdfFormExporter';
@@ -1169,8 +1169,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                             {(block.tableColumns || []).map((col) => {
                               const colWidth = getColStyleWidth(col.id, col.width, block.tableColumns || []);
                               const cellFieldId = `${fieldId}_${col.id}`;
-                              const customCellOpts = block.cellOptionsMap?.[`${row.id}_${col.id}`];
-                              const rawOpts = customCellOpts !== undefined ? customCellOpts : (col.options || []);
+                              const rawOpts = getEffectiveCellOptions(block.cellOptionsMap, row.id, col.id, col.options);
                               const effectiveOpts = rawOpts.filter(opt => opt.label && opt.label.trim() !== '');
                               const hasOptions = (col.type === 'checkbox' || col.type === 'radio') && effectiveOpts.length > 0;
                               const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? (hasOptions ? 'left' : 'center') : col.type === 'likert_scale' ? 'center' : 'left'));

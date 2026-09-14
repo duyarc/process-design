@@ -9,7 +9,7 @@
 | **Module Name** | Form Operations |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-09-14) — Sections 2, 6.6, 8 (Native placeholder formatting: stripMarkdownTokens, global italic placeholder CSS, multi-line auto-height) |
+| **Verified At Commit** | (2026-09-14) — Sections 2, 6.7, 8 (Unified getEffectiveCellOptions utility, flat cellOptionsMap key lookup in PrintFilledForm & FormFiller) |
 
 ### Quick File Index
 
@@ -404,6 +404,12 @@ Fields with options (`checkbox`, `radio`, `select`) support an expandable "Khác
 - **Global Typography Styling:** Native CSS in `src/index.css` applies `font-style: italic`, `color: #94a3b8`, and `opacity: 0.9` to all `input::placeholder` and `textarea::placeholder`.
 - **Dynamic Multi-Line Height Auto-Adjustment:** `AutoResizingTextarea` in `FormFiller.tsx` dynamically calculates `placeholderLines` and enforces `minPlaceholderHeight` and initial `rows` when the cell is empty (`!value`), ensuring multi-line instruction placeholders are never vertically truncated.
 
+### 6.7 Unified Table Cell Custom Options Resolution (`getEffectiveCellOptions`)
+
+- **Dual-Compatibility Lookup Invariant:** `block.cellOptionsMap` stores cell-scoped option overrides under the flat key `${rowId}_${colId}`. To prevent architectural drift, `getEffectiveCellOptions(cellOptionsMap, rowId, colId, columnOptions)` in `src/utils/formUtils.ts` handles lookup with automatic fallback to nested `[rowId]?.[colId]`.
+- **System-Wide Single Source of Truth:** `PrintFilledForm.tsx`, `PrintBlankForm.tsx`, `FormFiller.tsx`, `ProcessReader.tsx`, and `FormBuilder.tsx` all delegate to this pure utility, eliminating regression risks where print or reader components fall back to column defaults while FormFiller displays custom options.
+- **Enhanced Print Render Engine:** `PrintFilledForm.tsx` supports `col.checkboxLayout === '2-column'` grid formatting for radio/checkbox and renders individual boolean checkbox cells cleanly with `✓` indicators when no options array is configured.
+
 ---
 
 ## 7. Known Design Constraints & Technical Debt
@@ -428,7 +434,6 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 
 | Date | Commit | Change |
 |---|---|---|
-| 2026-08-31 | `CURRENT` | **Parallel Data Fetching & Unified Short-Link Loading:** Converted sequential `await` calls in `FormManager.tsx` and `SubmissionManager.tsx` to `Promise.all` parallel fetching, eliminating ~300ms latency and table flash. Added `isShortLinkFlow` prop to `FormFiller.tsx` to suppress secondary loading screen when App.tsx already presents an entry loading screen. |
 | 2026-09-04 | `CURRENT` | **Block-level Conditional Visibility & Non-Destructive Hiding:** (1) Added `evaluateBlockVisibility(block, formValues)` in `FormFiller.tsx` to conditionally hide blocks whose upstream triggers are not met, returning `null` in `renderBlock` while preserving all entered `formValues` intact for instant recovery. (2) Updated `renderBlock` to resolve visible `prevBlock` backward across hidden blocks, preserving `isSeamlessTableBlock` continuity. (3) Filtered out hidden blocks before executing `validateFormSubmission` so hidden required fields do not block submission. |
 | 2026-09-04 | `CURRENT` | **Dropdown (`select`) Field & Table Cell Rendering:** (1) Integrated `<select>` menu rendering with `-- Chọn --` placeholder across `INFO_GRID` fields and `TABLE` cells in `FormFiller.tsx` and `ProcessReader.tsx`. (2) Updated `buildSubmissionSnapshots` to evaluate pass/fail quality criteria based on selected option's `isPass` flag. (3) Standardized `PrintFilledForm.tsx` to print clean option labels instead of empty inputs. |
 | 2026-09-09 | `CURRENT` | **Public Submission Review & Amendment UI:** Created `SubmissionViewer.tsx` orchestrating token-based read-only and edit modes. Updated `FormFiller.tsx` with access token persistence in `localStorage`, submission success screen with copyable review link, and dynamic local device history card powered by batch-lookup. |
@@ -444,6 +449,7 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 | 2026-09-14 | `CURRENT` | **Unified Print Selection Indicators & Exact Print Color Enforcement:** Standardized print rendering in `PrintFilledForm.tsx` under Option 1 (Semantics-Preserving Circle with Checkmark `(✓)` for Radio & Likert Scale, Square with Checkmark `[✓]` for Checkbox). Enforced text-based `#000000` black checkmarks on `#ffffff` white background to eliminate browser background graphics stripping. Added `print-color-adjust: exact !important` in global print CSS and added `isLikertSelected` helper with whitespace/case normalization. |
 | 2026-09-14 | `CURRENT` | **Dead-Code Pruning — Pruned Orphaned PrintRecord.tsx:** Removed 1,636 lines of dead code in `PrintRecord.tsx` which had been fully superseded by `PrintFilledForm.tsx` since 2026-08-03. Unified Module Ownership Map in `AGENTS.md`, `DESIGN_FORM_OPERATIONS.md`, and `DESIGN_UI_UX.md` to designate `PrintFilledForm.tsx` as the sole authoritative filled-submission print renderer, permanently eliminating double maintenance overhead. |
 | 2026-09-14 | `CURRENT` | **Native Placeholder Formatting & Dynamic Multi-Line Height:** (1) Implemented pure utility `stripMarkdownTokens` in `textFormatter.tsx` to strip raw markdown formatting symbols (`*`, `**`, `<u>`, `~`) from placeholder strings without faux DOM layers. (2) Standardized system-wide `::placeholder` styling in `index.css` with `font-style: italic`, color `#94a3b8`, and `opacity: 0.9`. (3) Upgraded `AutoResizingTextarea` in `FormFiller.tsx` to dynamically size initial height and `rows` based on newline counts in multi-line placeholders, eliminating text truncation in empty table cells. |
+| 2026-09-14 | `CURRENT` | **Unified Table Cell Custom Options Resolution & Print Rendering:** (1) Implemented pure utility `getEffectiveCellOptions` in `formUtils.ts` with dual-compatibility lookup (`${rowId}_${colId}` and `[rowId][colId]`), eliminating hardcoded lookups across 5 components. (2) Fixed key resolution mismatch in `PrintFilledForm.tsx` where cell custom options were bypassed in favor of column defaults, accurately printing per-cell options and checkmarks. (3) Added 2-column grid layout support and single boolean checkbox rendering in filled form print. |
 
 
 

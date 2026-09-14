@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { Process, SubmissionFieldSnapshot } from '../types';
 import { formatFormVersion, getColStyleWidth } from '../types';
-import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock, getInfoGridTemplateColumns } from '../utils/formUtils';
+import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock, getInfoGridTemplateColumns, getEffectiveCellOptions } from '../utils/formUtils';
 import { renderFormattedText } from '../utils/textFormatter';
 import { useAuth } from '../context/AuthContext';
 import { Printer, Edit2, Camera, AlertTriangle, X, PenTool, GitBranch, Eye, ArrowLeft, Trash2, Star } from 'lucide-react';
@@ -2136,8 +2136,7 @@ setFormValues(prev => ({ ...prev, [field.id]: stringifySubtableValue(newRows) })
                                              const colWidth = getColStyleWidth(col.id, col.width, block.tableColumns || []);
                                              const cellKey = `${block.id}_${row.id}_${col.id}`;
                                              const cellValue = formValues[cellKey] || '';
-                                             const customCellOpts = block.cellOptionsMap?.[row.id]?.[col.id];
-                                             const effectiveOpts = (customCellOpts && customCellOpts.length > 0) ? customCellOpts : (col.options || []);
+                                             const effectiveOpts = getEffectiveCellOptions(block.cellOptionsMap, row.id, col.id, col.options);
                                              const hasOptions = (col.type === 'checkbox' || col.type === 'radio') && effectiveOpts.length > 0;
                                              const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? (hasOptions ? 'left' : 'center') : col.type === 'likert_scale' ? 'center' : 'left'));
                                              const staticVal = block.tableData?.[row.id]?.[col.id];

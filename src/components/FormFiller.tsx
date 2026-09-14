@@ -62,7 +62,8 @@ import {
   groupBlocksIntoSections,
   isOtherValue,
   extractOtherText,
-  encodeOtherValue
+  encodeOtherValue,
+  getEffectiveCellOptions
 } from '../utils/formUtils';
 import { renderFormattedText, stripMarkdownTokens } from '../utils/textFormatter';
 import { useAuth } from '../context/AuthContext';
@@ -2370,8 +2371,7 @@ function FormFillerInner({
                                 const colWidth = getColStyleWidth(col.id, col.width, block.tableColumns || []);
                                 const cellKey = `${block.id}_${row.id}_${col.id}`;
                                 const cellValue = formValues[cellKey] || '';
-                                const customCellOpts = block.cellOptionsMap?.[`${row.id}_${col.id}`];
-                                const effectiveOpts = customCellOpts !== undefined ? customCellOpts : (col.options || []);
+                                const effectiveOpts = getEffectiveCellOptions(block.cellOptionsMap, row.id, col.id, col.options);
                                 const hasOptions = (col.type === 'checkbox' || col.type === 'radio') && effectiveOpts.length > 0;
                                 const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? (hasOptions ? 'left' : 'center') : col.type === 'likert_scale' ? 'center' : 'left'));
                                 const staticVal = block.tableData?.[row.id]?.[col.id];

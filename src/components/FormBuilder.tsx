@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import type { FormFieldISO, FormRevisionEntry, FormTemplateISO, LayoutBlockISO, RadioOption, MatrixConfigISO, TableColumnConfig, TableRowConfig, ColumnSummaryRowConfig, TitleFormatISO, SubtableColumn, BlockVisibilityCondition } from '../types';
 import { formatFormVersion, getColStyleWidth } from '../types';
-import { sanitizeLabel, getEffectiveTitleFormat, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, isSeamlessTableBlock, getInfoGridTemplateColumns, snap2ColWidth, snap3ColWidths, INFO_GRID_2COL_PRESETS, generateSmartFieldSlug, getCheckboxGridTemplate, reorderOptionsArray, reorderArray } from '../utils/formUtils';
+import { sanitizeLabel, getEffectiveTitleFormat, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, isSeamlessTableBlock, getInfoGridTemplateColumns, snap2ColWidth, snap3ColWidths, INFO_GRID_2COL_PRESETS, generateSmartFieldSlug, getCheckboxGridTemplate, reorderOptionsArray, reorderArray, getEffectiveCellOptions as getEffectiveCellOptionsUtil } from '../utils/formUtils';
 import { applyTextFormat, handleFormatKeyDown } from '../utils/textFormatter';
 import { 
   Plus, 
@@ -1841,11 +1841,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
 
   // Helper: Get effective options for a cell in a TABLE block (cell override or column default)
   const getEffectiveCellOptions = (block: LayoutBlockISO, rowId: string, colId: string): RadioOption[] => {
-    const cellKey = `${rowId}_${colId}`;
-    const custom = block.cellOptionsMap?.[cellKey];
-    if (custom !== undefined) return custom;
     const col = block.tableColumns?.find(c => c.id === colId);
-    return col?.options || [];
+    return getEffectiveCellOptionsUtil(block.cellOptionsMap, rowId, colId, col?.options);
   };
 
   // Helper: Update cell options in a TABLE block

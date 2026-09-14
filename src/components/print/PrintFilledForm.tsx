@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import { Star } from 'lucide-react';
 import type { Submission, SubmissionFieldSnapshot, FormTemplateISO, LayoutBlockISO, TableColumnConfig } from '../../types';
 import { formatFormVersion, getColStyleWidth } from '../../types';
-import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock, getInfoGridTemplateColumns, isOtherValue, extractOtherText, formatOptionDisplay } from '../../utils/formUtils';
+import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock, getInfoGridTemplateColumns, isOtherValue, extractOtherText, formatOptionDisplay, getEffectiveCellOptions } from '../../utils/formUtils';
 import { renderFormattedText } from '../../utils/textFormatter';
 
 // ─── Helpers (mirrored from PrintBlankForm) ───────────────────────────────────
@@ -1066,7 +1066,8 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                           ? cellVal 
                                           : (hasStaticVal ? String(staticVal) : '');
 
-                                        const hasOptions = (col.type === 'checkbox' || col.type === 'radio') && col.options && col.options.length > 0;
+                                        const opts = getEffectiveCellOptions(block.cellOptionsMap, row.id, col.id, col.options);
+                                        const hasOptions = (col.type === 'checkbox' || col.type === 'radio') && opts.length > 0;
                                         const cellAlign = col.align || (
                                           col.type === 'number' ? 'right' : 
                                           (col.type === 'checkbox' || col.type === 'radio' ? (hasOptions ? 'left' : 'center') : 
@@ -1142,8 +1143,6 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
 
                                         // 3. CHECKBOX (Hiển thị các ô vuông tích chọn)
                                         if (col.type === 'checkbox') {
-                                          const customOpts = (block as any).cellOptionsMap?.[row.id]?.[col.id];
-                                          const opts = (customOpts && customOpts.length > 0) ? customOpts : (col.options || []);
                                           if (opts.length > 0) {
                                             const isInline = canTableOptionsFitInline(opts, col.width, col.checkboxLayout);
                                             const currentValues = cellVal ? cellVal.split(',').map((v: string) => v.trim()).filter(Boolean) : [];
@@ -1201,17 +1200,16 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
 
                                         // 4. RADIO (Lựa chọn đơn)
                                         if (col.type === 'radio') {
-                                          const customOpts = (block as any).cellOptionsMap?.[row.id]?.[col.id];
-                                          const opts = (customOpts && customOpts.length > 0) ? customOpts : (col.options || []);
                                           if (opts.length > 0) {
-                                            const isInline = canTableOptionsFitInline(opts, col.width, (col as any).radioLayout);
+                                            const isInline = canTableOptionsFitInline(opts, col.width, col.checkboxLayout);
                                             return (
                                               <td key={col.id} style={{ border: cellBorder, borderBottom: cellBorderBottom, padding: '4px 6px', fontSize: '0.82rem', verticalAlign: 'middle', minHeight: `${minCellHeight}px`, textAlign: cellAlign as any, width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
                                                 <div style={{
-                                                  display: 'flex',
-                                                  flexDirection: isInline ? 'row' : 'column',
+                                                  display: col.checkboxLayout === '2-column' ? 'grid' : 'flex',
+                                                  gridTemplateColumns: col.checkboxLayout === '2-column' ? getCheckboxGridTemplate(opts) : undefined,
+                                                  flexDirection: col.checkboxLayout === '2-column' ? undefined : isInline ? 'row' : 'column',
                                                   flexWrap: isInline ? 'wrap' : undefined,
-                                                  gap: isInline ? '4px 12px' : '5px',
+                                                  gap: col.checkboxLayout === '2-column' ? '4px 12px' : isInline ? '4px 12px' : '5px',
                                                   alignItems: isInline ? 'center' : (cellAlign === 'center' ? 'center' : cellAlign === 'right' ? 'flex-end' : 'flex-start'),
                                                   justifyContent: isInline ? (cellAlign === 'center' ? 'center' : cellAlign === 'right' ? 'flex-end' : 'flex-start') : undefined,
                                                   padding: '2px 0',
@@ -1281,7 +1279,7 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                               wordBreak: 'break-word',
                                               lineHeight: 1.4
                                             }}>
-                                              {effectiveText ? renderFormattedText(isOtherValue(effectiveText) ? formatOptionDisplay(effectiveText, col.options) : effectiveText) : '\u00A0'}
+                                              {effectiveText ? renderFormattedText(isOtherValue(effectiveText) ? formatOptionDisplay(effectiveText, opts) : effectiveText) : '\u00A0'}
                                             </div>
                                           </td>
                                         );
