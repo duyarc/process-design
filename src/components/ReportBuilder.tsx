@@ -389,7 +389,7 @@ function InCanvasTitleHeader({
           onClick={onSelectBlock}
           onKeyDown={(e) => handleFormatKeyDown(e, block.description || '', (val) => onUpdateDescription?.(val))}
           onChange={(e) => onUpdateDescription?.(e.target.value)}
-          placeholder="Gõ mô tả hoặc ghi chú hướng dẫn (hỗ trợ **in đậm**, *in nghiêng*, __gạch chân__)..."
+          placeholder="Gõ mô tả hoặc ghi chú hướng dẫn..."
           style={{
             gridArea: '1 / 1 / 2 / 2',
             width: '100%',

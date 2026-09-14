@@ -29,6 +29,29 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-14 — FormBuilder & ReportBuilder: Simplify SECTION_LABEL Description Placeholder Text
+
+**Scope:** 2 files, 2 insertions, 2 deletions
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa | 2 (`FormBuilder.tsx`, `ReportBuilder.tsx`) |
+| Tổng lượt edit source | 2 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 3 (2 tsc + 1 vite) |
+| Lần build đầu thành công? | Có (100% pass ngay lần build đầu) |
+| Số lệnh thất bại | 0 |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- Tinh gọn văn bản gợi ý (placeholder) của trường mô tả/ghi chú hướng dẫn trong khối phân đoạn `SECTION_LABEL`.
+- Loại bỏ phần chú thích định dạng markdown trong ngoặc đơn `(hỗ trợ **in đậm**, *in nghiêng*, __gạch chân__)`, đưa về định dạng ngắn gọn: `"Gõ mô tả hoặc ghi chú hướng dẫn..."`.
+- Đồng bộ chuẩn hóa trên cả `FormBuilder.tsx` và `ReportBuilder.tsx`.
+- 100% build pass ngay lần đầu (tsc & vite build 10.67s).
+
+---
+
 ### 2026-09-14 — FormFiller & Design System: Standardize Native Placeholder Formatting & Multi-line Auto-Height
 
 **Scope:** 5 files, ~50 insertions, ~5 deletions
@@ -246,33 +269,4 @@ Entry mới nhất ở trên cùng. Tối đa 10 entries.
 | Số lỗi cũ lặp lại | 0 |
 
 **Lỗi phát sinh:** Không có lỗi mã nguồn hoặc cú pháp phát sinh. 100% build pass ngay lần đầu. Nâng cấp thành công icon vector `Rows2` + số lượng + `ChevronDown`, loại bỏ viền hộp lồng hộp thô ráp, bổ sung divider phân đoạn và hover effect, đạt Refactor Ratio 66.4%.
-
----
-
-### 2026-09-11 — Table Rows Floating Hover Overlay & Action Column Elimination
-
-**Scope:** 2 files, 249 insertions, 196 deletions (`9cddedb`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian lập plan (Request → Proceed) | 5.3 min |
-| Thời gian thực thi (Proceed → Push) | 7.7 min |
-| Thời gian tổng (Request → Push) | 12.9 min |
-| Số file nguồn chỉnh sửa | 1 (`FormBuilder.tsx`) |
-| Tổng lượt edit source | 7 |
-| Lượt edit sửa lỗi (rework) | 0 (các edit là non-adjacent chunks theo Mục 12) |
-| Số lần build | 2 |
-| Lần build đầu thành công? | Có (100% pass ngay lần build đầu) |
-| Số lệnh thất bại | 0 |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Lỗi phát sinh:** Không có lỗi mã nguồn hay cú pháp phát sinh. 100% build pass ngay lần đầu. Áp dụng triệt để Mục 12.6 (Chunk Bounding Invariant < 50 dòng) và Mục 13.7 (Dead-Code Pruning Invariant), dọn sạch 196 dòng mã cột thao tác cũ, đạt Refactor Ratio 78.7%.
-
-
-
-
-
-
-
 
