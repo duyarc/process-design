@@ -2339,27 +2339,8 @@ function FormFillerInner({
                                       wordBreak: 'break-word'
                                     }}
                                   >
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                      <span>{renderFormattedText(groupTitle)}</span>
-                                      {!effectiveReadOnly && (
-                                        <button
-                                          type="button"
-                                          onClick={() => handleAddTableRowToGroup(block, row.id)}
-                                          style={{
-                                            fontSize: '0.7rem',
-                                            padding: '2px 8px',
-                                            border: '1px solid #cbd5e1',
-                                            borderRadius: '4px',
-                                            background: '#ffffff',
-                                            cursor: 'pointer',
-                                            color: 'var(--primary)',
-                                            fontWeight: 600
-                                          }}
-                                          title="Thêm dòng vào nhóm này"
-                                        >
-                                          + Thêm dòng vào nhóm
-                                        </button>
-                                      )}
+                                    <div>
+                                      {renderFormattedText(groupTitle)}
                                     </div>
                                   </td>
                                 </tr>
@@ -2846,31 +2827,6 @@ function FormFillerInner({
                       })()}
                     </table>
                   </div>
-
-                  {!effectiveReadOnly && (
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
-                      <button
-                        type="button"
-                        onClick={() => handleAddTableRowToGroup(block)}
-                        style={{
-                          fontSize: '0.75rem',
-                          padding: '3px 10px',
-                          border: '1px solid #cbd5e1',
-                          borderRadius: '4px',
-                          background: '#ffffff',
-                          cursor: 'pointer',
-                          color: 'var(--primary)',
-                          fontWeight: 600,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '4px'
-                        }}
-                      >
-                        + Thêm dòng
-                      </button>
-                    </div>
-                  )}
-
                 </div>
                 );
               })()}

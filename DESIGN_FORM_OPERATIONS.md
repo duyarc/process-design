@@ -9,7 +9,7 @@
 | **Module Name** | Form Operations |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-09-10) — Custom "Khác" Option in FormFiller, PrintFilledForm, and PrintRecord (compound prefix storage, progressive disclosure, and print formatting) |
+| **Verified At Commit** | (2026-09-14) — Sections 2, 8 (FormFiller table dynamic rows pure Auto-Append and button pruning) |
 
 ### Quick File Index
 
@@ -430,7 +430,6 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 
 | Date | Commit | Change |
 |---|---|---|
-| 2026-08-27 | `CURRENT` | **Minimal Copy Submission Workflow & Admin Deletion:** Replaced in-place editing with an immutable Copy-to-New workflow (Copy button in Submission Detail Drawer and Success Screen only, keeping list views clean). Submissions created via Copy receive fresh sequential IDs upon submit. Admin deletion guarded by `ConfirmModal`. |
 | 2026-08-27 | `CURRENT` | **Zero-Interruption Submission Flow & Non-Blocking Toast Feedback:** Eliminated full-page Success Screen. Form submission now triggers non-blocking toast notifications (`✓ Đã gửi phiếu thành công! (Mã: ID)`) and automatically navigates back to previous screen (or auto-resets form on public guest URLs). |
 | 2026-08-27 | `CURRENT` | **Read-Only Full Online Form View & Drawer Interaction Partitioning:** Added `readOnly` mode to `FormFiller.tsx` (locking inputs, disabling editing, rendering top metadata banner, and footer action bar). Clicking table rows opens the Slide-over Drawer (Quick Glance & Audit), while clicking Eye icon or Drawer's `[Toàn văn]` button opens the full digital online form view. |
 | 2026-08-28 | `CURRENT` | **3-Tier Symmetrical Form Layout in Focus Mode:** (1) Generalized form structure into 3 distinct layers via `groupBlocksIntoSections`: `preambleBlocks` (all blocks preceding first H1, e.g. TITLE, intro notes -> always uncollapsed at top), `sections` (H1 accordion sections & H2 sub-accordions -> single-active collapsible body), and `postambleBlocks` (trailing SIGN blocks -> always uncollapsed at bottom). (2) Suppressed duplicate H1 block headers inside expanded accordion content (`hideH1Title = true`). |
@@ -446,6 +445,7 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 | 2026-09-10 | `CURRENT` | **Submission Amendment Authorization & Token Fallback Resolution:** Fixed 403 error on submission update (`PUT /api/submissions/:id`). (1) In `FormManager.tsx` and `SubmissionManager.tsx`, passed `editSubmissionId`, `editToken`, and `canEditSubmission` to `FormFiller`. (2) In `FormFiller.tsx`, expanded `canAdminEdit` to include `supervisor` role and added cascading fallback for `resolvedEditToken` from `initialSubmission.accessToken` and `localStorage` `submission_history`. (3) Replaced submission error `alert()` with non-blocking red toast. |
 | 2026-09-10 | `CURRENT` | **Unified Table Render Engine & Dynamic Structure Reconstruction in PrintFilledForm:** (1) Replaced `buildTableRowMap` with `reconstructTableRows` to preserve 100% template rows (including `isGroupHeader` and static question labels) while dynamically inserting user-added rows from submission snapshots. (2) Unified print table rendering into a single flow with automatic fallback to `block.tableData` for static labels, enforced `minHeight` with `\u00A0` to prevent empty cell collapse, and removed global `pageBreakInside: avoid` from `<tbody>` down to individual `<tr>` to prevent duplicate row cloning across page boundaries. |
 | 2026-09-10 | `CURRENT` | **Custom "Khác" (Other) Progressive Input & Print Rendering:** (1) Implemented compound prefix storage `__other__:<text>` with zero DB schema changes. (2) Added progressive disclosure text input in `FormFiller.tsx` for Checkbox, Radio, and Select across Info Grid, Checklist, and Tables. (3) Updated `PrintFilledForm.tsx` and `PrintRecord.tsx` to render custom text alongside option labels. |
+| 2026-09-14 | `CURRENT` | **FormFiller UI Streamlining — Pruning Manual Add Row Buttons in Favor of Pure Auto-Append:** Removed manual `+ Thêm dòng` buttons from both table footer and group headers in `FormFiller.tsx`. The interface now relies entirely on seamless `handleTableCellChangeWithAutoAppend` to dynamically generate new rows as users reach the end of data tables, while keeping fixed survey and Likert scale tables entirely clean and uncluttered. Trailing empty rows continue to be cleanly pruned upon submission. |
 
 
 
