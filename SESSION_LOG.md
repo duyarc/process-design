@@ -29,6 +29,55 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-14 — FormFiller & Design System: Standardize Native Placeholder Formatting & Multi-line Auto-Height
+
+**Scope:** 5 files, ~50 insertions, ~5 deletions
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa | 3 (`textFormatter.tsx`, `index.css`, `FormFiller.tsx`) |
+| Tổng lượt edit source | 3 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 2 (1 tsc + 1 vite) |
+| Lần build đầu thành công? | Có (100% pass ngay lần build đầu) |
+| Số lệnh thất bại | 0 |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- Triển khai định dạng Native Placeholder tối đa theo W3C HTML: không dùng DOM overlay giả lập, tránh phình to DOM và rủi ro trôi vị trí trên mobile.
+- Hàm thuần túy `stripMarkdownTokens` bóc tách sạch các cú pháp Markdown thô (`*`, `_`, `~`, `<u>`), bảo toàn xuống dòng `\n`.
+- Chuẩn hóa CSS `::placeholder` toàn hệ thống với `font-style: italic`, `#94a3b8`, `opacity: 0.9`.
+- Tự động mở rộng chiều cao và số dòng khởi tạo cho `AutoResizingTextarea` khi placeholder có nhiều dòng.
+
+---
+
+### 2026-09-14 — FormFiller Bugfix: Preserving Spacebar Input in Custom "Other" Option Fields
+
+**Scope:** 3 files, 31 insertions, 47 deletions (`05f1eec`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | 3.8 min |
+| Thời gian lập plan (Request → Proceed) | 2.9 min |
+| Thời gian thực thi (Proceed → Push) | 0.9 min |
+| Số file nguồn chỉnh sửa | 1 (`formUtils.ts`) |
+| Tổng lượt edit source | 1 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 2 (1 tsc + 1 vite) |
+| Lần build đầu thành công? | Có |
+| Số lệnh thất bại | 0 |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- Sửa triệt để lỗi không gõ được phím Space trong ô nhập "Khác" (Select dropdown, Radio, Checkbox).
+- Loại bỏ lệnh `.trim()` trong `encodeOtherValue` để bảo toàn khoảng trắng tự nhiên trong suốt quá trình người dùng đang nhập liệu trong React Controlled Component.
+- Chuẩn hóa `.trim()` tại `formatOptionDisplay` để đảm bảo báo cáo và bản in không bị khoảng trắng thừa.
+- Tốc độ thực thi: 0.9 phút, 1 edit dứt điểm, 100% build pass lần đầu.
+
+---
+
 ### 2026-09-14 — Dead-Code Pruning: Pruning Orphaned PrintRecord.tsx & Design Doc Unification
 
 **Scope:** 6 files, 56 insertions, 1674 deletions (`3cb5c8d`)
@@ -220,51 +269,9 @@ Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
 **Lỗi phát sinh:** Không có lỗi mã nguồn hay cú pháp phát sinh. 100% build pass ngay lần đầu. Áp dụng triệt để Mục 12.6 (Chunk Bounding Invariant < 50 dòng) và Mục 13.7 (Dead-Code Pruning Invariant), dọn sạch 196 dòng mã cột thao tác cũ, đạt Refactor Ratio 78.7%.
 
----
 
-### 2026-09-11 — Drag to Reorder Table Rows & Columns (Canvas & Inspector)
 
-**Scope:** 4 files, 452 insertions, 187 deletions (`1ddf197`)
 
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian tổng (Request → Push) | 13.2 min |
-| Số file nguồn chỉnh sửa | 2 (`FormBuilder.tsx`, `formUtils.ts`) |
-| Tổng lượt edit source | 12 |
-| Lượt edit sửa lỗi (rework) | 2 (lệch khai báo biến rIdx do chunk lớn & xóa handleMoveColumn unused) |
-| Số lần build | 6 |
-| Lần build đầu thành công? | Không (dính TS6133 unused var & TS2304) |
-| Số lệnh thất bại | 1 |
-| Số lỗi mới phát sinh | 1 (TS6133 unused function handleMoveColumn khi thay thế toàn bộ bằng drag) |
-| Số lỗi cũ lặp lại | 0 |
-
-**Lỗi phát sinh:**
-1. `CTX`: `replace_file_content` với chunk quá dài (>150 dòng) trong monolith không khớp đúng phần đầu khai báo `(row, rIdx)` và group header `<tr>`. Khắc phục bằng việc chia nhỏ thành chunk hẹp (<40 dòng).
-2. `CTX`: `handleMoveColumn` bị bỏ quên khi toàn bộ call-site đã chuyển sang `handleReorderColumns`, gây lỗi TS6133 under `tsc -b`. Đã xóa sạch các hàm không còn sử dụng.
-
----
-
-### 2026-09-11 — Drag to Reorder Options Across Canvas & Inspector
-
-**Scope:** 5 files, 477 insertions, 111 deletions (`c363793`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian lập plan (Request → Proceed) | 2.2 min |
-| Thời gian thực thi (Proceed → Push) | 10.3 min |
-| Thời gian tổng (Request → Push) | 12.6 min |
-| Số file nguồn chỉnh sửa | 2 |
-| Tổng lượt edit source | 12 |
-| Lượt edit sửa lỗi (rework) | 3 (do lệch closing tag khi convert arrow function và whitespace) |
-| Số lần build | 10 |
-| Lần build đầu thành công? | Không |
-| Số lệnh thất bại | 3 (do assertion script và tsc -b) |
-| Số lỗi mới phát sinh | 1 (lệch closing tag khi chuyển `=> (` sang `=> { return (`) |
-| Số lỗi cũ lặp lại | 1 (whitespace indentation 30 vs 31 spaces trong monolith) |
-
-**Lỗi phát sinh:**
-1. `CTX`: Khi chuyển `options.map((opt) => (` sang `options.map((opt) => { return (`, closing tag ở cuối danh sách vẫn giữ nguyên `))` dẫn đến TS1005 lúc `tsc -b`. Đã sửa bằng script chèn đúng `); })}`.
-2. `CTX`: `replace_file_content` với closing tag ngắn `)}` khớp nhầm ở vùng khác của file monolith. Khắc phục bằng script nhắm chuẩn dòng mục tiêu.
 
 
 

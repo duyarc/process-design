@@ -9,7 +9,7 @@
 | **Module Name** | Form Operations |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-09-14) — Sections 2, 3, 5, 6.5, 8 (Spacebar preservation in encodeOtherValue; formatOptionDisplay print normalization) |
+| **Verified At Commit** | (2026-09-14) — Sections 2, 6.6, 8 (Native placeholder formatting: stripMarkdownTokens, global italic placeholder CSS, multi-line auto-height) |
 
 ### Quick File Index
 
@@ -397,6 +397,13 @@ Fields with options (`checkbox`, `radio`, `select`) support an expandable "Khác
 - **Progressive Disclosure:** `FormFiller.tsx` conditionally reveals an auto-focusing `<input type="text">` immediately below the option when "Khác" is checked or selected, seamlessly synchronizing compound values.
 - **Print & View Rendering:** `PrintFilledForm.tsx` uses `isOtherValue()`, `extractOtherText()`, and `formatOptionDisplay()` to detect custom options and format them as `[Nhãn]: [Văn bản nhập]` with underlined text formatting.
 
+### 6.6 Native Placeholder Formatting & Multi-Line Sizing
+
+- **W3C Native Strategy (Zero DOM bloat):** Form templates may include markdown hints in placeholder definitions (e.g. `*( VD: Cung cấp giải pháp... )*`). Rather than creating heavy faux-placeholder overlay DOM elements, placeholders are kept native.
+- **Pure Markdown Token Stripping:** `stripMarkdownTokens()` in `src/utils/textFormatter.tsx` cleanly strips syntax delimiters (`*`, `_`, `~`, `<u>`) while strictly preserving line breaks (`\n`) and punctuation.
+- **Global Typography Styling:** Native CSS in `src/index.css` applies `font-style: italic`, `color: #94a3b8`, and `opacity: 0.9` to all `input::placeholder` and `textarea::placeholder`.
+- **Dynamic Multi-Line Height Auto-Adjustment:** `AutoResizingTextarea` in `FormFiller.tsx` dynamically calculates `placeholderLines` and enforces `minPlaceholderHeight` and initial `rows` when the cell is empty (`!value`), ensuring multi-line instruction placeholders are never vertically truncated.
+
 ---
 
 ## 7. Known Design Constraints & Technical Debt
@@ -421,7 +428,6 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 
 | Date | Commit | Change |
 |---|---|---|
-| 2026-08-28 | `CURRENT` | **3-Tier Symmetrical Form Layout in Focus Mode:** (1) Generalized form structure into 3 distinct layers via `groupBlocksIntoSections`: `preambleBlocks` (all blocks preceding first H1, e.g. TITLE, intro notes -> always uncollapsed at top), `sections` (H1 accordion sections & H2 sub-accordions -> single-active collapsible body), and `postambleBlocks` (trailing SIGN blocks -> always uncollapsed at bottom). (2) Suppressed duplicate H1 block headers inside expanded accordion content (`hideH1Title = true`). |
 | 2026-08-31 | `CURRENT` | **Parallel Data Fetching & Unified Short-Link Loading:** Converted sequential `await` calls in `FormManager.tsx` and `SubmissionManager.tsx` to `Promise.all` parallel fetching, eliminating ~300ms latency and table flash. Added `isShortLinkFlow` prop to `FormFiller.tsx` to suppress secondary loading screen when App.tsx already presents an entry loading screen. |
 | 2026-09-04 | `CURRENT` | **Block-level Conditional Visibility & Non-Destructive Hiding:** (1) Added `evaluateBlockVisibility(block, formValues)` in `FormFiller.tsx` to conditionally hide blocks whose upstream triggers are not met, returning `null` in `renderBlock` while preserving all entered `formValues` intact for instant recovery. (2) Updated `renderBlock` to resolve visible `prevBlock` backward across hidden blocks, preserving `isSeamlessTableBlock` continuity. (3) Filtered out hidden blocks before executing `validateFormSubmission` so hidden required fields do not block submission. |
 | 2026-09-04 | `CURRENT` | **Dropdown (`select`) Field & Table Cell Rendering:** (1) Integrated `<select>` menu rendering with `-- Chọn --` placeholder across `INFO_GRID` fields and `TABLE` cells in `FormFiller.tsx` and `ProcessReader.tsx`. (2) Updated `buildSubmissionSnapshots` to evaluate pass/fail quality criteria based on selected option's `isPass` flag. (3) Standardized `PrintFilledForm.tsx` to print clean option labels instead of empty inputs. |
@@ -437,6 +443,7 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 | 2026-09-14 | `CURRENT` | **FormFiller UI Streamlining — Pruning Manual Add Row Buttons in Favor of Pure Auto-Append:** Removed manual `+ Thêm dòng` buttons from both table footer and group headers in `FormFiller.tsx`. The interface now relies entirely on seamless `handleTableCellChangeWithAutoAppend` to dynamically generate new rows as users reach the end of data tables, while keeping fixed survey and Likert scale tables entirely clean and uncluttered. Trailing empty rows continue to be cleanly pruned upon submission. |
 | 2026-09-14 | `CURRENT` | **Unified Print Selection Indicators & Exact Print Color Enforcement:** Standardized print rendering in `PrintFilledForm.tsx` under Option 1 (Semantics-Preserving Circle with Checkmark `(✓)` for Radio & Likert Scale, Square with Checkmark `[✓]` for Checkbox). Enforced text-based `#000000` black checkmarks on `#ffffff` white background to eliminate browser background graphics stripping. Added `print-color-adjust: exact !important` in global print CSS and added `isLikertSelected` helper with whitespace/case normalization. |
 | 2026-09-14 | `CURRENT` | **Dead-Code Pruning — Pruned Orphaned PrintRecord.tsx:** Removed 1,636 lines of dead code in `PrintRecord.tsx` which had been fully superseded by `PrintFilledForm.tsx` since 2026-08-03. Unified Module Ownership Map in `AGENTS.md`, `DESIGN_FORM_OPERATIONS.md`, and `DESIGN_UI_UX.md` to designate `PrintFilledForm.tsx` as the sole authoritative filled-submission print renderer, permanently eliminating double maintenance overhead. |
+| 2026-09-14 | `CURRENT` | **Native Placeholder Formatting & Dynamic Multi-Line Height:** (1) Implemented pure utility `stripMarkdownTokens` in `textFormatter.tsx` to strip raw markdown formatting symbols (`*`, `**`, `<u>`, `~`) from placeholder strings without faux DOM layers. (2) Standardized system-wide `::placeholder` styling in `index.css` with `font-style: italic`, color `#94a3b8`, and `opacity: 0.9`. (3) Upgraded `AutoResizingTextarea` in `FormFiller.tsx` to dynamically size initial height and `rows` based on newline counts in multi-line placeholders, eliminating text truncation in empty table cells. |
 
 
 

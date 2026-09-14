@@ -64,7 +64,7 @@ import {
   extractOtherText,
   encodeOtherValue
 } from '../utils/formUtils';
-import { renderFormattedText } from '../utils/textFormatter';
+import { renderFormattedText, stripMarkdownTokens } from '../utils/textFormatter';
 import { useAuth } from '../context/AuthContext';
 import PrintFilledForm from './print/PrintFilledForm';
 import { 
@@ -202,18 +202,21 @@ const AutoResizingTextarea: React.FC<AutoResizingTextareaProps> = ({
   readOnly
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const cleanPlaceholder = stripMarkdownTokens(placeholder);
+  const placeholderLines = cleanPlaceholder ? cleanPlaceholder.split('\n').length : 1;
 
   const adjustHeight = () => {
     const el = textareaRef.current;
     if (el) {
       el.style.height = 'auto';
-      el.style.height = `${Math.max(el.scrollHeight, 34)}px`;
+      const minPlaceholderHeight = (!value && placeholderLines > 1) ? (placeholderLines * 19 + 14) : 34;
+      el.style.height = `${Math.max(el.scrollHeight, minPlaceholderHeight, 34)}px`;
     }
   };
 
   useEffect(() => {
     adjustHeight();
-  }, [value]);
+  }, [value, placeholder]);
 
   return (
     <textarea
@@ -225,8 +228,8 @@ const AutoResizingTextarea: React.FC<AutoResizingTextareaProps> = ({
           adjustHeight();
         }
       }}
-      placeholder={placeholder}
-      rows={1}
+      placeholder={cleanPlaceholder}
+      rows={!value && placeholderLines > 1 ? placeholderLines : 1}
       disabled={disabled}
       readOnly={readOnly}
       style={{
@@ -2690,7 +2693,7 @@ function FormFillerInner({
                                       <input 
                                         type="number" 
                                         value={cellValue} 
-                                        placeholder={cellPlaceholder}
+                                        placeholder={stripMarkdownTokens(cellPlaceholder)}
                                         onChange={(e) => handleTableCellChangeWithAutoAppend(block, row.id, col.id, e.target.value, thisGroupHeaderId)} 
                                         style={{ width: '100%', padding: '0.35rem 0.45rem', fontSize: '0.8rem', border: '1px solid #e2e8f0', borderRadius: '4px', textAlign: 'right', backgroundColor: '#f8fafc' }}
                                       />

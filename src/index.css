@@ -188,6 +188,14 @@ input[readonly] {
   cursor: not-allowed;
 }
 
+input::placeholder,
+textarea::placeholder {
+  color: #94a3b8;
+  font-style: italic;
+  opacity: 0.9;
+}
+
+
 /* Buttons and CTAs */
 .btn {
   display: inline-flex;

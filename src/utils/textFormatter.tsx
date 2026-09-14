@@ -149,3 +149,26 @@ export function handleFormatKeyDown(
   }
   return false;
 }
+
+/**
+ * Strips inline markdown tokens (**bold**, *italic*, <u>underline</u>, ~underline~)
+ * returning clean plain text suitable for native HTML attributes like placeholder or title.
+ * Preserves newlines (\n) for multi-line inputs.
+ */
+export function stripMarkdownTokens(text?: string | null): string {
+  if (!text) return '';
+  if (typeof text !== 'string') return String(text);
+
+  if (!text.includes('*') && !text.includes('_') && !text.includes('<u>') && !text.includes('~')) {
+    return text;
+  }
+
+  return text
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/__(.*?)__/g, '$1')
+    .replace(/<\/?u>/g, '')
+    .replace(/~(.*?)~/g, '$1')
+    .replace(/\*(.*?)\*/g, '$1')
+    .replace(/_(.*?)_/g, '$1');
+}
+
