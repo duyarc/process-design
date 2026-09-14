@@ -28,6 +28,32 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-14 — FormFiller UI Streamlining: Pruning Manual Add Row Buttons in Favor of Pure Auto-Append
+
+**Scope:** 2 files, 4 insertions, 48 deletions (`6745df9`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian lập plan (Request → Proceed) | 2.5 min |
+| Thời gian thực thi (Proceed → Push) | 3.2 min |
+| Thời gian tổng (Request → Push) | 5.7 min |
+| Số file nguồn chỉnh sửa | 1 (`FormFiller.tsx`) |
+| Tổng lượt edit source | 3 |
+| Lượt edit sửa lỗi (rework) | 1 (phục hồi thẻ `</table>` bị cắt nhầm) |
+| Số lần build | 2 (1 tsc + 1 vite) |
+| Lần build đầu thành công? | Có |
+| Số lệnh thất bại | 0 |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- Loại bỏ hoàn toàn nút `+ Thêm dòng` ở chân bảng `TABLE` và nút `+ Thêm dòng vào nhóm` ở tiêu đề nhóm trong `FormFiller.tsx`.
+- Duy trì 100% cơ chế tự động sinh dòng (`handleTableCellChangeWithAutoAppend`) khi người dùng nhập liệu ở dòng cuối cùng của bảng dữ liệu.
+- Giữ sạch sẽ tuyệt đối các bảng khảo sát đánh giá Likert Scale, không còn nút thêm dòng thừa thãi.
+- Giảm rác DOM và tiết kiệm -44 LOC.
+
+---
+
 ### 2026-09-11 — Cell-Scoped Label vs Placeholder Direct Editing on Canvas & FormFiller Parity
 
 **Scope:** 4 files, 329 insertions, 100 deletions
@@ -232,30 +258,4 @@ Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
 **Lỗi phát sinh:** Không có lỗi mã nguồn hoặc cú pháp phát sinh. 100% build pass ngay lần đầu nhờ áp dụng Mục 12 (Safe Code Patching).
 
----
 
-### 2026-09-10 — Custom "Khác" (Other) Option
-
-**Scope:** 9 files, 896 insertions, 275 deletions
-
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian thực thi (Proceed → Push) | 20.2 min |
-| Số file nguồn chỉnh sửa | 6 |
-| Tổng lượt edit source | 10 |
-| Lượt edit sửa lỗi (rework) | 4 |
-| Số lần build | 8 |
-| Lần build đầu thành công? | Không |
-| Số lệnh thất bại | 15 |
-| Số lỗi mới phát sinh | 5 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Lỗi phát sinh:**
-
-| # | Nhóm | Mô tả | File liên quan |
-|---|---|---|---|
-| 1 | `CTX` | Whitespace mismatch trong patch marker | PrintRecord.tsx |
-| 2 | `TOOL` | PowerShell parse error với `python -c` chứa JSX | — |
-| 3 | `TOOL` | Index slicing sai biên → duplicate closing tags | PrintRecord.tsx, PrintFilledForm.tsx |
-| 4 | `CTX` | Patch boundary overlap → stray `)` và duplicate ternary | FormFiller.tsx |
-| 5 | `SCOPE` | Gom build cuối → 8 build attempts mới pass | Tất cả |
