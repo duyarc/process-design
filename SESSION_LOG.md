@@ -29,6 +29,30 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-17 — Form Operations & Print: Dropdown & Custom Other Option Resolution
+
+**Scope:** 3 files, ~40 insertions, ~15 deletions
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa | 2 (`formUtils.ts`, `PrintFilledForm.tsx`) |
+| Tổng lượt edit source | 7 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 3 (2 tsc + 1 vite) |
+| Lần build đầu thành công? | Có (100% pass ngay lần build đầu) |
+| Số lệnh thất bại | 0 |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- Khắc phục triệt để lỗi rò rỉ chuỗi tiền tố kỹ thuật `__other__:<text>` trên bản in `PrintFilledForm.tsx`.
+- Chuẩn hóa hàm thuần túy `formatOptionDisplay` trong `formUtils.ts`: tự động chuẩn hóa nhãn `"Khác: [Nội dung]"` với đúng 1 dấu hai chấm, hỗ trợ tra cứu kép `value` và `label`.
+- Bổ sung nhánh render riêng cho `f.type === 'select'` trong `INFO_GRID` và cơ chế phòng vệ chiều sâu (Defense-in-depth) tại nhánh mặc định.
+- Đồng bộ hóa tra cứu nhãn cho trường Dropdown trong `CHECKLIST_TABLE` và `TABLE`, đồng thời loại bỏ lỗi lặp dấu hai chấm (`::`) trong Radio/Checkbox.
+- 100% build pass ngay lần đầu (tsc & vite build 10.00s).
+
+---
+
 ### 2026-09-14 — Form Operations & Print: Unified Table Cell Custom Options Resolution
 
 **Scope:** 7 files, ~45 insertions, ~30 deletions
@@ -249,26 +273,4 @@ Entry mới nhất ở trên cùng. Tối đa 10 entries.
 | Số lỗi cũ lặp lại | 0 |
 
 **Lỗi phát sinh:** Sau khi gỡ cụm nút `ArrowDown` (vốn đọc `fArr.length - 1`), TypeScript cảnh báo `TS6133: 'fArr' is declared but its value is never read`. Đã xử lý triệt để ngay lập tức theo Rule 13.7 (Dead-Code Pruning Invariant), đạt Refactor Ratio 32.1% và Vite build pass 100% trong 15.29s.
-
----
-
-### 2026-09-11 — Block-Scoped Table Row Keys & Cross-Block Hover Isolation
-
-**Scope:** 3 files, 47 insertions, 24 deletions (`3617fe5`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian lập plan (Request → Proceed) | 1.5 min |
-| Thời gian thực thi (Proceed → Push) | 2.5 min |
-| Thời gian tổng (Request → Push) | 4.0 min |
-| Số file nguồn chỉnh sửa | 1 (`FormBuilder.tsx`) |
-| Tổng lượt edit source | 1 |
-| Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 2 |
-| Lần build đầu thành công? | Có (100% pass ngay lần build đầu) |
-| Số lệnh thất bại | 0 |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Lỗi phát sinh:** Không có lỗi mã nguồn hoặc cú pháp phát sinh. 100% build pass ngay lần đầu. Chuyển đổi thành công sang Composite Key `${block.id}:${row.id}`, cách ly hoàn toàn phạm vi hover và popover giữa các bảng, đạt Refactor Ratio 51.1%.
 

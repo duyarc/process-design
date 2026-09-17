@@ -632,7 +632,9 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                             <span style={{ lineHeight: '1.3' }}>
                                               {opt.label}
                                               {isOther && selected && otherText && (
-                                                <span style={{ fontWeight: 600, textDecoration: 'underline', marginLeft: '4px' }}>: {otherText}</span>
+                                                <span style={{ fontWeight: 600, textDecoration: 'underline', marginLeft: '4px' }}>
+                                                  {opt.label.trim().endsWith(':') ? otherText : `: ${otherText}`}
+                                                </span>
                                               )}
                                             </span>
                                           </span>
@@ -687,7 +689,9 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                           <span style={{ lineHeight: '1.3' }}>
                                             {opt.label}
                                             {isOther && selected && otherText && (
-                                              <span style={{ fontWeight: 600, textDecoration: 'underline', marginLeft: '4px' }}>: {otherText}</span>
+                                              <span style={{ fontWeight: 600, textDecoration: 'underline', marginLeft: '4px' }}>
+                                                {opt.label.trim().endsWith(':') ? otherText : `: ${otherText}`}
+                                              </span>
                                             )}
                                           </span>
                                         </span>
@@ -753,11 +757,26 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                               );
                             }
 
+                            if (f.type === 'select') {
+                              const displayVal = formatOptionDisplay(val, f.options);
+                              return (
+                                <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'center', minHeight: 'var(--pw-line-h)', gap: '8px', fontSize: '0.85rem' }}>
+                                  {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap', lineHeight: 1.4 }}>{renderFormattedText(cleanLabel)}</span>}
+                                  <div style={{ flex: 1, borderBottom: '1px dotted #cbd5e1', minHeight: '16px', fontWeight: 600, color: '#0f172a' }}>
+                                    {displayVal ? renderFormattedText(displayVal) : '\u00A0'}
+                                  </div>
+                                </div>
+                              );
+                            }
+
                             // default: text / number
+                            const displayVal = isOtherValue(val) ? formatOptionDisplay(val) : val;
                             return (
                               <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'center', minHeight: 'var(--pw-line-h)', gap: '8px', fontSize: '0.85rem' }}>
                                 {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap', lineHeight: 1.4 }}>{renderFormattedText(cleanLabel)}</span>}
-                                <div style={{ flex: 1, borderBottom: '1px dotted #cbd5e1', minHeight: '16px', fontWeight: 600, color: '#0f172a' }}>{val || '\u00A0'}</div>
+                                <div style={{ flex: 1, borderBottom: '1px dotted #cbd5e1', minHeight: '16px', fontWeight: 600, color: '#0f172a' }}>
+                                  {displayVal ? renderFormattedText(displayVal) : '\u00A0'}
+                                </div>
                               </div>
                             );
                           })}
@@ -840,11 +859,10 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                     if (col.id === 'col_target') {
                                       if (field.type === 'select') {
                                         const opts = field.options ?? [];
-                                        const matched = opts.find((o: any) => o.value === fieldVal || o.label === fieldVal);
-                                        const display = matched ? matched.label : fieldVal;
+                                        const display = formatOptionDisplay(fieldVal, opts);
                                         return (
                                           <td key={col.id} style={{ ...commonStyle, textAlign: 'left', paddingLeft: '8px' }}>
-                                            <span>{display || ''}</span>
+                                            <span>{display ? renderFormattedText(display) : ''}</span>
                                           </td>
                                         );
                                       }
@@ -869,10 +887,12 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                                     }}>
                                                       {selected ? '✓' : ''}
                                                     </span>
-                                                    <span>
+                                                    <span style={{ lineHeight: '1.3' }}>
                                                       {opt.label}
                                                       {isOther && selected && otherText && (
-                                                        <span style={{ fontWeight: 600, textDecoration: 'underline', marginLeft: '4px' }}>: {otherText}</span>
+                                                        <span style={{ fontWeight: 600, textDecoration: 'underline', marginLeft: '4px' }}>
+                                                          {opt.label.trim().endsWith(':') ? otherText : `: ${otherText}`}
+                                                        </span>
                                                       )}
                                                     </span>
                                                   </span>
@@ -1186,7 +1206,9 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                                         <span style={{ color: isChecked ? '#000000' : '#64748b', lineHeight: 1.3, textAlign: 'left', whiteSpace: isInline ? 'nowrap' : 'pre-wrap', wordBreak: isInline ? 'normal' : 'break-word', flex: isInline ? undefined : (cellAlign === 'center' || cellAlign === 'right' ? undefined : 1) }}>
                                                           {renderFormattedText(opt.label)}
                                                           {isOther && isChecked && otherText && (
-                                                            <span style={{ fontWeight: 600, textDecoration: 'underline', marginLeft: '4px' }}>: {otherText}</span>
+                                                            <span style={{ fontWeight: 600, textDecoration: 'underline', marginLeft: '4px' }}>
+                                                              {opt.label.trim().endsWith(':') ? otherText : `: ${otherText}`}
+                                                            </span>
                                                           )}
                                                         </span>
                                                       </div>
@@ -1242,7 +1264,9 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                                         <span style={{ color: isChecked ? '#000000' : '#64748b', lineHeight: 1.3, textAlign: 'left', whiteSpace: isInline ? 'nowrap' : 'pre-wrap', wordBreak: isInline ? 'normal' : 'break-word', flex: isInline ? undefined : (cellAlign === 'center' || cellAlign === 'right' ? undefined : 1) }}>
                                                           {renderFormattedText(opt.label)}
                                                           {isOther && isChecked && otherText && (
-                                                            <span style={{ fontWeight: 600, textDecoration: 'underline', marginLeft: '4px' }}>: {otherText}</span>
+                                                            <span style={{ fontWeight: 600, textDecoration: 'underline', marginLeft: '4px' }}>
+                                                              {opt.label.trim().endsWith(':') ? otherText : `: ${otherText}`}
+                                                            </span>
                                                           )}
                                                         </span>
                                                       </div>
@@ -1279,7 +1303,7 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                               wordBreak: 'break-word',
                                               lineHeight: 1.4
                                             }}>
-                                              {effectiveText ? renderFormattedText(isOtherValue(effectiveText) ? formatOptionDisplay(effectiveText, opts) : effectiveText) : '\u00A0'}
+                                              {effectiveText ? renderFormattedText((col.type === 'select' || isOtherValue(effectiveText)) ? formatOptionDisplay(effectiveText, opts) : effectiveText) : '\u00A0'}
                                             </div>
                                           </td>
                                         );

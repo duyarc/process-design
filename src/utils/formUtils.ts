@@ -640,10 +640,11 @@ export function formatOptionDisplay(val: string, options?: { label: string; valu
   if (isOtherValue(val)) {
     const customText = extractOtherText(val).trim();
     const otherOpt = options?.find(o => o.isOther || o.value === OTHER_OPTION_VALUE);
-    const label = otherOpt?.label || 'Khác:';
-    return customText ? `${label} ${customText}` : label;
+    const rawLabel = (otherOpt?.label || 'Khác:').trim();
+    const label = rawLabel.endsWith(':') ? rawLabel : `${rawLabel}:`;
+    return customText ? `${label} ${customText}` : rawLabel;
   }
-  const matched = options?.find(o => o.value === val);
+  const matched = options?.find(o => o.value === val || o.label === val);
   return matched ? matched.label : val;
 }
 
