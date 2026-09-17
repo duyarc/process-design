@@ -8,8 +8,7 @@
 |---|---|
 | **Module Name** | Form Operations |
 | **Status** | Active Development |
-| **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-09-17) — Sections 2, 6.8, 8 (Dropdown & Other print rendering: formatOptionDisplay normalization, INFO_GRID/CHECKLIST/TABLE select decoding) |
+| **Verified At Commit** | (2026-09-17) — Section 8 (Pure utilities generateNextFormId and duplicateFormTemplate in formUtils.ts for automated form duplication) |
 
 ### Quick File Index
 
@@ -440,7 +439,6 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 
 | Date | Commit | Change |
 |---|---|---|
-| 2026-09-04 | `CURRENT` | **Dropdown (`select`) Field & Table Cell Rendering:** (1) Integrated `<select>` menu rendering with `-- Chọn --` placeholder across `INFO_GRID` fields and `TABLE` cells in `FormFiller.tsx` and `ProcessReader.tsx`. (2) Updated `buildSubmissionSnapshots` to evaluate pass/fail quality criteria based on selected option's `isPass` flag. (3) Standardized `PrintFilledForm.tsx` to print clean option labels instead of empty inputs. |
 | 2026-09-09 | `CURRENT` | **Public Submission Review & Amendment UI:** Created `SubmissionViewer.tsx` orchestrating token-based read-only and edit modes. Updated `FormFiller.tsx` with access token persistence in `localStorage`, submission success screen with copyable review link, and dynamic local device history card powered by batch-lookup. |
 | 2026-09-09 | `CURRENT` | **Minimalist Executive Toolbar & Single Edit Button in Form View:** Unified submission viewing across internal and public access into a single executive header in `FormFiller.tsx`. In view mode, exactly one edit button is rendered (in the header), while the footer action strip is completely suppressed. In edit mode, fields unlock and minimalist footer appears with Cancel and Save actions. `SubmissionViewer.tsx` delegates directly to `FormFiller` to eliminate duplicate outer headers. |
 | 2026-09-09 | `CURRENT` | **Near Full-Screen Submission View Coordination:** Added `onViewingChange` prop in `SubmissionManager.tsx` and lifecycle coordination to suppress outer dashboard quote card and tabs when viewing/copying a submission record, achieving visual parity with fill-form. |
@@ -456,6 +454,7 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 | 2026-09-14 | `CURRENT` | **Native Placeholder Formatting & Dynamic Multi-Line Height:** (1) Implemented pure utility `stripMarkdownTokens` in `textFormatter.tsx` to strip raw markdown formatting symbols (`*`, `**`, `<u>`, `~`) from placeholder strings without faux DOM layers. (2) Standardized system-wide `::placeholder` styling in `index.css` with `font-style: italic`, color `#94a3b8`, and `opacity: 0.9`. (3) Upgraded `AutoResizingTextarea` in `FormFiller.tsx` to dynamically size initial height and `rows` based on newline counts in multi-line placeholders, eliminating text truncation in empty table cells. |
 | 2026-09-14 | `CURRENT` | **Unified Table Cell Custom Options Resolution & Print Rendering:** (1) Implemented pure utility `getEffectiveCellOptions` in `formUtils.ts` with dual-compatibility lookup (`${rowId}_${colId}` and `[rowId][colId]`), eliminating hardcoded lookups across 5 components. (2) Fixed key resolution mismatch in `PrintFilledForm.tsx` where cell custom options were bypassed in favor of column defaults, accurately printing per-cell options and checkmarks. (3) Added 2-column grid layout support and single boolean checkbox rendering in filled form print. |
 | 2026-09-17 | `CURRENT` | **Dropdown & Custom "Other" Option Resolution in Print:** (1) Standardized `formatOptionDisplay` in `formUtils.ts` to normalize custom other label with consistent colon separation and handle option value/label lookup. (2) Added dedicated select rendering branch and defense-in-depth fallback in `INFO_GRID` of `PrintFilledForm.tsx`, eliminating raw `__other__:<text>` technical prefix leakage. (3) Unified select decoding across `CHECKLIST_TABLE` and `TABLE`, and eliminated duplicate colons in radio/checkbox otherText labels. |
+| 2026-09-17 | `CURRENT` | **Automated Form Duplication Utilities:** Added `generateNextFormId` (smart numeric suffix detection, auto-increment, and collision check) and `duplicateFormTemplate` (deep clone of layout blocks, UUID regeneration for blocks/fields/rows, cell map re-indexing, title update, and DRAFT v0.1 reset) in `formUtils.ts`. |
 
 
 

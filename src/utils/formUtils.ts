@@ -712,3 +712,190 @@ export function getEffectiveCellOptions(
   return columnOptions || [];
 }
 
+/**
+ * Tự động phân tích và sinh mã biểu mẫu kế tiếp (Form ID) khả dụng:
+ * - Nếu mã gốc có hậu tố số (ví dụ FM-QC-01, BM-KCS-003): tự động tăng dần (FM-QC-02...) và bảo toàn padding.
+ * - Nếu mã gốc không có số (ví dụ CHECKLIST): tự động thêm -01 (-02...).
+ * - Kiểm tra đối chiếu không phân biệt hoa thường để đảm bảo 100% không trùng với bất kỳ ID nào trong existingFormIds.
+ */
+export function generateNextFormId(sourceFormId: string, existingFormIds: string[]): string {
+  const cleanSource = (sourceFormId || 'FORM').trim();
+  const existingSet = new Set(existingFormIds.map(id => (id || '').trim().toUpperCase()));
+
+  const match = cleanSource.match(/^(.*?)(\d+)$/);
+  if (match) {
+    const prefix = match[1];
+    const numStr = match[2];
+    const padLen = numStr.length;
+    const currNum = parseInt(numStr, 10) || 0;
+
+    let candidateNum = currNum + 1;
+    while (candidateNum < currNum + 10000) {
+      const candidateStr = String(candidateNum).padStart(padLen, '0');
+      const candidateId = `${prefix}${candidateStr}`;
+      if (!existingSet.has(candidateId.toUpperCase())) {
+        return candidateId;
+      }
+      candidateNum++;
+    }
+  }
+
+  const sep = (cleanSource.endsWith('-') || cleanSource.endsWith('_')) ? '' : '-';
+  let candNum = 1;
+  while (candNum < 10000) {
+    const candStr = String(candNum).padStart(2, '0');
+    const candidateId = `${cleanSource}${sep}${candStr}`;
+    if (!existingSet.has(candidateId.toUpperCase())) {
+      return candidateId;
+    }
+    candNum++;
+  }
+
+  return `${cleanSource}_COPY_${Date.now()}`;
+}
+
+/**
+ * Nhân bản sâu cấu trúc FormTemplateISO:
+ * - Tái tạo định danh nội bộ block.id, field.id, row.id
+ * - Ánh xạ lại tableData, cellOptionsMap, cellPlaceholderMap, và visibilityCondition
+ * - Đồng bộ formCode và formTitle trong khối TITLE
+ * - Reset trạng thái về DRAFT v0.1 và tạo revision history sạch
+ */
+export function duplicateFormTemplate(
+  sourceForm: any,
+  newFormId: string,
+  newFormTitle: string,
+  authorName: string = 'Admin'
+): {
+  formId: string;
+  formName: string;
+  formTitle: string;
+  status: 'DRAFT';
+  version: 'v0.1';
+  pageSize: string;
+  isPublic: boolean;
+  defaultFocusMode: boolean;
+  effectiveDate: null;
+  layoutBlocks: LayoutBlockISO[];
+  revisionHistory: any[];
+} {
+  const rawBlocks = sourceForm.layout_blocks || sourceForm.layoutBlocks || [];
+  const blocks: LayoutBlockISO[] = typeof rawBlocks === 'string' ? JSON.parse(rawBlocks) : JSON.parse(JSON.stringify(rawBlocks));
+
+  const fieldIdMap = new Map<string, string>();
+
+  const clonedBlocks = blocks.map(block => {
+    const newBlockId = `b_${(block.type || 'block').toLowerCase()}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+
+    const newFields = (block.fields || []).map((f, fIdx) => {
+      const newFieldId = `fld_${Date.now()}_${fIdx}_${Math.random().toString(36).substring(2, 6)}`;
+      fieldIdMap.set(f.id, newFieldId);
+      return {
+        ...f,
+        id: newFieldId
+      };
+    });
+
+    if (block.type === 'TITLE') {
+      return {
+        ...block,
+        id: newBlockId,
+        formCode: newFormId,
+        formTitle: newFormTitle,
+        fields: newFields
+      };
+    }
+
+    const rowIdMap = new Map<string, string>();
+    const newTableRows = (block.tableRows || []).map(r => {
+      const newRowId = `row_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      rowIdMap.set(r.id, newRowId);
+      return {
+        ...r,
+        id: newRowId
+      };
+    });
+
+    const newTableData: { [rowId: string]: { [colId: string]: string } } = {};
+    if (block.tableData) {
+      Object.entries(block.tableData).forEach(([oldRId, colVals]) => {
+        const mappedRId = rowIdMap.get(oldRId) || oldRId;
+        newTableData[mappedRId] = { ...colVals };
+      });
+    }
+
+    const newCellOptionsMap: { [cellKey: string]: RadioOption[] } = {};
+    if (block.cellOptionsMap) {
+      Object.entries(block.cellOptionsMap).forEach(([oldCellKey, opts]) => {
+        let mappedKey = oldCellKey;
+        for (const [oldRId, newRId] of rowIdMap.entries()) {
+          if (oldCellKey.startsWith(oldRId + '_')) {
+            mappedKey = newRId + oldCellKey.slice(oldRId.length);
+            break;
+          }
+        }
+        newCellOptionsMap[mappedKey] = Array.isArray(opts) ? [...opts] : opts;
+      });
+    }
+
+    const newCellPlaceholderMap: { [cellKey: string]: string } = {};
+    if (block.cellPlaceholderMap) {
+      Object.entries(block.cellPlaceholderMap).forEach(([oldCellKey, ph]) => {
+        let mappedKey = oldCellKey;
+        for (const [oldRId, newRId] of rowIdMap.entries()) {
+          if (oldCellKey.startsWith(oldRId + '_')) {
+            mappedKey = newRId + oldCellKey.slice(oldRId.length);
+            break;
+          }
+        }
+        newCellPlaceholderMap[mappedKey] = ph;
+      });
+    }
+
+    return {
+      ...block,
+      id: newBlockId,
+      fields: newFields,
+      tableRows: newTableRows,
+      tableData: newTableData,
+      cellOptionsMap: newCellOptionsMap,
+      cellPlaceholderMap: newCellPlaceholderMap
+    };
+  });
+
+  clonedBlocks.forEach(b => {
+    if (b.visibilityCondition && b.visibilityCondition.triggerFieldId) {
+      const mappedTriggerId = fieldIdMap.get(b.visibilityCondition.triggerFieldId);
+      if (mappedTriggerId) {
+        b.visibilityCondition = {
+          ...b.visibilityCondition,
+          triggerFieldId: mappedTriggerId
+        };
+      }
+    }
+  });
+
+  return {
+    formId: newFormId,
+    formName: newFormId,
+    formTitle: newFormTitle,
+    status: 'DRAFT',
+    version: 'v0.1',
+    pageSize: sourceForm.page_size || sourceForm.pageSize || 'A4',
+    isPublic: sourceForm.is_public ?? sourceForm.isPublic ?? false,
+    defaultFocusMode: sourceForm.default_focus_mode ?? sourceForm.defaultFocusMode ?? false,
+    effectiveDate: null,
+    layoutBlocks: clonedBlocks,
+    revisionHistory: [
+      {
+        version: 'v0.1',
+        status: 'DRAFT',
+        changeSummary: `Khởi tạo từ bản sao của biểu mẫu ${sourceForm.form_id || sourceForm.formId || ''}`,
+        author: authorName,
+        effectiveDate: '',
+        updatedAt: new Date().toISOString()
+      }
+    ]
+  };
+}
+

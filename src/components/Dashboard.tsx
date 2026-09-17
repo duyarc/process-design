@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import type { Process, ReportTemplateISO } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { Plus, Search, FileText, Eye, Calendar, Printer, History, PenTool, Edit2, GitBranch, ChevronDown, ChevronUp, Grid, List, SlidersHorizontal } from 'lucide-react';
+import { Plus, Search, FileText, Eye, Calendar, Printer, History, PenTool, Edit2, GitBranch, ChevronDown, ChevronUp, Grid, List, SlidersHorizontal, Copy, Check } from 'lucide-react';
 import SubmissionManager from './SubmissionManager';
 import { BPMNGuide } from './BPMNGuide';
 import PrintBlankForm from './print/PrintBlankForm';
+import { generateNextFormId, duplicateFormTemplate } from '../utils/formUtils';
 
 interface DashboardProps {
   onSelectProcess: (id: string) => void;
@@ -83,6 +84,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
     return (saved === 'grid' || saved === 'list') ? saved : 'list';
   });
   const [isViewingSubmission, setIsViewingSubmission] = useState(false);
+  const [duplicatingFormId, setDuplicatingFormId] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(null), 3500);
+    return () => clearTimeout(timer);
+  }, [toast]);
 
   const handleLayoutModeChange = (mode: 'grid' | 'list') => {
     setLayoutMode(mode);
@@ -104,7 +113,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       return `V${cleanVersion}`;
     }
   };
-  const { hasPermission } = useAuth();
+  const { hasPermission, currentUser } = useAuth();
 
   const fetchProcesses = async (isBackground = false) => {
     try {
@@ -909,6 +918,118 @@ export const Dashboard: React.FC<DashboardProps> = ({
           }
         };
 
+        const handleDuplicateFormDirect = async (form: any) => {
+          if (duplicatingFormId) return;
+          try {
+            setDuplicatingFormId(form.formId);
+
+            // 1. Tự động đánh lại Form ID kế tiếp
+            const existingFormIds = allForms.map((f: any) => f.form_id || f.formId);
+            const newFormId = generateNextFormId(form.formId, existingFormIds);
+            const newFormTitle = form.formTitle || form.formName;
+
+            // 2. Fetch đầy đủ layout nếu cần
+            let sourceTemplate = form.rawRecord;
+            if (!sourceTemplate?.layout_blocks || typeof sourceTemplate.layout_blocks === 'string') {
+              try {
+                const res = await fetch(`/api/forms/${encodeURIComponent(form.formId)}?version=${encodeURIComponent(form.version)}`);
+                if (res.ok) {
+                  sourceTemplate = await res.json();
+                }
+              } catch (e) {
+                console.warn('Could not fetch single form, falling back to rawRecord', e);
+              }
+            }
+
+            // 3. Nhân bản dữ liệu blocks và làm sạch metadata
+            const authorName = currentUser?.full_name || currentUser?.username || 'Admin';
+            const duplicated = duplicateFormTemplate(sourceTemplate || {}, newFormId, newFormTitle, authorName);
+
+            // 4. Lưu biểu mẫu mới (TUYỆT ĐỐI không truyền oldFormId)
+            const saveFormRes = await fetch('/api/forms', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(duplicated)
+            });
+
+            if (!saveFormRes.ok) {
+              let errText = 'Lỗi khi lưu biểu mẫu nhân bản';
+              try {
+                const errData = await saveFormRes.json();
+                if (errData?.error) errText = errData.error;
+              } catch (_) {}
+              throw new Error(errText);
+            }
+
+            // 5. Tự động liên kết vào CÙNG QUY TRÌNH và CÙNG WORK STEP
+            const matchedProc = processes.find(p => {
+              const parentId = p.parentProcessId || p.id;
+              const allVersions = groups[parentId] || [];
+              const rep = getRepresentative(allVersions);
+              if (p.id !== rep.id || rep.status === 'Retired') return false;
+              return allVersions.some(verProc => {
+                const steps = verProc.steps ? (typeof verProc.steps === 'string' ? JSON.parse(verProc.steps) : verProc.steps) : [];
+                const wfd = verProc.workflowFormsData ? (typeof verProc.workflowFormsData === 'string' ? JSON.parse(verProc.workflowFormsData) : verProc.workflowFormsData) : {};
+                return (steps && steps.some((s: any) => (s.formNames || []).includes(form.formId) || s.formName === form.formId)) || (wfd && Object.values(wfd).some((fdata: any) => fdata.formId === form.formId));
+              });
+            });
+
+            if (matchedProc) {
+              const steps = matchedProc.steps ? (typeof matchedProc.steps === 'string' ? JSON.parse(matchedProc.steps) : [...matchedProc.steps]) : [];
+              const updatedSteps = steps.map((s: any) => {
+                const hasSourceForm = (s.formNames || []).includes(form.formId) || s.formName === form.formId;
+                if (hasSourceForm) {
+                  const curNames = s.formNames || (s.formName ? [s.formName] : []);
+                  return {
+                    ...s,
+                    producesForm: true,
+                    formNames: Array.from(new Set([...curNames, newFormId]))
+                  };
+                }
+                return s;
+              });
+
+              const currentWfd = matchedProc.workflowFormsData ? (typeof matchedProc.workflowFormsData === 'string' ? JSON.parse(matchedProc.workflowFormsData) : { ...matchedProc.workflowFormsData }) : {};
+              currentWfd[newFormId] = {
+                formId: newFormId,
+                formTitle: newFormTitle,
+                version: 'v0.1',
+                status: 'DRAFT',
+                effectiveDate: '',
+                updatedAt: new Date().toISOString()
+              };
+
+              const updatedProc = {
+                ...matchedProc,
+                steps: updatedSteps,
+                workflowFormsData: currentWfd,
+                lastUpdated: new Date().toISOString()
+              };
+
+              await fetch(`/api/processes/${encodeURIComponent(matchedProc.id)}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updatedProc)
+              });
+            }
+
+            // 6. Refresh dữ liệu và thông báo
+            await fetchProcesses(true);
+            setToast({
+              message: `Đã nhân bản thành công biểu mẫu ${newFormId}!`,
+              type: 'success'
+            });
+          } catch (err) {
+            console.error('Lỗi khi nhân bản biểu mẫu:', err);
+            setToast({
+              message: err instanceof Error ? err.message : 'Lỗi khi nhân bản biểu mẫu.',
+              type: 'error'
+            });
+          } finally {
+            setDuplicatingFormId(null);
+          }
+        };
+
         if (filteredFormsList.length === 0) {
           return (
             <div className="paper-card" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
@@ -1129,6 +1250,19 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                       onClick={() => onEditProcess(form.linkedProcesses[0]?.id || null, 'form', form.formName)}
                                     >
                                       <Edit2 size={12} />
+                                    </button>
+                                    <button 
+                                      className="btn btn-secondary btn-sm"
+                                      style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', margin: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: '26px' }}
+                                      title="Nhân bản biểu mẫu (Duplicate)"
+                                      disabled={duplicatingFormId === form.formId}
+                                      onClick={() => handleDuplicateFormDirect(form)}
+                                    >
+                                      {duplicatingFormId === form.formId ? (
+                                        <div className="spinner-border spinner-border-sm" style={{ width: '11px', height: '11px', borderWidth: '1.5px' }} />
+                                      ) : (
+                                        <Copy size={12} />
+                                      )}
                                     </button>
                                     {onOpenReportBuilder && (
                                       <button 
@@ -1363,6 +1497,20 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                 <Edit2 size={13} style={{ flexShrink: 0 }} />
                                 Edit
                               </button>
+                              <button 
+                                className="btn btn-secondary btn-sm"
+                                style={{ flex: 1, padding: '0.3rem 0.4rem', fontSize: '0.75rem', margin: 0, gap: '0.2rem', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                                title="Nhân bản biểu mẫu (Duplicate)"
+                                disabled={duplicatingFormId === form.formId}
+                                onClick={() => handleDuplicateFormDirect(form)}
+                              >
+                                {duplicatingFormId === form.formId ? (
+                                  <div className="spinner-border spinner-border-sm" style={{ width: '12px', height: '12px', borderWidth: '1.5px' }} />
+                                ) : (
+                                  <Copy size={13} style={{ flexShrink: 0 }} />
+                                )}
+                                Copy
+                              </button>
                               {onOpenReportBuilder && (
                                 <button 
                                   className="btn btn-secondary btn-sm"
@@ -1571,6 +1719,28 @@ export const Dashboard: React.FC<DashboardProps> = ({
           exportMode={!!printTemplateData.autoExportPdf}
           onClose={() => setPrintTemplateData(null)}
         />
+      )}
+      {toast && (
+        <div style={{
+          position: 'fixed',
+          bottom: '1.5rem',
+          right: '1.5rem',
+          background: toast.type === 'success' ? '#0f172a' : '#991b1b',
+          color: '#ffffff',
+          padding: '0.65rem 1.25rem',
+          borderRadius: '8px',
+          boxShadow: '0 10px 15px -3px rgba(0,0,0,0.2)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.6rem',
+          fontSize: '0.85rem',
+          fontWeight: 500,
+          zIndex: 9999,
+          animation: 'toast-slide-in 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards'
+        }}>
+          {toast.type === 'success' ? <Check size={16} style={{ color: '#34d399' }} /> : <span>⚠️</span>}
+          <span>{toast.message}</span>
+        </div>
       )}
     </div>
   );
