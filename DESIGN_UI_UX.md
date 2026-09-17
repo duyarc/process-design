@@ -9,7 +9,7 @@ This document is the **single source of truth** for the visual design language o
 
 | Field | Value |
 |---|---|
-| **Verified At Commit** | (2026-08-27) — Section 2, 4 (Executive Editorial Pair 1 H1-H2 Typography & Spacing Standardization across Screen & Print). |
+| **Verified At Commit** | (2026-09-17) — Section 2, 6 (Dashboard Forms Table Hover-to-Reveal Actions and Segmented Button Clusters). |
 
 ## 1. Design Principles
 
@@ -180,3 +180,4 @@ exclusion, otherwise designed header tints are still forced to `#f0f0f0`.
 | 2026-08-25 | `a18181b` | **Table Border Styles Parity (`.print-table--horizontal` & `.print-table--borderless`):** Standardized horizontal-only table styles with top border on `<table>`, bottom border on `<th>` and `<td>`, and elimination of vertical borders across screen, print media, and PDF export modes. |
 | 2026-08-27 | `CURRENT` | **Executive Editorial Pair 1 H1-H2 Typography & Spacing Standardization:** (1) Standardized **H1** across Canvas, Screen Viewers, and Print/PDF to pure bold uppercase typography (`fontSize: 1.1rem`, `fontWeight: 700`, `letterSpacing: 0.6px`, `color: #0f172a`, `border: 'none'`, `background: 'transparent'`), eliminating divisive horizontal underlines that fragmented the form. (2) Standardized **H2** to use a sleek Left Accent Bar (`borderLeft: '3px solid var(--primary)'`, `padding: '2px 0 2px 8px'`) with transparent background (`background: 'transparent'`, `fontSize: 0.92rem`–`0.95rem`), eliminating gray banner boxes for smooth visual flow. |
 | 2026-08-28 | `CURRENT` | **Form Properties 1-Line 2-Toggle & Ultra-Clean Top Bar UI Pattern:** (1) FormBuilder Properties tab features a compact 1-line 2-toggle row for `Focus mode` and `Public link` with immediate URL box + 1-click Copy button. (2) FormFiller Top Bar features clean text `"Focus mode"` (without emoji) and single unified `[ 🔗 Sao chép link ]` button without admin toggles. |
+| 2026-09-17 | `CURRENT` | **Dashboard Forms Table Hover-to-Reveal Actions & Segmented Clusters:** Added `.dashboard-form-row:hover .dashboard-form-actions-reveal` and `.dashboard-btn-cluster` utility classes in `src/index.css`. Cột Actions ở trạng thái idle hiển thị dấu ba chấm mờ (`⋯`), ẩn toàn bộ cụm nút (zero layout shift); khi hover vào dòng sẽ hiện 3 cụm nút (Vận hành, In ấn, Thiết kế) mượt mà 0.18s cubic-bezier. |

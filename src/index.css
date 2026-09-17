@@ -626,3 +626,116 @@ table.print-table--horizontal td {
   border-bottom: 1px solid #000000 !important;
 }
 
+/* Dashboard Forms Table Hover-to-Reveal Actions */
+.dashboard-form-row {
+  transition: background-color 0.15s ease;
+}
+
+.dashboard-form-row:hover {
+  background-color: #f8fafc !important;
+}
+
+.dashboard-form-actions-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 250px;
+  position: relative;
+}
+
+.dashboard-form-actions-idle {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  letter-spacing: 0.1em;
+  opacity: 0.5;
+  transition: opacity 0.15s ease;
+}
+
+.dashboard-form-row:hover .dashboard-form-actions-idle {
+  display: none;
+}
+
+.dashboard-form-actions-reveal {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: #ffffff;
+  padding: 0.2rem 0.35rem;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(2px);
+  transition: opacity 0.18s cubic-bezier(0.16, 1, 0.3, 1), transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.18s;
+}
+
+.dashboard-form-row:hover .dashboard-form-actions-reveal {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.dashboard-btn-cluster {
+  display: inline-flex;
+  align-items: center;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.dashboard-btn-cluster .btn-cluster-item {
+  border: none;
+  border-radius: 0;
+  height: 26px;
+  padding: 0 0.5rem;
+  background: transparent;
+  color: #334155;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  margin: 0;
+}
+
+.dashboard-btn-cluster .btn-cluster-item:hover {
+  background: #ffffff;
+  color: #0f172a;
+}
+
+.dashboard-btn-cluster .btn-cluster-item:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.dashboard-actions-divider {
+  width: 1px;
+  height: 16px;
+  background: #cbd5e1;
+  margin: 0 0.1rem;
+}
+
+/* Card hover actions */
+.dashboard-card-hover {
+  transition: all 0.2s ease;
+}
+
+.dashboard-card-hover:hover {
+  border-color: #93c5fd !important;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.08) !important;
+}
+
+.dashboard-card-actions {
+  opacity: 0.65;
+  transition: opacity 0.2s ease;
+}
+
+.dashboard-card-hover:hover .dashboard-card-actions {
+  opacity: 1;
+}
+
+

@@ -29,6 +29,35 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-17 — Form Operations & Platform Shell: 1-Click Form Duplication in Dashboard Forms Tab
+
+**Scope:** 4 files, 363 insertions, 6 deletions (`1e301b8`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian lập plan (Request → Proceed) | 22.2 min |
+| Thời gian thực thi (Proceed → Push) | 4.7 min |
+| Thời gian tổng (Request → Push) | 26.9 min |
+| Số file nguồn chỉnh sửa | 2 (`Dashboard.tsx`, `formUtils.ts`) |
+| Tổng lượt edit source | 8 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 3 (2 tsc + 1 vite) |
+| Lần build đầu thành công? | Có (100% pass ngay lần đầu) |
+| Số lệnh thất bại | 0 |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- Triển khai tính năng nhân bản 1-click tốc độ cao (Fast Duplication) trực tiếp trong Tab Forms của `Dashboard.tsx` (cả List View và Grid View Card).
+- Tuyệt đối tuân thủ yêu cầu không modal dialog, không popup gây gián đoạn dòng công việc, phản hồi qua floating Toast banner.
+- Thuật toán thông minh `generateNextFormId` trong `formUtils.ts`: tự nhận diện định dạng hậu tố số (`FM-QC-01` -> `FM-QC-02`), tự tăng và kiểm tra chống trùng lặp với toàn bộ form IDs hiện hữu.
+- Thuật toán `duplicateFormTemplate`: deep clone toàn bộ layout blocks, tái tạo UUID cho các block/field/table row, ánh xạ lại bảng dữ liệu cell maps (`cellOptionsMap`, `cellPlaceholderMap`), cập nhật block tiêu đề và reset trạng thái về `DRAFT`, phiên bản `v0.1`.
+- Tự động gán biểu mẫu mới vào đúng Quy trình và đúng Công đoạn (`step.formNames`, `workflowFormsData`) tương ứng với biểu mẫu gốc.
+- Không truyền `oldFormId` khi gọi `POST /api/forms` để triệt để bảo vệ biểu mẫu gốc không bị ghi đè/xóa nhầm trong backend.
+- Build TypeScript (`npx tsc --noEmit`) và Vite bundle (`npm run build`) thành công 100% không lỗi.
+
+---
+
 ### 2026-09-17 — Form Operations & Print: Dropdown & Custom Other Option Resolution
 
 **Scope:** 3 files, ~40 insertions, ~15 deletions

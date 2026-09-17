@@ -9,7 +9,7 @@
 | **Module Name** | Platform Shell |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-09-17) — Sections 2, 8 (1-Click Form Duplication in Dashboard Forms tab with process & work step auto-link) |
+| **Verified At Commit** | (2026-09-17) — Sections 2, 8 (Dashboard Forms Tab Actions Area: Segmented Clusters & CSS Hover-to-Reveal with zero layout shift). |
 
 ### Quick File Index
 
@@ -222,3 +222,4 @@ lives in `git log`; run `git show <commit>` for the full diff of any entry below
 | 2026-09-09 | `CURRENT` | **Near Full-Screen Submission View Coordination:** Added `isViewingSubmission` state in `Dashboard.tsx` coordinating with `SubmissionManager`. When viewing or copying a submission record, the quote card and view switcher tabs are suppressed, rendering `FormFiller` in near full-screen mode with visual parity to fill-form. |
 | 2026-09-09 | `CURRENT` | **Screen Estate Optimization — Global App Header Suppression:** Configured `isFormCanvasActive` in `App.tsx` coordinating with `Dashboard.tsx` and `FormManager.tsx` (`onViewingSubmissionChange` / `onViewingChange`). Completely hides the "Process Design" `<header className="app-header">` when users are filling or viewing form records, maximizing vertical document view space by ~65px while preserving full back-navigation. |
 | 2026-09-17 | `CURRENT` | **1-Click Fast Form Duplication in Dashboard Forms Tab:** Added duplicate action in both List and Grid views under `design_document` permission. Generates new Form ID, preserves exact form title, links new form directly to matching process work step (`step.formNames`) and metadata (`workflowFormsData`), and displays non-blocking toast feedback without popup dialogs. |
+| 2026-09-17 | `CURRENT` | **Actions Area Tinh Gọn & Hover-to-Reveal trong Tab Forms:** Tái cấu trúc 7 nút thao tác thành 3 khối nghiệp vụ chuẩn (Vận hành: Fill/Audit; In ấn: Print/PDF; Thiết kế: Edit/Copy/Report) với vách ngăn dọc tinh tế. Tích hợp cơ chế Hover-to-Reveal bằng CSS thuần (`.dashboard-form-row:hover`), ẩn các nút khi idle và chỉ hiển thị trên dòng được hover, triệt tiêu rối mắt và bảo đảm Zero Layout Shift. |
