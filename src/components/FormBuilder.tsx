@@ -9182,7 +9182,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
               {/* Label row với Link/Unlink icon */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Form ID</label>
-                {linkedProcessId && (
+                {linkedProcessId ? (
                   <button
                     type="button"
                     title={formIdLinked
@@ -9220,6 +9220,10 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                   >
                     {formIdLinked ? <Link size={13} /> : <Link2Off size={13} />}
                   </button>
+                ) : (
+                  <span title="Form chưa liên kết với quy trình nào. Bạn có thể đặt Form ID tự do." style={{ color: '#94a3b8', display: 'flex', alignItems: 'center' }}>
+                    <Link2Off size={13} />
+                  </span>
                 )}
               </div>
 
@@ -9240,7 +9244,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
               />
 
               {/* Hint text: trạng thái linked / unlinked theo Biến thể 3B tối giản */}
-              {linkedProcessId && formIdLinked && (
+              {linkedProcessId && formIdLinked ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', paddingTop: '0.1rem' }}>
                   <div style={{ fontSize: '0.74rem', color: 'var(--primary, #0284c7)', display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 500 }}>
                     <Link size={11} />
@@ -9284,8 +9288,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                     </div>
                   )}
                 </div>
-              )}
-              {linkedProcessId && !formIdLinked && (
+              ) : (
                 <div style={{ fontSize: '0.73rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.35rem', paddingTop: '0.1rem' }}>
                   <Link2Off size={11} />
                   <span>Form chưa liên kết</span>

@@ -29,6 +29,28 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-18 — Form Designer: Fix Fallback Hint for Unlinked Standalone Forms
+
+**Scope:** 2 files (`FormBuilder.tsx`, `DESIGN_FORM_DESIGNER.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa | 1 (`FormBuilder.tsx`) |
+| Tổng lượt edit source | 2 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 2 (`tsc` + `vite` 10.38s) |
+| Lần build đầu thành công? | Có (100% pass ngay lần đầu) |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- Khắc phục lỗi hiển thị vùng Form ID: thay thế điều kiện hẹp `linkedProcessId && !formIdLinked` bằng cấu trúc nhị phân `linkedProcessId && formIdLinked ? (...) : (...)`.
+- Đảm bảo MỌI biểu mẫu chưa liên kết (kể cả form mở độc lập từ Dashboard không có `linkedProcessId`) đều hiển thị đúng dòng `[Link2Off] Form chưa liên kết` bên dưới ô input.
+- Hiển thị icon `Link2Off` màu xám nhạt kèm tooltip cạnh nhãn Form ID khi form không có quy trình liên kết.
+- TypeScript (`tsc`) và Vite bundle hoàn tất 100% trong 10.38s.
+
+---
+
 ### 2026-09-18 — Form Designer: Linked Workstep Context & Ultra-Clean Tree Guide Line
 
 **Scope:** 6 files, 116 insertions, 13 deletions (`76661c5`)
