@@ -957,3 +957,34 @@ export function renameFormInSteps(
     };
   });
 }
+
+/**
+ * Gán Form ID nhân bản vào các công đoạn đang liên kết với Form ID nguồn.
+ * Tuân thủ Rule 13.8 (Pure Utility Extraction Invariant).
+ */
+export function linkDuplicatedFormToSteps(
+  steps: ProcessStep[] | undefined,
+  sourceFormId: string,
+  newFormId: string
+): ProcessStep[] {
+  if (!steps || !sourceFormId || !newFormId) {
+    return steps || [];
+  }
+  return steps.map(step => {
+    const hasSource = (step.formNames && step.formNames.includes(sourceFormId)) || step.formName === sourceFormId;
+    if (!hasSource) return step;
+
+    const currentNames = step.formNames && step.formNames.length > 0
+      ? step.formNames
+      : (step.formName ? [step.formName] : []);
+
+    const updatedNames = Array.from(new Set([...currentNames, newFormId]));
+
+    return {
+      ...step,
+      producesForm: true,
+      formNames: updatedNames,
+      formName: step.formName || newFormId
+    };
+  });
+}

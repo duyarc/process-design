@@ -5,7 +5,7 @@ import { Plus, Search, FileText, Eye, Calendar, Printer, History, PenTool, Edit2
 import SubmissionManager from './SubmissionManager';
 import { BPMNGuide } from './BPMNGuide';
 import PrintBlankForm from './print/PrintBlankForm';
-import { generateNextFormId, duplicateFormTemplate } from '../utils/formUtils';
+import { generateNextFormId, duplicateFormTemplate, linkDuplicatedFormToSteps } from '../utils/formUtils';
 
 interface DashboardProps {
   onSelectProcess: (id: string) => void;
@@ -962,34 +962,20 @@ export const Dashboard: React.FC<DashboardProps> = ({
             }
 
             // 5. Tự động liên kết vào CÙNG QUY TRÌNH và CÙNG WORK STEP
-            const matchedProc = processes.find(p => {
-              const parentId = p.parentProcessId || p.id;
-              const allVersions = groups[parentId] || [];
-              const rep = getRepresentative(allVersions);
-              if (p.id !== rep.id || rep.status === 'Retired') return false;
-              return allVersions.some(verProc => {
-                const steps = verProc.steps ? (typeof verProc.steps === 'string' ? JSON.parse(verProc.steps) : verProc.steps) : [];
-                const wfd = verProc.workflowFormsData ? (typeof verProc.workflowFormsData === 'string' ? JSON.parse(verProc.workflowFormsData) : verProc.workflowFormsData) : {};
-                return (steps && steps.some((s: any) => (s.formNames || []).includes(form.formId) || s.formName === form.formId)) || (wfd && Object.values(wfd).some((fdata: any) => fdata.formId === form.formId));
-              });
+            const targetProc = processes.find(p => {
+              if (p.status === 'Retired') return false;
+              const steps = p.steps ? (typeof p.steps === 'string' ? JSON.parse(p.steps) : p.steps) : [];
+              const wfd = p.workflowFormsData ? (typeof p.workflowFormsData === 'string' ? JSON.parse(p.workflowFormsData) : p.workflowFormsData) : {};
+              const inSteps = steps.some((s: any) => (s.formNames && s.formNames.includes(form.formId)) || s.formName === form.formId);
+              const inWfd = wfd && Object.values(wfd).some((fdata: any) => fdata.formId === form.formId);
+              return inSteps || inWfd;
             });
 
-            if (matchedProc) {
-              const steps = matchedProc.steps ? (typeof matchedProc.steps === 'string' ? JSON.parse(matchedProc.steps) : [...matchedProc.steps]) : [];
-              const updatedSteps = steps.map((s: any) => {
-                const hasSourceForm = (s.formNames || []).includes(form.formId) || s.formName === form.formId;
-                if (hasSourceForm) {
-                  const curNames = s.formNames || (s.formName ? [s.formName] : []);
-                  return {
-                    ...s,
-                    producesForm: true,
-                    formNames: Array.from(new Set([...curNames, newFormId]))
-                  };
-                }
-                return s;
-              });
+            if (targetProc) {
+              const currentSteps = targetProc.steps ? (typeof targetProc.steps === 'string' ? JSON.parse(targetProc.steps) : [...targetProc.steps]) : [];
+              const updatedSteps = linkDuplicatedFormToSteps(currentSteps, form.formId, newFormId);
 
-              const currentWfd = matchedProc.workflowFormsData ? (typeof matchedProc.workflowFormsData === 'string' ? JSON.parse(matchedProc.workflowFormsData) : { ...matchedProc.workflowFormsData }) : {};
+              const currentWfd = targetProc.workflowFormsData ? (typeof targetProc.workflowFormsData === 'string' ? JSON.parse(targetProc.workflowFormsData) : { ...targetProc.workflowFormsData }) : {};
               currentWfd[newFormId] = {
                 formId: newFormId,
                 formTitle: newFormTitle,
@@ -1000,17 +986,26 @@ export const Dashboard: React.FC<DashboardProps> = ({
               };
 
               const updatedProc = {
-                ...matchedProc,
+                ...targetProc,
                 steps: updatedSteps,
                 workflowFormsData: currentWfd,
                 lastUpdated: new Date().toISOString()
               };
 
-              await fetch(`/api/processes/${encodeURIComponent(matchedProc.id)}`, {
-                method: 'PUT',
+              const saveProcRes = await fetch('/api/processes', {
+                method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(updatedProc)
               });
+
+              if (!saveProcRes.ok) {
+                let errText = 'Lỗi khi cập nhật quy trình cha';
+                try {
+                  const errData = await saveProcRes.json();
+                  if (errData?.error) errText = errData.error;
+                } catch (_) {}
+                throw new Error(errText);
+              }
             }
 
             // 6. Refresh dữ liệu và thông báo

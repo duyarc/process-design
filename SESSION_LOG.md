@@ -29,6 +29,30 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-18 — Dashboard & Platform Shell: Fix Duplicated Form Process Re-linking
+
+**Scope:** 4 files (`formUtils.ts`, `Dashboard.tsx`, `server.cjs`, `DESIGN_PLATFORM_SHELL.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa | 3 (`formUtils.ts`, `Dashboard.tsx`, `server.cjs`) |
+| Tổng lượt edit source | 3 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 3 (`tsc` x 2 + `vite` 10.13s) |
+| Lần build đầu thành công? | Có (100% pass ngay lần đầu) |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- Khắc phục triệt để lỗi biểu mẫu sau khi nhân bản (duplicate) bị unlinked khỏi quy trình cha.
+- Sửa lỗi sai lệch endpoint & method trong `Dashboard.tsx`: thay thế `PUT /api/processes/:id` (bị 404) bằng `POST /api/processes` đúng chuẩn hệ thống và bổ sung bắt lỗi nghiêm ngặt.
+- Định vị chuẩn xác quy trình cha chứa form gốc trong mảng `processes`, tránh lệch phiên bản với `getRepresentative`.
+- Trích xuất pure utility `linkDuplicatedFormToSteps` trong `formUtils.ts` (Rule 13.8) tự động gán Form ID nhân bản vào các bước liên quan.
+- Thêm route alias phòng vệ `app.put('/api/processes/:id')` trong `server.cjs`.
+- Build TypeScript (`tsc`) và Vite production bundle thành công 100% trong 10.13s.
+
+---
+
 ### 2026-09-18 — Form Designer & Process Editor: Transparent Form ID Renaming & Workstep Re-linking
 
 **Scope:** 4 files (`formUtils.ts`, `ProcessEditor.tsx`, `FormBuilder.tsx`, `DESIGN_FORM_DESIGNER.md`)
@@ -249,29 +273,3 @@ Entry mới nhất ở trên cùng. Tối đa 10 entries.
 - Hàm thuần túy `stripMarkdownTokens` bóc tách sạch các cú pháp Markdown thô (`*`, `_`, `~`, `<u>`), bảo toàn xuống dòng `\n`.
 - Chuẩn hóa CSS `::placeholder` toàn hệ thống với `font-style: italic`, `#94a3b8`, `opacity: 0.9`.
 - Tự động mở rộng chiều cao và số dòng khởi tạo cho `AutoResizingTextarea` khi placeholder có nhiều dòng.
-
----
-
-### 2026-09-14 — FormFiller Bugfix: Preserving Spacebar Input in Custom "Other" Option Fields
-
-**Scope:** 3 files, 31 insertions, 47 deletions (`05f1eec`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian tổng (Request → Push) | 3.8 min |
-| Thời gian lập plan (Request → Proceed) | 2.9 min |
-| Thời gian thực thi (Proceed → Push) | 0.9 min |
-| Số file nguồn chỉnh sửa | 1 (`formUtils.ts`) |
-| Tổng lượt edit source | 1 |
-| Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 2 (1 tsc + 1 vite) |
-| Lần build đầu thành công? | Có |
-| Số lệnh thất bại | 0 |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Điểm nổi bật:**
-- Sửa triệt để lỗi không gõ được phím Space trong ô nhập "Khác" (Select dropdown, Radio, Checkbox).
-- Loại bỏ lệnh `.trim()` trong `encodeOtherValue` để bảo toàn khoảng trắng tự nhiên trong suốt quá trình người dùng đang nhập liệu trong React Controlled Component.
-- Chuẩn hóa `.trim()` tại `formatOptionDisplay` để đảm bảo báo cáo và bản in không bị khoảng trắng thừa.
-- Tốc độ thực thi: 0.9 phút, 1 edit dứt điểm, 100% build pass lần đầu.

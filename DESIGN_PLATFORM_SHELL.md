@@ -9,7 +9,7 @@
 | **Module Name** | Platform Shell |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-09-17) — Sections 2, 8 (Dashboard Forms Tab Actions Area: Segmented Clusters & CSS Hover-to-Reveal with zero layout shift). |
+| **Verified At Commit** | (2026-09-18) — Dashboard Form Duplication Process Linking (POST /api/processes & linkDuplicatedFormToSteps pure utility) verified against source |
 
 ### Quick File Index
 
@@ -214,7 +214,6 @@ lives in `git log`; run `git show <commit>` for the full diff of any entry below
 | 2026-07-28 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Sort Process Families by Last Update Descending:** Added `getFamilyTimestamp` sorting helper in `Dashboard.tsx` to sort process families descending by most recent `lastUpdated` timestamp across all versions, placing recently modified processes at the top of the Dashboard. |
 | 2026-07-28 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Sort Forms List by Last Update Descending in Forms Tab:** Added `getFormTimestamp` sorting logic in `Dashboard.tsx` to sort `formsList` descending by latest `updated_at` timestamp (with tie-breaker by `formTitle` A-Z), placing recently updated form templates at the top of the Forms tab. |
 | 2026-07-09 | `1385a38` | Fix ProcessReader back-navigation by explicitly calling `setPage('dashboard')` — a consequence of state-based routing with no formal router (see Section 7). |
-| 2026-07-09 | `8df2f3c` | Document created. Initial full write based on codebase review. |
 | 2026-08-27 | `CURRENT` | **Clean Path Routing for Form Fill (`/f/:identifier`):** Added direct route resolution in `App.tsx` matching `/f/:identifier`, calling `/api/forms/resolve/:identifier` to render `FormFiller` directly without lengthy query strings. |
 | 2026-08-31 | `CURRENT` | **Unified Short-Link Loading State Coordination:** Added `isShortLinkFlow` prop coordination between `App.tsx` and `FormFiller.tsx` to eliminate redundant secondary loading screen when opening forms via short path `/f/:identifier`. |
 | 2026-09-03 | `CURRENT` | **Dashboard Stale-While-Revalidate (SWR) Instant Paint:** Implemented sessionStorage-backed SWR caching in `Dashboard.tsx` for `processes`, `allForms`, and `reportTemplates`. Eliminates the 3.7s–5.3s "Loading processes database..." spinner on every browser refresh by initializing state synchronously from cache and revalidating silently in the background. |
@@ -223,3 +222,4 @@ lives in `git log`; run `git show <commit>` for the full diff of any entry below
 | 2026-09-09 | `CURRENT` | **Screen Estate Optimization — Global App Header Suppression:** Configured `isFormCanvasActive` in `App.tsx` coordinating with `Dashboard.tsx` and `FormManager.tsx` (`onViewingSubmissionChange` / `onViewingChange`). Completely hides the "Process Design" `<header className="app-header">` when users are filling or viewing form records, maximizing vertical document view space by ~65px while preserving full back-navigation. |
 | 2026-09-17 | `CURRENT` | **1-Click Fast Form Duplication in Dashboard Forms Tab:** Added duplicate action in both List and Grid views under `design_document` permission. Generates new Form ID, preserves exact form title, links new form directly to matching process work step (`step.formNames`) and metadata (`workflowFormsData`), and displays non-blocking toast feedback without popup dialogs. |
 | 2026-09-17 | `CURRENT` | **Actions Area Tinh Gọn & Hover-to-Reveal trong Tab Forms:** Tái cấu trúc 7 nút thao tác thành 3 khối nghiệp vụ chuẩn (Vận hành: Fill/Audit; In ấn: Print/PDF; Thiết kế: Edit/Copy/Report) với vách ngăn dọc tinh tế. Tích hợp cơ chế Hover-to-Reveal bằng CSS thuần (`.dashboard-form-row:hover`), ẩn các nút khi idle và chỉ hiển thị trên dòng được hover, triệt tiêu rối mắt và bảo đảm Zero Layout Shift. |
+| 2026-09-18 | `CURRENT` | **Fix Duplicated Form Process Re-linking:** (1) In `Dashboard.tsx`, fixed process persistence by replacing non-existent `PUT /api/processes/:id` (404) with `POST /api/processes` and added error handling. (2) Replaced `getRepresentative` lookup with direct process matching to prevent multi-version step divergence. (3) Extracted pure utility `linkDuplicatedFormToSteps` in `formUtils.ts` (Rule 13.8). (4) Added backend defensive alias `PUT /api/processes/:id` in `server.cjs`. |

@@ -1745,6 +1745,14 @@ app.post('/api/processes', async (req, res) => {
   }
 });
 
+// PUT /api/processes/:id - RESTful alias forwarding to POST /api/processes
+app.put('/api/processes/:id', (req, res, next) => {
+  req.body = { ...req.body, id: req.params.id };
+  req.url = '/api/processes';
+  req.method = 'POST';
+  app.handle(req, res, next);
+});
+
 // POST /api/processes/:id/new-version - Create a new draft version from an existing process version
 app.post('/api/processes/:id/new-version', async (req, res) => {
   try {
