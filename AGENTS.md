@@ -1,15 +1,13 @@
 # Project Rules & Customizations
 
-> **Đây là nguồn quy tắc duy nhất (single source of truth) cho mọi AI agent làm việc trên
-> repo này** — Claude Code, Google Antigravity, hoặc bất kỳ agent nào khác.
-> Không tạo bản sao của tệp này. Quy tắc riêng cho từng agent nằm ở mục cuối cùng.
+> **Nguồn quy tắc duy nhất (Single Source of Truth) cho mọi AI agent làm việc trên repo này** — Claude Code, Google Antigravity, hoặc bất kỳ agent nào khác. Không tạo bản sao của tệp này.
 
 ---
 
-## 1. Module Ownership Map
+## PHẦN I: BẢN ĐỒ SỞ HỮU & TÀI LIỆU THIẾT KẾ (OWNERSHIP & DOCS)
 
-Mỗi tệp mã nguồn thuộc về **đúng một** module, và mỗi module có **đúng một** tài liệu
-thiết kế chính thức. Bảng này là nguồn tra cứu duy nhất cho quan hệ file → doc.
+### 1. Module Ownership Map
+Mỗi tệp mã nguồn thuộc về **đúng một** module, và mỗi module có **đúng một** tài liệu thiết kế chính thức:
 
 | Module | Tệp mã nguồn thuộc module | Tài liệu thiết kế |
 |---|---|---|
@@ -21,368 +19,110 @@ thiết kế chính thức. Bảng này là nguồn tra cứu duy nhất cho qua
 | **Backend & Persistence** | `server.cjs`, `api/index.js` | [`DESIGN_BACKEND.md`](DESIGN_BACKEND.md) |
 | **Design System** | `src/index.css`, `src/print.css`, `src/App.css` | [`DESIGN_UI_UX.md`](DESIGN_UI_UX.md) |
 
-### Shared types (`src/types.ts`)
+#### Shared types (`src/types.ts`)
+Mỗi interface dùng chung có **đúng một** tài liệu chủ:
+- `Process`, `ProcessStep`, `SOPSignOff`, `SOPSignOffs`, `FormField`, `FormDesignerField`, `RadioOption` ➔ [`DESIGN_PROCESS_DESIGNER.md`](DESIGN_PROCESS_DESIGNER.md)
+- `FormTemplateISO`, `LayoutBlockISO`, `FormFieldISO`, `FormRevisionEntry`, `MatrixConfigISO`, `TableColumnConfig`, `TableRowConfig`, `SubtableColumn`, `ColumnSummaryRowConfig`, `TitleFormatISO`, `LinkedWorkStepInfo` ➔ [`DESIGN_FORM_DESIGNER.md`](DESIGN_FORM_DESIGNER.md)
+- `Submission`, `SubmissionFieldSnapshot` ➔ [`DESIGN_FORM_OPERATIONS.md`](DESIGN_FORM_OPERATIONS.md)
+- `ReportTemplateISO`, `ReportBlockConfig`, `ReportBlockType`, `ReportRevisionEntry`, `ReportDataModel`, `FieldEvaluationResult`, `ReportFieldRuleOverride` ➔ [`DESIGN_REPORT_BUILDER.md`](DESIGN_REPORT_BUILDER.md)
+*(Lưu ý: User, Role, Permissions Matrix nằm trong `AuthContext.tsx` và thuộc `DESIGN_PLATFORM_SHELL.md`)*
 
-`src/types.ts` được nhiều module dùng chung. Để tránh tình trạng cùng một thay đổi
-được ghi vào nhiều tài liệu khác nhau, **mỗi interface có đúng một tài liệu chủ**:
-
-| Interface / Type | Tài liệu chủ |
-|---|---|
-| `Process`, `ProcessStep`, `SOPSignOff`, `SOPSignOffs`, `FormField`, `FormDesignerField`, `RadioOption` | `DESIGN_PROCESS_DESIGNER.md` |
-| `FormTemplateISO`, `LayoutBlockISO`, `FormFieldISO`, `FormRevisionEntry`, `MatrixConfigISO`, `TableColumnConfig`, `TableRowConfig`, `SubtableColumn`, `ColumnSummaryRowConfig`, `TitleFormatISO` | `DESIGN_FORM_DESIGNER.md` |
-| `Submission`, `SubmissionFieldSnapshot` | `DESIGN_FORM_OPERATIONS.md` |
-| `ReportTemplateISO`, `ReportBlockConfig`, `ReportBlockType`, `ReportRevisionEntry`, `ReportDataModel`, `FieldEvaluationResult`, `ReportFieldRuleOverride` | `DESIGN_REPORT_BUILDER.md` |
-
-> `User`, `Role`, `RoleId`, `PermissionKey`, `RolePermissionsMatrix` **không** nằm trong
-> `types.ts` — chúng được khai báo trong `src/context/AuthContext.tsx` và thuộc
-> `DESIGN_PLATFORM_SHELL.md`.
-
----
-
-## 2. Đọc tài liệu trước khi sửa mã (Read Before Edit)
-
-Mục đích của bộ tài liệu thiết kế là để agent **không phải đọc lại toàn bộ codebase**.
-Vì vậy:
-
-- **Hành động bắt buộc**: Trước khi sửa bất kỳ tệp nào trong bảng Module Ownership Map,
-  agent **PHẢI** đọc tài liệu thiết kế của module đó trước.
-- Sau khi đọc tài liệu, chỉ đọc phần mã nguồn thực sự liên quan đến thay đổi
-  (hàm/component cụ thể), **không** đọc toàn bộ tệp.
-- Nếu tài liệu mâu thuẫn với mã nguồn: **mã nguồn là đúng**. Sửa tài liệu ngay trong
-  cùng session đó và ghi vào Change Log.
-- Nếu tài liệu thiếu thông tin cần thiết: bổ sung phần còn thiếu sau khi đã đọc mã nguồn,
-  để session sau không phải đọc lại.
+### 2. Kỷ luật Tài liệu Thiết kế (Documentation Discipline)
+- **Đọc trước khi sửa (Read Before Edit):** Trước khi can thiệp vào file mã nguồn, BẮT BUỘC đọc tài liệu thiết kế của module đó trước. Chỉ đọc symbol liên quan, không đọc cả file. Nếu tài liệu mâu thuẫn mã nguồn: mã nguồn là đúng, cập nhật tài liệu ngay.
+- **Cập nhật sau khi sửa (Update After Edit):** Bắt buộc cập nhật tài liệu thiết kế trong cùng commit:
+  1. *Cập nhật nội dung:* Data model, interface contracts, flow, technical debt bị ảnh hưởng.
+  2. *Header Block `Verified At Commit`:* Ghi rõ ngày và tên các mục đã kiểm chứng thực tế:
+     `| **Verified At Commit** | (2026-09-18) — FormBuilderProps linkedWorkSteps & UI hint verified against source |`
+  3. *Change Log:* Chỉ ghi thay đổi kiến trúc/schema/invariant (tối đa ~15 dòng, xóa dòng cũ khi vượt, không ghi SHA commit, không ghi UI cosmetic).
+- **Cấm ghi số dòng (No Line Numbers):** Tuyệt đối không ghi số dòng (`line 45-60`) vào tài liệu vì sẽ lệch khi commit. Luôn tham chiếu bằng tên symbol (`interface FormBuilderProps`, `function extractLinkedWorkSteps`).
 
 ---
 
-## 3. Cập nhật tài liệu sau khi sửa mã (Update After Edit)
+## PHẦN II: TIÊU CHUẨN GIAO DIỆN & KIẾN TRÚC MÃ NGUỒN (UI/UX & CODE QUALITY)
 
-Khi agent thực hiện thay đổi **có nghĩa** (feature mới, sửa lỗi, refactor, điều chỉnh UI)
-lên bất kỳ tệp nào trong bảng Module Ownership Map, agent **PHẢI**:
+### 3. Tuân thủ Master Design (UI/UX Compliance)
+- **CSS Tokens & Utility Classes:** Bắt buộc dùng CSS variables (`var(--primary)`, `var(--neutral-bg)`, …) và utility class (`.paper-card`, `.btn`) trong `src/index.css`. CẤM hardcode inline mã màu (ví dụ `#10a3a3`).
+- **Nghiêm cấm `window.confirm()` / `alert()`:** Mọi xác nhận BẮT BUỘC dùng component dùng chung `ConfirmModal` (`src/components/common/ConfirmModal.tsx`).
+- **Chuyển đổi lũy tiến (Progressive Adoption):** Khi sửa một component có `window.confirm()` cũ, bắt buộc chuyển toàn bộ sang `ConfirmModal`.
+- **Lan truyền đồng bộ (Propagation):** Đổi cấu trúc HTML/class chuẩn phải cập nhật đồng bộ các component tương tự. Thêm CSS token mới phải ghi nhận vào `DESIGN_UI_UX.md`.
 
-1. **Cập nhật phần bị ảnh hưởng** trong tài liệu thiết kế tương ứng — data model, flows,
-   interface contracts, technical debt. Đây là bước quan trọng nhất.
-2. **Cập nhật Header Block**: trường `Verified At Commit` phải ghi rõ *đã kiểm chứng mục nào*,
-   không chỉ ghi ngày. Xem mục 4 bên dưới.
-3. **Thêm một dòng vào Change Log** — chỉ khi thay đổi mang tính kiến trúc. Xem mục 5.
+### 4. Tiêu chuẩn Kiến trúc & Chất lượng Mã nguồn (Architecture Invariants)
+- **4.1 Tách biệt Logic Thuần túy (Pure Utility Extraction — Rule 13.8):** Mọi logic tính toán, mảng (sort, filter, reorder), format, hoặc chuẩn hóa schema KHÔNG phụ thuộc React state/JSX BẮT BUỘC phải tách thành pure function trong module utility (`src/utils/formUtils.ts`, `src/utils/bpmnXmlGenerator.ts`), có types đầy đủ. Component monolith chỉ đảm nhận hiển thị và event delegation.
+- **4.2 Triệt tiêu Mã chết (Dead-Code Pruning — Rule 13.7):** Khi nâng cấp hoặc thay thế tính năng, BẮT BUỘC rà soát toàn bộ call-sites và xóa sạch hàm cũ, state cũ, props, hoặc biến không dùng (`TS6133`) trong cùng 1 commit. Cấm để lại orphaned code.
+- **4.3 Kiểm soát Phình to Monolith (Monolith Guard — Rule 13.9):** Với các file monolith lớn (>3.000 dòng, đặc biệt `FormBuilder.tsx`), khi thêm phân hệ khép kín mới (modal lớn, inspector panel độc lập) có khối lượng dự kiến >150 dòng JSX, BẮT BUỘC tách sub-component riêng (`src/components/form/`). Không tự ý refactor diện rộng ngoài phạm vi task để đảm bảo zero regression.
+
+### 5. Quy tắc An toàn khi Sửa mã (Safe Patching Invariants)
+- **5.1 Đọc trước khi viết replacement (Rule 12.1):** Luôn `view_file` đúng vùng cần sửa và copy chính xác whitespace/indentation. CẤM viết `TargetContent` từ trí nhớ.
+- **5.2 Ưu tiên `replace_file_content` gốc (Rule 12.2):** Chỉ dùng Python script khi target string trùng lặp nhiều nơi hoặc cần regex. Khi dùng Python, ưu tiên `content.replace(exact_old, exact_new, 1)`, cấm index slicing.
+- **5.3 Giới hạn Chunk Patch < 50 dòng (Rule 12.6):** Trên file monolith lớn (>2.000 dòng), mỗi lần thay thế KHÔNG ĐƯỢC VƯỢT QUÁ 50 dòng code, luôn bao gồm tối thiểu 3 dòng context độc nhất trước và sau.
+- **5.4 Kiểm tra TypeScript tức thì sau mỗi file (Rule 12.3):** Sau khi sửa xong mỗi file `.ts`/`.tsx`, BẮT BUỘC chạy ngay `npx tsc --noEmit`. Lỗi phát sinh phải sửa dứt điểm ngay tại file đó trước khi sang file tiếp theo.
+- **5.5 Không chạy Python inline chứa JSX (Rule 12.4):** Khi script chứa `()`, `=>`, `{}`, `<>`, cấm chạy `python -c "..."` trên PowerShell. Bắt buộc lưu ra file `.py` tạm rồi thực thi.
 
 ---
 
-## 4. Trường `Verified At Commit` là một lời cam kết, không phải dấu thời gian
+## PHẦN III: QUY TRÌNH 2 GIAI ĐOẠN & ATOMIC SINGLE COMMIT (WORKFLOW)
 
-Không được cập nhật ngày một cách phản xạ. Trường này phải nêu rõ phạm vi đã kiểm chứng
-và ngày kiểm chứng tại đó — đúng một dòng duy nhất trong Header Block:
+### 6. Quy trình Lập Kế hoạch & Thực thi 2 Giai đoạn (Two-Stage Planning)
 
-```
-| **Verified At Commit** | (2026-08-26) — Sections 4 and 6 checked against source |
+```mermaid
+flowchart TD
+    A["Giai đoạn 1: Kế hoạch Kiến trúc Sơ bộ"] -->|User duyệt Proceed| B["Giai đoạn 2: Chi tiết hóa Blueprint Nội bộ"]
+    B -->|Tự động chuyển tiếp| C["Giai đoạn 3: Thực thi Hàng loạt & 1 Commit Duy nhất"]
 ```
 
-Chỉ ghi tên những mục agent thực sự đã đọc và so với source trong lần đó. Các mục không
-kiểm chứng thì không được liệt kê, kể cả khi trước đó chúng đã từng đúng.
-
-Một ngày sai còn tệ hơn một ngày cũ, vì nó tạo ra sự tin tưởng không có căn cứ.
-
----
-
-## 5. Change Log: chỉ ghi thay đổi kiến trúc, tối đa ~15 dòng
-
-Change Log **không** phải là bản sao thứ hai của `git log`.
-
-- **Chỉ ghi**: thay đổi schema, interface contract, invariant, loại block mới,
-  quyết định kiến trúc, hoặc bug có nguyên nhân gốc đáng ghi nhớ.
-- **Không ghi**: đổi nhãn UI, đổi padding, đổi màu, đổi text nút bấm.
-  Những thay đổi này đã có trong `git log`.
-- **Giới hạn ~15 dòng**. Khi vượt quá, xoá dòng cũ nhất.
-- **Quy tắc Commit Nguyên tử (Atomic Single Commit — Tuyệt đối không tạo commit phụ)**:
-  Mọi sửa đổi mã nguồn và tài liệu thiết kế PHẢI được gộp trong **đúng 1 commit duy nhất**
-  khi push lên Git. **Tuyệt đối cấm** tạo commit thứ hai chỉ để sửa mã SHA trong tài liệu
-  nhằm tránh kích hoạt lãng phí các lượt build CI/CD (Vercel / GitHub Actions). Cột định danh
-  trong Change Log ghi ngày và tiêu đề thay đổi rõ ràng.
-
-```
-| Date | Change |
-|---|---|
-| 2026-08-26 | **Tên thay đổi kiến trúc:** Mô tả chi tiết... |
-```
-
----
-
-## 6. Không ghi số dòng vào tài liệu (No Line Numbers)
-
-- **Cấm** ghi số dòng trong tài liệu thiết kế (`line 28–41`, `lines 155–162`).
-  Số dòng lệch ngay khi có commit tiếp theo, và một con trỏ sai còn tệ hơn không có
-  con trỏ nào — agent nhảy sai chỗ rồi vẫn phải đọc lại cả tệp.
-- **Thay bằng tên symbol** để agent tự tìm được: `interface FormBuilderProps`,
-  `function handleLogoUpload`, `const DEFAULT_LAYOUT_CONSTANTS`.
-- **Cấm** ghi số dòng hoặc kích thước tệp trong bảng Quick File Index.
-
----
-
-## 7. Tuân thủ Master Design (UI/UX Compliance)
-
-- Khi tạo hoặc sửa UI, agent **bắt buộc** dùng CSS variables (`var(--primary)`,
-  `var(--neutral-bg)`, …) và utility class lõi (`.paper-card`, `.btn`) đã định nghĩa
-  trong `src/index.css`. Luôn tham chiếu [`DESIGN_UI_UX.md`](DESIGN_UI_UX.md).
-
-- **Cấm** inline style với mã màu hardcode (ví dụ `#10a3a3`) trừ trường hợp bất khả kháng.
-- **Nghiêm cấm dùng window.confirm() / alert()**: Nghiêm cấm viết mới `window.confirm()` hoặc `window.alert()`. Mọi xác nhận phải thông qua component dùng chung `ConfirmModal` (`src/components/common/ConfirmModal.tsx`).
-- **Chiến lược chuyển đổi lũy tiến (Progressive Adoption)**: Khi sửa đổi/cập nhật tính năng trong một component có sẵn code `window.confirm()` cũ, **bắt buộc** phải convert toàn bộ các lệnh `window.confirm()` trong component đó sang `ConfirmModal`.
-- **Evolution**: Nếu thêm CSS variable global mới, utility class mới, hoặc thay đổi đáng kể
-  về thẩm mỹ, agent **bắt buộc** cập nhật `DESIGN_UI_UX.md` và ghi Change Log.
-- **Propagation**: Khi thay đổi **cấu trúc HTML / cách dùng class** của một UI pattern
-  chuẩn (ví dụ cấu trúc thẻ của form group, hoặc class của button), agent **bắt buộc**
-  quét toàn bộ mã nguồn và cập nhật cấu trúc mới cho tất cả component tương tự.
-
-
----
-
-## 8. Master Index (`README.md`)
-
-[`README.md`](README.md) là Master Index và System Architecture Overview.
-Agent **PHẢI** cập nhật `README.md` nếu: thêm module chức năng mới, thay đổi Tech Stack
-(cài thêm thư viện lõi), hoặc thay đổi luồng khởi chạy (setup/run commands).
-
----
-
-## 9. Quy tắc riêng theo Agent (Agent-Specific Overlays)
-
-Các mục 1–8 áp dụng cho **mọi** agent. Phần dưới đây chỉ áp dụng cho một agent cụ thể;
-agent khác bỏ qua.
-
-### Google Antigravity
-
-- **Model routing**: Mặc định dùng Gemini (Flash/Pro) cho phần lớn tác vụ thiết kế giao diện,
-  lập trình, viết kiểm thử, chạy lệnh terminal và thảo luận, để tiết kiệm quota của model
-  reasoning cao cấp.
-- **Phân chia vai trò cộng tác**:
-  - *Người dùng làm Kiến trúc sư (The Thinker)*: dẫn dắt, cung cấp giải pháp logic cốt lõi
-    và hướng đi chi tiết.
-  - *Agent làm Trợ lý thực thi (The Assistant)*: viết mã, kiểm tra build, viết tài liệu và
-    giải đáp thông tin dưới sự kiểm soát của Người dùng.
-- **Quy trình Lập Kế hoạch & Thực thi**: Xem Mục 11 — áp dụng bắt buộc cho mọi task.
-- **Git Push Procedure**: Xem Mục 10 — áp dụng bắt buộc cho mọi lần push.
-
----
-
-## 10. Quy trình Git Push Chuẩn (Native Git Command Procedure)
-
-Sử dụng trực tiếp các lệnh `git` nguyên bản trong PowerShell (dùng dấu chấm phẩy `;` để phân tách lệnh trong 1 lần gọi `run_command` duy nhất). Việc này giúp câu lệnh gọn gàng, trực quan và không phụ thuộc vào `cmd /c`.
-
-### Quy trình chuẩn (Chỉnh sửa file đã tracked)
-
-Chạy 1 lần `run_command` duy nhất (WaitMsBeforeAsync: 25 000 ms):
-
-```powershell
-git commit -a -m "<message>"; git push origin main; git log -n 1 --oneline
-```
-
-### Quy trình cho file mới (Chưa tracked)
-
-Nếu có file mới chưa được Git theo dõi:
-
-```powershell
-git add <file cụ thể>; git commit -m "<message>"; git push origin main; git log -n 1 --oneline
-```
-
-### Ràng buộc bắt buộc
-
-1. **Phân tách lệnh bằng `;` (Semicolon):** Trong Windows PowerShell, dấu `;` cho phép thực thi chuỗi lệnh liên tiếp một cách an toàn và gọn gàng.
-2. **`WaitMsBeforeAsync`:** Set `25 000` ms (25 giây) cho lệnh gộp chuỗi để lệnh thực thi hoàn tất đồng bộ và trả về kết quả ngay lập tức.
-3. **Xử lý sự cố `index.lock` (nếu có):** Chạy lệnh tự động dọn lock nếu cần:
-   ```powershell
-   Remove-Item -Path .git\index.lock -Force -ErrorAction SilentlyContinue
-   ```
-4. **Cam kết 1 Commit duy nhất (Atomic Single Commit):** Luôn gộp tất cả mã nguồn và tài liệu liên quan vào đúng **1 lần commit & push duy nhất**. Tuyệt đối không tạo commit phụ thứ hai để tránh lãng phí build trên CI/CD.
-
----
-
-## 11. Quy trình Lập Kế hoạch & Thực thi 2 Giai đoạn (Two-Stage Planning & Batch Execution)
-
-Để tối ưu hóa thời gian xử lý, bảo toàn context window và tránh làm phiền Người dùng bằng việc duyệt code lắt nhắt hoặc sửa code dò dẫm từng bước, mọi agent phải tuân thủ nghiêm ngặt quy trình sau:
-
-### Giai đoạn 1: Kế hoạch Kiến trúc Sơ bộ (Architectural Implementation Plan) — Trước khi duyệt `Proceed`
-- **Mục tiêu:** Cung cấp bức tranh toàn cảnh ở mức kiến trúc để Người dùng (The Thinker) nắm bắt giải pháp và định hướng.
-- **Nội dung ghi vào `implementation_plan.md`:**
-  - Tóm tắt vấn đề & Phân tích nguyên nhân gốc (Root Cause Analysis).
-  - Danh sách các file bị ảnh hưởng (`[MODIFY]`, `[NEW]`, `[DELETE]`).
-  - Hướng tiếp cận logic tổng quan & các điểm rủi ro / breaking change / schema impact.
+#### Giai đoạn 1: Kế hoạch Kiến trúc Sơ bộ (Trước khi nhận `Proceed`)
+- **Mục tiêu:** Cung cấp bức tranh tổng quan để Người dùng (The Thinker) duyệt nhanh định hướng kiến trúc.
+- **Nội dung `implementation_plan.md`:**
+  - Tóm tắt vấn đề & Nguyên nhân gốc (Root Cause).
+  - Danh sách file ảnh hưởng (`[MODIFY]`, `[NEW]`, `[DELETE]`).
+  - Hướng tiếp cận logic, breaking change, schema impact & Mockup giao diện (nếu có UI).
   - Kế hoạch kiểm chứng (Verification Plan).
-- **Nguyên tắc cốt lõi:** **CHƯA CẦN viết chi tiết từng khối code thay thế dài dòng** ở giai đoạn này. Mục đích là để Người dùng review nhanh ý tưởng, giải pháp kiến trúc và bấm `Proceed` không mất thời gian đọc diffs phức tạp.
-- **Hành động:** Dừng lại chờ Người dùng duyệt (`Proceed`).
+- **RÀNG BUỘC CỨNG (NEVER):** **TUYỆT ĐỐI CẤM viết các đoạn code thay thế dài dòng** ở giai đoạn này để tránh kéo dài thời gian review và gây nhiễu định hướng.
+- **Hành động:** Đặt `RequestFeedback: true` và dừng lại chờ Người dùng bấm `Proceed`.
 
-### Giai đoạn 2: Chi tiết hóa Blueprint Code (Detailed Code Blueprinting) — Ngay sau khi nhận `Proceed`
-- **Mục tiêu:** Chuẩn bị sẵn sàng 100% các khối code trước khi can thiệp vào mã nguồn thực tế.
-- **Hành động bắt buộc:** Sau khi Người dùng duyệt `Proceed`, **TUYỆT ĐỐI KHÔNG vội vàng sửa code ngay**.
-- Agent phải thực hiện:
-  0. **Đọc `SESSION_LOG.md`**, mục `Bài học Tích lũy` — đối chiếu với danh sách
-     file cần sửa để áp dụng biện pháp phòng ngừa tương ứng.
-  1. Đọc chính xác các vùng mã nguồn liên quan trong codebase thực tế (bằng `view_file` / search targeted).
-  2. Soạn thảo chi tiết các đoạn code thay thế hoàn chỉnh (Exact Code Blocks / Replacement Snippets): hook, import, logic xử lý, script migration DB (nếu có).
-  3. **Cập nhật ngay các khối code chi tiết này vào `implementation_plan.md`**.
-- **Lợi ích:** Tạo ra một bản thiết kế bất biến, chuẩn xác, sẵn sàng cho việc drop-in code vào file mà không phải vừa sửa vừa mò mẫm hay gặp lỗi bất ngờ.
+#### Giai đoạn 2: Chi tiết hóa Blueprint Nội bộ (Ngay sau khi nhận `Proceed`)
+- **Mục tiêu:** Chuẩn bị sẵn sàng 100% code blocks, rà soát dead-code và unused variables trước khi chạm vào mã nguồn thực tế.
+- **Hành động bắt buộc (TUYỆT ĐỐI KHÔNG sửa code ngay):**
+  1. Đọc `SESSION_LOG.md` (mục Bài học Tích lũy) đối chiếu các file cần sửa.
+  2. Đọc chính xác các vùng mã nguồn thực tế bằng `view_file`.
+  3. Soạn Exact Code Blocks hoàn chỉnh (import, hook, logic, JSX).
+  4. Cập nhật blueprint vào `implementation_plan.md` với **`RequestFeedback: false`**.
+- **Chuyển tiếp tự động:** Ngay sau khi lưu blueprint, tự động chuyển thẳng sang Giai đoạn 3 mà **KHÔNG dừng lại hỏi Người dùng lần 2** (trừ trường hợp phát sinh breaking change ngoài dự kiến).
 
-### Giai đoạn 3: Thực thi Hàng loạt một lượt (Batch Execution & Single Atomic Push)
-- **Mục tiêu:** Sửa code liên tục, dứt điểm, không lặp lại vòng lặp hỏi - đáp ngắt quãng, và gom toàn bộ vào đúng 1 commit duy nhất.
-- **Trình tự thực thi bắt buộc:**
-  1. Tuần tự chỉnh sửa tất cả các file mã nguồn theo đúng các khối code đã định nghĩa trong `implementation_plan.md` (bằng `replace_file_content` hoặc `write_to_file`).
-  2. Chạy migration / script cập nhật database (nếu có).
-  3. Sau mỗi file `.tsx`/`.ts`, chạy `npx tsc --noEmit` (Mục 12.3). Chạy `npm run build` ở bước cuối để xác nhận Vite bundle hoàn tất 100%.
-  4. Cập nhật tài liệu thiết kế module tương ứng (`DESIGN_*.md`).
-  5. Chạy `scripts/measure_session.py` để đo KPIs phiên làm việc, dán Performance Scorecard vào `walkthrough.md`, phân tích lỗi và cập nhật `SESSION_LOG.md` (Mục 13.2).
-  6. **BƯỚC CUỐI CÙNG (Đúng 1 Commit Nguyên tử Duy nhất):** Sau khi toàn bộ code, tài liệu và `SESSION_LOG.md` đã hoàn tất, chạy đúng 1 lệnh native Git commit & push duy nhất theo Mục 10:
-     ```powershell
-     git commit -a -m "<message>"; git push origin main; git log -n 1 --oneline
-     ```
-     **Tuyệt đối cấm** tạo commit thứ hai sau bước này để tránh kích hoạt deploy dư thừa trên Vercel / CI.
+#### Giai đoạn 3: Thực thi Hàng loạt một lượt (Batch Execution)
+1. Chỉnh sửa tuần tự các file mã nguồn theo đúng blueprint (tuân thủ Rule Chunk < 50 dòng).
+2. Chạy `npx tsc --noEmit` sau mỗi file; chạy `npm run build` ở bước cuối xác nhận Vite bundle pass 100%.
+3. Cập nhật tài liệu thiết kế module tương ứng (`DESIGN_*.md`).
+4. Chạy `python scripts/measure_session.py <conversation-id>`, dán Performance Scorecard vào `walkthrough.md`, phân tích lỗi và cập nhật `SESSION_LOG.md`.
+5. **BƯỚC CUỐI CÙNG:** Chạy đúng **1 lần commit & push nguyên tử duy nhất** theo Mục 7.
 
----
-
-## 12. Quy tắc An toàn khi Sửa mã (Safe Code Patching)
-
-Các quy tắc dưới đây rút ra từ post-mortem phiên thực thi trước đó, nhằm phòng ngừa
-các lỗi lặp lại khi sửa code trong file lớn (monolith).
-
-### 12.1 Đọc trước khi viết replacement
-
-Trước khi viết bất kỳ `TargetContent` nào cho `replace_file_content`, agent **PHẢI**
-`view_file` đúng vùng code cần patch và copy-paste chính xác target string từ output.
-**Cấm** viết target string từ trí nhớ hoặc từ blueprint — whitespace và indentation
-phải khớp 100%.
-
-### 12.2 Ưu tiên `replace_file_content` gốc
-
-- Mặc định luôn dùng tool `replace_file_content` do platform cung cấp.
-- **Chỉ** dùng Python patch script khi `replace_file_content` thất bại (ví dụ: target
-  string trùng lặp nhiều nơi, hoặc cần regex).
-- Khi buộc dùng Python, **ưu tiên** `content.replace(exact_old, exact_new, 1)`.
-  **Tránh** index slicing `content[:start] + new + content[end:]` vì dễ sai biên,
-  gây duplicate closing tags.
-
-### 12.3 Kiểm tra TypeScript sau mỗi file
-
-Sau khi patch xong **mỗi file `.tsx` / `.ts`**, chạy ngay:
-
-```powershell
-npx tsc --noEmit
-```
-
-Nếu có lỗi, sửa ngay file đó trước khi chuyển sang file tiếp theo.
-**Cấm** gom tất cả rồi chạy build cuối cùng — lỗi tích lũy gây khó debug.
-
-### 12.4 Không chạy Python inline chứa JSX
-
-Khi nội dung Python chứa ký tự `()`, `=>`, `{}`, `<>` (thường gặp trong JSX):
-- **Cấm** `python -c "..."` — PowerShell sẽ parse sai.
-- **Bắt buộc** ghi ra file `.py` rồi chạy `python path/to/script.py`.
-
-### 12.5 Assertion cấu trúc sau patch
-
-Khi dùng Python patch script, sau khi ghi file, đếm các marker cấu trúc quan trọng
-(ví dụ `</div>`, `});`, `})()`) trước và sau patch. Nếu count thay đổi bất thường
-(tăng lên), dừng lại và kiểm tra duplicate.
-
-### 12.6 Giới hạn độ dài Chunk Patch (Chunk Bounding Invariant)
-
-- Khi dùng `replace_file_content` trên các file monolith lớn (>2.000 dòng, đặc biệt là `FormBuilder.tsx`), mỗi lần thay thế **không được vượt quá 50 dòng** code.
-- Nếu cần thay đổi một khối lớn hơn, **bắt buộc** phải chia nhỏ thành các lần thay thế độc lập, có ngữ cảnh (context) trước và sau tối thiểu 3 dòng độc nhất để loại trừ triệt để nguy cơ khớp nhầm vị trí hoặc trôi thụt lề (indentation drift).
-- Quy tắc này tiến hóa trực tiếp từ **Bài học số 7** trong `SESSION_LOG.md`.
+### 7. Quy trình Native Git Push Chuẩn (Atomic Single Commit)
+- **Ràng buộc bất biến:** Toàn bộ Code + Tài liệu thiết kế + `SESSION_LOG.md` PHẢI được gộp vào **ĐÚNG 1 COMMIT DUY NHẤT**. Tuyệt đối CẤM tạo commit thứ hai sau khi push để triệt tiêu việc kích hoạt deploy dư thừa trên Vercel / CI.
+- **Lệnh thực thi duy nhất trong PowerShell** (`WaitMsBeforeAsync: 25000` ms):
+  ```powershell
+  git commit -a -m "<message>"; git push origin main; git log -n 1 --oneline
+  ```
+- *Nếu có file mới chưa tracked:* `git add <files cụ thể>; git commit -m "..."; git push origin main; git log -n 1 --oneline`.
+- *Tự dọn lock (nếu có sự cố):* `Remove-Item -Path .git\index.lock -Force -ErrorAction SilentlyContinue`.
 
 ---
 
-## 13. Vòng lặp Tự học Liên tục (Continuous Improvement Loop)
+## PHẦN IV: VÒNG LẶP HỌC HỎI & BỘ NHỚ PHIÊN (CONTINUOUS IMPROVEMENT)
 
-Mục đích: Agent tự cải thiện performance qua từng phiên chạy bằng cách ghi nhận lỗi,
-rút bài học, và đo lường xu hướng cải thiện. File [`SESSION_LOG.md`](SESSION_LOG.md)
-ở repo root là bộ nhớ phiên (episodic memory) duy nhất.
+### 8. Vòng lặp Tự học Liên tục (Continuous Improvement Loop)
+Bộ nhớ phiên duy nhất là [`SESSION_LOG.md`](SESSION_LOG.md) tại repo root:
+- **Trước khi làm (Giai đoạn 2):** Bắt buộc đọc `## Bài học Tích lũy` để phòng ngừa lỗi cũ lặp lại.
+- **Trước khi push (Giai đoạn 3):**
+  1. *Đo KPIs bằng script:* Chạy `python scripts/measure_session.py <conversation-id>` (không đếm thủ công — Rule 13.6 Script-First). Dán Scorecard vào `walkthrough.md`.
+  2. *Phân tích lỗi (Reasoning task):* Phân loại lỗi theo Error Taxonomy:
+     - `CTX`: Đọc sai ngữ cảnh, lệch whitespace.
+     - `TOOL`: Dùng tool sai, index slicing, inline python parse error.
+     - `LOGIC`: Lỗi điều kiện, thiếu null-check.
+     - `SCOPE`: Sót file, sót context.
+     - `ENV`: Mạng, lock, timeout.
+     - `BLOAT`: Phình to mã, sót mã chết (`TS6133`), không tách utility.
+  3. *Ghi nhận:* Thêm entry mới vào đầu `## Nhật ký Phiên` (giữ tối đa 10 entries gần nhất), cập nhật `## Bài học Tích lũy` (giữ tối đa 20 entries).
+  4. *Quy tắc tiến hóa (Rule Evolution):* Khi cùng 1 loại lỗi lặp lại **≥ 2 lần**, BẮT BUỘC đề xuất cập nhật thành quy tắc cố định trong `AGENTS.md`.
 
-### 13.1 Trước khi thực thi (PLAN — Đọc bài học cũ)
-
-Ở Giai đoạn 2 của Mục 11 (sau khi nhận Proceed), trước khi đọc code:
-1. **Đọc `SESSION_LOG.md`**, mục `## Bài học Tích lũy` — đây là danh sách
-   các lỗi đã gặp kèm biện pháp phòng ngừa.
-2. Đối chiếu bài học với file cần sửa: nếu file xuất hiện trong lịch sử lỗi,
-   áp dụng biện pháp phòng ngừa tương ứng.
-
-### 13.2 Hoàn tất Phiên & Ghi chép (CHECK + ACT — Đo và ghi trước khi Push)
-
-Ngay sau khi build Vite thành công và trước khi thực hiện Git push, agent **PHẢI** thực hiện:
-
-#### A. Đo KPIs tự động bằng script
-
-Chạy `scripts/measure_session.py` với conversation ID hiện tại:
-
-```powershell
-python scripts/measure_session.py <conversation-id> [--start-step N] [--end-step M]
-```
-
-Script sẽ đọc transcript và xuất ra Performance Scorecard.
-Paste kết quả vào `walkthrough.md`.
-
-#### B. Agent phân tích & ghi bài học (reasoning task)
-
-Dựa trên scorecard từ script + quan sát trong session, agent thực hiện:
-1. Phân loại lỗi phát sinh theo Error Taxonomy (Mục 13.3).
-2. Xác định lỗi nào là **mới** vs **lặp lại** (so với `SESSION_LOG.md`).
-3. Đề xuất biện pháp phòng ngừa cho lỗi mới.
-4. Cập nhật `SESSION_LOG.md`: thêm entry mới vào `Nhật ký Phiên`, bổ sung lỗi mới vào `Bài học Tích lũy`.
-
-#### C. Push Nguyên tử Duy nhất (Single Atomic Push)
-Sau khi `SESSION_LOG.md`, `walkthrough.md` và tài liệu thiết kế đã cập nhật hoàn tất, thực hiện đúng **1 lần commit & push duy nhất** theo Mục 10. **Tuyệt đối cấm commit thêm lần thứ hai sau khi đã push.**
-
-### 13.3 Phân loại lỗi (Error Taxonomy)
-
-Mỗi lỗi ghi vào `SESSION_LOG.md` phải được phân loại theo 1 trong 6 nhóm:
-
-| Mã | Nhóm | Ví dụ |
-|---|---|---|
-| `CTX` | Context / Đọc sai ngữ cảnh | Viết target string từ trí nhớ, whitespace sai |
-| `TOOL` | Dùng tool sai cách | Python inline trong PowerShell, index slicing sai biên |
-| `LOGIC` | Lỗi logic code | Thiếu null check, sai điều kiện, import sai |
-| `SCOPE` | Thiếu sót phạm vi | Quên patch 1 file, quên update 1 context |
-| `ENV` | Môi trường / Hạ tầng | Service unavailable, network timeout, disk lock |
-| `BLOAT` | Phình to mã nguồn / Bỏ sót mã chết | Bỏ sót hàm cũ không dùng (như `handleMoveColumn`), viết inline logic thuần túy thay vì tách utility, code trùng lặp |
-
-### 13.4 Quy tắc tiến hóa (Rule Evolution)
-
-Khi cùng một loại lỗi (`CTX`, `TOOL`, ...) xuất hiện **≥ 2 lần** trong
-`SESSION_LOG.md`, agent **PHẢI** đề xuất thêm quy tắc mới vào Section 12
-hoặc Section phù hợp khác trong `AGENTS.md`, để biến bài học thành quy tắc
-bắt buộc — không còn phụ thuộc vào việc agent có đọc SESSION_LOG hay không.
-
-### 13.5 Giới hạn kích thước
-
-- `## Bài học Tích lũy`: Tối đa **20 entries**. Khi vượt, gộp các entries
-  cùng nhóm thành 1 entry tổng hợp, hoặc chuyển thành quy tắc trong `AGENTS.md`
-  rồi xoá khỏi đây.
-- `## Nhật ký Phiên`: Tối đa **10 entries** gần nhất. Xoá entry cũ nhất khi vượt.
-
-### 13.6 Nguyên tắc Script-First
-
-Mọi tác vụ lặp lại, xác định, có đầu vào/đầu ra rõ ràng **PHẢI** được script hóa
-để giảm workload LLM và ổn định kết quả đầu ra. LLM chỉ tập trung vào tác vụ
-không thể thực hiện bằng script thông thường: phân tích nguyên nhân gốc, đánh giá
-thiết kế, đề xuất giải pháp sáng tạo, reasoning trên ngữ cảnh phức tạp.
-
-Áp dụng cho:
-- **Đo performance**: dùng `scripts/measure_session.py` (không đếm thủ công).
-- **Migration database**: viết script SQL/JS (không chạy từng lệnh thủ công).
-- **Batch file edits**: khi cần sửa cùng pattern ở nhiều file, viết script quét
-  và thay thế (không lặp lại `replace_file_content` cho từng file).
-- **Kiểm tra cấu trúc**: viết assertion script đếm marker (Mục 12.5).
-
-### 13.7 Nguyên tắc Triệt tiêu Mã chết (Dead-Code Pruning Invariant)
-
-- Khi thay thế hoặc nâng cấp một tính năng (ví dụ: chuyển từ nút bấm sang Drag-and-Drop, hoặc thay đổi sang cơ chế quản lý state mới), Agent **BẮT BUỘC** phải rà soát toàn bộ các call-site và xóa sạch các hàm cũ, state cũ, biến tạm hoặc props không còn được sử dụng trong **cùng 1 commit nguyên tử**.
-- Tuyệt đối cấm để lại hàm mồ côi (orphaned code) trong codebase, vừa làm rác file vừa dẫn đến lỗi `TS6133` (unused declaration) khi build.
-
-### 13.8 Nguyên tắc Tách biệt Logic Thuần túy (Pure Utility Extraction Invariant)
-
-- Mọi logic tính toán dữ liệu, biến đổi mảng (reordering, sorting, filtering, lookup), chuẩn hóa schema, hoặc định dạng chuỗi KHÔNG phụ thuộc trực tiếp vào React state hook hay JSX **BẮT BUỘC** phải được định nghĩa dưới dạng hàm thuần túy (pure function) trong module utility phù hợp (ví dụ: `src/utils/formUtils.ts`, `src/utils/bpmnXmlGenerator.ts`), kèm type interface đầy đủ.
-- Các file monolith giao diện (`FormBuilder.tsx`, `ProcessEditor.tsx`) chỉ đảm nhận vai trò hiển thị UI, ủy quyền sự kiện (event delegation) và đồng bộ state cấp cao. Không được nhồi các thuật toán phức tạp vào component.
-
-### 13.9 Nguyên tắc Kiểm soát Phình to Monolith & Ngưỡng Tách Component
-
-- Đối với các file monolith lớn (>3.000 dòng, đặc biệt `FormBuilder.tsx` hiện đã ~9.700 dòng):
-  1. Khi bổ sung một phân hệ giao diện mới có phạm vi khép kín (như một modal lớn, panel inspector cấu hình độc lập, hoặc editor chuyên biệt), nếu khối JSX dự kiến vượt quá ~150 dòng, Agent **BẮT BUỘC** phải cân nhắc tách thành sub-component riêng trong thư mục module (ví dụ: `src/components/form/`) thay vì tiếp tục nối dài file cha.
-  2. Tuân thủ triệt để **Ưu tiên 1**: Tính năng và zero regression là tối thượng. Không tự ý refactor diện rộng ngoài phạm vi yêu cầu hiện tại để tránh gây lỗi ngoài ý muốn.
-
+### 9. Master Index (`README.md`)
+Agent PHẢI cập nhật [`README.md`](README.md) nếu: thêm module chức năng mới, thay đổi Tech Stack lõi, hoặc thay đổi quy trình khởi chạy hệ thống.
