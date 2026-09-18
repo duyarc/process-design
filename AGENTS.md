@@ -222,14 +222,18 @@ git add <file cụ thể>; git commit -m "<message>"; git push origin main; git 
 - **Lợi ích:** Tạo ra một bản thiết kế bất biến, chuẩn xác, sẵn sàng cho việc drop-in code vào file mà không phải vừa sửa vừa mò mẫm hay gặp lỗi bất ngờ.
 
 ### Giai đoạn 3: Thực thi Hàng loạt một lượt (Batch Execution & Single Atomic Push)
-- **Mục tiêu:** Sửa code liên tục, dứt điểm, không lặp lại vòng lặp hỏi - đáp ngắt quãng.
-- **Trình tự thực thi:**
+- **Mục tiêu:** Sửa code liên tục, dứt điểm, không lặp lại vòng lặp hỏi - đáp ngắt quãng, và gom toàn bộ vào đúng 1 commit duy nhất.
+- **Trình tự thực thi bắt buộc:**
   1. Tuần tự chỉnh sửa tất cả các file mã nguồn theo đúng các khối code đã định nghĩa trong `implementation_plan.md` (bằng `replace_file_content` hoặc `write_to_file`).
   2. Chạy migration / script cập nhật database (nếu có).
-  3. Sau mỗi file `.tsx`/`.ts`, chạy `npx tsc --noEmit` (Mục 12.3). Chạy `npm run build` ở bước cuối để xác nhận Vite bundle.
-  4. Cập nhật tài liệu thiết kế module tương ứng (`DESIGN_*.md`) và tổng kết vào `walkthrough.md`.
-  5. Thực hiện đúng **1 lần commit & push nguyên tử duy nhất** theo Mục 10.
-  6. Chạy `scripts/measure_session.py` để đo KPIs tự động, ghi Performance Scorecard vào `walkthrough.md`, sau đó phân tích lỗi và cập nhật `SESSION_LOG.md` theo Mục 13.2.
+  3. Sau mỗi file `.tsx`/`.ts`, chạy `npx tsc --noEmit` (Mục 12.3). Chạy `npm run build` ở bước cuối để xác nhận Vite bundle hoàn tất 100%.
+  4. Cập nhật tài liệu thiết kế module tương ứng (`DESIGN_*.md`).
+  5. Chạy `scripts/measure_session.py` để đo KPIs phiên làm việc, dán Performance Scorecard vào `walkthrough.md`, phân tích lỗi và cập nhật `SESSION_LOG.md` (Mục 13.2).
+  6. **BƯỚC CUỐI CÙNG (Đúng 1 Commit Nguyên tử Duy nhất):** Sau khi toàn bộ code, tài liệu và `SESSION_LOG.md` đã hoàn tất, chạy đúng 1 lệnh native Git commit & push duy nhất theo Mục 10:
+     ```powershell
+     git commit -a -m "<message>"; git push origin main; git log -n 1 --oneline
+     ```
+     **Tuyệt đối cấm** tạo commit thứ hai sau bước này để tránh kích hoạt deploy dư thừa trên Vercel / CI.
 
 ---
 
@@ -299,9 +303,9 @@ rút bài học, và đo lường xu hướng cải thiện. File [`SESSION_LOG.
 2. Đối chiếu bài học với file cần sửa: nếu file xuất hiện trong lịch sử lỗi,
    áp dụng biện pháp phòng ngừa tương ứng.
 
-### 13.2 Sau khi thực thi (CHECK + ACT — Đo và ghi)
+### 13.2 Hoàn tất Phiên & Ghi chép (CHECK + ACT — Đo và ghi trước khi Push)
 
-Sau khi git push thành công, agent **PHẢI** thực hiện 2 việc:
+Ngay sau khi build Vite thành công và trước khi thực hiện Git push, agent **PHẢI** thực hiện:
 
 #### A. Đo KPIs tự động bằng script
 
@@ -320,8 +324,10 @@ Dựa trên scorecard từ script + quan sát trong session, agent thực hiện
 1. Phân loại lỗi phát sinh theo Error Taxonomy (Mục 13.3).
 2. Xác định lỗi nào là **mới** vs **lặp lại** (so với `SESSION_LOG.md`).
 3. Đề xuất biện pháp phòng ngừa cho lỗi mới.
-4. Cập nhật `SESSION_LOG.md`: thêm entry mới vào `Nhật ký Phiên`,
-   bổ sung lỗi mới vào `Bài học Tích lũy`.
+4. Cập nhật `SESSION_LOG.md`: thêm entry mới vào `Nhật ký Phiên`, bổ sung lỗi mới vào `Bài học Tích lũy`.
+
+#### C. Push Nguyên tử Duy nhất (Single Atomic Push)
+Sau khi `SESSION_LOG.md`, `walkthrough.md` và tài liệu thiết kế đã cập nhật hoàn tất, thực hiện đúng **1 lần commit & push duy nhất** theo Mục 10. **Tuyệt đối cấm commit thêm lần thứ hai sau khi đã push.**
 
 ### 13.3 Phân loại lỗi (Error Taxonomy)
 
