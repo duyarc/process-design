@@ -23,6 +23,13 @@ export interface ProcessStep {
   labelH?: number;
 }
 
+export interface LinkedWorkStepInfo {
+  id: string;
+  stepIndex: number;
+  action: string;
+  role: string;
+}
+
 export interface FormField {
   id: string;
   checkItem: string;

@@ -29,6 +29,33 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-17 — Dashboard & UI/UX: Actions Area Segmented Clusters & Hover-to-Reveal
+
+**Scope:** 5 files, 318 insertions, 163 deletions (`853a0aa`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian lập plan (Request → Proceed) | 5.5 min |
+| Thời gian thực thi (Proceed → Push) | 3.8 min |
+| Thời gian tổng (Request → Push) | 9.4 min |
+| Số file nguồn chỉnh sửa | 2 (`Dashboard.tsx`, `index.css`) |
+| Tổng lượt edit source | 6 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 3 (2 tsc + 1 vite) |
+| Lần build đầu thành công? | Có (100% pass ngay lần đầu) |
+| Số lệnh thất bại | 0 |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- Tái cấu trúc 7 nút thao tác thành 3 khối nghiệp vụ chuẩn (Phương án 1): Vận hành (`PenTool`, `History`), In ấn (`Printer`, `FileText`), Thiết kế & Cấu hình (`Edit2`, `Copy`, `SlidersHorizontal` - bọc quyền `design_document`), ngăn cách bằng vách ngăn dọc tinh tế.
+- Triển khai cơ chế Hover-to-Reveal thuần CSS (`.dashboard-form-row:hover`), ẩn cụm nút và hiện `⋯` khi idle, triệt tiêu hoàn toàn hiện tượng lặp nút gây rối mắt và bảo đảm 100% Zero Layout Shift.
+- Đồng bộ hóa trên Thẻ Lưới (Grid View Card): chia footer thành 2 hàng phân cấp rõ ràng và hỗ trợ hover chuyển đổi độ mờ mượt mà.
+- Refactor Ratio đạt 51.3% nhờ thay thế và dọn sạch mã JSX/CSS cũ.
+- TypeScript (`npx tsc --noEmit`) và Vite bundle (`npm run build` 8.09s) hoàn tất thành công 100% không lỗi.
+
+---
+
 ### 2026-09-17 — Form Operations & Platform Shell: 1-Click Form Duplication in Dashboard Forms Tab
 
 **Scope:** 4 files, 363 insertions, 6 deletions (`1e301b8`)

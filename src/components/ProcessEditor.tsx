@@ -4,6 +4,7 @@ import { Save, Plus, Trash2, ArrowUp, ArrowDown, Edit2, Eye, Printer, GitBranch,
 import FormBuilder from './FormBuilder';
 import PrintBlankForm from './print/PrintBlankForm';
 import { generateBPMNXML } from '../utils/bpmnXmlGenerator';
+import { extractLinkedWorkSteps } from '../utils/formUtils';
 import { useAuth } from '../context/AuthContext';
 import { BpmnViewerComponent } from './BpmnViewerComponent';
 import { BpmnModelerComponent } from './BpmnModelerComponent';
@@ -2926,6 +2927,8 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
           key={activeFormToBuild}
           formName={activeFormToBuild}
           linkedProcessId={processId && processId !== 'unlinked' ? processId : undefined}
+          linkedProcessTitle={title}
+          linkedWorkSteps={extractLinkedWorkSteps(steps, activeFormToBuild)}
           onUnlinkFromProcess={() => handleUnlinkFormFromProcess(activeFormToBuild)}
           initialData={(() => {
             // Primary: look up the latest version of this form_id directly from allForms (DB)

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import type { FormFieldISO, FormRevisionEntry, FormTemplateISO, LayoutBlockISO, RadioOption, MatrixConfigISO, TableColumnConfig, TableRowConfig, ColumnSummaryRowConfig, TitleFormatISO, SubtableColumn, BlockVisibilityCondition } from '../types';
+import type { FormFieldISO, FormRevisionEntry, FormTemplateISO, LayoutBlockISO, RadioOption, MatrixConfigISO, TableColumnConfig, TableRowConfig, ColumnSummaryRowConfig, TitleFormatISO, SubtableColumn, BlockVisibilityCondition, LinkedWorkStepInfo } from '../types';
 import { formatFormVersion, getColStyleWidth } from '../types';
 import { sanitizeLabel, getEffectiveTitleFormat, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, isSeamlessTableBlock, getInfoGridTemplateColumns, snap2ColWidth, snap3ColWidths, INFO_GRID_2COL_PRESETS, generateSmartFieldSlug, getCheckboxGridTemplate, reorderOptionsArray, reorderArray, getEffectiveCellOptions as getEffectiveCellOptionsUtil } from '../utils/formUtils';
 import { applyTextFormat, handleFormatKeyDown } from '../utils/textFormatter';
@@ -63,6 +63,9 @@ interface FormBuilderProps {
   onClose: () => void;
   /** Nếu có → Form ID đang được quản lý bởi process này → khoá trường Form ID */
   linkedProcessId?: string;
+  linkedProcessTitle?: string;
+  /** Danh sách các công đoạn trong quy trình đang sử dụng biểu mẫu này */
+  linkedWorkSteps?: LinkedWorkStepInfo[];
   /**
    * Callback khi user xác nhận phá liên kết.
    * ProcessEditor xử lý việc xoá form khỏi steps + auto-save.
@@ -1000,7 +1003,7 @@ function InCanvasTitleHeader({
   );
 }
 
-export default function FormBuilder({ formName, initialData, onSave, onClose, linkedProcessId, onUnlinkFromProcess }: FormBuilderProps) {
+export default function FormBuilder({ formName, initialData, onSave, onClose, linkedProcessId, linkedProcessTitle, linkedWorkSteps, onUnlinkFromProcess }: FormBuilderProps) {
   const { currentUser } = useAuth();
   // 1. Core Layout State
   const [formId, setFormId] = useState(initialData?.formId || `FM-${formName.toUpperCase().replace(/[^A-Z0-9]/g, '-')}-001`);
@@ -9236,18 +9239,57 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                 }}
               />
 
-              {/* Hint text: trạng thái linked / unlinked */}
+              {/* Hint text: trạng thái linked / unlinked theo Biến thể 3B tối giản */}
               {linkedProcessId && formIdLinked && (
-                <span style={{ fontSize: '0.69rem', color: 'var(--primary, #3b82f6)', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-                  <Link size={10} />
-                  Đang liên kết với quy trình <strong style={{ marginLeft: '0.15rem' }}>{linkedProcessId}</strong>
-                </span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', paddingTop: '0.1rem' }}>
+                  <div style={{ fontSize: '0.74rem', color: 'var(--primary, #0284c7)', display: 'flex', alignItems: 'center', gap: '0.35rem', fontWeight: 500 }}>
+                    <Link size={11} />
+                    <span title={linkedProcessTitle || undefined}>Quy trình: <strong style={{ marginLeft: '0.15rem' }}>{linkedProcessId}</strong></span>
+                  </div>
+
+                  {linkedWorkSteps && linkedWorkSteps.length > 0 && (
+                    <div style={{
+                      marginLeft: '5px',
+                      paddingLeft: '8px',
+                      borderLeft: '1.5px solid var(--neutral-border, #cbd5e1)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.24rem',
+                      marginTop: '0.15rem'
+                    }}>
+                      {linkedWorkSteps.map((step) => (
+                        <div key={step.id || step.stepIndex} style={{ fontSize: '0.73rem', color: '#334155', display: 'flex', alignItems: 'baseline', gap: '0.25rem', lineHeight: 1.35 }}>
+                          <span>
+                            <strong style={{ color: '#0f172a' }}>Bước {step.stepIndex}:</strong> {step.action}
+                            {step.role && (
+                              <span style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                fontSize: '0.65rem',
+                                fontWeight: 700,
+                                padding: '0.05rem 0.35rem',
+                                borderRadius: '4px',
+                                background: '#e0f2fe',
+                                color: '#0369a1',
+                                border: '1px solid #bae6fd',
+                                marginLeft: '0.25rem',
+                                lineHeight: 1.2
+                              }}>
+                                {step.role}
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               )}
               {linkedProcessId && !formIdLinked && (
-                <span style={{ fontSize: '0.69rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
-                  <Link2Off size={10} />
-                  Form đã phá liên kết. Đang hoạt động độc lập.
-                </span>
+                <div style={{ fontSize: '0.73rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.35rem', paddingTop: '0.1rem' }}>
+                  <Link2Off size={11} />
+                  <span>Form chưa liên kết</span>
+                </div>
               )}
             </div>
             

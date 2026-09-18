@@ -1,4 +1,4 @@
-import type { FormFieldISO, TitleFormatISO, LayoutBlockISO, RadioOption } from '../types';
+import type { FormFieldISO, TitleFormatISO, LayoutBlockISO, RadioOption, ProcessStep, LinkedWorkStepInfo } from '../types';
 
 /**
  * Automatically determines whether a checkbox or radio field should render using
@@ -898,4 +898,26 @@ export function duplicateFormTemplate(
     ]
   };
 }
+
+/**
+ * Trích xuất danh sách các công đoạn liên kết với một Form ID trong quy trình.
+ * Tuân thủ Rule 13.8 (Pure Utility Extraction Invariant).
+ */
+export function extractLinkedWorkSteps(steps: ProcessStep[] | undefined, formId: string | undefined): LinkedWorkStepInfo[] {
+  if (!steps || !formId) return [];
+  const result: LinkedWorkStepInfo[] = [];
+  steps.forEach((step, idx) => {
+    const isLinked = (step.formNames && step.formNames.includes(formId)) || step.formName === formId;
+    if (isLinked) {
+      result.push({
+        id: step.id,
+        stepIndex: idx + 1,
+        action: step.action || `Bước ${idx + 1}`,
+        role: step.role || ''
+      });
+    }
+  });
+  return result;
+}
+
 
