@@ -29,6 +29,34 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-18 — Form Designer: Linked Workstep Context & Ultra-Clean Tree Guide Line
+
+**Scope:** 6 files, 116 insertions, 13 deletions (`76661c5`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian lập plan (Request → Proceed) | 25.3 min |
+| Thời gian thực thi (Proceed → Push) | 14.2 min |
+| Thời gian tổng (Request → Push) | 39.5 min |
+| Số file nguồn chỉnh sửa | 4 (`types.ts`, `formUtils.ts`, `FormBuilder.tsx`, `ProcessEditor.tsx`) |
+| Tổng lượt edit source | 10 |
+| Lượt edit sửa lỗi (rework) | 1 (`BLOAT` TS6133 unused declaration) |
+| Số lần build | 7 |
+| Lần build đầu thành công? | Không (vướng TS6133 do destructure prop chưa dùng) |
+| Số lệnh thất bại | 1 |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 1 (Lỗi #9: TS6133 unused declaration) |
+
+**Điểm nổi bật:**
+- Nâng cấp hiển thị trạng thái Form ID theo Biến thể 3B tối giản: loại bỏ toàn bộ card lớn, ký tự rườm rà (`↳`), và nhãn thừa ("Công đoạn:", "2 công đoạn").
+- Sử dụng đường gióng cây dọc mảnh `1.5px` tạo cấu trúc phân cấp trực quan đồng bộ cho cả form gắn 1 bước lẫn form gắn nhiều bước (Multi-workstep).
+- Tách biệt logic trích xuất công đoạn bằng hàm pure utility `extractLinkedWorkSteps` trong `formUtils.ts` (Rule 13.8).
+- Gắn tooltip `title={linkedProcessTitle}` vào tên quy trình để hover xem chi tiết mà không làm rối mắt giao diện, triệt tiêu lỗi TS6133.
+- Chuẩn hóa thông báo biểu mẫu độc lập thành `"Form chưa liên kết"`.
+- Build TypeScript (`tsc`) và Vite production bundle thành công 100% trong 10.48s.
+
+---
+
 ### 2026-09-17 — Dashboard & UI/UX: Actions Area Segmented Clusters & Hover-to-Reveal
 
 **Scope:** 5 files, 318 insertions, 163 deletions (`853a0aa`)
