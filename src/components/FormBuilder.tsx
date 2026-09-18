@@ -43,6 +43,7 @@ import {
   GripVertical
 } from 'lucide-react';
 import PrintBlankForm from './print/PrintBlankForm';
+import ConfirmModal from './common/ConfirmModal';
 import { useAuth } from '../context/AuthContext';
 
 interface FormBuilderProps {
@@ -1185,7 +1186,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
 
       const payload = {
         formId,
-        formName,
+        formName: formId,
         formTitle,
         status: activeStatus,
         version: activeVersion,
@@ -1233,8 +1234,10 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
   const [activeFieldId, setActiveFieldId] = useState<string | null>(null);
   const [changeSummary, setChangeSummary] = useState('');
   const [isLocked, setIsLocked] = useState(initialData?.status === 'ACTIVE');
-  /** true = Form ID bị khoá vì đang liên kết với process (có thể đổi sang false sau khi unlink) */
+  /** true = Form ID đang được liên kết với quy trình */
   const [formIdLinked, setFormIdLinked] = useState(!!linkedProcessId);
+  const [showUnlinkModal, setShowUnlinkModal] = useState(false);
+  const [isUnlinking, setIsUnlinking] = useState(false);
   const [printPreviewData, setPrintPreviewData] = useState<FormTemplateISO | null>(null);
   const [autoExportPdf, setAutoExportPdf] = useState<boolean>(false);
   const [currentDraftBackup, setCurrentDraftBackup] = useState<{ layoutBlocks: LayoutBlockISO[]; version: string; isLocked: boolean } | null>(null);
@@ -9186,25 +9189,11 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                   <button
                     type="button"
                     title={formIdLinked
-                      ? `Form ID đang được quản lý bởi quy trình "${linkedProcessId}". Click để phá liên kết.`
-                      : 'Form đã phá liên kết khỏi quy trình. Bạn có thể chỉnh sửa Form ID tự do.'}
-                    onClick={async () => {
-                      if (!formIdLinked) return; // đã unlinked, không làm gì thêm
-                      const confirmed = window.confirm(
-                        `⚠️ Phá liên kết Form khỏi Quy trình\n\n` +
-                        `Form "${formId}" đang được gắn với quy trình "${linkedProcessId}".\n\n` +
-                        `Sau khi phá liên kết:\n` +
-                        `• Form bị XOÁ khỏi danh sách biểu mẫu trong quy trình\n` +
-                        `• Bước workflow tham chiếu form này sẽ không còn form liên kết\n` +
-                        `• Form vẫn tồn tại độc lập — bạn có thể chỉnh sửa và gắn lại vào quy trình sau\n\n` +
-                        `Thao tác này sẽ TỰ ĐỘNG LƯU quy trình.\n\nBạn có chắc chắn?`
-                      );
-                      if (confirmed && onUnlinkFromProcess) {
-                        const success = await onUnlinkFromProcess();
-                        if (success) {
-                          setFormIdLinked(false); // mở khoá Form ID input
-                        }
-                      }
+                      ? `Biểu mẫu đang liên kết với quy trình "${linkedProcessId}". Đổi mã sẽ tự động cập nhật trong quy trình. Click để tách độc lập.`
+                      : 'Form hoạt động độc lập.'}
+                    onClick={() => {
+                      if (!formIdLinked) return;
+                      setShowUnlinkModal(true);
                     }}
                     style={{
                       background: 'none',
@@ -9230,7 +9219,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
               {/* Input field */}
               <input
                 type="text"
-                disabled={isLocked || formIdLinked}
+                disabled={isLocked}
                 value={formId}
                 onChange={(e) => setFormId(e.target.value)}
                 placeholder="e.g. 3S-QC/F03"
@@ -9238,8 +9227,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                   padding: '0.35rem 0.5rem',
                   borderRadius: '4px',
                   border: `1px solid ${formIdLinked ? 'var(--primary, #3b82f6)' : 'var(--neutral-border)'}`,
-                  backgroundColor: (isLocked || formIdLinked) ? '#f1f5f9' : '#ffffff',
-                  cursor: (isLocked || formIdLinked) ? 'not-allowed' : 'text'
+                  backgroundColor: isLocked ? '#f1f5f9' : '#ffffff',
+                  cursor: isLocked ? 'not-allowed' : 'text'
                 }}
               />
 
@@ -10052,6 +10041,40 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
       )}
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={showUnlinkModal}
+        title="Tách Biểu Mẫu Khỏi Quy Trình"
+        message={
+          <div style={{ fontSize: '0.85rem', lineHeight: 1.5, color: '#334155' }}>
+            <p style={{ marginBottom: '0.45rem' }}>
+              Biểu mẫu <strong>"{formId}"</strong> đang được gắn với quy trình <strong>"{linkedProcessId}"</strong>.
+            </p>
+            <p>
+              Sau khi tách, biểu mẫu sẽ được gỡ khỏi các công đoạn của quy trình và hoạt động như biểu mẫu độc lập.
+            </p>
+          </div>
+        }
+        confirmText="Tách độc lập"
+        cancelText="Hủy"
+        variant="warning"
+        loading={isUnlinking}
+        onConfirm={async () => {
+          if (onUnlinkFromProcess) {
+            setIsUnlinking(true);
+            try {
+              const success = await onUnlinkFromProcess();
+              if (success) {
+                setFormIdLinked(false);
+              }
+            } finally {
+              setIsUnlinking(false);
+              setShowUnlinkModal(false);
+            }
+          }
+        }}
+        onCancel={() => setShowUnlinkModal(false)}
+      />
     </div>
   );
 }

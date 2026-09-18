@@ -4,7 +4,7 @@ import { Save, Plus, Trash2, ArrowUp, ArrowDown, Edit2, Eye, Printer, GitBranch,
 import FormBuilder from './FormBuilder';
 import PrintBlankForm from './print/PrintBlankForm';
 import { generateBPMNXML } from '../utils/bpmnXmlGenerator';
-import { extractLinkedWorkSteps } from '../utils/formUtils';
+import { extractLinkedWorkSteps, renameFormInSteps } from '../utils/formUtils';
 import { useAuth } from '../context/AuthContext';
 import { BpmnViewerComponent } from './BpmnViewerComponent';
 import { BpmnModelerComponent } from './BpmnModelerComponent';
@@ -2969,15 +2969,34 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
             };
           })()}
           onSave={async (savedFormData) => {
-            const nextFormsData = {
-              ...workflowFormsData,
-              [activeFormToBuild]: {
-                ...workflowFormsData[activeFormToBuild],
-                ...savedFormData
-              }
+            const oldFormId = activeFormToBuild;
+            const newFormId = savedFormData.formId;
+            const isRenamed = !!(oldFormId && newFormId && oldFormId !== newFormId);
+
+            // 1. Tự động hoán đổi trong steps nếu đổi Form ID
+            let nextSteps = steps;
+            if (isRenamed) {
+              nextSteps = renameFormInSteps(steps, oldFormId, newFormId);
+              pendingStepsRef.current = nextSteps;
+              setSteps(nextSteps);
+            }
+
+            // 2. Cập nhật workflowFormsData: di chuyển sang key mới nếu đổi mã
+            const nextFormsData = { ...workflowFormsData };
+            if (isRenamed) {
+              delete nextFormsData[oldFormId];
+            }
+            nextFormsData[newFormId] = {
+              ...(isRenamed ? workflowFormsData[oldFormId] : workflowFormsData[newFormId]),
+              ...savedFormData
             };
             setWorkflowFormsData(nextFormsData);
-            // Optimistically update allForms in local state so cards immediately show fresh version/status with 0ms delay
+
+            if (isRenamed) {
+              setActiveFormToBuild(newFormId);
+            }
+
+            // 3. Cập nhật allForms trong local state
             setAllForms(prev => {
               const updatedRecord = {
                 form_id: savedFormData.formId,
@@ -2992,13 +3011,15 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                 revision_history: savedFormData.revisionHistory,
                 updated_at: new Date().toISOString()
               };
-              const exists = prev.some(f => f.form_id === savedFormData.formId && f.version === savedFormData.version);
+              const filtered = isRenamed ? prev.filter(f => f.form_id !== oldFormId) : prev;
+              const exists = filtered.some(f => f.form_id === savedFormData.formId && f.version === savedFormData.version);
               if (exists) {
-                return prev.map(f => (f.form_id === savedFormData.formId && f.version === savedFormData.version) ? { ...f, ...updatedRecord } : f);
+                return filtered.map(f => (f.form_id === savedFormData.formId && f.version === savedFormData.version) ? { ...f, ...updatedRecord } : f);
               }
-              return [updatedRecord, ...prev];
+              return [updatedRecord, ...filtered];
             });
-            // Only auto-save the process data silently if it is a real process (not unlinked)
+
+            // 4. Tự động lưu Process ngầm (auto-save)
             if (processId && processId !== 'unlinked') {
               await handleSave(nextFormsData, true);
             }

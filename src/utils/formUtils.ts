@@ -920,4 +920,40 @@ export function extractLinkedWorkSteps(steps: ProcessStep[] | undefined, formId:
   return result;
 }
 
+/**
+ * Hoán đổi Form ID cũ thành Form ID mới trong các công đoạn của quy trình.
+ * Tuân thủ Rule 13.8 (Pure Utility Extraction Invariant).
+ */
+export function renameFormInSteps(
+  steps: ProcessStep[] | undefined,
+  oldFormId: string,
+  newFormId: string
+): ProcessStep[] {
+  if (!steps || !oldFormId || !newFormId || oldFormId === newFormId) {
+    return steps || [];
+  }
+  return steps.map(step => {
+    let modified = false;
+    let newFormName = step.formName;
+    let newFormNames = step.formNames;
 
+    if (step.formName === oldFormId) {
+      newFormName = newFormId;
+      modified = true;
+    }
+
+    if (step.formNames && step.formNames.includes(oldFormId)) {
+      newFormNames = step.formNames.map(name => name === oldFormId ? newFormId : name);
+      modified = true;
+    }
+
+    if (!modified) return step;
+
+    return {
+      ...step,
+      formName: newFormName,
+      formNames: newFormNames,
+      producesForm: true
+    };
+  });
+}
