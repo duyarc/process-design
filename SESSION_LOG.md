@@ -22,12 +22,35 @@ phiên thực thi để không lặp lại lỗi cũ.
 | 8 | `BLOAT` | Để sót dead code (hàm cũ, props cũ như `handleMoveColumn`) khi thay thế giải pháp mới | Tuân thủ Mục 13.7 Dead-Code Pruning: rà soát toàn bộ call-site và xóa sạch code cũ trong cùng commit | 1 |
 | 9 | `BLOAT` | Xóa logic con dùng tham số callback mảng (`fArr` trong `.map((f, fIdx, fArr) => ...)`) nhưng bỏ sót trong chữ ký hàm → TS6133 unused declaration | Khi xóa tính năng hoặc dọn dead code, rà soát luôn tham số của closure bao quanh để lược bỏ biến không còn đọc | 1 |
 | 10 | `CTX` | Khi patch code trong khối JS trước `return`, chèn comment JSX `{/* */}` gây syntax error; hoặc patch thẻ con thiếu mốc neo độc nhất | Luôn phân biệt ngữ cảnh JS thuần vs JSX khi viết comment (`//` vs `{/* */}`); dùng thẻ cha làm mốc neo khi patch thẻ con | 1 |
+| 11 | `TOOL` | Chạy inline Node trên PowerShell chứa `$1` bị PowerShell ngậm biến `$1` thành chuỗi rỗng → SQL syntax error | Lưu code ra file `.cjs` tạm hoặc escape `\$1` trong chuỗi lệnh PowerShell | 1 |
 
 ---
 
 ## Nhật ký Phiên
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
+
+### 2026-09-20 — Form Designer & Translation: FormTranslator Module & 3S-QC/Q1.1e Ingestion
+
+**Scope:** 8 files (`scripts/formTranslator/*`, `DESIGN_FORM_DESIGNER.md`, `SESSION_LOG.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa / tạo mới | 8 |
+| Lượt edit source (rework) | 2 |
+| Số lần build / test | 4 (1 self-test rework + 1 pass + 1 tsc + 1 vite 10.52s) |
+| Lần build đầu thành công? | Có (100% build pass) |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- Xây dựng hoàn chỉnh phân hệ dùng lại `scripts/formTranslator/` theo kiến trúc chia tách rành mạch: kịch bản xác định (`extractor.cjs`, `reconstitutor.cjs`, `dbAdapter.cjs`) bọc ngoài bảo vệ cấu trúc, LLM (`llmInstructions.cjs`, `llmClient.cjs`) đảm nhiệm dịch thuật ngữ chuyên ngành QC/ISO 9001 và thương mại nông sản.
+- Thuật toán bóc tách AST chỉ xuất ra từ điển văn bản thuần (`{ path -> text }`), triệt tiêu 100% rủi ro LLM làm sai lệch ID kỹ thuật (`fld_*`, `locationCode`, `row_*`), types hoặc các giá trị enum database (`PASS`, `FAIL`, `OPT_*`).
+- Cơ chế kiểm định bất biến (`assertInvariants`) tự động chặn mọi vi phạm trước khi ghi database.
+- Tự động bóc tách 48 chuỗi tiếng Việt của biểu mẫu `3S-QC/Q1.1e`, dịch chính xác sang tiếng Anh chuẩn công nghiệp (`Order Information`) và cập nhật thành công vào bảng `forms` trên PostgreSQL Supabase.
+- Kiểm thử self-test đạt 4/4 kịch bản; Vite build hoàn tất trong 10.52s.
+
+---
 
 ### 2026-09-18 — Dashboard & Platform Shell: Fix Duplicated Form Process Re-linking
 
@@ -250,26 +273,3 @@ Entry mới nhất ở trên cùng. Tối đa 10 entries.
 - Loại bỏ phần chú thích định dạng markdown trong ngoặc đơn `(hỗ trợ **in đậm**, *in nghiêng*, __gạch chân__)`, đưa về định dạng ngắn gọn: `"Gõ mô tả hoặc ghi chú hướng dẫn..."`.
 - Đồng bộ chuẩn hóa trên cả `FormBuilder.tsx` và `ReportBuilder.tsx`.
 - 100% build pass ngay lần đầu (tsc & vite build 10.67s).
-
----
-
-### 2026-09-14 — FormFiller & Design System: Standardize Native Placeholder Formatting & Multi-line Auto-Height
-
-**Scope:** 5 files, ~50 insertions, ~5 deletions
-
-| Chỉ số | Giá trị |
-|---|---|
-| Số file nguồn chỉnh sửa | 3 (`textFormatter.tsx`, `index.css`, `FormFiller.tsx`) |
-| Tổng lượt edit source | 3 |
-| Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 2 (1 tsc + 1 vite) |
-| Lần build đầu thành công? | Có (100% pass ngay lần build đầu) |
-| Số lệnh thất bại | 0 |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Điểm nổi bật:**
-- Triển khai định dạng Native Placeholder tối đa theo W3C HTML: không dùng DOM overlay giả lập, tránh phình to DOM và rủi ro trôi vị trí trên mobile.
-- Hàm thuần túy `stripMarkdownTokens` bóc tách sạch các cú pháp Markdown thô (`*`, `_`, `~`, `<u>`), bảo toàn xuống dòng `\n`.
-- Chuẩn hóa CSS `::placeholder` toàn hệ thống với `font-style: italic`, `#94a3b8`, `opacity: 0.9`.
-- Tự động mở rộng chiều cao và số dòng khởi tạo cho `AutoResizingTextarea` khi placeholder có nhiều dòng.

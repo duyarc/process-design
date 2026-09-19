@@ -9,12 +9,13 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-09-18) — Transparent Form ID Renaming, Workstep Re-linking & ConfirmModal migration verified against source |
+| **Verified At Commit** | (2026-09-20) — FormTranslator module (scripts/formTranslator) extraction, QC domain glossary, invariant validation & DB persistence verified on form 3S-QC/Q1.1e |
 
 > **⚠️ Architectural note:** FormBuilder has no awareness of which process it belongs to. The `formName` prop is always identical to `formId`. See Section 6.1 and the Technical Debt table.
 
 ### Quick File Index
 
+| [`scripts/formTranslator/`](scripts/formTranslator/) | Reusable FormTranslator module: extraction, LLM prompt engineering, invariant validation, and database upsert |
 | [`src/utils/pdfFormExporter.ts`](src/utils/pdfFormExporter.ts) | Facade API entry point for Fillable PDF export |
 | [`src/utils/pdf/types.ts`](src/utils/pdf/types.ts) | Types for PDF export module (`ScannedAcroField`, `PdfPageConfig`) |
 | [`src/utils/pdf/textAnchorInjector.ts`](src/utils/pdf/textAnchorInjector.ts) | Helper functions for text anchor tags `{{acro:id:type:w:h}}` |
@@ -506,5 +507,6 @@ full diff of any entry below.
 | 2026-09-11 | **Cell-Scoped Label vs Placeholder Direct Editing on Canvas & FormFiller Parity:** (1) Extended `LayoutBlockISO` with `cellPlaceholderMap`, `TableColumnConfig` and `SubtableColumn` with `placeholder?`. (2) In `FormBuilder.tsx`, enabled direct typing in table cells defaulting to Label mode, paired with a single-row floating toggle pill `[ Label | Placeholder ]` above selected cells. (3) Formatted Canvas cells with 100% WYSIWYG parity (Label: solid dark text; Placeholder: dashed box with muted italic text). (4) Added in-canvas placeholder input for `INFO_GRID` text/number fields. (5) In `FormFiller.tsx`, resolved cell-scoped placeholder falling back to column default for inputs and textareas. |
 | 2026-09-18 | **Linked Workstep Context & Ultra-Clean Tree Guide Line:** (1) Added `LinkedWorkStepInfo` interface in `types.ts` and pure extraction utility `extractLinkedWorkSteps` in `formUtils.ts` (Rule 13.8). (2) Extended `FormBuilderProps` with `linkedWorkSteps` and `linkedProcessTitle` (as tooltip title). (3) In `FormBuilder.tsx`, upgraded Form ID linked hint to Ultra-Clean Tree Guide Line (Variant 3B) with a 1.5px vertical guide line without decorative branch markers or redundant labels ("Công đoạn:", "2 công đoạn"). (4) Standardized unlinked state to `"Form chưa liên kết"` across all unlinked forms (`linkedProcessId ? (...) : (...)`). (5) Passed linked worksteps seamlessly from `ProcessEditor.tsx`. |
 | 2026-09-18 | **Transparent Form ID Renaming, Workstep Re-linking & ConfirmModal Migration:** (1) Added pure utility `renameFormInSteps` in `formUtils.ts` (Rule 13.8). (2) In `FormBuilder.tsx`, unlocked `formId` input for direct editing when `!isLocked` while preserving linked tree context (Variant 3B). Replaced `window.confirm()` with `ConfirmModal` for unlinking (Rule 3). (3) In `ProcessEditor.tsx`, updated `onSave` to automatically swap Form ID across `steps` (`renameFormInSteps`), migrate `workflowFormsData`, update `activeFormToBuild`, and auto-save the process to DB without interrupting user flow. |
+| 2026-09-20 | **FormTranslator Module & Multi-Language Form Translation:** (1) Built modular `scripts/formTranslator/` package (`extractor.cjs`, `llmInstructions.cjs`, `llmClient.cjs`, `reconstitutor.cjs`, `dbAdapter.cjs`, `index.cjs`, `cli.cjs`). (2) Implemented AST traversal extracting translatable dictionary while strictly shielding structural IDs, field types, location codes, and option values. (3) Added ISO 9001/QC domain glossary with agricultural trade nomenclature. (4) Executed end-to-end extraction, translation into professional English, and database persistence on form `3S-QC/Q1.1e` (`Order Information`), asserting 100% schema invariant integrity. |
 
 

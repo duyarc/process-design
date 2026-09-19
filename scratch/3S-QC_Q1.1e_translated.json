@@ -1,0 +1,413 @@
+{
+  "formId": "3S-QC/Q1.1e",
+  "formName": "3S-QC/Q1.1e",
+  "formTitle": "Order Information",
+  "status": "DRAFT",
+  "version": "v0.1",
+  "effectiveDate": null,
+  "layoutBlocks": [
+    {
+      "id": "b_title_1789860724278_spoyx",
+      "logo": "",
+      "type": "TITLE",
+      "title": "Order Information",
+      "fields": [
+        {
+          "id": "fld_1789860724278_0_uwx1",
+          "type": "text",
+          "checkItem": "(per order)",
+          "frequency": "Once/Shift",
+          "locationCode": "TITLE-DESC",
+          "reactionProtocol": ""
+        }
+      ],
+      "columns": 1,
+      "formCode": "3S-QC/Q1.5",
+      "formTitle": "Order Information",
+      "description": "(per order)"
+    },
+    {
+      "id": "b_info_grid_1789860724278_dssiy",
+      "type": "INFO_GRID",
+      "title": "General Information",
+      "fields": [
+        {
+          "id": "fld_1789860724278_0_8okr",
+          "type": "text",
+          "checkItem": "Order Number (PO)",
+          "locationCode": "LOC-89",
+          "reactionProtocol": ""
+        },
+        {
+          "id": "fld_1789860724278_1_i3cf",
+          "type": "text",
+          "checkItem": "Sales Representative",
+          "locationCode": "LOC-75",
+          "reactionProtocol": ""
+        },
+        {
+          "id": "fld_1789860724278_2_t02m",
+          "type": "radio",
+          "options": [
+            {
+              "label": "Domestic",
+              "value": "PASS",
+              "isPass": true
+            },
+            {
+              "label": "Passive Export",
+              "value": "FAIL",
+              "isPass": false
+            },
+            {
+              "label": "Active Export",
+              "value": "OPT_1785919016626",
+              "isPass": false
+            }
+          ],
+          "checkItem": "Order Type",
+          "locationCode": "LOC-80",
+          "reactionProtocol": ""
+        },
+        {
+          "id": "fld_1789860724278_3_im3g",
+          "type": "text",
+          "checkItem": "Commodity / Category",
+          "locationCode": "LOC-58",
+          "reactionProtocol": ""
+        },
+        {
+          "id": "fld_1789860724278_4_dvud",
+          "type": "radio",
+          "options": [
+            {
+              "label": "FarmGate VN",
+              "value": "PASS",
+              "isPass": true
+            },
+            {
+              "label": "FarmGate Sing",
+              "value": "OPT_1789359702123",
+              "isPass": true
+            },
+            {
+              "label": "FarmGate Laos",
+              "value": "OPT_1789359725199",
+              "isPass": true
+            },
+            {
+              "label": "FarmGate Cambodia",
+              "value": "OPT_1789359735629",
+              "isPass": true
+            },
+            {
+              "label": "FarmNet",
+              "value": "FAIL",
+              "isPass": false
+            }
+          ],
+          "checkItem": "Exporting Legal Entity",
+          "locationCode": "LOC-68",
+          "reactionProtocol": ""
+        }
+      ],
+      "columns": 2,
+      "tableData": {},
+      "tableRows": [],
+      "cellOptionsMap": {},
+      "cellPlaceholderMap": {}
+    },
+    {
+      "id": "b_info_grid_1789860724278_e1ipq",
+      "type": "INFO_GRID",
+      "title": "Scope of Work",
+      "fields": [
+        {
+          "id": "fld_1789860724278_0_soby",
+          "type": "radio",
+          "options": [
+            {
+              "label": "Receiving & Delivery (supervise and verify quantity only)",
+              "value": "PASS",
+              "isPass": true
+            },
+            {
+              "label": "Technical (monitor product quality)",
+              "value": "FAIL",
+              "isPass": false
+            }
+          ],
+          "checkItem": "Supervision Scope",
+          "locationCode": "LOC-32",
+          "reactionProtocol": ""
+        },
+        {
+          "id": "fld_1789860724278_1_eo3g",
+          "type": "radio",
+          "options": [
+            {
+              "label": "Yes",
+              "value": "PASS",
+              "isPass": true
+            },
+            {
+              "label": "No",
+              "value": "FAIL",
+              "isPass": false
+            }
+          ],
+          "checkItem": "Deploy QR Code (Cerify)",
+          "locationCode": "LOC-40",
+          "reactionProtocol": ""
+        }
+      ],
+      "columns": 1,
+      "tableData": {},
+      "tableRows": [],
+      "titleFormat": "H1",
+      "sectionFormat": "H1",
+      "cellOptionsMap": {},
+      "cellPlaceholderMap": {}
+    },
+    {
+      "id": "b_info_grid_1789860724278_vpdyb",
+      "type": "INFO_GRID",
+      "title": "General Information",
+      "fields": [
+        {
+          "id": "fld_1789860724278_0_tml6",
+          "type": "date",
+          "checkItem": "Start Date",
+          "locationCode": "LOC-88",
+          "reactionProtocol": ""
+        },
+        {
+          "id": "fld_1789860724278_1_i69k",
+          "type": "time",
+          "timeMode": "dual",
+          "checkItem": "Working Hours",
+          "locationCode": "LOC-54",
+          "reactionProtocol": ""
+        },
+        {
+          "id": "fld_1789860724278_2_bd2k",
+          "type": "number",
+          "unit": "",
+          "checkItem": "Estimated Working Days",
+          "locationCode": "LOC-71",
+          "reactionProtocol": ""
+        }
+      ],
+      "columns": 2,
+      "tableData": {},
+      "tableRows": [],
+      "cellOptionsMap": {},
+      "cellPlaceholderMap": {}
+    },
+    {
+      "id": "b_info_grid_1789860724278_2m7oa",
+      "type": "INFO_GRID",
+      "title": "General Information",
+      "fields": [
+        {
+          "id": "fld_1789860724278_0_gxkn",
+          "type": "text",
+          "checkItem": "Specific Requirement Description",
+          "locationCode": "LOC-24",
+          "reactionProtocol": ""
+        },
+        {
+          "id": "fld_1789860724278_1_sfoj",
+          "type": "text",
+          "checkItem": "",
+          "locationCode": "LOC-94",
+          "reactionProtocol": ""
+        }
+      ],
+      "columns": 1,
+      "tableData": {},
+      "tableRows": [],
+      "cellOptionsMap": {},
+      "cellPlaceholderMap": {}
+    },
+    {
+      "id": "b_table_1789860724278_a23eh",
+      "type": "TABLE",
+      "title": "Order Details",
+      "fields": [],
+      "columns": 1,
+      "tableData": {
+        "row_1789860724278_h1nb4": {
+          "col_1": "2"
+        },
+        "row_1789860724278_ks8f4": {
+          "col_1": "1"
+        },
+        "row_1789860724278_yq964": {
+          "col_1": "3"
+        }
+      },
+      "tableRows": [
+        {
+          "id": "row_1789860724278_ks8f4",
+          "lineCount": 2
+        },
+        {
+          "id": "row_1789860724278_h1nb4",
+          "lineCount": 2
+        },
+        {
+          "id": "row_1789860724278_yq964",
+          "lineCount": 2
+        }
+      ],
+      "titleFormat": "H1",
+      "tableColumns": [
+        {
+          "id": "col_1",
+          "type": "static_text",
+          "align": "center",
+          "label": "No.",
+          "width": "6%"
+        },
+        {
+          "id": "col_2",
+          "type": "text",
+          "label": "Product Name",
+          "width": "26%"
+        },
+        {
+          "id": "col_3",
+          "type": "text",
+          "label": "Specification",
+          "width": "19%"
+        },
+        {
+          "id": "col_1785918302126",
+          "type": "number",
+          "align": "center",
+          "label": "Quantity (tons)",
+          "width": "17%"
+        },
+        {
+          "id": "col_1785918247740",
+          "type": "number",
+          "align": "center",
+          "label": "Quantity (bags/cartons)",
+          "width": "17%"
+        },
+        {
+          "id": "col_1785918258177",
+          "type": "date",
+          "label": "Delivery Time",
+          "width": "20%"
+        }
+      ],
+      "sectionFormat": "H1",
+      "cellOptionsMap": {},
+      "cellPlaceholderMap": {}
+    },
+    {
+      "id": "b_info_grid_1789860724278_7vkj3",
+      "type": "INFO_GRID",
+      "title": "Quality Document Requirements",
+      "fields": [
+        {
+          "id": "fld_1789860724278_0_pih6",
+          "type": "checkbox",
+          "options": [
+            {
+              "label": "CoA",
+              "value": "PASS",
+              "isPass": true
+            },
+            {
+              "label": "Testing Report",
+              "value": "OPT_1787041344221",
+              "isPass": false
+            },
+            {
+              "label": "Health Certificate",
+              "value": "OPT_1787041379004",
+              "isPass": false
+            },
+            {
+              "label": "Other",
+              "value": "OPT_1787041657501",
+              "isPass": false
+            }
+          ],
+          "checkItem": "",
+          "locationCode": "LOC-92",
+          "reactionProtocol": ""
+        },
+        {
+          "id": "fld_1789860724278_1_i0fa",
+          "type": "text",
+          "options": [
+            {
+              "label": ".....................................................",
+              "value": "PASS",
+              "isPass": true
+            },
+            {
+              "label": ".....................................................",
+              "value": "FAIL",
+              "isPass": false
+            },
+            {
+              "label": ".....................................................",
+              "value": "OPT_1787041842006",
+              "isPass": false
+            }
+          ],
+          "checkItem": "Other documents (please specify)",
+          "locationCode": "LOC-45",
+          "reactionProtocol": ""
+        }
+      ],
+      "columns": 1,
+      "tableData": {},
+      "tableRows": [],
+      "titleFormat": "H1",
+      "sectionFormat": "H1",
+      "cellOptionsMap": {},
+      "cellPlaceholderMap": {}
+    },
+    {
+      "id": "b_sign_1789860724278_jues2",
+      "type": "SIGN",
+      "title": "Signatures",
+      "fields": [
+        {
+          "id": "fld_1789860724278_0_sag8",
+          "type": "signature",
+          "checkItem": "Prepared By",
+          "frequency": "Once/Shift",
+          "locationCode": "SIGN-OP",
+          "reactionProtocol": ""
+        },
+        {
+          "id": "fld_1789860724278_1_58h6",
+          "type": "signature",
+          "checkItem": "Reviewed / Verified By",
+          "frequency": "Once/Shift",
+          "locationCode": "SIGN-SUP",
+          "reactionProtocol": ""
+        }
+      ],
+      "columns": 2,
+      "tableData": {},
+      "tableRows": [],
+      "cellOptionsMap": {},
+      "cellPlaceholderMap": {}
+    }
+  ],
+  "revisionHistory": [],
+  "pageSize": "A4",
+  "isPublic": false,
+  "defaultFocusMode": false,
+  "form_title": "Order Information",
+  "form_id": "3S-QC/Q1.1e",
+  "form_name": "3S-QC/Q1.1e"
+}
