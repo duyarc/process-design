@@ -1,0 +1,23 @@
+{
+  "formTitle": "Tiêu chuẩn kỹ thuật sản phẩm",
+  "blocks[0].title": "Tiêu chuẩn kỹ thuật sản phẩm",
+  "blocks[0].formTitle": "Tiêu chuẩn kỹ thuật sản phẩm",
+  "blocks[1].title": "Thông tin chung",
+  "blocks[1].fields[0].checkItem": "Mã tiêu chuẩn",
+  "blocks[1].fields[1].checkItem": "Thị trường",
+  "blocks[1].fields[2].checkItem": "Ngày ban hành",
+  "blocks[2].title": "Đóng gói",
+  "blocks[2].fields[0].checkItem": "Tên sản phẩm",
+  "blocks[2].fields[2].checkItem": "Nguồn gốc",
+  "blocks[2].fields[3].checkItem": "Đóng gói",
+  "blocks[2].fields[4].checkItem": "Hạn sử dụng",
+  "blocks[2].fields[5].checkItem": "Điều kiện bảo quản",
+  "blocks[3].title": "Thông tin chung",
+  "blocks[3].fields[0].checkItem": "Thành phần",
+  "blocks[3].fields[1].checkItem": "Xử lý trước khi sử dụng hoặc sau khi đóng gói",
+  "blocks[4].title": "Tiêu chuẩn kỹ thuật",
+  "blocks[4].tableColumns[0].label": "STT",
+  "blocks[4].tableColumns[1].label": "Tên chỉ tiêu",
+  "blocks[4].tableColumns[2].label": "Yêu cầu",
+  "blocks[4].tableColumns[3].label": "Cột mới"
+}

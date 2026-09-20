@@ -1,0 +1,250 @@
+{
+  "formId": "3S-QC/Q1.4e",
+  "formName": "3S-QC/Q1.4e",
+  "formTitle": "Production Schedule",
+  "status": "DRAFT",
+  "version": "v0.1",
+  "effectiveDate": null,
+  "layoutBlocks": [
+    {
+      "id": "b_title_1789861877710_ochwh",
+      "logo": "",
+      "type": "TITLE",
+      "title": "Production Schedule",
+      "fields": [
+        {
+          "id": "fld_1789861877710_0_v534",
+          "type": "text",
+          "checkItem": "(per order)",
+          "frequency": "Once/Shift",
+          "locationCode": "TITLE-DESC",
+          "reactionProtocol": ""
+        }
+      ],
+      "columns": 1,
+      "formCode": "3S-QC/Q1.5",
+      "formTitle": "Production Schedule",
+      "description": "(per order)"
+    },
+    {
+      "id": "b_info_grid_1789861877710_kvxxh",
+      "type": "INFO_GRID",
+      "title": "General Information",
+      "fields": [
+        {
+          "id": "fld_1789861877710_0_wwiu",
+          "type": "text",
+          "checkItem": "Order Number (PO)",
+          "locationCode": "LOC-10",
+          "reactionProtocol": ""
+        },
+        {
+          "id": "fld_1789861877710_1_fu3x",
+          "type": "date",
+          "checkItem": "Date Prepared",
+          "locationCode": "LOC-41",
+          "reactionProtocol": ""
+        }
+      ],
+      "columns": 2,
+      "tableData": {},
+      "tableRows": [],
+      "cellOptionsMap": {},
+      "cellPlaceholderMap": {}
+    },
+    {
+      "id": "b_table_1789861877710_meub0",
+      "type": "TABLE",
+      "title": "1. Production Plan",
+      "fields": [],
+      "columns": 1,
+      "tableData": {
+        "row_1789861877710_fehii": {
+          "col_1": "1",
+          "col_2": "Hạng mục kiểm tra A"
+        },
+        "row_1789861877710_hzjc6": {
+          "col_1": "2",
+          "col_2": "Hạng mục kiểm tra B"
+        }
+      },
+      "tableRows": [
+        {
+          "id": "row_1789861877710_fehii"
+        },
+        {
+          "id": "row_1789861877710_hzjc6"
+        },
+        {
+          "id": "row_1789861877710_1tvr1"
+        },
+        {
+          "id": "row_1789861877710_ag7c1"
+        }
+      ],
+      "titleFormat": "H1",
+      "tableColumns": [
+        {
+          "id": "col_1",
+          "type": "date",
+          "label": "Production Date",
+          "width": "16%"
+        },
+        {
+          "id": "col_2",
+          "type": "text",
+          "label": "Finished Product Name",
+          "width": "22%"
+        },
+        {
+          "id": "col_3",
+          "type": "text",
+          "label": "Packaging Specification",
+          "width": "22%"
+        },
+        {
+          "id": "col_4",
+          "type": "number",
+          "align": "center",
+          "label": "Quantity (tons)",
+          "width": "15%"
+        },
+        {
+          "id": "col_1786438835535",
+          "type": "checkbox",
+          "align": "left",
+          "label": "Standard / Sample Reference",
+          "width": "15%",
+          "options": [
+            {
+              "label": "Có",
+              "value": "PASS",
+              "isPass": true
+            },
+            {
+              "label": "Không",
+              "value": "FAIL",
+              "isPass": false
+            }
+          ]
+        },
+        {
+          "id": "col_1786438873822",
+          "type": "text",
+          "label": "Notes",
+          "width": "20%"
+        }
+      ],
+      "sectionFormat": "H1",
+      "cellOptionsMap": {},
+      "cellPlaceholderMap": {}
+    },
+    {
+      "id": "b_table_1789861877710_02upp",
+      "type": "TABLE",
+      "title": "2. Raw Material Intake Plan",
+      "fields": [],
+      "columns": 1,
+      "tableData": {
+        "row_1789861877710_0w0m8": {
+          "col_1": "1",
+          "col_2": "Hạng mục kiểm tra A"
+        },
+        "row_1789861877710_bei1c": {
+          "col_1": "2",
+          "col_2": "Hạng mục kiểm tra B"
+        }
+      },
+      "tableRows": [
+        {
+          "id": "row_1789861877710_0w0m8"
+        },
+        {
+          "id": "row_1789861877710_bei1c"
+        }
+      ],
+      "titleFormat": "H1",
+      "tableColumns": [
+        {
+          "id": "col_1",
+          "type": "date",
+          "label": "Production Date",
+          "width": "16%"
+        },
+        {
+          "id": "col_2",
+          "type": "text",
+          "label": "Raw Material Name",
+          "width": "22%"
+        },
+        {
+          "id": "col_3",
+          "type": "text",
+          "label": "Packaging Specification",
+          "width": "22%"
+        },
+        {
+          "id": "col_4",
+          "type": "number",
+          "align": "center",
+          "label": "Quantity (tons)",
+          "width": "15%"
+        },
+        {
+          "id": "col_1786439137838",
+          "type": "checkbox",
+          "label": "Standard / Sample Reference",
+          "width": "15%",
+          "options": [
+            {
+              "label": "Có",
+              "value": "PASS",
+              "isPass": true
+            },
+            {
+              "label": "Không",
+              "value": "FAIL",
+              "isPass": false
+            }
+          ]
+        },
+        {
+          "id": "col_1786439157195",
+          "type": "text",
+          "label": "Notes",
+          "width": "20%"
+        }
+      ],
+      "sectionFormat": "H1",
+      "cellOptionsMap": {},
+      "cellPlaceholderMap": {}
+    },
+    {
+      "id": "b_sign_1789861877710_ktedf",
+      "type": "SIGN",
+      "title": "Signatures",
+      "fields": [
+        {
+          "id": "fld_1789861877710_0_qu6k",
+          "type": "signature",
+          "checkItem": "Confirmed By",
+          "frequency": "Once/Shift",
+          "locationCode": "SIGN-OP",
+          "reactionProtocol": ""
+        }
+      ],
+      "columns": 2,
+      "tableData": {},
+      "tableRows": [],
+      "cellOptionsMap": {},
+      "cellPlaceholderMap": {}
+    }
+  ],
+  "revisionHistory": [],
+  "pageSize": "A4",
+  "isPublic": false,
+  "defaultFocusMode": false,
+  "form_title": "Production Schedule",
+  "form_id": "3S-QC/Q1.4e",
+  "form_name": "3S-QC/Q1.4e"
+}

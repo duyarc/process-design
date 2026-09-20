@@ -30,6 +30,27 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-20 — Form Translation: Batch Ingestion of Forms 3S-QC/Q1.2e, Q1.3e, Q1.4e
+
+**Scope:** 4 files (`llmInstructions.cjs`, `DESIGN_FORM_DESIGNER.md`, `SESSION_LOG.md`, `walkthrough.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa | 2 (`llmInstructions.cjs`, `DESIGN_FORM_DESIGNER.md`) |
+| Lượt edit source (rework) | 0 |
+| Số lần build / test | 3 (1 self-test pass + 1 tsc + 1 vite 8.38s) |
+| Lần build đầu thành công? | Có (100% pass ngay lần đầu) |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- Mở rộng từ điển chuyên ngành QC (`QC_DOMAIN_GLOSSARY` trong `llmInstructions.cjs`) với các tập thuật ngữ chuyên sâu: Tiêu chuẩn kỹ thuật (`Product Technical Specifications`), Đóng cont & Sơ đồ pallet (`Container Stuffing Requirements`, các loại cont khô/lạnh, quấn màng co, nẹp V-board, đai strapping), Kế hoạch sản xuất (`Production Schedule`).
+- Thực thi quy trình `FormTranslator` hàng loạt trên 3 biểu mẫu `3S-QC/Q1.2e` (21 chuỗi), `3S-QC/Q1.3e` (63 chuỗi), `3S-QC/Q1.4e` (24 chuỗi) — tổng cộng 108 chuỗi văn bản.
+- Tự động kiểm tra và bảo toàn 100% cấu trúc bất biến (zero ID/type/value thay đổi), cập nhật thành công lên PostgreSQL Supabase.
+- Kiểm thử self-test đạt 4/4 kịch bản; Vite production bundle pass trong 8.38s.
+
+---
+
 ### 2026-09-20 — Form Designer & Process Editor: Fix Form Reload from DB on Modified Form ID Save
 
 **Scope:** 3 files (`FormBuilder.tsx`, `ProcessEditor.tsx`, `DESIGN_FORM_DESIGNER.md`)
@@ -249,27 +270,3 @@ Entry mới nhất ở trên cùng. Tối đa 10 entries.
 - Bổ sung nhánh render riêng cho `f.type === 'select'` trong `INFO_GRID` và cơ chế phòng vệ chiều sâu (Defense-in-depth) tại nhánh mặc định.
 - Đồng bộ hóa tra cứu nhãn cho trường Dropdown trong `CHECKLIST_TABLE` và `TABLE`, đồng thời loại bỏ lỗi lặp dấu hai chấm (`::`) trong Radio/Checkbox.
 - 100% build pass ngay lần đầu (tsc & vite build 10.00s).
-
----
-
-### 2026-09-14 — Form Operations & Print: Unified Table Cell Custom Options Resolution
-
-**Scope:** 7 files, ~45 insertions, ~30 deletions
-
-| Chỉ số | Giá trị |
-|---|---|
-| Số file nguồn chỉnh sửa | 6 (`formUtils.ts`, `PrintFilledForm.tsx`, `ProcessReader.tsx`, `FormFiller.tsx`, `PrintBlankForm.tsx`, `FormBuilder.tsx`) |
-| Tổng lượt edit source | 10 |
-| Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 7 (6 tsc + 1 vite) |
-| Lần build đầu thành công? | Có (100% pass ngay lần build đầu) |
-| Số lệnh thất bại | 0 |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Điểm nổi bật:**
-- Trích xuất hàm thuần túy `getEffectiveCellOptions` vào `formUtils.ts` hỗ trợ Dual-Compatibility key lookup (`${rowId}_${colId}` phẳng và `[rowId]?.[colId]` lồng).
-- Khắc phục lỗi lệch key `cellOptionsMap?.[row.id]?.[col.id]` trong `PrintFilledForm.tsx` và `ProcessReader.tsx`, đảm bảo in chính xác options và checkmark của từng ô bảng.
-- Đồng bộ hóa 100% cả 5 components (`PrintFilledForm`, `PrintBlankForm`, `FormFiller`, `ProcessReader`, `FormBuilder`).
-- Bổ sung hiển thị `col.checkboxLayout === '2-column'` cho Radio cell trong `PrintFilledForm.tsx`.
-- 100% build pass ngay lần đầu (tsc & vite build 14.76s).

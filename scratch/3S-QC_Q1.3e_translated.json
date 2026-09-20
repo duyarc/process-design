@@ -1,0 +1,571 @@
+{
+  "formId": "3S-QC/Q1.3e",
+  "formName": "3S-QC/Q1.3e",
+  "formTitle": "Container Stuffing Requirements",
+  "status": "DRAFT",
+  "version": "v0.1",
+  "effectiveDate": null,
+  "layoutBlocks": [
+    {
+      "id": "b_title_1789861688719_oulej",
+      "logo": "",
+      "type": "TITLE",
+      "title": "Container Stuffing Requirements",
+      "fields": [
+        {
+          "id": "fld_1789861688719_0_xes4",
+          "type": "text",
+          "checkItem": "(per order)",
+          "frequency": "Once/Shift",
+          "locationCode": "TITLE-DESC",
+          "reactionProtocol": ""
+        }
+      ],
+      "columns": 1,
+      "formCode": "3S-QC/Q1.5",
+      "formTitle": "Container Stuffing Requirements",
+      "description": "(per order)"
+    },
+    {
+      "id": "b_info_grid_1789861688720_v29m1",
+      "type": "INFO_GRID",
+      "title": "General Information",
+      "fields": [
+        {
+          "id": "fld_1789861688720_0_v8m5",
+          "type": "date",
+          "checkItem": "Date Prepared",
+          "locationCode": "LOC-94",
+          "reactionProtocol": ""
+        },
+        {
+          "id": "fld_1789861688720_1_1126",
+          "type": "text",
+          "checkItem": "Order Number (PO)",
+          "locationCode": "LOC-80",
+          "reactionProtocol": ""
+        },
+        {
+          "id": "fld_1789861688720_2_mg4z",
+          "type": "text",
+          "checkItem": "Sales Representative",
+          "locationCode": "LOC-14",
+          "reactionProtocol": ""
+        }
+      ],
+      "columns": 2,
+      "tableData": {},
+      "tableRows": [],
+      "cellOptionsMap": {},
+      "cellPlaceholderMap": {}
+    },
+    {
+      "id": "b_table_1789861688720_yei5y",
+      "type": "TABLE",
+      "title": "Supervision Location",
+      "fields": [],
+      "columns": 1,
+      "tableData": {
+        "row_1789861688720_8ri8q": {
+          "col_1": "2",
+          "col_2": "Hạng mục kiểm tra B"
+        },
+        "row_1789861688720_r0476": {
+          "col_1": "1",
+          "col_2": "Hạng mục kiểm tra A"
+        }
+      },
+      "tableRows": [
+        {
+          "id": "row_1789861688720_r0476"
+        },
+        {
+          "id": "row_1789861688720_8ri8q"
+        }
+      ],
+      "titleFormat": "H1",
+      "tableColumns": [
+        {
+          "id": "col_1",
+          "type": "static_text",
+          "align": "center",
+          "label": "No.",
+          "width": "10%"
+        },
+        {
+          "id": "col_2",
+          "type": "text",
+          "align": "center",
+          "label": "Location / Warehouse Name",
+          "width": "36%"
+        },
+        {
+          "id": "col_3",
+          "type": "number",
+          "align": "center",
+          "label": "Address",
+          "width": "20%"
+        },
+        {
+          "id": "col_4",
+          "type": "text",
+          "align": "center",
+          "label": "Contact Person",
+          "width": "20%"
+        },
+        {
+          "id": "col_1786439648465",
+          "type": "number",
+          "align": "center",
+          "label": "Phone Number",
+          "width": "20%"
+        }
+      ],
+      "sectionFormat": "H1",
+      "cellOptionsMap": {},
+      "cellPlaceholderMap": {}
+    },
+    {
+      "id": "b_info_grid_1789861688720_ipzlc",
+      "type": "INFO_GRID",
+      "title": "Stuffing Information & Requirements",
+      "fields": [
+        {
+          "id": "fld_1789861688720_0_ihzj",
+          "type": "date",
+          "checkItem": "Estimated Stuffing Date",
+          "locationCode": "LOC-85",
+          "reactionProtocol": ""
+        },
+        {
+          "id": "fld_1789861688720_1_9jv5",
+          "type": "time",
+          "timeMode": "single",
+          "checkItem": "Estimated Start Time",
+          "locationCode": "LOC-86",
+          "reactionProtocol": ""
+        },
+        {
+          "id": "fld_1789861688720_2_um3w",
+          "type": "radio",
+          "options": [
+            {
+              "label": "[Dry] 20'DC",
+              "value": "PASS",
+              "isPass": false
+            },
+            {
+              "label": "[Dry] 40'DC",
+              "value": "FAIL",
+              "isPass": false
+            },
+            {
+              "label": "[Dry] 40'HC",
+              "value": "OPT_1786697039939",
+              "isPass": false
+            },
+            {
+              "label": "[Reefer] 20'RF",
+              "value": "OPT_1786697053289",
+              "isPass": false
+            },
+            {
+              "label": "[Reefer] 40'RH (High Cube Reefer)",
+              "value": "OPT_1786697066556",
+              "isPass": false
+            }
+          ],
+          "checkItem": "Container Type",
+          "locationCode": "LOC-28",
+          "reactionProtocol": ""
+        },
+        {
+          "id": "fld_1789861688720_3_mhlc",
+          "type": "number",
+          "unit": "",
+          "checkItem": "Set Temperature",
+          "locationCode": "LOC-79",
+          "reactionProtocol": ""
+        }
+      ],
+      "columns": 2,
+      "tableData": {},
+      "tableRows": [],
+      "titleFormat": "H1",
+      "sectionFormat": "H1",
+      "cellOptionsMap": {},
+      "cellPlaceholderMap": {}
+    },
+    {
+      "id": "b_table_1789861688720_mhijw",
+      "type": "TABLE",
+      "title": "Support Materials / Supplies",
+      "fields": [],
+      "columns": 1,
+      "tableData": {
+        "row_1789861688720_8iqvj": {
+          "col_2": "Khác"
+        },
+        "row_1789861688720_agy2j": {
+          "col_2": "Lưới chắn cửa cont"
+        },
+        "row_1789861688720_lpn68": {
+          "col_2": "Thanh chắn cửa cont",
+          "col_1786697393939": "thanh"
+        },
+        "row_1789861688720_mceff": {
+          "col_2": "Thiết bị ghi nhiệt độ",
+          "col_1786697393939": "cái"
+        },
+        "row_1789861688720_unahz": {
+          "col_2": "Túi khí chèn lót"
+        },
+        "row_1789861688720_wsuit": {
+          "col_1": "1",
+          "col_2": "Túi chống ẩm "
+        },
+        "row_1789861688720_yvslh": {
+          "col_1": "2",
+          "col_2": "Giấy lót sàn / Vách cont"
+        }
+      },
+      "tableRows": [
+        {
+          "id": "row_1789861688720_wsuit"
+        },
+        {
+          "id": "row_1789861688720_yvslh"
+        },
+        {
+          "id": "row_1789861688720_agy2j"
+        },
+        {
+          "id": "row_1789861688720_lpn68"
+        },
+        {
+          "id": "row_1789861688720_mceff"
+        },
+        {
+          "id": "row_1789861688720_unahz"
+        },
+        {
+          "id": "row_1789861688720_8iqvj",
+          "lineCount": 1
+        }
+      ],
+      "tableColumns": [
+        {
+          "id": "col_1",
+          "type": "checkbox",
+          "align": "center",
+          "label": " ",
+          "width": "5%",
+          "options": [
+            {
+              "label": " ",
+              "value": "PASS",
+              "isPass": true
+            }
+          ]
+        },
+        {
+          "id": "col_2",
+          "type": "static_text",
+          "label": "Support Materials",
+          "width": "20%"
+        },
+        {
+          "id": "col_1786697393939",
+          "type": "static_text",
+          "align": "center",
+          "label": "Unit",
+          "width": "6%"
+        },
+        {
+          "id": "col_3",
+          "type": "number",
+          "align": "center",
+          "label": "Quantity",
+          "width": "10%",
+          "summaryRows": []
+        },
+        {
+          "id": "col_1786698844556",
+          "type": "text",
+          "label": "Notes",
+          "width": "20%"
+        }
+      ],
+      "cellOptionsMap": {},
+      "cellPlaceholderMap": {}
+    },
+    {
+      "id": "b_info_grid_1789861688720_1vnao",
+      "type": "INFO_GRID",
+      "title": "General Information",
+      "fields": [
+        {
+          "id": "fld_1789861688720_0_yyb5",
+          "type": "checkbox",
+          "options": [
+            {
+              "label": "Palletized loading (refer to Section 3 requirements)",
+              "value": "PASS",
+              "isPass": false
+            },
+            {
+              "label": "Floor loaded / No pallet (skip Section 3)",
+              "value": "FAIL",
+              "isPass": false
+            },
+            {
+              "label": "Load according to attached diagram",
+              "value": "OPT_1786697596559",
+              "isPass": false
+            },
+            {
+              "label": "Load per factory standard practice",
+              "value": "OPT_1786697606285",
+              "isPass": false
+            }
+          ],
+          "checkItem": "Loading / Stacking Pattern",
+          "locationCode": "LOC-43",
+          "reactionProtocol": ""
+        },
+        {
+          "id": "fld_1789861688720_1_zio5",
+          "type": "radio",
+          "options": [
+            {
+              "label": "Attached",
+              "value": "PASS",
+              "isPass": false
+            },
+            {
+              "label": "No file / photo attached",
+              "value": "FAIL",
+              "isPass": false
+            }
+          ],
+          "checkItem": "Attach Drawing / Photos",
+          "locationCode": "LOC-41",
+          "reactionProtocol": ""
+        },
+        {
+          "id": "fld_1789861688720_2_hr4d",
+          "type": "text",
+          "checkItem": "Other requirements (please specify)",
+          "locationCode": "LOC-14",
+          "reactionProtocol": ""
+        },
+        {
+          "id": "fld_1789861688720_3_h8a0",
+          "type": "text",
+          "checkItem": "",
+          "locationCode": "LOC-61",
+          "reactionProtocol": ""
+        }
+      ],
+      "columns": 1,
+      "tableData": {},
+      "tableRows": [],
+      "cellOptionsMap": {},
+      "cellPlaceholderMap": {}
+    },
+    {
+      "id": "b_section_label_1789861688720_2hop0",
+      "type": "SECTION_LABEL",
+      "title": "",
+      "fields": [],
+      "columns": 1,
+      "tableData": {},
+      "tableRows": [],
+      "description": "",
+      "titleFormat": "BODY",
+      "cellOptionsMap": {},
+      "cellPlaceholderMap": {}
+    },
+    {
+      "id": "b_info_grid_1789861688720_g7coy",
+      "type": "INFO_GRID",
+      "title": "Pallet Specifications",
+      "fields": [
+        {
+          "id": "fld_1789861688720_0_wm1t",
+          "type": "radio",
+          "options": [
+            {
+              "label": "Wooden Pallet",
+              "value": "FAIL",
+              "isPass": false
+            },
+            {
+              "label": "Plastic Pallet",
+              "value": "OPT_1786697801833",
+              "isPass": false
+            },
+            {
+              "label": "Paper / Cardboard Pallet",
+              "value": "OPT_1786697823035",
+              "isPass": false
+            },
+            {
+              "label": "Loose / Floor Loaded",
+              "value": "OPT_1786697829110",
+              "isPass": false
+            },
+            {
+              "label": "Slip sheet",
+              "value": "OPT_1786697839484",
+              "isPass": false
+            }
+          ],
+          "checkItem": "Pallet Type",
+          "locationCode": "LOC-55",
+          "reactionProtocol": ""
+        },
+        {
+          "id": "fld_1789861688720_1_7eg2",
+          "type": "text",
+          "checkItem": "Pallet Dimensions",
+          "locationCode": "LOC-68",
+          "reactionProtocol": ""
+        }
+      ],
+      "columns": 1,
+      "tableData": {},
+      "tableRows": [],
+      "titleFormat": "H1",
+      "sectionFormat": "H1",
+      "cellOptionsMap": {},
+      "cellPlaceholderMap": {}
+    },
+    {
+      "id": "b_info_grid_1789861688720_slx3h",
+      "type": "INFO_GRID",
+      "title": "Pallet Stacking & Wrapping Specifications",
+      "fields": [
+        {
+          "id": "fld_1789861688720_0_e56l",
+          "type": "radio",
+          "options": [
+            {
+              "label": "Not Required",
+              "value": "PASS",
+              "isPass": false
+            },
+            {
+              "label": "Interlocking / Brick bond pattern",
+              "value": "FAIL",
+              "isPass": false
+            },
+            {
+              "label": "Column / Vertical stacking",
+              "value": "OPT_1786697956101",
+              "isPass": false
+            }
+          ],
+          "checkItem": "Stacking Pattern",
+          "locationCode": "LOC-80",
+          "reactionProtocol": ""
+        },
+        {
+          "id": "fld_1789861688720_1_hwlj",
+          "type": "radio",
+          "options": [
+            {
+              "label": "Not Required",
+              "value": "PASS",
+              "isPass": false
+            },
+            {
+              "label": "Stretch wrapping",
+              "value": "FAIL",
+              "isPass": false
+            },
+            {
+              "label": "Corner protectors (V-board)",
+              "value": "OPT_1786698525843",
+              "isPass": false
+            },
+            {
+              "label": "Plastic strapping",
+              "value": "OPT_1786698531199",
+              "isPass": false
+            }
+          ],
+          "checkItem": "Pallet Securing & Wrapping",
+          "locationCode": "LOC-13",
+          "reactionProtocol": ""
+        },
+        {
+          "id": "fld_1789861688720_2_8us8",
+          "type": "text",
+          "checkItem": "Max cartons/bags per pallet",
+          "locationCode": "LOC-20",
+          "reactionProtocol": ""
+        }
+      ],
+      "columns": 2,
+      "tableData": {},
+      "tableRows": [],
+      "titleFormat": "H2",
+      "sectionFormat": "H2",
+      "cellOptionsMap": {},
+      "cellPlaceholderMap": {}
+    },
+    {
+      "id": "b_info_grid_1789861688720_zoykw",
+      "type": "INFO_GRID",
+      "title": "General Information",
+      "fields": [
+        {
+          "id": "fld_1789861688720_0_lcks",
+          "type": "text",
+          "checkItem": "Other requirements (if any)",
+          "locationCode": "LOC-31",
+          "reactionProtocol": ""
+        },
+        {
+          "id": "fld_1789861688720_1_uohh",
+          "type": "text",
+          "checkItem": "",
+          "locationCode": "LOC-17",
+          "reactionProtocol": ""
+        }
+      ],
+      "columns": 1,
+      "tableData": {},
+      "tableRows": [],
+      "cellOptionsMap": {},
+      "cellPlaceholderMap": {}
+    },
+    {
+      "id": "b_sign_1789861688720_cw727",
+      "type": "SIGN",
+      "title": "Signatures",
+      "fields": [
+        {
+          "id": "fld_1789861688720_0_ckbc",
+          "type": "signature",
+          "checkItem": "Confirmed By",
+          "locationCode": "LOC-21",
+          "reactionProtocol": "Nhân viên Kinh doanh Ký & Ghi rõ họ tên "
+        }
+      ],
+      "columns": 2,
+      "tableData": {},
+      "tableRows": [],
+      "cellOptionsMap": {},
+      "cellPlaceholderMap": {}
+    }
+  ],
+  "revisionHistory": [],
+  "pageSize": "A4",
+  "isPublic": false,
+  "defaultFocusMode": false,
+  "form_title": "Container Stuffing Requirements",
+  "form_id": "3S-QC/Q1.3e",
+  "form_name": "3S-QC/Q1.3e"
+}

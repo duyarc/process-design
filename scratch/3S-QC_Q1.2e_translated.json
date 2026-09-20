@@ -1,0 +1,424 @@
+{
+  "formId": "3S-QC/Q1.2e",
+  "formName": "3S-QC/Q1.2e",
+  "formTitle": "Product Technical Specifications",
+  "status": "DRAFT",
+  "version": "v0.1",
+  "effectiveDate": null,
+  "layoutBlocks": [
+    {
+      "id": "b_title_1789861827033_ajwwn",
+      "type": "TITLE",
+      "title": "Product Technical Specifications",
+      "fields": [],
+      "columns": 1,
+      "formCode": "3S-QC/Q1.5",
+      "formTitle": "Product Technical Specifications"
+    },
+    {
+      "id": "b_info_grid_1789861827033_6n0bf",
+      "type": "INFO_GRID",
+      "title": "General Information",
+      "fields": [
+        {
+          "id": "fld_1789861827033_0_r9em",
+          "type": "text",
+          "checkItem": "Standard Code",
+          "locationCode": "LOC-76",
+          "reactionProtocol": ""
+        },
+        {
+          "id": "fld_1789861827033_1_qe2y",
+          "type": "text",
+          "checkItem": "Target Market",
+          "locationCode": "LOC-56",
+          "reactionProtocol": ""
+        },
+        {
+          "id": "fld_1789861827033_2_7sr0",
+          "type": "date",
+          "checkItem": "Issue Date",
+          "locationCode": "LOC-96",
+          "reactionProtocol": ""
+        }
+      ],
+      "columns": 3,
+      "tableData": {},
+      "tableRows": [],
+      "cellOptionsMap": {},
+      "cellPlaceholderMap": {}
+    },
+    {
+      "id": "b_info_grid_1789861827033_z4xlw",
+      "type": "INFO_GRID",
+      "title": "Packaging",
+      "fields": [
+        {
+          "id": "fld_1789861827033_0_ui38",
+          "type": "text",
+          "checkItem": "Product Name",
+          "locationCode": "LOC-63",
+          "reactionProtocol": ""
+        },
+        {
+          "id": "fld_1789861827033_1_dfp0",
+          "type": "photo",
+          "colSpan": 1,
+          "rowSpan": 5,
+          "checkItem": "",
+          "placeholder": "[Ảnh sản phẩm]",
+          "locationCode": "LOC-27",
+          "reactionProtocol": ""
+        },
+        {
+          "id": "fld_1789861827033_2_hzsn",
+          "type": "text",
+          "checkItem": "Origin",
+          "locationCode": "LOC-68",
+          "reactionProtocol": ""
+        },
+        {
+          "id": "fld_1789861827033_3_saur",
+          "type": "text",
+          "checkItem": "Packaging",
+          "locationCode": "LOC-11",
+          "reactionProtocol": ""
+        },
+        {
+          "id": "fld_1789861827033_4_woe6",
+          "type": "text",
+          "checkItem": "Shelf Life / Expiry Date",
+          "locationCode": "LOC-83",
+          "reactionProtocol": ""
+        },
+        {
+          "id": "fld_1789861827033_5_03wq",
+          "type": "text",
+          "checkItem": "Storage Conditions",
+          "locationCode": "LOC-84",
+          "reactionProtocol": ""
+        }
+      ],
+      "columns": 2,
+      "tableData": {},
+      "tableRows": [],
+      "cellOptionsMap": {},
+      "cellPlaceholderMap": {}
+    },
+    {
+      "id": "b_info_grid_1789861827033_bcpoy",
+      "type": "INFO_GRID",
+      "title": "General Information",
+      "fields": [
+        {
+          "id": "fld_1789861827033_0_u826",
+          "type": "text",
+          "checkItem": "Ingredients / Composition",
+          "locationCode": "LOC-57",
+          "reactionProtocol": ""
+        },
+        {
+          "id": "fld_1789861827033_1_fogu",
+          "type": "text",
+          "checkItem": "Treatment before use or after packaging",
+          "locationCode": "LOC-78",
+          "reactionProtocol": ""
+        }
+      ],
+      "columns": 1,
+      "tableData": {},
+      "tableRows": [],
+      "cellOptionsMap": {},
+      "cellPlaceholderMap": {}
+    },
+    {
+      "id": "b_table_1789861827033_hpq7g",
+      "type": "TABLE",
+      "title": "Technical Standards",
+      "fields": [],
+      "columns": 1,
+      "tableData": {
+        "row_1789861827033_0mv6b": {
+          "col_1": "13"
+        },
+        "row_1789861827033_1two8": {
+          "col_1": "9"
+        },
+        "row_1789861827033_1xdwh": {
+          "col_1": "12",
+          "_groupTitle": "III. Vi sinh"
+        },
+        "row_1789861827033_2pqh2": {
+          "col_1": "27",
+          "_groupTitle": "VI. Điều kiện bảo quản"
+        },
+        "row_1789861827033_4lc3z": {
+          "col_1": "2"
+        },
+        "row_1789861827033_73lib": {
+          "col_1": "15"
+        },
+        "row_1789861827033_7ught": {
+          "col_1": "20"
+        },
+        "row_1789861827033_a2ko7": {
+          "col_1": "10"
+        },
+        "row_1789861827033_cxxp6": {
+          "col_1": "8"
+        },
+        "row_1789861827033_e5e50": {
+          "col_1": "19",
+          "_groupTitle": "IV. Kim loại nặng"
+        },
+        "row_1789861827033_hpyiy": {
+          "col_1": "16"
+        },
+        "row_1789861827033_i6y5u": {
+          "col_1": "21"
+        },
+        "row_1789861827033_ihhth": {
+          "col_1": "25",
+          "_groupTitle": "V. Dư lượng Thuốc Bảo Vệ Thực Vật"
+        },
+        "row_1789861827033_j9q0w": {
+          "col_1": "6"
+        },
+        "row_1789861827033_k8bro": {
+          "col_1": "18"
+        },
+        "row_1789861827033_l7ude": {
+          "col_1": "28",
+          "col_2": "Nhiệt độ Container (°C)"
+        },
+        "row_1789861827033_lryi3": {
+          "col_1": "29",
+          "col_2": "Nhiệt độ sản phẩm (°C)"
+        },
+        "row_1789861827033_mlbwg": {
+          "col_1": "24"
+        },
+        "row_1789861827033_mrvxk": {
+          "col_1": "22"
+        },
+        "row_1789861827033_npu7k": {
+          "col_1": "3"
+        },
+        "row_1789861827033_o7loc": {
+          "col_1": "23"
+        },
+        "row_1789861827033_puk0p": {
+          "col_1": "11"
+        },
+        "row_1789861827033_rgpjb": {
+          "col_1": "7"
+        },
+        "row_1789861827033_rlms7": {
+          "col_1": "14"
+        },
+        "row_1789861827033_rxn3v": {
+          "col_1": "17"
+        },
+        "row_1789861827033_x7y1g": {
+          "col_1": "1",
+          "_groupTitle": "I. Bao bì và đóng gói"
+        },
+        "row_1789861827033_xjasv": {
+          "col_1": "26"
+        },
+        "row_1789861827033_y081e": {
+          "col_1": "5",
+          "_groupTitle": "II. Cảm quan & Hóa lý"
+        },
+        "row_1789861827033_zs85q": {
+          "col_1": "4"
+        }
+      },
+      "tableRows": [
+        {
+          "id": "row_1789861827033_x7y1g",
+          "groupTitle": "I. Bao bì và đóng gói",
+          "isGroupHeader": true
+        },
+        {
+          "id": "row_1789861827033_4lc3z",
+          "lineCount": 2
+        },
+        {
+          "id": "row_1789861827033_npu7k",
+          "lineCount": 2
+        },
+        {
+          "id": "row_1789861827033_zs85q",
+          "lineCount": 2,
+          "isGroupHeader": false
+        },
+        {
+          "id": "row_1789861827033_y081e",
+          "groupTitle": "II. Cảm quan & Hóa lý",
+          "isGroupHeader": true
+        },
+        {
+          "id": "row_1789861827033_j9q0w",
+          "lineCount": 2,
+          "isGroupHeader": false
+        },
+        {
+          "id": "row_1789861827033_rgpjb",
+          "lineCount": 2,
+          "isGroupHeader": false
+        },
+        {
+          "id": "row_1789861827033_cxxp6",
+          "lineCount": 2,
+          "isGroupHeader": false
+        },
+        {
+          "id": "row_1789861827033_1two8",
+          "lineCount": 2,
+          "isGroupHeader": false
+        },
+        {
+          "id": "row_1789861827033_a2ko7",
+          "lineCount": 2,
+          "isGroupHeader": false
+        },
+        {
+          "id": "row_1789861827033_puk0p",
+          "lineCount": 2,
+          "isGroupHeader": false
+        },
+        {
+          "id": "row_1789861827033_1xdwh",
+          "groupTitle": "III. Vi sinh",
+          "isGroupHeader": true
+        },
+        {
+          "id": "row_1789861827033_0mv6b",
+          "lineCount": 2,
+          "isGroupHeader": false
+        },
+        {
+          "id": "row_1789861827033_rlms7",
+          "lineCount": 2,
+          "isGroupHeader": false
+        },
+        {
+          "id": "row_1789861827033_73lib",
+          "lineCount": 2,
+          "isGroupHeader": false
+        },
+        {
+          "id": "row_1789861827033_hpyiy",
+          "lineCount": 2,
+          "isGroupHeader": false
+        },
+        {
+          "id": "row_1789861827033_rxn3v",
+          "lineCount": 2,
+          "isGroupHeader": false
+        },
+        {
+          "id": "row_1789861827033_k8bro",
+          "lineCount": 1,
+          "isGroupHeader": false
+        },
+        {
+          "id": "row_1789861827033_e5e50",
+          "groupTitle": "IV. Kim loại nặng",
+          "isGroupHeader": true
+        },
+        {
+          "id": "row_1789861827033_7ught",
+          "lineCount": 1,
+          "isGroupHeader": false
+        },
+        {
+          "id": "row_1789861827033_i6y5u",
+          "lineCount": 2,
+          "isGroupHeader": false
+        },
+        {
+          "id": "row_1789861827033_mrvxk",
+          "lineCount": 1,
+          "isGroupHeader": false
+        },
+        {
+          "id": "row_1789861827033_o7loc",
+          "lineCount": 1,
+          "isGroupHeader": false
+        },
+        {
+          "id": "row_1789861827033_mlbwg",
+          "lineCount": 1,
+          "isGroupHeader": false
+        },
+        {
+          "id": "row_1789861827033_ihhth",
+          "groupTitle": "V. Dư lượng Thuốc Bảo Vệ Thực Vật",
+          "isGroupHeader": true
+        },
+        {
+          "id": "row_1789861827033_xjasv",
+          "lineCount": 1,
+          "isGroupHeader": false
+        },
+        {
+          "id": "row_1789861827033_2pqh2",
+          "groupTitle": "VI. Điều kiện bảo quản",
+          "isGroupHeader": true
+        },
+        {
+          "id": "row_1789861827033_l7ude",
+          "lineCount": 1,
+          "isGroupHeader": false
+        },
+        {
+          "id": "row_1789861827033_lryi3",
+          "lineCount": 1,
+          "isGroupHeader": false
+        }
+      ],
+      "titleFormat": "H1",
+      "tableColumns": [
+        {
+          "id": "col_1",
+          "type": "static_text",
+          "align": "center",
+          "label": "No.",
+          "width": "7%"
+        },
+        {
+          "id": "col_2",
+          "type": "text",
+          "align": "left",
+          "label": "Parameter / Specification Item",
+          "width": "50%"
+        },
+        {
+          "id": "col_3",
+          "type": "text",
+          "align": "center",
+          "label": "Requirement / Specification",
+          "width": "20%"
+        },
+        {
+          "id": "col_1789010546104",
+          "type": "text",
+          "label": "Criteria / Notes",
+          "width": "20%"
+        }
+      ],
+      "sectionFormat": "H1",
+      "cellOptionsMap": {},
+      "cellPlaceholderMap": {}
+    }
+  ],
+  "revisionHistory": [],
+  "pageSize": "A4",
+  "isPublic": false,
+  "defaultFocusMode": false,
+  "form_title": "Product Technical Specifications",
+  "form_id": "3S-QC/Q1.2e",
+  "form_name": "3S-QC/Q1.2e"
+}

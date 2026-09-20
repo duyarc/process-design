@@ -9,7 +9,7 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-09-20) — Elimination of DB reload and canvas unmount on Form ID rename verified against FormBuilder & ProcessEditor source |
+| **Verified At Commit** | (2026-09-20) — FormTranslator batch translation of 3S-QC/Q1.2e, Q1.3e, Q1.4e verified against PostgreSQL |
 
 > **⚠️ Architectural note:** FormBuilder has no awareness of which process it belongs to. The `formName` prop is always identical to `formId`. See Section 6.1 and the Technical Debt table.
 
@@ -505,5 +505,6 @@ full diff of any entry below.
 | 2026-09-18 | **Transparent Form ID Renaming, Workstep Re-linking & ConfirmModal Migration:** (1) Added pure utility `renameFormInSteps` in `formUtils.ts` (Rule 13.8). (2) In `FormBuilder.tsx`, unlocked `formId` input for direct editing when `!isLocked` while preserving linked tree context (Variant 3B). Replaced `window.confirm()` with `ConfirmModal` for unlinking (Rule 3). (3) In `ProcessEditor.tsx`, updated `onSave` to automatically swap Form ID across `steps` (`renameFormInSteps`), migrate `workflowFormsData`, update `activeFormToBuild`, and auto-save the process to DB without interrupting user flow. |
 | 2026-09-20 | **FormTranslator Module & Multi-Language Form Translation:** (1) Built modular `scripts/formTranslator/` package (`extractor.cjs`, `llmInstructions.cjs`, `llmClient.cjs`, `reconstitutor.cjs`, `dbAdapter.cjs`, `index.cjs`, `cli.cjs`). (2) Implemented AST traversal extracting translatable dictionary while strictly shielding structural IDs, field types, location codes, and option values. (3) Added ISO 9001/QC domain glossary with agricultural trade nomenclature. (4) Executed end-to-end extraction, translation into professional English, and database persistence on form `3S-QC/Q1.1e` (`Order Information`), asserting 100% schema invariant integrity. |
 | 2026-09-20 | **Fix Form Reload on Modified Form ID Save:** (1) In `FormBuilder.tsx`, replaced `setLoading(true)` with `setSaving(true)` inside pre-save version collision checks (`handleSaveDraft` and `handlePublish`), eliminating canvas unmount and "Loading form template from database..." screen. (2) Added `initialLoadDoneRef` guard preventing redundant `fetchFormTemplate` re-execution on prop changes after initial cold mount. (3) In `ProcessEditor.tsx`, decoupled `<FormBuilder>` lifecycle from `activeFormToBuild` via stable `formBuilderSessionId` key, eliminating component remount when Form ID is renamed. |
+| 2026-09-20 | **Batch Translation of Forms 3S-QC/Q1.2e, Q1.3e, Q1.4e:** (1) Expanded `QC_DOMAIN_GLOSSARY` with technical specs, container stuffing, palletizing patterns, and production scheduling nomenclature. (2) Executed `FormTranslator` pipeline across 3 forms (108 strings total: 21 in Q1.2e, 63 in Q1.3e, 24 in Q1.4e). (3) Successfully persisted all 3 translated forms (`Product Technical Specifications`, `Container Stuffing Requirements`, `Production Schedule`) to Supabase PostgreSQL with 100% structural invariant preservation. |
 
 
