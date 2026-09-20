@@ -222,6 +222,13 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
     setActiveTab(newTab);
   };
   const [activeFormToBuild, setActiveFormToBuild] = useState<string | null>(null);
+  const [formBuilderSessionId, setFormBuilderSessionId] = useState<number>(0);
+
+  const handleOpenFormBuilder = (formId: string) => {
+    setFormBuilderSessionId(s => s + 1);
+    setActiveFormToBuild(formId);
+  };
+
   const [processCode, setProcessCode] = useState('');
   const [printTemplateData, setPrintTemplateData] = useState<any | null>(null);
   const [title, setTitle] = useState('');
@@ -290,7 +297,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
       setActiveTab(initialTab);
     }
     if (initialFormToBuild) {
-      setActiveFormToBuild(initialFormToBuild);
+      handleOpenFormBuilder(initialFormToBuild);
     }
     if (onClearInitialEditOpts) {
       onClearInitialEditOpts();
@@ -2855,7 +2862,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                                     alert('Please save the process document as a draft first to enable the form builder.');
                                     return;
                                   }
-                                  setActiveFormToBuild(formId);
+                                  handleOpenFormBuilder(formId);
                                 }}
                               >
                                 <Edit2 size={12} /> Edit
@@ -2880,7 +2887,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                                     boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
                                     margin: 0
                                   }}
-                                  onClick={() => setActiveFormToBuild(formId)}
+                                  onClick={() => handleOpenFormBuilder(formId)}
                                 >
                                   <Eye size={12} /> View
                                 </button>
@@ -2924,7 +2931,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
 
       {activeFormToBuild && (
         <FormBuilder
-          key={activeFormToBuild}
+          key={formBuilderSessionId}
           formName={activeFormToBuild}
           linkedProcessId={processId && processId !== 'unlinked' ? processId : undefined}
           linkedProcessTitle={title}

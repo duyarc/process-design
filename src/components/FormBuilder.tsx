@@ -1064,7 +1064,12 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     });
   });
 
+  const initialLoadDoneRef = useRef(false);
+
   useEffect(() => {
+    if (initialLoadDoneRef.current) return;
+    initialLoadDoneRef.current = true;
+
     const fetchFormTemplate = async () => {
       const targetId = initialData?.formId || formName;
       if (!targetId) return;
@@ -2323,7 +2328,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     let versionExists = false;
     if (!isSameFormAndVersion) {
       try {
-        setLoading(true);
+        setSaving(true);
         const res = await fetch(`/api/forms/${encodeURIComponent(formId)}`);
         if (res.ok) {
           const data = await res.json();
@@ -2334,7 +2339,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
       } catch (err) {
         console.error('Error checking version existence:', err);
       } finally {
-        setLoading(false);
+        if (versionExists) {
+          setSaving(false);
+        }
       }
     }
 
@@ -2625,7 +2632,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     let versionExists = false;
     if (!isSameFormAndVersion) {
       try {
-        setLoading(true);
+        setSaving(true);
         const checkRes = await fetch(`/api/forms/${encodeURIComponent(formId)}?version=${encodeURIComponent(targetVersion)}`);
         if (checkRes.ok) {
           versionExists = true;
@@ -2633,7 +2640,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
       } catch (err) {
         console.error('Error verifying version existence:', err);
       } finally {
-        setLoading(false);
+        if (versionExists) {
+          setSaving(false);
+        }
       }
     }
 

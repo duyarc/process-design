@@ -30,6 +30,29 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-20 — Form Designer & Process Editor: Fix Form Reload from DB on Modified Form ID Save
+
+**Scope:** 3 files (`FormBuilder.tsx`, `ProcessEditor.tsx`, `DESIGN_FORM_DESIGNER.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa | 2 (`FormBuilder.tsx`, `ProcessEditor.tsx`) |
+| Tổng lượt edit source | 5 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 2 (`tsc` x 1 + `vite` 9.39s) |
+| Lần build đầu thành công? | Có (100% pass ngay lần đầu) |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- Khắc phục triệt để hiện tượng form bị unmount và hiển thị màn hình tải lại DB ("Loading form template from database...") khi người dùng sửa Form ID và lưu lại.
+- Trong `FormBuilder.tsx`, thay thế `setLoading(true/false)` bằng `setSaving(true/false)` trong các khối kiểm tra trùng phiên bản của `handleSaveDraft` và `handlePublish`, giữ nguyên 100% canvas giao diện trong khi nút Save hiển thị trạng thái `Saving...`.
+- Bổ sung guard ref `initialLoadDoneRef` đảm bảo `fetchFormTemplate` chỉ chạy 1 lần khi cold mount, ngăn chặn các đợt re-fetch dư thừa khi props thay đổi.
+- Trong `ProcessEditor.tsx`, quản lý phiên làm việc bằng `formBuilderSessionId` ổn định thay cho `key={activeFormToBuild}`, triệt tiêu hiện tượng React huỷ bỏ và remount lại FormBuilder khi Form ID đổi.
+- TypeScript (`tsc`) và Vite production bundle pass 100% trong 9.39s.
+
+---
+
 ### 2026-09-20 — Form Designer & Translation: FormTranslator Module & 3S-QC/Q1.1e Ingestion
 
 **Scope:** 8 files (`scripts/formTranslator/*`, `DESIGN_FORM_DESIGNER.md`, `SESSION_LOG.md`)
@@ -250,26 +273,3 @@ Entry mới nhất ở trên cùng. Tối đa 10 entries.
 - Đồng bộ hóa 100% cả 5 components (`PrintFilledForm`, `PrintBlankForm`, `FormFiller`, `ProcessReader`, `FormBuilder`).
 - Bổ sung hiển thị `col.checkboxLayout === '2-column'` cho Radio cell trong `PrintFilledForm.tsx`.
 - 100% build pass ngay lần đầu (tsc & vite build 14.76s).
-
----
-
-### 2026-09-14 — FormBuilder & ReportBuilder: Simplify SECTION_LABEL Description Placeholder Text
-
-**Scope:** 2 files, 2 insertions, 2 deletions
-
-| Chỉ số | Giá trị |
-|---|---|
-| Số file nguồn chỉnh sửa | 2 (`FormBuilder.tsx`, `ReportBuilder.tsx`) |
-| Tổng lượt edit source | 2 |
-| Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 3 (2 tsc + 1 vite) |
-| Lần build đầu thành công? | Có (100% pass ngay lần build đầu) |
-| Số lệnh thất bại | 0 |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Điểm nổi bật:**
-- Tinh gọn văn bản gợi ý (placeholder) của trường mô tả/ghi chú hướng dẫn trong khối phân đoạn `SECTION_LABEL`.
-- Loại bỏ phần chú thích định dạng markdown trong ngoặc đơn `(hỗ trợ **in đậm**, *in nghiêng*, __gạch chân__)`, đưa về định dạng ngắn gọn: `"Gõ mô tả hoặc ghi chú hướng dẫn..."`.
-- Đồng bộ chuẩn hóa trên cả `FormBuilder.tsx` và `ReportBuilder.tsx`.
-- 100% build pass ngay lần đầu (tsc & vite build 10.67s).
