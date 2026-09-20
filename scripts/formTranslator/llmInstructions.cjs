@@ -1,7 +1,7 @@
 /**
  * FormTranslator - LLM Instructions & Domain Knowledge Module
- * Enforces ISO 9001, ISO 22000, BRCGS, GFSI, and international logistics standards.
- * Employs context-aware domain profiling to select industry-standard best-practice terms
+ * Grounded in verified international standards and industry-specific normative frameworks.
+ * Employs context-driven web search and domain profiling to select industry-standard terms
  * rather than naive literal / word-for-word translations.
  */
 
@@ -248,14 +248,10 @@ const SYSTEM_PROMPT = `You are a Senior Technical Documentation and Enterprise Q
 Your task is to translate form interface labels, section headings, table headers, and field options into professional, industry-standard English.
 
 MANDATORY TRANSLATION PRINCIPLES (EXTERNAL REFERENCE GROUNDING):
-1. Grounding in External Standards (Do Not Rely on Internal Speculation):
-   - All domain-specific technical terms must align with verifiable international standards (ISO, IEC, IMO, BRCGS, APICS, ASME, OSHA, etc.).
+1. Context-Driven Web Search Grounding (Do Not Rely on Internal Speculation):
+   - All domain-specific technical terms must be grounded via dynamic web searches according to the form's specific operational and technical context (search_web).
    - Do not rely on internal LLM reasoning alone or naive literal word-by-word calques.
-   - For example:
-     * Product quality specifications: use "Finished Product Specification", "Shelf Life", "Acceptance Criteria".
-     * Cargo packing: use "Container Stuffing Instructions", "Stowage Plan", "Dunnage & Loading Accessories", "UoM".
-     * Production planning: use "Finished Goods Production Plan", "Raw Material Inbound Schedule".
-     * Sign-offs: use standard audit roles: "Prepared By", "Reviewed / Verified By", "Authorized By".
+   - For any specialized technical, regulatory, or operational phrase, anchor the translation to real-world verified usage retrieved from external web search.
 
 2. Terminology Cleanliness & UI Fit:
    - AVOID clumsy slash constructions (e.g. do NOT output "Shelf Life / Expiry Date" or "Requirement / Specification"). Select the single most precise, commonly used industry term.

@@ -9,7 +9,7 @@
 | **Module Name** | Form Translator |
 | **Status** | Active Development |
 | **Document Version** | 1.2 |
-| **Verified At Commit** | (2026-09-20) — Generalized External Web Grounding Invariant, domain-agnostic citation schema, and multi-domain translation verified across forms 3S-QC/Q1.1e through Q1.4e against PostgreSQL |
+| **Verified At Commit** | (2026-09-20) — Context-Driven Web Search Grounding, domain-agnostic citation schema, and multi-domain translation verified across forms 3S-QC/Q1.1e through Q1.4e against PostgreSQL |
 
 > **⚠️ Architectural Invariant:** The Form Translator module is **strictly backend and agent-driven with zero frontend UI footprint**. It is executed via Antigravity agent CLI commands (`npm run translate -- ...`) or programmatic backend pipelines. It operates on `FormTemplateISO` schemas, protecting structural IDs while translating user-facing text into professional ISO 9001/QC English.
 
@@ -34,10 +34,10 @@ The `FormTranslator` module automates the end-to-end localization of manufacturi
 - **Zero Hallucination Risk**: By extracting *only* human-facing text paths and shielding the AST, LLMs never touch UUIDs, field coordinates, or database enums.
 - **Strict Invariant Assertion**: Automatically validates that block counts, field IDs, location codes, and option values (`PASS`, `FAIL`, `OPT_*`) remain 100% identical before any database write.
 - **Enterprise QC Nomenclature**: Ships with an embedded ISO 9001 and agricultural export glossary (e.g. *Passive/Active Export*, *Receiving & Delivery*, *Pallet Stacking Patterns*, *Signatures*).
-- **External Web Grounding Invariant**: Does not rely on internal LLM reasoning alone for domain-specific translations. All technical terms across any manufacturing, operational, or regulatory domain must be anchored to verifiable external references via real search queries in the outside space (`search_web`).
+- **Context-Driven Web Search Invariant**: Does not rely on internal LLM reasoning alone for domain-specific translations. All technical terms across any domain must be grounded via dynamic web searches tailored to the specific context, terminology, and operational scope of the form (`search_web`).
 - **Domain-Agnostic Terminology Resolution Protocol**:
-  1. *Form Context Classification*: Infer operational/technical domain without hardcoding form IDs.
-  2. *External Authority Web Querying*: Query authoritative standards bodies (ISO, IEC, IMO, BRCGS, APICS, ASME, OSHA, etc.) via external search.
+  1. *Form Context Classification*: Infer operational/technical domain and key domain entities from the form structure.
+  2. *Context-Driven Web Search*: Perform dynamic web searches based on the form's specific context to discover recognized industry standards and real-world usage.
   3. *Standard Term Extraction & Disambiguation*: Select unambiguous, industry-standard terms over literal calques.
   4. *Citation Provenance Storage*: Link every standardized term to its external citation schema (`TerminologyCitation`).
 - **Dual LLM Connectivity**: Operates with live AI APIs (Gemini 2.5/OpenAI) or deterministic agentic domain mapping when external API keys are not supplied.
@@ -132,4 +132,4 @@ npm run translate -- run --formId 3S-QC/Q1.1e
 | 2026-09-20 | **Batch Translation (Q1.2e, Q1.3e, Q1.4e):** Expanded `QC_DOMAIN_GLOSSARY` with technical standards, container stuffing, palletizing specs, and production schedules. Translated and persisted 108 strings across `3S-QC/Q1.2e`, `3S-QC/Q1.3e`, and `3S-QC/Q1.4e`. |
 | 2026-09-20 | **Architecture Decoupling:** Formalized `FormTranslator` as an independent agent/backend module with dedicated design document (`DESIGN_TRANSLATOR.md`), decoupled from `DESIGN_FORM_DESIGNER.md`. Added `npm run translate` script shortcut. |
 | 2026-09-20 | **Context-Aware Domain Profiling & Best-Practice Re-translation:** Added `detectDomainProfile` algorithm (FINISHED_PRODUCT_SPECIFICATION, CONTAINER_STUFFING_LOGISTICS, PRODUCTION_PLANNING, ORDER_MANAGEMENT), full tableRows and tableData cell extraction, and updated all 4 forms in PostgreSQL with international best-practice terminology. |
-| 2026-09-20 | **Generalized External Web Grounding Invariant:** Codified mandatory rule banning reliance on internal LLM reasoning alone for specialized translations. Established domain-agnostic 4-step resolution protocol and `TerminologyCitation` provenance schema. |
+| 2026-09-20 | **Context-Driven Web Search Invariant:** Codified mandatory rule banning reliance on internal LLM reasoning alone. Grounded technical terms via dynamic, context-driven web search (search_web) and domain-agnostic TerminologyCitation provenance schema. |

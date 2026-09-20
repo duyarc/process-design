@@ -1,7 +1,7 @@
 /**
  * FormTranslator - LLM Client Module
  * Handles sending dictionary payloads to LLM APIs (Gemini/OpenAI)
- * or resolving via context-aware domain glossaries aligned with ISO/BRCGS best practices.
+ * or resolving via context-aware domain glossaries aligned with verified international standards.
  */
 
 const { QC_DOMAIN_GLOSSARY, getDomainGlossary, buildPrompt } = require('./llmInstructions.cjs');

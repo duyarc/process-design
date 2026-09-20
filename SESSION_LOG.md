@@ -25,12 +25,33 @@ phiên thực thi để không lặp lại lỗi cũ.
 | 11 | `TOOL` | Chạy inline Node trên PowerShell chứa `$1` bị PowerShell ngậm biến `$1` thành chuỗi rỗng → SQL syntax error | Lưu code ra file `.cjs` tạm hoặc escape `\$1` trong chuỗi lệnh PowerShell | 1 |
 | 12 | `SCOPE` | Biểu mẫu chứa text động trong `tableData` (pre-filled cells) hoặc `tableRows` (`groupTitle`) ngoài `tableColumns` | Luôn duyệt toàn diện cả `tableRows` (`groupTitle`), `tableData` (text cells), field `placeholder`, `reactionProtocol` khi bóc tách chuỗi | 1 |
 | 13 | `LOGIC` | Hiểu nhầm "search" là truy xuất bộ nhớ nội bộ (internal reasoning) của LLM thay vì tra cứu không gian bên ngoài | Định nghĩa rõ: "Search" bắt buộc là tìm kiếm không gian bên ngoài (External Web Search) với các nguồn quy chuẩn xác thực, không dựa vào lập luận nội bộ của LLM | 1 |
+| 14 | `SCOPE` | Hardcode danh sách quy chuẩn cố định (IMO, BRCGS, ISO 22000, APICS) làm thiên lệch vào dữ liệu mẫu | Khái quát hóa thành quy trình: "Search web theo ngữ cảnh form" (Context-Driven Web Search) dựa trên domain suy diễn động | 1 |
 
 ---
 
 ## Nhật ký Phiên
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
+
+### 2026-09-20 — Form Translation: Context-Driven Dynamic Web Search Invariant Refinement
+
+**Scope:** 4 files (`DESIGN_TRANSLATOR.md`, `llmInstructions.cjs`, `llmClient.cjs`, `SESSION_LOG.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa | 4 (`DESIGN_TRANSLATOR.md`, `llmInstructions.cjs`, `llmClient.cjs`, `SESSION_LOG.md`) |
+| Lượt edit source (rework) | 0 |
+| Số lần build / test | 3 (1 self-test pass + 1 tsc + 1 vite 7.93s) |
+| Lần build đầu thành công? | Có (100% pass) |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- **Chuẩn hóa bước tra cứu trong thuật toán dịch:** Chuyển đổi định nghĩa từ danh sách quy chuẩn hardcoded (IMO, BRCGS, ISO, APICS) sang nguyên lý tổng quát: **"Search web theo ngữ cảnh form" (Context-Driven Web Search)**.
+- **Loại bỏ hoàn toàn thiên lệch dữ liệu mẫu:** Cập nhật tài liệu thiết kế `DESIGN_TRANSLATOR.md` v1.2 và module chỉ dẫn `llmInstructions.cjs`, `llmClient.cjs` đảm bảo hệ thống không bị đóng khung trong bất kỳ ngành nghề cụ thể nào mà thích ứng động qua truy vấn tìm kiếm bên ngoài (`search_web`).
+- **Xác minh toàn diện:** TypeScript pass 100%, 4/4 self-tests pass, Vite production bundle build hoàn tất trong 7.93s.
+
+---
 
 ### 2026-09-20 — Form Translation: Generalized External Web Grounding & Multi-Domain Verification
 
