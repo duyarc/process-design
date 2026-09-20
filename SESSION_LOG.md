@@ -30,6 +30,28 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-20 — Architecture & Governance: Refactor FormTranslator as Independent Module
+
+**Scope:** 5 files (`DESIGN_TRANSLATOR.md`, `AGENTS.md`, `DESIGN_FORM_DESIGNER.md`, `package.json`, `SESSION_LOG.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa / tạo mới | 4 |
+| Lượt edit source (rework) | 0 |
+| Số lần build / test | 3 (1 self-test + 1 tsc + 1 vite 8.43s) |
+| Lần build đầu thành công? | Có (100% build pass) |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- Tách biệt hoàn toàn phân hệ `FormTranslator` thành module backend/agent độc lập, sở hữu tài liệu thiết kế chuẩn hóa riêng [`DESIGN_TRANSLATOR.md`](DESIGN_TRANSLATOR.md).
+- Cập nhật Bản đồ sở hữu module trong [`AGENTS.md`](AGENTS.md), phân định ranh giới rõ ràng: `Form Designer` chỉ quản lý UI tương tác React (`FormBuilder.tsx`, `PrintBlankForm.tsx`), `Form Translator` quản lý toàn bộ pipeline bóc tách, dịch thuật và bảo toàn bất biến (`scripts/formTranslator/*`).
+- Giải phóng hoàn toàn [`DESIGN_FORM_DESIGNER.md`](DESIGN_FORM_DESIGNER.md) khỏi các nội dung kịch bản dịch thuật không có giao diện người dùng.
+- Thêm lệnh chạy tắt `"translate": "node scripts/formTranslator/cli.cjs"` trong `package.json` phục vụ Antigravity agents và quy trình CI/CD.
+- Kiểm thử `npm run translate -- test` pass 4/4 assertions; Vite build pass trong 8.43s.
+
+---
+
 ### 2026-09-20 — Form Translation: Batch Ingestion of Forms 3S-QC/Q1.2e, Q1.3e, Q1.4e
 
 **Scope:** 4 files (`llmInstructions.cjs`, `DESIGN_FORM_DESIGNER.md`, `SESSION_LOG.md`, `walkthrough.md`)
@@ -246,27 +268,3 @@ Entry mới nhất ở trên cùng. Tối đa 10 entries.
 - Tự động gán biểu mẫu mới vào đúng Quy trình và đúng Công đoạn (`step.formNames`, `workflowFormsData`) tương ứng với biểu mẫu gốc.
 - Không truyền `oldFormId` khi gọi `POST /api/forms` để triệt để bảo vệ biểu mẫu gốc không bị ghi đè/xóa nhầm trong backend.
 - Build TypeScript (`npx tsc --noEmit`) và Vite bundle (`npm run build`) thành công 100% không lỗi.
-
----
-
-### 2026-09-17 — Form Operations & Print: Dropdown & Custom Other Option Resolution
-
-**Scope:** 3 files, ~40 insertions, ~15 deletions
-
-| Chỉ số | Giá trị |
-|---|---|
-| Số file nguồn chỉnh sửa | 2 (`formUtils.ts`, `PrintFilledForm.tsx`) |
-| Tổng lượt edit source | 7 |
-| Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 3 (2 tsc + 1 vite) |
-| Lần build đầu thành công? | Có (100% pass ngay lần build đầu) |
-| Số lệnh thất bại | 0 |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Điểm nổi bật:**
-- Khắc phục triệt để lỗi rò rỉ chuỗi tiền tố kỹ thuật `__other__:<text>` trên bản in `PrintFilledForm.tsx`.
-- Chuẩn hóa hàm thuần túy `formatOptionDisplay` trong `formUtils.ts`: tự động chuẩn hóa nhãn `"Khác: [Nội dung]"` với đúng 1 dấu hai chấm, hỗ trợ tra cứu kép `value` và `label`.
-- Bổ sung nhánh render riêng cho `f.type === 'select'` trong `INFO_GRID` và cơ chế phòng vệ chiều sâu (Defense-in-depth) tại nhánh mặc định.
-- Đồng bộ hóa tra cứu nhãn cho trường Dropdown trong `CHECKLIST_TABLE` và `TABLE`, đồng thời loại bỏ lỗi lặp dấu hai chấm (`::`) trong Radio/Checkbox.
-- 100% build pass ngay lần đầu (tsc & vite build 10.00s).

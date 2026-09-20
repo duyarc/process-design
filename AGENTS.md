@@ -16,6 +16,7 @@ Mỗi tệp mã nguồn thuộc về **đúng một** module, và mỗi module c
 | **Form Designer** | `src/components/FormBuilder.tsx`, `src/components/print/PrintBlankForm.tsx` | [`DESIGN_FORM_DESIGNER.md`](DESIGN_FORM_DESIGNER.md) |
 | **Form Operations** | `src/components/FormFiller.tsx`, `src/components/FormManager.tsx`, `src/components/SubmissionManager.tsx`, `src/components/print/PrintFilledForm.tsx`, `src/utils/formUtils.ts` | [`DESIGN_FORM_OPERATIONS.md`](DESIGN_FORM_OPERATIONS.md) |
 | **Report Builder** | *(Components TBD)* | [`DESIGN_REPORT_BUILDER.md`](DESIGN_REPORT_BUILDER.md) |
+| **Form Translator** | `scripts/formTranslator/*` | [`DESIGN_TRANSLATOR.md`](DESIGN_TRANSLATOR.md) |
 | **Backend & Persistence** | `server.cjs`, `api/index.js` | [`DESIGN_BACKEND.md`](DESIGN_BACKEND.md) |
 | **Design System** | `src/index.css`, `src/print.css`, `src/App.css` | [`DESIGN_UI_UX.md`](DESIGN_UI_UX.md) |
 

@@ -10,7 +10,8 @@
     "client": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "translate": "node scripts/formTranslator/cli.cjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1067.0",
