@@ -1,35 +1,52 @@
 /**
  * FormTranslator - LLM Client Module
  * Handles sending dictionary payloads to LLM APIs (Gemini/OpenAI)
- * or resolving via high-fidelity domain glossary and agentic translation map.
+ * or resolving via context-aware domain glossaries aligned with ISO/BRCGS best practices.
  */
 
-const { QC_DOMAIN_GLOSSARY, buildPrompt } = require('./llmInstructions.cjs');
+const { QC_DOMAIN_GLOSSARY, getDomainGlossary, buildPrompt } = require('./llmInstructions.cjs');
 
 /**
- * Translates a text dictionary using a built-in domain glossary and rules.
- * Serves as the zero-dependency, deterministic agentic engine when no external API key is set.
+ * Translates a text dictionary using context-aware domain glossaries.
+ * Prioritizes profile-specific industry standards (e.g. Finished Product Specification,
+ * Container Stuffing, Production Planning) over naive literal translations.
+ * 
+ * @param {Object.<string, string>} dictionary
+ * @param {string} [domainProfile='GENERAL_QC']
+ * @returns {Object.<string, string>}
  */
-function translateWithGlossary(dictionary) {
+function translateWithGlossary(dictionary, domainProfile = 'GENERAL_QC') {
+  const domainGlossary = getDomainGlossary(domainProfile);
   const result = {};
+
   for (const [path, text] of Object.entries(dictionary)) {
-    // 1. Direct glossary match
+    // 1. Profile-specific glossary direct match
+    if (domainGlossary[text]) {
+      result[path] = domainGlossary[text];
+      continue;
+    }
+
+    // 2. Fallback to master QC glossary direct match
     if (QC_DOMAIN_GLOSSARY[text]) {
       result[path] = QC_DOMAIN_GLOSSARY[text];
       continue;
     }
 
-    // 2. Case-insensitive / trimmed match
+    // 3. Trimmed match
     const trimmed = text.trim();
+    if (domainGlossary[trimmed]) {
+      result[path] = domainGlossary[trimmed];
+      continue;
+    }
     if (QC_DOMAIN_GLOSSARY[trimmed]) {
       result[path] = QC_DOMAIN_GLOSSARY[trimmed];
       continue;
     }
 
-    // 3. Fallback heuristics for common suffixes / patterns
+    // 4. Fallback heuristics for common patterns
     let translated = trimmed;
     if (trimmed.startsWith('Số ')) {
-      translated = trimmed.replace('Số ', 'Number of ');
+      translated = trimmed.replace('Số ', 'Quantity of ');
     } else if (trimmed === '(mỗi đơn hàng)') {
       translated = '(per order)';
     }
@@ -84,38 +101,40 @@ async function callGeminiApi(apiKey, systemInstruction, promptText) {
  * 
  * @param {Object.<string, string>} dictionary
  * @param {Object} [options]
+ * @param {string} [options.domainProfile='GENERAL_QC']
  * @param {string} [options.mode='auto'] - 'auto' | 'api' | 'glossary' | 'custom'
  * @param {Object} [options.customDictionary]
  * @returns {Promise<Object.<string, string>>}
  */
 async function translateDictionary(dictionary, options = {}) {
+  const domainProfile = options.domainProfile || 'GENERAL_QC';
   const geminiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_KEY;
   const mode = options.mode || (geminiKey ? 'api' : 'glossary');
 
   // If custom dictionary passed (e.g. from file)
   if (options.customDictionary) {
-    const merged = { ...translateWithGlossary(dictionary), ...options.customDictionary };
+    const merged = { ...translateWithGlossary(dictionary, domainProfile), ...options.customDictionary };
     return merged;
   }
 
   if (mode === 'api' && geminiKey) {
-    const { systemInstruction, promptText } = buildPrompt(dictionary);
+    const { systemInstruction, promptText } = buildPrompt(dictionary, domainProfile);
     try {
       const apiResult = await callGeminiApi(geminiKey, systemInstruction, promptText);
-      // Validate that all original keys exist
+      const profileGlossary = getDomainGlossary(domainProfile);
       const validated = {};
       for (const k of Object.keys(dictionary)) {
-        validated[k] = apiResult[k] || QC_DOMAIN_GLOSSARY[dictionary[k]] || dictionary[k];
+        validated[k] = apiResult[k] || profileGlossary[dictionary[k]] || QC_DOMAIN_GLOSSARY[dictionary[k]] || dictionary[k];
       }
       return validated;
     } catch (err) {
       console.warn(`[LLMClient] API translation failed: ${err.message}. Falling back to domain glossary.`);
-      return translateWithGlossary(dictionary);
+      return translateWithGlossary(dictionary, domainProfile);
     }
   }
 
-  // Default / fallback: high-fidelity glossary
-  return translateWithGlossary(dictionary);
+  // Default / fallback: context-aware domain glossary
+  return translateWithGlossary(dictionary, domainProfile);
 }
 
 module.exports = {

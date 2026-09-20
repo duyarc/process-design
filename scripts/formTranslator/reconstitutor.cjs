@@ -150,6 +150,12 @@ function reconstituteForm(originalForm, translatedDict, options = {}) {
     clone.form_id = options.targetFormId;
     clone.formName = options.targetFormId;
     clone.form_name = options.targetFormId;
+    const blocks = clone.layoutBlocks || clone.layout_blocks || [];
+    for (const b of blocks) {
+      if (b && b.type === 'TITLE' && b.formCode) {
+        b.formCode = options.targetFormId;
+      }
+    }
   }
   if (options.targetVersion) {
     clone.version = options.targetVersion;

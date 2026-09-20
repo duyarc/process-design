@@ -8,8 +8,8 @@
 |---|---|
 | **Module Name** | Form Translator |
 | **Status** | Active Development |
-| **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-09-20) — FormTranslator module (scripts/formTranslator/*) verified across forms 3S-QC/Q1.1e, Q1.2e, Q1.3e, Q1.4e against PostgreSQL |
+| **Document Version** | 1.1 |
+| **Verified At Commit** | (2026-09-20) — Context-aware domain profiling, full tableRows & tableData extraction, and ISO/BRCGS/IMO best-practice translations verified across forms 3S-QC/Q1.1e, Q1.2e, Q1.3e, Q1.4e against PostgreSQL |
 
 > **⚠️ Architectural Invariant:** The Form Translator module is **strictly backend and agent-driven with zero frontend UI footprint**. It is executed via Antigravity agent CLI commands (`npm run translate -- ...`) or programmatic backend pipelines. It operates on `FormTemplateISO` schemas, protecting structural IDs while translating user-facing text into professional ISO 9001/QC English.
 
@@ -74,9 +74,11 @@ sequenceDiagram
 |---|---|---|
 | **Form Root** | `formTitle`, `form_title` | `formId`, `form_id`, `version`, `status`, `pageSize` |
 | **Blocks** | `block.title`, `block.formTitle`, `block.description` | `block.id`, `block.type`, `block.columns`, `block.borderStyle`, `visibilityCondition` |
-| **Fields** | `field.checkItem`, `field.targetRange`, `field.unit` | `field.id`, `field.type`, `field.locationCode`, `field.frequency`, `field.reactionProtocol` |
+| **Fields** | `field.checkItem`, `field.targetRange`, `field.unit`, `field.placeholder`, `field.reactionProtocol` | `field.id`, `field.type`, `field.locationCode`, `field.frequency` |
 | **Options** | `option.label` | `option.value` (`PASS`, `FAIL`, `OPT_*`), `option.isPass`, `option.isOther` |
-| **Table Columns** | `column.label` | `column.id`, `column.type`, `column.width`, `column.align` |
+| **Table Columns** | `column.label`, `column.options[].label` | `column.id`, `column.type`, `column.width`, `column.align` |
+| **Table Rows** | `row.groupTitle`, `row.label` | `row.id`, `row.isGroupHeader`, `row.lineCount` |
+| **Table Cells** | `tableData[rowId][colId]` (text cells) | Cell structure, coordinates, numeric metrics |
 
 ---
 
@@ -108,3 +110,4 @@ npm run translate -- run --formId 3S-QC/Q1.1e
 | 2026-09-20 | **Form 3S-QC/Q1.1e Translation:** Executed end-to-end translation of `3S-QC/Q1.1e` (`Order Information`), extracting and translating 48 strings with 100% invariant preservation. |
 | 2026-09-20 | **Batch Translation (Q1.2e, Q1.3e, Q1.4e):** Expanded `QC_DOMAIN_GLOSSARY` with technical standards, container stuffing, palletizing specs, and production schedules. Translated and persisted 108 strings across `3S-QC/Q1.2e`, `3S-QC/Q1.3e`, and `3S-QC/Q1.4e`. |
 | 2026-09-20 | **Architecture Decoupling:** Formalized `FormTranslator` as an independent agent/backend module with dedicated design document (`DESIGN_TRANSLATOR.md`), decoupled from `DESIGN_FORM_DESIGNER.md`. Added `npm run translate` script shortcut. |
+| 2026-09-20 | **Context-Aware Domain Profiling & Best-Practice Re-translation:** Added `detectDomainProfile` algorithm (FINISHED_PRODUCT_SPECIFICATION, CONTAINER_STUFFING_LOGISTICS, PRODUCTION_PLANNING, ORDER_MANAGEMENT), full tableRows and tableData cell extraction, and updated all 4 forms in PostgreSQL with international best-practice terminology. |

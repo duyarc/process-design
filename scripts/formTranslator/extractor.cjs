@@ -90,6 +90,20 @@ function extractTranslatableStrings(form) {
             paths.push(path);
           }
 
+          // Field placeholder
+          if (typeof field.placeholder === 'string' && field.placeholder.trim()) {
+            const path = `blocks[${bIdx}].fields[${fIdx}].placeholder`;
+            dictionary[path] = field.placeholder.trim();
+            paths.push(path);
+          }
+
+          // Field reactionProtocol (e.g. sign-off instructions)
+          if (typeof field.reactionProtocol === 'string' && field.reactionProtocol.trim()) {
+            const path = `blocks[${bIdx}].fields[${fIdx}].reactionProtocol`;
+            dictionary[path] = field.reactionProtocol.trim();
+            paths.push(path);
+          }
+
           // Field options (for radio, checkbox, select)
           if (Array.isArray(field.options)) {
             field.options.forEach((opt, oIdx) => {
@@ -114,6 +128,50 @@ function extractTranslatableStrings(form) {
             dictionary[path] = col.label.trim();
             paths.push(path);
           }
+
+          // Column options (for select, radio columns)
+          if (col && Array.isArray(col.options)) {
+            col.options.forEach((opt, oIdx) => {
+              if (opt && typeof opt.label === 'string' && opt.label.trim()) {
+                if (!/^[\.\s_-]+$/.test(opt.label.trim())) {
+                  const path = `blocks[${bIdx}].tableColumns[${cIdx}].options[${oIdx}].label`;
+                  dictionary[path] = opt.label.trim();
+                  paths.push(path);
+                }
+              }
+            });
+          }
+        });
+      }
+
+      // TABLE rows (group headers, row labels)
+      if (Array.isArray(block.tableRows)) {
+        block.tableRows.forEach((row, rIdx) => {
+          if (!row) return;
+          if (typeof row.groupTitle === 'string' && row.groupTitle.trim()) {
+            const path = `blocks[${bIdx}].tableRows[${rIdx}].groupTitle`;
+            dictionary[path] = row.groupTitle.trim();
+            paths.push(path);
+          }
+          if (typeof row.label === 'string' && row.label.trim()) {
+            const path = `blocks[${bIdx}].tableRows[${rIdx}].label`;
+            dictionary[path] = row.label.trim();
+            paths.push(path);
+          }
+        });
+      }
+
+      // Pre-filled TABLE data (strings that are not pure numbers)
+      if (block.tableData && typeof block.tableData === 'object') {
+        Object.entries(block.tableData).forEach(([rId, rowVals]) => {
+          if (!rowVals || typeof rowVals !== 'object') return;
+          Object.entries(rowVals).forEach(([cId, val]) => {
+            if (typeof val === 'string' && val.trim() && isNaN(Number(val))) {
+              const path = `blocks[${bIdx}].tableData.${rId}.${cId}`;
+              dictionary[path] = val.trim();
+              paths.push(path);
+            }
+          });
         });
       }
     });
@@ -121,18 +179,46 @@ function extractTranslatableStrings(form) {
 
   const formId = form.formId || form.form_id || 'UNKNOWN';
   const version = form.version || 'v0.1';
+  const domainProfile = detectDomainProfile(form);
 
   return {
     dictionary,
     metadata: {
       formId,
       version,
+      domainProfile,
       totalStrings: paths.length,
       paths
     }
   };
 }
 
+/**
+ * Detects the specialized manufacturing / QC / supply-chain domain profile of a form.
+ * 
+ * @param {Object} form - FormTemplateISO
+ * @returns {'FINISHED_PRODUCT_SPECIFICATION' | 'CONTAINER_STUFFING_LOGISTICS' | 'PRODUCTION_PLANNING' | 'ORDER_MANAGEMENT' | 'GENERAL_QC'}
+ */
+function detectDomainProfile(form) {
+  const formId = (form.formId || form.form_id || '').toUpperCase();
+  const title = (form.formTitle || form.form_title || '').toLowerCase();
+
+  if (formId.includes('Q1.2') || title.includes('tiêu chuẩn kỹ thuật') || title.includes('specification')) {
+    return 'FINISHED_PRODUCT_SPECIFICATION';
+  }
+  if (formId.includes('Q1.3') || title.includes('đóng hàng') || title.includes('stuffing')) {
+    return 'CONTAINER_STUFFING_LOGISTICS';
+  }
+  if (formId.includes('Q1.4') || title.includes('lịch sản xuất') || title.includes('production schedule')) {
+    return 'PRODUCTION_PLANNING';
+  }
+  if (formId.includes('Q1.1') || title.includes('thông tin đơn hàng') || title.includes('order information')) {
+    return 'ORDER_MANAGEMENT';
+  }
+  return 'GENERAL_QC';
+}
+
 module.exports = {
-  extractTranslatableStrings
+  extractTranslatableStrings,
+  detectDomainProfile
 };

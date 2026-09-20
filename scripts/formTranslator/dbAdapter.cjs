@@ -127,5 +127,6 @@ async function saveForm(form) {
 
 module.exports = {
   loadForm,
-  saveForm
+  saveForm,
+  getPool
 };

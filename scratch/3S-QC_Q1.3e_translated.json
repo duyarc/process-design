@@ -1,19 +1,19 @@
 {
   "formId": "3S-QC/Q1.3e",
   "formName": "3S-QC/Q1.3e",
-  "formTitle": "Container Stuffing Requirements",
+  "formTitle": "Container Stuffing Instructions",
   "status": "DRAFT",
   "version": "v0.1",
-  "effectiveDate": null,
+  "effectiveDate": "2026-08-14T17:00:00.000Z",
   "layoutBlocks": [
     {
-      "id": "b_title_1789861688719_oulej",
+      "id": "b_title_1786439484706_kxa5f",
       "logo": "",
       "type": "TITLE",
-      "title": "Container Stuffing Requirements",
+      "title": "Container Stuffing Instructions",
       "fields": [
         {
-          "id": "fld_1789861688719_0_xes4",
+          "id": "field_1786439484706_qwq9a",
           "type": "text",
           "checkItem": "(per order)",
           "frequency": "Once/Shift",
@@ -22,65 +22,59 @@
         }
       ],
       "columns": 1,
-      "formCode": "3S-QC/Q1.5",
-      "formTitle": "Container Stuffing Requirements",
       "description": "(per order)"
     },
     {
-      "id": "b_info_grid_1789861688720_v29m1",
+      "id": "b_info_grid_1786439502593",
       "type": "INFO_GRID",
       "title": "General Information",
       "fields": [
         {
-          "id": "fld_1789861688720_0_v8m5",
+          "id": "f_text_1786439503607",
           "type": "date",
           "checkItem": "Date Prepared",
           "locationCode": "LOC-94",
           "reactionProtocol": ""
         },
         {
-          "id": "fld_1789861688720_1_1126",
+          "id": "f_text_1786439519149",
           "type": "text",
           "checkItem": "Order Number (PO)",
           "locationCode": "LOC-80",
           "reactionProtocol": ""
         },
         {
-          "id": "fld_1789861688720_2_mg4z",
+          "id": "f_text_1786439530787",
           "type": "text",
           "checkItem": "Sales Representative",
           "locationCode": "LOC-14",
           "reactionProtocol": ""
         }
       ],
-      "columns": 2,
-      "tableData": {},
-      "tableRows": [],
-      "cellOptionsMap": {},
-      "cellPlaceholderMap": {}
+      "columns": 2
     },
     {
-      "id": "b_table_1789861688720_yei5y",
+      "id": "b_table_1786439593280",
       "type": "TABLE",
-      "title": "Supervision Location",
+      "title": "Stuffing & Inspection Location",
       "fields": [],
       "columns": 1,
       "tableData": {
-        "row_1789861688720_8ri8q": {
-          "col_1": "2",
-          "col_2": "Hạng mục kiểm tra B"
-        },
-        "row_1789861688720_r0476": {
+        "row_1": {
           "col_1": "1",
-          "col_2": "Hạng mục kiểm tra A"
+          "col_2": "Inspection Item A"
+        },
+        "row_2": {
+          "col_1": "2",
+          "col_2": "Inspection Item B"
         }
       },
       "tableRows": [
         {
-          "id": "row_1789861688720_r0476"
+          "id": "row_1"
         },
         {
-          "id": "row_1789861688720_8ri8q"
+          "id": "row_2"
         }
       ],
       "titleFormat": "H1",
@@ -96,7 +90,7 @@
           "id": "col_2",
           "type": "text",
           "align": "center",
-          "label": "Location / Warehouse Name",
+          "label": "Facility / Warehouse Name",
           "width": "36%"
         },
         {
@@ -121,24 +115,22 @@
           "width": "20%"
         }
       ],
-      "sectionFormat": "H1",
-      "cellOptionsMap": {},
-      "cellPlaceholderMap": {}
+      "sectionFormat": "H1"
     },
     {
-      "id": "b_info_grid_1789861688720_ipzlc",
+      "id": "b_info_grid_1786439738850",
       "type": "INFO_GRID",
-      "title": "Stuffing Information & Requirements",
+      "title": "Stuffing Specifications",
       "fields": [
         {
-          "id": "fld_1789861688720_0_ihzj",
+          "id": "f_text_1786439757264",
           "type": "date",
           "checkItem": "Estimated Stuffing Date",
           "locationCode": "LOC-85",
           "reactionProtocol": ""
         },
         {
-          "id": "fld_1789861688720_1_9jv5",
+          "id": "f_text_1786439774100",
           "type": "time",
           "timeMode": "single",
           "checkItem": "Estimated Start Time",
@@ -146,7 +138,7 @@
           "reactionProtocol": ""
         },
         {
-          "id": "fld_1789861688720_2_um3w",
+          "id": "f_text_1786439955701",
           "type": "radio",
           "options": [
             {
@@ -180,7 +172,7 @@
           "reactionProtocol": ""
         },
         {
-          "id": "fld_1789861688720_3_mhlc",
+          "id": "f_text_1786439966976",
           "type": "number",
           "unit": "",
           "checkItem": "Set Temperature",
@@ -189,67 +181,63 @@
         }
       ],
       "columns": 2,
-      "tableData": {},
-      "tableRows": [],
       "titleFormat": "H1",
-      "sectionFormat": "H1",
-      "cellOptionsMap": {},
-      "cellPlaceholderMap": {}
+      "sectionFormat": "H1"
     },
     {
-      "id": "b_table_1789861688720_mhijw",
+      "id": "b_table_1786697253629",
       "type": "TABLE",
-      "title": "Support Materials / Supplies",
+      "title": "Dunnage & Loading Accessories",
       "fields": [],
       "columns": 1,
       "tableData": {
-        "row_1789861688720_8iqvj": {
-          "col_2": "Khác"
-        },
-        "row_1789861688720_agy2j": {
-          "col_2": "Lưới chắn cửa cont"
-        },
-        "row_1789861688720_lpn68": {
-          "col_2": "Thanh chắn cửa cont",
-          "col_1786697393939": "thanh"
-        },
-        "row_1789861688720_mceff": {
-          "col_2": "Thiết bị ghi nhiệt độ",
-          "col_1786697393939": "cái"
-        },
-        "row_1789861688720_unahz": {
-          "col_2": "Túi khí chèn lót"
-        },
-        "row_1789861688720_wsuit": {
+        "row_1": {
           "col_1": "1",
-          "col_2": "Túi chống ẩm "
+          "col_2": "Container Desiccant Bags"
         },
-        "row_1789861688720_yvslh": {
+        "row_2": {
           "col_1": "2",
-          "col_2": "Giấy lót sàn / Vách cont"
+          "col_2": "Floor & Wall Kraft Paper"
+        },
+        "row_1786697412965": {
+          "col_2": "Container Door Cargo Net"
+        },
+        "row_1786697423984": {
+          "col_2": "Container Cargo Shoring Bar",
+          "col_1786697393939": "bar"
+        },
+        "row_1786697463171": {
+          "col_2": "Temperature Data Logger",
+          "col_1786697393939": "pcs"
+        },
+        "row_1786697508838": {
+          "col_2": "Dunnage Air Bags"
+        },
+        "row_1786697514096": {
+          "col_2": "Other"
         }
       },
       "tableRows": [
         {
-          "id": "row_1789861688720_wsuit"
+          "id": "row_1"
         },
         {
-          "id": "row_1789861688720_yvslh"
+          "id": "row_2"
         },
         {
-          "id": "row_1789861688720_agy2j"
+          "id": "row_1786697412965"
         },
         {
-          "id": "row_1789861688720_lpn68"
+          "id": "row_1786697423984"
         },
         {
-          "id": "row_1789861688720_mceff"
+          "id": "row_1786697463171"
         },
         {
-          "id": "row_1789861688720_unahz"
+          "id": "row_1786697508838"
         },
         {
-          "id": "row_1789861688720_8iqvj",
+          "id": "row_1786697514096",
           "lineCount": 1
         }
       ],
@@ -271,14 +259,14 @@
         {
           "id": "col_2",
           "type": "static_text",
-          "label": "Support Materials",
+          "label": "Dunnage & Securing Materials",
           "width": "20%"
         },
         {
           "id": "col_1786697393939",
           "type": "static_text",
           "align": "center",
-          "label": "Unit",
+          "label": "UoM",
           "width": "6%"
         },
         {
@@ -295,46 +283,44 @@
           "label": "Notes",
           "width": "20%"
         }
-      ],
-      "cellOptionsMap": {},
-      "cellPlaceholderMap": {}
+      ]
     },
     {
-      "id": "b_info_grid_1789861688720_1vnao",
+      "id": "b_info_grid_1786697555638",
       "type": "INFO_GRID",
       "title": "General Information",
       "fields": [
         {
-          "id": "fld_1789861688720_0_yyb5",
+          "id": "f_text_1786697557280",
           "type": "checkbox",
           "options": [
             {
-              "label": "Palletized loading (refer to Section 3 requirements)",
+              "label": "Palletized loading (per Section 3 specifications)",
               "value": "PASS",
               "isPass": false
             },
             {
-              "label": "Floor loaded / No pallet (skip Section 3)",
+              "label": "Floor loaded / Loose cargo (skip Section 3)",
               "value": "FAIL",
               "isPass": false
             },
             {
-              "label": "Load according to attached diagram",
+              "label": "Load per attached stowage diagram",
               "value": "OPT_1786697596559",
               "isPass": false
             },
             {
-              "label": "Load per factory standard practice",
+              "label": "Load per facility standard practice",
               "value": "OPT_1786697606285",
               "isPass": false
             }
           ],
-          "checkItem": "Loading / Stacking Pattern",
+          "checkItem": "Stowage Plan & Loading Pattern",
           "locationCode": "LOC-43",
           "reactionProtocol": ""
         },
         {
-          "id": "fld_1789861688720_1_zio5",
+          "id": "f_text_1786697612218",
           "type": "radio",
           "options": [
             {
@@ -348,51 +334,43 @@
               "isPass": false
             }
           ],
-          "checkItem": "Attach Drawing / Photos",
+          "checkItem": "Stowage Diagram / Photos",
           "locationCode": "LOC-41",
           "reactionProtocol": ""
         },
         {
-          "id": "fld_1789861688720_2_hr4d",
+          "id": "f_text_1786697649830",
           "type": "text",
           "checkItem": "Other requirements (please specify)",
           "locationCode": "LOC-14",
           "reactionProtocol": ""
         },
         {
-          "id": "fld_1789861688720_3_h8a0",
+          "id": "f_text_1786697653122",
           "type": "text",
           "checkItem": "",
           "locationCode": "LOC-61",
           "reactionProtocol": ""
         }
       ],
-      "columns": 1,
-      "tableData": {},
-      "tableRows": [],
-      "cellOptionsMap": {},
-      "cellPlaceholderMap": {}
+      "columns": 1
     },
     {
-      "id": "b_section_label_1789861688720_2hop0",
+      "id": "b_section_label_1786700095892",
       "type": "SECTION_LABEL",
       "title": "",
       "fields": [],
       "columns": 1,
-      "tableData": {},
-      "tableRows": [],
       "description": "",
-      "titleFormat": "BODY",
-      "cellOptionsMap": {},
-      "cellPlaceholderMap": {}
+      "titleFormat": "BODY"
     },
     {
-      "id": "b_info_grid_1789861688720_g7coy",
+      "id": "b_info_grid_1786697738277",
       "type": "INFO_GRID",
       "title": "Pallet Specifications",
       "fields": [
         {
-          "id": "fld_1789861688720_0_wm1t",
+          "id": "f_text_1786697782760",
           "type": "radio",
           "options": [
             {
@@ -411,12 +389,12 @@
               "isPass": false
             },
             {
-              "label": "Loose / Floor Loaded",
+              "label": "Floor Loaded",
               "value": "OPT_1786697829110",
               "isPass": false
             },
             {
-              "label": "Slip sheet",
+              "label": "Slip Sheet",
               "value": "OPT_1786697839484",
               "isPass": false
             }
@@ -426,7 +404,7 @@
           "reactionProtocol": ""
         },
         {
-          "id": "fld_1789861688720_1_7eg2",
+          "id": "f_text_1786697847470",
           "type": "text",
           "checkItem": "Pallet Dimensions",
           "locationCode": "LOC-68",
@@ -434,20 +412,16 @@
         }
       ],
       "columns": 1,
-      "tableData": {},
-      "tableRows": [],
       "titleFormat": "H1",
-      "sectionFormat": "H1",
-      "cellOptionsMap": {},
-      "cellPlaceholderMap": {}
+      "sectionFormat": "H1"
     },
     {
-      "id": "b_info_grid_1789861688720_slx3h",
+      "id": "b_info_grid_1786697902993",
       "type": "INFO_GRID",
-      "title": "Pallet Stacking & Wrapping Specifications",
+      "title": "Pallet Stacking & Securing Specifications",
       "fields": [
         {
-          "id": "fld_1789861688720_0_e56l",
+          "id": "f_text_1786697919379",
           "type": "radio",
           "options": [
             {
@@ -456,12 +430,12 @@
               "isPass": false
             },
             {
-              "label": "Interlocking / Brick bond pattern",
+              "label": "Interlocking Pattern (Brick bond)",
               "value": "FAIL",
               "isPass": false
             },
             {
-              "label": "Column / Vertical stacking",
+              "label": "Column Stacking Pattern",
               "value": "OPT_1786697956101",
               "isPass": false
             }
@@ -471,7 +445,7 @@
           "reactionProtocol": ""
         },
         {
-          "id": "fld_1789861688720_1_hwlj",
+          "id": "f_text_1786698503735",
           "type": "radio",
           "options": [
             {
@@ -480,17 +454,17 @@
               "isPass": false
             },
             {
-              "label": "Stretch wrapping",
+              "label": "Stretch Wrapping",
               "value": "FAIL",
               "isPass": false
             },
             {
-              "label": "Corner protectors (V-board)",
+              "label": "Corner Protectors (V-Boards)",
               "value": "OPT_1786698525843",
               "isPass": false
             },
             {
-              "label": "Plastic strapping",
+              "label": "Plastic Strapping",
               "value": "OPT_1786698531199",
               "isPass": false
             }
@@ -500,72 +474,586 @@
           "reactionProtocol": ""
         },
         {
-          "id": "fld_1789861688720_2_8us8",
+          "id": "f_text_1786697963982",
           "type": "text",
-          "checkItem": "Max cartons/bags per pallet",
+          "checkItem": "Max Cartons/Bags per Pallet",
           "locationCode": "LOC-20",
           "reactionProtocol": ""
         }
       ],
       "columns": 2,
-      "tableData": {},
-      "tableRows": [],
       "titleFormat": "H2",
-      "sectionFormat": "H2",
-      "cellOptionsMap": {},
-      "cellPlaceholderMap": {}
+      "sectionFormat": "H2"
     },
     {
-      "id": "b_info_grid_1789861688720_zoykw",
+      "id": "b_info_grid_1786698564266",
       "type": "INFO_GRID",
       "title": "General Information",
       "fields": [
         {
-          "id": "fld_1789861688720_0_lcks",
+          "id": "f_text_1786698565429",
           "type": "text",
           "checkItem": "Other requirements (if any)",
           "locationCode": "LOC-31",
           "reactionProtocol": ""
         },
         {
-          "id": "fld_1789861688720_1_uohh",
+          "id": "f_text_1786698571002",
           "type": "text",
           "checkItem": "",
           "locationCode": "LOC-17",
           "reactionProtocol": ""
         }
       ],
-      "columns": 1,
-      "tableData": {},
-      "tableRows": [],
-      "cellOptionsMap": {},
-      "cellPlaceholderMap": {}
+      "columns": 1
     },
     {
-      "id": "b_sign_1789861688720_cw727",
+      "id": "b_sign_1786698586781",
       "type": "SIGN",
-      "title": "Signatures",
+      "title": "Sign-off",
       "fields": [
         {
-          "id": "fld_1789861688720_0_ckbc",
+          "id": "f_signature_1786698589580",
           "type": "signature",
           "checkItem": "Confirmed By",
           "locationCode": "LOC-21",
-          "reactionProtocol": "Nhân viên Kinh doanh Ký & Ghi rõ họ tên "
+          "reactionProtocol": "Sales Representative Signature & Full Name"
         }
       ],
-      "columns": 2,
-      "tableData": {},
-      "tableRows": [],
-      "cellOptionsMap": {},
-      "cellPlaceholderMap": {}
+      "columns": 2
     }
   ],
-  "revisionHistory": [],
+  "revisionHistory": [
+    {
+      "date": "2026-08-15",
+      "author": "Admin",
+      "change": "Ban hành lần đầu",
+      "status": "ACTIVE",
+      "version": "v0.1",
+      "layoutBlocks": [
+        {
+          "id": "b_title_1786439484706_kxa5f",
+          "logo": "",
+          "type": "TITLE",
+          "title": "Yêu cầu đóng hàng",
+          "fields": [
+            {
+              "id": "field_1786439484706_qwq9a",
+              "type": "text",
+              "checkItem": "(mỗi đơn hàng)",
+              "frequency": "Once/Shift",
+              "locationCode": "TITLE-DESC",
+              "reactionProtocol": ""
+            }
+          ],
+          "columns": 1,
+          "description": "(mỗi đơn hàng)"
+        },
+        {
+          "id": "b_info_grid_1786439502593",
+          "type": "INFO_GRID",
+          "title": "Thông tin chung",
+          "fields": [
+            {
+              "id": "f_text_1786439503607",
+              "type": "date",
+              "checkItem": "Ngày lập",
+              "locationCode": "LOC-94",
+              "reactionProtocol": ""
+            },
+            {
+              "id": "f_text_1786439519149",
+              "type": "text",
+              "checkItem": "Số đơn hàng",
+              "locationCode": "LOC-80",
+              "reactionProtocol": ""
+            },
+            {
+              "id": "f_text_1786439530787",
+              "type": "text",
+              "checkItem": "Sales phụ trách",
+              "locationCode": "LOC-14",
+              "reactionProtocol": ""
+            }
+          ],
+          "columns": 2
+        },
+        {
+          "id": "b_table_1786439593280",
+          "type": "TABLE",
+          "title": "Địa điểm giám sát",
+          "fields": [],
+          "columns": 1,
+          "tableData": {
+            "row_1": {
+              "col_1": "1",
+              "col_2": "Hạng mục kiểm tra A"
+            },
+            "row_2": {
+              "col_1": "2",
+              "col_2": "Hạng mục kiểm tra B"
+            }
+          },
+          "tableRows": [
+            {
+              "id": "row_1"
+            },
+            {
+              "id": "row_2"
+            }
+          ],
+          "titleFormat": "H1",
+          "tableColumns": [
+            {
+              "id": "col_1",
+              "type": "static_text",
+              "align": "center",
+              "label": "STT",
+              "width": "10%"
+            },
+            {
+              "id": "col_2",
+              "type": "text",
+              "align": "center",
+              "label": "Tên địa điểm/ Kho hàng",
+              "width": "36%"
+            },
+            {
+              "id": "col_3",
+              "type": "number",
+              "align": "center",
+              "label": "Địa chỉ",
+              "width": "20%"
+            },
+            {
+              "id": "col_4",
+              "type": "text",
+              "align": "center",
+              "label": "Người liên hệ",
+              "width": "20%"
+            },
+            {
+              "id": "col_1786439648465",
+              "type": "number",
+              "align": "center",
+              "label": "SĐT",
+              "width": "20%"
+            }
+          ],
+          "sectionFormat": "H1"
+        },
+        {
+          "id": "b_info_grid_1786439738850",
+          "type": "INFO_GRID",
+          "title": "Thông tin và yêu cầu đóng hàng",
+          "fields": [
+            {
+              "id": "f_text_1786439757264",
+              "type": "date",
+              "checkItem": "Ngày đóng cont dự kiến",
+              "locationCode": "LOC-85",
+              "reactionProtocol": ""
+            },
+            {
+              "id": "f_text_1786439774100",
+              "type": "time",
+              "timeMode": "single",
+              "checkItem": "Thời gian bắt đầu dự kiến",
+              "locationCode": "LOC-86",
+              "reactionProtocol": ""
+            },
+            {
+              "id": "f_text_1786439955701",
+              "type": "radio",
+              "options": [
+                {
+                  "label": "[Khô] 20'DC",
+                  "value": "PASS",
+                  "isPass": false
+                },
+                {
+                  "label": "[Khô] 40'DC",
+                  "value": "FAIL",
+                  "isPass": false
+                },
+                {
+                  "label": "[Khô] 40'HC",
+                  "value": "OPT_1786697039939",
+                  "isPass": false
+                },
+                {
+                  "label": "[Lạnh] 20'RF    ",
+                  "value": "OPT_1786697053289",
+                  "isPass": false
+                },
+                {
+                  "label": "[Lạnh] 40'RH (Lạnh cao)",
+                  "value": "OPT_1786697066556",
+                  "isPass": false
+                }
+              ],
+              "checkItem": "Loại Cont",
+              "locationCode": "LOC-28",
+              "reactionProtocol": ""
+            },
+            {
+              "id": "f_text_1786439966976",
+              "type": "number",
+              "unit": "",
+              "checkItem": "Nhiệt độ cài đặt",
+              "locationCode": "LOC-79",
+              "reactionProtocol": ""
+            }
+          ],
+          "columns": 2,
+          "titleFormat": "H1",
+          "sectionFormat": "H1"
+        },
+        {
+          "id": "b_table_1786697253629",
+          "type": "TABLE",
+          "title": "Bảng biểu mẫu động",
+          "fields": [],
+          "columns": 1,
+          "tableData": {
+            "row_1": {
+              "col_1": "1",
+              "col_2": "Túi chống ẩm "
+            },
+            "row_2": {
+              "col_1": "2",
+              "col_2": "Giấy lót sàn / Vách cont"
+            },
+            "row_1786697412965": {
+              "col_2": "Lưới chắn cửa cont"
+            },
+            "row_1786697423984": {
+              "col_2": "Thanh chắn cửa cont",
+              "col_1786697393939": "thanh"
+            },
+            "row_1786697463171": {
+              "col_2": "Thiết bị ghi nhiệt độ",
+              "col_1786697393939": "cái"
+            },
+            "row_1786697508838": {
+              "col_2": "Túi khí chèn lót"
+            },
+            "row_1786697514096": {
+              "col_2": "Khác"
+            }
+          },
+          "tableRows": [
+            {
+              "id": "row_1"
+            },
+            {
+              "id": "row_2"
+            },
+            {
+              "id": "row_1786697412965"
+            },
+            {
+              "id": "row_1786697423984"
+            },
+            {
+              "id": "row_1786697463171"
+            },
+            {
+              "id": "row_1786697508838"
+            },
+            {
+              "id": "row_1786697514096",
+              "lineCount": 1
+            }
+          ],
+          "tableColumns": [
+            {
+              "id": "col_1",
+              "type": "checkbox",
+              "align": "center",
+              "label": " ",
+              "width": "5%",
+              "options": [
+                {
+                  "label": " ",
+                  "value": "PASS",
+                  "isPass": true
+                }
+              ]
+            },
+            {
+              "id": "col_2",
+              "type": "static_text",
+              "label": "Vật tư hỗ trợ ",
+              "width": "20%"
+            },
+            {
+              "id": "col_1786697393939",
+              "type": "static_text",
+              "align": "center",
+              "label": "ĐVT",
+              "width": "6%"
+            },
+            {
+              "id": "col_3",
+              "type": "number",
+              "align": "center",
+              "label": "Số lượng ",
+              "width": "10%",
+              "summaryRows": []
+            },
+            {
+              "id": "col_1786698844556",
+              "type": "text",
+              "label": "Ghi chú",
+              "width": "20%"
+            }
+          ]
+        },
+        {
+          "id": "b_info_grid_1786697555638",
+          "type": "INFO_GRID",
+          "title": "Thông tin chung",
+          "fields": [
+            {
+              "id": "f_text_1786697557280",
+              "type": "checkbox",
+              "options": [
+                {
+                  "label": "Có xếp hàng lên Pallet (theo yêu cầu chi tiết ở phần 3)  ",
+                  "value": "PASS",
+                  "isPass": false
+                },
+                {
+                  "label": "Không sử dụng Pallet (bỏ qua phần 3) ",
+                  "value": "FAIL",
+                  "isPass": false
+                },
+                {
+                  "label": "Xếp hàng theo sơ đồ đính kèm ",
+                  "value": "OPT_1786697596559",
+                  "isPass": false
+                },
+                {
+                  "label": "Xếp theo kinh nghiệm nhà máy ",
+                  "value": "OPT_1786697606285",
+                  "isPass": false
+                }
+              ],
+              "checkItem": " Sơ đồ xếp hàng ",
+              "locationCode": "LOC-43",
+              "reactionProtocol": ""
+            },
+            {
+              "id": "f_text_1786697612218",
+              "type": "radio",
+              "options": [
+                {
+                  "label": "Đã đính kèm ",
+                  "value": "PASS",
+                  "isPass": false
+                },
+                {
+                  "label": "Không có file/ hình ảnh đính kèm ",
+                  "value": "FAIL",
+                  "isPass": false
+                }
+              ],
+              "checkItem": "Đính kèm bản vẽ / Hình ảnh ",
+              "locationCode": "LOC-41",
+              "reactionProtocol": ""
+            },
+            {
+              "id": "f_text_1786697649830",
+              "type": "text",
+              "checkItem": "Yêu cầu khác (vui lòng ghi rõ) ",
+              "locationCode": "LOC-14",
+              "reactionProtocol": ""
+            },
+            {
+              "id": "f_text_1786697653122",
+              "type": "text",
+              "checkItem": "",
+              "locationCode": "LOC-61",
+              "reactionProtocol": ""
+            }
+          ],
+          "columns": 1
+        },
+        {
+          "id": "b_section_label_1786700095892",
+          "type": "SECTION_LABEL",
+          "title": "",
+          "fields": [],
+          "columns": 1,
+          "description": "",
+          "titleFormat": "BODY"
+        },
+        {
+          "id": "b_info_grid_1786697738277",
+          "type": "INFO_GRID",
+          "title": "Quy cách pallet ",
+          "fields": [
+            {
+              "id": "f_text_1786697782760",
+              "type": "radio",
+              "options": [
+                {
+                  "label": "Pallet Gỗ",
+                  "value": "FAIL",
+                  "isPass": false
+                },
+                {
+                  "label": "Pallet Nhựa",
+                  "value": "OPT_1786697801833",
+                  "isPass": false
+                },
+                {
+                  "label": "Pallet Giấy",
+                  "value": "OPT_1786697823035",
+                  "isPass": false
+                },
+                {
+                  "label": "Xếp rời",
+                  "value": "OPT_1786697829110",
+                  "isPass": false
+                },
+                {
+                  "label": "Slip sheet",
+                  "value": "OPT_1786697839484",
+                  "isPass": false
+                }
+              ],
+              "checkItem": "Loại Pallet",
+              "locationCode": "LOC-55",
+              "reactionProtocol": ""
+            },
+            {
+              "id": "f_text_1786697847470",
+              "type": "text",
+              "checkItem": "Kích thước Pallet",
+              "locationCode": "LOC-68",
+              "reactionProtocol": ""
+            }
+          ],
+          "columns": 1,
+          "titleFormat": "H1",
+          "sectionFormat": "H1"
+        },
+        {
+          "id": "b_info_grid_1786697902993",
+          "type": "INFO_GRID",
+          "title": "Quy cách chất hàng trên Pallet",
+          "fields": [
+            {
+              "id": "f_text_1786697919379",
+              "type": "radio",
+              "options": [
+                {
+                  "label": "Không yêu cầu ",
+                  "value": "PASS",
+                  "isPass": false
+                },
+                {
+                  "label": "Xếp đan dây (Chồng gạch) ",
+                  "value": "FAIL",
+                  "isPass": false
+                },
+                {
+                  "label": "Xếp thẳng đứng",
+                  "value": "OPT_1786697956101",
+                  "isPass": false
+                }
+              ],
+              "checkItem": "Quy tắc xếp",
+              "locationCode": "LOC-80",
+              "reactionProtocol": ""
+            },
+            {
+              "id": "f_text_1786698503735",
+              "type": "radio",
+              "options": [
+                {
+                  "label": "Không yêu cầu",
+                  "value": "PASS",
+                  "isPass": false
+                },
+                {
+                  "label": "Quấn màng co",
+                  "value": "FAIL",
+                  "isPass": false
+                },
+                {
+                  "label": "Dùng nẹp góc giấy (V-board)",
+                  "value": "OPT_1786698525843",
+                  "isPass": false
+                },
+                {
+                  "label": "Đai niềng nhựa (Strapping)",
+                  "value": "OPT_1786698531199",
+                  "isPass": false
+                }
+              ],
+              "checkItem": "Bọc & Cố định Pallet",
+              "locationCode": "LOC-13",
+              "reactionProtocol": ""
+            },
+            {
+              "id": "f_text_1786697963982",
+              "type": "text",
+              "checkItem": "Số thùng/bao tối đa trên 1 Pallet",
+              "locationCode": "LOC-20",
+              "reactionProtocol": ""
+            }
+          ],
+          "columns": 2,
+          "titleFormat": "H2",
+          "sectionFormat": "H2"
+        },
+        {
+          "id": "b_info_grid_1786698564266",
+          "type": "INFO_GRID",
+          "title": "Thông tin chung",
+          "fields": [
+            {
+              "id": "f_text_1786698565429",
+              "type": "text",
+              "checkItem": "Yêu cầu khác (nếu có)",
+              "locationCode": "LOC-31",
+              "reactionProtocol": ""
+            },
+            {
+              "id": "f_text_1786698571002",
+              "type": "text",
+              "checkItem": "",
+              "locationCode": "LOC-17",
+              "reactionProtocol": ""
+            }
+          ],
+          "columns": 1
+        },
+        {
+          "id": "b_sign_1786698586781",
+          "type": "SIGN",
+          "title": "Ký nhận",
+          "fields": [
+            {
+              "id": "f_signature_1786698589580",
+              "type": "signature",
+              "checkItem": "Xác nhận",
+              "locationCode": "LOC-21",
+              "reactionProtocol": "Nhân viên Kinh doanh Ký & Ghi rõ họ tên "
+            }
+          ],
+          "columns": 2
+        }
+      ]
+    }
+  ],
   "pageSize": "A4",
   "isPublic": false,
   "defaultFocusMode": false,
-  "form_title": "Container Stuffing Requirements",
+  "form_title": "Container Stuffing Instructions",
   "form_id": "3S-QC/Q1.3e",
   "form_name": "3S-QC/Q1.3e"
 }

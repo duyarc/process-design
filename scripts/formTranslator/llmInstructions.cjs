@@ -1,87 +1,58 @@
 /**
  * FormTranslator - LLM Instructions & Domain Knowledge Module
- * Defines system prompts, QC / ISO 9001 domain terminology, agricultural export rules,
- * and JSON prompt construction for high-accuracy translation.
+ * Enforces ISO 9001, ISO 22000, BRCGS, GFSI, and international logistics standards.
+ * Employs context-aware domain profiling to select industry-standard best-practice terms
+ * rather than naive literal / word-for-word translations.
  */
 
-const QC_DOMAIN_GLOSSARY = {
-  // ISO 9001 & Sign-off roles
-  "Người lập": "Prepared By",
-  "Người thẩm tra": "Reviewed / Verified By",
-  "Ký xác nhận": "Signatures",
-  "Biên bản": "Record / Report",
-  "Nghiệm thu": "Acceptance / Handover",
-  "Tiêu chuẩn kỹ thuật": "Technical Standard",
-  "Kiểm tra chất lượng": "Quality Inspection",
-
-  // Agricultural Export & Logistics
-  "Thông tin đơn hàng": "Order Information",
-  "Thông tin chung": "General Information",
-  "Số đơn hàng": "Order Number (PO)",
-  "Sales phụ trách": "Sales Representative",
-  "Loại đơn hàng": "Order Type",
-  "Nội địa": "Domestic",
-  "XK bị động": "Passive Export",
-  "XK chủ động": "Active Export",
-  "Ngành hàng": "Commodity / Category",
-  "Pháp nhân xuất khẩu": "Exporting Legal Entity",
-  "Phạm vi công việc": "Scope of Work",
-  "Phạm vi Giám sát": "Supervision Scope",
-  "Giao nhận (chỉ giám sát và xác nhận  số lượng hàng hóa giao nhận)": "Receiving & Delivery (supervise and verify quantity only)",
-  "Kỹ thuật (giám sát chất lượng hàng hóa)": "Technical (monitor product quality)",
-  "Triển khai QR code (Cerify)": "Deploy QR Code (Cerify)",
-  "Có": "Yes",
-  "Không": "No",
-  "Ngày bắt đầu": "Start Date",
-  "Giờ làm việc": "Working Hours",
-  "Số ngày làm việc dự kiến": "Estimated Working Days",
-  "Mô tả yêu cầu cụ thể": "Specific Requirement Description",
-  "Chi tiết đơn hàng": "Order Details",
-  "STT": "No.",
-  "Tên sản phẩm": "Product Name",
-  "Quy cách": "Specification",
-  "Số lượng (tấn)": "Quantity (tons)",
-  "Số lượng (bao/thùng)": "Quantity (bags/cartons)",
-  "Thời gian giao hàng": "Delivery Time",
-  "yêu cầu chứng từ chất lượng": "Quality Document Requirements",
-  "Khác": "Other",
-  "Khác ": "Other",
-  "Chứng từ khác (vui lòng ghi rõ)": "Other documents (please specify)",
-  "(mỗi đơn hàng)": "(per order)",
-  "FarmGate  VN": "FarmGate VN",
-  "FarmGate Sing": "FarmGate Sing",
-  "FarmGate Laos": "FarmGate Laos",
-  "FarmGate Combodia": "FarmGate Cambodia",
-  "FarmNet": "FarmNet",
-  "Testing report": "Testing Report",
-  "Health Certificate": "Health Certificate",
-  "CoA": "CoA",
-
-  // Q1.2e: Product Technical Specifications
-  "Tiêu chuẩn kỹ thuật sản phẩm": "Product Technical Specifications",
-  "Mã tiêu chuẩn": "Standard Code",
-  "Thị trường": "Target Market",
-  "Ngày ban hành": "Issue Date",
-  "Đóng gói": "Packaging",
-  "Nguồn gốc": "Origin",
-  "Hạn sử dụng": "Shelf Life / Expiry Date",
+// 1. Finished Product Specification (ISO 22000 / BRCGS / Codex Alimentarius)
+const FINISHED_PRODUCT_SPEC_GLOSSARY = {
+  "Tiêu chuẩn kỹ thuật sản phẩm": "Finished Product Specification",
+  "Product Technical Specifications": "Finished Product Specification",
+  "Mã tiêu chuẩn": "Specification Code",
+  "Standard Code": "Specification Code",
+  "Thị trường": "Destination Market",
+  "Target Market": "Destination Market",
+  "Ngày ban hành": "Effective Date",
+  "Issue Date": "Effective Date",
+  "Đóng gói": "Packaging & Pack Size",
+  "Tên sản phẩm": "Product Description",
+  "Product Name": "Product Description",
+  "Nguồn gốc": "Country of Origin",
+  "Origin": "Country of Origin",
+  "Hạn sử dụng": "Shelf Life",
+  "Shelf Life / Expiry Date": "Shelf Life",
   "Điều kiện bảo quản": "Storage Conditions",
-  "Thành phần": "Ingredients / Composition",
-  "Xử lý trước khi sử dụng hoặc sau khi đóng gói": "Treatment before use or after packaging",
-  "Tiêu chuẩn kỹ thuật": "Technical Standards",
-  "Tên chỉ tiêu": "Parameter / Specification Item",
-  "Yêu cầu": "Requirement / Specification",
-  "Cột mới": "Criteria / Notes",
+  "Thành phần": "Ingredients & Composition",
+  "Ingredients": "Ingredients & Composition",
+  "Xử lý trước khi sử dụng hoặc sau khi đóng gói": "Intended Use & Handling",
+  "Tiêu chuẩn kỹ thuật": "Quality Parameters",
+  "Technical Standards": "Quality Parameters",
+  "Tên chỉ tiêu": "Parameter",
+  "Parameter / Specification Item": "Parameter",
+  "Yêu cầu": "Acceptance Criteria",
+  "Requirement / Specification": "Acceptance Criteria",
+  "Cột mới": "Target / Tolerance",
+  "I. Bao bì và đóng gói": "I. Packaging & Packing Materials",
+  "II. Cảm quan & Hóa lý": "II. Organoleptic & Physicochemical Parameters",
+  "III. Vi sinh": "III. Microbiological Criteria",
+  "IV. Kim loại nặng": "IV. Heavy Metals",
+  "V. Dư lượng Thuốc Bảo Vệ Thực Vật": "V. Pesticide Residues (MRL)",
+  "VI. Điều kiện bảo quản": "VI. Storage & Transport Conditions",
+  "Nhiệt độ Container (°C)": "Container Temperature (°C)",
+  "Nhiệt độ sản phẩm (°C)": "Product Core Temperature (°C)"
+};
 
-  // Q1.3e: Stuffing & Loading Requirements
-  "Yêu cầu đóng hàng": "Container Stuffing Requirements",
+// 2. Container Stuffing & Freight Logistics (IMO / Cargo Stowage / Incoterms)
+const CONTAINER_STUFFING_GLOSSARY = {
+  "Yêu cầu đóng hàng": "Container Stuffing Instructions",
   "Ngày lập": "Date Prepared",
-  "Địa điểm giám sát": "Supervision Location",
-  "Tên địa điểm/ Kho hàng": "Location / Warehouse Name",
+  "Địa điểm giám sát": "Stuffing & Inspection Location",
+  "Tên địa điểm/ Kho hàng": "Facility / Warehouse Name",
   "Địa chỉ": "Address",
   "Người liên hệ": "Contact Person",
   "SĐT": "Phone Number",
-  "Thông tin và yêu cầu đóng hàng": "Stuffing Information & Requirements",
+  "Thông tin và yêu cầu đóng hàng": "Stuffing Specifications",
   "Ngày đóng cont dự kiến": "Estimated Stuffing Date",
   "Thời gian bắt đầu dự kiến": "Estimated Start Time",
   "Loại Cont": "Container Type",
@@ -91,17 +62,17 @@ const QC_DOMAIN_GLOSSARY = {
   "[Lạnh] 20'RF": "[Reefer] 20'RF",
   "[Lạnh] 40'RH (Lạnh cao)": "[Reefer] 40'RH (High Cube Reefer)",
   "Nhiệt độ cài đặt": "Set Temperature",
-  "Bảng biểu mẫu động": "Support Materials / Supplies",
-  "Vật tư hỗ trợ": "Support Materials",
-  "ĐVT": "Unit",
+  "Bảng biểu mẫu động": "Dunnage & Loading Accessories",
+  "Vật tư hỗ trợ": "Dunnage & Securing Materials",
+  "ĐVT": "UoM",
   "Số lượng": "Quantity",
   "Ghi chú": "Notes",
-  "Sơ đồ xếp hàng": "Loading / Stacking Pattern",
-  "Có xếp hàng lên Pallet (theo yêu cầu chi tiết ở phần 3)": "Palletized loading (refer to Section 3 requirements)",
-  "Không sử dụng Pallet (bỏ qua phần 3)": "Floor loaded / No pallet (skip Section 3)",
-  "Xếp hàng theo sơ đồ đính kèm": "Load according to attached diagram",
-  "Xếp theo kinh nghiệm nhà máy": "Load per factory standard practice",
-  "Đính kèm bản vẽ / Hình ảnh": "Attach Drawing / Photos",
+  "Sơ đồ xếp hàng": "Stowage Plan & Loading Pattern",
+  "Có xếp hàng lên Pallet (theo yêu cầu chi tiết ở phần 3)": "Palletized loading (per Section 3 specifications)",
+  "Không sử dụng Pallet (bỏ qua phần 3)": "Floor loaded / Loose cargo (skip Section 3)",
+  "Xếp hàng theo sơ đồ đính kèm": "Load per attached stowage diagram",
+  "Xếp theo kinh nghiệm nhà máy": "Load per facility standard practice",
+  "Đính kèm bản vẽ / Hình ảnh": "Stowage Diagram / Photos",
   "Đã đính kèm": "Attached",
   "Không có file/ hình ảnh đính kèm": "No file / photo attached",
   "Yêu cầu khác (vui lòng ghi rõ)": "Other requirements (please specify)",
@@ -110,80 +81,227 @@ const QC_DOMAIN_GLOSSARY = {
   "Pallet Gỗ": "Wooden Pallet",
   "Pallet Nhựa": "Plastic Pallet",
   "Pallet Giấy": "Paper / Cardboard Pallet",
-  "Xếp rời": "Loose / Floor Loaded",
-  "Slip sheet": "Slip sheet",
+  "Xếp rời": "Floor Loaded",
+  "Slip sheet": "Slip Sheet",
   "Kích thước Pallet": "Pallet Dimensions",
-  "Quy cách chất hàng trên Pallet": "Pallet Stacking & Wrapping Specifications",
+  "Quy cách chất hàng trên Pallet": "Pallet Stacking & Securing Specifications",
   "Quy tắc xếp": "Stacking Pattern",
   "Không yêu cầu": "Not Required",
-  "Xếp đan dây (Chồng gạch)": "Interlocking / Brick bond pattern",
-  "Xếp thẳng đứng": "Column / Vertical stacking",
+  "Xếp đan dây (Chồng gạch)": "Interlocking Pattern (Brick bond)",
+  "Xếp thẳng đứng": "Column Stacking Pattern",
   "Bọc & Cố định Pallet": "Pallet Securing & Wrapping",
-  "Quấn màng co": "Stretch wrapping",
-  "Dùng nẹp góc giấy (V-board)": "Corner protectors (V-board)",
-  "Đai niềng nhựa (Strapping)": "Plastic strapping",
-  "Số thùng/bao tối đa trên 1 Pallet": "Max cartons/bags per pallet",
+  "Quấn màng co": "Stretch Wrapping",
+  "Dùng nẹp góc giấy (V-board)": "Corner Protectors (V-Boards)",
+  "Đai niềng nhựa (Strapping)": "Plastic Strapping",
+  "Số thùng/bao tối đa trên 1 Pallet": "Max Cartons/Bags per Pallet",
   "Yêu cầu khác (nếu có)": "Other requirements (if any)",
-  "Ký nhận": "Signatures",
+  "Ký nhận": "Sign-off",
   "Xác nhận": "Confirmed By",
-
-  // Q1.4e: Production Schedule
-  "Lịch sản xuất": "Production Schedule",
-  "1. Kế hoạch Sản xuất": "1. Production Plan",
-  "Ngày sản xuất": "Production Date",
-  "Tên Thành phẩm": "Finished Product Name",
-  "Quy cách đóng gói": "Packaging Specification",
-  "Số tấn": "Quantity (tons)",
-  "Tiêu chuẩn, Hình mẫu": "Standard / Sample Reference",
-  "2. Kế hoạch nhập nguyên liệu": "2. Raw Material Intake Plan",
-  "Tên Nguyên liệu": "Raw Material Name",
-  "Người xác nhận": "Confirmed By"
+  "Túi chống ẩm": "Container Desiccant Bags",
+  "Túi chống ẩm ": "Container Desiccant Bags",
+  "Giấy lót sàn / Vách cont": "Floor & Wall Kraft Paper",
+  "Lưới chắn cửa cont": "Container Door Cargo Net",
+  "Thanh chắn cửa cont": "Container Cargo Shoring Bar",
+  "thanh": "bar",
+  "Thiết bị ghi nhiệt độ": "Temperature Data Logger",
+  "cái": "pcs",
+  "Túi khí chèn lót": "Dunnage Air Bags",
+  "Container Stuffing Requirements": "Container Stuffing Instructions",
+  "Support Materials / Supplies": "Dunnage & Loading Accessories",
+  "Unit": "UoM",
+  "Loading / Stacking Pattern": "Stowage Plan & Loading Pattern",
+  "Loose / Floor Loaded": "Floor Loaded"
 };
 
-const SYSTEM_PROMPT = `You are a Senior Technical Documentation and ISO 9001 / QC Quality Assurance Translation Specialist.
-Your task is to translate form interface labels, section headings, and field options from Vietnamese into professional English.
+// 3. Production Planning & Scheduling (APICS / CPIM / ERP Standards)
+const PRODUCTION_PLANNING_GLOSSARY = {
+  "Lịch sản xuất": "Production Schedule",
+  "1. Kế hoạch Sản xuất": "1. Finished Goods Production Plan",
+  "Ngày sản xuất": "Production Date",
+  "Tên Thành phẩm": "Finished Product Description",
+  "Quy cách đóng gói": "Packaging Specification",
+  "Số tấn": "Quantity (tons)",
+  "Tiêu chuẩn, Hình mẫu": "Quality Standard / Master Sample",
+  "Ghi chú": "Notes",
+  "2. Kế hoạch nhập nguyên liệu": "2. Raw Material Inbound Schedule",
+  "Tên Nguyên liệu": "Raw Material Description",
+  "Người xác nhận": "Authorized By",
+  "1. Production Plan": "1. Finished Goods Production Plan",
+  "2. Raw Material Inbound Plan": "2. Raw Material Inbound Schedule",
+  "Finished Product Name": "Finished Product Description",
+  "Packaging Specifications": "Packaging Specification",
+  "Quantity (Tons)": "Quantity (tons)",
+  "Quality Standard, Master Sample": "Quality Standard / Master Sample",
+  "Raw Material Name": "Raw Material Description"
+};
 
-STRICT TRANSLATION RULES:
-1. Domain Precision:
-   - Use standard ISO 9001 and manufacturing QA/QC terminology.
-   - For trade: "XK bị động" -> "Passive Export", "XK chủ động" -> "Active Export".
-   - For roles: "Người lập" -> "Prepared By", "Người thẩm tra" -> "Reviewed / Verified By".
-   - For table headers: Keep them concise so they fit within compact printed table column widths (e.g. "STT" -> "No.").
+// 4. Order Management & QA Field Verification (ISO 9001 / Export Trade)
+const ORDER_MANAGEMENT_GLOSSARY = {
+  "Thông tin đơn hàng": "Order Information",
+  "Số đơn hàng": "Order Number (PO)",
+  "Sales phụ trách": "Sales Representative",
+  "Loại đơn hàng": "Order Type",
+  "Nội địa": "Domestic",
+  "XK bị động": "Passive Export",
+  "XK chủ động": "Active Export",
+  "Ngành hàng": "Commodity / Category",
+  "Pháp nhân xuất khẩu": "Exporting Entity (Shipper)",
+  "Phạm vi công việc": "Scope of Work",
+  "Phạm vi Giám sát": "Inspection Scope",
+  "Giao nhận (chỉ giám sát và xác nhận  số lượng hàng hóa giao nhận)": "Tally & Quantity Verification (supervise and verify piece count only)",
+  "Kỹ thuật (giám sát chất lượng hàng hóa)": "Quality & Specification Inspection (monitor product quality)",
+  "Triển khai QR code (Cerify)": "Traceability QR Code (Cerify)",
+  "Có": "Yes",
+  "Không": "No",
+  "Ngày bắt đầu": "Start Date",
+  "Giờ làm việc": "Working Hours",
+  "Số ngày làm việc dự kiến": "Estimated Working Days",
+  "Mô tả yêu cầu cụ thể": "Specific Requirement Description",
+  "Chi tiết đơn hàng": "Order Details",
+  "STT": "No.",
+  "Tên sản phẩm": "Product Description",
+  "Quy cách": "Specification",
+  "Số lượng (tấn)": "Quantity (tons)",
+  "Số lượng (bao/thùng)": "Quantity (bags/cartons)",
+  "Thời gian giao hàng": "Delivery Time",
+  "yêu cầu chứng từ chất lượng": "Quality & Compliance Documentation",
+  "CoA": "CoA",
+  "Testing report": "Testing Report",
+  "Health Certificate": "Health Certificate",
+  "Khác": "Other",
+  "Khác ": "Other",
+  "Chứng từ khác (vui lòng ghi rõ)": "Other documents (please specify)",
+  "Ký xác nhận": "Signatures",
+  "Người lập": "Prepared By",
+  "Người thẩm tra": "Reviewed / Verified By"
+};
 
-2. Entity & Brand Name Preservation:
+// General Quality Assurance / Foundation Terms
+const GENERAL_QC_GLOSSARY = {
+  "Người lập": "Prepared By",
+  "Người thẩm tra": "Reviewed / Verified By",
+  "Ký xác nhận": "Signatures",
+  "Biên bản": "Record / Report",
+  "Nghiệm thu": "Acceptance / Handover",
+  "Tiêu chuẩn kỹ thuật": "Quality Standards",
+  "Kiểm tra chất lượng": "Quality Inspection",
+  "Thông tin chung": "General Information",
+  "(mỗi đơn hàng)": "(per order)",
+  "FarmGate  VN": "FarmGate VN",
+  "FarmGate Sing": "FarmGate Sing",
+  "FarmGate Laos": "FarmGate Laos",
+  "FarmGate Combodia": "FarmGate Cambodia",
+  "FarmNet": "FarmNet",
+  "Hạng mục kiểm tra A": "Inspection Item A",
+  "Hạng mục kiểm tra B": "Inspection Item B",
+  "cái": "pcs",
+  "thanh": "bar",
+  "tấn": "tons",
+  "kg": "kg",
+  "bao": "bags",
+  "thùng": "cartons",
+  "[Ảnh sản phẩm]": "[Product Image]",
+  "Nhân viên Kinh doanh Ký & Ghi rõ họ tên": "Sales Representative Signature & Full Name",
+  "Nhân viên Kinh doanh Ký & Ghi rõ họ tên ": "Sales Representative Signature & Full Name",
+  "Có": "Yes",
+  "Không": "No"
+};
+
+// Merged master glossary for universal fallback
+const QC_DOMAIN_GLOSSARY = {
+  ...GENERAL_QC_GLOSSARY,
+  ...ORDER_MANAGEMENT_GLOSSARY,
+  ...PRODUCTION_PLANNING_GLOSSARY,
+  ...CONTAINER_STUFFING_GLOSSARY,
+  ...FINISHED_PRODUCT_SPEC_GLOSSARY
+};
+
+/**
+ * Returns a profile-specialized vocabulary with general QC fallback.
+ * 
+ * @param {string} domainProfile
+ * @returns {Object.<string, string>}
+ */
+function getDomainGlossary(domainProfile) {
+  let specialized = {};
+  switch (domainProfile) {
+    case 'FINISHED_PRODUCT_SPECIFICATION':
+      specialized = FINISHED_PRODUCT_SPEC_GLOSSARY;
+      break;
+    case 'CONTAINER_STUFFING_LOGISTICS':
+      specialized = CONTAINER_STUFFING_GLOSSARY;
+      break;
+    case 'PRODUCTION_PLANNING':
+      specialized = PRODUCTION_PLANNING_GLOSSARY;
+      break;
+    case 'ORDER_MANAGEMENT':
+      specialized = ORDER_MANAGEMENT_GLOSSARY;
+      break;
+    default:
+      specialized = {};
+      break;
+  }
+  return { ...GENERAL_QC_GLOSSARY, ...specialized };
+}
+
+const SYSTEM_PROMPT = `You are a Senior Technical Documentation and ISO 9001 / ISO 22000 / BRCGS Quality Assurance Translation Specialist.
+Your task is to translate form interface labels, section headings, and field options from Vietnamese into professional, industry-standard English.
+
+CRITICAL TRANSLATION PRINCIPLES (AVOID LITERAL WORD-BY-WORD TRANSLATION):
+1. Use Recognized Industry Best Practices:
+   - In product specifications, use "Finished Product Specification" (not literal "Product Technical Specifications").
+   - For duration limits, use "Shelf Life" (not "Expiry Date").
+   - For standard limits/criteria, use "Acceptance Criteria" (not vague "Requirement" or "Specification").
+   - For container loading, use "Container Stuffing Instructions", "Stowage Plan", "Dunnage & Securing Materials", "UoM".
+   - For production scheduling, use "Finished Goods Production Plan", "Raw Material Inbound Schedule".
+   - For sign-offs, use standard ISO audit roles: "Prepared By", "Reviewed / Verified By", "Authorized By".
+
+2. Terminology Cleanliness & UI Fit:
+   - AVOID clumsy slash constructions (e.g. do NOT output "Shelf Life / Expiry Date" or "Requirement / Specification"). Select the single most precise, commonly used industry term.
+   - Keep table column headers concise to fit compact print layouts (e.g. "STT" -> "No.", "ĐVT" -> "UoM").
+
+3. Entity & Brand Name Preservation:
    - NEVER translate company names, registered entities, or brands (e.g. "FarmGate VN", "FarmGate Sing", "FarmNet", "Cerify", "CoA").
-   - NEVER translate or modify dotted lines (e.g. ".....................................................").
+   - NEVER alter dotted placeholder lines (".....................................................").
 
-3. Output Format:
-   - You are provided with a JSON object mapping JSON paths to Vietnamese text strings.
-   - You MUST return a JSON object with the EXACT SAME keys.
-   - Each key's value must be the professional English translation of the corresponding Vietnamese text.
-   - Do NOT omit any keys. Do NOT invent new keys. Output ONLY valid JSON.
+4. Schema Integrity:
+   - Maintain the EXACT JSON keys from the input dictionary. Output ONLY valid JSON.
 `;
 
 /**
- * Builds the LLM prompt payload given a translatable text dictionary.
+ * Builds the LLM prompt payload given a translatable text dictionary and domain profile.
  * 
- * @param {Object.<string, string>} dictionary - Key-value pair of path to source text
+ * @param {Object.<string, string>} dictionary
+ * @param {string} [domainProfile='GENERAL_QC']
  * @param {string} [sourceLang='vi']
  * @param {string} [targetLang='en']
- * @returns {{ systemInstruction: string, promptText: string }}
+ * @returns {{ systemInstruction: string, promptText: string, glossary: Object }}
  */
-function buildPrompt(dictionary, sourceLang = 'vi', targetLang = 'en') {
-  const promptText = `Translate the following ${sourceLang.toUpperCase()} form dictionary into professional ${targetLang.toUpperCase()} following all system instructions:
+function buildPrompt(dictionary, domainProfile = 'GENERAL_QC', sourceLang = 'vi', targetLang = 'en') {
+  const glossary = getDomainGlossary(domainProfile);
+  const promptText = `Translate the following ${sourceLang.toUpperCase()} form dictionary into professional ${targetLang.toUpperCase()} using ${domainProfile} industry best-practice standards:
 
+Form Context Profile: ${domainProfile}
+
+Dictionary to Translate:
 ${JSON.stringify(dictionary, null, 2)}
 `;
 
   return {
     systemInstruction: SYSTEM_PROMPT,
     promptText,
-    glossary: QC_DOMAIN_GLOSSARY
+    glossary
   };
 }
 
 module.exports = {
   QC_DOMAIN_GLOSSARY,
+  FINISHED_PRODUCT_SPEC_GLOSSARY,
+  CONTAINER_STUFFING_GLOSSARY,
+  PRODUCTION_PLANNING_GLOSSARY,
+  ORDER_MANAGEMENT_GLOSSARY,
+  GENERAL_QC_GLOSSARY,
+  getDomainGlossary,
   SYSTEM_PROMPT,
   buildPrompt
 };

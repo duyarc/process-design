@@ -4,16 +4,16 @@
   "formTitle": "Production Schedule",
   "status": "DRAFT",
   "version": "v0.1",
-  "effectiveDate": null,
+  "effectiveDate": "2026-08-14T17:00:00.000Z",
   "layoutBlocks": [
     {
-      "id": "b_title_1789861877710_ochwh",
+      "id": "b_title_1786438736236_4norq",
       "logo": "",
       "type": "TITLE",
       "title": "Production Schedule",
       "fields": [
         {
-          "id": "fld_1789861877710_0_v534",
+          "id": "field_1786438736236_37f52",
           "type": "text",
           "checkItem": "(per order)",
           "frequency": "Once/Shift",
@@ -22,64 +22,58 @@
         }
       ],
       "columns": 1,
-      "formCode": "3S-QC/Q1.5",
-      "formTitle": "Production Schedule",
       "description": "(per order)"
     },
     {
-      "id": "b_info_grid_1789861877710_kvxxh",
+      "id": "b_info_grid_1786438751016",
       "type": "INFO_GRID",
       "title": "General Information",
       "fields": [
         {
-          "id": "fld_1789861877710_0_wwiu",
+          "id": "f_text_1786438752114",
           "type": "text",
           "checkItem": "Order Number (PO)",
           "locationCode": "LOC-10",
           "reactionProtocol": ""
         },
         {
-          "id": "fld_1789861877710_1_fu3x",
+          "id": "f_text_1786439313496",
           "type": "date",
           "checkItem": "Date Prepared",
           "locationCode": "LOC-41",
           "reactionProtocol": ""
         }
       ],
-      "columns": 2,
-      "tableData": {},
-      "tableRows": [],
-      "cellOptionsMap": {},
-      "cellPlaceholderMap": {}
+      "columns": 2
     },
     {
-      "id": "b_table_1789861877710_meub0",
+      "id": "b_table_1786438771606",
       "type": "TABLE",
-      "title": "1. Production Plan",
+      "title": "1. Finished Goods Production Plan",
       "fields": [],
       "columns": 1,
       "tableData": {
-        "row_1789861877710_fehii": {
+        "row_1": {
           "col_1": "1",
-          "col_2": "Hạng mục kiểm tra A"
+          "col_2": "Inspection Item A"
         },
-        "row_1789861877710_hzjc6": {
+        "row_2": {
           "col_1": "2",
-          "col_2": "Hạng mục kiểm tra B"
+          "col_2": "Inspection Item B"
         }
       },
       "tableRows": [
         {
-          "id": "row_1789861877710_fehii"
+          "id": "row_1"
         },
         {
-          "id": "row_1789861877710_hzjc6"
+          "id": "row_2"
         },
         {
-          "id": "row_1789861877710_1tvr1"
+          "id": "row_1786438952409"
         },
         {
-          "id": "row_1789861877710_ag7c1"
+          "id": "row_1786438953166"
         }
       ],
       "titleFormat": "H1",
@@ -93,7 +87,7 @@
         {
           "id": "col_2",
           "type": "text",
-          "label": "Finished Product Name",
+          "label": "Finished Product Description",
           "width": "22%"
         },
         {
@@ -113,16 +107,16 @@
           "id": "col_1786438835535",
           "type": "checkbox",
           "align": "left",
-          "label": "Standard / Sample Reference",
+          "label": "Quality Standard / Master Sample",
           "width": "15%",
           "options": [
             {
-              "label": "Có",
+              "label": "Yes",
               "value": "PASS",
               "isPass": true
             },
             {
-              "label": "Không",
+              "label": "No",
               "value": "FAIL",
               "isPass": false
             }
@@ -135,32 +129,30 @@
           "width": "20%"
         }
       ],
-      "sectionFormat": "H1",
-      "cellOptionsMap": {},
-      "cellPlaceholderMap": {}
+      "sectionFormat": "H1"
     },
     {
-      "id": "b_table_1789861877710_02upp",
+      "id": "b_table_1786439045716",
       "type": "TABLE",
-      "title": "2. Raw Material Intake Plan",
+      "title": "2. Raw Material Inbound Schedule",
       "fields": [],
       "columns": 1,
       "tableData": {
-        "row_1789861877710_0w0m8": {
+        "row_1": {
           "col_1": "1",
-          "col_2": "Hạng mục kiểm tra A"
+          "col_2": "Inspection Item A"
         },
-        "row_1789861877710_bei1c": {
+        "row_2": {
           "col_1": "2",
-          "col_2": "Hạng mục kiểm tra B"
+          "col_2": "Inspection Item B"
         }
       },
       "tableRows": [
         {
-          "id": "row_1789861877710_0w0m8"
+          "id": "row_1"
         },
         {
-          "id": "row_1789861877710_bei1c"
+          "id": "row_2"
         }
       ],
       "titleFormat": "H1",
@@ -174,7 +166,7 @@
         {
           "id": "col_2",
           "type": "text",
-          "label": "Raw Material Name",
+          "label": "Raw Material Description",
           "width": "22%"
         },
         {
@@ -193,16 +185,16 @@
         {
           "id": "col_1786439137838",
           "type": "checkbox",
-          "label": "Standard / Sample Reference",
+          "label": "Quality Standard / Master Sample",
           "width": "15%",
           "options": [
             {
-              "label": "Có",
+              "label": "Yes",
               "value": "PASS",
               "isPass": true
             },
             {
-              "label": "Không",
+              "label": "No",
               "value": "FAIL",
               "isPass": false
             }
@@ -215,32 +207,255 @@
           "width": "20%"
         }
       ],
-      "sectionFormat": "H1",
-      "cellOptionsMap": {},
-      "cellPlaceholderMap": {}
+      "sectionFormat": "H1"
     },
     {
-      "id": "b_sign_1789861877710_ktedf",
+      "id": "b_sign_1786439209822_5ehmv",
       "type": "SIGN",
       "title": "Signatures",
       "fields": [
         {
-          "id": "fld_1789861877710_0_qu6k",
+          "id": "field_1786439209822_e721c",
           "type": "signature",
-          "checkItem": "Confirmed By",
+          "checkItem": "Authorized By",
           "frequency": "Once/Shift",
           "locationCode": "SIGN-OP",
           "reactionProtocol": ""
         }
       ],
-      "columns": 2,
-      "tableData": {},
-      "tableRows": [],
-      "cellOptionsMap": {},
-      "cellPlaceholderMap": {}
+      "columns": 2
     }
   ],
-  "revisionHistory": [],
+  "revisionHistory": [
+    {
+      "date": "2026-08-15",
+      "author": "Admin",
+      "change": "Ban hành lần đầu",
+      "status": "ACTIVE",
+      "version": "v0.1",
+      "layoutBlocks": [
+        {
+          "id": "b_title_1786438736236_4norq",
+          "logo": "",
+          "type": "TITLE",
+          "title": "Lịch sản xuất",
+          "fields": [
+            {
+              "id": "field_1786438736236_37f52",
+              "type": "text",
+              "checkItem": "(mỗi đơn hàng)",
+              "frequency": "Once/Shift",
+              "locationCode": "TITLE-DESC",
+              "reactionProtocol": ""
+            }
+          ],
+          "columns": 1,
+          "description": "(mỗi đơn hàng)"
+        },
+        {
+          "id": "b_info_grid_1786438751016",
+          "type": "INFO_GRID",
+          "title": "Thông tin chung",
+          "fields": [
+            {
+              "id": "f_text_1786438752114",
+              "type": "text",
+              "checkItem": "Số đơn hàng",
+              "locationCode": "LOC-10",
+              "reactionProtocol": ""
+            },
+            {
+              "id": "f_text_1786439313496",
+              "type": "date",
+              "checkItem": "Ngày lập",
+              "locationCode": "LOC-41",
+              "reactionProtocol": ""
+            }
+          ],
+          "columns": 2
+        },
+        {
+          "id": "b_table_1786438771606",
+          "type": "TABLE",
+          "title": "1. Kế hoạch Sản xuất",
+          "fields": [],
+          "columns": 1,
+          "tableData": {
+            "row_1": {
+              "col_1": "1",
+              "col_2": "Hạng mục kiểm tra A"
+            },
+            "row_2": {
+              "col_1": "2",
+              "col_2": "Hạng mục kiểm tra B"
+            }
+          },
+          "tableRows": [
+            {
+              "id": "row_1"
+            },
+            {
+              "id": "row_2"
+            },
+            {
+              "id": "row_1786438952409"
+            },
+            {
+              "id": "row_1786438953166"
+            }
+          ],
+          "titleFormat": "H1",
+          "tableColumns": [
+            {
+              "id": "col_1",
+              "type": "date",
+              "label": "Ngày sản xuất",
+              "width": "16%"
+            },
+            {
+              "id": "col_2",
+              "type": "text",
+              "label": "Tên Thành phẩm",
+              "width": "22%"
+            },
+            {
+              "id": "col_3",
+              "type": "text",
+              "label": "Quy cách đóng gói",
+              "width": "22%"
+            },
+            {
+              "id": "col_4",
+              "type": "number",
+              "align": "center",
+              "label": "Số tấn ",
+              "width": "15%"
+            },
+            {
+              "id": "col_1786438835535",
+              "type": "checkbox",
+              "align": "left",
+              "label": "Tiêu chuẩn, Hình mẫu",
+              "width": "15%",
+              "options": [
+                {
+                  "label": "Có",
+                  "value": "PASS",
+                  "isPass": true
+                },
+                {
+                  "label": "Không",
+                  "value": "FAIL",
+                  "isPass": false
+                }
+              ]
+            },
+            {
+              "id": "col_1786438873822",
+              "type": "text",
+              "label": "Ghi chú",
+              "width": "20%"
+            }
+          ],
+          "sectionFormat": "H1"
+        },
+        {
+          "id": "b_table_1786439045716",
+          "type": "TABLE",
+          "title": "2. Kế hoạch nhập nguyên liệu",
+          "fields": [],
+          "columns": 1,
+          "tableData": {
+            "row_1": {
+              "col_1": "1",
+              "col_2": "Hạng mục kiểm tra A"
+            },
+            "row_2": {
+              "col_1": "2",
+              "col_2": "Hạng mục kiểm tra B"
+            }
+          },
+          "tableRows": [
+            {
+              "id": "row_1"
+            },
+            {
+              "id": "row_2"
+            }
+          ],
+          "titleFormat": "H1",
+          "tableColumns": [
+            {
+              "id": "col_1",
+              "type": "date",
+              "label": "Ngày sản xuất",
+              "width": "16%"
+            },
+            {
+              "id": "col_2",
+              "type": "text",
+              "label": "Tên Nguyên liệu",
+              "width": "22%"
+            },
+            {
+              "id": "col_3",
+              "type": "text",
+              "label": "Quy cách đóng gói",
+              "width": "22%"
+            },
+            {
+              "id": "col_4",
+              "type": "number",
+              "align": "center",
+              "label": "Số tấn ",
+              "width": "15%"
+            },
+            {
+              "id": "col_1786439137838",
+              "type": "checkbox",
+              "label": "Tiêu chuẩn, Hình mẫu",
+              "width": "15%",
+              "options": [
+                {
+                  "label": "Có",
+                  "value": "PASS",
+                  "isPass": true
+                },
+                {
+                  "label": "Không",
+                  "value": "FAIL",
+                  "isPass": false
+                }
+              ]
+            },
+            {
+              "id": "col_1786439157195",
+              "type": "text",
+              "label": "Ghi chú",
+              "width": "20%"
+            }
+          ],
+          "sectionFormat": "H1"
+        },
+        {
+          "id": "b_sign_1786439209822_5ehmv",
+          "type": "SIGN",
+          "title": "Ký xác nhận",
+          "fields": [
+            {
+              "id": "field_1786439209822_e721c",
+              "type": "signature",
+              "checkItem": "Người xác nhận",
+              "frequency": "Once/Shift",
+              "locationCode": "SIGN-OP",
+              "reactionProtocol": ""
+            }
+          ],
+          "columns": 2
+        }
+      ]
+    }
+  ],
   "pageSize": "A4",
   "isPublic": false,
   "defaultFocusMode": false,

@@ -194,14 +194,22 @@ async function main() {
 
       case 'run': {
         const formId = args.formId || args._[1];
-        if (!formId) {
-          console.error('Error: --formId is required. Example: node cli.cjs run --formId 3S-QC/Q1.1e');
+        const srcFormId = args.from || args.srcFormId;
+        const targetFormId = args.to || args.targetFormId || formId;
+        if (!formId && !srcFormId && !targetFormId) {
+          console.error('Error: --formId or --from/--to is required. Example: node cli.cjs run --formId 3S-QC/Q1.1e');
           process.exit(1);
         }
-        console.log(`Starting FormTranslator pipeline for '${formId}' (dryRun: ${!!args.dryRun})...`);
+        const effectiveTarget = targetFormId || formId;
+        console.log(`Starting FormTranslator pipeline for '${effectiveTarget}' (dryRun: ${!!args.dryRun})...`);
         const result = await translateFormPipeline({
           formId,
+          srcFormId,
+          targetFormId: effectiveTarget,
           version: args.version,
+          targetVersion: args.targetVersion,
+          targetStatus: args.targetStatus || 'DRAFT',
+          mode: args.mode,
           dryRun: !!args.dryRun
         });
 
@@ -216,7 +224,7 @@ async function main() {
         }
 
         // Save output to scratch for easy inspection
-        const outPath = path.join(__dirname, `../../scratch/${formId.replace(/[\/\\]/g, '_')}_translated.json`);
+        const outPath = path.join(__dirname, `../../scratch/${effectiveTarget.replace(/[\/\\]/g, '_')}_translated.json`);
         fs.mkdirSync(path.dirname(outPath), { recursive: true });
         fs.writeFileSync(outPath, JSON.stringify(result.reconstitutedForm, null, 2), 'utf8');
         console.log(`- Dumped full translated form to: ${outPath}`);

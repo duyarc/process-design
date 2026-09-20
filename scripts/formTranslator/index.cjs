@@ -25,27 +25,46 @@ const { loadForm, saveForm } = require('./dbAdapter.cjs');
  * @returns {Promise<Object>}
  */
 async function translateFormPipeline(options) {
-  if (!options || !options.formId) {
-    throw new Error('formId is required for translateFormPipeline');
+  if (!options || (!options.formId && !options.srcFormId && !options.from)) {
+    throw new Error('formId or srcFormId is required for translateFormPipeline');
   }
 
-  // 1. Load form from DB
-  const originalForm = await loadForm(options.formId, options.version);
+  let srcFormId = options.srcFormId || options.from;
+  let targetFormId = options.targetFormId || options.to || options.formId;
+
+  // If source is not explicitly specified and target ends with 'e', probe base form
+  if (!srcFormId) {
+    if (targetFormId && targetFormId.endsWith('e')) {
+      const baseFormId = targetFormId.slice(0, -1);
+      try {
+        await loadForm(baseFormId);
+        srcFormId = baseFormId;
+      } catch (e) {
+        srcFormId = targetFormId;
+      }
+    } else {
+      srcFormId = targetFormId;
+    }
+  }
+
+  // 1. Load source form from DB
+  const originalForm = await loadForm(srcFormId, options.version);
 
   // 2. Extract translatable dictionary
   const { dictionary, metadata } = extractTranslatableStrings(originalForm);
 
-  // 3. Translate dictionary
+  // 3. Translate dictionary using context-aware domain profile
   const translatedDict = await translateDictionary(dictionary, {
+    domainProfile: metadata.domainProfile,
     mode: options.mode,
     customDictionary: options.customDictionary
   });
 
   // 4. Reconstitute and assert invariants
   const { reconstitutedForm, stats } = reconstituteForm(originalForm, translatedDict, {
-    targetFormId: options.targetFormId || options.formId,
-    targetVersion: options.targetVersion || options.version,
-    targetStatus: options.targetStatus || originalForm.status
+    targetFormId,
+    targetVersion: options.targetVersion || options.version || 'v0.1',
+    targetStatus: options.targetStatus || 'DRAFT'
   });
 
   // 5. Save to database if not dryRun

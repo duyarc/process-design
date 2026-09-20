@@ -4,16 +4,16 @@
   "formTitle": "Order Information",
   "status": "DRAFT",
   "version": "v0.1",
-  "effectiveDate": null,
+  "effectiveDate": "2026-09-13T17:00:00.000Z",
   "layoutBlocks": [
     {
-      "id": "b_title_1789860724278_spoyx",
+      "id": "b_title_1785917653305_0f9to",
       "logo": "",
       "type": "TITLE",
       "title": "Order Information",
       "fields": [
         {
-          "id": "fld_1789860724278_0_uwx1",
+          "id": "field_1785917653305_2zcjn",
           "type": "text",
           "checkItem": "(per order)",
           "frequency": "Once/Shift",
@@ -22,31 +22,29 @@
         }
       ],
       "columns": 1,
-      "formCode": "3S-QC/Q1.5",
-      "formTitle": "Order Information",
       "description": "(per order)"
     },
     {
-      "id": "b_info_grid_1789860724278_dssiy",
+      "id": "b_info_grid_1785918960607",
       "type": "INFO_GRID",
       "title": "General Information",
       "fields": [
         {
-          "id": "fld_1789860724278_0_8okr",
+          "id": "f_text_1786438045208",
           "type": "text",
           "checkItem": "Order Number (PO)",
           "locationCode": "LOC-89",
           "reactionProtocol": ""
         },
         {
-          "id": "fld_1789860724278_1_i3cf",
+          "id": "f_text_1785919046458",
           "type": "text",
           "checkItem": "Sales Representative",
           "locationCode": "LOC-75",
           "reactionProtocol": ""
         },
         {
-          "id": "fld_1789860724278_2_t02m",
+          "id": "f_text_1785918979814",
           "type": "radio",
           "options": [
             {
@@ -70,14 +68,14 @@
           "reactionProtocol": ""
         },
         {
-          "id": "fld_1789860724278_3_im3g",
+          "id": "f_text_1786438335498",
           "type": "text",
           "checkItem": "Commodity / Category",
           "locationCode": "LOC-58",
           "reactionProtocol": ""
         },
         {
-          "id": "fld_1789860724278_4_dvud",
+          "id": "f_text_1785919047200",
           "type": "radio",
           "options": [
             {
@@ -106,43 +104,39 @@
               "isPass": false
             }
           ],
-          "checkItem": "Exporting Legal Entity",
+          "checkItem": "Exporting Entity (Shipper)",
           "locationCode": "LOC-68",
           "reactionProtocol": ""
         }
       ],
-      "columns": 2,
-      "tableData": {},
-      "tableRows": [],
-      "cellOptionsMap": {},
-      "cellPlaceholderMap": {}
+      "columns": 2
     },
     {
-      "id": "b_info_grid_1789860724278_e1ipq",
+      "id": "b_info_grid_1785917716010_bmizw",
       "type": "INFO_GRID",
       "title": "Scope of Work",
       "fields": [
         {
-          "id": "fld_1789860724278_0_soby",
+          "id": "f_text_1785917890938",
           "type": "radio",
           "options": [
             {
-              "label": "Receiving & Delivery (supervise and verify quantity only)",
+              "label": "Tally & Quantity Verification (supervise and verify piece count only)",
               "value": "PASS",
               "isPass": true
             },
             {
-              "label": "Technical (monitor product quality)",
+              "label": "Quality & Specification Inspection (monitor product quality)",
               "value": "FAIL",
               "isPass": false
             }
           ],
-          "checkItem": "Supervision Scope",
+          "checkItem": "Inspection Scope",
           "locationCode": "LOC-32",
           "reactionProtocol": ""
         },
         {
-          "id": "fld_1789860724278_1_eo3g",
+          "id": "f_text_1785918003890",
           "type": "radio",
           "options": [
             {
@@ -156,33 +150,29 @@
               "isPass": false
             }
           ],
-          "checkItem": "Deploy QR Code (Cerify)",
+          "checkItem": "Traceability QR Code (Cerify)",
           "locationCode": "LOC-40",
           "reactionProtocol": ""
         }
       ],
       "columns": 1,
-      "tableData": {},
-      "tableRows": [],
       "titleFormat": "H1",
-      "sectionFormat": "H1",
-      "cellOptionsMap": {},
-      "cellPlaceholderMap": {}
+      "sectionFormat": "H1"
     },
     {
-      "id": "b_info_grid_1789860724278_vpdyb",
+      "id": "b_info_grid_1786616540160",
       "type": "INFO_GRID",
       "title": "General Information",
       "fields": [
         {
-          "id": "fld_1789860724278_0_tml6",
+          "id": "f_text_1786616547269",
           "type": "date",
           "checkItem": "Start Date",
           "locationCode": "LOC-88",
           "reactionProtocol": ""
         },
         {
-          "id": "fld_1789860724278_1_i69k",
+          "id": "f_text_1786616568779",
           "type": "time",
           "timeMode": "dual",
           "checkItem": "Working Hours",
@@ -190,7 +180,7 @@
           "reactionProtocol": ""
         },
         {
-          "id": "fld_1789860724278_2_bd2k",
+          "id": "f_text_1786616590350",
           "type": "number",
           "unit": "",
           "checkItem": "Estimated Working Days",
@@ -198,66 +188,58 @@
           "reactionProtocol": ""
         }
       ],
-      "columns": 2,
-      "tableData": {},
-      "tableRows": [],
-      "cellOptionsMap": {},
-      "cellPlaceholderMap": {}
+      "columns": 2
     },
     {
-      "id": "b_info_grid_1789860724278_2m7oa",
+      "id": "b_info_grid_1786695332822",
       "type": "INFO_GRID",
       "title": "General Information",
       "fields": [
         {
-          "id": "fld_1789860724278_0_gxkn",
+          "id": "f_text_1786695342227",
           "type": "text",
           "checkItem": "Specific Requirement Description",
           "locationCode": "LOC-24",
           "reactionProtocol": ""
         },
         {
-          "id": "fld_1789860724278_1_sfoj",
+          "id": "f_text_1786695350387",
           "type": "text",
           "checkItem": "",
           "locationCode": "LOC-94",
           "reactionProtocol": ""
         }
       ],
-      "columns": 1,
-      "tableData": {},
-      "tableRows": [],
-      "cellOptionsMap": {},
-      "cellPlaceholderMap": {}
+      "columns": 1
     },
     {
-      "id": "b_table_1789860724278_a23eh",
+      "id": "b_table_1785917801700",
       "type": "TABLE",
       "title": "Order Details",
       "fields": [],
       "columns": 1,
       "tableData": {
-        "row_1789860724278_h1nb4": {
-          "col_1": "2"
-        },
-        "row_1789860724278_ks8f4": {
+        "row_1": {
           "col_1": "1"
         },
-        "row_1789860724278_yq964": {
+        "row_2": {
+          "col_1": "2"
+        },
+        "row_1785917806094": {
           "col_1": "3"
         }
       },
       "tableRows": [
         {
-          "id": "row_1789860724278_ks8f4",
+          "id": "row_1",
           "lineCount": 2
         },
         {
-          "id": "row_1789860724278_h1nb4",
+          "id": "row_2",
           "lineCount": 2
         },
         {
-          "id": "row_1789860724278_yq964",
+          "id": "row_1785917806094",
           "lineCount": 2
         }
       ],
@@ -273,7 +255,7 @@
         {
           "id": "col_2",
           "type": "text",
-          "label": "Product Name",
+          "label": "Product Description",
           "width": "26%"
         },
         {
@@ -303,17 +285,15 @@
           "width": "20%"
         }
       ],
-      "sectionFormat": "H1",
-      "cellOptionsMap": {},
-      "cellPlaceholderMap": {}
+      "sectionFormat": "H1"
     },
     {
-      "id": "b_info_grid_1789860724278_7vkj3",
+      "id": "b_info_grid_1787041089083",
       "type": "INFO_GRID",
-      "title": "Quality Document Requirements",
+      "title": "Quality & Compliance Documentation",
       "fields": [
         {
-          "id": "fld_1789860724278_0_pih6",
+          "id": "f_text_1787041091192",
           "type": "checkbox",
           "options": [
             {
@@ -342,7 +322,7 @@
           "reactionProtocol": ""
         },
         {
-          "id": "fld_1789860724278_1_i0fa",
+          "id": "f_text_1787041671050",
           "type": "text",
           "options": [
             {
@@ -367,20 +347,16 @@
         }
       ],
       "columns": 1,
-      "tableData": {},
-      "tableRows": [],
       "titleFormat": "H1",
-      "sectionFormat": "H1",
-      "cellOptionsMap": {},
-      "cellPlaceholderMap": {}
+      "sectionFormat": "H1"
     },
     {
-      "id": "b_sign_1789860724278_jues2",
+      "id": "b_sign_1785918896848_n3m69",
       "type": "SIGN",
       "title": "Signatures",
       "fields": [
         {
-          "id": "fld_1789860724278_0_sag8",
+          "id": "field_1785918896848_xmvie",
           "type": "signature",
           "checkItem": "Prepared By",
           "frequency": "Once/Shift",
@@ -388,7 +364,7 @@
           "reactionProtocol": ""
         },
         {
-          "id": "fld_1789860724278_1_58h6",
+          "id": "field_1785918896848_i8koq",
           "type": "signature",
           "checkItem": "Reviewed / Verified By",
           "frequency": "Once/Shift",
@@ -396,14 +372,1060 @@
           "reactionProtocol": ""
         }
       ],
-      "columns": 2,
-      "tableData": {},
-      "tableRows": [],
-      "cellOptionsMap": {},
-      "cellPlaceholderMap": {}
+      "columns": 2
     }
   ],
-  "revisionHistory": [],
+  "revisionHistory": [
+    {
+      "date": "2026-09-14",
+      "author": "Thái Thị Thúy Vi",
+      "change": "[ĐIỀU CHỈNH] Cập nhật điều chỉnh chi tiết biểu mẫu.",
+      "status": "ACTIVE",
+      "version": "v0.3",
+      "layoutBlocks": [
+        {
+          "id": "b_title_1785917653305_0f9to",
+          "logo": "",
+          "type": "TITLE",
+          "title": "Thông tin đơn hàng",
+          "fields": [
+            {
+              "id": "field_1785917653305_2zcjn",
+              "type": "text",
+              "checkItem": "(mỗi đơn hàng)",
+              "frequency": "Once/Shift",
+              "locationCode": "TITLE-DESC",
+              "reactionProtocol": ""
+            }
+          ],
+          "columns": 1,
+          "description": "(mỗi đơn hàng)"
+        },
+        {
+          "id": "b_info_grid_1785918960607",
+          "type": "INFO_GRID",
+          "title": "Thông tin chung",
+          "fields": [
+            {
+              "id": "f_text_1786438045208",
+              "type": "text",
+              "checkItem": "Số đơn hàng",
+              "locationCode": "LOC-89",
+              "reactionProtocol": ""
+            },
+            {
+              "id": "f_text_1785919046458",
+              "type": "text",
+              "checkItem": "Sales phụ trách",
+              "locationCode": "LOC-75",
+              "reactionProtocol": ""
+            },
+            {
+              "id": "f_text_1785918979814",
+              "type": "radio",
+              "options": [
+                {
+                  "label": "Nội địa",
+                  "value": "PASS",
+                  "isPass": true
+                },
+                {
+                  "label": "XK bị động",
+                  "value": "FAIL",
+                  "isPass": false
+                },
+                {
+                  "label": "XK chủ động",
+                  "value": "OPT_1785919016626",
+                  "isPass": false
+                }
+              ],
+              "checkItem": "Loại đơn hàng",
+              "locationCode": "LOC-80",
+              "reactionProtocol": ""
+            },
+            {
+              "id": "f_text_1786438335498",
+              "type": "text",
+              "checkItem": "Ngành hàng",
+              "locationCode": "LOC-58",
+              "reactionProtocol": ""
+            },
+            {
+              "id": "f_text_1785919047200",
+              "type": "radio",
+              "options": [
+                {
+                  "label": "FarmGate  VN",
+                  "value": "PASS",
+                  "isPass": true
+                },
+                {
+                  "label": "FarmGate Sing",
+                  "value": "OPT_1789359702123",
+                  "isPass": true
+                },
+                {
+                  "label": "FarmGate Laos",
+                  "value": "OPT_1789359725199",
+                  "isPass": true
+                },
+                {
+                  "label": "FarmGate Combodia",
+                  "value": "OPT_1789359735629",
+                  "isPass": true
+                },
+                {
+                  "label": "FarmNet",
+                  "value": "FAIL",
+                  "isPass": false
+                }
+              ],
+              "checkItem": "Pháp nhân xuất khẩu",
+              "locationCode": "LOC-68",
+              "reactionProtocol": ""
+            }
+          ],
+          "columns": 2
+        },
+        {
+          "id": "b_info_grid_1785917716010_bmizw",
+          "type": "INFO_GRID",
+          "title": "Phạm vi công việc",
+          "fields": [
+            {
+              "id": "f_text_1785917890938",
+              "type": "radio",
+              "options": [
+                {
+                  "label": "Giao nhận (chỉ giám sát và xác nhận  số lượng hàng hóa giao nhận) ",
+                  "value": "PASS",
+                  "isPass": true
+                },
+                {
+                  "label": "Kỹ thuật (giám sát chất lượng hàng hóa)",
+                  "value": "FAIL",
+                  "isPass": false
+                }
+              ],
+              "checkItem": "Phạm vi Giám sát",
+              "locationCode": "LOC-32",
+              "reactionProtocol": ""
+            },
+            {
+              "id": "f_text_1785918003890",
+              "type": "radio",
+              "options": [
+                {
+                  "label": "Có",
+                  "value": "PASS",
+                  "isPass": true
+                },
+                {
+                  "label": "Không",
+                  "value": "FAIL",
+                  "isPass": false
+                }
+              ],
+              "checkItem": "Triển khai QR code (Cerify)",
+              "locationCode": "LOC-40",
+              "reactionProtocol": ""
+            }
+          ],
+          "columns": 1,
+          "titleFormat": "H1",
+          "sectionFormat": "H1"
+        },
+        {
+          "id": "b_info_grid_1786616540160",
+          "type": "INFO_GRID",
+          "title": "Thông tin chung",
+          "fields": [
+            {
+              "id": "f_text_1786616547269",
+              "type": "date",
+              "checkItem": "Ngày bắt đầu",
+              "locationCode": "LOC-88",
+              "reactionProtocol": ""
+            },
+            {
+              "id": "f_text_1786616568779",
+              "type": "time",
+              "timeMode": "dual",
+              "checkItem": "Giờ làm việc",
+              "locationCode": "LOC-54",
+              "reactionProtocol": ""
+            },
+            {
+              "id": "f_text_1786616590350",
+              "type": "number",
+              "unit": "",
+              "checkItem": "Số ngày làm việc dự kiến",
+              "locationCode": "LOC-71",
+              "reactionProtocol": ""
+            }
+          ],
+          "columns": 2
+        },
+        {
+          "id": "b_info_grid_1786695332822",
+          "type": "INFO_GRID",
+          "title": "Thông tin chung",
+          "fields": [
+            {
+              "id": "f_text_1786695342227",
+              "type": "text",
+              "checkItem": "Mô tả yêu cầu cụ thể",
+              "locationCode": "LOC-24",
+              "reactionProtocol": ""
+            },
+            {
+              "id": "f_text_1786695350387",
+              "type": "text",
+              "checkItem": "",
+              "locationCode": "LOC-94",
+              "reactionProtocol": ""
+            }
+          ],
+          "columns": 1
+        },
+        {
+          "id": "b_table_1785917801700",
+          "type": "TABLE",
+          "title": "Chi tiết đơn hàng",
+          "fields": [],
+          "columns": 1,
+          "tableData": {
+            "row_1": {
+              "col_1": "1"
+            },
+            "row_2": {
+              "col_1": "2"
+            },
+            "row_1785917806094": {
+              "col_1": "3"
+            }
+          },
+          "tableRows": [
+            {
+              "id": "row_1",
+              "lineCount": 2
+            },
+            {
+              "id": "row_2",
+              "lineCount": 2
+            },
+            {
+              "id": "row_1785917806094",
+              "lineCount": 2
+            }
+          ],
+          "titleFormat": "H1",
+          "tableColumns": [
+            {
+              "id": "col_1",
+              "type": "static_text",
+              "align": "center",
+              "label": "STT",
+              "width": "6%"
+            },
+            {
+              "id": "col_2",
+              "type": "text",
+              "label": "Tên sản phẩm",
+              "width": "26%"
+            },
+            {
+              "id": "col_3",
+              "type": "text",
+              "label": "Quy cách",
+              "width": "19%"
+            },
+            {
+              "id": "col_1785918302126",
+              "type": "number",
+              "align": "center",
+              "label": "Số lượng (tấn)",
+              "width": "17%"
+            },
+            {
+              "id": "col_1785918247740",
+              "type": "number",
+              "align": "center",
+              "label": "Số lượng (bao/thùng)",
+              "width": "17%"
+            },
+            {
+              "id": "col_1785918258177",
+              "type": "date",
+              "label": "Thời gian giao hàng",
+              "width": "20%"
+            }
+          ],
+          "sectionFormat": "H1"
+        },
+        {
+          "id": "b_info_grid_1787041089083",
+          "type": "INFO_GRID",
+          "title": "yêu cầu chứng từ chất lượng",
+          "fields": [
+            {
+              "id": "f_text_1787041091192",
+              "type": "checkbox",
+              "options": [
+                {
+                  "label": "CoA",
+                  "value": "PASS",
+                  "isPass": true
+                },
+                {
+                  "label": "Testing report",
+                  "value": "OPT_1787041344221",
+                  "isPass": false
+                },
+                {
+                  "label": "Health Certificate",
+                  "value": "OPT_1787041379004",
+                  "isPass": false
+                },
+                {
+                  "label": "Khác ",
+                  "value": "OPT_1787041657501",
+                  "isPass": false
+                }
+              ],
+              "checkItem": "",
+              "locationCode": "LOC-92",
+              "reactionProtocol": ""
+            },
+            {
+              "id": "f_text_1787041671050",
+              "type": "text",
+              "options": [
+                {
+                  "label": ".....................................................",
+                  "value": "PASS",
+                  "isPass": true
+                },
+                {
+                  "label": ".....................................................",
+                  "value": "FAIL",
+                  "isPass": false
+                },
+                {
+                  "label": ".....................................................",
+                  "value": "OPT_1787041842006",
+                  "isPass": false
+                }
+              ],
+              "checkItem": "Chứng từ khác (vui lòng ghi rõ)",
+              "locationCode": "LOC-45",
+              "reactionProtocol": ""
+            }
+          ],
+          "columns": 1,
+          "titleFormat": "H1",
+          "sectionFormat": "H1"
+        },
+        {
+          "id": "b_sign_1785918896848_n3m69",
+          "type": "SIGN",
+          "title": "Ký xác nhận",
+          "fields": [
+            {
+              "id": "field_1785918896848_xmvie",
+              "type": "signature",
+              "checkItem": "Người lập",
+              "frequency": "Once/Shift",
+              "locationCode": "SIGN-OP",
+              "reactionProtocol": ""
+            },
+            {
+              "id": "field_1785918896848_i8koq",
+              "type": "signature",
+              "checkItem": "Người thẩm tra",
+              "frequency": "Once/Shift",
+              "locationCode": "SIGN-SUP",
+              "reactionProtocol": ""
+            }
+          ],
+          "columns": 2
+        }
+      ]
+    },
+    {
+      "date": "2026-08-27",
+      "author": "System Generated",
+      "change": "Published version",
+      "status": "RETIRED",
+      "version": "v0.2",
+      "rawVersion": "v0.2",
+      "layoutBlocks": [
+        {
+          "id": "b_title_1785917653305_0f9to",
+          "logo": "",
+          "type": "TITLE",
+          "title": "Thông tin đơn hàng",
+          "fields": [
+            {
+              "id": "field_1785917653305_2zcjn",
+              "type": "text",
+              "checkItem": "(mỗi đơn hàng)",
+              "frequency": "Once/Shift",
+              "locationCode": "TITLE-DESC",
+              "reactionProtocol": ""
+            }
+          ],
+          "columns": 1,
+          "description": "(mỗi đơn hàng)"
+        },
+        {
+          "id": "b_info_grid_1785918960607",
+          "type": "INFO_GRID",
+          "title": "Thông tin chung",
+          "fields": [
+            {
+              "id": "f_text_1786438045208",
+              "type": "text",
+              "checkItem": "Số đơn hàng",
+              "locationCode": "LOC-89",
+              "reactionProtocol": ""
+            },
+            {
+              "id": "f_text_1785919046458",
+              "type": "text",
+              "checkItem": "Sales phụ trách",
+              "locationCode": "LOC-75",
+              "reactionProtocol": ""
+            },
+            {
+              "id": "f_text_1785918979814",
+              "type": "radio",
+              "options": [
+                {
+                  "label": "Nội địa",
+                  "value": "PASS",
+                  "isPass": true
+                },
+                {
+                  "label": "XK bị động",
+                  "value": "FAIL",
+                  "isPass": false
+                },
+                {
+                  "label": "XK chủ động",
+                  "value": "OPT_1785919016626",
+                  "isPass": false
+                }
+              ],
+              "checkItem": "Loại đơn hàng",
+              "locationCode": "LOC-80",
+              "reactionProtocol": ""
+            },
+            {
+              "id": "f_text_1786438335498",
+              "type": "text",
+              "checkItem": "Ngành hàng",
+              "locationCode": "LOC-58",
+              "reactionProtocol": ""
+            },
+            {
+              "id": "f_text_1785919047200",
+              "type": "radio",
+              "options": [
+                {
+                  "label": "FarmGate  ",
+                  "value": "PASS",
+                  "isPass": true
+                },
+                {
+                  "label": "FarmNet",
+                  "value": "FAIL",
+                  "isPass": false
+                }
+              ],
+              "checkItem": "Pháp nhân xuất khẩu",
+              "locationCode": "LOC-68",
+              "reactionProtocol": ""
+            }
+          ],
+          "columns": 2
+        },
+        {
+          "id": "b_info_grid_1785917716010_bmizw",
+          "type": "INFO_GRID",
+          "title": "Phạm vi công việc",
+          "fields": [
+            {
+              "id": "f_text_1785917890938",
+              "type": "radio",
+              "options": [
+                {
+                  "label": "Giao nhận (chỉ giám sát và xác nhận  số lượng hàng hóa giao nhận) ",
+                  "value": "PASS",
+                  "isPass": true
+                },
+                {
+                  "label": "Kỹ thuật (giám sát chất lượng hàng hóa)",
+                  "value": "FAIL",
+                  "isPass": false
+                }
+              ],
+              "checkItem": "Phạm vi Giám sát",
+              "locationCode": "LOC-32",
+              "reactionProtocol": ""
+            },
+            {
+              "id": "f_text_1785918003890",
+              "type": "radio",
+              "options": [
+                {
+                  "label": "Có",
+                  "value": "PASS",
+                  "isPass": true
+                },
+                {
+                  "label": "Không",
+                  "value": "FAIL",
+                  "isPass": false
+                }
+              ],
+              "checkItem": "Triển khai QR code (Cerify)",
+              "locationCode": "LOC-40",
+              "reactionProtocol": ""
+            }
+          ],
+          "columns": 1,
+          "titleFormat": "H1",
+          "sectionFormat": "H1"
+        },
+        {
+          "id": "b_info_grid_1786616540160",
+          "type": "INFO_GRID",
+          "title": "Thông tin chung",
+          "fields": [
+            {
+              "id": "f_text_1786616547269",
+              "type": "date",
+              "checkItem": "Ngày bắt đầu",
+              "locationCode": "LOC-88",
+              "reactionProtocol": ""
+            },
+            {
+              "id": "f_text_1786616568779",
+              "type": "time",
+              "timeMode": "dual",
+              "checkItem": "Giờ làm việc",
+              "locationCode": "LOC-54",
+              "reactionProtocol": ""
+            },
+            {
+              "id": "f_text_1786616590350",
+              "type": "number",
+              "unit": "",
+              "checkItem": "Số ngày làm việc dự kiến",
+              "locationCode": "LOC-71",
+              "reactionProtocol": ""
+            }
+          ],
+          "columns": 2
+        },
+        {
+          "id": "b_info_grid_1786695332822",
+          "type": "INFO_GRID",
+          "title": "Thông tin chung",
+          "fields": [
+            {
+              "id": "f_text_1786695342227",
+              "type": "text",
+              "checkItem": "Mô tả yêu cầu cụ thể",
+              "locationCode": "LOC-24",
+              "reactionProtocol": ""
+            },
+            {
+              "id": "f_text_1786695350387",
+              "type": "text",
+              "checkItem": "",
+              "locationCode": "LOC-94",
+              "reactionProtocol": ""
+            }
+          ],
+          "columns": 1
+        },
+        {
+          "id": "b_table_1785917801700",
+          "type": "TABLE",
+          "title": "Chi tiết đơn hàng",
+          "fields": [],
+          "columns": 1,
+          "tableData": {
+            "row_1": {
+              "col_1": "1"
+            },
+            "row_2": {
+              "col_1": "2"
+            },
+            "row_1785917806094": {
+              "col_1": "3"
+            }
+          },
+          "tableRows": [
+            {
+              "id": "row_1",
+              "lineCount": 2
+            },
+            {
+              "id": "row_2",
+              "lineCount": 2
+            },
+            {
+              "id": "row_1785917806094",
+              "lineCount": 2
+            }
+          ],
+          "titleFormat": "H1",
+          "tableColumns": [
+            {
+              "id": "col_1",
+              "type": "static_text",
+              "align": "center",
+              "label": "STT",
+              "width": "6%"
+            },
+            {
+              "id": "col_2",
+              "type": "text",
+              "label": "Tên sản phẩm",
+              "width": "26%"
+            },
+            {
+              "id": "col_3",
+              "type": "text",
+              "label": "Quy cách",
+              "width": "19%"
+            },
+            {
+              "id": "col_1785918302126",
+              "type": "number",
+              "align": "center",
+              "label": "Số lượng (tấn)",
+              "width": "17%"
+            },
+            {
+              "id": "col_1785918247740",
+              "type": "number",
+              "align": "center",
+              "label": "Số lượng (bao/thùng)",
+              "width": "17%"
+            },
+            {
+              "id": "col_1785918258177",
+              "type": "date",
+              "label": "Thời gian giao hàng",
+              "width": "20%"
+            }
+          ],
+          "sectionFormat": "H1"
+        },
+        {
+          "id": "b_info_grid_1787041089083",
+          "type": "INFO_GRID",
+          "title": "yêu cầu chứng từ chất lượng",
+          "fields": [
+            {
+              "id": "f_text_1787041091192",
+              "type": "checkbox",
+              "options": [
+                {
+                  "label": "CoA",
+                  "value": "PASS",
+                  "isPass": true
+                },
+                {
+                  "label": "Testing report",
+                  "value": "OPT_1787041344221",
+                  "isPass": false
+                },
+                {
+                  "label": "Health Certificate",
+                  "value": "OPT_1787041379004",
+                  "isPass": false
+                },
+                {
+                  "label": "Khác ",
+                  "value": "OPT_1787041657501",
+                  "isPass": false
+                }
+              ],
+              "checkItem": "",
+              "locationCode": "LOC-92",
+              "reactionProtocol": ""
+            },
+            {
+              "id": "f_text_1787041671050",
+              "type": "text",
+              "options": [
+                {
+                  "label": ".....................................................",
+                  "value": "PASS",
+                  "isPass": true
+                },
+                {
+                  "label": ".....................................................",
+                  "value": "FAIL",
+                  "isPass": false
+                },
+                {
+                  "label": ".....................................................",
+                  "value": "OPT_1787041842006",
+                  "isPass": false
+                }
+              ],
+              "checkItem": "Chứng từ khác (vui lòng ghi rõ)",
+              "locationCode": "LOC-45",
+              "reactionProtocol": ""
+            },
+            {
+              "id": "f_text_1787042042711",
+              "type": "text",
+              "checkItem": "",
+              "locationCode": "LOC-35",
+              "reactionProtocol": ""
+            }
+          ],
+          "columns": 1,
+          "titleFormat": "H1",
+          "sectionFormat": "H1"
+        },
+        {
+          "id": "b_sign_1785918896848_n3m69",
+          "type": "SIGN",
+          "title": "Ký xác nhận",
+          "fields": [
+            {
+              "id": "field_1785918896848_xmvie",
+              "type": "signature",
+              "checkItem": "Người lập",
+              "frequency": "Once/Shift",
+              "locationCode": "SIGN-OP",
+              "reactionProtocol": ""
+            },
+            {
+              "id": "field_1785918896848_i8koq",
+              "type": "signature",
+              "checkItem": "Người thẩm tra",
+              "frequency": "Once/Shift",
+              "locationCode": "SIGN-SUP",
+              "reactionProtocol": ""
+            }
+          ],
+          "columns": 2
+        }
+      ]
+    },
+    {
+      "date": "2026-08-14",
+      "author": "System Generated",
+      "change": "Published version",
+      "status": "RETIRED",
+      "version": "v0.1",
+      "rawVersion": "v0.1",
+      "layoutBlocks": [
+        {
+          "id": "b_title_1785917653305_0f9to",
+          "logo": "",
+          "type": "TITLE",
+          "title": "Thông tin đơn hàng",
+          "fields": [
+            {
+              "id": "field_1785917653305_2zcjn",
+              "type": "text",
+              "checkItem": "(mỗi đơn hàng)",
+              "frequency": "Once/Shift",
+              "locationCode": "TITLE-DESC",
+              "reactionProtocol": ""
+            }
+          ],
+          "columns": 1,
+          "description": "(mỗi đơn hàng)"
+        },
+        {
+          "id": "b_info_grid_1785918960607",
+          "type": "INFO_GRID",
+          "title": "Thông tin chung",
+          "fields": [
+            {
+              "id": "f_text_1786438045208",
+              "type": "text",
+              "checkItem": "Số đơn hàng",
+              "locationCode": "LOC-89",
+              "reactionProtocol": ""
+            },
+            {
+              "id": "f_text_1785919046458",
+              "type": "text",
+              "checkItem": "Sales phụ trách",
+              "locationCode": "LOC-75",
+              "reactionProtocol": ""
+            },
+            {
+              "id": "f_text_1785918979814",
+              "type": "radio",
+              "options": [
+                {
+                  "label": "Nội địa",
+                  "value": "PASS",
+                  "isPass": true
+                },
+                {
+                  "label": "XK bị động",
+                  "value": "FAIL",
+                  "isPass": false
+                },
+                {
+                  "label": "XK chủ động",
+                  "value": "OPT_1785919016626",
+                  "isPass": false
+                }
+              ],
+              "checkItem": "Loại đơn hàng",
+              "locationCode": "LOC-80",
+              "reactionProtocol": ""
+            },
+            {
+              "id": "f_text_1786438335498",
+              "type": "text",
+              "checkItem": "Ngành hàng",
+              "locationCode": "LOC-58",
+              "reactionProtocol": ""
+            },
+            {
+              "id": "f_text_1785919047200",
+              "type": "radio",
+              "options": [
+                {
+                  "label": "FarmGate  ",
+                  "value": "PASS",
+                  "isPass": true
+                },
+                {
+                  "label": "FarmNet",
+                  "value": "FAIL",
+                  "isPass": false
+                }
+              ],
+              "checkItem": "Pháp nhân xuất khẩu",
+              "locationCode": "LOC-68",
+              "reactionProtocol": ""
+            }
+          ],
+          "columns": 2
+        },
+        {
+          "id": "b_info_grid_1785917716010_bmizw",
+          "type": "INFO_GRID",
+          "title": "Phạm vi công việc",
+          "fields": [
+            {
+              "id": "f_text_1785917890938",
+              "type": "radio",
+              "options": [
+                {
+                  "label": "Giao nhận (chỉ giám sát và xác nhận  số lượng hàng hóa giao nhận) ",
+                  "value": "PASS",
+                  "isPass": true
+                },
+                {
+                  "label": "Kỹ thuật (giám sát chất lượng hàng hóa)",
+                  "value": "FAIL",
+                  "isPass": false
+                }
+              ],
+              "checkItem": "Phạm vi Giám sát",
+              "locationCode": "LOC-32",
+              "reactionProtocol": ""
+            },
+            {
+              "id": "f_text_1785918003890",
+              "type": "radio",
+              "options": [
+                {
+                  "label": "Có",
+                  "value": "PASS",
+                  "isPass": true
+                },
+                {
+                  "label": "Không",
+                  "value": "FAIL",
+                  "isPass": false
+                }
+              ],
+              "checkItem": "Triển khai QR code (Cerify)",
+              "locationCode": "LOC-40",
+              "reactionProtocol": ""
+            }
+          ],
+          "columns": 1,
+          "titleFormat": "H1",
+          "sectionFormat": "H1"
+        },
+        {
+          "id": "b_info_grid_1786616540160",
+          "type": "INFO_GRID",
+          "title": "Thông tin chung",
+          "fields": [
+            {
+              "id": "f_text_1786616547269",
+              "type": "date",
+              "checkItem": "Ngày bắt đầu",
+              "locationCode": "LOC-88",
+              "reactionProtocol": ""
+            },
+            {
+              "id": "f_text_1786616568779",
+              "type": "time",
+              "timeMode": "dual",
+              "checkItem": "Giờ làm việc",
+              "locationCode": "LOC-54",
+              "reactionProtocol": ""
+            },
+            {
+              "id": "f_text_1786616590350",
+              "type": "number",
+              "unit": "",
+              "checkItem": "Số ngày làm việc dự kiến",
+              "locationCode": "LOC-71",
+              "reactionProtocol": ""
+            }
+          ],
+          "columns": 2
+        },
+        {
+          "id": "b_info_grid_1786695332822",
+          "type": "INFO_GRID",
+          "title": "Thông tin chung",
+          "fields": [
+            {
+              "id": "f_text_1786695342227",
+              "type": "text",
+              "checkItem": "Mô tả yêu cầu cụ thể",
+              "locationCode": "LOC-24",
+              "reactionProtocol": ""
+            },
+            {
+              "id": "f_text_1786695350387",
+              "type": "text",
+              "checkItem": "",
+              "locationCode": "LOC-94",
+              "reactionProtocol": ""
+            }
+          ],
+          "columns": 1
+        },
+        {
+          "id": "b_table_1785917801700",
+          "type": "TABLE",
+          "title": "Chi tiết đơn hàng",
+          "fields": [],
+          "columns": 1,
+          "tableData": {
+            "row_1": {
+              "col_1": "1",
+              "col_2": "Mục đích QC "
+            },
+            "row_2": {
+              "col_1": "2",
+              "col_2": "Hạng mục kiểm tra B"
+            },
+            "row_1785917806094": {
+              "col_1": "3"
+            }
+          },
+          "tableRows": [
+            {
+              "id": "row_1",
+              "lineCount": 2
+            },
+            {
+              "id": "row_2",
+              "lineCount": 2
+            },
+            {
+              "id": "row_1785917806094",
+              "lineCount": 2
+            }
+          ],
+          "titleFormat": "H1",
+          "tableColumns": [
+            {
+              "id": "col_1",
+              "type": "static_text",
+              "align": "center",
+              "label": "STT",
+              "width": "6%"
+            },
+            {
+              "id": "col_2",
+              "type": "text",
+              "label": "Tên sản phẩm",
+              "width": "26%"
+            },
+            {
+              "id": "col_3",
+              "type": "text",
+              "label": "Quy cách",
+              "width": "19%"
+            },
+            {
+              "id": "col_1785918302126",
+              "type": "number",
+              "align": "center",
+              "label": "Số lượng (tấn)",
+              "width": "17%"
+            },
+            {
+              "id": "col_1785918247740",
+              "type": "number",
+              "align": "center",
+              "label": "Số lượng (bao/thùng)",
+              "width": "17%"
+            },
+            {
+              "id": "col_1785918258177",
+              "type": "date",
+              "label": "Thời gian giao hàng",
+              "width": "20%"
+            }
+          ],
+          "sectionFormat": "H1"
+        },
+        {
+          "id": "b_sign_1785918896848_n3m69",
+          "type": "SIGN",
+          "title": "Ký xác nhận",
+          "fields": [
+            {
+              "id": "field_1785918896848_xmvie",
+              "type": "signature",
+              "checkItem": "Người lập",
+              "frequency": "Once/Shift",
+              "locationCode": "SIGN-OP",
+              "reactionProtocol": ""
+            },
+            {
+              "id": "field_1785918896848_i8koq",
+              "type": "signature",
+              "checkItem": "Người thẩm tra",
+              "frequency": "Once/Shift",
+              "locationCode": "SIGN-SUP",
+              "reactionProtocol": ""
+            }
+          ],
+          "columns": 2
+        }
+      ]
+    }
+  ],
   "pageSize": "A4",
   "isPublic": false,
   "defaultFocusMode": false,
