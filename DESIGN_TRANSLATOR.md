@@ -8,8 +8,8 @@
 |---|---|
 | **Module Name** | Form Translator |
 | **Status** | Active Development |
-| **Document Version** | 1.2 |
-| **Verified At Commit** | (2026-09-20) — Context-Driven Web Search Grounding, domain-agnostic citation schema, and multi-domain translation verified across forms 3S-QC/Q1.1e through Q1.4e against PostgreSQL |
+| **Document Version** | 1.3 |
+| **Verified At Commit** | (2026-09-20) — Minimal Post-Translation Review Report & User Override Protocol verified across test suite and forms against PostgreSQL |
 
 > **⚠️ Architectural Invariant:** The Form Translator module is **strictly backend and agent-driven with zero frontend UI footprint**. It is executed via Antigravity agent CLI commands (`npm run translate -- ...`) or programmatic backend pipelines. It operates on `FormTemplateISO` schemas, protecting structural IDs while translating user-facing text into professional ISO 9001/QC English.
 
@@ -19,6 +19,7 @@
 |---|---|
 | [`scripts/formTranslator/extractor.cjs`](scripts/formTranslator/extractor.cjs) | Traverses `FormTemplateISO` AST to extract a clean `{ path -> text }` dictionary while strictly shielding structural IDs |
 | [`scripts/formTranslator/reconstitutor.cjs`](scripts/formTranslator/reconstitutor.cjs) | Deep-clones form skeleton, injects translations, and executes automated schema invariant assertions |
+| [`scripts/formTranslator/reporter.cjs`](scripts/formTranslator/reporter.cjs) | Generates minimal review reports (source vs. selected translation) and parses user replacement/override requests |
 | [`scripts/formTranslator/llmInstructions.cjs`](scripts/formTranslator/llmInstructions.cjs) | System prompts, ISO 9001/QC glossary, agricultural trade rules, few-shot examples, and entity preservation |
 | [`scripts/formTranslator/llmClient.cjs`](scripts/formTranslator/llmClient.cjs) | LLM connector: supports Gemini/OpenAI APIs and zero-dependency domain glossary agentic translation |
 | [`scripts/formTranslator/dbAdapter.cjs`](scripts/formTranslator/dbAdapter.cjs) | Supabase PostgreSQL adapter: loads and idempotently upserts `FormTemplateISO` records |
@@ -59,6 +60,7 @@ sequenceDiagram
     participant EXT as extractor.cjs
     participant LLM as LLM Engine (llmClient + instructions)
     participant REC as reconstitutor.cjs
+    participant REP as reporter.cjs
 
     AGENT->>DB: loadForm(formId, version)
     DB-->>AGENT: FormTemplateISO (Vietnamese)
@@ -66,6 +68,12 @@ sequenceDiagram
     EXT-->>AGENT: { path -> text } dictionary (IDs shielded)
     AGENT->>LLM: translateDictionary(dictionary)
     LLM-->>AGENT: Translated { path -> text } dictionary
+    AGENT->>REP: generateTranslationReport(dictionary, translatedDict)
+    REP-->>AGENT: Minimal Review Report (deduplicated index #)
+    opt User specifies overrides
+        AGENT->>REP: parseOverrideInput(overrides, report)
+        REP-->>AGENT: { path -> overrideText }
+    end
     AGENT->>REC: reconstituteForm(form, translatedDict)
     Note over REC: assertInvariants(): Verify zero ID or value mutations
     REC-->>AGENT: Validated English FormTemplateISO
@@ -101,6 +109,16 @@ export interface TerminologyCitation {
 }
 ```
 
+### 3.2 Minimal Post-Translation Review Report & User Override Protocol
+Following translation and invariant verification, the module automatically generates a deduplicated, indexed terminology review report (`reporter.cjs`):
+- **Minimal Presentation**: Each unique source term is assigned a numeric index (`#1, #2, ...`) and mapped to the selected translation alongside an override helper string.
+- **User Override Invariant**: Users can specify term overrides either interactively (e.g. `Đổi #3 thành Passive Export`) or via the CLI `--override` option. Any override is validated via `assertInvariants` before database writes.
+
+| # | Source Term (Tiếng Việt) | Selected Translation (English) | Override Syntax |
+|---|---|---|---|
+| 1 | Thông tin chung | General Information | `1: <new_term>` |
+| 2 | XK bị động | Passive Export | `2: <new_term>` |
+
 ---
 
 ## 4. Agent CLI Reference
@@ -108,17 +126,20 @@ export interface TerminologyCitation {
 Antigravity agents and backend operators invoke the module via the standard npm command:
 
 ```bash
-# 1. Run module self-test suite (4 invariant assertions)
+# 1. Run module self-test suite (5 invariant assertions)
 npm run translate -- test
 
 # 2. Extract translatable dictionary for inspection
 npm run translate -- extract --formId 3S-QC/Q1.1e [--out scratch/dict.json]
 
-# 3. Dry-run translation (validates invariants without persisting)
+# 3. Dry-run translation (validates invariants and prints minimal report without persisting)
 npm run translate -- run --formId 3S-QC/Q1.1e --dryRun
 
 # 4. End-to-end translation & database persistence
 npm run translate -- run --formId 3S-QC/Q1.1e
+
+# 5. Translation with custom term overrides
+npm run translate -- run --formId 3S-QC/Q1.1e --override "8: Indirect Export"
 ```
 
 ---
@@ -133,3 +154,4 @@ npm run translate -- run --formId 3S-QC/Q1.1e
 | 2026-09-20 | **Architecture Decoupling:** Formalized `FormTranslator` as an independent agent/backend module with dedicated design document (`DESIGN_TRANSLATOR.md`), decoupled from `DESIGN_FORM_DESIGNER.md`. Added `npm run translate` script shortcut. |
 | 2026-09-20 | **Context-Aware Domain Profiling & Best-Practice Re-translation:** Added `detectDomainProfile` algorithm (FINISHED_PRODUCT_SPECIFICATION, CONTAINER_STUFFING_LOGISTICS, PRODUCTION_PLANNING, ORDER_MANAGEMENT), full tableRows and tableData cell extraction, and updated all 4 forms in PostgreSQL with international best-practice terminology. |
 | 2026-09-20 | **Context-Driven Web Search Invariant:** Codified mandatory rule banning reliance on internal LLM reasoning alone. Grounded technical terms via dynamic, context-driven web search (search_web) and domain-agnostic TerminologyCitation provenance schema. |
+| 2026-09-20 | **Minimal Review Report & Override Protocol:** Added `reporter.cjs` generating minimal 2-column review tables (#, Source, Selected Translation, Override Syntax) and added interactive / CLI `--override` parsing support. |

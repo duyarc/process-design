@@ -53,7 +53,7 @@
               "isPass": true
             },
             {
-              "label": "Passive Export",
+              "label": "Custom Term",
               "value": "FAIL",
               "isPass": false
             },

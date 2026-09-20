@@ -19,7 +19,11 @@ const {
   translateWithGlossary,
   loadForm,
   saveForm,
-  translateFormPipeline
+  translateFormPipeline,
+  generateTranslationReport,
+  formatReportMarkdown,
+  formatReportConsole,
+  parseOverrideInput
 } = require('./index.cjs');
 
 // Parse CLI arguments into key-value flags
@@ -160,7 +164,20 @@ async function runSelfTests() {
   }
   console.log('  -> PASS\n');
 
-  console.log('=== All 4 FormTranslator Self-Tests PASSED! ===\n');
+  // Test 5: Minimal Review Report & Override Parsing
+  console.log('[Test 5] Testing translation report and override parsing...');
+  const report = generateTranslationReport(dictionary, translatedDict, { formId: 'TEST/F01e' });
+  if (!report.entries || report.totalUniqueTerms === 0) {
+    throw new Error('Test 5 Failed: Report has no entries');
+  }
+  const overrideTest = parseOverrideInput('2: Custom Order Category', report);
+  if (overrideTest.appliedCount === 0) {
+    throw new Error('Test 5 Failed: parseOverrideInput did not apply numeric index override');
+  }
+  console.log(`  Report generated with ${report.totalUniqueTerms} unique terms. Successfully parsed override.`);
+  console.log('  -> PASS\n');
+
+  console.log('=== All 5 FormTranslator Self-Tests PASSED! ===\n');
 }
 
 async function main() {
@@ -210,6 +227,7 @@ async function main() {
           targetVersion: args.targetVersion,
           targetStatus: args.targetStatus || 'DRAFT',
           mode: args.mode,
+          overrides: args.override || args.overrides,
           dryRun: !!args.dryRun
         });
 
@@ -221,6 +239,11 @@ async function main() {
           console.log(`- Saved to Database: form_id='${result.savedRecord.form_id}', title='${result.savedRecord.form_title}', status='${result.savedRecord.status}'`);
         } else {
           console.log(`- [DryRun] Form validated successfully but skipped DB write.`);
+        }
+
+        // Print minimal review report to console
+        if (result.reportConsole) {
+          console.log(result.reportConsole);
         }
 
         // Save output to scratch for easy inspection
@@ -236,7 +259,7 @@ async function main() {
         console.log(`Commands:`);
         console.log(`  node cli.cjs test                       Run module self-tests`);
         console.log(`  node cli.cjs extract --formId <id>      Extract translatable dictionary`);
-        console.log(`  node cli.cjs run --formId <id> [--dryRun] Run end-to-end translation pipeline`);
+        console.log(`  node cli.cjs run --formId <id> [--override "<#|term>: <val>"] [--dryRun] Run translation pipeline`);
         break;
       }
     }

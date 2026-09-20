@@ -33,6 +33,27 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-20 — Form Translation: Minimal Post-Translation Review Report & User Override Protocol
+
+**Scope:** 5 files (`reporter.cjs`, `index.cjs`, `cli.cjs`, `DESIGN_TRANSLATOR.md`, `SESSION_LOG.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn tạo mới / chỉnh sửa | 4 (`reporter.cjs`, `index.cjs`, `cli.cjs`, `DESIGN_TRANSLATOR.md`) |
+| Lượt edit source (rework) | 1 (sửa cú pháp dấu nháy chuỗi trong reporter.cjs) |
+| Số lần build / test | 3 (1 self-test pass + 1 tsc + 1 vite 8.36s) |
+| Lần build đầu thành công? | Có |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- **Thêm bước Báo cáo Đối soát Hậu Dịch thuật Tinh gọn (`reporter.cjs`):** Bóc tách danh sách các khái niệm thuật ngữ duy nhất, đánh chỉ mục `#` từ 1..N, xuất bảng đối chiếu 2 cột (Từ gốc vs. Từ dịch được chọn) theo phong cách minimal cho cả Markdown và Console.
+- **Hỗ trợ Ghi đè Thuật ngữ Linh hoạt:** Người dùng có thể yêu cầu thay thế qua phản hồi hội thoại (`Đổi #3 thành X` hoặc `Đổi "từ gốc" thành X`) hoặc qua cờ lệnh CLI `--override "<#|từ gốc>: <từ mới>"`.
+- **Bảo toàn Bất biến 100%:** Các giá trị ghi đè tự động đi qua hàm `assertInvariants` trước khi ghi vào cơ sở dữ liệu.
+- **Mở rộng Test Suite:** Bổ sung Test 5 vào `cli.cjs` nâng tổng số test assertions lên 5/5 pass. Vite production bundle pass trong 8.36s.
+
+---
+
 ### 2026-09-20 — Form Translation: Context-Driven Dynamic Web Search Invariant Refinement
 
 **Scope:** 4 files (`DESIGN_TRANSLATOR.md`, `llmInstructions.cjs`, `llmClient.cjs`, `SESSION_LOG.md`)

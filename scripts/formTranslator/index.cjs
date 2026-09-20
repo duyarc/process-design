@@ -8,6 +8,7 @@ const { reconstituteForm, assertInvariants } = require('./reconstitutor.cjs');
 const { translateDictionary, translateWithGlossary } = require('./llmClient.cjs');
 const { buildPrompt, QC_DOMAIN_GLOSSARY, SYSTEM_PROMPT, TERMINOLOGY_CITATIONS, getCitation, listCitations } = require('./llmInstructions.cjs');
 const { loadForm, saveForm } = require('./dbAdapter.cjs');
+const { generateTranslationReport, formatReportMarkdown, formatReportConsole, parseOverrideInput } = require('./reporter.cjs');
 
 /**
  * Executes the complete translation pipeline:
@@ -54,20 +55,30 @@ async function translateFormPipeline(options) {
   const { dictionary, metadata } = extractTranslatableStrings(originalForm);
 
   // 3. Translate dictionary using context-aware domain profile
-  const translatedDict = await translateDictionary(dictionary, {
+  let translatedDict = await translateDictionary(dictionary, {
     domainProfile: metadata.domainProfile,
     mode: options.mode,
     customDictionary: options.customDictionary
   });
 
-  // 4. Reconstitute and assert invariants
+  // 4. Generate initial report and apply any user overrides
+  let report = generateTranslationReport(dictionary, translatedDict, { formId: targetFormId });
+  if (options.overrides) {
+    const parsed = parseOverrideInput(options.overrides, report);
+    if (parsed.appliedCount > 0) {
+      translatedDict = { ...translatedDict, ...parsed.overrides };
+      report = generateTranslationReport(dictionary, translatedDict, { formId: targetFormId });
+    }
+  }
+
+  // 5. Reconstitute and assert invariants
   const { reconstitutedForm, stats } = reconstituteForm(originalForm, translatedDict, {
     targetFormId,
     targetVersion: options.targetVersion || options.version || 'v0.1',
     targetStatus: options.targetStatus || 'DRAFT'
   });
 
-  // 5. Save to database if not dryRun
+  // 6. Save to database if not dryRun
   let savedRecord = null;
   if (!options.dryRun) {
     savedRecord = await saveForm(reconstitutedForm);
@@ -80,7 +91,10 @@ async function translateFormPipeline(options) {
     translatedDictionary: translatedDict,
     reconstitutedForm,
     savedRecord,
-    isDryRun: !!options.dryRun
+    isDryRun: !!options.dryRun,
+    report,
+    reportMarkdown: formatReportMarkdown(report),
+    reportConsole: formatReportConsole(report)
   };
 }
 
@@ -98,5 +112,9 @@ module.exports = {
   listCitations,
   loadForm,
   saveForm,
-  translateFormPipeline
+  translateFormPipeline,
+  generateTranslationReport,
+  formatReportMarkdown,
+  formatReportConsole,
+  parseOverrideInput
 };
