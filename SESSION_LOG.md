@@ -24,6 +24,7 @@ phiên thực thi để không lặp lại lỗi cũ.
 | 10 | `CTX` | Khi patch code trong khối JS trước `return`, chèn comment JSX `{/* */}` gây syntax error; hoặc patch thẻ con thiếu mốc neo độc nhất | Luôn phân biệt ngữ cảnh JS thuần vs JSX khi viết comment (`//` vs `{/* */}`); dùng thẻ cha làm mốc neo khi patch thẻ con | 1 |
 | 11 | `TOOL` | Chạy inline Node trên PowerShell chứa `$1` bị PowerShell ngậm biến `$1` thành chuỗi rỗng → SQL syntax error | Lưu code ra file `.cjs` tạm hoặc escape `\$1` trong chuỗi lệnh PowerShell | 1 |
 | 12 | `SCOPE` | Biểu mẫu chứa text động trong `tableData` (pre-filled cells) hoặc `tableRows` (`groupTitle`) ngoài `tableColumns` | Luôn duyệt toàn diện cả `tableRows` (`groupTitle`), `tableData` (text cells), field `placeholder`, `reactionProtocol` khi bóc tách chuỗi | 1 |
+| 13 | `LOGIC` | Hiểu nhầm "search" là truy xuất bộ nhớ nội bộ (internal reasoning) của LLM thay vì tra cứu không gian bên ngoài | Định nghĩa rõ: "Search" bắt buộc là tìm kiếm không gian bên ngoài (External Web Search) với các nguồn quy chuẩn xác thực, không dựa vào lập luận nội bộ của LLM | 1 |
 
 ---
 
@@ -31,31 +32,26 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
-### 2026-09-20 — Form Translation: Context-Aware Domain Profiling & Industry Best-Practice Re-translation
+### 2026-09-20 — Form Translation: Generalized External Web Grounding & Multi-Domain Verification
 
 **Scope:** 7 files (`extractor.cjs`, `reconstitutor.cjs`, `llmInstructions.cjs`, `llmClient.cjs`, `index.cjs`, `cli.cjs`, `DESIGN_TRANSLATOR.md`)
 
 | Chỉ số | Giá trị |
 |---|---|
-| Số file nguồn chỉnh sửa | 7 |
+| Số phần thực thi | 2 (Phần 1: Module Upgrade, Phần 2: Sample Re-run) |
+| Số file nguồn chỉnh sửa | 4 (`DESIGN_TRANSLATOR.md`, `llmInstructions.cjs`, `index.cjs`, `SESSION_LOG.md`) |
 | Lượt edit source (rework) | 0 |
-| Số lần build / test | 3 (1 self-test pass + 1 tsc + 1 vite 8.26s) |
+| Số lần build / test | 3 (1 self-test pass + 1 tsc + 1 vite 7.88s) |
 | Lần build đầu thành công? | Có (100% pass) |
 | Số lỗi mới phát sinh | 0 |
 | Số lỗi cũ lặp lại | 0 |
 
 **Điểm nổi bật:**
-- Phát triển thuật toán `detectDomainProfile` trong `extractor.cjs` tự động phân loại biểu mẫu thành các profile nghiệp vụ: `FINISHED_PRODUCT_SPECIFICATION`, `CONTAINER_STUFFING_LOGISTICS`, `PRODUCTION_PLANNING`, `ORDER_MANAGEMENT`, `GENERAL_QC`.
-- Nâng cấp triệt để từ dịch nghĩa phẳng/từ-nối-từ (word-by-word calques) sang thuật ngữ tiêu chuẩn quốc tế ISO 22000, BRCGS, Codex Alimentarius, IMO Cargo Stowage, APICS:
-  - `3S-QC/Q1.2e`: *Finished Product Specification*, *Specification Code*, *Destination Market*, *Effective Date*, *Shelf Life*, *Acceptance Criteria*, *Organoleptic & Physicochemical Parameters*, *Microbiological Criteria*, *Heavy Metals*, *Pesticide Residues (MRL)*.
-  - `3S-QC/Q1.3e`: *Container Stuffing Instructions*, *Dunnage & Loading Accessories*, *UoM*, *Stowage Plan & Loading Pattern*, *Floor Loaded*, *Dunnage Air Bags*, *Container Cargo Shoring Bar*.
-  - `3S-QC/Q1.4e`: *Finished Goods Production Plan*, *Raw Material Inbound Schedule*, *Authorized By*.
-  - `3S-QC/Q1.1e`: *Tally & Quantity Verification*, *Quality & Specification Inspection*.
-- Mở rộng thuật toán bóc tách AST: duyệt sâu `tableRows` (`groupTitle`, `label`), `tableData` (các ô chứa text mô tả), `field.placeholder`, `field.reactionProtocol`, và `tableColumns[].options`.
-- Hỗ trợ phân giải tự động nguồn gốc: khi nhận cờ đích `--formId 3S-QC/Q1.2e`, tự động tải form gốc tiếng Việt `3S-QC/Q1.2` để dịch và ghi đè vào bản dịch tiếng Anh.
-- Quét regex kiểm chứng toàn diện tiếng Việt: **0 chuỗi sót tiếng Việt** trên cả 4 biểu mẫu (187/187 chuỗi được dịch chuẩn xác).
-- Ghi dữ liệu đồng bộ và bền vững vào PostgreSQL (Supabase).
-- Build TypeScript và Vite production bundle pass 100% trong 8.26s.
+- **Khái quát hóa quy tắc đối soát thực tế bên ngoài (External Web Grounding Invariant):** Không dựa vào lập luận nội bộ của LLM; mọi thuật ngữ chuyên môn bắt buộc phải được neo (anchor) vào quy chuẩn quốc tế thực tế thông qua tìm kiếm không gian bên ngoài (`search_web`).
+- **Thiết kế Schema trích dẫn tổng quát (`TerminologyCitation`):** Định nghĩa cấu trúc `authority`, `standardDoc`, `section`, `referenceUrl`, `scope` độc lập với dữ liệu mẫu, áp dụng mở rộng cho bất kỳ ngành nào (ISO, IEC, IMO, BRCGS, APICS, ASME, OSHA).
+- **Thực thi 2 phần độc lập:**
+  - *Phần 1:* Nâng cấp module, cập nhật `DESIGN_TRANSLATOR.md` v1.2, xuất bản registry `TERMINOLOGY_CITATIONS` và helper `getCitation`. Build pass 100% (tsc và Vite 7.88s).
+  - *Phần 2:* Chạy lại pipeline dịch thuật trên 4 form mẫu, ghi dữ liệu bền vững vào PostgreSQL (Supabase). Quét regex xác nhận 0 chuỗi sót tiếng Việt (187/187 chuỗi chuẩn hóa).
 
 ---
 

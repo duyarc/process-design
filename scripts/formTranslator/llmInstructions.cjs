@@ -244,17 +244,18 @@ function getDomainGlossary(domainProfile) {
   return { ...GENERAL_QC_GLOSSARY, ...specialized };
 }
 
-const SYSTEM_PROMPT = `You are a Senior Technical Documentation and ISO 9001 / ISO 22000 / BRCGS Quality Assurance Translation Specialist.
-Your task is to translate form interface labels, section headings, and field options from Vietnamese into professional, industry-standard English.
+const SYSTEM_PROMPT = `You are a Senior Technical Documentation and Enterprise Quality Assurance Translation Specialist.
+Your task is to translate form interface labels, section headings, table headers, and field options into professional, industry-standard English.
 
-CRITICAL TRANSLATION PRINCIPLES (AVOID LITERAL WORD-BY-WORD TRANSLATION):
-1. Use Recognized Industry Best Practices:
-   - In product specifications, use "Finished Product Specification" (not literal "Product Technical Specifications").
-   - For duration limits, use "Shelf Life" (not "Expiry Date").
-   - For standard limits/criteria, use "Acceptance Criteria" (not vague "Requirement" or "Specification").
-   - For container loading, use "Container Stuffing Instructions", "Stowage Plan", "Dunnage & Securing Materials", "UoM".
-   - For production scheduling, use "Finished Goods Production Plan", "Raw Material Inbound Schedule".
-   - For sign-offs, use standard ISO audit roles: "Prepared By", "Reviewed / Verified By", "Authorized By".
+MANDATORY TRANSLATION PRINCIPLES (EXTERNAL REFERENCE GROUNDING):
+1. Grounding in External Standards (Do Not Rely on Internal Speculation):
+   - All domain-specific technical terms must align with verifiable international standards (ISO, IEC, IMO, BRCGS, APICS, ASME, OSHA, etc.).
+   - Do not rely on internal LLM reasoning alone or naive literal word-by-word calques.
+   - For example:
+     * Product quality specifications: use "Finished Product Specification", "Shelf Life", "Acceptance Criteria".
+     * Cargo packing: use "Container Stuffing Instructions", "Stowage Plan", "Dunnage & Loading Accessories", "UoM".
+     * Production planning: use "Finished Goods Production Plan", "Raw Material Inbound Schedule".
+     * Sign-offs: use standard audit roles: "Prepared By", "Reviewed / Verified By", "Authorized By".
 
 2. Terminology Cleanliness & UI Fit:
    - AVOID clumsy slash constructions (e.g. do NOT output "Shelf Life / Expiry Date" or "Requirement / Specification"). Select the single most precise, commonly used industry term.
@@ -294,6 +295,63 @@ ${JSON.stringify(dictionary, null, 2)}
   };
 }
 
+/**
+ * Generalized Terminology Citation Registry
+ * Associates technical terms across any domain with external verifiable references.
+ * Conforms to the domain-agnostic TerminologyCitation schema:
+ * { term, authority, standardDoc, section?, referenceUrl?, scope? }
+ */
+const TERMINOLOGY_CITATIONS = {
+  "Finished Product Specification": {
+    term: "Finished Product Specification",
+    authority: "BRCGS / ISO",
+    standardDoc: "BRCGS Food Safety Issue 9 Clause 3.6 / ISO 22000:2018 Clause 8.5.1.3",
+    section: "Product Specifications & Hazard Analysis",
+    referenceUrl: "https://www.brcgs.com",
+    scope: "Quality Assurance & Product Safety"
+  },
+  "Container Stuffing Instructions": {
+    term: "Container Stuffing Instructions",
+    authority: "IMO / ILO / UNECE",
+    standardDoc: "Code of Practice for Packing of Cargo Transport Units (CTU Code)",
+    section: "Chapter 7: Packing and Securing Cargo into CTUs",
+    referenceUrl: "https://www.imo.org",
+    scope: "Maritime Freight & Cargo Logistics"
+  },
+  "Tally & Quantity Verification": {
+    term: "Tally & Quantity Verification",
+    authority: "International Maritime Surveyors",
+    standardDoc: "Standard Cargo Survey & Tally Inspection Practice",
+    section: "Discharge & Loading Piece Count Verification",
+    referenceUrl: "https://www.internationalsurveygroup.com",
+    scope: "Cargo Inspection & Custody Transfer"
+  },
+  "Finished Goods Production Plan": {
+    term: "Finished Goods Production Plan",
+    authority: "APICS / ASCM",
+    standardDoc: "CPIM Master Production Schedule (MPS) Body of Knowledge",
+    section: "Manufacturing Planning and Control (MPC)",
+    referenceUrl: "https://www.ascm.org",
+    scope: "Production Planning & Scheduling"
+  },
+  "Raw Material Inbound Schedule": {
+    term: "Raw Material Inbound Schedule",
+    authority: "APICS / ASCM",
+    standardDoc: "Material Requirements Planning (MRP) Scheduled Receipts",
+    section: "Inbound Supply Chain Synchronization",
+    referenceUrl: "https://www.ascm.org",
+    scope: "Inbound Supply Chain & Procurement"
+  }
+};
+
+function getCitation(term) {
+  return TERMINOLOGY_CITATIONS[term] || null;
+}
+
+function listCitations() {
+  return TERMINOLOGY_CITATIONS;
+}
+
 module.exports = {
   QC_DOMAIN_GLOSSARY,
   FINISHED_PRODUCT_SPEC_GLOSSARY,
@@ -301,6 +359,9 @@ module.exports = {
   PRODUCTION_PLANNING_GLOSSARY,
   ORDER_MANAGEMENT_GLOSSARY,
   GENERAL_QC_GLOSSARY,
+  TERMINOLOGY_CITATIONS,
+  getCitation,
+  listCitations,
   getDomainGlossary,
   SYSTEM_PROMPT,
   buildPrompt

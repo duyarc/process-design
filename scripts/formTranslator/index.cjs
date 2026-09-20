@@ -6,7 +6,7 @@
 const { extractTranslatableStrings } = require('./extractor.cjs');
 const { reconstituteForm, assertInvariants } = require('./reconstitutor.cjs');
 const { translateDictionary, translateWithGlossary } = require('./llmClient.cjs');
-const { buildPrompt, QC_DOMAIN_GLOSSARY, SYSTEM_PROMPT } = require('./llmInstructions.cjs');
+const { buildPrompt, QC_DOMAIN_GLOSSARY, SYSTEM_PROMPT, TERMINOLOGY_CITATIONS, getCitation, listCitations } = require('./llmInstructions.cjs');
 const { loadForm, saveForm } = require('./dbAdapter.cjs');
 
 /**
@@ -93,6 +93,9 @@ module.exports = {
   buildPrompt,
   QC_DOMAIN_GLOSSARY,
   SYSTEM_PROMPT,
+  TERMINOLOGY_CITATIONS,
+  getCitation,
+  listCitations,
   loadForm,
   saveForm,
   translateFormPipeline
