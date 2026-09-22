@@ -111,6 +111,8 @@ export interface FormFieldISO {
   checkItem: string;
   placeholder?: string; // For input/photo placeholder or instruction text
   locationCode: string;
+  sectionH1?: string; // Section H1 header (e.g. "I. THÔNG TIN DOANH NGHIỆP")
+  sectionH2?: string; // Section H2 sub-header or group title (e.g. "1. Character - Uy tín")
   minSpec?: number;
   maxSpec?: number;
   unit?: string;

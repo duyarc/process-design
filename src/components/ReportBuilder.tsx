@@ -11,7 +11,7 @@ import type {
   TitleFormatISO
 } from '../types';
 import { computeRecordReport } from '../utils/reportCompute';
-import { extractAllFormFields } from '../utils/tableFieldExtractor';
+import { extractAllFormFields, groupFieldsByHierarchy, type FieldHierarchyGroup } from '../utils/tableFieldExtractor';
 import { getInfoGridTemplateColumns, snap2ColWidth, snap3ColWidths } from '../utils/formUtils';
 import { applyTextFormat, handleFormatKeyDown } from '../utils/textFormatter';
 import ConfirmModal from './common/ConfirmModal';
@@ -34,7 +34,12 @@ import {
   Search,
   Sparkles,
   Plus,
-  GitBranch
+  GitBranch,
+  Folder,
+  FolderOpen,
+  ChevronDown,
+  ChevronRight,
+  Layers
 } from 'lucide-react';
 
 interface ToggleSwitchProps {
@@ -628,6 +633,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
   const [searchFieldQuery, setSearchFieldQuery] = useState<string>('');
   const [fieldPickerBlockId, setFieldPickerBlockId] = useState<string | null>(null);
   const [fieldPickerSearch, setFieldPickerSearch] = useState<string>('');
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
   const [autoExportPdf, setAutoExportPdf] = useState<boolean>(false);
   const sectionDescRef = useRef<HTMLTextAreaElement>(null);
 
@@ -1126,6 +1132,40 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
     }));
   };
 
+  const addMultipleFieldsToBlock = (blockId: string, fieldIds: string[]) => {
+    setTemplate(prev => ({
+      ...prev,
+      layoutBlocks: prev.layoutBlocks.map(b => {
+        if (b.id !== blockId) return b;
+        const current = b.boundFieldIds || [];
+        const toAdd = fieldIds.filter(id => !current.includes(id));
+        if (toAdd.length === 0) return b;
+        return {
+          ...b,
+          boundFieldIds: [...current, ...toAdd]
+        };
+      })
+    }));
+  };
+
+  const toggleSectionExpand = (key: string) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [key]: prev[key] === undefined ? false : !prev[key]
+    }));
+  };
+
+  const setAllSectionsExpanded = (expanded: boolean, groups: FieldHierarchyGroup[]) => {
+    const next: Record<string, boolean> = {};
+    groups.forEach(g => {
+      next[`h1_${g.h1}`] = expanded;
+      g.h2Groups.forEach(sub => {
+        next[`h2_${g.h1}_${sub.h2}`] = expanded;
+      });
+    });
+    setExpandedSections(next);
+  };
+
   const removeFieldFromBlock = (blockId: string, fieldId: string) => {
     setTemplate(prev => ({
       ...prev,
@@ -1170,8 +1210,11 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
   const filteredFormFields = allFormFields.filter(f =>
     (f.checkItem || '').toLowerCase().includes(searchFieldQuery.toLowerCase()) ||
     (f.id || '').toLowerCase().includes(searchFieldQuery.toLowerCase()) ||
-    (f.locationCode || '').toLowerCase().includes(searchFieldQuery.toLowerCase())
+    (f.locationCode || '').toLowerCase().includes(searchFieldQuery.toLowerCase()) ||
+    (f.sectionH1 || '').toLowerCase().includes(searchFieldQuery.toLowerCase()) ||
+    (f.sectionH2 || '').toLowerCase().includes(searchFieldQuery.toLowerCase())
   );
+  const hierarchyGroups = React.useMemo(() => groupFieldsByHierarchy(filteredFormFields), [filteredFormFields]);
 
   if (loading) {
     return (
@@ -1542,10 +1585,29 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
 
           {/* Field Data Dictionary Tray */}
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '0.75rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                FIELDS ({allFormFields.length})
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
+                FIELDS ({filteredFormFields.length}{filteredFormFields.length !== allFormFields.length ? `/${allFormFields.length}` : ''})
               </span>
+              <div style={{ display: 'flex', gap: '4px' }}>
+                <button
+                  type="button"
+                  onClick={() => setAllSectionsExpanded(true, hierarchyGroups)}
+                  style={{ background: 'none', border: 'none', fontSize: '0.68rem', color: 'var(--primary)', cursor: 'pointer', padding: '1px 4px', fontWeight: 600 }}
+                  title="Mở rộng tất cả các nhóm"
+                >
+                  Mở hết
+                </button>
+                <span style={{ color: '#cbd5e1', fontSize: '0.68rem' }}>|</span>
+                <button
+                  type="button"
+                  onClick={() => setAllSectionsExpanded(false, hierarchyGroups)}
+                  style={{ background: 'none', border: 'none', fontSize: '0.68rem', color: '#64748b', cursor: 'pointer', padding: '1px 4px' }}
+                  title="Thu gọn tất cả các nhóm"
+                >
+                  Thu gọn
+                </button>
+              </div>
             </div>
             <div style={{ position: 'relative', marginBottom: '0.5rem' }}>
               <Search size={12} style={{ position: 'absolute', left: '8px', top: '8px', color: 'var(--text-secondary)' }} />
@@ -1558,54 +1620,189 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
               />
             </div>
 
-            <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-              {filteredFormFields.map(field => {
-                const isBoundToActive = activeBlock?.boundFieldIds?.includes(field.id);
-                const badgeStyle = getFieldBadgeStyle(field.type);
+            <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingRight: '2px' }}>
+              {hierarchyGroups.length === 0 ? (
+                <div style={{ padding: '2rem 0.5rem', textAlign: 'center', color: '#94a3b8', fontSize: '0.75rem' }}>
+                  {allFormFields.length === 0 ? 'Chưa nạp được trường nào.' : 'Không tìm thấy trường khớp từ khoá.'}
+                </div>
+              ) : (
+                hierarchyGroups.map(h1Group => {
+                  const h1Key = `h1_${h1Group.h1}`;
+                  const isH1Expanded = searchFieldQuery ? true : (expandedSections[h1Key] ?? true);
+                  const allH1FieldIds = h1Group.h2Groups.flatMap(g => g.fields.map(f => f.id));
 
-                return (
-                  <div
-                    key={field.id}
-                    onClick={() => activeBlock && toggleFieldInBlock(field.id)}
-                    style={{
-                      padding: '0.45rem 0.6rem',
-                      borderRadius: '4px',
-                      border: `1px solid ${isBoundToActive ? 'var(--primary)' : 'var(--neutral-border)'}`,
-                      background: isBoundToActive ? '#eff6ff' : '#ffffff',
-                      cursor: activeBlock ? 'pointer' : 'default',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      fontSize: '0.78rem',
-                      gap: '0.5rem'
-                    }}
-                    title={activeBlock ? 'Click để thêm/bớt khỏi khối đang chọn' : 'Chọn một khối ở giữa để gán trường này'}
-                  >
-                    <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-                      <div style={{ fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {field.checkItem || field.id}
+                  return (
+                    <div key={h1Group.h1} style={{ border: '1px solid #e2e8f0', borderRadius: '6px', background: '#ffffff', overflow: 'hidden' }}>
+                      {/* H1 Section Header */}
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '5px 8px',
+                          background: '#f8fafc',
+                          borderBottom: isH1Expanded ? '1px solid #e2e8f0' : 'none',
+                          cursor: 'pointer',
+                          userSelect: 'none'
+                        }}
+                        onClick={() => toggleSectionExpand(h1Key)}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flex: 1, minWidth: 0 }}>
+                          {isH1Expanded ? <ChevronDown size={13} color="#475569" /> : <ChevronRight size={13} color="#475569" />}
+                          <Layers size={13} color="var(--primary)" />
+                          <span style={{ fontWeight: 700, fontSize: '0.75rem', color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={h1Group.h1}>
+                            {h1Group.h1}
+                          </span>
+                          <span style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 600 }}>({h1Group.totalFieldsCount})</span>
+                        </div>
+
+                        {activeBlock && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              addMultipleFieldsToBlock(activeBlock.id, allH1FieldIds);
+                            }}
+                            style={{
+                              padding: '1px 5px',
+                              fontSize: '0.63rem',
+                              background: '#eff6ff',
+                              color: 'var(--primary)',
+                              border: '1px solid #bfdbfe',
+                              borderRadius: '3px',
+                              cursor: 'pointer',
+                              fontWeight: 600,
+                              whiteSpace: 'nowrap'
+                            }}
+                            title={`Gán toàn bộ ${allH1FieldIds.length} trường của phần này vào khối đang chọn`}
+                          >
+                            + Gán cả H1
+                          </button>
+                        )}
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.1rem' }}>
-                        <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
-                          ID: {field.id.length > 24 ? `${field.id.substring(0, 10)}...${field.id.slice(-8)}` : field.id}
-                        </span>
-                      </div>
+
+                      {/* H1 Children (H2 Subgroups) */}
+                      {isH1Expanded && (
+                        <div style={{ padding: '4px 6px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          {h1Group.h2Groups.map(h2Group => {
+                            const isSingleDefaultGroup = h2Group.h2 === h1Group.h1 || h2Group.h2 === 'Thông tin cơ bản' || h2Group.h2 === 'Chi tiết';
+                            const h2Key = `h2_${h1Group.h1}_${h2Group.h2}`;
+                            const isH2Expanded = searchFieldQuery ? true : (expandedSections[h2Key] ?? true);
+                            const h2FieldIds = h2Group.fields.map(f => f.id);
+
+                            return (
+                              <div key={h2Group.h2} style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                                {!isSingleDefaultGroup && (
+                                  <div
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'space-between',
+                                      padding: '3px 6px',
+                                      background: '#f1f5f9',
+                                      borderRadius: '4px',
+                                      cursor: 'pointer',
+                                      userSelect: 'none',
+                                      marginTop: '2px'
+                                    }}
+                                    onClick={() => toggleSectionExpand(h2Key)}
+                                  >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: 1, minWidth: 0 }}>
+                                      {isH2Expanded ? <ChevronDown size={11} color="#64748b" /> : <ChevronRight size={11} color="#64748b" />}
+                                      {isH2Expanded ? <FolderOpen size={12} color="#64748b" /> : <Folder size={12} color="#64748b" />}
+                                      <span style={{ fontWeight: 600, fontSize: '0.72rem', color: '#334155', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={h2Group.h2}>
+                                        {h2Group.h2}
+                                      </span>
+                                      <span style={{ fontSize: '0.63rem', color: '#94a3b8' }}>({h2Group.fields.length})</span>
+                                    </div>
+
+                                    {activeBlock && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          addMultipleFieldsToBlock(activeBlock.id, h2FieldIds);
+                                        }}
+                                        style={{
+                                          padding: '1px 4px',
+                                          fontSize: '0.6rem',
+                                          background: '#ffffff',
+                                          color: '#2563eb',
+                                          border: '1px solid #cbd5e1',
+                                          borderRadius: '3px',
+                                          cursor: 'pointer',
+                                          fontWeight: 500,
+                                          whiteSpace: 'nowrap'
+                                        }}
+                                        title={`Gán toàn bộ ${h2FieldIds.length} trường của mục này`}
+                                      >
+                                        + Nhóm
+                                      </button>
+                                    )}
+                                  </div>
+                                )}
+
+                                {(isSingleDefaultGroup || isH2Expanded) && (
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', paddingLeft: isSingleDefaultGroup ? '0' : '4px' }}>
+                                    {h2Group.fields.map(field => {
+                                      const isBoundToActive = activeBlock?.boundFieldIds?.includes(field.id);
+                                      const badgeStyle = getFieldBadgeStyle(field.type);
+
+                                      return (
+                                        <div
+                                          key={field.id}
+                                          onClick={() => activeBlock && toggleFieldInBlock(field.id)}
+                                          style={{
+                                            padding: '0.35rem 0.5rem',
+                                            borderRadius: '4px',
+                                            border: `1px solid ${isBoundToActive ? 'var(--primary)' : '#e2e8f0'}`,
+                                            background: isBoundToActive ? '#eff6ff' : '#ffffff',
+                                            cursor: activeBlock ? 'pointer' : 'default',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between',
+                                            fontSize: '0.75rem',
+                                            gap: '0.4rem',
+                                            transition: 'all 0.1s'
+                                          }}
+                                          title={activeBlock ? 'Click để thêm/bớt khỏi khối đang chọn' : 'Chọn một khối ở giữa để gán trường này'}
+                                        >
+                                          <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                                            <div style={{ fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                              {field.checkItem || field.id}
+                                            </div>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.05rem' }}>
+                                              <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+                                                ID: {field.id.length > 20 ? `${field.id.substring(0, 8)}...${field.id.slice(-6)}` : field.id}
+                                              </span>
+                                            </div>
+                                          </div>
+                                          <span style={{
+                                            fontSize: '0.6rem',
+                                            padding: '0.1rem 0.3rem',
+                                            borderRadius: '3px',
+                                            background: badgeStyle.bg,
+                                            color: badgeStyle.color,
+                                            textTransform: 'uppercase',
+                                            fontWeight: 700,
+                                            flexShrink: 0
+                                          }}>
+                                            {badgeStyle.label}
+                                          </span>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
-                    <span style={{
-                      fontSize: '0.63rem',
-                      padding: '0.12rem 0.35rem',
-                      borderRadius: '3px',
-                      background: badgeStyle.bg,
-                      color: badgeStyle.color,
-                      textTransform: 'uppercase',
-                      fontWeight: 700,
-                      flexShrink: 0
-                    }}>
-                      {badgeStyle.label}
-                    </span>
-                  </div>
-                );
-              })}
+                  );
+                })
+              )}
             </div>
           </div>
         </div>
@@ -3196,18 +3393,20 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
             </div>
 
             {/* Field List */}
-            <div style={{ padding: '0.5rem 1rem', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <div style={{ padding: '0.6rem 1rem', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               {(() => {
                 const targetBlock = template.layoutBlocks.find(b => b.id === fieldPickerBlockId);
                 const boundIds = targetBlock?.boundFieldIds || [];
                 const q = fieldPickerSearch.toLowerCase().trim();
 
-                const filtered = allFormFields.filter(f => {
-                  if (boundIds.includes(f.id)) return false;
+                const unassigned = allFormFields.filter(f => !boundIds.includes(f.id));
+                const filtered = unassigned.filter(f => {
                   if (!q) return true;
                   return (
                     (f.checkItem || '').toLowerCase().includes(q) ||
-                    (f.id || '').toLowerCase().includes(q)
+                    (f.id || '').toLowerCase().includes(q) ||
+                    (f.sectionH1 || '').toLowerCase().includes(q) ||
+                    (f.sectionH2 || '').toLowerCase().includes(q)
                   );
                 });
 
@@ -3221,52 +3420,177 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                   );
                 }
 
-                return filtered.map((field) => {
-                  const badgeStyle = getFieldBadgeStyle(field.type);
-                  return (
-                    <div
-                      key={field.id}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '6px 8px',
-                        border: '1px solid #e2e8f0',
-                        borderRadius: '4px',
-                        background: '#ffffff',
-                        gap: '8px'
-                      }}
-                    >
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: 600, fontSize: '0.78rem', color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={field.checkItem || field.id}>
-                          {field.checkItem || field.id}
-                        </div>
-                        <div style={{ fontSize: '0.65rem', color: '#64748b', fontFamily: 'monospace', marginTop: '1px' }}>
-                          ID: {field.id}
-                        </div>
-                      </div>
+                const modalGroups = groupFieldsByHierarchy(filtered);
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span style={{ fontSize: '0.62rem', padding: '1px 5px', borderRadius: '3px', background: badgeStyle.bg, color: badgeStyle.color, fontWeight: 700, textTransform: 'uppercase' }}>
-                          {badgeStyle.label}
-                        </span>
+                return modalGroups.map(h1Group => {
+                  const h1Key = `picker_h1_${h1Group.h1}`;
+                  const isH1Expanded = q ? true : (expandedSections[h1Key] ?? true);
+                  const allH1FieldIds = h1Group.h2Groups.flatMap(g => g.fields.map(f => f.id));
+
+                  return (
+                    <div key={h1Group.h1} style={{ border: '1px solid #e2e8f0', borderRadius: '6px', background: '#ffffff', overflow: 'hidden' }}>
+                      {/* H1 Header */}
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '6px 8px',
+                          background: '#f8fafc',
+                          borderBottom: isH1Expanded ? '1px solid #e2e8f0' : 'none',
+                          cursor: 'pointer',
+                          userSelect: 'none'
+                        }}
+                        onClick={() => toggleSectionExpand(h1Key)}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flex: 1, minWidth: 0 }}>
+                          {isH1Expanded ? <ChevronDown size={13} color="#475569" /> : <ChevronRight size={13} color="#475569" />}
+                          <Layers size={13} color="var(--primary)" />
+                          <span style={{ fontWeight: 700, fontSize: '0.78rem', color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {h1Group.h1}
+                          </span>
+                          <span style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 600 }}>({h1Group.totalFieldsCount})</span>
+                        </div>
+
                         <button
                           type="button"
-                          onClick={() => addFieldToBlock(fieldPickerBlockId, field.id)}
-                          style={{
-                            padding: '3px 8px',
-                            background: 'var(--primary)',
-                            color: '#ffffff',
-                            border: 'none',
-                            borderRadius: '4px',
-                            fontSize: '0.72rem',
-                            fontWeight: 600,
-                            cursor: 'pointer'
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            addMultipleFieldsToBlock(fieldPickerBlockId, allH1FieldIds);
                           }}
+                          style={{
+                            padding: '2px 7px',
+                            fontSize: '0.65rem',
+                            background: '#eff6ff',
+                            color: 'var(--primary)',
+                            border: '1px solid #bfdbfe',
+                            borderRadius: '3px',
+                            cursor: 'pointer',
+                            fontWeight: 600,
+                            whiteSpace: 'nowrap'
+                          }}
+                          title={`Gán toàn bộ ${allH1FieldIds.length} trường của phần này`}
                         >
-                          + Gán
+                          + Gán cả H1 ({allH1FieldIds.length})
                         </button>
                       </div>
+
+                      {/* H1 Children */}
+                      {isH1Expanded && (
+                        <div style={{ padding: '4px 6px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          {h1Group.h2Groups.map(h2Group => {
+                            const isSingleDefault = h2Group.h2 === h1Group.h1 || h2Group.h2 === 'Thông tin cơ bản' || h2Group.h2 === 'Chi tiết';
+                            const h2Key = `picker_h2_${h1Group.h1}_${h2Group.h2}`;
+                            const isH2Expanded = q ? true : (expandedSections[h2Key] ?? true);
+                            const h2FieldIds = h2Group.fields.map(f => f.id);
+
+                            return (
+                              <div key={h2Group.h2} style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                                {!isSingleDefault && (
+                                  <div
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'space-between',
+                                      padding: '4px 6px',
+                                      background: '#f1f5f9',
+                                      borderRadius: '4px',
+                                      cursor: 'pointer',
+                                      userSelect: 'none'
+                                    }}
+                                    onClick={() => toggleSectionExpand(h2Key)}
+                                  >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: 1, minWidth: 0 }}>
+                                      {isH2Expanded ? <ChevronDown size={11} color="#64748b" /> : <ChevronRight size={11} color="#64748b" />}
+                                      {isH2Expanded ? <FolderOpen size={12} color="#64748b" /> : <Folder size={12} color="#64748b" />}
+                                      <span style={{ fontWeight: 600, fontSize: '0.74rem', color: '#334155', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        {h2Group.h2}
+                                      </span>
+                                      <span style={{ fontSize: '0.63rem', color: '#94a3b8' }}>({h2Group.fields.length})</span>
+                                    </div>
+
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        addMultipleFieldsToBlock(fieldPickerBlockId, h2FieldIds);
+                                      }}
+                                      style={{
+                                        padding: '1px 5px',
+                                        fontSize: '0.62rem',
+                                        background: '#ffffff',
+                                        color: '#2563eb',
+                                        border: '1px solid #cbd5e1',
+                                        borderRadius: '3px',
+                                        cursor: 'pointer',
+                                        fontWeight: 500,
+                                        whiteSpace: 'nowrap'
+                                      }}
+                                      title={`Gán toàn bộ ${h2FieldIds.length} trường của mục này`}
+                                    >
+                                      + Nhóm ({h2FieldIds.length})
+                                    </button>
+                                  </div>
+                                )}
+
+                                {(isSingleDefault || isH2Expanded) && (
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', paddingLeft: isSingleDefault ? '0' : '4px' }}>
+                                    {h2Group.fields.map(field => {
+                                      const badgeStyle = getFieldBadgeStyle(field.type);
+                                      return (
+                                        <div
+                                          key={field.id}
+                                          style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between',
+                                            padding: '4px 6px',
+                                            border: '1px solid #e2e8f0',
+                                            borderRadius: '4px',
+                                            background: '#ffffff',
+                                            gap: '6px'
+                                          }}
+                                        >
+                                          <div style={{ flex: 1, minWidth: 0 }}>
+                                            <div style={{ fontWeight: 600, fontSize: '0.76rem', color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={field.checkItem || field.id}>
+                                              {field.checkItem || field.id}
+                                            </div>
+                                            <div style={{ fontSize: '0.62rem', color: '#64748b', fontFamily: 'monospace', marginTop: '1px' }}>
+                                              ID: {field.id.length > 24 ? `${field.id.substring(0, 10)}...${field.id.slice(-8)}` : field.id}
+                                            </div>
+                                          </div>
+
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                                            <span style={{ fontSize: '0.6rem', padding: '1px 4px', borderRadius: '3px', background: badgeStyle.bg, color: badgeStyle.color, fontWeight: 700, textTransform: 'uppercase' }}>
+                                              {badgeStyle.label}
+                                            </span>
+                                            <button
+                                              type="button"
+                                              onClick={() => addFieldToBlock(fieldPickerBlockId, field.id)}
+                                              style={{
+                                                padding: '2px 7px',
+                                                background: 'var(--primary)',
+                                                color: '#ffffff',
+                                                border: 'none',
+                                                borderRadius: '3px',
+                                                fontSize: '0.68rem',
+                                                fontWeight: 600,
+                                                cursor: 'pointer'
+                                              }}
+                                            >
+                                              + Gán
+                                            </button>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                   );
                 });

@@ -33,6 +33,27 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-22 — Report Builder: Hierarchical Section H1 & H2 Grouping & Batch Field Adding
+
+**Scope:** 5 files (`types.ts`, `tableFieldExtractor.ts`, `formUtils.ts`, `ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn tạo mới / chỉnh sửa | 4 (`types.ts`, `tableFieldExtractor.ts`, `formUtils.ts`, `ReportBuilder.tsx`) |
+| Lượt edit source (rework) | 1 (thêm khai báo `expandedSections` state) |
+| Số lần build / test | 2 (`tsc --noEmit` pass + 1 vite 10.79s pass) |
+| Lần build đầu thành công? | Có |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- **Bóc tách Tầng Bậc H1/H2 Tự động (`tableFieldExtractor.ts`):** Tự động nhận diện Section H1 (từ `SECTION_LABEL` H1 hoặc tiêu đề phần lớn) và Section H2 (từ `SECTION_LABEL` H2, table row group headers `row.isGroupHeader` như `5C-Scorecard`, hoặc block titles).
+- **Pure Utility Hierarchy (`groupFieldsByHierarchy`):** Tách cấu trúc nhóm lồng nhau dạng cây `{ h1, totalFieldsCount, h2Groups: [{ h2, fields }] }` ra utility thuần túy, an toàn cho render.
+- **Tree Accordion & Batch Adding (`ReportBuilder.tsx`):** Nâng cấp Left Panel `FIELDS` tray và `Quick Field Picker Modal` thành cây phân cấp có thể đóng/mở từng nhóm, mở hết/thu gọn tất cả, tự động bung nhánh khi tìm kiếm, và bổ sung các nút `[ + Gán cả H1 ]` & `[ + Nhóm ]` gán đồng loạt toàn bộ trường chỉ với 1 click.
+- **Tuân thủ quy trình 2 giai đoạn:** Hoàn thành Two-Stage Planning ➔ Batch Execution ➔ TypeScript/Vite pass 100% ➔ Atomic commit.
+
+---
+
 ### 2026-09-20 — Form Translation: Minimal Post-Translation Review Report & User Override Protocol
 
 **Scope:** 5 files (`reporter.cjs`, `index.cjs`, `cli.cjs`, `DESIGN_TRANSLATOR.md`, `SESSION_LOG.md`)

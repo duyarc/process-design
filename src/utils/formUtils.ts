@@ -326,7 +326,12 @@ export function generateSmartFieldSlug(label: string, existingIds: string[] = []
   return uniqueId;
 }
 
-export { extractTableFields, extractAllFormFields } from './tableFieldExtractor';
+export {
+  extractTableFields,
+  extractAllFormFields,
+  groupFieldsByHierarchy,
+  type FieldHierarchyGroup
+} from './tableFieldExtractor';
 
 // ============================================================================
 // SECTION GROUPING & PROGRESS TRACKING ENGINE (Focus Mode & Accordion)

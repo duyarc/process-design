@@ -9,7 +9,7 @@
 | **Module Name** | Report Builder |
 | **Status** | Implemented & Verified |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-09-10) — Section 4 (handlePublish author binding to currentUser, ACTIVE status assignment, draft/version deduplication) |
+| **Verified At Commit** | (2026-09-22) — Sections 1 to 4 checked against source code (Hierarchical Section H1 & H2 Grouping & Batch Adding) |
 
 ### Quick File Index
 
@@ -83,6 +83,7 @@ The module operates on a linear 4-stage processing and rendering pipeline:
 
 | Date | Change |
 |---|---|
+| 2026-09-22 | **Hierarchical Section H1 & H2 Grouping & Batch Field Adding:** (1) Enhanced `tableFieldExtractor.ts` to assign `sectionH1` (from `SECTION_LABEL` H1 or section titles) and `sectionH2` (from `SECTION_LABEL` H2, table group headers `row.isGroupHeader`, or block titles). (2) Added pure utility `groupFieldsByHierarchy` returning nested `{ h1, totalFieldsCount, h2Groups: [{ h2, fields }] }`. (3) Replaced flat field lists in `ReportBuilder.tsx` Left Panel `FIELDS` tray and Quick Field Picker Modal with collapsible Accordion Trees with expand/collapse-all toggles, auto-expand on search match, and batch assignment action buttons `[ + Gán cả H1 ]` and `[ + Nhóm ]`. |
 | 2026-09-10 | **Report Publish Revision Deduplication & Author Binding:** In `ReportBuilder.tsx`, bound revision author to `currentUser` (`useAuth`), set `status: 'ACTIVE'`, and filtered out matching clean versions and draft entries from `template.revisionHistory`, retiring older entries and updating `itemStatus` display logic. |
 | 2026-09-04 | **Streamlined Right Inspector & Contextual Header Parity:** (1) Streamlined ReportBuilder Right Inspector by removing redundant title format pills `[ H1 | H2 | Body | None ]` and title input that duplicate In-Canvas controls for non-TITLE blocks. (2) Added dynamic contextual header (`Table Properties`, `Info Grid Properties`, etc.) with delete block action. (3) Added dedicated `Tiêu đề báo cáo` input in `TITLE` block. (4) Promoted block-specific controls to top-1 view. |
 | 2026-09-04 | **In-Canvas Title Header Greyout Input Parity:** In `InCanvasTitleHeader` of `ReportBuilder.tsx`, replaced static notice text with inline editable greyed-out `<input>` for `NONE` title format (placeholder `(Tiêu đề đang ẩn)`, opacity 0.6, focus highlight), matching FormBuilder Canvas and Right Inspector parity. |
