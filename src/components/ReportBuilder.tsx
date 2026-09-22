@@ -39,7 +39,14 @@ import {
   FolderOpen,
   ChevronDown,
   ChevronRight,
-  Layers
+  Layers,
+  Hash,
+  Calendar,
+  CircleDot,
+  CheckSquare,
+  SlidersHorizontal,
+  Camera,
+  Copy
 } from 'lucide-react';
 
 interface ToggleSwitchProps {
@@ -93,14 +100,39 @@ function ToggleSwitch({ checked, onChange, label, disabled }: ToggleSwitchProps)
 
 const getFieldBadgeStyle = (type?: string) => {
   switch (type) {
-    case 'likert_scale': return { bg: '#f3e8ff', color: '#7e22ce', label: 'LIKERT' }; // Purple
-    case 'rating': return { bg: '#fef3c7', color: '#b45309', label: 'RATING' };       // Amber
+    case 'likert_scale': return { bg: '#f3e8ff', color: '#7e22ce', label: 'SCALE' }; // Purple
+    case 'rating': return { bg: '#fef3c7', color: '#b45309', label: 'SCALE' };       // Amber
     case 'radio': return { bg: '#e0f2fe', color: '#0369a1', label: 'RADIO' };        // Sky
     case 'select': return { bg: '#e0f2fe', color: '#0369a1', label: 'DROPDOWN' };    // Sky
     case 'number': return { bg: '#ccfbf1', color: '#0f766e', label: 'NUMBER' };       // Teal
     case 'checkbox': return { bg: '#e0e7ff', color: '#4338ca', label: 'CHECKBOX' };   // Indigo
+    case 'date': return { bg: '#fef9c3', color: '#854d0e', label: 'DATE' };          // Yellow
+    case 'time': return { bg: '#fef9c3', color: '#854d0e', label: 'TIME' };          // Yellow
+    case 'photo': return { bg: '#fdf2f8', color: '#9d174d', label: 'PHOTO' };        // Pink
+    case 'signature': return { bg: '#f0fdf4', color: '#166534', label: 'SIGN-OFF' }; // Green
+    case 'subtable': return { bg: '#e0f2fe', color: '#075985', label: 'SUBTABLE' };  // Sky
     default: return { bg: '#f1f5f9', color: '#475569', label: (type || 'TEXT').toUpperCase() }; // Slate
   }
+};
+
+export const FIELD_TYPE_OPTIONS = [
+  { value: 'text', label: 'Text', icon: FileText },
+  { value: 'number', label: 'Number', icon: Hash },
+  { value: 'date', label: 'Date', icon: Calendar },
+  { value: 'time', label: 'Time', icon: Clock },
+  { value: 'radio', label: 'Radio', icon: CircleDot },
+  { value: 'checkbox', label: 'Checkbox', icon: CheckSquare },
+  { value: 'select', label: 'Dropdown', icon: ChevronDown },
+  { value: 'likert_scale', label: 'Scale', icon: SlidersHorizontal },
+  { value: 'photo', label: 'Photo', icon: Camera },
+  { value: 'signature', label: 'Sign-off', icon: PenTool },
+  { value: 'subtable', label: 'Subtable', icon: TableIcon },
+  { value: 'label', label: 'Label', icon: AlignLeft }
+];
+
+export const getFieldTypeOption = (type?: string) => {
+  if (type === 'rating') return { value: 'likert_scale', label: 'Scale', icon: SlidersHorizontal };
+  return FIELD_TYPE_OPTIONS.find(o => o.value === type) || FIELD_TYPE_OPTIONS[0];
 };
 
 interface InfoGridSteppedSplitterProps {
@@ -621,6 +653,8 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
   });
 
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
+  const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
+  const [copiedFieldId, setCopiedFieldId] = useState<boolean>(false);
   const [rightTab, setRightTab] = useState<'properties' | 'versions'>('properties');
   const [availableForms, setAvailableForms] = useState<FormTemplateISO[]>([]);
   const [selectedForm, setSelectedForm] = useState<FormTemplateISO | null>(null);
@@ -684,10 +718,15 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
         const formsRes = await fetch('/api/forms');
         if (formsRes.ok) {
           const formsData = await formsRes.json();
+          const sortedForms = [...formsData].sort((a: any, b: any) => {
+            const timeA = new Date(a.updated_at || a.updatedAt || a.created_at || 0).getTime();
+            const timeB = new Date(b.updated_at || b.updatedAt || b.created_at || 0).getTime();
+            return timeB - timeA;
+          });
           const map = new Map<string, FormTemplateISO>();
-          formsData.forEach((f: any) => {
+          sortedForms.forEach((f: any) => {
             const fid = f.formId || f.form_id;
-            if (!map.has(fid) || f.status === 'ACTIVE') {
+            if (!map.has(fid)) {
               map.set(fid, {
                 formId: fid,
                 formTitle: f.formTitle || f.form_name || fid,
@@ -1102,21 +1141,6 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
 
   const activeBlock = template.layoutBlocks.find(b => b.id === activeBlockId);
 
-  const toggleFieldInBlock = (fieldId: string) => {
-    if (!activeBlock) return;
-    const current = activeBlock.boundFieldIds || [];
-    const updated = current.includes(fieldId)
-      ? current.filter(id => id !== fieldId)
-      : [...current, fieldId];
-
-    setTemplate(prev => ({
-      ...prev,
-      layoutBlocks: prev.layoutBlocks.map(b =>
-        b.id === activeBlock.id ? { ...b, boundFieldIds: updated } : b
-      )
-    }));
-  };
-
   const addFieldToBlock = (blockId: string, fieldId: string) => {
     setTemplate(prev => ({
       ...prev,
@@ -1215,6 +1239,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
     (f.sectionH2 || '').toLowerCase().includes(searchFieldQuery.toLowerCase())
   );
   const hierarchyGroups = React.useMemo(() => groupFieldsByHierarchy(filteredFormFields), [filteredFormFields]);
+  const selectedField = selectedFieldId ? allFormFields.find(f => f.id === selectedFieldId) : null;
 
   if (loading) {
     return (
@@ -1748,33 +1773,41 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                       const isBoundToActive = activeBlock?.boundFieldIds?.includes(field.id);
                                       const badgeStyle = getFieldBadgeStyle(field.type);
 
+                                      const isSelected = selectedFieldId === field.id;
                                       return (
                                         <div
                                           key={field.id}
-                                          onClick={() => activeBlock && toggleFieldInBlock(field.id)}
+                                          onClick={() => {
+                                            setSelectedFieldId(field.id);
+                                            setRightTab('properties');
+                                          }}
                                           style={{
                                             padding: '0.35rem 0.5rem',
                                             borderRadius: '4px',
-                                            border: `1px solid ${isBoundToActive ? 'var(--primary)' : '#e2e8f0'}`,
-                                            background: isBoundToActive ? '#eff6ff' : '#ffffff',
-                                            cursor: activeBlock ? 'pointer' : 'default',
+                                            border: isSelected
+                                              ? '1.5px solid var(--primary)'
+                                              : isBoundToActive
+                                              ? '1px solid #99f6e4'
+                                              : '1px solid #e2e8f0',
+                                            background: isSelected
+                                              ? '#f0fdfa'
+                                              : isBoundToActive
+                                              ? '#eff6ff'
+                                              : '#ffffff',
+                                            cursor: 'pointer',
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'space-between',
                                             fontSize: '0.75rem',
                                             gap: '0.4rem',
-                                            transition: 'all 0.1s'
+                                            transition: 'all 0.1s',
+                                            boxShadow: isSelected ? '0 1px 3px rgba(13, 148, 136, 0.15)' : 'none'
                                           }}
-                                          title={activeBlock ? 'Click để thêm/bớt khỏi khối đang chọn' : 'Chọn một khối ở giữa để gán trường này'}
+                                          title={`Click để xem chi tiết trường (${field.id})`}
                                         >
                                           <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-                                            <div style={{ fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                            <div style={{ fontWeight: isSelected ? 600 : 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                               {field.checkItem || field.id}
-                                            </div>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.05rem' }}>
-                                              <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
-                                                ID: {field.id.length > 20 ? `${field.id.substring(0, 8)}...${field.id.slice(-6)}` : field.id}
-                                              </span>
                                             </div>
                                           </div>
                                           <span style={{
@@ -2393,7 +2426,111 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
           {/* Tab 1: Properties */}
           {rightTab === 'properties' && (
             <div style={{ flex: 1, overflowY: 'auto', padding: '0.75rem' }}>
-              {activeBlock ? (
+              {selectedField ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h3 style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-primary)', margin: 0 }}>
+                      FIELD PROPERTIES
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedFieldId(null)}
+                      style={{ border: 'none', background: 'none', color: '#64748b', cursor: 'pointer', padding: '2px', display: 'flex', alignItems: 'center', borderRadius: '4px' }}
+                      title="Đóng xem chi tiết trường"
+                    >
+                      <X size={15} />
+                    </button>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.8rem' }}>
+                    {/* 1. ID Field */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.75rem' }}>ID</label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(selectedField.id);
+                            setCopiedFieldId(true);
+                            setTimeout(() => setCopiedFieldId(false), 2000);
+                          }}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '0.68rem', color: copiedFieldId ? '#059669' : 'var(--primary)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, padding: '0 2px' }}
+                          title="Sao chép Field ID"
+                        >
+                          {copiedFieldId ? <Check size={11} /> : <Copy size={11} />}
+                          <span>{copiedFieldId ? 'Đã chép!' : 'Sao chép'}</span>
+                        </button>
+                      </div>
+                      <input
+                        type="text"
+                        readOnly
+                        value={selectedField.id}
+                        style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', fontFamily: 'monospace', fontSize: '0.78rem', background: '#ffffff', color: '#0f172a' }}
+                      />
+                    </div>
+
+                    {/* 2. Label Field */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Label</label>
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                          <span style={{ width: '22px', height: '22px', border: '1px solid #cbd5e1', borderRadius: '3px', background: '#ffffff', fontWeight: 'bold', fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#334155' }}>B</span>
+                          <span style={{ width: '22px', height: '22px', border: '1px solid #cbd5e1', borderRadius: '3px', background: '#ffffff', fontStyle: 'italic', fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#334155' }}>I</span>
+                          <span style={{ width: '22px', height: '22px', border: '1px solid #cbd5e1', borderRadius: '3px', background: '#ffffff', textDecoration: 'underline', fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#334155' }}>U</span>
+                        </div>
+                      </div>
+                      <textarea
+                        rows={2}
+                        readOnly
+                        value={selectedField.checkItem || selectedField.id}
+                        style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', resize: 'none', fontSize: '0.8rem', fontFamily: 'inherit', lineHeight: 1.4, background: '#ffffff' }}
+                      />
+                    </div>
+
+                    {/* 3. Type Field */}
+                    {(() => {
+                      const typeOpt = getFieldTypeOption(selectedField.type);
+                      const TypeIcon = typeOpt.icon;
+                      return (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
+                          <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.8rem', minWidth: '40px' }}>Type</label>
+                          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.45rem 0.65rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: '0.82rem', fontWeight: 600, boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                              <TypeIcon size={16} strokeWidth={2} style={{ color: 'var(--primary)' }} />
+                              <span>{typeOpt.label}</span>
+                            </div>
+                            <ChevronDown size={14} strokeWidth={2} style={{ color: '#64748b' }} />
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* 4. Value Field */}
+                    {(() => {
+                      let rawValue = '';
+                      const subData = sampleSubmission?.formData || (sampleSubmission as any)?.form_data;
+                      if (Array.isArray(subData)) {
+                        const match = subData.find((item: any) => item.id === selectedField.id || item.fieldId === selectedField.id);
+                        if (match) rawValue = match.value !== undefined ? String(match.value) : '';
+                      } else if (subData && typeof subData === 'object') {
+                        rawValue = subData[selectedField.id] !== undefined ? String(subData[selectedField.id]) : '';
+                      }
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                          <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.75rem' }}>Value</label>
+                          <input
+                            type="text"
+                            readOnly
+                            value={rawValue}
+                            placeholder="(Chưa có dữ liệu nộp)"
+                            style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', fontSize: '0.8rem', fontWeight: 600, background: '#f8fafc', color: '#0f172a' }}
+                          />
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
+              ) : activeBlock ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <h3 style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-primary)', margin: 0 }}>

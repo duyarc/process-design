@@ -33,6 +33,28 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-22 — Report Builder: FormBuilder-Parity Field Properties Inspector & Left Tray Streamlining
+
+**Scope:** 2 files (`ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa | 1 (`ReportBuilder.tsx`) |
+| Tổng lượt edit source | 5 |
+| Lượt edit sửa lỗi (rework) | 1 (dọn hàm cũ `toggleFieldInBlock` & fix `selectedField.checkItem`) |
+| Số lần build | 3 (2 tsc + 1 vite) |
+| Lần build cuối thành công? | Có (100% pass, built in 17.06s) |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- **Tối giản Field Card khay trái:** Loại bỏ dòng subtitle `ID:` kỹ thuật, chỉ hiển thị câu hỏi và badge loại trường, thêm highlight viền Teal khi trường được chọn.
+- **Thẻ Field Properties chuẩn 100% FormBuilder:** Tích hợp `FIELD PROPERTIES` vào Tab Properties với `ID` kèm nút 1-chạm `[📋 Sao chép]`, `Label` kèm cụm nút `[ B ] [ I ] [ U ]`, `Type` với icon Lucide chuẩn (`FIELD_TYPE_OPTIONS`), và `Value` hiển thị giá trị câu trả lời thực tế từ lượt nộp mẫu.
+- **Loại bỏ toàn bộ phần đánh giá & nút `+ Gán...`:** Theo đúng chỉ đạo của người dùng để phần tính toán đánh giá được xây dựng chuyên biệt trong các giai đoạn sau của Report Builder.
+- **Tự động nạp form mới nhất:** Sắp xếp theo `updated_at DESC` trong `init()`, giải quyết triệt để lỗi nạp phiên bản form cũ.
+
+---
+
 ### 2026-09-22 — Form Designer & Common UI: Upgrade Publish Form Alert to ConfirmModal Success Dialog
 
 **Scope:** 4 files (`ConfirmModal.tsx`, `FormBuilder.tsx`, `DESIGN_UI_UX.md`, `DESIGN_FORM_DESIGNER.md`)
