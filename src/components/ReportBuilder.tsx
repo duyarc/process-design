@@ -8,12 +8,15 @@ import type {
   FormFieldISO,
   Submission,
   ReportDataModel,
+  FieldEvaluationResult,
   TitleFormatISO
 } from '../types';
-import { computeRecordReport } from '../utils/reportCompute';
+import { computeRecordReport, evaluateFieldSpec } from '../utils/reportCompute';
 import { extractAllFormFields, groupFieldsByHierarchy, type FieldHierarchyGroup } from '../utils/tableFieldExtractor';
 import { getInfoGridTemplateColumns, snap2ColWidth, snap3ColWidths } from '../utils/formUtils';
 import { applyTextFormat, handleFormatKeyDown } from '../utils/textFormatter';
+import { FieldScoringInspector } from './report/FieldScoringInspector';
+import { extractParentGroupTitle, computeH2CombinedScore } from '../utils/reportScoring';
 import ConfirmModal from './common/ConfirmModal';
 import PrintReport from './print/PrintReport';
 import { useAuth } from '../context/AuthContext';
@@ -43,9 +46,7 @@ import {
   Hash,
   Calendar,
   CircleDot,
-  Circle,
   CheckSquare,
-  Square,
   SlidersHorizontal,
   Camera,
   Copy
@@ -1217,19 +1218,23 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
   };
 
   const updateRuleOverride = (fieldId: string, updates: any) => {
-    if (!activeBlock) return;
-    const overrides = { ...(activeBlock.ruleOverrides || {}) };
-    overrides[fieldId] = {
-      ...(overrides[fieldId] || { fieldId }),
-      ...updates
-    };
+    setTemplate(prev => {
+      const targetBlock = activeBlock || prev.layoutBlocks.find(b => b.boundFieldIds?.includes(fieldId)) || prev.layoutBlocks[0];
+      if (!targetBlock) return prev;
 
-    setTemplate(prev => ({
-      ...prev,
-      layoutBlocks: prev.layoutBlocks.map(b =>
-        b.id === activeBlock.id ? { ...b, ruleOverrides: overrides } : b
-      )
-    }));
+      const overrides = { ...(targetBlock.ruleOverrides || {}) };
+      overrides[fieldId] = {
+        ...(overrides[fieldId] || { fieldId }),
+        ...updates
+      };
+
+      return {
+        ...prev,
+        layoutBlocks: prev.layoutBlocks.map(b =>
+          b.id === targetBlock.id ? { ...b, ruleOverrides: overrides } : b
+        )
+      };
+    });
   };
 
   const allFormFields: FormFieldISO[] = extractAllFormFields(selectedForm?.layoutBlocks || []);
@@ -2510,149 +2515,15 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                       );
                     })()}
 
-                    {/* 4. Value Field */}
-                    {(() => {
-                      let rawValue = '';
-                      const subData = sampleSubmission?.formData || (sampleSubmission as any)?.form_data;
-                      if (Array.isArray(subData)) {
-                        const match = subData.find((item: any) => item.id === selectedField.id || item.fieldId === selectedField.id);
-                        if (match) rawValue = match.value !== undefined ? String(match.value) : '';
-                      } else if (subData && typeof subData === 'object') {
-                        rawValue = subData[selectedField.id] !== undefined ? String(subData[selectedField.id]) : '';
-                      }
-
-                      const isScaleType = selectedField.type === 'likert_scale' || selectedField.type === 'rating';
-                      const scaleOpts = selectedField.scaleOptions && selectedField.scaleOptions.length > 0
-                        ? selectedField.scaleOptions
-                        : (isScaleType ? ['1', '2', '3', '4', '5'] : []);
-
-                      if (isScaleType && scaleOpts.length > 0) {
-                        return (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                            <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.75rem' }}>Value</label>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                              {scaleOpts.map((opt, idx) => {
-                                const isSelected = opt === rawValue || String(idx + 1) === rawValue;
-                                return (
-                                  <div
-                                    key={idx}
-                                    style={{
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      gap: '8px',
-                                      padding: '5px 8px',
-                                      borderRadius: '4px',
-                                      background: isSelected ? '#f0fdfa' : '#f8fafc',
-                                      border: isSelected ? '1.5px solid var(--primary)' : '1px solid #e2e8f0',
-                                      color: isSelected ? '#0f172a' : '#64748b',
-                                      fontSize: '0.78rem',
-                                      fontWeight: isSelected ? 600 : 400
-                                    }}
-                                  >
-                                    {isSelected ? (
-                                      <span style={{ width: '15px', height: '15px', borderRadius: '50%', background: 'var(--primary)', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6rem', flexShrink: 0 }}>
-                                        <Check size={9} strokeWidth={3} />
-                                      </span>
-                                    ) : (
-                                      <span style={{ width: '15px', height: '15px', borderRadius: '50%', border: '1px solid #cbd5e1', background: '#ffffff', color: '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.62rem', flexShrink: 0 }}>
-                                        {idx + 1}
-                                      </span>
-                                    )}
-                                    <span>{opt}</span>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        );
-                      }
-
-                      if (selectedField.type === 'checkbox' && selectedField.options && selectedField.options.length > 0) {
-                        const rawArr = Array.isArray(rawValue)
-                          ? rawValue
-                          : (typeof rawValue === 'string' && rawValue.length > 0 ? rawValue.split(',').map(s => s.trim()) : []);
-                        return (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                            <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.75rem' }}>Value</label>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                              {selectedField.options.map((opt: any, idx: number) => {
-                                const optVal = typeof opt === 'string' ? opt : (opt.value || opt.label || '');
-                                const optLabel = typeof opt === 'string' ? opt : (opt.label || opt.value || '');
-                                const isSelected = rawArr.includes(optVal) || rawArr.includes(optLabel);
-                                return (
-                                  <div
-                                    key={idx}
-                                    style={{
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      gap: '8px',
-                                      padding: '5px 8px',
-                                      borderRadius: '4px',
-                                      background: isSelected ? '#f0fdfa' : '#f8fafc',
-                                      border: isSelected ? '1.5px solid var(--primary)' : '1px solid #e2e8f0',
-                                      color: isSelected ? '#0f172a' : '#64748b',
-                                      fontSize: '0.78rem',
-                                      fontWeight: isSelected ? 600 : 400
-                                    }}
-                                  >
-                                    {isSelected ? <CheckSquare size={14} color="var(--primary)" style={{ flexShrink: 0 }} /> : <Square size={14} color="#cbd5e1" style={{ flexShrink: 0 }} />}
-                                    <span>{optLabel}</span>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        );
-                      }
-
-                      if ((selectedField.type === 'radio' || selectedField.type === 'select') && selectedField.options && selectedField.options.length > 0) {
-                        return (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                            <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.75rem' }}>Value</label>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                              {selectedField.options.map((opt: any, idx: number) => {
-                                const optVal = typeof opt === 'string' ? opt : (opt.value || opt.label || '');
-                                const optLabel = typeof opt === 'string' ? opt : (opt.label || opt.value || '');
-                                const isSelected = optVal === rawValue || optLabel === rawValue;
-                                return (
-                                  <div
-                                    key={idx}
-                                    style={{
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      gap: '8px',
-                                      padding: '5px 8px',
-                                      borderRadius: '4px',
-                                      background: isSelected ? '#f0fdfa' : '#f8fafc',
-                                      border: isSelected ? '1.5px solid var(--primary)' : '1px solid #e2e8f0',
-                                      color: isSelected ? '#0f172a' : '#64748b',
-                                      fontSize: '0.78rem',
-                                      fontWeight: isSelected ? 600 : 400
-                                    }}
-                                  >
-                                    {isSelected ? <CircleDot size={14} color="var(--primary)" style={{ flexShrink: 0 }} /> : <Circle size={14} color="#cbd5e1" style={{ flexShrink: 0 }} />}
-                                    <span>{optLabel}</span>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        );
-                      }
-
-                      return (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                          <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.75rem' }}>Value</label>
-                          <input
-                            type="text"
-                            readOnly
-                            value={rawValue}
-                            placeholder="(Chưa có dữ liệu nộp)"
-                            style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', fontSize: '0.8rem', fontWeight: 600, background: '#f8fafc', color: '#0f172a' }}
-                          />
-                        </div>
-                      );
-                    })()}
+                    {/* 4. Unified Scoring & Value Matrix */}
+                    <FieldScoringInspector
+                      selectedField={selectedField}
+                      sampleSubmission={sampleSubmission}
+                      ruleOverride={template.layoutBlocks.find(b => b.ruleOverrides?.[selectedField.id])?.ruleOverrides?.[selectedField.id]}
+                      parentGroupTitle={extractParentGroupTitle(selectedField, template.layoutBlocks)}
+                      onUpdateRule={(updates) => updateRuleOverride(selectedField.id, updates)}
+                      isLocked={isLocked}
+                    />
                   </div>
                 </div>
               ) : activeBlock ? (
@@ -2748,6 +2619,66 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                         placeholder="Nhập mô tả hoặc hướng dẫn..."
                         style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', fontSize: '0.8rem', resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.4 }}
                       />
+
+                      {/* H1 Section Weight & Knockout Bar */}
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '8px 10px',
+                        background: '#f8fafc',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '8px',
+                        fontSize: '0.75rem',
+                        marginTop: '4px'
+                      }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: isLocked ? 'not-allowed' : 'pointer', userSelect: 'none' }}>
+                          <input
+                            type="checkbox"
+                            disabled={isLocked}
+                            checked={Boolean(activeBlock.isKnockout)}
+                            onChange={(e) => {
+                              const checked = e.target.checked;
+                              setTemplate(prev => ({
+                                ...prev,
+                                layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, isKnockout: checked } : b)
+                              }));
+                            }}
+                            style={{ width: '14px', height: '14px', accentColor: '#e11d48', cursor: isLocked ? 'not-allowed' : 'pointer' }}
+                          />
+                          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#9f1239' }}>isKnockout (H1)</span>
+                        </label>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }} title="Trọng số phần trăm của Trụ cột này trong toàn bộ Báo cáo">
+                          <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#334155' }}>
+                            Weight (% trong Báo cáo):
+                          </span>
+                          <input
+                            type="number"
+                            disabled={isLocked}
+                            value={activeBlock.weight !== undefined ? activeBlock.weight : 0}
+                            onChange={(e) => {
+                              const val = parseFloat(e.target.value) || 0;
+                              setTemplate(prev => ({
+                                ...prev,
+                                layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, weight: val } : b)
+                              }));
+                            }}
+                            style={{
+                              width: '46px',
+                              padding: '2px 4px',
+                              fontSize: '0.75rem',
+                              textAlign: 'right',
+                              fontWeight: 700,
+                              borderRadius: '4px',
+                              border: '1px solid #cbd5e1',
+                              background: '#ffffff',
+                              color: '#0f172a'
+                            }}
+                          />
+                          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b' }}>%</span>
+                        </div>
+                      </div>
                     </div>
                   )}
 
@@ -3151,50 +3082,148 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                     </div>
                   )}
 
-                  {/* Field Rules Override Section */}
-                  <div style={{ borderTop: '1px solid var(--neutral-border)', paddingTop: '0.75rem' }}>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
-                      CẤU HÌNH QUY TẮC ĐÁNH GIÁ (HYBRID RULES)
-                    </div>
+                  {/* H2 Sub-section Scoring Summary & Properties */}
+                  {activeBlock.type === 'TABLE' && (() => {
+                    const boundFields = (activeBlock.boundFieldIds || []).map(fid => allFormFields.find(f => f.id === fid)).filter(Boolean) as FormFieldISO[];
+                    const h2EvalMap: Record<string, FieldEvaluationResult> = {};
+                    boundFields.forEach(f => {
+                      const subVal = sampleSubmission?.formData;
+                      const rawVal = Array.isArray(subVal)
+                        ? subVal.find((s: any) => s.id === f.id || s.fieldId === f.id)?.value
+                        : (subVal ? (subVal as any)[f.id] : undefined);
 
-                    {(activeBlock.boundFieldIds || []).map(fid => {
-                      const field = allFormFields.find(f => f.id === fid);
-                      const override = activeBlock.ruleOverrides?.[fid];
-                      return (
-                        <div key={fid} style={{ background: '#f8fafc', padding: '0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', marginBottom: '0.5rem' }}>
-                          <div style={{ fontWeight: 600, fontSize: '0.75rem', color: 'var(--text-primary)' }}>{field?.checkItem || fid}</div>
-                          <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
-                            Mặc định form: {field?.minSpec !== undefined ? `Min: ${field.minSpec}` : ''} {field?.maxSpec !== undefined ? `Max: ${field.maxSpec}` : ''} {field?.targetRange || ''}
-                          </div>
+                      const evalRes = evaluateFieldSpec(rawVal, f, activeBlock.ruleOverrides?.[f.id]);
+                      h2EvalMap[f.id] = evalRes;
+                    });
 
-                          {field?.type === 'number' && (
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.35rem' }}>
-                              <div>
-                                <label style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Custom Min</label>
-                                <input
-                                  type="number"
-                                  placeholder={String(field?.minSpec ?? '')}
-                                  value={override?.customMinSpec ?? ''}
-                                  onChange={e => updateRuleOverride(fid, { customMinSpec: e.target.value === '' ? undefined : parseFloat(e.target.value) })}
-                                  style={{ width: '100%', padding: '0.2rem 0.35rem', fontSize: '0.75rem', border: '1px solid var(--neutral-border)', borderRadius: '3px' }}
-                                />
+                    const h2Score = computeH2CombinedScore(boundFields, h2EvalMap, activeBlock.ruleOverrides);
+                    const parentH1Title = (boundFields[0]?.sectionH1 && boundFields[0].sectionH1.trim().length > 0) ? boundFields[0].sectionH1.trim() : 'Trụ cột';
+
+                    return (
+                      <div style={{ borderTop: '1px solid var(--neutral-border)', paddingTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                        <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                          TỔNG HỢP ĐIỂM NHÓM H2
+                        </div>
+
+                        {boundFields.length > 0 && (
+                          <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', background: '#ffffff' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', padding: '6px 8px', fontSize: '0.7rem', fontWeight: 700, color: '#475569', alignItems: 'center' }}>
+                              <div style={{ gridColumn: 'span 5' }}>Câu hỏi con</div>
+                              <div style={{ gridColumn: 'span 2', textAlign: 'center', color: '#0f766e' }}>isPass</div>
+                              <div style={{ gridColumn: 'span 3', textAlign: 'right', color: '#4338ca' }}>Score</div>
+                              <div style={{ gridColumn: 'span 2', textAlign: 'right', color: '#64748b' }}>Weight</div>
+                            </div>
+
+                            <div style={{ display: 'flex', flexDirection: 'column' }}>
+                              {boundFields.map((f, fIdx) => {
+                                const evalRes = h2EvalMap[f.id];
+                                const override = activeBlock.ruleOverrides?.[f.id];
+                                const weight = override?.weight !== undefined ? override.weight : 0;
+
+                                return (
+                                  <div
+                                    key={f.id}
+                                    style={{
+                                      display: 'grid',
+                                      gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
+                                      padding: '5px 8px',
+                                      alignItems: 'center',
+                                      borderBottom: fIdx < boundFields.length - 1 ? '1px solid #f1f5f9' : 'none',
+                                      fontSize: '0.72rem'
+                                    }}
+                                  >
+                                    <div style={{ gridColumn: 'span 5', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500, color: '#1e293b' }} title={f.checkItem || f.id}>
+                                      {f.checkItem || f.id}
+                                    </div>
+                                    <div style={{ gridColumn: 'span 2', textAlign: 'center', fontWeight: 700, fontSize: '0.68rem', color: evalRes?.status === 'PASS' ? '#0f766e' : '#e11d48' }}>
+                                      {evalRes?.status === 'PASS' ? 'PASS' : 'FAIL'}
+                                    </div>
+                                    <div style={{ gridColumn: 'span 3', textAlign: 'right', fontWeight: 700, color: '#0f172a' }}>
+                                      {evalRes?.score ?? 0}
+                                    </div>
+                                    <div style={{ gridColumn: 'span 2', textAlign: 'right', fontWeight: 600, color: '#64748b' }}>
+                                      {weight}%
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', padding: '7px 8px', alignItems: 'center', background: '#f5f3ff', borderTop: '1px solid #ddd6fe' }}>
+                              <div style={{ gridColumn: 'span 5', fontWeight: 700, color: '#4c1d95', fontSize: '0.72rem' }}>Tổng Nhóm:</div>
+                              <div style={{ gridColumn: 'span 2', textAlign: 'center', fontSize: '0.7rem', fontWeight: 700, color: h2Score.isPass ? '#0f766e' : '#e11d48' }}>
+                                {h2Score.isPass ? 'PASS' : 'FAIL'}
                               </div>
-                              <div>
-                                <label style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Custom Max</label>
-                                <input
-                                  type="number"
-                                  placeholder={String(field?.maxSpec ?? '')}
-                                  value={override?.customMaxSpec ?? ''}
-                                  onChange={e => updateRuleOverride(fid, { customMaxSpec: e.target.value === '' ? undefined : parseFloat(e.target.value) })}
-                                  style={{ width: '100%', padding: '0.2rem 0.35rem', fontSize: '0.75rem', border: '1px solid var(--neutral-border)', borderRadius: '3px' }}
-                                />
+                              <div style={{ gridColumn: 'span 5', textAlign: 'right' }}>
+                                <span style={{ fontSize: '0.9rem', fontWeight: 900, color: '#2e1065', lineHeight: 1 }}>
+                                  {h2Score.combinedScore}
+                                </span>
                               </div>
                             </div>
-                          )}
+                          </div>
+                        )}
+
+                        {/* H2 Property Row */}
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '8px 10px',
+                          background: '#f8fafc',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '8px',
+                          fontSize: '0.75rem'
+                        }}>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: isLocked ? 'not-allowed' : 'pointer', userSelect: 'none' }}>
+                            <input
+                              type="checkbox"
+                              disabled={isLocked}
+                              checked={Boolean(activeBlock.isKnockout)}
+                              onChange={(e) => {
+                                const checked = e.target.checked;
+                                setTemplate(prev => ({
+                                  ...prev,
+                                  layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, isKnockout: checked } : b)
+                                }));
+                              }}
+                              style={{ width: '14px', height: '14px', accentColor: '#e11d48', cursor: isLocked ? 'not-allowed' : 'pointer' }}
+                            />
+                            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#9f1239' }}>isKnockout (H2)</span>
+                          </label>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }} title={`Trọng số phần trăm của nhóm này trong ${parentH1Title}`}>
+                            <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#334155' }}>
+                              Weight (% trong {parentH1Title}):
+                            </span>
+                            <input
+                              type="number"
+                              disabled={isLocked}
+                              value={activeBlock.weight !== undefined ? activeBlock.weight : 0}
+                              onChange={(e) => {
+                                const val = parseFloat(e.target.value) || 0;
+                                setTemplate(prev => ({
+                                  ...prev,
+                                  layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, weight: val } : b)
+                                }));
+                              }}
+                              style={{
+                                width: '46px',
+                                padding: '2px 4px',
+                                fontSize: '0.75rem',
+                                textAlign: 'right',
+                                fontWeight: 700,
+                                borderRadius: '4px',
+                                border: '1px solid #cbd5e1',
+                                background: '#ffffff',
+                                color: '#0f172a'
+                              }}
+                            />
+                            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b' }}>%</span>
+                          </div>
                         </div>
-                      );
-                    })}
-                  </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>

@@ -397,7 +397,10 @@ export interface ReportFieldRuleOverride {
   customMaxSpec?: number;               // Override upper bound
   customTargetRange?: string;           // Override target text
   customPassOptions?: string[];         // Override pass radio/checkbox values
-  weight?: number;                      // Scoring weight
+  weight?: number;                      // Scoring weight (% within parent group H2)
+  isKnockout?: boolean;                 // Critical knock-out condition
+  optionScores?: Record<string, number>; // Map option value/label -> score
+  fixedScore?: number;                  // Passing score for numeric/spec fields
 }
 
 export interface ReportBlockConfig {
@@ -416,6 +419,8 @@ export interface ReportBlockConfig {
   ruleOverrides?: Record<string, ReportFieldRuleOverride>; // Field ID -> Custom Rules
   tableColumns?: { id: string; label: string; width?: string; align?: 'left' | 'center' | 'right' }[];
   borderStyle?: 'grid' | 'borderless' | 'horizontal_only';
+  weight?: number;                      // Weight % within parent (H2 in H1, or H1 in Report)
+  isKnockout?: boolean;                 // Knockout condition at H2 / H1 level
 }
 
 export interface ReportRevisionEntry {
@@ -451,6 +456,10 @@ export interface FieldEvaluationResult {
   maxSpec?: number;
   unit?: string;
   status: 'PASS' | 'FAIL' | 'NA';
+  score?: number;
+  maxScore?: number;
+  weight?: number;
+  isKnockout?: boolean;
   deviationText?: string;
 }
 
@@ -466,6 +475,7 @@ export interface ReportDataModel {
   passCount: number;
   failCount: number;
   scorePercentage: number;
+  overallCombinedScore?: number;
   evaluations: Record<string, FieldEvaluationResult>;
 }
 

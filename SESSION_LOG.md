@@ -34,6 +34,32 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-22 — Report Builder: Dual Evaluation Engine & Hierarchical Combined Score Roll-up
+
+**Scope:** 6 files (`types.ts`, `reportScoring.ts`, `reportCompute.ts`, `FieldScoringInspector.tsx`, `ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | 12.5 min |
+| Thời gian lập plan (Request → Proceed) | 8.6 min |
+| Thời gian thực thi (Proceed → Push) | 3.9 min |
+| Số file nguồn chỉnh sửa / tạo mới | 5 (`types.ts`, `reportScoring.ts`, `reportCompute.ts`, `FieldScoringInspector.tsx`, `ReportBuilder.tsx`) |
+| Tổng lượt edit source | 7 |
+| Lượt edit sửa lỗi (rework) | 2 (dọn biến thừa `isFieldPass` & bổ sung import `FieldEvaluationResult`) |
+| Số lần build | 3 (2 tsc + 1 vite pass) |
+| Lần build cuối thành công? | Có (100% pass, built in 10.84s) |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- **Động cơ Đánh giá Kép Song song (Dual Evaluation Engine):** Vận hành độc lập giữa Đạt/K.Đạt định tính (`isPass`) và Điểm số định lượng (`Score`), hỗ trợ cờ chí mạng `isKnockout` tự động đánh rớt toàn bộ nhóm/báo cáo khi vi phạm.
+- **Tính điểm Bình quân theo Trọng số 3 Cấp (Hierarchical Roll-up):** Xây dựng pure utility `src/utils/reportScoring.ts` tính Combined Score 3 cấp: Field ➔ Sub-section H2 (`computeH2CombinedScore`) ➔ Section H1 (`computeH1CombinedScore`) ➔ Report Overall (`computeRecordReport`): $\text{Combined Score} = \sum (\text{Score}_i \times \frac{\text{Weight}_i}{100})$.
+- **Thanh Thuộc tính 1 Hàng & Tên Nhóm Động:** Thiết kế thanh thuộc tính `[ ] isKnockout` và `Weight (% trong [Tên Nhóm/Trụ cột]): [ X ] %` trên 1 hàng ngang duy nhất. Tên nhóm cha được lấy động theo ngữ cảnh (`[Tên Nhóm H2]`, `[Tên Trụ cột H1]`, `[Toàn bộ Báo cáo]`).
+- **Inspector Chuyên biệt `FieldScoringInspector.tsx`:** Tách component độc lập theo Rule 4.3 Monolith Guard, hiển thị ma trận đánh giá 3 cột (`Option / Condition`, `isPass`, `Score`), dòng SUM responsive hiển thị nhãn `PASS`/`FAIL` và Điểm tổng hợp cỡ lớn, không có hậu tố `đ` và không hardcode thang 10.
+- **Chuẩn hóa Tiêu đề Cột:** Đồng bộ header bảng ở cả 3 cấp duy nhất là `Score`.
+
+---
+
 ### 2026-09-22 — Report Builder: Field Properties Auto-Grow Label & Streamlined Multi-Option Value Visualizer
 
 **Scope:** 2 files (`ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`)

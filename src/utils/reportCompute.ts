@@ -8,9 +8,10 @@ import type {
   ReportDataModel
 } from '../types';
 import { extractAllFormFields } from './tableFieldExtractor';
+import { computeFieldScoreAndPass } from './reportScoring';
 
 /**
- * Evaluates an individual form field's submitted value against specifications.
+ * Evaluates an individual form field's submitted value against specifications and scoring rules.
  * Applies report-level rule overrides when present, falling back to form template specs.
  */
 export function evaluateFieldSpec(
@@ -18,6 +19,8 @@ export function evaluateFieldSpec(
   formField: FormFieldISO,
   ruleOverride?: ReportFieldRuleOverride
 ): FieldEvaluationResult {
+  const scoreEval = computeFieldScoreAndPass(rawValue, formField, ruleOverride);
+
   const result: FieldEvaluationResult = {
     fieldId: formField.id,
     label: formField.checkItem || formField.id,
@@ -26,100 +29,14 @@ export function evaluateFieldSpec(
     minSpec: ruleOverride?.customMinSpec !== undefined ? ruleOverride.customMinSpec : formField.minSpec,
     maxSpec: ruleOverride?.customMaxSpec !== undefined ? ruleOverride.customMaxSpec : formField.maxSpec,
     unit: formField.unit,
-    status: 'NA'
+    status: scoreEval.status,
+    deviationText: scoreEval.deviationText,
+    score: scoreEval.score,
+    maxScore: scoreEval.maxScore,
+    weight: scoreEval.weight,
+    isKnockout: scoreEval.isKnockout
   };
 
-  // If value is empty or not provided
-  if (rawValue === undefined || rawValue === null || rawValue === '') {
-    result.status = 'NA';
-    return result;
-  }
-
-  // 1. Numeric evaluation
-  if (formField.type === 'number') {
-    const num = typeof rawValue === 'number' ? rawValue : parseFloat(String(rawValue));
-    if (isNaN(num)) {
-      result.status = 'FAIL';
-      result.deviationText = 'Giá trị không phải số hợp lệ';
-      return result;
-    }
-
-    const min = result.minSpec;
-    const max = result.maxSpec;
-
-    if (min !== undefined && max !== undefined) {
-      if (num >= min && num <= max) {
-        result.status = 'PASS';
-      } else {
-        result.status = 'FAIL';
-        result.deviationText = num < min ? `Dưới giới hạn (${num} < ${min})` : `Vượt giới hạn (${num} > ${max})`;
-      }
-    } else if (min !== undefined) {
-      if (num >= min) {
-        result.status = 'PASS';
-      } else {
-        result.status = 'FAIL';
-        result.deviationText = `Dưới giới hạn (${num} < ${min})`;
-      }
-    } else if (max !== undefined) {
-      if (num <= max) {
-        result.status = 'PASS';
-      } else {
-        result.status = 'FAIL';
-        result.deviationText = `Vượt giới hạn (${num} > ${max})`;
-      }
-    } else {
-      result.status = 'PASS'; // No specs defined
-    }
-    return result;
-  }
-
-  // 2. Radio / Options evaluation
-  if (formField.type === 'radio') {
-    if (ruleOverride?.customPassOptions && ruleOverride.customPassOptions.length > 0) {
-      result.status = ruleOverride.customPassOptions.includes(String(rawValue)) ? 'PASS' : 'FAIL';
-      if (result.status === 'FAIL') {
-        result.deviationText = `Lựa chọn không đạt chuẩn: ${rawValue}`;
-      }
-      return result;
-    }
-
-    // Default to form field option configuration
-    const matchingOpt = (formField.options || []).find(
-      opt => opt.value === rawValue || opt.label === rawValue
-    );
-    if (matchingOpt) {
-      result.status = matchingOpt.isPass === false ? 'FAIL' : 'PASS';
-      if (result.status === 'FAIL') {
-        result.deviationText = `Không đạt (${matchingOpt.label || rawValue})`;
-      }
-    } else {
-      // If standard "PASS" / "Đạt" string
-      const strVal = String(rawValue).toUpperCase();
-      if (strVal === 'PASS' || strVal === 'ĐẠT' || strVal === 'OK') {
-        result.status = 'PASS';
-      } else if (strVal === 'FAIL' || strVal === 'KHÔNG ĐẠT' || strVal === 'NG') {
-        result.status = 'FAIL';
-        result.deviationText = `Không đạt (${rawValue})`;
-      } else {
-        result.status = 'PASS';
-      }
-    }
-    return result;
-  }
-
-  // 3. Checkbox evaluation
-  if (formField.type === 'checkbox') {
-    if (Array.isArray(rawValue)) {
-      result.status = rawValue.length > 0 ? 'PASS' : 'NA';
-    } else {
-      result.status = Boolean(rawValue) ? 'PASS' : 'NA';
-    }
-    return result;
-  }
-
-  // 4. Non-evaluated informational types (text, date, time, signature, photo)
-  result.status = 'PASS';
   return result;
 }
 
@@ -152,6 +69,9 @@ export function computeRecordReport(
   let totalEvaluated = 0;
   let passCount = 0;
   let failCount = 0;
+  let knockoutFailed = false;
+  let totalWeightedScore = 0;
+  let totalWeight = 0;
 
   const extractValue = (fid: string): any => {
     if (!submission.formData) return undefined;
@@ -175,6 +95,14 @@ export function computeRecordReport(
     } else if (evalResult.status === 'FAIL') {
       totalEvaluated++;
       failCount++;
+      if (evalResult.isKnockout) {
+        knockoutFailed = true;
+      }
+    }
+
+    if (evalResult.weight && evalResult.weight > 0 && evalResult.score !== undefined) {
+      totalWeight += evalResult.weight;
+      totalWeightedScore += evalResult.score * (evalResult.weight / 100);
     }
   });
 
@@ -182,7 +110,11 @@ export function computeRecordReport(
     ? Math.round((passCount / totalEvaluated) * 100)
     : 100;
 
-  const overallStatus: 'PASS' | 'FAIL' = failCount > 0 ? 'FAIL' : 'PASS';
+  const overallCombinedScore = totalWeight > 0
+    ? Math.round((totalWeightedScore / totalWeight) * 1000) / 10
+    : (totalEvaluated > 0 ? Math.round((passCount / totalEvaluated) * 100) / 10 : 10);
+
+  const overallStatus: 'PASS' | 'FAIL' = (failCount > 0 || knockoutFailed) ? 'FAIL' : 'PASS';
 
   return {
     reportId: reportTemplate.reportId,
@@ -196,6 +128,7 @@ export function computeRecordReport(
     passCount,
     failCount,
     scorePercentage,
+    overallCombinedScore,
     evaluations
   };
 }
