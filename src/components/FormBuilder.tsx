@@ -1243,6 +1243,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
   const [formIdLinked, setFormIdLinked] = useState(!!linkedProcessId);
   const [showUnlinkModal, setShowUnlinkModal] = useState(false);
   const [isUnlinking, setIsUnlinking] = useState(false);
+  const [publishedVersionModal, setPublishedVersionModal] = useState<string | null>(null);
   const [printPreviewData, setPrintPreviewData] = useState<FormTemplateISO | null>(null);
   const [autoExportPdf, setAutoExportPdf] = useState<boolean>(false);
   const [currentDraftBackup, setCurrentDraftBackup] = useState<{ layoutBlocks: LayoutBlockISO[]; version: string; isLocked: boolean } | null>(null);
@@ -2398,7 +2399,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
         revisionHistory: updatedHistory
       });
 
-      alert(`Successfully published active version: ${newActiveVersion}. This template is now locked for quality compliance.`);
+      setPublishedVersionModal(newActiveVersion);
     } catch (err) {
       console.error(err);
     } finally {
@@ -10083,6 +10084,36 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
           }
         }}
         onCancel={() => setShowUnlinkModal(false)}
+      />
+
+      <ConfirmModal
+        isOpen={!!publishedVersionModal}
+        title="Ban Hành Biểu Mẫu Thành Công"
+        message={
+          <div style={{ fontSize: '0.86rem', lineHeight: 1.5, color: '#334155' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+              <span style={{
+                background: '#f0fdf4',
+                border: '1px solid #bbf7d0',
+                color: '#15803d',
+                fontSize: '0.75rem',
+                padding: '2px 7px',
+                borderRadius: '4px',
+                fontWeight: 600
+              }}>
+                {publishedVersionModal} • ACTIVE
+              </span>
+            </div>
+            <p>
+              Đã kích hoạt và ban hành thành công phiên bản chính thức trên toàn hệ thống.
+            </p>
+          </div>
+        }
+        confirmText="OK"
+        hideCancel={true}
+        variant="success"
+        onConfirm={() => setPublishedVersionModal(null)}
+        onCancel={() => setPublishedVersionModal(null)}
       />
     </div>
   );

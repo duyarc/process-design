@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import ReactDOM from 'react-dom';
-import { X, AlertTriangle, Trash2, HelpCircle } from 'lucide-react';
+import { X, AlertTriangle, Trash2, HelpCircle, CheckCircle } from 'lucide-react';
 
 interface ConfirmModalProps {
   isOpen: boolean;
@@ -8,7 +8,8 @@ interface ConfirmModalProps {
   message: React.ReactNode;
   confirmText?: string;      // Default: "Xác nhận"
   cancelText?: string;       // Default: "Hủy"
-  variant?: 'danger' | 'warning' | 'info'; // Default: 'danger'
+  variant?: 'danger' | 'warning' | 'info' | 'success'; // Default: 'danger'
+  hideCancel?: boolean;
   loading?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
@@ -21,6 +22,7 @@ export default function ConfirmModal({
   confirmText = 'Xác nhận',
   cancelText = 'Hủy',
   variant = 'danger',
+  hideCancel = false,
   loading = false,
   onConfirm,
   onCancel
@@ -54,6 +56,13 @@ export default function ConfirmModal({
         return {
           icon: <HelpCircle size={24} style={{ color: '#0d9488' }} />,
           iconBg: '#f0fdfa',
+          confirmBtnClass: 'btn-primary',
+          confirmBtnBg: 'var(--primary)'
+        };
+      case 'success':
+        return {
+          icon: <CheckCircle size={24} style={{ color: '#059669' }} />,
+          iconBg: '#ecfdf5',
           confirmBtnClass: 'btn-primary',
           confirmBtnBg: 'var(--primary)'
         };
@@ -193,19 +202,21 @@ export default function ConfirmModal({
 
         {/* Footer actions */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.25rem' }}>
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={onCancel}
-            disabled={loading}
-            style={{ 
-              padding: '0.5rem 1rem', 
-              fontSize: '0.85rem',
-              fontWeight: 500
-            }}
-          >
-            {cancelText}
-          </button>
+          {!hideCancel && (
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={onCancel}
+              disabled={loading}
+              style={{ 
+                padding: '0.5rem 1rem', 
+                fontSize: '0.85rem',
+                fontWeight: 500
+              }}
+            >
+              {cancelText}
+            </button>
+          )}
           <button
             type="button"
             className={`btn ${vStyles.confirmBtnClass}`}

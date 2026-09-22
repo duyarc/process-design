@@ -33,6 +33,32 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-22 — Form Designer & Common UI: Upgrade Publish Form Alert to ConfirmModal Success Dialog
+
+**Scope:** 4 files (`ConfirmModal.tsx`, `FormBuilder.tsx`, `DESIGN_UI_UX.md`, `DESIGN_FORM_DESIGNER.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian lập plan (Request → Proceed) | 16.8 min |
+| Thời gian thực thi (Proceed → Push) | 3.1 min |
+| Thời gian tổng (Request → Push) | 19.9 min |
+| Số file nguồn chỉnh sửa | 2 (`ConfirmModal.tsx`, `FormBuilder.tsx`) |
+| Tổng lượt edit source | 7 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 3 (2 tsc + 1 vite) |
+| Lần build đầu thành công? | Có (100% pass ngay lần đầu) |
+| Số lệnh thất bại | 0 |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- Triệt tiêu hoàn toàn hộp thoại chặn mặc định của trình duyệt (`alert(...)`) khi ban hành phiên bản biểu mẫu (`handlePublish`) theo đúng Rule 3 (`AGENTS.md`).
+- Mở rộng component dùng chung `ConfirmModal`: bổ sung `variant="success"` (icon `CheckCircle`, màu ngọc `#059669`, viền `#a7f3d0`, nút `var(--primary)`) và hỗ trợ cờ `hideCancel` cho các hộp thoại thông báo đơn hành động (single-action alert).
+- Tinh chỉnh nội dung theo chỉ đạo của người dùng: loại bỏ lời nhắc tuân thủ ISO rườm rà, giữ lại badge phiên bản nổi bật và chuẩn hóa nút đóng về duy nhất một nút `"OK"`.
+- TypeScript (`npx tsc --noEmit`) và Vite bundle (`npm run build`) hoàn tất thành công 100% không lỗi.
+
+---
+
 ### 2026-09-22 — Report Builder: Hierarchical Section H1 & H2 Grouping & Batch Field Adding
 
 **Scope:** 5 files (`types.ts`, `tableFieldExtractor.ts`, `formUtils.ts`, `ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`)
@@ -327,32 +353,3 @@ Entry mới nhất ở trên cùng. Tối đa 10 entries.
 - Đồng bộ hóa trên Thẻ Lưới (Grid View Card): chia footer thành 2 hàng phân cấp rõ ràng và hỗ trợ hover chuyển đổi độ mờ mượt mà.
 - Refactor Ratio đạt 51.3% nhờ thay thế và dọn sạch mã JSX/CSS cũ.
 - TypeScript (`npx tsc --noEmit`) và Vite bundle (`npm run build` 8.09s) hoàn tất thành công 100% không lỗi.
-
----
-
-### 2026-09-17 — Form Operations & Platform Shell: 1-Click Form Duplication in Dashboard Forms Tab
-
-**Scope:** 4 files, 363 insertions, 6 deletions (`1e301b8`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian lập plan (Request → Proceed) | 22.2 min |
-| Thời gian thực thi (Proceed → Push) | 4.7 min |
-| Thời gian tổng (Request → Push) | 26.9 min |
-| Số file nguồn chỉnh sửa | 2 (`Dashboard.tsx`, `formUtils.ts`) |
-| Tổng lượt edit source | 8 |
-| Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 3 (2 tsc + 1 vite) |
-| Lần build đầu thành công? | Có (100% pass ngay lần đầu) |
-| Số lệnh thất bại | 0 |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Điểm nổi bật:**
-- Triển khai tính năng nhân bản 1-click tốc độ cao (Fast Duplication) trực tiếp trong Tab Forms của `Dashboard.tsx` (cả List View và Grid View Card).
-- Tuyệt đối tuân thủ yêu cầu không modal dialog, không popup gây gián đoạn dòng công việc, phản hồi qua floating Toast banner.
-- Thuật toán thông minh `generateNextFormId` trong `formUtils.ts`: tự nhận diện định dạng hậu tố số (`FM-QC-01` -> `FM-QC-02`), tự tăng và kiểm tra chống trùng lặp với toàn bộ form IDs hiện hữu.
-- Thuật toán `duplicateFormTemplate`: deep clone toàn bộ layout blocks, tái tạo UUID cho các block/field/table row, ánh xạ lại bảng dữ liệu cell maps (`cellOptionsMap`, `cellPlaceholderMap`), cập nhật block tiêu đề và reset trạng thái về `DRAFT`, phiên bản `v0.1`.
-- Tự động gán biểu mẫu mới vào đúng Quy trình và đúng Công đoạn (`step.formNames`, `workflowFormsData`) tương ứng với biểu mẫu gốc.
-- Không truyền `oldFormId` khi gọi `POST /api/forms` để triệt để bảo vệ biểu mẫu gốc không bị ghi đè/xóa nhầm trong backend.
-- Build TypeScript (`npx tsc --noEmit`) và Vite bundle (`npm run build`) thành công 100% không lỗi.

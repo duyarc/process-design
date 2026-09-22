@@ -9,7 +9,7 @@ This document is the **single source of truth** for the visual design language o
 
 | Field | Value |
 |---|---|
-| **Verified At Commit** | (2026-09-17) — Section 2, 6 (Dashboard Forms Table Hover-to-Reveal Actions and Segmented Button Clusters). |
+| **Verified At Commit** | (2026-09-22) — ConfirmModal success variant & single-button alert mode (hideCancel) verified in FormBuilder publish flow |
 
 ## 1. Design Principles
 
@@ -158,11 +158,12 @@ exclusion, otherwise designed header tints are still forced to `#f0f0f0`.
 
 ### Quy tắc tạo mới
 - **Nghiêm cấm** gọi trực tiếp các hàm `window.confirm()` hoặc `window.alert()` trong mã nguồn giao diện mới. 
-- Tất cả các luồng xác nhận hành động (ví dụ: Xoá bản ghi, Huỷ thay đổi, Reset trạng thái) bắt buộc phải sử dụng `ConfirmModal` component để đảm bảo tính đồng bộ về thẩm mỹ (Glassmorphism backdrop, icon, button layout) và không bị chặn bởi pop-up blockers của trình duyệt.
+- Tất cả các luồng xác nhận hành động (ví dụ: Xoá bản ghi, Huỷ thay đổi, Reset trạng thái) hoặc thông báo hoàn tất/ban hành bắt buộc phải sử dụng `ConfirmModal` component để đảm bảo tính đồng bộ về thẩm mỹ (Glassmorphism backdrop, icon, button layout) và không bị chặn bởi pop-up blockers của trình duyệt.
+- `ConfirmModal` hỗ trợ 4 variants (`danger`, `warning`, `info`, `success`) và cờ `hideCancel?: boolean` cho các hộp thoại thông báo 1 nút hành động duy nhất (`confirmText="OK"` hoặc `"Đóng"`).
 
 ### Quy tắc chuyển đổi lũy tiến (Progressive Adoption)
 - Để giảm thiểu rủi ro hồi quy (regression) và giữ ổn định cho hệ thống, chúng ta **không thực hiện nâng cấp hàng loạt** toàn bộ code cũ.
-- Tuy nhiên, mỗi khi cập nhật tính năng, sửa lỗi hoặc refactor một component mà có chứa lệnh `window.confirm()` cũ, nhà phát triển/agent **bắt buộc phải convert tiện tay** toàn bộ các lệnh confirm đó sang `ConfirmModal` trong component đó.
+- Tuy nhiên, mỗi khi cập nhật tính năng, sửa lỗi hoặc refactor một component mà có chứa lệnh `window.confirm()` hoặc `window.alert()` cũ, nhà phát triển/agent **bắt buộc phải convert tiện tay** toàn bộ các lệnh đó sang `ConfirmModal` trong component đó.
 
 ---
 
@@ -170,7 +171,6 @@ exclusion, otherwise designed header tints are still forced to `#f0f0f0`.
 
 | Date | Commit | Change |
 |---|---|---|
-| 2026-07-09 | `8df2f3c` | Re-written to act as the strict Master Design Source of Truth, mapping exactly to `src/index.css` variables and classes. |
 | 2026-07-28 | `62b1a98` | **Print spacing invariant:** `print.css` gained the `.print-doc` token scale plus the `.print-block + .print-block` sibling rule, making block spacing single-source. Added `.print-info-grid` (row-major grid, baseline-aligned) and `.print-field-full`. Scoped the global `th` / `td` print overrides with `:not(.print-doc *)` so form print templates keep their inline cell geometry. Documented the deliberate two-`@page` orientation split. See §4.1–4.3. |
 | 2026-08-03 | `CURRENT` | **ConfirmModal Rules:** Added Section 5 detailing the mandatory `ConfirmModal` component and the progressive adoption rule for legacy `window.confirm()` calls. |
 | 2026-08-13 | `4eefc87` | **Automated Checkbox Layout Pattern (Option A vs Option C):** Documented dynamic layout engine. Standard fields use Option A (2-column fixed 35%/65% grid) to align checkbox icons vertically; detailed/long fields use Option C (Top-aligned label + 1rem indented options). |
@@ -181,3 +181,4 @@ exclusion, otherwise designed header tints are still forced to `#f0f0f0`.
 | 2026-08-27 | `CURRENT` | **Executive Editorial Pair 1 H1-H2 Typography & Spacing Standardization:** (1) Standardized **H1** across Canvas, Screen Viewers, and Print/PDF to pure bold uppercase typography (`fontSize: 1.1rem`, `fontWeight: 700`, `letterSpacing: 0.6px`, `color: #0f172a`, `border: 'none'`, `background: 'transparent'`), eliminating divisive horizontal underlines that fragmented the form. (2) Standardized **H2** to use a sleek Left Accent Bar (`borderLeft: '3px solid var(--primary)'`, `padding: '2px 0 2px 8px'`) with transparent background (`background: 'transparent'`, `fontSize: 0.92rem`–`0.95rem`), eliminating gray banner boxes for smooth visual flow. |
 | 2026-08-28 | `CURRENT` | **Form Properties 1-Line 2-Toggle & Ultra-Clean Top Bar UI Pattern:** (1) FormBuilder Properties tab features a compact 1-line 2-toggle row for `Focus mode` and `Public link` with immediate URL box + 1-click Copy button. (2) FormFiller Top Bar features clean text `"Focus mode"` (without emoji) and single unified `[ 🔗 Sao chép link ]` button without admin toggles. |
 | 2026-09-17 | `CURRENT` | **Dashboard Forms Table Hover-to-Reveal Actions & Segmented Clusters:** Added `.dashboard-form-row:hover .dashboard-form-actions-reveal` and `.dashboard-btn-cluster` utility classes in `src/index.css`. Cột Actions ở trạng thái idle hiển thị dấu ba chấm mờ (`⋯`), ẩn toàn bộ cụm nút (zero layout shift); khi hover vào dòng sẽ hiện 3 cụm nút (Vận hành, In ấn, Thiết kế) mượt mà 0.18s cubic-bezier. |
+| 2026-09-22 | `CURRENT` | **ConfirmModal Success Variant & Single-Action Alert Mode:** Extended `ConfirmModal` with `variant="success"` (`CheckCircle` icon with emerald/teal circle) and `hideCancel?: boolean` to support streamlined single-button acknowledgment dialogs (`confirmText="OK"`), eliminating legacy browser `alert()` popups in compliance with Rule 3. |
