@@ -34,6 +34,31 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-22 — Report Builder: Left Panel Section H1 / H2 Interactive Selection & Collapsed Card Clipping Fix
+
+**Scope:** 2 files (`ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | 4.2 min |
+| Thời gian lập plan (Request → Proceed) | 1.6 min |
+| Thời gian thực thi (Proceed → Push) | 2.6 min |
+| Số file nguồn chỉnh sửa | 1 (`ReportBuilder.tsx`) |
+| Tổng lượt edit source | 3 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 2 (1 tsc + 1 vite pass) |
+| Lần build cuối thành công? | Có (100% pass, built in 8.19s) |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- **Triệt tiêu lỗi cắt cụt chữ khi thu gọn (Left Tree & Modal):** Bổ sung `flexShrink: 0`, `minHeight: '34px'`, `minHeight: '28px'` và `boxSizing: 'border-box'` cho toàn bộ container thẻ H1/H2 ở Left Panel và Quick Field Picker Modal, chống hiện tượng flexbox co ép chiều cao khi danh sách dài.
+- **Tách biệt thao tác:** Bấm nút Chevron `[ > ]` / `[ v ]` để mở rộng / thu gọn nhánh cây độc lập mà không ảnh hưởng tới khối đang kích hoạt.
+- **Chọn trực tiếp Section H1 / Sub-section H2 từ khay trái:** Bổ sung `handleSelectH1Section` và `handleSelectH2Subgroup` kích hoạt trực tiếp khối tương ứng trên Canvas (hoặc tự tạo nếu chưa có), xóa `selectedFieldId = null` và tự động chuyển ngay sang tab `Properties` hiển thị cấu hình H1/H2 (`isKnockout`, `Weight %`, ma trận điểm nhóm).
+- **Trạng thái chọn nổi bật:** Thẻ H1 hiển thị viền/nền Teal `#f0fdfa` và thẻ H2 hiển thị viền/nền Blue `#eff6ff` khi đang được chọn.
+
+---
+
 ### 2026-09-22 — Report Builder: Dual Evaluation Engine & Hierarchical Combined Score Roll-up
 
 **Scope:** 6 files (`types.ts`, `reportScoring.ts`, `reportCompute.ts`, `FieldScoringInspector.tsx`, `ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`)

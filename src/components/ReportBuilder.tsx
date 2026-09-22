@@ -1237,6 +1237,70 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
     });
   };
 
+  const handleSelectH1Section = (h1Title: string) => {
+    setSelectedFieldId(null);
+    setRightTab('properties');
+
+    const cleanTitle = h1Title.trim().toLowerCase();
+    const existingH1Block = template.layoutBlocks.find(b =>
+      b.type === 'SECTION_LABEL' &&
+      (b.titleFormat === 'H1' || !b.titleFormat) &&
+      b.title.trim().toLowerCase() === cleanTitle
+    );
+
+    if (existingH1Block) {
+      setActiveBlockId(existingH1Block.id);
+    } else {
+      const anyMatchingBlock = template.layoutBlocks.find(b => b.title.trim().toLowerCase() === cleanTitle);
+      if (anyMatchingBlock) {
+        setActiveBlockId(anyMatchingBlock.id);
+      } else {
+        const newBlock: ReportBlockConfig = {
+          id: `rep_block_${Date.now()}`,
+          type: 'SECTION_LABEL',
+          title: h1Title,
+          titleFormat: 'H1',
+          weight: 0,
+          isKnockout: false
+        };
+        setTemplate(prev => ({
+          ...prev,
+          layoutBlocks: [...prev.layoutBlocks, newBlock]
+        }));
+        setActiveBlockId(newBlock.id);
+      }
+    }
+  };
+
+  const handleSelectH2Subgroup = (h2Title: string, fieldIds: string[]) => {
+    setSelectedFieldId(null);
+    setRightTab('properties');
+
+    const cleanTitle = h2Title.trim().toLowerCase();
+    const existingBlock = template.layoutBlocks.find(b =>
+      (b.type === 'TABLE' || (b.type === 'SECTION_LABEL' && b.titleFormat === 'H2')) &&
+      (b.title.trim().toLowerCase() === cleanTitle || b.boundFieldIds?.some(id => fieldIds.includes(id)))
+    );
+
+    if (existingBlock) {
+      setActiveBlockId(existingBlock.id);
+    } else {
+      const newBlock: ReportBlockConfig = {
+        id: `rep_block_${Date.now()}`,
+        type: 'TABLE',
+        title: h2Title,
+        boundFieldIds: fieldIds,
+        weight: 0,
+        isKnockout: false
+      };
+      setTemplate(prev => ({
+        ...prev,
+        layoutBlocks: [...prev.layoutBlocks, newBlock]
+      }));
+      setActiveBlockId(newBlock.id);
+    }
+  };
+
   const allFormFields: FormFieldISO[] = extractAllFormFields(selectedForm?.layoutBlocks || []);
   const filteredFormFields = allFormFields.filter(f =>
     (f.checkItem || '').toLowerCase().includes(searchFieldQuery.toLowerCase()) ||
@@ -1662,9 +1726,24 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                   const h1Key = `h1_${h1Group.h1}`;
                   const isH1Expanded = searchFieldQuery ? true : (expandedSections[h1Key] ?? true);
                   const allH1FieldIds = h1Group.h2Groups.flatMap(g => g.fields.map(f => f.id));
+                  const isH1Active = !selectedFieldId && activeBlock && (
+                    (activeBlock.type === 'SECTION_LABEL' && (activeBlock.titleFormat === 'H1' || !activeBlock.titleFormat) && activeBlock.title.trim().toLowerCase() === h1Group.h1.trim().toLowerCase()) ||
+                    (activeBlock.title?.trim().toLowerCase() === h1Group.h1.trim().toLowerCase())
+                  );
 
                   return (
-                    <div key={h1Group.h1} style={{ border: '1px solid #e2e8f0', borderRadius: '6px', background: '#ffffff', overflow: 'hidden' }}>
+                    <div
+                      key={h1Group.h1}
+                      style={{
+                        border: isH1Active ? '1.5px solid var(--primary)' : '1px solid #e2e8f0',
+                        borderRadius: '6px',
+                        background: '#ffffff',
+                        overflow: 'hidden',
+                        flexShrink: 0,
+                        boxShadow: isH1Active ? '0 1px 3px rgba(13, 148, 136, 0.15)' : 'none',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
                       {/* H1 Section Header */}
                       <div
                         style={{
@@ -1672,20 +1751,54 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                           alignItems: 'center',
                           justifyContent: 'space-between',
                           padding: '5px 8px',
-                          background: '#f8fafc',
-                          borderBottom: isH1Expanded ? '1px solid #e2e8f0' : 'none',
+                          minHeight: '34px',
+                          boxSizing: 'border-box',
+                          background: isH1Active ? '#f0fdfa' : '#f8fafc',
+                          borderBottom: isH1Expanded ? (isH1Active ? '1px solid #ccfbf1' : '1px solid #e2e8f0') : 'none',
                           cursor: 'pointer',
-                          userSelect: 'none'
+                          userSelect: 'none',
+                          transition: 'background 0.12s'
                         }}
-                        onClick={() => toggleSectionExpand(h1Key)}
+                        onClick={() => handleSelectH1Section(h1Group.h1)}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flex: 1, minWidth: 0 }}>
-                          {isH1Expanded ? <ChevronDown size={13} color="#475569" /> : <ChevronRight size={13} color="#475569" />}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flex: 1, minWidth: 0, lineHeight: 1.3 }}>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleSectionExpand(h1Key);
+                            }}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              padding: '2px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: isH1Active ? 'var(--primary)' : '#475569'
+                            }}
+                            title={isH1Expanded ? 'Thu gọn phân đoạn' : 'Mở rộng phân đoạn'}
+                          >
+                            {isH1Expanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+                          </button>
                           <Layers size={13} color="var(--primary)" />
-                          <span style={{ fontWeight: 700, fontSize: '0.75rem', color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={h1Group.h1}>
+                          <span
+                            style={{
+                              fontWeight: isH1Active ? 800 : 700,
+                              fontSize: '0.75rem',
+                              color: isH1Active ? 'var(--primary)' : '#0f172a',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap'
+                            }}
+                            title={`Click để xem/cấu hình thuộc tính Section H1: ${h1Group.h1}`}
+                          >
                             {h1Group.h1}
                           </span>
-                          <span style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 600 }}>({h1Group.totalFieldsCount})</span>
+                          <span style={{ fontSize: '0.65rem', color: isH1Active ? 'var(--primary)' : '#64748b', fontWeight: 600 }}>
+                            ({h1Group.totalFieldsCount})
+                          </span>
                         </div>
 
                         {activeBlock && (
@@ -1721,31 +1834,68 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                             const h2Key = `h2_${h1Group.h1}_${h2Group.h2}`;
                             const isH2Expanded = searchFieldQuery ? true : (expandedSections[h2Key] ?? true);
                             const h2FieldIds = h2Group.fields.map(f => f.id);
+                            const isH2Active = !selectedFieldId && activeBlock && (
+                              activeBlock.title?.trim().toLowerCase() === h2Group.h2.trim().toLowerCase() ||
+                              (activeBlock.type === 'TABLE' && activeBlock.boundFieldIds?.some(id => h2FieldIds.includes(id)))
+                            );
 
                             return (
-                              <div key={h2Group.h2} style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                              <div key={h2Group.h2} style={{ display: 'flex', flexDirection: 'column', gap: '3px', flexShrink: 0 }}>
                                 {!isSingleDefaultGroup && (
                                   <div
                                     style={{
                                       display: 'flex',
                                       alignItems: 'center',
                                       justifyContent: 'space-between',
-                                      padding: '3px 6px',
-                                      background: '#f1f5f9',
+                                      padding: '4px 6px',
+                                      minHeight: '28px',
+                                      boxSizing: 'border-box',
+                                      background: isH2Active ? '#eff6ff' : '#f1f5f9',
+                                      border: isH2Active ? '1px solid #93c5fd' : '1px solid transparent',
                                       borderRadius: '4px',
                                       cursor: 'pointer',
                                       userSelect: 'none',
-                                      marginTop: '2px'
+                                      marginTop: '2px',
+                                      transition: 'all 0.12s'
                                     }}
-                                    onClick={() => toggleSectionExpand(h2Key)}
+                                    onClick={() => handleSelectH2Subgroup(h2Group.h2, h2FieldIds)}
                                   >
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: 1, minWidth: 0 }}>
-                                      {isH2Expanded ? <ChevronDown size={11} color="#64748b" /> : <ChevronRight size={11} color="#64748b" />}
-                                      {isH2Expanded ? <FolderOpen size={12} color="#64748b" /> : <Folder size={12} color="#64748b" />}
-                                      <span style={{ fontWeight: 600, fontSize: '0.72rem', color: '#334155', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={h2Group.h2}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: 1, minWidth: 0, lineHeight: 1.3 }}>
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          toggleSectionExpand(h2Key);
+                                        }}
+                                        style={{
+                                          background: 'none',
+                                          border: 'none',
+                                          padding: '1px',
+                                          cursor: 'pointer',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          color: isH2Active ? '#2563eb' : '#64748b'
+                                        }}
+                                        title={isH2Expanded ? 'Thu gọn nhóm' : 'Mở rộng nhóm'}
+                                      >
+                                        {isH2Expanded ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
+                                      </button>
+                                      {isH2Expanded ? <FolderOpen size={12} color={isH2Active ? '#2563eb' : '#64748b'} /> : <Folder size={12} color={isH2Active ? '#2563eb' : '#64748b'} />}
+                                      <span
+                                        style={{
+                                          fontWeight: isH2Active ? 700 : 600,
+                                          fontSize: '0.72rem',
+                                          color: isH2Active ? '#1d4ed8' : '#334155',
+                                          overflow: 'hidden',
+                                          textOverflow: 'ellipsis',
+                                          whiteSpace: 'nowrap'
+                                        }}
+                                        title={`Click để xem/cấu hình thuộc tính Nhóm H2: ${h2Group.h2}`}
+                                      >
                                         {h2Group.h2}
                                       </span>
-                                      <span style={{ fontSize: '0.63rem', color: '#94a3b8' }}>({h2Group.fields.length})</span>
+                                      <span style={{ fontSize: '0.63rem', color: isH2Active ? '#2563eb' : '#94a3b8' }}>({h2Group.fields.length})</span>
                                     </div>
 
                                     {activeBlock && (
@@ -3719,7 +3869,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                   const allH1FieldIds = h1Group.h2Groups.flatMap(g => g.fields.map(f => f.id));
 
                   return (
-                    <div key={h1Group.h1} style={{ border: '1px solid #e2e8f0', borderRadius: '6px', background: '#ffffff', overflow: 'hidden' }}>
+                    <div key={h1Group.h1} style={{ border: '1px solid #e2e8f0', borderRadius: '6px', background: '#ffffff', overflow: 'hidden', flexShrink: 0 }}>
                       {/* H1 Header */}
                       <div
                         style={{
@@ -3727,6 +3877,8 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                           alignItems: 'center',
                           justifyContent: 'space-between',
                           padding: '6px 8px',
+                          minHeight: '34px',
+                          boxSizing: 'border-box',
                           background: '#f8fafc',
                           borderBottom: isH1Expanded ? '1px solid #e2e8f0' : 'none',
                           cursor: 'pointer',
@@ -3734,7 +3886,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                         }}
                         onClick={() => toggleSectionExpand(h1Key)}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flex: 1, minWidth: 0, lineHeight: 1.3 }}>
                           {isH1Expanded ? <ChevronDown size={13} color="#475569" /> : <ChevronRight size={13} color="#475569" />}
                           <Layers size={13} color="var(--primary)" />
                           <span style={{ fontWeight: 700, fontSize: '0.78rem', color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -3776,7 +3928,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                             const h2FieldIds = h2Group.fields.map(f => f.id);
 
                             return (
-                              <div key={h2Group.h2} style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                              <div key={h2Group.h2} style={{ display: 'flex', flexDirection: 'column', gap: '3px', flexShrink: 0 }}>
                                 {!isSingleDefault && (
                                   <div
                                     style={{
@@ -3784,6 +3936,8 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                       alignItems: 'center',
                                       justifyContent: 'space-between',
                                       padding: '4px 6px',
+                                      minHeight: '28px',
+                                      boxSizing: 'border-box',
                                       background: '#f1f5f9',
                                       borderRadius: '4px',
                                       cursor: 'pointer',
