@@ -26,12 +26,34 @@ phiên thực thi để không lặp lại lỗi cũ.
 | 12 | `SCOPE` | Biểu mẫu chứa text động trong `tableData` (pre-filled cells) hoặc `tableRows` (`groupTitle`) ngoài `tableColumns` | Luôn duyệt toàn diện cả `tableRows` (`groupTitle`), `tableData` (text cells), field `placeholder`, `reactionProtocol` khi bóc tách chuỗi | 1 |
 | 13 | `LOGIC` | Hiểu nhầm "search" là truy xuất bộ nhớ nội bộ (internal reasoning) của LLM thay vì tra cứu không gian bên ngoài | Định nghĩa rõ: "Search" bắt buộc là tìm kiếm không gian bên ngoài (External Web Search) với các nguồn quy chuẩn xác thực, không dựa vào lập luận nội bộ của LLM | 1 |
 | 14 | `SCOPE` | Hardcode danh sách quy chuẩn cố định (IMO, BRCGS, ISO 22000, APICS) làm thiên lệch vào dữ liệu mẫu | Khái quát hóa thành quy trình: "Search web theo ngữ cảnh form" (Context-Driven Web Search) dựa trên domain suy diễn động | 1 |
+| 15 | `BLOAT` | Thêm text badges (Selected, Đã chọn, Active, hints) trùng lặp với visual indicator (màu sắc, border, icon) → UI bị rối | Áp dụng UI Streamlining Audit: Khi visual cues đã rõ ràng, triệt tiêu toàn bộ text badges phụ trợ để giữ UI tối giản | 1 |
 
 ---
 
 ## Nhật ký Phiên
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
+
+### 2026-09-22 — Report Builder: Field Properties Auto-Grow Label & Streamlined Multi-Option Value Visualizer
+
+**Scope:** 2 files (`ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa | 1 (`ReportBuilder.tsx`) |
+| Tổng lượt edit source | 3 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 2 (1 tsc + 1 vite) |
+| Lần build cuối thành công? | Có (100% pass, built in 16.17s) |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- **Auto-Grow Label:** Thay thế `<textarea>` bằng container tự co giãn chiều cao (`whiteSpace: 'pre-wrap', wordBreak: 'break-word'`), hiển thị 100% câu hỏi mà không sinh thanh cuộn dọc. Ẩn cụm nút format text `[ B ] [ I ] [ U ]` vì nhãn là read-only.
+- **Streamlined Multi-Option Value Visualizer:** Trường `Value` tự động kéo tất cả các mức điểm / tùy chọn từ form schema (`scale` / `likert_scale`, `checkbox`, `radio`, `select`). Thể hiện trạng thái được chọn qua ngôn ngữ thị giác thuần túy (viền & nền Teal `#0d9488`, icon Tích tròn `✓`, Checkbox `☑`, Radio `⦿`), triệt tiêu toàn bộ các text badge rườm rà (`Selected`, `Đã chọn`, `Active`).
+- **UI Streamlining Audit Protocol:** Đưa quy trình rà soát và tinh gọn giao diện vào bài học kinh nghiệm để agent tự động tối giản UI trong các kế hoạch tiếp theo.
+
+---
 
 ### 2026-09-22 — Report Builder: FormBuilder-Parity Field Properties Inspector & Left Tray Streamlining
 

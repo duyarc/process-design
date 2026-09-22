@@ -43,7 +43,9 @@ import {
   Hash,
   Calendar,
   CircleDot,
+  Circle,
   CheckSquare,
+  Square,
   SlidersHorizontal,
   Camera,
   Copy
@@ -2471,20 +2473,23 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
 
                     {/* 2. Label Field */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Label</label>
-                        <div style={{ display: 'flex', gap: '4px' }}>
-                          <span style={{ width: '22px', height: '22px', border: '1px solid #cbd5e1', borderRadius: '3px', background: '#ffffff', fontWeight: 'bold', fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#334155' }}>B</span>
-                          <span style={{ width: '22px', height: '22px', border: '1px solid #cbd5e1', borderRadius: '3px', background: '#ffffff', fontStyle: 'italic', fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#334155' }}>I</span>
-                          <span style={{ width: '22px', height: '22px', border: '1px solid #cbd5e1', borderRadius: '3px', background: '#ffffff', textDecoration: 'underline', fontSize: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#334155' }}>U</span>
-                        </div>
+                      <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.75rem' }}>Label</label>
+                      <div
+                        style={{
+                          padding: '0.45rem 0.6rem',
+                          borderRadius: '4px',
+                          border: '1px solid var(--neutral-border)',
+                          background: '#ffffff',
+                          fontSize: '0.8rem',
+                          color: '#0f172a',
+                          lineHeight: 1.45,
+                          whiteSpace: 'pre-wrap',
+                          wordBreak: 'break-word',
+                          minHeight: '32px'
+                        }}
+                      >
+                        {selectedField.checkItem || selectedField.id}
                       </div>
-                      <textarea
-                        rows={2}
-                        readOnly
-                        value={selectedField.checkItem || selectedField.id}
-                        style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', resize: 'none', fontSize: '0.8rem', fontFamily: 'inherit', lineHeight: 1.4, background: '#ffffff' }}
-                      />
                     </div>
 
                     {/* 3. Type Field */}
@@ -2515,6 +2520,126 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                       } else if (subData && typeof subData === 'object') {
                         rawValue = subData[selectedField.id] !== undefined ? String(subData[selectedField.id]) : '';
                       }
+
+                      const isScaleType = selectedField.type === 'likert_scale' || selectedField.type === 'rating';
+                      const scaleOpts = selectedField.scaleOptions && selectedField.scaleOptions.length > 0
+                        ? selectedField.scaleOptions
+                        : (isScaleType ? ['1', '2', '3', '4', '5'] : []);
+
+                      if (isScaleType && scaleOpts.length > 0) {
+                        return (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                            <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.75rem' }}>Value</label>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                              {scaleOpts.map((opt, idx) => {
+                                const isSelected = opt === rawValue || String(idx + 1) === rawValue;
+                                return (
+                                  <div
+                                    key={idx}
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '8px',
+                                      padding: '5px 8px',
+                                      borderRadius: '4px',
+                                      background: isSelected ? '#f0fdfa' : '#f8fafc',
+                                      border: isSelected ? '1.5px solid var(--primary)' : '1px solid #e2e8f0',
+                                      color: isSelected ? '#0f172a' : '#64748b',
+                                      fontSize: '0.78rem',
+                                      fontWeight: isSelected ? 600 : 400
+                                    }}
+                                  >
+                                    {isSelected ? (
+                                      <span style={{ width: '15px', height: '15px', borderRadius: '50%', background: 'var(--primary)', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6rem', flexShrink: 0 }}>
+                                        <Check size={9} strokeWidth={3} />
+                                      </span>
+                                    ) : (
+                                      <span style={{ width: '15px', height: '15px', borderRadius: '50%', border: '1px solid #cbd5e1', background: '#ffffff', color: '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.62rem', flexShrink: 0 }}>
+                                        {idx + 1}
+                                      </span>
+                                    )}
+                                    <span>{opt}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      if (selectedField.type === 'checkbox' && selectedField.options && selectedField.options.length > 0) {
+                        const rawArr = Array.isArray(rawValue)
+                          ? rawValue
+                          : (typeof rawValue === 'string' && rawValue.length > 0 ? rawValue.split(',').map(s => s.trim()) : []);
+                        return (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                            <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.75rem' }}>Value</label>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                              {selectedField.options.map((opt: any, idx: number) => {
+                                const optVal = typeof opt === 'string' ? opt : (opt.value || opt.label || '');
+                                const optLabel = typeof opt === 'string' ? opt : (opt.label || opt.value || '');
+                                const isSelected = rawArr.includes(optVal) || rawArr.includes(optLabel);
+                                return (
+                                  <div
+                                    key={idx}
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '8px',
+                                      padding: '5px 8px',
+                                      borderRadius: '4px',
+                                      background: isSelected ? '#f0fdfa' : '#f8fafc',
+                                      border: isSelected ? '1.5px solid var(--primary)' : '1px solid #e2e8f0',
+                                      color: isSelected ? '#0f172a' : '#64748b',
+                                      fontSize: '0.78rem',
+                                      fontWeight: isSelected ? 600 : 400
+                                    }}
+                                  >
+                                    {isSelected ? <CheckSquare size={14} color="var(--primary)" style={{ flexShrink: 0 }} /> : <Square size={14} color="#cbd5e1" style={{ flexShrink: 0 }} />}
+                                    <span>{optLabel}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      if ((selectedField.type === 'radio' || selectedField.type === 'select') && selectedField.options && selectedField.options.length > 0) {
+                        return (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                            <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.75rem' }}>Value</label>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                              {selectedField.options.map((opt: any, idx: number) => {
+                                const optVal = typeof opt === 'string' ? opt : (opt.value || opt.label || '');
+                                const optLabel = typeof opt === 'string' ? opt : (opt.label || opt.value || '');
+                                const isSelected = optVal === rawValue || optLabel === rawValue;
+                                return (
+                                  <div
+                                    key={idx}
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '8px',
+                                      padding: '5px 8px',
+                                      borderRadius: '4px',
+                                      background: isSelected ? '#f0fdfa' : '#f8fafc',
+                                      border: isSelected ? '1.5px solid var(--primary)' : '1px solid #e2e8f0',
+                                      color: isSelected ? '#0f172a' : '#64748b',
+                                      fontSize: '0.78rem',
+                                      fontWeight: isSelected ? 600 : 400
+                                    }}
+                                  >
+                                    {isSelected ? <CircleDot size={14} color="var(--primary)" style={{ flexShrink: 0 }} /> : <Circle size={14} color="#cbd5e1" style={{ flexShrink: 0 }} />}
+                                    <span>{optLabel}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      }
+
                       return (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
                           <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.75rem' }}>Value</label>
