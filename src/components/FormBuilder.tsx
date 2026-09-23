@@ -3179,22 +3179,36 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', flex: 1, overflow: 'hidden' }}>
         
         {/* CENTER CANVAS: A4/A5 Document Simulation */}
-        <div style={{ padding: '1.5rem', overflowY: 'auto', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', flex: 1, background: '#f1f5f9' }}>
-          <div style={{
-            width: '100%',
-            maxWidth: pageSize === 'A5_LANDSCAPE' ? '920px' : '820px',
-            background: '#ffffff',
-            border: '1px solid #cbd5e1',
-            borderRadius: '6px',
-            boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)',
-            padding: '2.5rem',
-            minHeight: '1050px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0px',
-            position: 'relative',
-            boxSizing: 'border-box'
-          }}>
+        <div
+          onClick={() => {
+            setActiveBlockId(null);
+            setActiveFieldId(null);
+          }}
+          style={{ padding: '1.5rem', overflowY: 'auto', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', flex: 1, background: '#f1f5f9', cursor: 'default' }}
+        >
+          <div
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setActiveBlockId(null);
+                setActiveFieldId(null);
+              }
+            }}
+            style={{
+              width: '100%',
+              maxWidth: pageSize === 'A5_LANDSCAPE' ? '920px' : '820px',
+              background: '#ffffff',
+              border: '1px solid #cbd5e1',
+              borderRadius: '6px',
+              boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)',
+              padding: '2.5rem',
+              minHeight: '1050px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0px',
+              position: 'relative',
+              boxSizing: 'border-box'
+            }}
+          >
             
 
 
@@ -9008,6 +9022,11 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
           ) : (
             /* GENERAL FORM PROPERTIES */
             <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                <h3 style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-primary)', margin: 0 }}>
+                  Form Properties
+                </h3>
+              </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.8rem' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
                   <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Form Title</label>

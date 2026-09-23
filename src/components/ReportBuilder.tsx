@@ -1998,11 +1998,23 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
         </div>
 
         {/* ── CENTER PANEL: Blank A4 Layout Canvas ── */}
-        <div style={{ flex: 1, background: '#f1f5f9', overflowY: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div
+          onClick={() => {
+            setActiveBlockId(null);
+            setSelectedFieldId(null);
+          }}
+          style={{ flex: 1, background: '#f1f5f9', overflowY: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'default' }}
+        >
           
           {/* A4 Sheet Container */}
           <div
             className="paper-card"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setActiveBlockId(null);
+                setSelectedFieldId(null);
+              }
+            }}
             style={{
               width: '100%',
               maxWidth: '698px',
@@ -2030,7 +2042,11 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                 return (
                   <div
                     key={block.id}
-                    onClick={() => setActiveBlockId(block.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveBlockId(block.id);
+                      setSelectedFieldId(null);
+                    }}
                     style={{
                       border: `2px solid ${isActive ? 'var(--primary)' : 'transparent'}`,
                       borderRadius: '6px',
@@ -3377,6 +3393,11 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                    <h3 style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-primary)', margin: 0 }}>
+                      Report Properties
+                    </h3>
+                  </div>
                   <div>
                     <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.25rem' }}>
                       Report Title

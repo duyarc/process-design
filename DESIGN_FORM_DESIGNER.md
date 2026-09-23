@@ -9,7 +9,7 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-09-22) — Form publish alert upgrade to ConfirmModal (variant='success', hideCancel) verified against FormBuilder & ConfirmModal source |
+| **Verified At Commit** | (2026-09-23) — Canvas & Paper sheet click-to-deselect with Form Properties header verified against FormBuilder source |
 
 > **⚠️ Architectural note:** FormBuilder has no awareness of which process it belongs to. The `formName` prop is always identical to `formId`. See Section 6.1 and the Technical Debt table.
 
@@ -504,5 +504,6 @@ full diff of any entry below.
 | 2026-09-18 | **Transparent Form ID Renaming, Workstep Re-linking & ConfirmModal Migration:** (1) Added pure utility `renameFormInSteps` in `formUtils.ts` (Rule 13.8). (2) In `FormBuilder.tsx`, unlocked `formId` input for direct editing when `!isLocked` while preserving linked tree context (Variant 3B). Replaced `window.confirm()` with `ConfirmModal` for unlinking (Rule 3). (3) In `ProcessEditor.tsx`, updated `onSave` to automatically swap Form ID across `steps` (`renameFormInSteps`), migrate `workflowFormsData`, update `activeFormToBuild`, and auto-save the process to DB without interrupting user flow. |
 | 2026-09-20 | **Fix Form Reload on Modified Form ID Save:** (1) In `FormBuilder.tsx`, replaced `setLoading(true)` with `setSaving(true)` inside pre-save version collision checks (`handleSaveDraft` and `handlePublish`), eliminating canvas unmount and "Loading form template from database..." screen. (2) Added `initialLoadDoneRef` guard preventing redundant `fetchFormTemplate` re-execution on prop changes after initial cold mount. (3) In `ProcessEditor.tsx`, decoupled `<FormBuilder>` lifecycle from `activeFormToBuild` via stable `formBuilderSessionId` key, eliminating component remount when Form ID is renamed. |
 | 2026-09-22 | **Form Publish Alert Upgrade to ConfirmModal Success Dialog:** (1) In `ConfirmModal.tsx`, added `variant="success"` with emerald theme (`CheckCircle`, `#059669`, `var(--primary)`) and `hideCancel` prop to cleanly support single-action notification/alert dialogs while maintaining Design System compliance (Rule 3). (2) In `FormBuilder.tsx`, replaced browser-native blocking `alert(...)` upon successful form publishing with `publishedVersionModal` state triggering `<ConfirmModal>` with variant `success`, single `OK` action button, and concise version notice without redundant ISO compliance disclaimer. |
+| 2026-09-23 | **Blank Space Click-to-Deselect & Form Properties Inspector:** Added background click event delegation on Center Canvas scroll container (`#f1f5f9`) and Paper sheet margins (`.paper-card`) in `FormBuilder.tsx` to reset `activeBlockId` and `activeFieldId` to null, seamlessly switching the Right Inspector to Form Properties with standardized uppercase header. |
 
 

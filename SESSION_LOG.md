@@ -34,6 +34,30 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-23 — Form & Report Designer: Blank Space Click-to-Deselect to View & Edit Form/Report Properties
+
+**Scope:** 4 files (`FormBuilder.tsx`, `ReportBuilder.tsx`, `DESIGN_FORM_DESIGNER.md`, `DESIGN_REPORT_BUILDER.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | 4.0 min |
+| Thời gian lập plan (Request → Proceed) | 1.0 min |
+| Thời gian thực thi (Proceed → Push) | 3.0 min |
+| Số file nguồn chỉnh sửa | 2 (`FormBuilder.tsx`, `ReportBuilder.tsx`) |
+| Tổng lượt edit source | 4 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 3 (2 tsc + 1 vite pass) |
+| Lần build đầu thành công? | Có (100% pass ngay lần đầu) |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- **Cơ chế Bỏ chọn khi Click Khoảng trắng (Canvas & Paper Click Delegation):** Gắn sự kiện `onClick` lên khung cuộn Canvas trung tâm (`#f1f5f9`) và khoảng trống lề trang giấy in (`.paper-card`) trong cả `FormBuilder.tsx` và `ReportBuilder.tsx`, tự động reset `activeBlockId = null`, `activeFieldId = null`, `selectedFieldId = null`.
+- **Cô lập Sự kiện Khối (Event Isolation):** Bổ sung `e.stopPropagation()` trên block wrapper để click vào bất kỳ khối nào sẽ chỉ chọn khối đó mà không bị kích hoạt sự kiện bỏ chọn của Canvas.
+- **Chuẩn hóa Tiêu đề Form & Report Properties:** Bổ sung tiêu đề in hoa `FORM PROPERTIES` và `REPORT PROPERTIES` trong thanh thuộc tính bên phải khi ở trạng thái bỏ chọn, tạo sự nhất quán hoàn hảo với `FIELD PROPERTIES` và `BLOCK PROPERTIES`.
+
+---
+
 ### 2026-09-23 — Report Builder: Number Multi-Range & Text Completeness Scoring Rules & Minimal English Inspector
 
 **Scope:** 5 files (	ypes.ts, 
@@ -470,30 +494,3 @@ eportScoring.ts, FieldScoringInspector.tsx, ReportBuilder.tsx) |
 - Gắn tooltip `title={linkedProcessTitle}` vào tên quy trình để hover xem chi tiết mà không làm rối mắt giao diện, triệt tiêu lỗi TS6133.
 - Chuẩn hóa thông báo biểu mẫu độc lập thành `"Form chưa liên kết"`.
 - Build TypeScript (`tsc`) và Vite production bundle thành công 100% trong 10.48s.
-
----
-
-### 2026-09-17 — Dashboard & UI/UX: Actions Area Segmented Clusters & Hover-to-Reveal
-
-**Scope:** 5 files, 318 insertions, 163 deletions (`853a0aa`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian lập plan (Request → Proceed) | 5.5 min |
-| Thời gian thực thi (Proceed → Push) | 3.8 min |
-| Thời gian tổng (Request → Push) | 9.4 min |
-| Số file nguồn chỉnh sửa | 2 (`Dashboard.tsx`, `index.css`) |
-| Tổng lượt edit source | 6 |
-| Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 3 (2 tsc + 1 vite) |
-| Lần build đầu thành công? | Có (100% pass ngay lần đầu) |
-| Số lệnh thất bại | 0 |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Điểm nổi bật:**
-- Tái cấu trúc 7 nút thao tác thành 3 khối nghiệp vụ chuẩn (Phương án 1): Vận hành (`PenTool`, `History`), In ấn (`Printer`, `FileText`), Thiết kế & Cấu hình (`Edit2`, `Copy`, `SlidersHorizontal` - bọc quyền `design_document`), ngăn cách bằng vách ngăn dọc tinh tế.
-- Triển khai cơ chế Hover-to-Reveal thuần CSS (`.dashboard-form-row:hover`), ẩn cụm nút và hiện `⋯` khi idle, triệt tiêu hoàn toàn hiện tượng lặp nút gây rối mắt và bảo đảm 100% Zero Layout Shift.
-- Đồng bộ hóa trên Thẻ Lưới (Grid View Card): chia footer thành 2 hàng phân cấp rõ ràng và hỗ trợ hover chuyển đổi độ mờ mượt mà.
-- Refactor Ratio đạt 51.3% nhờ thay thế và dọn sạch mã JSX/CSS cũ.
-- TypeScript (`npx tsc --noEmit`) và Vite bundle (`npm run build` 8.09s) hoàn tất thành công 100% không lỗi.
