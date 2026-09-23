@@ -16,6 +16,7 @@ import { extractAllFormFields, groupFieldsByHierarchy, type FieldHierarchyGroup 
 import { getInfoGridTemplateColumns, snap2ColWidth, snap3ColWidths } from '../utils/formUtils';
 import { applyTextFormat, handleFormatKeyDown } from '../utils/textFormatter';
 import { FieldScoringInspector } from './report/FieldScoringInspector';
+import { FormReferenceCanvas } from './report/FormReferenceCanvas';
 import { extractParentGroupTitle, computeH2CombinedScore } from '../utils/reportScoring';
 import ConfirmModal from './common/ConfirmModal';
 import PrintReport from './print/PrintReport';
@@ -657,6 +658,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
 
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
+  const [activeCanvasTab, setActiveCanvasTab] = useState<'form' | 'report'>('report');
   const [copiedFieldId, setCopiedFieldId] = useState<boolean>(false);
   const [rightTab, setRightTab] = useState<'properties' | 'versions'>('properties');
   const [availableForms, setAvailableForms] = useState<FormTemplateISO[]>([]);
@@ -1997,7 +1999,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
           </div>
         </div>
 
-        {/* ── CENTER PANEL: Blank A4 Layout Canvas ── */}
+        {/* ── CENTER PANEL: Canvas Workspace (Form | Report Tabs) ── */}
         <div
           onClick={() => {
             setActiveBlockId(null);
@@ -2005,29 +2007,115 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
           }}
           style={{ flex: 1, background: '#f1f5f9', overflowY: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'default' }}
         >
-          
-          {/* A4 Sheet Container */}
+          {/* ── CANVAS TAB SWITCHER: Form | Report ── */}
           <div
-            className="paper-card"
-            onClick={(e) => {
-              if (e.target === e.currentTarget) {
-                setActiveBlockId(null);
-                setSelectedFieldId(null);
-              }
-            }}
-            style={{
-              width: '100%',
-              maxWidth: '698px',
-              minHeight: '842px',
-              background: '#ffffff',
-              padding: '1.5rem',
-              boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)',
-              borderRadius: '4px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '1rem'
-            }}
+            onClick={(e) => e.stopPropagation()}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.25rem', zIndex: 10 }}
           >
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              background: '#e2e8f0',
+              padding: '3px',
+              borderRadius: '8px',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.06)'
+            }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveCanvasTab('form');
+                  setActiveBlockId(null);
+                  setSelectedFieldId(null);
+                }}
+                style={{
+                  padding: '5px 22px',
+                  fontSize: '0.8rem',
+                  fontWeight: activeCanvasTab === 'form' ? 700 : 500,
+                  color: activeCanvasTab === 'form' ? 'var(--primary)' : '#475569',
+                  background: activeCanvasTab === 'form' ? '#ffffff' : 'transparent',
+                  border: 'none',
+                  borderRadius: '6px',
+                  boxShadow: activeCanvasTab === 'form' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                Form
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveCanvasTab('report');
+                  setActiveBlockId(null);
+                  setSelectedFieldId(null);
+                }}
+                style={{
+                  padding: '5px 22px',
+                  fontSize: '0.8rem',
+                  fontWeight: activeCanvasTab === 'report' ? 700 : 500,
+                  color: activeCanvasTab === 'report' ? 'var(--primary)' : '#475569',
+                  background: activeCanvasTab === 'report' ? '#ffffff' : 'transparent',
+                  border: 'none',
+                  borderRadius: '6px',
+                  boxShadow: activeCanvasTab === 'report' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                Report
+              </button>
+            </div>
+          </div>
+
+          {activeCanvasTab === 'form' ? (
+            selectedForm ? (
+              <FormReferenceCanvas
+                form={selectedForm}
+                selectedFieldId={selectedFieldId}
+                activeBlockId={activeBlockId}
+                onSelectField={(fId) => {
+                  setSelectedFieldId(fId);
+                  setActiveBlockId(null);
+                }}
+                onSelectBlock={(bId) => {
+                  setActiveBlockId(bId);
+                  setSelectedFieldId(null);
+                }}
+                onDeselect={() => {
+                  setActiveBlockId(null);
+                  setSelectedFieldId(null);
+                }}
+              />
+            ) : (
+              <div style={{ border: '2px dashed var(--neutral-border)', borderRadius: '8px', padding: '3rem 1.5rem', textAlign: 'center', color: 'var(--text-secondary)', background: '#ffffff', width: '100%', maxWidth: '698px' }}>
+                <FileText size={36} style={{ margin: '0 auto 0.75rem', opacity: 0.4 }} />
+                <h4 style={{ margin: '0 0 0.25rem 0', color: 'var(--text-primary)', fontSize: '0.95rem' }}>Chưa chọn Biểu mẫu nguồn</h4>
+                <p style={{ fontSize: '0.8rem', margin: 0 }}>Vui lòng chọn hoặc liên kết với một biểu mẫu để xem cấu trúc Form gốc.</p>
+              </div>
+            )
+          ) : (
+            /* A4 Sheet Container (Report) */
+            <div
+              className="paper-card"
+              onClick={(e) => {
+                if (e.target === e.currentTarget) {
+                  setActiveBlockId(null);
+                  setSelectedFieldId(null);
+                }
+              }}
+              style={{
+                width: '100%',
+                maxWidth: '698px',
+                minHeight: '842px',
+                background: '#ffffff',
+                padding: '1.5rem',
+                boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)',
+                borderRadius: '4px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '1rem'
+              }}
+            >
             {template.layoutBlocks.length === 0 ? (
               <div style={{ border: '2px dashed var(--neutral-border)', borderRadius: '8px', padding: '3rem 1.5rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
                 <FileText size={36} style={{ margin: '0 auto 0.75rem', opacity: 0.4 }} />
@@ -2542,6 +2630,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
               })
             )}
           </div>
+          )}
         </div>
 
         {/* ── RIGHT PANEL: Properties & Versions Inspector ── */}
