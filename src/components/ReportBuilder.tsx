@@ -2801,7 +2801,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }} title="Trọng số phần trăm của Trụ cột này trong toàn bộ Báo cáo">
                           <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#334155' }}>
-                            Weight (% trong Báo cáo):
+                            Weight:
                           </span>
                           <input
                             type="number"
@@ -3343,7 +3343,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
 
                           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }} title={`Trọng số phần trăm của nhóm này trong ${parentH1Title}`}>
                             <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#334155' }}>
-                              Weight (% trong {parentH1Title}):
+                              Weight:
                             </span>
                             <input
                               type="number"

@@ -34,6 +34,29 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-23 — Report Builder: Streamlined Weight Label in Field, H1 & H2 Property Bars
+
+**Scope:** 3 files (`FieldScoringInspector.tsx`, `ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | 3.5 min |
+| Thời gian lập plan (Request → Proceed) | 0.0 min (minor follow-up UI tweak) |
+| Thời gian thực thi (Proceed → Push) | 3.5 min |
+| Số file nguồn chỉnh sửa | 2 (`FieldScoringInspector.tsx`, `ReportBuilder.tsx`) |
+| Tổng lượt edit source | 3 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 2 (1 tsc + 1 vite pass) |
+| Lần build cuối thành công? | Có (100% pass, built in 9.63s) |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- **Rút gọn nhãn Trọng số (Streamlined Weight Label):** Đơn giản hóa toàn bộ nhãn dài bị quấn dòng (`Weight (% trong [Tên Nhóm]):`, `Weight (% trong Báo cáo):`, `Weight (% trong [Trụ Cột]):`) thành duy nhất nhãn ngắn gọn **`Weight:`** trên cùng 1 hàng ngang trong cả 3 phân hệ: Cấp Câu hỏi (`FieldScoringInspector.tsx`), Cấp Trụ cột H1 (`ReportBuilder.tsx`) và Cấp Nhóm H2 (`ReportBuilder.tsx`).
+- **Giữ trọn vẹn ngữ cảnh qua tooltip:** Nội dung giải thích chi tiết nhóm cha được đưa vào thuộc tính `title` khi rê chuột (`title="Trọng số phần trăm của câu hỏi trong nhóm..."`), giúp thanh thuộc tính luôn giữ được độ cao 1 hàng phẳng, đẹp và không bị tràn text.
+
+---
+
 ### 2026-09-22 — Report Builder: Left Panel Section H1 / H2 Interactive Selection & Collapsed Card Clipping Fix
 
 **Scope:** 2 files (`ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`)

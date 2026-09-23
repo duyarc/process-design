@@ -497,7 +497,7 @@ export const FieldScoringInspector: React.FC<FieldScoringInspectorProps> = ({
         {/* Right: Dynamic Weight % */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }} title={`Trọng số phần trăm của câu hỏi trong nhóm ${parentGroupTitle}`}>
           <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#334155' }}>
-            Weight (% trong {parentGroupTitle}):
+            Weight:
           </span>
           <input
             type="number"
