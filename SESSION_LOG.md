@@ -34,6 +34,32 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-23 — Report Builder: FormReferenceCanvas FormBuilder-Parity Rewrite
+
+**Scope:** 3 files (`src/components/report/FormReferenceCanvas.tsx`, `DESIGN_REPORT_BUILDER.md`, `walkthrough.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | ~15.6 min |
+| Thời gian lập plan (Request → Proceed) | ~9.5 min |
+| Thời gian thực thi (Proceed → Push) | ~6.1 min |
+| Số file nguồn chỉnh sửa | 1 (`FormReferenceCanvas.tsx`) |
+| Tổng lượt edit source | 1 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 2 (`tsc` + `vite` 12.09s) |
+| Lần build đầu thành công? | Có (100% pass ngay lần đầu) |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- **Đồng bộ trung thực 100% (FormBuilder WYSIWYG Parity):** Tái cấu trúc hoàn toàn `FormReferenceCanvas.tsx`, chuyển đổi toàn bộ cấu trúc paper sheet thành `maxWidth: 820px` (A4) / `920px` (A5), `padding: 2.5rem`, `minHeight: 1050px`, `gap: 0px`.
+- **Triệt tiêu khoảng cách Block Margin-Top:** Đặt `marginTop: 0px` cho toàn bộ các block theo đúng chỉ đạo người dùng, triệt tiêu hoàn toàn khoảng cách lồi lõm không đồng đều.
+- **Footer chuẩn FormBuilder:** Khớp định dạng chân trang `formId || 'PENDING'` và `formatFormVersion(version, status, effectiveDate, updatedAt)`.
+- **Type-Aware Field Rendering & Table Colgroup Parity:** Hỗ trợ render đầy đủ mọi loại trường (`photo`, `text`/`number`, `date`/`time`, `rating`/`likert_scale`, `radio`/`checkbox`, `select`, `subtable`) và định dạng bảng chuẩn (`tableLayout: fixed`, `<colgroup>` với `getColStyleWidth`, `hideHeader` mờ thead, group header resolution, `getEffectiveCellOptions`, và MATRIX_TABLE demo).
+- **Chất lượng mã nguồn:** TypeScript compilation pass 100% không lỗi, Vite production bundle hoàn tất trong 12.09s.
+
+---
+
 ### 2026-09-23 — Report Builder: Dual Tab Canvas [ Form | Report ] & Form Reference Canvas Sub-Component
 
 **Scope:** 4 files (`src/components/report/FormReferenceCanvas.tsx`, `ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`, `walkthrough.md`)
@@ -491,31 +517,3 @@ eportScoring.ts, FieldScoringInspector.tsx, ReportBuilder.tsx) |
 - Đảm bảo MỌI biểu mẫu chưa liên kết (kể cả form mở độc lập từ Dashboard không có `linkedProcessId`) đều hiển thị đúng dòng `[Link2Off] Form chưa liên kết` bên dưới ô input.
 - Hiển thị icon `Link2Off` màu xám nhạt kèm tooltip cạnh nhãn Form ID khi form không có quy trình liên kết.
 - TypeScript (`tsc`) và Vite bundle hoàn tất 100% trong 10.38s.
-
----
-
-### 2026-09-18 — Form Designer: Linked Workstep Context & Ultra-Clean Tree Guide Line
-
-**Scope:** 6 files, 116 insertions, 13 deletions (`76661c5`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian lập plan (Request → Proceed) | 25.3 min |
-| Thời gian thực thi (Proceed → Push) | 14.2 min |
-| Thời gian tổng (Request → Push) | 39.5 min |
-| Số file nguồn chỉnh sửa | 4 (`types.ts`, `formUtils.ts`, `FormBuilder.tsx`, `ProcessEditor.tsx`) |
-| Tổng lượt edit source | 10 |
-| Lượt edit sửa lỗi (rework) | 1 (`BLOAT` TS6133 unused declaration) |
-| Số lần build | 7 |
-| Lần build đầu thành công? | Không (vướng TS6133 do destructure prop chưa dùng) |
-| Số lệnh thất bại | 1 |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 1 (Lỗi #9: TS6133 unused declaration) |
-
-**Điểm nổi bật:**
-- Nâng cấp hiển thị trạng thái Form ID theo Biến thể 3B tối giản: loại bỏ toàn bộ card lớn, ký tự rườm rà (`↳`), và nhãn thừa ("Công đoạn:", "2 công đoạn").
-- Sử dụng đường gióng cây dọc mảnh `1.5px` tạo cấu trúc phân cấp trực quan đồng bộ cho cả form gắn 1 bước lẫn form gắn nhiều bước (Multi-workstep).
-- Tách biệt logic trích xuất công đoạn bằng hàm pure utility `extractLinkedWorkSteps` trong `formUtils.ts` (Rule 13.8).
-- Gắn tooltip `title={linkedProcessTitle}` vào tên quy trình để hover xem chi tiết mà không làm rối mắt giao diện, triệt tiêu lỗi TS6133.
-- Chuẩn hóa thông báo biểu mẫu độc lập thành `"Form chưa liên kết"`.
-- Build TypeScript (`tsc`) và Vite production bundle thành công 100% trong 10.48s.
