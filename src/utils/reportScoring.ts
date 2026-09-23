@@ -25,6 +25,20 @@ export function computeFieldScoreAndPass(
 
   // If value is empty or not provided
   if (rawValue === undefined || rawValue === null || rawValue === '') {
+    if (formField.type === 'text') {
+      const allowEmpty = Boolean(ruleOverride?.textAllowEmpty);
+      const emptyScore = ruleOverride?.textEmptyScore !== undefined ? ruleOverride.textEmptyScore : 0;
+      const passScore = ruleOverride?.textPassScore !== undefined ? ruleOverride.textPassScore : 10;
+      const maxScore = Math.max(passScore, emptyScore, 10);
+      return {
+        score: emptyScore,
+        maxScore,
+        status: allowEmpty ? 'PASS' : (ruleOverride?.textMinLength !== undefined ? 'FAIL' : 'NA'),
+        deviationText: (!allowEmpty && ruleOverride?.textMinLength !== undefined) ? 'Chưa nhập dữ liệu' : undefined,
+        weight,
+        isKnockout
+      };
+    }
     return {
       score: 0,
       maxScore: 0,
@@ -152,15 +166,48 @@ export function computeFieldScoreAndPass(
     };
   }
 
-  // 4. Number / Spec
+  // 4. Number / Spec Multi-Range
   if (formField.type === 'number') {
     const num = typeof rawValue === 'number' ? rawValue : parseFloat(String(rawValue));
-    const targetScore = ruleOverride?.fixedScore !== undefined ? ruleOverride.fixedScore : 10;
-
     if (isNaN(num)) {
-      return { score: 0, maxScore: targetScore, status: 'FAIL', deviationText: 'Giá trị không phải số hợp lệ', weight, isKnockout };
+      return { score: 0, maxScore: 10, status: 'FAIL', deviationText: 'Giá trị không phải số hợp lệ', weight, isKnockout };
     }
 
+    // A. Multi-Range Evaluation
+    if (ruleOverride?.numberRanges && ruleOverride.numberRanges.length > 0) {
+      const maxScore = Math.max(ruleOverride.numberDefaultScore ?? 0, ...ruleOverride.numberRanges.map(r => r.score), 10);
+      const matchedRange = ruleOverride.numberRanges.find(r => {
+        if (r.min !== undefined && r.max !== undefined) return num >= r.min && num <= r.max;
+        if (r.min !== undefined) return num >= r.min;
+        if (r.max !== undefined) return num <= r.max;
+        return false;
+      });
+
+      if (matchedRange) {
+        return {
+          score: matchedRange.score,
+          maxScore,
+          status: matchedRange.isPass ? 'PASS' : 'FAIL',
+          deviationText: !matchedRange.isPass ? 'Không đạt tiêu chuẩn' : undefined,
+          weight,
+          isKnockout
+        };
+      }
+
+      const defPass = ruleOverride.numberDefaultPass ?? false;
+      const defScore = ruleOverride.numberDefaultScore ?? 0;
+      return {
+        score: defScore,
+        maxScore,
+        status: defPass ? 'PASS' : 'FAIL',
+        deviationText: !defPass ? 'Out of range' : undefined,
+        weight,
+        isKnockout
+      };
+    }
+
+    // B. Legacy Min/Max Spec Fallback
+    const targetScore = ruleOverride?.fixedScore !== undefined ? ruleOverride.fixedScore : 10;
     const min = ruleOverride?.customMinSpec !== undefined ? ruleOverride.customMinSpec : formField.minSpec;
     const max = ruleOverride?.customMaxSpec !== undefined ? ruleOverride.customMaxSpec : formField.maxSpec;
 
@@ -194,7 +241,47 @@ export function computeFieldScoreAndPass(
     };
   }
 
-  // 5. Default informational types (text, date, time, sign, etc.)
+  // 5. Text Completeness
+  if (formField.type === 'text') {
+    const str = String(rawValue).trim();
+    const minLen = ruleOverride?.textMinLength !== undefined ? ruleOverride.textMinLength : 10;
+    const passScore = ruleOverride?.textPassScore !== undefined ? ruleOverride.textPassScore : 10;
+    const shortScore = ruleOverride?.textShortScore !== undefined ? ruleOverride.textShortScore : 5;
+    const shortPass = Boolean(ruleOverride?.textShortPass);
+    const allowEmpty = Boolean(ruleOverride?.textAllowEmpty);
+    const emptyScore = ruleOverride?.textEmptyScore !== undefined ? ruleOverride.textEmptyScore : 0;
+    const maxScore = Math.max(passScore, shortScore, emptyScore, 10);
+
+    if (str.length === 0) {
+      return {
+        score: emptyScore,
+        maxScore,
+        status: allowEmpty ? 'PASS' : 'FAIL',
+        deviationText: !allowEmpty ? 'Chưa nhập dữ liệu' : undefined,
+        weight,
+        isKnockout
+      };
+    } else if (str.length >= minLen) {
+      return {
+        score: passScore,
+        maxScore,
+        status: 'PASS',
+        weight,
+        isKnockout
+      };
+    } else {
+      return {
+        score: shortScore,
+        maxScore,
+        status: shortPass ? 'PASS' : 'FAIL',
+        deviationText: !shortPass ? `Chưa đủ độ dài (${str.length} < ${minLen})` : undefined,
+        weight,
+        isKnockout
+      };
+    }
+  }
+
+  // 6. Default informational types (date, time, sign, etc.)
   return {
     score: 0,
     maxScore: 0,

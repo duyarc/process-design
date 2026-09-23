@@ -389,6 +389,15 @@ export function getColStyleWidth(colId: string, _colWidth: string, tableColumns:
 
 export type ReportBlockType = 'TITLE' | 'SECTION_LABEL' | 'INFO_GRID' | 'TABLE' | 'SIGN';
 
+export interface NumberRangeSpec {
+  id: string;
+  min?: number;
+  max?: number;
+  label?: string;
+  isPass: boolean;
+  score: number;
+}
+
 export interface ReportFieldRuleOverride {
   fieldId: string;                      // Bound FormFieldISO.id
   customLabel?: string;                 // Override label text in report
@@ -401,6 +410,17 @@ export interface ReportFieldRuleOverride {
   isKnockout?: boolean;                 // Critical knock-out condition
   optionScores?: Record<string, number>; // Map option value/label -> score
   fixedScore?: number;                  // Passing score for numeric/spec fields
+  // Number Multi-Range Scoring Rules
+  numberRanges?: NumberRangeSpec[];
+  numberDefaultPass?: boolean;
+  numberDefaultScore?: number;
+  // Text Completeness Scoring Rules
+  textMinLength?: number;
+  textPassScore?: number;
+  textShortScore?: number;
+  textShortPass?: boolean;
+  textAllowEmpty?: boolean;
+  textEmptyScore?: number;
 }
 
 export interface ReportBlockConfig {

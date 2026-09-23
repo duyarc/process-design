@@ -1,6 +1,6 @@
 import React from 'react';
-import { Check, CheckSquare, Square, Circle, CircleDot } from 'lucide-react';
-import type { FormFieldISO, ReportFieldRuleOverride, Submission } from '../../types';
+import { Check, CheckSquare, Square, Circle, CircleDot, Plus } from 'lucide-react';
+import type { FormFieldISO, ReportFieldRuleOverride, Submission, NumberRangeSpec } from '../../types';
 import { computeFieldScoreAndPass } from '../../utils/reportScoring';
 
 interface FieldScoringInspectorProps {
@@ -61,6 +61,42 @@ export const FieldScoringInspector: React.FC<FieldScoringInspectorProps> = ({
   const isChoiceType = selectedField.type === 'radio' || selectedField.type === 'select';
   const isCheckboxType = selectedField.type === 'checkbox';
   const isNumberType = selectedField.type === 'number';
+  const isTextType = selectedField.type === 'text';
+
+  // Number range helpers
+  const numberRanges: NumberRangeSpec[] = ruleOverride?.numberRanges && ruleOverride.numberRanges.length > 0
+    ? ruleOverride.numberRanges
+    : [{
+        id: 'r_default',
+        min: ruleOverride?.customMinSpec !== undefined ? ruleOverride.customMinSpec : (selectedField.minSpec ?? undefined),
+        max: ruleOverride?.customMaxSpec !== undefined ? ruleOverride.customMaxSpec : (selectedField.maxSpec ?? undefined),
+        isPass: true,
+        score: ruleOverride?.fixedScore !== undefined ? ruleOverride.fixedScore : 10
+      }];
+
+  const handleUpdateNumberRange = (rangeId: string, updates: Partial<NumberRangeSpec>) => {
+    if (isLocked) return;
+    const updated = numberRanges.map(r => r.id === rangeId ? { ...r, ...updates } : r);
+    onUpdateRule({ numberRanges: updated });
+  };
+
+  const handleAddRange = () => {
+    if (isLocked) return;
+    const newRange: NumberRangeSpec = {
+      id: 'r_' + Date.now(),
+      min: undefined,
+      max: undefined,
+      isPass: true,
+      score: 10
+    };
+    onUpdateRule({ numberRanges: [...numberRanges, newRange] });
+  };
+
+  const handleDeleteRange = (rangeId: string) => {
+    if (isLocked) return;
+    const updated = numberRanges.filter(r => r.id !== rangeId);
+    onUpdateRule({ numberRanges: updated });
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
@@ -401,71 +437,441 @@ export const FieldScoringInspector: React.FC<FieldScoringInspectorProps> = ({
         );
       })()}
 
-      {/* Number Type */}
+      {/* Number Type (Multi-Range Intervals) */}
       {isNumberType && (() => {
-        const targetScore = ruleOverride?.fixedScore !== undefined ? ruleOverride.fixedScore : 10;
+        const numVal = typeof rawValue === 'number' ? rawValue : parseFloat(String(rawValue));
+        const hasValidNum = !isNaN(numVal);
+        const defPass = ruleOverride?.numberDefaultPass ?? false;
+        const defScore = ruleOverride?.numberDefaultScore ?? 0;
+
         return (
-          <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', background: '#ffffff', padding: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569' }}>Giá trị thực tế:</span>
-              <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0f172a' }}>{rawValue !== '' ? `${rawValue} ${selectedField.unit || ''}` : '(Chưa có)'}</span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {/* Value Banner */}
+            <div style={{
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '8px',
+              padding: '8px 10px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569' }}>Value:</span>
+              <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0f172a', fontFamily: 'monospace' }}>
+                {rawValue !== '' ? `${rawValue} ${selectedField.unit || ''}` : '(Empty)'}
+              </span>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-              <div>
-                <label style={{ fontSize: '0.7rem', fontWeight: 600, color: '#64748b' }}>Min Spec</label>
-                <input
-                  type="number"
-                  disabled={isLocked}
-                  value={ruleOverride?.customMinSpec !== undefined ? ruleOverride.customMinSpec : (selectedField.minSpec ?? '')}
-                  onChange={(e) => onUpdateRule({ customMinSpec: e.target.value !== '' ? parseFloat(e.target.value) : undefined })}
-                  style={{ width: '100%', padding: '3px 6px', fontSize: '0.75rem', border: '1px solid #cbd5e1', borderRadius: '4px' }}
-                />
+            {/* Multi-Range Matrix */}
+            <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', background: '#ffffff' }}>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '5.5fr 2.5fr 2.5fr 1fr',
+                padding: '6px 10px',
+                background: '#f8fafc',
+                borderBottom: '1px solid #e2e8f0',
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                color: '#475569',
+                alignItems: 'center'
+              }}>
+                <span>Range</span>
+                <span style={{ textAlign: 'center', color: '#0f766e' }}>isPass</span>
+                <span style={{ textAlign: 'right', color: '#4338ca' }}>Score</span>
+                <span></span>
               </div>
-              <div>
-                <label style={{ fontSize: '0.7rem', fontWeight: 600, color: '#64748b' }}>Max Spec</label>
-                <input
-                  type="number"
-                  disabled={isLocked}
-                  value={ruleOverride?.customMaxSpec !== undefined ? ruleOverride.customMaxSpec : (selectedField.maxSpec ?? '')}
-                  onChange={(e) => onUpdateRule({ customMaxSpec: e.target.value !== '' ? parseFloat(e.target.value) : undefined })}
-                  style={{ width: '100%', padding: '3px 6px', fontSize: '0.75rem', border: '1px solid #cbd5e1', borderRadius: '4px' }}
-                />
-              </div>
-            </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #f1f5f9', paddingTop: '6px' }}>
-              <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#475569' }}>Điểm khi đạt (Pass Score):</span>
-              <input
-                type="number"
+              {/* Dynamic Range Rows */}
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {numberRanges.map((r) => {
+                  let isMatched = false;
+                  if (hasValidNum) {
+                    if (r.min !== undefined && r.max !== undefined) {
+                      isMatched = numVal >= r.min && numVal <= r.max;
+                    } else if (r.min !== undefined) {
+                      isMatched = numVal >= r.min;
+                    } else if (r.max !== undefined) {
+                      isMatched = numVal <= r.max;
+                    }
+                  }
+
+                  return (
+                    <div
+                      key={r.id}
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: '5.5fr 2.5fr 2.5fr 1fr',
+                        padding: '6px 10px',
+                        borderBottom: '1px solid #f1f5f9',
+                        fontSize: '0.75rem',
+                        alignItems: 'center',
+                        background: isMatched ? 'rgba(240, 253, 250, 0.85)' : '#ffffff',
+                        borderLeft: isMatched ? '3px solid var(--primary)' : '3px solid transparent',
+                        transition: 'background 0.15s ease'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <input
+                          type="number"
+                          disabled={isLocked}
+                          value={r.min !== undefined ? r.min : ''}
+                          onChange={(e) => handleUpdateNumberRange(r.id, { min: e.target.value !== '' ? parseFloat(e.target.value) : undefined })}
+                          placeholder="Min"
+                          title="Min"
+                          style={{ width: '42px', padding: '3px 4px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.75rem', fontFamily: 'monospace' }}
+                        />
+                        <span style={{ color: '#94a3b8', fontSize: '0.7rem' }}>~</span>
+                        <input
+                          type="number"
+                          disabled={isLocked}
+                          value={r.max !== undefined ? r.max : ''}
+                          onChange={(e) => handleUpdateNumberRange(r.id, { max: e.target.value !== '' ? parseFloat(e.target.value) : undefined })}
+                          placeholder="Max"
+                          title="Max"
+                          style={{ width: '42px', padding: '3px 4px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.75rem', fontFamily: 'monospace' }}
+                        />
+                      </div>
+
+                      <div style={{ textAlign: 'center' }}>
+                        <input
+                          type="checkbox"
+                          disabled={isLocked}
+                          checked={r.isPass}
+                          onChange={(e) => handleUpdateNumberRange(r.id, { isPass: e.target.checked })}
+                          style={{ width: '14px', height: '14px', accentColor: 'var(--primary)', cursor: isLocked ? 'not-allowed' : 'pointer' }}
+                          title="isPass"
+                        />
+                      </div>
+
+                      <div style={{ textAlign: 'right' }}>
+                        <input
+                          type="number"
+                          disabled={isLocked}
+                          value={r.score}
+                          onChange={(e) => handleUpdateNumberRange(r.id, { score: parseFloat(e.target.value) || 0 })}
+                          style={{ width: '44px', padding: '3px 4px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.75rem', textAlign: 'right', fontWeight: 700 }}
+                        />
+                      </div>
+
+                      <div style={{ textAlign: 'right' }}>
+                        <button
+                          type="button"
+                          disabled={isLocked || numberRanges.length <= 1}
+                          onClick={() => handleDeleteRange(r.id)}
+                          style={{
+                            border: 'none',
+                            background: 'transparent',
+                            color: numberRanges.length <= 1 ? '#e2e8f0' : '#94a3b8',
+                            cursor: (isLocked || numberRanges.length <= 1) ? 'not-allowed' : 'pointer',
+                            borderRadius: '4px',
+                            padding: '2px 4px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                          title="Delete range"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Fallback Row (Out of Range) */}
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '5.5fr 2.5fr 2.5fr 1fr',
+                    padding: '6px 10px',
+                    borderBottom: '1px solid #f1f5f9',
+                    fontSize: '0.75rem',
+                    alignItems: 'center',
+                    background: (hasValidNum && !numberRanges.some(r => (r.min !== undefined && r.max !== undefined && numVal >= r.min && numVal <= r.max) || (r.min !== undefined && r.max === undefined && numVal >= r.min) || (r.min === undefined && r.max !== undefined && numVal <= r.max))) ? 'rgba(255, 241, 242, 0.85)' : '#fafafa',
+                    borderLeft: (hasValidNum && !numberRanges.some(r => (r.min !== undefined && r.max !== undefined && numVal >= r.min && numVal <= r.max) || (r.min !== undefined && r.max === undefined && numVal >= r.min) || (r.min === undefined && r.max !== undefined && numVal <= r.max))) ? '3px solid var(--accent-rose, #e11d48)' : '3px solid transparent',
+                    color: '#64748b'
+                  }}
+                >
+                  <span style={{ fontSize: '0.72rem', fontStyle: 'italic' }}>Out of range</span>
+                  <div style={{ textAlign: 'center' }}>
+                    <input
+                      type="checkbox"
+                      disabled={isLocked}
+                      checked={defPass}
+                      onChange={(e) => onUpdateRule({ numberDefaultPass: e.target.checked })}
+                      style={{ width: '14px', height: '14px', accentColor: 'var(--primary)', cursor: isLocked ? 'not-allowed' : 'pointer' }}
+                      title="isPass"
+                    />
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <input
+                      type="number"
+                      disabled={isLocked}
+                      value={defScore}
+                      onChange={(e) => onUpdateRule({ numberDefaultScore: parseFloat(e.target.value) || 0 })}
+                      style={{ width: '44px', padding: '3px 4px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.75rem', textAlign: 'right', fontWeight: 700 }}
+                    />
+                  </div>
+                  <div></div>
+                </div>
+              </div>
+
+              {/* Add Range Button */}
+              <button
+                type="button"
                 disabled={isLocked}
-                value={targetScore}
-                onChange={(e) => onUpdateRule({ fixedScore: parseFloat(e.target.value) || 0 })}
-                style={{ width: '50px', padding: '2px 4px', fontSize: '0.75rem', textAlign: 'right', fontWeight: 700, border: '1px solid #cbd5e1', borderRadius: '4px' }}
-              />
+                onClick={handleAddRange}
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '4px',
+                  padding: '6px',
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  color: 'var(--primary)',
+                  background: 'var(--primary-light, #f0fdfa)',
+                  border: 'none',
+                  borderTop: '1px dashed #ccfbf1',
+                  cursor: isLocked ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <Plus size={12} /> Add Range
+              </button>
+
+              {/* SUM Preview Row */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
+                padding: '8px 10px',
+                alignItems: 'center',
+                background: evalResult.status === 'PASS' ? 'rgba(240, 253, 250, 0.7)' : 'rgba(255, 241, 242, 0.7)',
+                borderTop: '1px solid #e2e8f0'
+              }}>
+                <div style={{ gridColumn: 'span 6' }}></div>
+                <div style={{ gridColumn: 'span 3', textAlign: 'center' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.05em', color: evalResult.status === 'PASS' ? '#0f766e' : '#e11d48' }}>
+                    {evalResult.status === 'PASS' ? 'PASS' : 'FAIL'}
+                  </span>
+                </div>
+                <div style={{ gridColumn: 'span 3', textAlign: 'right' }}>
+                  <span style={{ fontSize: '0.95rem', fontWeight: 900, color: '#0f172a', lineHeight: 1 }}>
+                    {evalResult.score}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Text / Textarea Type (Option 4: Inline Min Chars inside Condition Table) */}
+      {isTextType && (() => {
+        const textStr = rawValue !== undefined && rawValue !== null ? String(rawValue).trim() : '';
+        const charCount = textStr.length;
+        const minLen = ruleOverride?.textMinLength !== undefined ? ruleOverride.textMinLength : 10;
+        const passScore = ruleOverride?.textPassScore !== undefined ? ruleOverride.textPassScore : 10;
+        const shortScore = ruleOverride?.textShortScore !== undefined ? ruleOverride.textShortScore : 5;
+        const shortPass = Boolean(ruleOverride?.textShortPass);
+        const allowEmpty = Boolean(ruleOverride?.textAllowEmpty);
+        const emptyScore = ruleOverride?.textEmptyScore !== undefined ? ruleOverride.textEmptyScore : 0;
+
+        const isStandardMatch = charCount >= minLen;
+        const isShortMatch = charCount > 0 && charCount < minLen;
+        const isEmptyMatch = charCount === 0;
+
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {/* Value Banner with char counter */}
+            <div style={{
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '8px',
+              padding: '8px 10px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#475569' }}>Value:</span>
+              <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#0f172a', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {charCount > 0 ? (
+                  <>
+                    <span style={{ color: '#0f766e' }}>"{textStr}"</span>{' '}
+                    <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 500 }}>({charCount} chars)</span>
+                  </>
+                ) : (
+                  '(Empty)'
+                )}
+              </span>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: evalResult.status === 'PASS' ? '#f0fdfa' : '#fff1f2', padding: '6px 8px', borderRadius: '4px' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: evalResult.status === 'PASS' ? '#0f766e' : '#e11d48' }}>
-                {evalResult.status === 'PASS' ? 'PASS' : 'FAIL'}
-              </span>
-              <span style={{ fontSize: '0.9rem', fontWeight: 900, color: '#0f172a' }}>
-                {evalResult.score}
-              </span>
+            {/* Matrix Box */}
+            <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', background: '#ffffff' }}>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '6.2fr 2.8fr 3fr',
+                padding: '6px 10px',
+                background: '#f8fafc',
+                borderBottom: '1px solid #e2e8f0',
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                color: '#475569',
+                alignItems: 'center'
+              }}>
+                <span>Condition</span>
+                <span style={{ textAlign: 'center', color: '#0f766e' }}>isPass</span>
+                <span style={{ textAlign: 'right', color: '#4338ca' }}>Score</span>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {/* Row 1: Standard (≥ [ minLen ]) */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '6.2fr 2.8fr 3fr',
+                  padding: '6px 10px',
+                  borderBottom: '1px solid #f1f5f9',
+                  fontSize: '0.75rem',
+                  alignItems: 'center',
+                  background: isStandardMatch ? 'rgba(240, 253, 250, 0.85)' : '#ffffff',
+                  borderLeft: isStandardMatch ? '3px solid var(--primary)' : '3px solid transparent'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                    <span style={{ fontWeight: 600, color: '#0f172a' }}>Standard (≥</span>
+                    <input
+                      type="number"
+                      disabled={isLocked}
+                      value={minLen}
+                      onChange={(e) => onUpdateRule({ textMinLength: Math.max(1, parseInt(e.target.value) || 1) })}
+                      style={{ width: '36px', padding: '2px 3px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.75rem', textAlign: 'center', fontWeight: 700 }}
+                      title="Min characters for standard"
+                    />
+                    <span style={{ fontWeight: 600, color: '#0f172a' }}>)</span>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <input
+                      type="checkbox"
+                      checked={true}
+                      disabled={true}
+                      style={{ width: '14px', height: '14px', accentColor: 'var(--primary)', cursor: 'default' }}
+                      title="Standard is always PASS"
+                    />
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <input
+                      type="number"
+                      disabled={isLocked}
+                      value={passScore}
+                      onChange={(e) => onUpdateRule({ textPassScore: parseFloat(e.target.value) || 0 })}
+                      style={{ width: '44px', padding: '3px 4px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.75rem', textAlign: 'right', fontWeight: 700 }}
+                    />
+                  </div>
+                </div>
+
+                {/* Row 2: Short (< minLen) */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '6.2fr 2.8fr 3fr',
+                  padding: '6px 10px',
+                  borderBottom: '1px solid #f1f5f9',
+                  fontSize: '0.75rem',
+                  alignItems: 'center',
+                  background: isShortMatch ? 'rgba(240, 253, 250, 0.85)' : '#ffffff',
+                  borderLeft: isShortMatch ? '3px solid var(--primary)' : '3px solid transparent'
+                }}>
+                  <span style={{ color: '#475569' }}>Short (&lt; {minLen})</span>
+                  <div style={{ textAlign: 'center' }}>
+                    <input
+                      type="checkbox"
+                      disabled={isLocked}
+                      checked={shortPass}
+                      onChange={(e) => onUpdateRule({ textShortPass: e.target.checked })}
+                      style={{ width: '14px', height: '14px', accentColor: 'var(--primary)', cursor: isLocked ? 'not-allowed' : 'pointer' }}
+                      title="isPass"
+                    />
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <input
+                      type="number"
+                      disabled={isLocked}
+                      value={shortScore}
+                      onChange={(e) => onUpdateRule({ textShortScore: parseFloat(e.target.value) || 0 })}
+                      style={{ width: '44px', padding: '3px 4px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.75rem', textAlign: 'right', fontWeight: 700 }}
+                    />
+                  </div>
+                </div>
+
+                {/* Row 3: Empty */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '6.2fr 2.8fr 3fr',
+                  padding: '6px 10px',
+                  borderBottom: '1px solid #f1f5f9',
+                  fontSize: '0.75rem',
+                  alignItems: 'center',
+                  background: isEmptyMatch ? 'rgba(240, 253, 250, 0.85)' : '#fafafa',
+                  borderLeft: isEmptyMatch ? '3px solid var(--primary)' : '3px solid transparent',
+                  color: '#64748b'
+                }}>
+                  <span>Empty</span>
+                  <div style={{ textAlign: 'center' }}>
+                    <input
+                      type="checkbox"
+                      disabled={isLocked}
+                      checked={allowEmpty}
+                      onChange={(e) => onUpdateRule({ textAllowEmpty: e.target.checked })}
+                      style={{ width: '14px', height: '14px', accentColor: 'var(--primary)', cursor: isLocked ? 'not-allowed' : 'pointer' }}
+                      title="Allow empty"
+                    />
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <input
+                      type="number"
+                      disabled={isLocked}
+                      value={emptyScore}
+                      onChange={(e) => onUpdateRule({ textEmptyScore: parseFloat(e.target.value) || 0 })}
+                      style={{ width: '44px', padding: '3px 4px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.75rem', textAlign: 'right', fontWeight: 700 }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* SUM Preview Row */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
+                padding: '8px 10px',
+                alignItems: 'center',
+                background: evalResult.status === 'PASS' ? 'rgba(240, 253, 250, 0.7)' : 'rgba(255, 241, 242, 0.7)',
+                borderTop: '1px solid #e2e8f0'
+              }}>
+                <div style={{ gridColumn: 'span 6' }}></div>
+                <div style={{ gridColumn: 'span 3', textAlign: 'center' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.05em', color: evalResult.status === 'PASS' ? '#0f766e' : '#e11d48' }}>
+                    {evalResult.status === 'PASS' ? 'PASS' : 'FAIL'}
+                  </span>
+                </div>
+                <div style={{ gridColumn: 'span 3', textAlign: 'right' }}>
+                  <span style={{ fontSize: '0.95rem', fontWeight: 900, color: '#0f172a', lineHeight: 1 }}>
+                    {evalResult.score}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         );
       })()}
 
       {/* Other Informational Fields */}
-      {!isScaleType && !isChoiceType && !isCheckboxType && !isNumberType && (
+      {!isScaleType && !isChoiceType && !isCheckboxType && !isNumberType && !isTextType && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
           <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.75rem' }}>Value</label>
           <input
             type="text"
             readOnly
             value={rawValue}
-            placeholder="(Chưa có dữ liệu nộp)"
+            placeholder="(Empty)"
             style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', fontSize: '0.8rem', fontWeight: 600, background: '#f8fafc', color: '#0f172a' }}
           />
         </div>

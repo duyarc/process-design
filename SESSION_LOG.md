@@ -34,6 +34,32 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-23 — Report Builder: Number Multi-Range & Text Completeness Scoring Rules & Minimal English Inspector
+
+**Scope:** 5 files (	ypes.ts, 
+eportScoring.ts, FieldScoringInspector.tsx, ReportBuilder.tsx, DESIGN_REPORT_BUILDER.md)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | 6.5 min |
+| Thời gian lập plan (Request → Proceed) | 2.5 min |
+| Thời gian thực thi (Proceed → Push) | 4.0 min |
+| Số file nguồn chỉnh sửa | 4 (	ypes.ts, 
+eportScoring.ts, FieldScoringInspector.tsx, ReportBuilder.tsx) |
+| Tổng lượt edit source | 7 |
+| Lượt edit sửa lỗi (rework) | 1 (sửa TS2367 không có textarea trong FormFieldISO.type) |
+| Số lần build | 4 (3 tsc + 1 vite pass) |
+| Lần build cuối thành công? | Có (100% pass, built in 11.05s) |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- **Chấm điểm Đa Dải Ngưỡng (Number Multi-Range Intervals):** Hỗ trợ cấu hình $ dải ngưỡng với trạng thái isPass và Score độc lập, nút + Add Range, xóa dải và highlight dải khớp giá trị thực tế.
+- **Kiểm tra Độ đầy đủ & Cấu hình Ký tự Inline (Text Completeness):** Tích hợp trực tiếp ô nhập số ký tự tối thiểu vào dòng điều kiện Standard (≥ [ 10 ]), tự động cập nhật dòng Short (< 10) và Empty (toggle Allow empty).
+- **Chuẩn hóa Minimal English & Tiết kiệm Chiều cao:** Đổi toàn bộ nhãn sang tiếng Anh tối giản (Value:, Range, Condition, Copy/Copied!) và thu gọn hàng Type trên cùng 1 hàng ngang phẳng.
+
+---
+
 ### 2026-09-23 — Report Builder: Streamlined Weight Label in Field, H1 & H2 Property Bars
 
 **Scope:** 3 files (`FieldScoringInspector.tsx`, `ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`)

@@ -2612,10 +2612,10 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                             setTimeout(() => setCopiedFieldId(false), 2000);
                           }}
                           style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '0.68rem', color: copiedFieldId ? '#059669' : 'var(--primary)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, padding: '0 2px' }}
-                          title="Sao chép Field ID"
+                          title="Copy Field ID"
                         >
                           {copiedFieldId ? <Check size={11} /> : <Copy size={11} />}
-                          <span>{copiedFieldId ? 'Đã chép!' : 'Sao chép'}</span>
+                          <span>{copiedFieldId ? 'Copied!' : 'Copy'}</span>
                         </button>
                       </div>
                       <input
@@ -2653,13 +2653,13 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                       const TypeIcon = typeOpt.icon;
                       return (
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
-                          <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.8rem', minWidth: '40px' }}>Type</label>
-                          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.45rem 0.65rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: '0.82rem', fontWeight: 600, boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                              <TypeIcon size={16} strokeWidth={2} style={{ color: 'var(--primary)' }} />
+                          <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.75rem', minWidth: '36px' }}>Type</label>
+                          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.35rem 0.6rem', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', fontSize: '0.8rem', fontWeight: 600, boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <TypeIcon size={15} strokeWidth={2} style={{ color: 'var(--primary)' }} />
                               <span>{typeOpt.label}</span>
                             </div>
-                            <ChevronDown size={14} strokeWidth={2} style={{ color: '#64748b' }} />
+                            <ChevronDown size={13} strokeWidth={2} style={{ color: '#64748b' }} />
                           </div>
                         </div>
                       );
