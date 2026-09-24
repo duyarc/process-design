@@ -50,7 +50,8 @@ import {
   CheckSquare,
   SlidersHorizontal,
   Camera,
-  Copy
+  Copy,
+  Pencil
 } from 'lucide-react';
 
 interface ToggleSwitchProps {
@@ -2917,6 +2918,49 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                     )}
                   </div>
 
+                  {/* TABLE Name Inline Header (Biến thể 2A: Seamless Borderless) */}
+                  {activeBlock.type === 'TABLE' && (
+                    <div style={{ borderBottom: '1.5px solid #e2e8f0', paddingBottom: '3px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <input
+                        type="text"
+                        disabled={isLocked}
+                        value={activeBlock.title || ''}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setTemplate(prev => ({
+                            ...prev,
+                            layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, title: val } : b)
+                          }));
+                        }}
+                        placeholder="Nhập tên bảng..."
+                        title="Bấm để đổi tên bảng"
+                        style={{
+                          width: '100%',
+                          padding: '2px 4px',
+                          border: '1px solid transparent',
+                          borderRadius: '4px',
+                          fontSize: '0.88rem',
+                          fontWeight: 700,
+                          color: '#0f172a',
+                          background: 'transparent',
+                          outline: 'none',
+                          transition: 'all 0.15s ease'
+                        }}
+                        onFocus={(e) => {
+                          e.currentTarget.style.background = '#ffffff';
+                          e.currentTarget.style.borderColor = 'var(--primary)';
+                          e.currentTarget.style.boxShadow = '0 0 0 2px rgba(13, 148, 136, 0.15)';
+                        }}
+                        onBlur={(e) => {
+                          e.currentTarget.style.background = 'transparent';
+                          e.currentTarget.style.borderColor = 'transparent';
+                          e.currentTarget.style.boxShadow = 'none';
+                        }}
+                      />
+                      <Pencil size={12} style={{ color: '#94a3b8', flexShrink: 0, pointerEvents: 'none' }} />
+                    </div>
+                  )}
+
                   {activeBlock.type === 'SECTION_LABEL' && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -3260,15 +3304,15 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                     </div>
                   )}
 
-                  {/* TABLE Special Controls */}
+                  {/* TABLE Special Controls: Combined Single-Row Border & Header (Biến thể 2A) */}
                   {activeBlock.type === 'TABLE' && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Border Style</label>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                        <label style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Border</label>
                         <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: '4px', padding: '1px', border: '1px solid #cbd5e1' }}>
                           {[
                             { id: 'grid', label: 'Grid' },
-                            { id: 'horizontal_only', label: 'Horizontal' },
+                            { id: 'horizontal_only', label: 'Horiz' },
                             { id: 'borderless', label: 'None' }
                           ].map(styleOpt => (
                             <button
@@ -3281,8 +3325,8 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                 }));
                               }}
                               style={{
-                                padding: '2px 6px',
-                                fontSize: '0.68rem',
+                                padding: '2px 5px',
+                                fontSize: '0.67rem',
                                 fontWeight: (activeBlock.borderStyle || 'grid') === styleOpt.id ? 700 : 500,
                                 background: (activeBlock.borderStyle || 'grid') === styleOpt.id ? 'var(--primary)' : 'transparent',
                                 color: (activeBlock.borderStyle || 'grid') === styleOpt.id ? '#ffffff' : 'var(--text-secondary)',
@@ -3297,16 +3341,18 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                         </div>
                       </div>
 
-                      <ToggleSwitch
-                        label="Header"
-                        checked={!(activeBlock.hideHeader ?? false)}
-                        onChange={(show) => {
-                          setTemplate(prev => ({
-                            ...prev,
-                            layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, hideHeader: !show } : b)
-                          }));
-                        }}
-                      />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Header</span>
+                        <ToggleSwitch
+                          checked={!(activeBlock.hideHeader ?? false)}
+                          onChange={(show) => {
+                            setTemplate(prev => ({
+                              ...prev,
+                              layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, hideHeader: !show } : b)
+                            }));
+                          }}
+                        />
+                      </div>
                     </div>
                   )}
 
@@ -3465,7 +3511,30 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                     });
 
                     const h2Score = computeH2CombinedScore(boundFields, h2EvalMap, activeBlock.ruleOverrides);
-                    const parentH1Title = (boundFields[0]?.sectionH1 && boundFields[0].sectionH1.trim().length > 0) ? boundFields[0].sectionH1.trim() : 'Trụ cột';
+                    const resolveParentH1Title = (): string => {
+                      if (boundFields.length > 0 && boundFields[0].sectionH1 && boundFields[0].sectionH1.trim().length > 0) {
+                        return boundFields[0].sectionH1.trim();
+                      }
+                      const cleanTitle = (activeBlock.title || '').trim().toLowerCase();
+                      if (cleanTitle) {
+                        const matchingField = allFormFields.find(f => (f.sectionH2 || '').trim().toLowerCase() === cleanTitle && f.sectionH1 && f.sectionH1.trim().length > 0);
+                        if (matchingField && matchingField.sectionH1) {
+                          return matchingField.sectionH1.trim();
+                        }
+                      }
+                      for (const h1Group of hierarchyGroups) {
+                        if (
+                          h1Group.h2Groups.some(
+                            g => g.h2.trim().toLowerCase() === cleanTitle ||
+                            g.fields.some(f => activeBlock.boundFieldIds?.includes(f.id))
+                          )
+                        ) {
+                          return h1Group.h1;
+                        }
+                      }
+                      return 'Toàn bộ Báo cáo';
+                    };
+                    const parentH1Title = resolveParentH1Title();
 
                     return (
                       <div style={{ borderTop: '1px solid var(--neutral-border)', paddingTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
@@ -3531,62 +3600,103 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                           </div>
                         )}
 
-                        {/* H2 Property Row */}
+                        {/* H2 Property Card: Row 1 [ ] isKnockout + Row 2 Weight [ xx ] % of {parentH1Title} */}
                         <div style={{
                           display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '8px 10px',
+                          flexDirection: 'column',
+                          gap: '6px',
+                          padding: '7px 9px',
                           background: '#f8fafc',
                           border: '1px solid #e2e8f0',
                           borderRadius: '8px',
-                          fontSize: '0.75rem'
+                          fontSize: '0.72rem'
                         }}>
-                          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: isLocked ? 'not-allowed' : 'pointer', userSelect: 'none' }}>
-                            <input
-                              type="checkbox"
-                              disabled={isLocked}
-                              checked={Boolean(activeBlock.isKnockout)}
-                              onChange={(e) => {
-                                const checked = e.target.checked;
-                                setTemplate(prev => ({
-                                  ...prev,
-                                  layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, isKnockout: checked } : b)
-                                }));
-                              }}
-                              style={{ width: '14px', height: '14px', accentColor: '#e11d48', cursor: isLocked ? 'not-allowed' : 'pointer' }}
-                            />
-                            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#9f1239' }}>isKnockout (H2)</span>
-                          </label>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: isLocked ? 'not-allowed' : 'pointer', userSelect: 'none' }}>
+                              <input
+                                type="checkbox"
+                                disabled={isLocked}
+                                checked={Boolean(activeBlock.isKnockout)}
+                                onChange={(e) => {
+                                  const checked = e.target.checked;
+                                  setTemplate(prev => ({
+                                    ...prev,
+                                    layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, isKnockout: checked } : b)
+                                  }));
+                                }}
+                                style={{ width: '13px', height: '13px', accentColor: '#e11d48', cursor: isLocked ? 'not-allowed' : 'pointer' }}
+                              />
+                              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#9f1239' }}>isKnockout (H2)</span>
+                            </label>
+                            <span style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 500 }}>Loại trực tiếp</span>
+                          </div>
 
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }} title={`Trọng số phần trăm của nhóm này trong ${parentH1Title}`}>
-                            <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#334155' }}>
-                              Weight:
-                            </span>
-                            <input
-                              type="number"
-                              disabled={isLocked}
-                              value={activeBlock.weight !== undefined ? activeBlock.weight : 0}
-                              onChange={(e) => {
-                                const val = parseFloat(e.target.value) || 0;
-                                setTemplate(prev => ({
-                                  ...prev,
-                                  layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, weight: val } : b)
-                                }));
-                              }}
+                          <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: '5px',
+                            paddingTop: '5px',
+                            borderTop: '1px solid #e2e8f0'
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '3px', flexShrink: 0 }}>
+                              <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#334155' }}>
+                                Weight:
+                              </span>
+                              <input
+                                type="number"
+                                disabled={isLocked}
+                                value={activeBlock.weight !== undefined ? activeBlock.weight : 0}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  const num = val === '' ? 0 : parseFloat(val);
+                                  setTemplate(prev => ({
+                                    ...prev,
+                                    layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, weight: isNaN(num) ? 0 : num } : b)
+                                  }));
+                                }}
+                                style={{
+                                  width: '42px',
+                                  padding: '2px 3px',
+                                  fontSize: '0.72rem',
+                                  textAlign: 'right',
+                                  fontWeight: 700,
+                                  borderRadius: '4px',
+                                  border: '1px solid #cbd5e1',
+                                  background: '#ffffff',
+                                  color: '#0f172a'
+                                }}
+                              />
+                              <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b' }}>%</span>
+                            </div>
+
+                            <div
                               style={{
-                                width: '46px',
-                                padding: '2px 4px',
-                                fontSize: '0.75rem',
-                                textAlign: 'right',
-                                fontWeight: 700,
-                                borderRadius: '4px',
-                                border: '1px solid #cbd5e1',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '3px',
+                                minWidth: 0,
+                                fontSize: '0.68rem',
+                                color: '#475569',
                                 background: '#ffffff',
-                                color: '#0f172a'
+                                border: '1px solid #e2e8f0',
+                                borderRadius: '4px',
+                                padding: '2px 5px',
+                                maxWidth: '155px'
                               }}
-                            />
-                            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b' }}>%</span>
+                              title={parentH1Title}
+                            >
+                              <span style={{ color: '#94a3b8', fontWeight: 600, flexShrink: 0 }}>of</span>
+                              <span style={{
+                                fontWeight: 700,
+                                color: 'var(--primary)',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap'
+                              }}>
+                                {parentH1Title}
+                              </span>
+                            </div>
                           </div>
                         </div>
                       </div>

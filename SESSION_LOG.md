@@ -36,6 +36,30 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-24 — Report Builder: Table Properties Streamlined Layout (Seamless Title, Combined Border & Header, 2-Row Weight Card)
+
+**Scope:** 2 files (`src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | ~12.0 min |
+| Thời gian phân tích (Request → Proceed) | ~8.0 min |
+| Thời gian thực thi (Proceed → Push) | ~4.0 min |
+| Số file nguồn chỉnh sửa | 1 (`ReportBuilder.tsx`) |
+| Tổng lượt edit source | 4 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 2 (1 tsc + 1 vite pass) |
+| Lần build đầu thành công? | Có (100% pass ngay lần đầu) |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- **Tiêu đề bảng Liền mạch (Seamless Borderless Table Name):** Đặt ngay dưới tiêu đề `TABLE PROPERTIES` với icon bút chì `✎`. Bình thường phẳng không viền, khi focus/hover chuyển sang ô nhập có viền teal và shadow sắc nét, hỗ trợ đổi tên trực tiếp vào `layoutBlocks[].title`.
+- **Gộp Border & Header trên cùng 1 hàng ngang (Biến thể 2A):** Rút gọn nhãn `Border Style` thành `"Border"`, tinh gọn nút chọn `[ Grid | Horiz | None ]` và đặt công tắc `Header` (ToggleSwitch) kế bên trên cùng một dòng ngang, tiết kiệm ~24px chiều dọc quý giá cho thanh sidebar inspector.
+- **Cấu trúc Thẻ Trọng số H2 2 hàng (Đồng bộ Field Properties):** Chuyển đổi khối thuộc tính H2 sang định dạng thẻ 2 hàng: Row 1 hiển thị `[ ] isKnockout (H2)` và nhãn `"Loại trực tiếp"`; Row 2 hiển thị ô nhập `Weight: [ xx ] %` và huy hiệu `of [ {parentH1Title} ]` với thuật toán tự động giải quyết Trụ cột H1 cha đa tầng từ `boundFields`, `sectionH2` title matching và `hierarchyGroups`.
+
+---
+
 ### 2026-09-24 — Report Builder: Smart Target Block Resolution & Auto-Initialization for Field Scoring & Weights
 
 **Scope:** 3 files (`src/components/ReportBuilder.tsx`, `src/components/report/FieldScoringInspector.tsx`, `DESIGN_REPORT_BUILDER.md`)
@@ -259,31 +283,4 @@ eportScoring.ts, FieldScoringInspector.tsx, ReportBuilder.tsx) |
 **Điểm nổi bật:**
 - **Rút gọn nhãn Trọng số (Streamlined Weight Label):** Đơn giản hóa toàn bộ nhãn dài bị quấn dòng (`Weight (% trong [Tên Nhóm]):`, `Weight (% trong Báo cáo):`, `Weight (% trong [Trụ Cột]):`) thành duy nhất nhãn ngắn gọn **`Weight:`** trên cùng 1 hàng ngang trong cả 3 phân hệ: Cấp Câu hỏi (`FieldScoringInspector.tsx`), Cấp Trụ cột H1 (`ReportBuilder.tsx`) và Cấp Nhóm H2 (`ReportBuilder.tsx`).
 - **Giữ trọn vẹn ngữ cảnh qua tooltip:** Nội dung giải thích chi tiết nhóm cha được đưa vào thuộc tính `title` khi rê chuột (`title="Trọng số phần trăm của câu hỏi trong nhóm..."`), giúp thanh thuộc tính luôn giữ được độ cao 1 hàng phẳng, đẹp và không bị tràn text.
-
----
-
-### 2026-09-22 — Report Builder: Left Panel Section H1 / H2 Interactive Selection & Collapsed Card Clipping Fix
-
-**Scope:** 2 files (`ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian tổng (Request → Push) | 4.2 min |
-| Thời gian lập plan (Request → Proceed) | 1.6 min |
-| Thời gian thực thi (Proceed → Push) | 2.6 min |
-| Số file nguồn chỉnh sửa | 1 (`ReportBuilder.tsx`) |
-| Tổng lượt edit source | 3 |
-| Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 2 (1 tsc + 1 vite pass) |
-| Lần build cuối thành công? | Có (100% pass, built in 8.19s) |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Điểm nổi bật:**
-- **Triệt tiêu lỗi cắt cụt chữ khi thu gọn (Left Tree & Modal):** Bổ sung `flexShrink: 0`, `minHeight: '34px'`, `minHeight: '28px'` và `boxSizing: 'border-box'` cho toàn bộ container thẻ H1/H2 ở Left Panel và Quick Field Picker Modal, chống hiện tượng flexbox co ép chiều cao khi danh sách dài.
-- **Tách biệt thao tác:** Bấm nút Chevron `[ > ]` / `[ v ]` để mở rộng / thu gọn nhánh cây độc lập mà không ảnh hưởng tới khối đang kích hoạt.
-- **Chọn trực tiếp Section H1 / Sub-section H2 từ khay trái:** Bổ sung `handleSelectH1Section` và `handleSelectH2Subgroup` kích hoạt trực tiếp khối tương ứng trên Canvas (hoặc tự tạo nếu chưa có), xóa `selectedFieldId = null` và tự động chuyển ngay sang tab `Properties` hiển thị cấu hình H1/H2 (`isKnockout`, `Weight %`, ma trận điểm nhóm).
-- **Trạng thái chọn nổi bật:** Thẻ H1 hiển thị viền/nền Teal `#f0fdfa` và thẻ H2 hiển thị viền/nền Blue `#eff6ff` khi đang được chọn.
-
----
 
