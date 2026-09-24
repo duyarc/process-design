@@ -1312,6 +1312,29 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
     (f.sectionH2 || '').toLowerCase().includes(searchFieldQuery.toLowerCase())
   );
   const hierarchyGroups = React.useMemo(() => groupFieldsByHierarchy(filteredFormFields), [filteredFormFields]);
+
+  const handleSelectTableGroupFromCanvas = (groupTitle: string) => {
+    let matchedFieldIds: string[] = [];
+    const cleanTarget = groupTitle.trim().toLowerCase();
+    for (const h1 of hierarchyGroups) {
+      const h2 = h1.h2Groups.find(g => g.h2.trim().toLowerCase() === cleanTarget);
+      if (h2) {
+        matchedFieldIds = h2.fields.map(f => f.id);
+        break;
+      }
+    }
+    if (matchedFieldIds.length === 0) {
+      const fieldMatches = allFormFields.filter(f =>
+        (f.sectionH2 && f.sectionH2.trim().toLowerCase() === cleanTarget) ||
+        (f.locationCode && f.locationCode.trim().toLowerCase() === cleanTarget)
+      );
+      if (fieldMatches.length > 0) {
+        matchedFieldIds = fieldMatches.map(f => f.id);
+      }
+    }
+    handleSelectH2Subgroup(groupTitle, matchedFieldIds);
+  };
+
   const selectedField = selectedFieldId ? allFormFields.find(f => f.id === selectedFieldId) : null;
 
   if (loading) {
@@ -2073,13 +2096,18 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                 form={selectedForm}
                 selectedFieldId={selectedFieldId}
                 activeBlockId={activeBlockId}
+                activeGroupTitle={activeBlock?.type === 'TABLE' ? activeBlock.title : null}
                 onSelectField={(fId) => {
                   setSelectedFieldId(fId);
                   setActiveBlockId(null);
+                  setRightTab('properties');
                 }}
+                onSelectTableGroup={handleSelectTableGroupFromCanvas}
+                onSelectH1Section={handleSelectH1Section}
                 onSelectBlock={(bId) => {
                   setActiveBlockId(bId);
                   setSelectedFieldId(null);
+                  setRightTab('properties');
                 }}
                 onDeselect={() => {
                   setActiveBlockId(null);
@@ -2134,6 +2162,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                       e.stopPropagation();
                       setActiveBlockId(block.id);
                       setSelectedFieldId(null);
+                      setRightTab('properties');
                     }}
                     style={{
                       border: `2px solid ${isActive ? 'var(--primary)' : 'transparent'}`,
@@ -2246,7 +2275,11 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                             layoutBlocks: prev.layoutBlocks.map(b => b.id === block.id ? { ...b, titleFormat: fmt } : b)
                           }));
                         }}
-                        onSelectBlock={() => setActiveBlockId(block.id)}
+                        onSelectBlock={() => {
+                          setActiveBlockId(block.id);
+                          setSelectedFieldId(null);
+                          setRightTab('properties');
+                        }}
                       />
                     )}
 
@@ -2270,7 +2303,11 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                 layoutBlocks: prev.layoutBlocks.map(b => b.id === block.id ? { ...b, titleFormat: fmt } : b)
                               }));
                             }}
-                            onSelectBlock={() => setActiveBlockId(block.id)}
+                            onSelectBlock={() => {
+                              setActiveBlockId(block.id);
+                              setSelectedFieldId(null);
+                              setRightTab('properties');
+                            }}
                           />
 
                           {/* Grid Container */}
@@ -2458,7 +2495,11 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                 layoutBlocks: prev.layoutBlocks.map(b => b.id === block.id ? { ...b, titleFormat: fmt } : b)
                               }));
                             }}
-                            onSelectBlock={() => setActiveBlockId(block.id)}
+                            onSelectBlock={() => {
+                              setActiveBlockId(block.id);
+                              setSelectedFieldId(null);
+                              setRightTab('properties');
+                            }}
                           />
 
                           {(!block.boundFieldIds || block.boundFieldIds.length === 0) ? (
@@ -2469,6 +2510,8 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setActiveBlockId(block.id);
+                                  setSelectedFieldId(null);
+                                  setRightTab('properties');
                                   setFieldPickerBlockId(block.id);
                                   setFieldPickerSearch('');
                                 }}
@@ -2492,7 +2535,16 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                           ) : (
                             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem', border: tableBorder }}>
                               {!block.hideHeader && (
-                                <thead>
+                                <thead
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveBlockId(block.id);
+                                    setSelectedFieldId(null);
+                                    setRightTab('properties');
+                                  }}
+                                  style={{ cursor: 'pointer' }}
+                                  title="Click để xem Table Properties"
+                                >
                                   <tr style={{ background: '#f8fafc', borderBottom: '1.5px solid #cbd5e1' }}>
                                     <th style={{ border: cellBorder, padding: '5px 6px', textAlign: 'center', width: '35px', fontWeight: 700 }}>STT</th>
                                     <th style={{ border: cellBorder, padding: '5px 8px', textAlign: 'left', fontWeight: 700 }}>Hạng mục kiểm tra / Tiêu chí</th>

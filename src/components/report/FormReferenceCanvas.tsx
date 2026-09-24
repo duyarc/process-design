@@ -17,8 +17,11 @@ interface FormReferenceCanvasProps {
   form: FormTemplateISO;
   selectedFieldId: string | null;
   activeBlockId?: string | null;
+  activeGroupTitle?: string | null;
   onSelectField: (fieldId: string) => void;
   onSelectBlock?: (blockId: string) => void;
+  onSelectTableGroup?: (groupTitle: string) => void;
+  onSelectH1Section?: (h1Title: string) => void;
   onDeselect: () => void;
 }
 
@@ -26,8 +29,11 @@ export const FormReferenceCanvas: React.FC<FormReferenceCanvasProps> = ({
   form,
   selectedFieldId,
   activeBlockId,
+  activeGroupTitle,
   onSelectField,
   onSelectBlock,
+  onSelectTableGroup,
+  onSelectH1Section,
   onDeselect
 }) => {
   const pageSize = form.pageSize || (form as any).page_size || 'A4';
@@ -430,7 +436,11 @@ export const FormReferenceCanvas: React.FC<FormReferenceCanvasProps> = ({
                   key={block.id}
                   onClick={(e) => {
                     e.stopPropagation();
-                    onSelectBlock?.(block.id);
+                    if (titleFmt === 'H1' && onSelectH1Section && block.title) {
+                      onSelectH1Section(block.title);
+                    } else {
+                      onSelectBlock?.(block.id);
+                    }
                   }}
                   style={{
                     border: isBlockActive ? '2px solid var(--primary)' : '1px dashed transparent',
@@ -575,7 +585,12 @@ export const FormReferenceCanvas: React.FC<FormReferenceCanvasProps> = ({
                   key={block.id}
                   onClick={(e) => {
                     e.stopPropagation();
-                    onSelectBlock?.(block.id);
+                    const hasGroupHeaders = tableRows.some(r => r.isGroupHeader || block.tableData?.[r.id]?.['_groupTitle']);
+                    if (!hasGroupHeaders && onSelectTableGroup) {
+                      onSelectTableGroup(block.title || 'Bảng');
+                    } else {
+                      onSelectBlock?.(block.id);
+                    }
                   }}
                   style={{
                     border: isBlockActive ? '2px solid var(--primary)' : '1px dashed transparent',
@@ -601,7 +616,16 @@ export const FormReferenceCanvas: React.FC<FormReferenceCanvasProps> = ({
                           return <col key={col.id} style={{ width: colWidth }} />;
                         })}
                       </colgroup>
-                      <thead style={{ opacity: block.hideHeader ? 0.45 : 1 }}>
+                      <thead
+                        onClick={(e) => {
+                          const hasGroupHeaders = tableRows.some(r => r.isGroupHeader || block.tableData?.[r.id]?.['_groupTitle']);
+                          if (!hasGroupHeaders && onSelectTableGroup) {
+                            e.stopPropagation();
+                            onSelectTableGroup(block.title || 'Bảng');
+                          }
+                        }}
+                        style={{ opacity: block.hideHeader ? 0.45 : 1, cursor: tableRows.some(r => r.isGroupHeader) ? 'default' : 'pointer' }}
+                      >
                         <tr style={{
                           background: bStyle === 'borderless' ? (block.hideHeader ? '#f8fafc' : 'transparent') : '#f1f5f9',
                           borderBottom: bStyle === 'borderless' ? (block.hideHeader ? '1px dashed #cbd5e1' : 'none') : (block.hideHeader ? '1px dashed #94a3b8' : '1px solid #cbd5e1')
@@ -653,18 +677,28 @@ export const FormReferenceCanvas: React.FC<FormReferenceCanvasProps> = ({
                             const isRowActive = isFieldInTableRow(selectedFieldId, block.id, row.id);
                             if (row.isGroupHeader) {
                               const groupTitleVal = row.groupTitle !== undefined ? row.groupTitle : (block.tableData?.[row.id]?.['_groupTitle'] || '');
+                              const cleanGroupTitle = groupTitleVal.replace(/^\*\*|\*\*$/g, '').trim();
+                              const isGroupActive = !selectedFieldId && !!activeGroupTitle && cleanGroupTitle.toLowerCase() === activeGroupTitle.trim().toLowerCase();
+
                               return (
                                 <tr
                                   key={row.id}
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    onSelectBlock?.(block.id);
+                                    if (onSelectTableGroup) {
+                                      onSelectTableGroup(cleanGroupTitle);
+                                    } else {
+                                      onSelectBlock?.(block.id);
+                                    }
                                   }}
                                   style={{
                                     borderBottom: bStyle === 'borderless' ? 'none' : '1px solid #cbd5e1',
-                                    background: bStyle === 'borderless' ? 'transparent' : '#f8fafc',
-                                    cursor: 'default'
+                                    borderLeft: isGroupActive ? '4px solid #2563eb' : 'none',
+                                    background: isGroupActive ? '#eff6ff' : (bStyle === 'borderless' ? 'transparent' : '#f8fafc'),
+                                    cursor: 'pointer',
+                                    transition: 'all 0.12s ease'
                                   }}
+                                  title={`Click để xem/cấu hình Table Properties cho nhóm: ${cleanGroupTitle}`}
                                 >
                                   <td
                                     colSpan={tableCols.length}
@@ -673,7 +707,7 @@ export const FormReferenceCanvas: React.FC<FormReferenceCanvasProps> = ({
                                       verticalAlign: 'middle',
                                       fontWeight: 700,
                                       fontSize: '0.82rem',
-                                      color: '#1e293b'
+                                      color: isGroupActive ? '#1d4ed8' : '#1e293b'
                                     }}
                                   >
                                     {groupTitleVal || 'Nhóm tiêu chí'}

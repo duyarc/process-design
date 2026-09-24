@@ -35,6 +35,32 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-24 — Report Builder: Interactive Canvas Selection for Table Properties & H2 Group Headers
+
+**Scope:** 3 files (`src/components/report/FormReferenceCanvas.tsx`, `src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | ~7.0 min |
+| Thời gian lập plan (Request → Proceed) | ~2.5 min |
+| Thời gian thực thi (Proceed → Push) | ~4.5 min |
+| Số file nguồn chỉnh sửa | 2 (`FormReferenceCanvas.tsx`, `ReportBuilder.tsx`) |
+| Tổng lượt edit source | 5 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 3 (2 tsc + 1 vite pass) |
+| Lần build đầu thành công? | Có (100% pass ngay lần đầu) |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- **Giải quyết triệt để lỗi chọn Table Properties từ Canvas:** Khắc phục lỗi click dòng tiêu đề nhóm bảng (`row.isGroupHeader`) hoặc tiêu đề bảng chỉ gửi ID form block cũ khiến `activeBlock` bị `undefined`. Xây dựng `handleSelectTableGroupFromCanvas` liên kết chính xác tên nhóm với `hierarchyGroups` và gọi `handleSelectH2Subgroup` đồng bộ 100% với Left Panel.
+- **Tương tác 2 Chiều Form Canvas & Report Canvas:** Hỗ trợ click vào dòng tiêu đề nhóm hoặc tiêu đề bảng/thead để mở ngay `Table Properties` bên Right Inspector; click vào tiêu đề phân đoạn H1 mở ngay `Section Label Properties`.
+- **Chỉ báo trực quan nổi bật:** Dòng tiêu đề nhóm trên Form canvas hiển thị viền nổi bật `borderLeft: 4px solid #2563eb`, nền `#eff6ff` và text xanh đậm khi nhóm tương ứng đang active; con trỏ chuột chuyển sang `cursor: 'pointer'`.
+- **Đồng bộ hóa trên Report Canvas:** Nâng cấp `InCanvasTitleHeader`, block wrapper và `<thead>` xóa sạch `selectedFieldId = null` và chuyển sang `setRightTab('properties')`, giúp người dùng dễ dàng chuyển đổi linh hoạt giữa `FIELD PROPERTIES` của câu hỏi con và `Table Properties` của bảng cha.
+- **Chất lượng mã nguồn:** `npx tsc --noEmit` pass 100% không lỗi; `npm run build` Vite production bundle thành công trong 19.70s.
+
+---
+
 ### 2026-09-24 — Report Builder: Interactive Canvas Selection for Table Likert Scale Questions
 
 **Scope:** 4 files (`src/utils/tableFieldExtractor.ts`, `src/components/report/FormReferenceCanvas.tsx`, `src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`)
@@ -254,27 +280,5 @@ eportScoring.ts, FieldScoringInspector.tsx, ReportBuilder.tsx) |
 - **Auto-Grow Label:** Thay thế `<textarea>` bằng container tự co giãn chiều cao (`whiteSpace: 'pre-wrap', wordBreak: 'break-word'`), hiển thị 100% câu hỏi mà không sinh thanh cuộn dọc. Ẩn cụm nút format text `[ B ] [ I ] [ U ]` vì nhãn là read-only.
 - **Streamlined Multi-Option Value Visualizer:** Trường `Value` tự động kéo tất cả các mức điểm / tùy chọn từ form schema (`scale` / `likert_scale`, `checkbox`, `radio`, `select`). Thể hiện trạng thái được chọn qua ngôn ngữ thị giác thuần túy (viền & nền Teal `#0d9488`, icon Tích tròn `✓`, Checkbox `☑`, Radio `⦿`), triệt tiêu toàn bộ các text badge rườm rà (`Selected`, `Đã chọn`, `Active`).
 - **UI Streamlining Audit Protocol:** Đưa quy trình rà soát và tinh gọn giao diện vào bài học kinh nghiệm để agent tự động tối giản UI trong các kế hoạch tiếp theo.
-
----
-
-### 2026-09-22 — Report Builder: FormBuilder-Parity Field Properties Inspector & Left Tray Streamlining
-
-**Scope:** 2 files (`ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Số file nguồn chỉnh sửa | 1 (`ReportBuilder.tsx`) |
-| Tổng lượt edit source | 5 |
-| Lượt edit sửa lỗi (rework) | 1 (dọn hàm cũ `toggleFieldInBlock` & fix `selectedField.checkItem`) |
-| Số lần build | 3 (2 tsc + 1 vite) |
-| Lần build cuối thành công? | Có (100% pass, built in 17.06s) |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Điểm nổi bật:**
-- **Tối giản Field Card khay trái:** Loại bỏ dòng subtitle `ID:` kỹ thuật, chỉ hiển thị câu hỏi và badge loại trường, thêm highlight viền Teal khi trường được chọn.
-- **Thẻ Field Properties chuẩn 100% FormBuilder:** Tích hợp `FIELD PROPERTIES` vào Tab Properties với `ID` kèm nút 1-chạm `[📋 Sao chép]`, `Label` kèm cụm nút `[ B ] [ I ] [ U ]`, `Type` với icon Lucide chuẩn (`FIELD_TYPE_OPTIONS`), và `Value` hiển thị giá trị câu trả lời thực tế từ lượt nộp mẫu.
-- **Loại bỏ toàn bộ phần đánh giá & nút `+ Gán...`:** Theo đúng chỉ đạo của người dùng để phần tính toán đánh giá được xây dựng chuyên biệt trong các giai đoạn sau của Report Builder.
-- **Tự động nạp form mới nhất:** Sắp xếp theo `updated_at DESC` trong `init()`, giải quyết triệt để lỗi nạp phiên bản form cũ.
 
 ---
