@@ -168,7 +168,7 @@ export function extractAllFormFields(blocks: LayoutBlockISO[] = []): FormFieldIS
       block.fields.forEach(f => {
         allFields.push({
           ...f,
-          locationCode: f.locationCode || elementName,
+          locationCode: elementName || f.locationCode,
           sectionH1: currentH1,
           sectionH2: currentH2
         });

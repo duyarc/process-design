@@ -51,7 +51,11 @@ import {
   SlidersHorizontal,
   Camera,
   Copy,
-  Pencil
+  Pencil,
+  PanelLeftClose,
+  PanelLeftOpen,
+  ChevronsUpDown,
+  ChevronsDownUp
 } from 'lucide-react';
 
 interface ToggleSwitchProps {
@@ -671,6 +675,8 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
   const [searchFieldQuery, setSearchFieldQuery] = useState<string>('');
+  const [isFieldsTrayOpen, setIsFieldsTrayOpen] = useState<boolean>(false);
+  const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState<boolean>(false);
   const [fieldPickerBlockId, setFieldPickerBlockId] = useState<string | null>(null);
   const [fieldPickerSearch, setFieldPickerSearch] = useState<string>('');
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
@@ -1941,92 +1947,168 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
       {/* ── Main 3-Panel Workspace ── */}
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         
-        {/* ── LEFT PANEL: Source & Field Data Tray ── */}
-        <div style={{ width: '280px', background: '#ffffff', borderRight: '1px solid var(--neutral-border)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          <div style={{ padding: '0.75rem', borderBottom: '1px solid var(--neutral-border)', background: '#f8fafc' }}>
-            <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.3rem' }}>
-              1. SOURCE FORM
-            </label>
-            <select
-              value={template.linkedFormId}
-              onChange={e => handleFormChange(e.target.value)}
-              style={{ width: '100%', padding: '0.4rem 0.5rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px' }}
-            >
-              {availableForms.map(f => (
-                <option key={f.formId} value={f.formId}>
-                  {f.formId} - {f.formTitle}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div style={{ padding: '0.75rem', borderBottom: '1px solid var(--neutral-border)', background: '#ffffff' }}>
-            <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '0.3rem' }}>
-              2. SAMPLE SUBMISSION
-            </label>
-            <select
-              value={sampleSubmission?.id || ''}
-              onChange={e => {
-                const found = sampleSubmissions.find(s => s.id === e.target.value);
-                if (found) setSampleSubmission(found);
-              }}
-              style={{ width: '100%', padding: '0.4rem 0.5rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px' }}
-            >
-              {sampleSubmissions.length === 0 ? (
-                <option value="">(Chưa có lượt nộp mẫu)</option>
-              ) : (
-                sampleSubmissions.map((s, idx) => {
-                  const op = (s as any).operatorId || (s as any).operator_id || 'Operator';
-                  const dt = (s as any).submittedAt || (s as any).submitted_at;
-                  const dtText = dt ? new Date(dt).toLocaleDateString('vi-VN') : '';
-                  return (
-                    <option key={s.id} value={s.id}>
-                      #{idx + 1} - {op} {dtText ? `(${dtText})` : ''}
-                    </option>
-                  );
-                })
-              )}
-            </select>
-          </div>
-
-          {/* Field Data Dictionary Tray */}
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '0.75rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
-                FIELDS ({filteredFormFields.length}{filteredFormFields.length !== allFormFields.length ? `/${allFormFields.length}` : ''})
+        {/* ── LEFT PANEL: Source & Field Data Tray (Option 3 Icon-First) ── */}
+        <div style={{ width: isLeftSidebarCollapsed ? '40px' : '256px', background: isLeftSidebarCollapsed ? '#f8fafc' : '#ffffff', borderRight: '1px solid var(--neutral-border)', display: 'flex', flexDirection: 'column', overflow: 'hidden', transition: 'width 0.2s cubic-bezier(0.4, 0, 0.2, 1)', flexShrink: 0 }}>
+          {isLeftSidebarCollapsed ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0.5rem 0', gap: '0.6rem', height: '100%' }}>
+              <button
+                type="button"
+                onClick={() => setIsLeftSidebarCollapsed(false)}
+                style={{ width: '26px', height: '26px', borderRadius: '5px', border: '1px solid transparent', background: 'transparent', color: 'var(--primary)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                title="Mở rộng Sidebar trái"
+              >
+                <PanelLeftOpen size={15} />
+              </button>
+              <div style={{ width: '20px', height: '1px', background: '#cbd5e1' }} />
+              <button
+                type="button"
+                onClick={() => {
+                  setIsLeftSidebarCollapsed(false);
+                  setIsFieldsTrayOpen(true);
+                }}
+                style={{ width: '26px', height: '26px', borderRadius: '5px', border: '1px solid transparent', background: 'transparent', color: '#475569', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                title={`Mở danh sách FIELDS (${allFormFields.length})`}
+              >
+                <Layers size={14} />
+              </button>
+              <span style={{ fontSize: '0.6rem', fontWeight: 700, color: 'var(--primary)', background: '#ccfbf1', padding: '1px 5px', borderRadius: '99px' }}>
+                {allFormFields.length}
               </span>
-              <div style={{ display: 'flex', gap: '4px' }}>
-                <button
-                  type="button"
-                  onClick={() => setAllSectionsExpanded(true, hierarchyGroups)}
-                  style={{ background: 'none', border: 'none', fontSize: '0.68rem', color: 'var(--primary)', cursor: 'pointer', padding: '1px 4px', fontWeight: 600 }}
-                  title="Mở rộng tất cả các nhóm"
+            </div>
+          ) : (
+            <>
+              <div style={{ padding: '0.6rem 0.75rem', borderBottom: '1px solid var(--neutral-border)', background: '#f8fafc' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.28rem' }}>
+                  <label style={{ fontSize: '0.68rem', fontWeight: 700, color: '#64748b', letterSpacing: '0.04em' }}>
+                    SOURCE
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setIsLeftSidebarCollapsed(true)}
+                    style={{ width: '22px', height: '22px', borderRadius: '4px', border: 'none', background: 'transparent', color: '#64748b', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                    title="Thu gọn cột Sidebar trái"
+                  >
+                    <PanelLeftClose size={14} />
+                  </button>
+                </div>
+                <select
+                  value={template.linkedFormId}
+                  onChange={e => handleFormChange(e.target.value)}
+                  style={{ width: '100%', padding: '0.38rem 0.5rem', fontSize: '0.78rem', fontWeight: 600, color: '#0f172a', border: '1px solid var(--neutral-border)', borderRadius: '5px', background: '#ffffff' }}
                 >
-                  Mở hết
-                </button>
-                <span style={{ color: '#cbd5e1', fontSize: '0.68rem' }}>|</span>
-                <button
-                  type="button"
-                  onClick={() => setAllSectionsExpanded(false, hierarchyGroups)}
-                  style={{ background: 'none', border: 'none', fontSize: '0.68rem', color: '#64748b', cursor: 'pointer', padding: '1px 4px' }}
-                  title="Thu gọn tất cả các nhóm"
-                >
-                  Thu gọn
-                </button>
+                  {availableForms.map(f => (
+                    <option key={f.formId} value={f.formId}>
+                      {f.formTitle || f.formId}
+                    </option>
+                  ))}
+                </select>
               </div>
-            </div>
-            <div style={{ position: 'relative', marginBottom: '0.5rem' }}>
-              <Search size={12} style={{ position: 'absolute', left: '8px', top: '8px', color: 'var(--text-secondary)' }} />
-              <input
-                type="text"
-                placeholder="Tìm kiếm trường..."
-                value={searchFieldQuery}
-                onChange={e => setSearchFieldQuery(e.target.value)}
-                style={{ width: '100%', padding: '0.3rem 0.5rem 0.3rem 1.6rem', fontSize: '0.75rem', border: '1px solid var(--neutral-border)', borderRadius: '4px' }}
-              />
-            </div>
 
-            <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingRight: '2px' }}>
+              <div style={{ padding: '0.6rem 0.75rem', borderBottom: '1px solid var(--neutral-border)', background: '#ffffff' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.28rem' }}>
+                  <label style={{ fontSize: '0.68rem', fontWeight: 700, color: '#64748b', letterSpacing: '0.04em' }}>
+                    SUBMISSION
+                  </label>
+                </div>
+                <select
+                  value={sampleSubmission?.id || ''}
+                  onChange={e => {
+                    const found = sampleSubmissions.find(s => s.id === e.target.value);
+                    if (found) setSampleSubmission(found);
+                  }}
+                  style={{ width: '100%', padding: '0.38rem 0.5rem', fontSize: '0.78rem', fontWeight: 600, color: '#0f172a', border: '1px solid var(--neutral-border)', borderRadius: '5px', background: '#ffffff' }}
+                >
+                  {sampleSubmissions.length === 0 ? (
+                    <option value="">(Chưa có lượt nộp mẫu)</option>
+                  ) : (
+                    sampleSubmissions.map((s, idx) => {
+                      const op = (s as any).operatorId || (s as any).operator_id || 'Operator';
+                      const dt = (s as any).submittedAt || (s as any).submitted_at;
+                      const dtText = dt ? new Date(dt).toLocaleDateString('vi-VN') : '';
+                      return (
+                        <option key={s.id} value={s.id}>
+                          #{idx + 1} - {op} {dtText ? `(${dtText})` : ''}
+                        </option>
+                      );
+                    })
+                  )}
+                </select>
+              </div>
+
+              {/* Collapsible Icon-First FIELDS Toggle Bar */}
+              <div
+                onClick={() => setIsFieldsTrayOpen(prev => !prev)}
+                style={{
+                  padding: '0.52rem 0.75rem',
+                  borderBottom: '1px solid var(--neutral-border)',
+                  background: isFieldsTrayOpen ? '#f0fdfa' : '#f8fafc',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  cursor: 'pointer',
+                  userSelect: 'none',
+                  transition: 'background 0.15s'
+                }}
+                title={isFieldsTrayOpen ? 'Đóng danh sách FIELDS' : 'Mở danh sách FIELDS'}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Layers size={13} style={{ color: 'var(--primary)' }} />
+                  <span style={{ fontSize: '0.7rem', fontWeight: 700, color: isFieldsTrayOpen ? 'var(--primary)' : '#334155', letterSpacing: '0.03em' }}>
+                    FIELDS
+                  </span>
+                  <span style={{ fontSize: '0.62rem', fontWeight: 700, padding: '1px 6px', borderRadius: '99px', background: isFieldsTrayOpen ? '#ccfbf1' : '#e2e8f0', color: isFieldsTrayOpen ? 'var(--primary)' : '#475569' }}>
+                    {filteredFormFields.length}{filteredFormFields.length !== allFormFields.length ? `/${allFormFields.length}` : ''}
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                  {isFieldsTrayOpen && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setAllSectionsExpanded(true, hierarchyGroups);
+                        }}
+                        style={{ width: '22px', height: '22px', borderRadius: '4px', border: 'none', background: 'transparent', color: 'var(--primary)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                        title="Mở rộng tất cả các nhóm"
+                      >
+                        <ChevronsUpDown size={13} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setAllSectionsExpanded(false, hierarchyGroups);
+                        }}
+                        style={{ width: '22px', height: '22px', borderRadius: '4px', border: 'none', background: 'transparent', color: '#64748b', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                        title="Thu gọn tất cả các nhóm"
+                      >
+                        <ChevronsDownUp size={13} />
+                      </button>
+                    </>
+                  )}
+                  <span style={{ width: '20px', height: '20px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: isFieldsTrayOpen ? 'var(--primary)' : '#64748b' }}>
+                    {isFieldsTrayOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                  </span>
+                </div>
+              </div>
+
+              {/* Field Data Dictionary Tray (Rendered on demand when isFieldsTrayOpen is true) */}
+              {isFieldsTrayOpen ? (
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '0.6rem 0.75rem' }}>
+                  <div style={{ position: 'relative', marginBottom: '0.5rem' }}>
+                    <Search size={12} style={{ position: 'absolute', left: '8px', top: '8px', color: 'var(--text-secondary)' }} />
+                    <input
+                      type="text"
+                      placeholder="Tìm kiếm trường..."
+                      value={searchFieldQuery}
+                      onChange={e => setSearchFieldQuery(e.target.value)}
+                      style={{ width: '100%', padding: '0.3rem 0.5rem 0.3rem 1.6rem', fontSize: '0.75rem', border: '1px solid var(--neutral-border)', borderRadius: '4px' }}
+                    />
+                  </div>
+
+                  <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem', paddingRight: '2px' }}>
               {hierarchyGroups.length === 0 ? (
                 <div style={{ padding: '2rem 0.5rem', textAlign: 'center', color: '#94a3b8', fontSize: '0.75rem' }}>
                   {allFormFields.length === 0 ? 'Chưa nạp được trường nào.' : 'Không tìm thấy trường khớp từ khoá.'}
@@ -2435,8 +2517,13 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                   );
                 })
               )}
-            </div>
-          </div>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ flex: 1, background: '#fcfcfd' }} />
+              )}
+            </>
+          )}
         </div>
 
         {/* ── CENTER PANEL: Canvas Workspace (Form | Report Tabs) ── */}

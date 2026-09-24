@@ -38,6 +38,29 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-24 — Report Builder: Streamlined Left Sidebar Option 3 (`SOURCE`, `SUBMISSION`, Default-Hidden `FIELDS` with Icon Controls & `40px` Rail)
+
+**Scope:** 3 files (`src/components/ReportBuilder.tsx`, `src/utils/tableFieldExtractor.ts`, `DESIGN_REPORT_BUILDER.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | ~12.0 min |
+| Thời gian lập plan (Request → Proceed) | ~5.0 min |
+| Thời gian thực thi (Proceed → Push) | ~7.0 min |
+| Số file nguồn chỉnh sửa | 2 (`ReportBuilder.tsx`, `tableFieldExtractor.ts`) |
+| Tổng lượt edit source | 4 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 2 (`1 tsc` + `1 vite build` pass) |
+| Lần build cuối thành công? | Có (100% pass ngay lần đầu) |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- **Tối giản nhãn & dùng Icon hoàn toàn theo Option 3:** Đổi `1. SOURCE FORM` ➔ `SOURCE` (chỉ hiện `f.formTitle || f.formId`, bỏ ID lặp), `2. SAMPLE SUBMISSION` ➔ `SUBMISSION`, mặc định ẩn danh sách `FIELDS` (`isFieldsTrayOpen = false`) dưới thanh bar icon (`ChevronRight` / `ChevronDown`, kèm `ChevronsUpDown` / `ChevronsDownUp` khi mở) và bổ sung nút `PanelLeftClose` thu gọn cả cột Sidebar thành thanh Icon Rail `40px`.
+- **Chuẩn hóa nhóm `INFO_GRID` dưới H1:** Cập nhật `extractAllFormFields` trong `tableFieldExtractor.ts` gán `locationCode: elementName || f.locationCode` để các trường `INFO_GRID` gom gọn vào đúng 1 khối (`Thông tin chung`) thay vì tách lẻ theo từng mã `LOC-*`.
+
+---
+
 ### 2026-09-24 — Report Builder: Strict 4-Tier Hierarchy (`H1` ➔ `H2` strictly `titleFormat === 'H2'` ➔ `Element` ➔ `Field`)
 
 **Scope:** 4 files (`src/utils/tableFieldExtractor.ts`, `src/utils/reportScoring.ts`, `src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`)
