@@ -17,7 +17,7 @@ import { getInfoGridTemplateColumns, snap2ColWidth, snap3ColWidths } from '../ut
 import { applyTextFormat, handleFormatKeyDown } from '../utils/textFormatter';
 import { FieldScoringInspector } from './report/FieldScoringInspector';
 import { FormReferenceCanvas } from './report/FormReferenceCanvas';
-import { extractParentGroupTitle, computeH2CombinedScore, summarizeH1ChildGroups } from '../utils/reportScoring';
+import { extractParentGroupTitle, computeH2CombinedScore, summarizeH1ChildGroups, summarizeH2ChildElements } from '../utils/reportScoring';
 import ConfirmModal from './common/ConfirmModal';
 import PrintReport from './print/PrintReport';
 import { useAuth } from '../context/AuthContext';
@@ -1410,23 +1410,53 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
     }
   };
 
-  const handleSelectH2Subgroup = (h2Title: string, fieldIds: string[]) => {
+  const handleSelectH2Subgroup = (h2Title: string) => {
     setSelectedFieldId(null);
     setRightTab('properties');
 
     const cleanTitle = h2Title.trim().toLowerCase();
-    const existingBlock = template.layoutBlocks.find(b =>
-      (b.type === 'TABLE' || (b.type === 'SECTION_LABEL' && b.titleFormat === 'H2')) &&
-      (b.title.trim().toLowerCase() === cleanTitle || b.boundFieldIds?.some(id => fieldIds.includes(id)))
+    const existingH2Block = template.layoutBlocks.find(b =>
+      b.type === 'SECTION_LABEL' &&
+      b.titleFormat === 'H2' &&
+      (b.title || '').trim().toLowerCase() === cleanTitle
     );
 
-    if (existingBlock) {
-      setActiveBlockId(existingBlock.id);
+    if (existingH2Block) {
+      setActiveBlockId(existingH2Block.id);
+    } else {
+      const newBlock: ReportBlockConfig = {
+        id: `rep_block_h2_${Date.now()}`,
+        type: 'SECTION_LABEL',
+        title: h2Title,
+        titleFormat: 'H2',
+        weight: 0,
+        isKnockout: false
+      };
+      setTemplate(prev => ({
+        ...prev,
+        layoutBlocks: [...prev.layoutBlocks, newBlock]
+      }));
+      setActiveBlockId(newBlock.id);
+    }
+  };
+
+  const handleSelectElementGroup = (elementTitle: string, fieldIds: string[]) => {
+    setSelectedFieldId(null);
+    setRightTab('properties');
+
+    const cleanTitle = elementTitle.trim().toLowerCase();
+    const existingTableBlock = template.layoutBlocks.find(b =>
+      b.type === 'TABLE' &&
+      ((b.title || '').trim().toLowerCase() === cleanTitle || b.boundFieldIds?.some(id => fieldIds.includes(id)))
+    );
+
+    if (existingTableBlock) {
+      setActiveBlockId(existingTableBlock.id);
     } else {
       const newBlock: ReportBlockConfig = {
         id: `rep_block_${Date.now()}`,
         type: 'TABLE',
-        title: h2Title,
+        title: elementTitle,
         boundFieldIds: fieldIds,
         weight: 0,
         isKnockout: false
@@ -1450,25 +1480,42 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
   const hierarchyGroups = React.useMemo(() => groupFieldsByHierarchy(filteredFormFields), [filteredFormFields]);
 
   const handleSelectTableGroupFromCanvas = (groupTitle: string) => {
-    let matchedFieldIds: string[] = [];
     const cleanTarget = groupTitle.trim().toLowerCase();
+    // Nếu là tiêu đề H2 thực sự -> mở H2 Section Properties
     for (const h1 of hierarchyGroups) {
       const h2 = h1.h2Groups.find(g => g.h2.trim().toLowerCase() === cleanTarget);
       if (h2) {
-        matchedFieldIds = h2.fields.map(f => f.id);
+        handleSelectH2Subgroup(h2.h2);
+        return;
+      }
+    }
+    // Nếu là Element / Table cấp dưới H2 hoặc trực tiếp dưới H1 -> mở Table Properties
+    let matchedFieldIds: string[] = [];
+    for (const h1 of hierarchyGroups) {
+      for (const h2 of h1.h2Groups) {
+        const el = h2.elements.find(e => e.elementTitle.trim().toLowerCase() === cleanTarget);
+        if (el) {
+          matchedFieldIds = el.fields.map(f => f.id);
+          break;
+        }
+      }
+      if (matchedFieldIds.length > 0) break;
+      const directEl = h1.directElements.find(e => e.elementTitle.trim().toLowerCase() === cleanTarget);
+      if (directEl) {
+        matchedFieldIds = directEl.fields.map(f => f.id);
         break;
       }
     }
     if (matchedFieldIds.length === 0) {
       const fieldMatches = allFormFields.filter(f =>
-        (f.sectionH2 && f.sectionH2.trim().toLowerCase() === cleanTarget) ||
+        (f.locationCode && f.locationCode.split(' › ')[0].trim().toLowerCase() === cleanTarget) ||
         (f.locationCode && f.locationCode.trim().toLowerCase() === cleanTarget)
       );
       if (fieldMatches.length > 0) {
         matchedFieldIds = fieldMatches.map(f => f.id);
       }
     }
-    handleSelectH2Subgroup(groupTitle, matchedFieldIds);
+    handleSelectElementGroup(groupTitle, matchedFieldIds);
   };
 
   // Handler when clicking a Layout Block (TITLE, SECTION_LABEL, INFO_GRID, SIGN, TABLE) in FormReferenceCanvas
@@ -1510,8 +1557,9 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
       return;
     }
     if (formBlock.type === 'SECTION_LABEL') {
-      if (formBlock.titleFormat === 'H2') {
-        handleSelectTableGroupFromCanvas(formBlock.title || '');
+      const fmt = formBlock.sectionFormat || formBlock.titleFormat || 'H1';
+      if (fmt === 'H2') {
+        handleSelectH2Subgroup(formBlock.title || '');
       } else {
         handleSelectH1Section(formBlock.title || '');
       }
@@ -1981,11 +2029,184 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                 hierarchyGroups.map(h1Group => {
                   const h1Key = `h1_${h1Group.h1}`;
                   const isH1Expanded = searchFieldQuery ? true : (expandedSections[h1Key] ?? true);
-                  const allH1FieldIds = h1Group.h2Groups.flatMap(g => g.fields.map(f => f.id));
+                  const allH1FieldIds = [
+                    ...h1Group.h2Groups.flatMap(g => g.fields.map(f => f.id)),
+                    ...h1Group.directElements.flatMap(e => e.fields.map(f => f.id))
+                  ];
                   const isH1Active = !selectedFieldId && activeBlock && (
                     (activeBlock.type === 'SECTION_LABEL' && (activeBlock.titleFormat === 'H1' || !activeBlock.titleFormat) && activeBlock.title.trim().toLowerCase() === h1Group.h1.trim().toLowerCase()) ||
                     (activeBlock.title?.trim().toLowerCase() === h1Group.h1.trim().toLowerCase())
                   );
+
+                  const renderElementGroupNode = (elGroup: { elementTitle: string; fields: FormFieldISO[] }, parentKey: string) => {
+                    const elKey = `${parentKey}_el_${elGroup.elementTitle}`;
+                    const isElExpanded = searchFieldQuery ? true : (expandedSections[elKey] ?? true);
+                    const elFieldIds = elGroup.fields.map(f => f.id);
+                    const isElActive = !selectedFieldId && activeBlock && activeBlock.type === 'TABLE' && (
+                      activeBlock.title?.trim().toLowerCase() === elGroup.elementTitle.trim().toLowerCase() ||
+                      activeBlock.boundFieldIds?.some(id => elFieldIds.includes(id))
+                    );
+
+                    return (
+                      <div key={elGroup.elementTitle} style={{ display: 'flex', flexDirection: 'column', gap: '3px', flexShrink: 0 }}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '3px 6px',
+                            minHeight: '26px',
+                            boxSizing: 'border-box',
+                            background: isElActive ? '#f0fdfa' : '#f8fafc',
+                            border: isElActive ? '1px solid var(--primary)' : '1px solid #e2e8f0',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            userSelect: 'none',
+                            transition: 'all 0.12s'
+                          }}
+                          onClick={() => handleSelectElementGroup(elGroup.elementTitle, elFieldIds)}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: 1, minWidth: 0, lineHeight: 1.3 }}>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleSectionExpand(elKey);
+                              }}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                padding: '1px',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: isElActive ? 'var(--primary)' : '#64748b'
+                              }}
+                              title={isElExpanded ? 'Thu gọn bảng' : 'Mở rộng bảng'}
+                            >
+                              {isElExpanded ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
+                            </button>
+                            <TableIcon size={11} color={isElActive ? 'var(--primary)' : '#64748b'} />
+                            <span
+                              style={{
+                                fontSize: '0.56rem',
+                                fontWeight: 700,
+                                padding: '0px 3px',
+                                borderRadius: '2px',
+                                background: isElActive ? '#ccfbf1' : '#e2e8f0',
+                                color: isElActive ? '#0f766e' : '#475569',
+                                flexShrink: 0
+                              }}
+                            >
+                              TABLE
+                            </span>
+                            <span
+                              style={{
+                                fontWeight: isElActive ? 700 : 600,
+                                fontSize: '0.7rem',
+                                color: isElActive ? '#0f766e' : '#334155',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap'
+                              }}
+                              title={`Click để xem/cấu hình thuộc tính Bảng: ${elGroup.elementTitle}`}
+                            >
+                              {elGroup.elementTitle}
+                            </span>
+                            <span style={{ fontSize: '0.62rem', color: isElActive ? '#0f766e' : '#94a3b8' }}>
+                              ({elGroup.fields.length})
+                            </span>
+                          </div>
+
+                          {activeBlock && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                addMultipleFieldsToBlock(activeBlock.id, elFieldIds);
+                              }}
+                              style={{
+                                padding: '1px 4px',
+                                fontSize: '0.58rem',
+                                background: '#ffffff',
+                                color: 'var(--primary)',
+                                border: '1px solid #cbd5e1',
+                                borderRadius: '3px',
+                                cursor: 'pointer',
+                                fontWeight: 500,
+                                whiteSpace: 'nowrap'
+                              }}
+                              title={`Gán toàn bộ ${elFieldIds.length} trường của bảng này`}
+                            >
+                              + Bảng
+                            </button>
+                          )}
+                        </div>
+
+                        {isElExpanded && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', paddingLeft: '10px', borderLeft: '1.5px dashed #cbd5e1', marginLeft: '5px' }}>
+                            {elGroup.fields.map(field => {
+                              const isBoundToActive = activeBlock?.boundFieldIds?.includes(field.id);
+                              const badgeStyle = getFieldBadgeStyle(field.type);
+                              const isSelected = selectedFieldId === field.id;
+                              return (
+                                <div
+                                  key={field.id}
+                                  onClick={() => {
+                                    setSelectedFieldId(field.id);
+                                    setActiveBlockId(null);
+                                    setRightTab('properties');
+                                  }}
+                                  style={{
+                                    padding: '0.32rem 0.45rem',
+                                    borderRadius: '4px',
+                                    border: isSelected
+                                      ? '1.5px solid var(--primary)'
+                                      : isBoundToActive
+                                      ? '1px solid #99f6e4'
+                                      : '1px solid #e2e8f0',
+                                    background: isSelected
+                                      ? '#f0fdfa'
+                                      : isBoundToActive
+                                      ? '#eff6ff'
+                                      : '#ffffff',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    fontSize: '0.73rem',
+                                    gap: '0.4rem',
+                                    transition: 'all 0.1s',
+                                    boxShadow: isSelected ? '0 1px 3px rgba(13, 148, 136, 0.15)' : 'none'
+                                  }}
+                                  title={`Click để xem chi tiết trường (${field.id})`}
+                                >
+                                  <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                                    <div style={{ fontWeight: isSelected ? 600 : 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                      {field.checkItem || field.id}
+                                    </div>
+                                  </div>
+                                  <span style={{
+                                    fontSize: '0.58rem',
+                                    padding: '0.08rem 0.28rem',
+                                    borderRadius: '3px',
+                                    background: badgeStyle.bg,
+                                    color: badgeStyle.color,
+                                    textTransform: 'uppercase',
+                                    fontWeight: 700,
+                                    flexShrink: 0
+                                  }}>
+                                    {badgeStyle.label}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  };
 
                   return (
                     <div
@@ -2082,168 +2303,126 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                         )}
                       </div>
 
-                      {/* H1 Children (H2 Subgroups) */}
+                      {/* H1 Children: Level-2 H2 Sections (strictly format H2) + Level-3 Elements */}
                       {isH1Expanded && (
-                        <div style={{ padding: '4px 6px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <div style={{ padding: '4px 6px', display: 'flex', flexDirection: 'column', gap: '5px' }}>
                           {h1Group.h2Groups.map(h2Group => {
-                            const isSingleDefaultGroup = h2Group.h2 === h1Group.h1 || h2Group.h2 === 'Thông tin cơ bản' || h2Group.h2 === 'Chi tiết';
                             const h2Key = `h2_${h1Group.h1}_${h2Group.h2}`;
                             const isH2Expanded = searchFieldQuery ? true : (expandedSections[h2Key] ?? true);
                             const h2FieldIds = h2Group.fields.map(f => f.id);
-                            const isH2Active = !selectedFieldId && activeBlock && (
-                              activeBlock.title?.trim().toLowerCase() === h2Group.h2.trim().toLowerCase() ||
-                              (activeBlock.type === 'TABLE' && activeBlock.boundFieldIds?.some(id => h2FieldIds.includes(id)))
-                            );
+                            const isH2Active = !selectedFieldId && activeBlock &&
+                              activeBlock.type === 'SECTION_LABEL' &&
+                              activeBlock.titleFormat === 'H2' &&
+                              activeBlock.title?.trim().toLowerCase() === h2Group.h2.trim().toLowerCase();
 
                             return (
-                              <div key={h2Group.h2} style={{ display: 'flex', flexDirection: 'column', gap: '3px', flexShrink: 0 }}>
-                                {!isSingleDefaultGroup && (
-                                  <div
-                                    style={{
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'space-between',
-                                      padding: '4px 6px',
-                                      minHeight: '28px',
-                                      boxSizing: 'border-box',
-                                      background: isH2Active ? '#eff6ff' : '#f1f5f9',
-                                      border: isH2Active ? '1px solid #93c5fd' : '1px solid transparent',
-                                      borderRadius: '4px',
-                                      cursor: 'pointer',
-                                      userSelect: 'none',
-                                      marginTop: '2px',
-                                      transition: 'all 0.12s'
-                                    }}
-                                    onClick={() => handleSelectH2Subgroup(h2Group.h2, h2FieldIds)}
-                                  >
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: 1, minWidth: 0, lineHeight: 1.3 }}>
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          toggleSectionExpand(h2Key);
-                                        }}
-                                        style={{
-                                          background: 'none',
-                                          border: 'none',
-                                          padding: '1px',
-                                          cursor: 'pointer',
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          justifyContent: 'center',
-                                          color: isH2Active ? '#2563eb' : '#64748b'
-                                        }}
-                                        title={isH2Expanded ? 'Thu gọn nhóm' : 'Mở rộng nhóm'}
-                                      >
-                                        {isH2Expanded ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
-                                      </button>
-                                      {isH2Expanded ? <FolderOpen size={12} color={isH2Active ? '#2563eb' : '#64748b'} /> : <Folder size={12} color={isH2Active ? '#2563eb' : '#64748b'} />}
-                                      <span
-                                        style={{
-                                          fontWeight: isH2Active ? 700 : 600,
-                                          fontSize: '0.72rem',
-                                          color: isH2Active ? '#1d4ed8' : '#334155',
-                                          overflow: 'hidden',
-                                          textOverflow: 'ellipsis',
-                                          whiteSpace: 'nowrap'
-                                        }}
-                                        title={`Click để xem/cấu hình thuộc tính Nhóm H2: ${h2Group.h2}`}
-                                      >
-                                        {h2Group.h2}
-                                      </span>
-                                      <span style={{ fontSize: '0.63rem', color: isH2Active ? '#2563eb' : '#94a3b8' }}>({h2Group.fields.length})</span>
-                                    </div>
-
-                                    {activeBlock && (
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          addMultipleFieldsToBlock(activeBlock.id, h2FieldIds);
-                                        }}
-                                        style={{
-                                          padding: '1px 4px',
-                                          fontSize: '0.6rem',
-                                          background: '#ffffff',
-                                          color: '#2563eb',
-                                          border: '1px solid #cbd5e1',
-                                          borderRadius: '3px',
-                                          cursor: 'pointer',
-                                          fontWeight: 500,
-                                          whiteSpace: 'nowrap'
-                                        }}
-                                        title={`Gán toàn bộ ${h2FieldIds.length} trường của mục này`}
-                                      >
-                                        + Nhóm
-                                      </button>
-                                    )}
+                              <div key={h2Group.h2} style={{ display: 'flex', flexDirection: 'column', gap: '4px', flexShrink: 0 }}>
+                                {/* Level 2: Strictly H2 Header */}
+                                <div
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    padding: '4px 6px',
+                                    minHeight: '28px',
+                                    boxSizing: 'border-box',
+                                    background: isH2Active ? '#eff6ff' : '#f1f5f9',
+                                    border: isH2Active ? '1.5px solid #3b82f6' : '1px solid #cbd5e1',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    userSelect: 'none',
+                                    transition: 'all 0.12s'
+                                  }}
+                                  onClick={() => handleSelectH2Subgroup(h2Group.h2)}
+                                >
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: 1, minWidth: 0, lineHeight: 1.3 }}>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleSectionExpand(h2Key);
+                                      }}
+                                      style={{
+                                        background: 'none',
+                                        border: 'none',
+                                        padding: '1px',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        color: isH2Active ? '#2563eb' : '#475569'
+                                      }}
+                                      title={isH2Expanded ? 'Thu gọn phân mục H2' : 'Mở rộng phân mục H2'}
+                                    >
+                                      {isH2Expanded ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
+                                    </button>
+                                    {isH2Expanded ? <FolderOpen size={12} color="#2563eb" /> : <Folder size={12} color="#2563eb" />}
+                                    <span
+                                      style={{
+                                        fontSize: '0.58rem',
+                                        fontWeight: 800,
+                                        padding: '0px 4px',
+                                        borderRadius: '3px',
+                                        background: '#dbeafe',
+                                        color: '#1d4ed8',
+                                        flexShrink: 0
+                                      }}
+                                    >
+                                      H2
+                                    </span>
+                                    <span
+                                      style={{
+                                        fontWeight: 700,
+                                        fontSize: '0.73rem',
+                                        color: isH2Active ? '#1d4ed8' : '#1e293b',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        whiteSpace: 'nowrap'
+                                      }}
+                                      title={`Click để xem/cấu hình thuộc tính Phân mục H2: ${h2Group.h2}`}
+                                    >
+                                      {h2Group.h2}
+                                    </span>
+                                    <span style={{ fontSize: '0.63rem', color: '#2563eb', fontWeight: 600 }}>({h2Group.fields.length})</span>
                                   </div>
-                                )}
 
-                                {(isSingleDefaultGroup || isH2Expanded) && (
-                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', paddingLeft: isSingleDefaultGroup ? '0' : '4px' }}>
-                                    {h2Group.fields.map(field => {
-                                      const isBoundToActive = activeBlock?.boundFieldIds?.includes(field.id);
-                                      const badgeStyle = getFieldBadgeStyle(field.type);
+                                  {activeBlock && (
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        addMultipleFieldsToBlock(activeBlock.id, h2FieldIds);
+                                      }}
+                                      style={{
+                                        padding: '1px 4px',
+                                        fontSize: '0.6rem',
+                                        background: '#ffffff',
+                                        color: '#2563eb',
+                                        border: '1px solid #93c5fd',
+                                        borderRadius: '3px',
+                                        cursor: 'pointer',
+                                        fontWeight: 600,
+                                        whiteSpace: 'nowrap'
+                                      }}
+                                      title={`Gán toàn bộ ${h2FieldIds.length} trường của phân mục H2 này`}
+                                    >
+                                      + Cả H2
+                                    </button>
+                                  )}
+                                </div>
 
-                                      const isSelected = selectedFieldId === field.id;
-                                      return (
-                                        <div
-                                          key={field.id}
-                                          onClick={() => {
-                                            setSelectedFieldId(field.id);
-                                            setActiveBlockId(null);
-                                            setRightTab('properties');
-                                          }}
-                                          style={{
-                                            padding: '0.35rem 0.5rem',
-                                            borderRadius: '4px',
-                                            border: isSelected
-                                              ? '1.5px solid var(--primary)'
-                                              : isBoundToActive
-                                              ? '1px solid #99f6e4'
-                                              : '1px solid #e2e8f0',
-                                            background: isSelected
-                                              ? '#f0fdfa'
-                                              : isBoundToActive
-                                              ? '#eff6ff'
-                                              : '#ffffff',
-                                            cursor: 'pointer',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'space-between',
-                                            fontSize: '0.75rem',
-                                            gap: '0.4rem',
-                                            transition: 'all 0.1s',
-                                            boxShadow: isSelected ? '0 1px 3px rgba(13, 148, 136, 0.15)' : 'none'
-                                          }}
-                                          title={`Click để xem chi tiết trường (${field.id})`}
-                                        >
-                                          <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
-                                            <div style={{ fontWeight: isSelected ? 600 : 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                              {field.checkItem || field.id}
-                                            </div>
-                                          </div>
-                                          <span style={{
-                                            fontSize: '0.6rem',
-                                            padding: '0.1rem 0.3rem',
-                                            borderRadius: '3px',
-                                            background: badgeStyle.bg,
-                                            color: badgeStyle.color,
-                                            textTransform: 'uppercase',
-                                            fontWeight: 700,
-                                            flexShrink: 0
-                                          }}>
-                                            {badgeStyle.label}
-                                          </span>
-                                        </div>
-                                      );
-                                    })}
+                                {/* Level 3: Normal Elements (TABLE / INFO_GRID) Indented One Level Below H2 */}
+                                {isH2Expanded && (
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingLeft: '10px', borderLeft: '2px solid #bfdbfe', marginLeft: '6px' }}>
+                                    {h2Group.elements.map(elGroup => renderElementGroupNode(elGroup, h2Key))}
                                   </div>
                                 )}
                               </div>
                             );
                           })}
+
+                          {/* Direct Elements under H1 (when H1 has no intermediate H2 section) */}
+                          {h1Group.directElements.map(elGroup => renderElementGroupNode(elGroup, h1Key))}
                         </div>
                       )}
                     </div>
@@ -3493,6 +3672,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                           sampleSubmission?.formData
                         );
                         if (!childH2Summary || childH2Summary.length === 0) return null;
+                        const hasDirectElements = childH2Summary.some(item => item.isElement);
 
                         return (
                           <div style={{ borderTop: '1px solid var(--neutral-border)', paddingTop: '0.6rem', marginTop: '2px', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -3502,7 +3682,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
 
                             <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', background: '#ffffff', fontSize: '0.72rem' }}>
                               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', padding: '6px 8px', fontWeight: 700, color: '#475569', alignItems: 'center' }}>
-                                <div style={{ gridColumn: 'span 5' }}>Nhóm H2 con</div>
+                                <div style={{ gridColumn: 'span 5' }}>{hasDirectElements ? 'Bảng / Phần tử con' : 'Nhóm H2 con'}</div>
                                 <div style={{ gridColumn: 'span 2', textAlign: 'center', color: '#0f766e' }}>isPass</div>
                                 <div style={{ gridColumn: 'span 3', textAlign: 'right', color: '#4338ca' }}>Score</div>
                                 <div style={{ gridColumn: 'span 2', textAlign: 'right', color: '#64748b' }}>Weight</div>
@@ -3544,6 +3724,74 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                 <div style={{ gridColumn: 'span 5', textAlign: 'right' }}>
                                   <span style={{ fontSize: '0.9rem', fontWeight: 900, color: '#0f766e', lineHeight: 1 }}>
                                     {h1CombinedScore.combinedScore}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+
+                      {/* H2 Sub-section Combined Scoring Summary Roll-up (Child Elements / Tables) */}
+                      {activeBlock.titleFormat === 'H2' && (() => {
+                        const { childElementsSummary, h2CombinedScore } = summarizeH2ChildElements(
+                          activeBlock.title,
+                          hierarchyGroups,
+                          template.layoutBlocks,
+                          sampleSubmission?.formData
+                        );
+                        if (!childElementsSummary || childElementsSummary.length === 0) return null;
+
+                        return (
+                          <div style={{ borderTop: '1px solid var(--neutral-border)', paddingTop: '0.6rem', marginTop: '2px', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#1d4ed8' }}>
+                              TỔNG HỢP ĐIỂM PHÂN MỤC H2
+                            </div>
+
+                            <div style={{ border: '1px solid #bfdbfe', borderRadius: '8px', overflow: 'hidden', background: '#ffffff', fontSize: '0.72rem' }}>
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', background: '#eff6ff', borderBottom: '1px solid #bfdbfe', padding: '6px 8px', fontWeight: 700, color: '#1e3a8a', alignItems: 'center' }}>
+                                <div style={{ gridColumn: 'span 5' }}>Bảng / Phần tử con</div>
+                                <div style={{ gridColumn: 'span 2', textAlign: 'center', color: '#0f766e' }}>isPass</div>
+                                <div style={{ gridColumn: 'span 3', textAlign: 'right', color: '#4338ca' }}>Score</div>
+                                <div style={{ gridColumn: 'span 2', textAlign: 'right', color: '#64748b' }}>Weight</div>
+                              </div>
+
+                              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                {childElementsSummary.map((elItem, idx) => (
+                                  <div
+                                    key={idx}
+                                    style={{
+                                      display: 'grid',
+                                      gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
+                                      padding: '5px 8px',
+                                      alignItems: 'center',
+                                      borderBottom: idx < childElementsSummary.length - 1 ? '1px solid #f1f5f9' : 'none'
+                                    }}
+                                  >
+                                    <div style={{ gridColumn: 'span 5', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500, color: '#1e293b' }} title={`${elItem.elementTitle} (${elItem.fieldsCount} câu hỏi)`}>
+                                      {elItem.elementTitle}
+                                    </div>
+                                    <div style={{ gridColumn: 'span 2', textAlign: 'center', fontWeight: 700, fontSize: '0.68rem', color: elItem.isPass ? '#0f766e' : '#e11d48' }}>
+                                      {elItem.isPass ? 'PASS' : 'FAIL'}
+                                    </div>
+                                    <div style={{ gridColumn: 'span 3', textAlign: 'right', fontWeight: 700, color: '#0f172a' }}>
+                                      {elItem.score}
+                                    </div>
+                                    <div style={{ gridColumn: 'span 2', textAlign: 'right', fontWeight: 600, color: '#64748b' }}>
+                                      {elItem.weight}%
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', padding: '6px 8px', alignItems: 'center', background: '#eff6ff', borderTop: '1px solid #bfdbfe' }}>
+                                <div style={{ gridColumn: 'span 5', fontWeight: 700, color: '#1d4ed8', fontSize: '0.72rem' }}>Tổng Phân Mục H2:</div>
+                                <div style={{ gridColumn: 'span 2', textAlign: 'center', fontSize: '0.7rem', fontWeight: 700, color: h2CombinedScore.isPass ? '#0f766e' : '#e11d48' }}>
+                                  {h2CombinedScore.isPass ? 'PASS' : 'FAIL'}
+                                </div>
+                                <div style={{ gridColumn: 'span 5', textAlign: 'right' }}>
+                                  <span style={{ fontSize: '0.9rem', fontWeight: 900, color: '#1d4ed8', lineHeight: 1 }}>
+                                    {h2CombinedScore.combinedScore}
                                   </span>
                                 </div>
                               </div>
@@ -3983,24 +4231,27 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
 
                     const h2Score = computeH2CombinedScore(boundFields, h2EvalMap, activeBlock.ruleOverrides);
                     const resolveParentH1Title = (): string => {
-                      if (boundFields.length > 0 && boundFields[0].sectionH1 && boundFields[0].sectionH1.trim().length > 0) {
-                        return boundFields[0].sectionH1.trim();
+                      if (boundFields.length > 0) {
+                        const f0 = boundFields[0];
+                        if (f0.sectionH2 && f0.sectionH2.trim().length > 0) {
+                          return `[H2] ${f0.sectionH2.trim()}`;
+                        }
+                        if (f0.sectionH1 && f0.sectionH1.trim().length > 0) {
+                          return `[H1] ${f0.sectionH1.trim()}`;
+                        }
                       }
                       const cleanTitle = (activeBlock.title || '').trim().toLowerCase();
                       if (cleanTitle) {
-                        const matchingField = allFormFields.find(f => (f.sectionH2 || '').trim().toLowerCase() === cleanTitle && f.sectionH1 && f.sectionH1.trim().length > 0);
-                        if (matchingField && matchingField.sectionH1) {
-                          return matchingField.sectionH1.trim();
-                        }
-                      }
-                      for (const h1Group of hierarchyGroups) {
-                        if (
-                          h1Group.h2Groups.some(
-                            g => g.h2.trim().toLowerCase() === cleanTitle ||
-                            g.fields.some(f => activeBlock.boundFieldIds?.includes(f.id))
-                          )
-                        ) {
-                          return h1Group.h1;
+                        const matchingByLoc = allFormFields.find(f =>
+                          (f.locationCode || '').split(' › ')[0].trim().toLowerCase() === cleanTitle
+                        );
+                        if (matchingByLoc) {
+                          if (matchingByLoc.sectionH2 && matchingByLoc.sectionH2.trim().length > 0) {
+                            return `[H2] ${matchingByLoc.sectionH2.trim()}`;
+                          }
+                          if (matchingByLoc.sectionH1 && matchingByLoc.sectionH1.trim().length > 0) {
+                            return `[H1] ${matchingByLoc.sectionH1.trim()}`;
+                          }
                         }
                       }
                       return 'Toàn bộ Báo cáo';
@@ -4010,7 +4261,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                     return (
                       <div style={{ borderTop: '1px solid var(--neutral-border)', paddingTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                         <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                          TỔNG HỢP ĐIỂM NHÓM H2
+                          TỔNG HỢP ĐIỂM BẢNG ĐÁNH GIÁ
                         </div>
 
                         {boundFields.length > 0 && (
@@ -4058,7 +4309,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                             </div>
 
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', padding: '7px 8px', alignItems: 'center', background: '#f5f3ff', borderTop: '1px solid #ddd6fe' }}>
-                              <div style={{ gridColumn: 'span 5', fontWeight: 700, color: '#4c1d95', fontSize: '0.72rem' }}>Tổng Nhóm:</div>
+                              <div style={{ gridColumn: 'span 5', fontWeight: 700, color: '#4c1d95', fontSize: '0.72rem' }}>Tổng Bảng:</div>
                               <div style={{ gridColumn: 'span 2', textAlign: 'center', fontSize: '0.7rem', fontWeight: 700, color: h2Score.isPass ? '#0f766e' : '#e11d48' }}>
                                 {h2Score.isPass ? 'PASS' : 'FAIL'}
                               </div>
@@ -4071,7 +4322,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                           </div>
                         )}
 
-                        {/* H2 Property Card: Row 1 [ ] isKnockout + Row 2 Weight [ xx ] % of {parentH1Title} */}
+                        {/* Table Property Card: Row 1 [ ] isKnockout + Row 2 Weight [ xx ] % of {parentH1Title} */}
                         <div style={{
                           display: 'flex',
                           flexDirection: 'column',
@@ -4097,7 +4348,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                 }}
                                 style={{ width: '13px', height: '13px', accentColor: '#e11d48', cursor: isLocked ? 'not-allowed' : 'pointer' }}
                               />
-                              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#9f1239' }}>isKnockout (H2)</span>
+                              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#9f1239' }}>isKnockout (Bảng)</span>
                             </label>
                             <span style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 500 }}>Loại trực tiếp</span>
                           </div>
@@ -4670,7 +4921,124 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                 return modalGroups.map(h1Group => {
                   const h1Key = `picker_h1_${h1Group.h1}`;
                   const isH1Expanded = q ? true : (expandedSections[h1Key] ?? true);
-                  const allH1FieldIds = h1Group.h2Groups.flatMap(g => g.fields.map(f => f.id));
+                  const allH1FieldIds = [
+                    ...h1Group.h2Groups.flatMap(g => g.fields.map(f => f.id)),
+                    ...h1Group.directElements.flatMap(e => e.fields.map(f => f.id))
+                  ];
+
+                  const renderPickerElementGroup = (elGroup: { elementTitle: string; fields: FormFieldISO[] }, parentKey: string) => {
+                    const elKey = `${parentKey}_el_${elGroup.elementTitle}`;
+                    const isElExpanded = q ? true : (expandedSections[elKey] ?? true);
+                    const elFieldIds = elGroup.fields.map(f => f.id);
+
+                    return (
+                      <div key={elGroup.elementTitle} style={{ display: 'flex', flexDirection: 'column', gap: '3px', flexShrink: 0 }}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '3px 6px',
+                            minHeight: '26px',
+                            boxSizing: 'border-box',
+                            background: '#f8fafc',
+                            border: '1px solid #e2e8f0',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            userSelect: 'none'
+                          }}
+                          onClick={() => toggleSectionExpand(elKey)}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: 1, minWidth: 0 }}>
+                            {isElExpanded ? <ChevronDown size={11} color="#64748b" /> : <ChevronRight size={11} color="#64748b" />}
+                            <TableIcon size={11} color="#64748b" />
+                            <span style={{ fontSize: '0.56rem', fontWeight: 700, padding: '0px 3px', borderRadius: '2px', background: '#e2e8f0', color: '#475569' }}>
+                              TABLE
+                            </span>
+                            <span style={{ fontWeight: 600, fontSize: '0.72rem', color: '#334155', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {elGroup.elementTitle}
+                            </span>
+                            <span style={{ fontSize: '0.62rem', color: '#94a3b8' }}>({elGroup.fields.length})</span>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              addMultipleFieldsToBlock(fieldPickerBlockId, elFieldIds);
+                            }}
+                            style={{
+                              padding: '1px 5px',
+                              fontSize: '0.6rem',
+                              background: '#ffffff',
+                              color: 'var(--primary)',
+                              border: '1px solid #cbd5e1',
+                              borderRadius: '3px',
+                              cursor: 'pointer',
+                              fontWeight: 600,
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
+                            + Bảng ({elFieldIds.length})
+                          </button>
+                        </div>
+
+                        {isElExpanded && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', paddingLeft: '8px', borderLeft: '1.5px dashed #cbd5e1', marginLeft: '4px' }}>
+                            {elGroup.fields.map(field => {
+                              const badgeStyle = getFieldBadgeStyle(field.type);
+                              return (
+                                <div
+                                  key={field.id}
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    padding: '4px 6px',
+                                    border: '1px solid #e2e8f0',
+                                    borderRadius: '4px',
+                                    background: '#ffffff',
+                                    gap: '6px'
+                                  }}
+                                >
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ fontWeight: 600, fontSize: '0.75rem', color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={field.checkItem || field.id}>
+                                      {field.checkItem || field.id}
+                                    </div>
+                                    <div style={{ fontSize: '0.6rem', color: '#64748b', fontFamily: 'monospace', marginTop: '1px' }}>
+                                      ID: {field.id.length > 24 ? `${field.id.substring(0, 10)}...${field.id.slice(-8)}` : field.id}
+                                    </div>
+                                  </div>
+
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                                    <span style={{ fontSize: '0.58rem', padding: '1px 4px', borderRadius: '3px', background: badgeStyle.bg, color: badgeStyle.color, fontWeight: 700, textTransform: 'uppercase' }}>
+                                      {badgeStyle.label}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => addFieldToBlock(fieldPickerBlockId, field.id)}
+                                      style={{
+                                        padding: '2px 7px',
+                                        background: 'var(--primary)',
+                                        color: '#ffffff',
+                                        border: 'none',
+                                        borderRadius: '3px',
+                                        fontSize: '0.68rem',
+                                        fontWeight: 600,
+                                        cursor: 'pointer'
+                                      }}
+                                    >
+                                      + Gán
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  };
 
                   return (
                     <div key={h1Group.h1} style={{ border: '1px solid #e2e8f0', borderRadius: '6px', background: '#ffffff', overflow: 'hidden', flexShrink: 0 }}>
@@ -4724,120 +5092,75 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
 
                       {/* H1 Children */}
                       {isH1Expanded && (
-                        <div style={{ padding: '4px 6px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <div style={{ padding: '4px 6px', display: 'flex', flexDirection: 'column', gap: '5px' }}>
                           {h1Group.h2Groups.map(h2Group => {
-                            const isSingleDefault = h2Group.h2 === h1Group.h1 || h2Group.h2 === 'Thông tin cơ bản' || h2Group.h2 === 'Chi tiết';
                             const h2Key = `picker_h2_${h1Group.h1}_${h2Group.h2}`;
                             const isH2Expanded = q ? true : (expandedSections[h2Key] ?? true);
                             const h2FieldIds = h2Group.fields.map(f => f.id);
 
                             return (
                               <div key={h2Group.h2} style={{ display: 'flex', flexDirection: 'column', gap: '3px', flexShrink: 0 }}>
-                                {!isSingleDefault && (
-                                  <div
-                                    style={{
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'space-between',
-                                      padding: '4px 6px',
-                                      minHeight: '28px',
-                                      boxSizing: 'border-box',
-                                      background: '#f1f5f9',
-                                      borderRadius: '4px',
-                                      cursor: 'pointer',
-                                      userSelect: 'none'
-                                    }}
-                                    onClick={() => toggleSectionExpand(h2Key)}
-                                  >
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: 1, minWidth: 0 }}>
-                                      {isH2Expanded ? <ChevronDown size={11} color="#64748b" /> : <ChevronRight size={11} color="#64748b" />}
-                                      {isH2Expanded ? <FolderOpen size={12} color="#64748b" /> : <Folder size={12} color="#64748b" />}
-                                      <span style={{ fontWeight: 600, fontSize: '0.74rem', color: '#334155', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                        {h2Group.h2}
-                                      </span>
-                                      <span style={{ fontSize: '0.63rem', color: '#94a3b8' }}>({h2Group.fields.length})</span>
-                                    </div>
-
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        addMultipleFieldsToBlock(fieldPickerBlockId, h2FieldIds);
-                                      }}
-                                      style={{
-                                        padding: '1px 5px',
-                                        fontSize: '0.62rem',
-                                        background: '#ffffff',
-                                        color: '#2563eb',
-                                        border: '1px solid #cbd5e1',
-                                        borderRadius: '3px',
-                                        cursor: 'pointer',
-                                        fontWeight: 500,
-                                        whiteSpace: 'nowrap'
-                                      }}
-                                      title={`Gán toàn bộ ${h2FieldIds.length} trường của mục này`}
-                                    >
-                                      + Nhóm ({h2FieldIds.length})
-                                    </button>
+                                <div
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    padding: '4px 6px',
+                                    minHeight: '28px',
+                                    boxSizing: 'border-box',
+                                    background: '#eff6ff',
+                                    border: '1px solid #bfdbfe',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    userSelect: 'none'
+                                  }}
+                                  onClick={() => toggleSectionExpand(h2Key)}
+                                >
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: 1, minWidth: 0 }}>
+                                    {isH2Expanded ? <ChevronDown size={11} color="#2563eb" /> : <ChevronRight size={11} color="#2563eb" />}
+                                    {isH2Expanded ? <FolderOpen size={12} color="#2563eb" /> : <Folder size={12} color="#2563eb" />}
+                                    <span style={{ fontSize: '0.58rem', fontWeight: 800, padding: '0px 4px', borderRadius: '3px', background: '#dbeafe', color: '#1d4ed8' }}>
+                                      H2
+                                    </span>
+                                    <span style={{ fontWeight: 700, fontSize: '0.74rem', color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                      {h2Group.h2}
+                                    </span>
+                                    <span style={{ fontSize: '0.63rem', color: '#2563eb', fontWeight: 600 }}>({h2Group.fields.length})</span>
                                   </div>
-                                )}
 
-                                {(isSingleDefault || isH2Expanded) && (
-                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', paddingLeft: isSingleDefault ? '0' : '4px' }}>
-                                    {h2Group.fields.map(field => {
-                                      const badgeStyle = getFieldBadgeStyle(field.type);
-                                      return (
-                                        <div
-                                          key={field.id}
-                                          style={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'space-between',
-                                            padding: '4px 6px',
-                                            border: '1px solid #e2e8f0',
-                                            borderRadius: '4px',
-                                            background: '#ffffff',
-                                            gap: '6px'
-                                          }}
-                                        >
-                                          <div style={{ flex: 1, minWidth: 0 }}>
-                                            <div style={{ fontWeight: 600, fontSize: '0.76rem', color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={field.checkItem || field.id}>
-                                              {field.checkItem || field.id}
-                                            </div>
-                                            <div style={{ fontSize: '0.62rem', color: '#64748b', fontFamily: 'monospace', marginTop: '1px' }}>
-                                              ID: {field.id.length > 24 ? `${field.id.substring(0, 10)}...${field.id.slice(-8)}` : field.id}
-                                            </div>
-                                          </div>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      addMultipleFieldsToBlock(fieldPickerBlockId, h2FieldIds);
+                                    }}
+                                    style={{
+                                      padding: '1px 5px',
+                                      fontSize: '0.62rem',
+                                      background: '#ffffff',
+                                      color: '#2563eb',
+                                      border: '1px solid #93c5fd',
+                                      borderRadius: '3px',
+                                      cursor: 'pointer',
+                                      fontWeight: 600,
+                                      whiteSpace: 'nowrap'
+                                    }}
+                                    title={`Gán toàn bộ ${h2FieldIds.length} trường của phân mục H2 này`}
+                                  >
+                                    + Cả H2 ({h2FieldIds.length})
+                                  </button>
+                                </div>
 
-                                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-                                            <span style={{ fontSize: '0.6rem', padding: '1px 4px', borderRadius: '3px', background: badgeStyle.bg, color: badgeStyle.color, fontWeight: 700, textTransform: 'uppercase' }}>
-                                              {badgeStyle.label}
-                                            </span>
-                                            <button
-                                              type="button"
-                                              onClick={() => addFieldToBlock(fieldPickerBlockId, field.id)}
-                                              style={{
-                                                padding: '2px 7px',
-                                                background: 'var(--primary)',
-                                                color: '#ffffff',
-                                                border: 'none',
-                                                borderRadius: '3px',
-                                                fontSize: '0.68rem',
-                                                fontWeight: 600,
-                                                cursor: 'pointer'
-                                              }}
-                                            >
-                                              + Gán
-                                            </button>
-                                          </div>
-                                        </div>
-                                      );
-                                    })}
+                                {isH2Expanded && (
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingLeft: '10px', borderLeft: '2px solid #bfdbfe', marginLeft: '6px' }}>
+                                    {h2Group.elements.map(elGroup => renderPickerElementGroup(elGroup, h2Key))}
                                   </div>
                                 )}
                               </div>
                             );
                           })}
+
+                          {h1Group.directElements.map(elGroup => renderPickerElementGroup(elGroup, h1Key))}
                         </div>
                       )}
                     </div>

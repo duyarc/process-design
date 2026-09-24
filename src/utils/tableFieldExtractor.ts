@@ -1,7 +1,15 @@
 import type { FormFieldISO, LayoutBlockISO, TableColumnConfig, TableRowConfig } from '../types';
 
 /**
- * Interface cho nhóm phân cấp Section H1 -> Section H2 -> FormFieldISO
+ * Interface cho nhóm Element bình thường (TABLE, INFO_GRID) nằm dưới H2 hoặc trực tiếp dưới H1
+ */
+export interface ElementHierarchyGroup {
+  elementTitle: string;
+  fields: FormFieldISO[];
+}
+
+/**
+ * Interface cho nhóm phân cấp 4 tầng: Section H1 -> Section H2 (chỉ format H2) -> Element -> FormFieldISO
  */
 export interface FieldHierarchyGroup {
   h1: string;
@@ -9,16 +17,19 @@ export interface FieldHierarchyGroup {
   h2Groups: {
     h2: string;
     fields: FormFieldISO[];
+    elements: ElementHierarchyGroup[];
   }[];
+  directElements: ElementHierarchyGroup[];
 }
 
 /**
  * Trích xuất các trường dữ liệu nhập liệu từ một khối Bảng (TABLE block)
+ * Quy tắc nghiêm ngặt: Bảng bình thường (titleFormat !== 'H2') KHÔNG bao giờ ghi đè parentH2.
  */
 export function extractTableFields(
   block: LayoutBlockISO,
   parentH1: string = 'Thông tin chung',
-  parentH2: string = 'Bảng'
+  parentH2: string = ''
 ): FormFieldISO[] {
   if (block.type !== 'TABLE' || !block.tableColumns || !block.tableRows) {
     return [];
@@ -26,9 +37,12 @@ export function extractTableFields(
 
   const fields: FormFieldISO[] = [];
   let currentGroupTitle = '';
+  const baseElementTitle = (block.title || 'Bảng').trim();
+  // Chỉ khi bản thân TABLE được cấu hình rõ titleFormat === 'H2' thì mới coi là H2, còn lại giữ nguyên parentH2
+  const effectiveH2 = (block.titleFormat === 'H2' && block.title) ? block.title.trim() : parentH2;
 
   block.tableRows.forEach((row: TableRowConfig, rIdx: number) => {
-    // 1. Nhận diện dòng phân nhóm
+    // 1. Nhận diện dòng phân nhóm bên trong bảng (chỉ là nhóm con trong bảng, không phải H2)
     if (row.isGroupHeader || block.tableData?.[row.id]?.['_groupTitle']) {
       let grp = (row.groupTitle || block.tableData?.[row.id]?.['_groupTitle'] || '').trim();
       if (grp.startsWith('**') && grp.endsWith('**') && grp.length > 4) {
@@ -60,8 +74,9 @@ export function extractTableFields(
       rowQuestion = `Dòng ${rIdx + 1}`;
     }
 
-    // Xác định Section H2 cho từng dòng trường
-    const effectiveH2 = currentGroupTitle || (block.title ? block.title.trim() : parentH2) || parentH1;
+    const elementLocationCode = currentGroupTitle
+      ? `${baseElementTitle} › ${currentGroupTitle}`
+      : baseElementTitle;
 
     // 3. Duyệt qua từng cột nhập liệu trên dòng
     (block.tableColumns || []).forEach((col: TableColumnConfig, cIdx: number) => {
@@ -88,7 +103,7 @@ export function extractTableFields(
         if (colLabel) {
           checkItem = `${rowQuestion}: ${colLabel}`;
         } else {
-          checkItem = `${block.title || 'Bảng'} - ${rowQuestion} (Cột ${cIdx + 1})`;
+          checkItem = `${baseElementTitle} - ${rowQuestion} (Cột ${cIdx + 1})`;
         }
       }
 
@@ -102,7 +117,7 @@ export function extractTableFields(
         options: col.options,
         scaleOptions: col.scaleOptions,
         ratingScale: col.ratingScale,
-        locationCode: block.title || currentGroupTitle || 'Bảng',
+        locationCode: elementLocationCode,
         sectionH1: parentH1,
         sectionH2: effectiveH2,
         reactionProtocol: ''
@@ -115,51 +130,54 @@ export function extractTableFields(
 
 /**
  * Trích xuất toàn bộ trường dữ liệu từ tất cả các khối (INFO_GRID, TABLE, MATRIX_TABLE, CHECKLIST_TABLE)
- * Tự động phân cấp theo Section Header H1 và Section H2
+ * Tự động phân cấp nghiêm ngặt:
+ * - H1: chỉ từ block có format H1
+ * - H2: CHỈ từ block có format H2 (titleFormat === 'H2' hoặc sectionFormat === 'H2')
+ * - Các element bình thường (TABLE, INFO_GRID với titleFormat != H1/H2) giữ nguyên currentH2 (hoặc '' nếu không có H2)
  */
 export function extractAllFormFields(blocks: LayoutBlockISO[] = []): FormFieldISO[] {
   const allFields: FormFieldISO[] = [];
   let currentH1 = 'Thông tin chung';
-  let currentH2 = 'Thông tin cơ bản';
+  let currentH2 = '';
 
   blocks.forEach((block, bIdx) => {
     // 1. Nhận diện khối SECTION_LABEL
     if (block.type === 'SECTION_LABEL') {
       const sectionTitle = (block.title || '').trim();
-      const format = block.sectionFormat || (sectionTitle === sectionTitle.toUpperCase() && sectionTitle.length > 3 ? 'H1' : 'H2');
+      const format = block.sectionFormat || block.titleFormat || (sectionTitle === sectionTitle.toUpperCase() && sectionTitle.length > 3 ? 'H1' : 'H2');
       if (format === 'H1') {
         currentH1 = sectionTitle || `Phần ${bIdx + 1}`;
         currentH2 = ''; // Reset H2 khi chuyển sang H1 mới
-      } else {
+      } else if (format === 'H2') {
         currentH2 = sectionTitle || `Mục ${bIdx + 1}`;
       }
       return;
     }
 
-    // Nếu block có titleFormat === 'H1'
+    // Nếu block thường có titleFormat === 'H1' hoặc 'H2'
     if (block.titleFormat === 'H1' && block.title) {
       currentH1 = block.title.trim();
       currentH2 = '';
+    } else if (block.titleFormat === 'H2' && block.title) {
+      currentH2 = block.title.trim();
     }
-
-    const defaultH2 = currentH2 || (block.title ? block.title.trim() : (currentH1 ? currentH1 : 'Chi tiết'));
 
     // 2. Trường chuẩn trong INFO_GRID hoặc khối có block.fields
     if (block.fields && block.fields.length > 0) {
-      const effectiveH2 = block.titleFormat === 'H2' && block.title ? block.title.trim() : defaultH2;
+      const elementName = (block.title || currentH1).trim();
       block.fields.forEach(f => {
         allFields.push({
           ...f,
-          locationCode: f.locationCode || block.title || currentH1,
+          locationCode: f.locationCode || elementName,
           sectionH1: currentH1,
-          sectionH2: effectiveH2 || currentH1
+          sectionH2: currentH2
         });
       });
     }
 
     // 3. Trường bóc tách từ TABLE
     if (block.type === 'TABLE') {
-      const tableFields = extractTableFields(block, currentH1, defaultH2);
+      const tableFields = extractTableFields(block, currentH1, currentH2);
       allFields.push(...tableFields);
     }
   });
@@ -168,40 +186,75 @@ export function extractAllFormFields(blocks: LayoutBlockISO[] = []): FormFieldIS
 }
 
 /**
- * Phân nhóm mảng trường FormFieldISO thành cây phân cấp H1 -> H2 -> FormFieldISO[]
+ * Gom danh sách trường theo Element cấp 3 (tên bảng / lưới thông tin từ locationCode)
+ */
+export function groupFieldsByElements(fields: FormFieldISO[]): ElementHierarchyGroup[] {
+  const elMap = new Map<string, FormFieldISO[]>();
+  fields.forEach(f => {
+    const rawLoc = (f.locationCode || 'Chi tiết').trim();
+    const baseElementTitle = rawLoc.split(' › ')[0].trim() || 'Chi tiết';
+    if (!elMap.has(baseElementTitle)) {
+      elMap.set(baseElementTitle, []);
+    }
+    elMap.get(baseElementTitle)!.push(f);
+  });
+
+  const elements: ElementHierarchyGroup[] = [];
+  elMap.forEach((fList, elementTitle) => {
+    elements.push({ elementTitle, fields: fList });
+  });
+  return elements;
+}
+
+/**
+ * Phân nhóm mảng trường FormFieldISO thành cây phân cấp 4 tầng:
+ * H1 -> H2 (chỉ các tiêu đề format H2) -> Element (TABLE/INFO_GRID) -> FormFieldISO[]
  */
 export function groupFieldsByHierarchy(fields: FormFieldISO[]): FieldHierarchyGroup[] {
-  const h1Map = new Map<string, Map<string, FormFieldISO[]>>();
+  const h1Map = new Map<string, { h2Map: Map<string, FormFieldISO[]>; directFields: FormFieldISO[] }>();
 
   fields.forEach(field => {
     const h1 = (field.sectionH1 || 'Thông tin chung').trim();
-    const h2 = (field.sectionH2 || h1).trim();
+    const rawH2 = (field.sectionH2 || '').trim();
+    const hasRealH2 = rawH2.length > 0 && rawH2.toLowerCase() !== h1.toLowerCase();
 
     if (!h1Map.has(h1)) {
-      h1Map.set(h1, new Map<string, FormFieldISO[]>());
+      h1Map.set(h1, { h2Map: new Map<string, FormFieldISO[]>(), directFields: [] });
     }
-    const h2Map = h1Map.get(h1)!;
-    if (!h2Map.has(h2)) {
-      h2Map.set(h2, []);
+    const bucket = h1Map.get(h1)!;
+    if (hasRealH2) {
+      if (!bucket.h2Map.has(rawH2)) {
+        bucket.h2Map.set(rawH2, []);
+      }
+      bucket.h2Map.get(rawH2)!.push(field);
+    } else {
+      bucket.directFields.push(field);
     }
-    h2Map.get(h2)!.push(field);
   });
 
   const result: FieldHierarchyGroup[] = [];
 
-  h1Map.forEach((h2Map, h1) => {
-    const h2Groups: { h2: string; fields: FormFieldISO[] }[] = [];
+  h1Map.forEach((bucket, h1) => {
+    const h2Groups: { h2: string; fields: FormFieldISO[]; elements: ElementHierarchyGroup[] }[] = [];
     let totalFieldsCount = 0;
 
-    h2Map.forEach((fList, h2) => {
-      h2Groups.push({ h2, fields: fList });
+    bucket.h2Map.forEach((fList, h2) => {
+      h2Groups.push({
+        h2,
+        fields: fList,
+        elements: groupFieldsByElements(fList)
+      });
       totalFieldsCount += fList.length;
     });
+
+    const directElements = groupFieldsByElements(bucket.directFields);
+    totalFieldsCount += bucket.directFields.length;
 
     result.push({
       h1,
       totalFieldsCount,
-      h2Groups
+      h2Groups,
+      directElements
     });
   });
 

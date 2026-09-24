@@ -403,11 +403,14 @@ export function computeH1CombinedScore(
 }
 
 /**
- * Pure Utility: Extracts intuitive parent group title from field's sectionH2 or blocks.
+ * Pure Utility: Extracts intuitive parent group title from field's sectionH2, locationCode, or blocks.
  */
 export function extractParentGroupTitle(field: FormFieldISO, layoutBlocks?: ReportBlockConfig[]): string {
   if (field.sectionH2 && field.sectionH2.trim().length > 0) {
     return field.sectionH2.trim();
+  }
+  if (field.locationCode && field.locationCode.trim().length > 0) {
+    return field.locationCode.split(' › ')[0].trim();
   }
 
   if (layoutBlocks && layoutBlocks.length > 0) {
@@ -424,7 +427,7 @@ export function extractParentGroupTitle(field: FormFieldISO, layoutBlocks?: Repo
 }
 
 /**
- * Pure Utility: Summarizes child H2 groups for a Section H1 block.
+ * Pure Utility: Summarizes child H2 groups (or direct Element groups if H1 has no H2) for a Section H1 block.
  */
 export function summarizeH1ChildGroups(
   h1Title: string,
@@ -432,26 +435,154 @@ export function summarizeH1ChildGroups(
   layoutBlocks: ReportBlockConfig[],
   sampleSubmissionData?: any
 ): {
-  childH2Summary: { h2Title: string; score: number; isPass: boolean; weight: number }[];
+  childH2Summary: { h2Title: string; score: number; isPass: boolean; weight: number; isElement?: boolean }[];
   h1CombinedScore: { combinedScore: number; isPass: boolean; hasKnockoutFailed: boolean; totalWeight: number };
 } {
   const cleanH1 = (h1Title || '').trim().toLowerCase();
   const matchingH1Group = hierarchyGroups.find(g => g.h1.trim().toLowerCase() === cleanH1);
-  if (!matchingH1Group || matchingH1Group.h2Groups.length === 0) {
+  if (!matchingH1Group) {
     return { childH2Summary: [], h1CombinedScore: { combinedScore: 0, isPass: true, hasKnockoutFailed: false, totalWeight: 0 } };
   }
 
-  const childH2Summary = matchingH1Group.h2Groups.map(h2Group => {
-    const cleanTitle = h2Group.h2.trim().toLowerCase();
+  // Case 1: H1 has real H2 sub-sections (titleFormat === 'H2')
+  if (matchingH1Group.h2Groups.length > 0) {
+    const childH2Summary = matchingH1Group.h2Groups.map(h2Group => {
+      const cleanTitle = h2Group.h2.trim().toLowerCase();
+      const h2SectionBlock = layoutBlocks.find(b =>
+        b.type === 'SECTION_LABEL' &&
+        b.titleFormat === 'H2' &&
+        (b.title || '').trim().toLowerCase() === cleanTitle
+      );
+      const matchingTableBlocks = layoutBlocks.filter(b =>
+        b.type === 'TABLE' && (
+          (b.title || '').trim().toLowerCase() === cleanTitle ||
+          b.boundFieldIds?.some(id => h2Group.fields.some(f => f.id === id))
+        )
+      );
+
+      const mergedOverrides: Record<string, ReportFieldRuleOverride> = {};
+      matchingTableBlocks.forEach(tb => {
+        if (tb.ruleOverrides) {
+          Object.assign(mergedOverrides, tb.ruleOverrides);
+        }
+      });
+
+      const evalMap: Record<string, FieldEvaluationResult> = {};
+      h2Group.fields.forEach(f => {
+        const subVal = sampleSubmissionData;
+        const rawVal = Array.isArray(subVal)
+          ? subVal.find((s: any) => s.id === f.id || s.fieldId === f.id)?.value
+          : (subVal ? (subVal as any)[f.id] : undefined);
+        const res = computeFieldScoreAndPass(rawVal, f, mergedOverrides[f.id]);
+        evalMap[f.id] = {
+          fieldId: f.id,
+          label: f.checkItem || f.id,
+          rawValue: rawVal,
+          ...res
+        };
+      });
+
+      const h2Res = computeH2CombinedScore(h2Group.fields, evalMap, mergedOverrides);
+      const primaryBlock = h2SectionBlock || matchingTableBlocks[0];
+      return {
+        h2Title: h2Group.h2,
+        score: h2Res.combinedScore,
+        isPass: h2Res.isPass,
+        weight: primaryBlock?.weight ?? 0,
+        isKnockout: primaryBlock?.isKnockout ?? false,
+        isElement: false
+      };
+    });
+
+    const h1CombinedScore = computeH1CombinedScore(childH2Summary);
+    return { childH2Summary, h1CombinedScore };
+  }
+
+  // Case 2: H1 has no H2 sub-sections -> roll up directly from child Element / Table blocks
+  if (matchingH1Group.directElements && matchingH1Group.directElements.length > 0) {
+    const childH2Summary = matchingH1Group.directElements.map(elGroup => {
+      const cleanTitle = elGroup.elementTitle.trim().toLowerCase();
+      const matchingBlock = layoutBlocks.find(b =>
+        b.type === 'TABLE' && (
+          (b.title || '').trim().toLowerCase() === cleanTitle ||
+          b.boundFieldIds?.some(id => elGroup.fields.some(f => f.id === id))
+        )
+      );
+
+      const evalMap: Record<string, FieldEvaluationResult> = {};
+      elGroup.fields.forEach(f => {
+        const subVal = sampleSubmissionData;
+        const rawVal = Array.isArray(subVal)
+          ? subVal.find((s: any) => s.id === f.id || s.fieldId === f.id)?.value
+          : (subVal ? (subVal as any)[f.id] : undefined);
+        const res = computeFieldScoreAndPass(rawVal, f, matchingBlock?.ruleOverrides?.[f.id]);
+        evalMap[f.id] = {
+          fieldId: f.id,
+          label: f.checkItem || f.id,
+          rawValue: rawVal,
+          ...res
+        };
+      });
+
+      const elRes = computeH2CombinedScore(elGroup.fields, evalMap, matchingBlock?.ruleOverrides);
+      return {
+        h2Title: elGroup.elementTitle,
+        score: elRes.combinedScore,
+        isPass: elRes.isPass,
+        weight: matchingBlock?.weight ?? 0,
+        isKnockout: matchingBlock?.isKnockout ?? false,
+        isElement: true
+      };
+    });
+
+    const h1CombinedScore = computeH1CombinedScore(childH2Summary);
+    return { childH2Summary, h1CombinedScore };
+  }
+
+  return { childH2Summary: [], h1CombinedScore: { combinedScore: 0, isPass: true, hasKnockoutFailed: false, totalWeight: 0 } };
+}
+
+/**
+ * Pure Utility: Summarizes child Element / Table blocks under a Section H2 header.
+ */
+export function summarizeH2ChildElements(
+  h2Title: string,
+  hierarchyGroups: FieldHierarchyGroup[],
+  layoutBlocks: ReportBlockConfig[],
+  sampleSubmissionData?: any
+): {
+  childElementsSummary: { elementTitle: string; fieldsCount: number; score: number; isPass: boolean; weight: number }[];
+  h2CombinedScore: { combinedScore: number; isPass: boolean; hasKnockoutFailed: boolean; totalWeight: number };
+} {
+  const cleanH2 = (h2Title || '').trim().toLowerCase();
+  let targetH2Group: FieldHierarchyGroup['h2Groups'][number] | undefined;
+
+  for (const h1 of hierarchyGroups) {
+    const found = h1.h2Groups.find(g => g.h2.trim().toLowerCase() === cleanH2);
+    if (found) {
+      targetH2Group = found;
+      break;
+    }
+  }
+
+  if (!targetH2Group || !targetH2Group.elements || targetH2Group.elements.length === 0) {
+    return {
+      childElementsSummary: [],
+      h2CombinedScore: { combinedScore: 0, isPass: true, hasKnockoutFailed: false, totalWeight: 0 }
+    };
+  }
+
+  const childElementsSummary = targetH2Group.elements.map(elGroup => {
+    const cleanElTitle = elGroup.elementTitle.trim().toLowerCase();
     const matchingBlock = layoutBlocks.find(b =>
       b.type === 'TABLE' && (
-        b.title.trim().toLowerCase() === cleanTitle ||
-        b.boundFieldIds?.some(id => h2Group.fields.some(f => f.id === id))
+        (b.title || '').trim().toLowerCase() === cleanElTitle ||
+        b.boundFieldIds?.some(id => elGroup.fields.some(f => f.id === id))
       )
     );
 
     const evalMap: Record<string, FieldEvaluationResult> = {};
-    h2Group.fields.forEach(f => {
+    elGroup.fields.forEach(f => {
       const subVal = sampleSubmissionData;
       const rawVal = Array.isArray(subVal)
         ? subVal.find((s: any) => s.id === f.id || s.fieldId === f.id)?.value
@@ -465,17 +596,19 @@ export function summarizeH1ChildGroups(
       };
     });
 
-    const h2Res = computeH2CombinedScore(h2Group.fields, evalMap, matchingBlock?.ruleOverrides);
+    const elRes = computeH2CombinedScore(elGroup.fields, evalMap, matchingBlock?.ruleOverrides);
     return {
-      h2Title: h2Group.h2,
-      score: h2Res.combinedScore,
-      isPass: h2Res.isPass,
+      elementTitle: elGroup.elementTitle,
+      fieldsCount: elGroup.fields.length,
+      score: elRes.combinedScore,
+      isPass: elRes.isPass,
       weight: matchingBlock?.weight ?? 0,
       isKnockout: matchingBlock?.isKnockout ?? false
     };
   });
 
-  const h1CombinedScore = computeH1CombinedScore(childH2Summary);
-  return { childH2Summary, h1CombinedScore };
+  const h2CombinedScore = computeH1CombinedScore(childElementsSummary);
+  return { childElementsSummary, h2CombinedScore };
 }
+
 

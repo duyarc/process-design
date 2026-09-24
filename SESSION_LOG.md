@@ -38,6 +38,29 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-24 — Report Builder: Strict 4-Tier Hierarchy (`H1` ➔ `H2` strictly `titleFormat === 'H2'` ➔ `Element` ➔ `Field`)
+
+**Scope:** 4 files (`src/utils/tableFieldExtractor.ts`, `src/utils/reportScoring.ts`, `src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | ~24.0 min |
+| Thời gian lập plan (Request → Proceed) | ~4.0 min |
+| Thời gian thực thi (Proceed → Push) | ~20.0 min |
+| Số file nguồn chỉnh sửa | 3 (`tableFieldExtractor.ts`, `reportScoring.ts`, `ReportBuilder.tsx`) |
+| Tổng lượt edit source | 7 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 4 (`3 tsc` + `1 vite build` pass) |
+| Lần build cuối thành công? | Có (100% pass ngay lần đầu) |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- **Định nghĩa lại cấp `H2` nghiêm ngặt (`titleFormat === 'H2'`):** Loại bỏ hoàn toàn việc các khối `TABLE` bình thường (`titleFormat: undefined | 'NONE'`) và dòng `groupHeader` trong bảng tự ý ghi đè `sectionH2` trong `tableFieldExtractor.ts`. Khôi phục đầy đủ các phân mục `H2` thực sự (`Sản phẩm`, `Văn hóa doanh nghiệp`, `Năng lực cốt lõi`, `Hạ tầng & Công nghệ`, `Đặc trưng nhân sự`).
+- **Phân cấp `Element / Table` xuống một cấp dưới `H2`:** Bổ sung `ElementHierarchyGroup` (`h2Group.elements` dưới `H2` và `directElements` dưới `H1`), hiển thị các khối `[TABLE]` thụt lề một cấp bên dưới `[H2]` trên cây `FIELDS` và Quick Field Picker Modal, đồng thời bổ sung bảng `TỔNG HỢP ĐIỂM PHÂN MỤC H2` (`summarizeH2ChildElements`) trong `H2 Section Properties`.
+
+---
+
 ### 2026-09-24 — Report Builder: 2-Step Design Principle (`Build Layout First → Arrange Fields Into Layout`) for `TITLE` & `INFO_GRID` Blocks
 
 **Scope:** 4 files (`src/components/report/FormReferenceCanvas.tsx`, `src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`, `SESSION_LOG.md`)
