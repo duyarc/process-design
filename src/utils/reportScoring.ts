@@ -4,6 +4,7 @@ import type {
   FieldEvaluationResult,
   ReportBlockConfig
 } from '../types';
+import type { FieldHierarchyGroup } from './tableFieldExtractor';
 
 /**
  * Pure Utility: Computes score, maxScore, and pass/fail evaluation for an individual form field.
@@ -421,3 +422,60 @@ export function extractParentGroupTitle(field: FormFieldISO, layoutBlocks?: Repo
 
   return 'Nhóm câu hỏi';
 }
+
+/**
+ * Pure Utility: Summarizes child H2 groups for a Section H1 block.
+ */
+export function summarizeH1ChildGroups(
+  h1Title: string,
+  hierarchyGroups: FieldHierarchyGroup[],
+  layoutBlocks: ReportBlockConfig[],
+  sampleSubmissionData?: any
+): {
+  childH2Summary: { h2Title: string; score: number; isPass: boolean; weight: number }[];
+  h1CombinedScore: { combinedScore: number; isPass: boolean; hasKnockoutFailed: boolean; totalWeight: number };
+} {
+  const cleanH1 = (h1Title || '').trim().toLowerCase();
+  const matchingH1Group = hierarchyGroups.find(g => g.h1.trim().toLowerCase() === cleanH1);
+  if (!matchingH1Group || matchingH1Group.h2Groups.length === 0) {
+    return { childH2Summary: [], h1CombinedScore: { combinedScore: 0, isPass: true, hasKnockoutFailed: false, totalWeight: 0 } };
+  }
+
+  const childH2Summary = matchingH1Group.h2Groups.map(h2Group => {
+    const cleanTitle = h2Group.h2.trim().toLowerCase();
+    const matchingBlock = layoutBlocks.find(b =>
+      b.type === 'TABLE' && (
+        b.title.trim().toLowerCase() === cleanTitle ||
+        b.boundFieldIds?.some(id => h2Group.fields.some(f => f.id === id))
+      )
+    );
+
+    const evalMap: Record<string, FieldEvaluationResult> = {};
+    h2Group.fields.forEach(f => {
+      const subVal = sampleSubmissionData;
+      const rawVal = Array.isArray(subVal)
+        ? subVal.find((s: any) => s.id === f.id || s.fieldId === f.id)?.value
+        : (subVal ? (subVal as any)[f.id] : undefined);
+      const res = computeFieldScoreAndPass(rawVal, f, matchingBlock?.ruleOverrides?.[f.id]);
+      evalMap[f.id] = {
+        fieldId: f.id,
+        label: f.checkItem || f.id,
+        rawValue: rawVal,
+        ...res
+      };
+    });
+
+    const h2Res = computeH2CombinedScore(h2Group.fields, evalMap, matchingBlock?.ruleOverrides);
+    return {
+      h2Title: h2Group.h2,
+      score: h2Res.combinedScore,
+      isPass: h2Res.isPass,
+      weight: matchingBlock?.weight ?? 0,
+      isKnockout: matchingBlock?.isKnockout ?? false
+    };
+  });
+
+  const h1CombinedScore = computeH1CombinedScore(childH2Summary);
+  return { childH2Summary, h1CombinedScore };
+}
+

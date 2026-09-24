@@ -29,12 +29,40 @@ phiên thực thi để không lặp lại lỗi cũ.
 | 15 | `BLOAT` | Thêm text badges (Selected, Đã chọn, Active, hints) trùng lặp với visual indicator (màu sắc, border, icon) → UI bị rối | Áp dụng UI Streamlining Audit: Khi visual cues đã rõ ràng, triệt tiêu toàn bộ text badges phụ trợ để giữ UI tối giản | 1 |
 | 16 | `LOGIC` | Truyền `row.id` đơn lẻ khi click canvas thay vì composite ID (`${blockId}_${rowId}_${colId}`) khiến registry lookup trả về `undefined` | Luôn dùng composite ID resolver helper (`getTableFieldId`, `getTableRowPrimaryFieldId`) khớp quy ước định danh của extractor | 1 |
 | 17 | `LOGIC` | `updateRuleOverride` silent abort khi `layoutBlocks` rỗng hoặc chưa gán trường vào khối khiến controlled inputs (Score, Weight) không thể chỉnh sửa | Xây dựng Smart Target Block Resolution (5 tầng ưu tiên) kết hợp Auto-Initialization khối Table cho Section H2 | 1 |
+| 18 | `BLOAT` | Trích xuất utility tổng hợp điểm (`summarizeH1ChildGroups`) nhưng vẫn import hàm con (`computeH1CombinedScore`) vào component cha → TS6133 unused import | Khi bọc logic vào pure utility cấp cao hơn, xóa ngay các imports cấp thấp không còn được gọi trực tiếp trong component | 1 |
 
 ---
 
 ## Nhật ký Phiên
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
+
+### 2026-09-24 — Report Builder: Section Label H1 & H2 Properties Redesign & Scoring Roll-up Summary
+
+**Scope:** 3 files (`src/utils/reportScoring.ts`, `src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | ~18.0 min |
+| Thời gian phân tích (Request → Proceed) | ~8.0 min |
+| Thời gian thực thi (Proceed → Push) | ~10.0 min |
+| Số file nguồn chỉnh sửa | 2 (`reportScoring.ts`, `ReportBuilder.tsx`) |
+| Tổng lượt edit source | 6 |
+| Lượt edit sửa lỗi (rework) | 2 |
+| Số lần build | 3 (2 tsc + 1 vite pass) |
+| Lần build đầu thành công? | Có (100% pass ngay lần đầu) |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- **Tiêu đề Phân đoạn Động & Badge phân cấp [H1] / [H2]:** Header của Right Inspector tự động hiển thị `H1 SECTION PROPERTIES` với huy hiệu Teal hoặc `H2 SECTION PROPERTIES` với huy hiệu Blue tùy theo `activeBlock.titleFormat`, giải quyết hoàn toàn sự mơ hồ khi xem thuộc tính của nhãn phân đoạn.
+- **Tiêu đề Liền mạch (Seamless Borderless Title Input):** Đặt ngay dưới header kèm icon bút chì `✎`, hỗ trợ click để sửa tên phân đoạn trực tiếp mà không tốn diện tích, đồng bộ phản hồi ngay lập tức trên canvas.
+- **Bộ chuyển đổi Định dạng Tiêu đề (Title Format Pills):** Bổ sung cụm nút chọn viên thuốc `[ H1 | H2 | Body | None ]` cho phép người dùng thay đổi phân cấp trực tiếp ngay từ thanh thuộc tính Inspector.
+- **Thẻ Trọng số 2 Hàng (Structured Weight Card):** Hàng 1 gồm switch `isKnockout (H1)` / `isKnockout (H2)` và nhãn `"Loại trực tiếp"`; Hàng 2 gồm ô nhập `Weight: [ xx ] %` và huy hiệu ngữ cảnh: với H1 là `of [ Toàn bộ Báo cáo ]`, với H2 tự động dò tìm Trụ cột H1 cha để hiển thị `of [ {parentH1ForH2} ]`.
+- **Bảng Tổng hợp Điểm Trụ cột H1 (H1 Combined Scoring Summary Table):** Trích xuất logic tính điểm sang hàm thuần túy `summarizeH1ChildGroups` trong `src/utils/reportScoring.ts` (tuân thủ Rule 13.8). Hiển thị bảng tổng hợp điểm số chi tiết của tất cả các nhóm câu hỏi H2 con và điểm tổng kết có trọng số của toàn bộ Trụ cột H1.
+- **Chất lượng mã nguồn:** `npx tsc --noEmit` pass 100% không lỗi; `npm run build` Vite production bundle thành công trong 18.79s.
+
+---
 
 ### 2026-09-24 — Report Builder: Table Properties Streamlined Layout (Seamless Title, Combined Border & Header, 2-Row Weight Card)
 
@@ -260,27 +288,4 @@ eportScoring.ts, FieldScoringInspector.tsx, ReportBuilder.tsx) |
 - **Chấm điểm Đa Dải Ngưỡng (Number Multi-Range Intervals):** Hỗ trợ cấu hình $ dải ngưỡng với trạng thái isPass và Score độc lập, nút + Add Range, xóa dải và highlight dải khớp giá trị thực tế.
 - **Kiểm tra Độ đầy đủ & Cấu hình Ký tự Inline (Text Completeness):** Tích hợp trực tiếp ô nhập số ký tự tối thiểu vào dòng điều kiện Standard (≥ [ 10 ]), tự động cập nhật dòng Short (< 10) và Empty (toggle Allow empty).
 - **Chuẩn hóa Minimal English & Tiết kiệm Chiều cao:** Đổi toàn bộ nhãn sang tiếng Anh tối giản (Value:, Range, Condition, Copy/Copied!) và thu gọn hàng Type trên cùng 1 hàng ngang phẳng.
-
----
-
-### 2026-09-23 — Report Builder: Streamlined Weight Label in Field, H1 & H2 Property Bars
-
-**Scope:** 3 files (`FieldScoringInspector.tsx`, `ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian tổng (Request → Push) | 3.5 min |
-| Thời gian lập plan (Request → Proceed) | 0.0 min (minor follow-up UI tweak) |
-| Thời gian thực thi (Proceed → Push) | 3.5 min |
-| Số file nguồn chỉnh sửa | 2 (`FieldScoringInspector.tsx`, `ReportBuilder.tsx`) |
-| Tổng lượt edit source | 3 |
-| Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 2 (1 tsc + 1 vite pass) |
-| Lần build cuối thành công? | Có (100% pass, built in 9.63s) |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Điểm nổi bật:**
-- **Rút gọn nhãn Trọng số (Streamlined Weight Label):** Đơn giản hóa toàn bộ nhãn dài bị quấn dòng (`Weight (% trong [Tên Nhóm]):`, `Weight (% trong Báo cáo):`, `Weight (% trong [Trụ Cột]):`) thành duy nhất nhãn ngắn gọn **`Weight:`** trên cùng 1 hàng ngang trong cả 3 phân hệ: Cấp Câu hỏi (`FieldScoringInspector.tsx`), Cấp Trụ cột H1 (`ReportBuilder.tsx`) và Cấp Nhóm H2 (`ReportBuilder.tsx`).
-- **Giữ trọn vẹn ngữ cảnh qua tooltip:** Nội dung giải thích chi tiết nhóm cha được đưa vào thuộc tính `title` khi rê chuột (`title="Trọng số phần trăm của câu hỏi trong nhóm..."`), giúp thanh thuộc tính luôn giữ được độ cao 1 hàng phẳng, đẹp và không bị tràn text.
 

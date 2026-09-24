@@ -17,7 +17,7 @@ import { getInfoGridTemplateColumns, snap2ColWidth, snap3ColWidths } from '../ut
 import { applyTextFormat, handleFormatKeyDown } from '../utils/textFormatter';
 import { FieldScoringInspector } from './report/FieldScoringInspector';
 import { FormReferenceCanvas } from './report/FormReferenceCanvas';
-import { extractParentGroupTitle, computeH2CombinedScore } from '../utils/reportScoring';
+import { extractParentGroupTitle, computeH2CombinedScore, summarizeH1ChildGroups } from '../utils/reportScoring';
 import ConfirmModal from './common/ConfirmModal';
 import PrintReport from './print/PrintReport';
 import { useAuth } from '../context/AuthContext';
@@ -2898,13 +2898,30 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
               ) : activeBlock ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h3 style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-primary)', margin: 0 }}>
-                      {activeBlock.type === 'TABLE' ? 'Table Properties' :
-                       activeBlock.type === 'INFO_GRID' ? 'Info Grid Properties' :
-                       activeBlock.type === 'SECTION_LABEL' ? 'Section Label Properties' :
-                       activeBlock.type === 'SIGN' ? 'Signatures Properties' :
-                       activeBlock.type === 'TITLE' ? 'Report Header Properties' : 'Block Properties'}
-                    </h3>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      {activeBlock.type === 'SECTION_LABEL' && (
+                        <span style={{
+                          background: activeBlock.titleFormat === 'H2' ? '#2563eb' : 'var(--primary)',
+                          color: '#ffffff',
+                          fontSize: '0.62rem',
+                          fontWeight: 800,
+                          padding: '1px 5px',
+                          borderRadius: '3px',
+                          lineHeight: '14px'
+                        }}>
+                          {activeBlock.titleFormat === 'H2' ? 'H2' : 'H1'}
+                        </span>
+                      )}
+                      <h3 style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-primary)', margin: 0 }}>
+                        {activeBlock.type === 'TABLE' ? 'Table Properties' :
+                         activeBlock.type === 'INFO_GRID' ? 'Info Grid Properties' :
+                         activeBlock.type === 'SECTION_LABEL' ? (
+                           activeBlock.titleFormat === 'H2' ? 'H2 Section Properties' : 'H1 Section Properties'
+                         ) :
+                         activeBlock.type === 'SIGN' ? 'Signatures Properties' :
+                         activeBlock.type === 'TITLE' ? 'Report Header Properties' : 'Block Properties'}
+                      </h3>
+                    </div>
                     {activeBlock.type !== 'TITLE' && (
                       <button 
                         type="button" 
@@ -2961,8 +2978,87 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                     </div>
                   )}
 
+                  {/* SECTION_LABEL Name Inline Header (Seamless Borderless) */}
                   {activeBlock.type === 'SECTION_LABEL' && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                    <div style={{ borderBottom: '1.5px solid #e2e8f0', paddingBottom: '3px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <input
+                        type="text"
+                        disabled={isLocked}
+                        value={activeBlock.title || ''}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setTemplate(prev => ({
+                            ...prev,
+                            layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, title: val } : b)
+                          }));
+                        }}
+                        placeholder="Nhập tên phân đoạn..."
+                        title="Bấm để đổi tên phân đoạn"
+                        style={{
+                          width: '100%',
+                          padding: '2px 4px',
+                          border: '1px solid transparent',
+                          borderRadius: '4px',
+                          fontSize: '0.88rem',
+                          fontWeight: 700,
+                          color: '#0f172a',
+                          background: 'transparent',
+                          outline: 'none',
+                          transition: 'all 0.15s ease'
+                        }}
+                        onFocus={(e) => {
+                          e.currentTarget.style.background = '#ffffff';
+                          e.currentTarget.style.borderColor = activeBlock.titleFormat === 'H2' ? '#2563eb' : 'var(--primary)';
+                          e.currentTarget.style.boxShadow = activeBlock.titleFormat === 'H2' ? '0 0 0 2px rgba(37, 99, 235, 0.15)' : '0 0 0 2px rgba(13, 148, 136, 0.15)';
+                        }}
+                        onBlur={(e) => {
+                          e.currentTarget.style.background = 'transparent';
+                          e.currentTarget.style.borderColor = 'transparent';
+                          e.currentTarget.style.boxShadow = 'none';
+                        }}
+                      />
+                      <Pencil size={12} style={{ color: '#94a3b8', flexShrink: 0, pointerEvents: 'none' }} />
+                    </div>
+                  )}
+
+                  {activeBlock.type === 'SECTION_LABEL' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+                      {/* Title Format Selector Pills */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '2px' }}>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Định dạng</span>
+                        <div style={{ display: 'inline-flex', background: '#f1f5f9', padding: '2px', borderRadius: '5px', border: '1px solid #cbd5e1', gap: '2px' }}>
+                          {(['H1', 'H2', 'BODY', 'NONE'] as const).map(fmt => {
+                            const isSelected = (activeBlock.titleFormat || 'H1') === fmt;
+                            const labelText = fmt === 'BODY' ? 'Body' : fmt === 'NONE' ? 'None' : fmt;
+                            return (
+                              <button
+                                key={fmt}
+                                type="button"
+                                disabled={isLocked}
+                                onClick={() => {
+                                  setTemplate(prev => ({
+                                    ...prev,
+                                    layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, titleFormat: fmt } : b)
+                                  }));
+                                }}
+                                style={{
+                                  padding: '1px 6px',
+                                  fontSize: '0.65rem',
+                                  fontWeight: isSelected ? 700 : 500,
+                                  border: 'none',
+                                  borderRadius: '3px',
+                                  cursor: isLocked ? 'not-allowed' : 'pointer',
+                                  background: isSelected ? (fmt === 'H2' ? '#2563eb' : 'var(--primary)') : 'transparent',
+                                  color: isSelected ? '#ffffff' : 'var(--text-secondary)'
+                                }}
+                              >
+                                {labelText}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Mô tả phân đoạn (Description)</label>
                         <div style={{ display: 'flex', gap: '4px' }}>
@@ -3032,65 +3128,185 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                         style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', fontSize: '0.8rem', resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.4 }}
                       />
 
-                      {/* H1 Section Weight & Knockout Bar */}
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '8px 10px',
-                        background: '#f8fafc',
-                        border: '1px solid #e2e8f0',
-                        borderRadius: '8px',
-                        fontSize: '0.75rem',
-                        marginTop: '4px'
-                      }}>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: isLocked ? 'not-allowed' : 'pointer', userSelect: 'none' }}>
-                          <input
-                            type="checkbox"
-                            disabled={isLocked}
-                            checked={Boolean(activeBlock.isKnockout)}
-                            onChange={(e) => {
-                              const checked = e.target.checked;
-                              setTemplate(prev => ({
-                                ...prev,
-                                layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, isKnockout: checked } : b)
-                              }));
-                            }}
-                            style={{ width: '14px', height: '14px', accentColor: '#e11d48', cursor: isLocked ? 'not-allowed' : 'pointer' }}
-                          />
-                          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#9f1239' }}>isKnockout (H1)</span>
-                        </label>
+                      {/* SECTION_LABEL Structured 2-Row Weight Card (H1 vs H2 aware) */}
+                      {(() => {
+                        const isH2 = activeBlock.titleFormat === 'H2';
+                        const parentH1ForH2 = isH2
+                          ? (hierarchyGroups.find(h1 => h1.h2Groups.some(g => g.h2.trim().toLowerCase() === (activeBlock.title || '').trim().toLowerCase()))?.h1 || 'Toàn bộ Báo cáo')
+                          : 'Toàn bộ Báo cáo';
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }} title="Trọng số phần trăm của Trụ cột này trong toàn bộ Báo cáo">
-                          <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#334155' }}>
-                            Weight:
-                          </span>
-                          <input
-                            type="number"
-                            disabled={isLocked}
-                            value={activeBlock.weight !== undefined ? activeBlock.weight : 0}
-                            onChange={(e) => {
-                              const val = parseFloat(e.target.value) || 0;
-                              setTemplate(prev => ({
-                                ...prev,
-                                layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, weight: val } : b)
-                              }));
-                            }}
-                            style={{
-                              width: '46px',
-                              padding: '2px 4px',
-                              fontSize: '0.75rem',
-                              textAlign: 'right',
-                              fontWeight: 700,
-                              borderRadius: '4px',
-                              border: '1px solid #cbd5e1',
-                              background: '#ffffff',
-                              color: '#0f172a'
-                            }}
-                          />
-                          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b' }}>%</span>
-                        </div>
-                      </div>
+                        return (
+                          <div style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '6px',
+                            padding: '7px 9px',
+                            background: '#f8fafc',
+                            border: '1px solid #e2e8f0',
+                            borderRadius: '8px',
+                            fontSize: '0.72rem',
+                            marginTop: '2px'
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                              <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: isLocked ? 'not-allowed' : 'pointer', userSelect: 'none' }}>
+                                <input
+                                  type="checkbox"
+                                  disabled={isLocked}
+                                  checked={Boolean(activeBlock.isKnockout)}
+                                  onChange={(e) => {
+                                    const checked = e.target.checked;
+                                    setTemplate(prev => ({
+                                      ...prev,
+                                      layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, isKnockout: checked } : b)
+                                    }));
+                                  }}
+                                  style={{ width: '13px', height: '13px', accentColor: '#e11d48', cursor: isLocked ? 'not-allowed' : 'pointer' }}
+                                />
+                                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#9f1239' }}>
+                                  isKnockout ({isH2 ? 'H2' : 'H1'})
+                                </span>
+                              </label>
+                              <span style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 500 }}>Loại trực tiếp</span>
+                            </div>
+
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              gap: '5px',
+                              paddingTop: '5px',
+                              borderTop: '1px solid #e2e8f0'
+                            }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '3px', flexShrink: 0 }}>
+                                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#334155' }}>
+                                  Weight:
+                                </span>
+                                <input
+                                  type="number"
+                                  disabled={isLocked}
+                                  value={activeBlock.weight !== undefined ? activeBlock.weight : 0}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    const num = val === '' ? 0 : parseFloat(val);
+                                    setTemplate(prev => ({
+                                      ...prev,
+                                      layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, weight: isNaN(num) ? 0 : num } : b)
+                                    }));
+                                  }}
+                                  style={{
+                                    width: '42px',
+                                    padding: '2px 3px',
+                                    fontSize: '0.72rem',
+                                    textAlign: 'right',
+                                    fontWeight: 700,
+                                    borderRadius: '4px',
+                                    border: '1px solid #cbd5e1',
+                                    background: '#ffffff',
+                                    color: '#0f172a'
+                                  }}
+                                />
+                                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b' }}>%</span>
+                              </div>
+
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '3px',
+                                  minWidth: 0,
+                                  fontSize: '0.68rem',
+                                  color: '#475569',
+                                  background: '#ffffff',
+                                  border: '1px solid #e2e8f0',
+                                  borderRadius: '4px',
+                                  padding: '2px 5px',
+                                  maxWidth: '155px'
+                                }}
+                                title={parentH1ForH2}
+                              >
+                                <span style={{ color: '#94a3b8', fontWeight: 600, flexShrink: 0 }}>of</span>
+                                <span style={{
+                                  fontWeight: 700,
+                                  color: isH2 ? '#2563eb' : 'var(--primary)',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap'
+                                }}>
+                                  {parentH1ForH2}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+
+                      {/* H1 Pillar Combined Scoring Summary Roll-up */}
+                      {activeBlock.titleFormat !== 'H2' && (() => {
+                        const { childH2Summary, h1CombinedScore } = summarizeH1ChildGroups(
+                          activeBlock.title,
+                          hierarchyGroups,
+                          template.layoutBlocks,
+                          sampleSubmission?.formData
+                        );
+                        if (!childH2Summary || childH2Summary.length === 0) return null;
+
+                        return (
+                          <div style={{ borderTop: '1px solid var(--neutral-border)', paddingTop: '0.6rem', marginTop: '2px', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                              TỔNG HỢP ĐIỂM TRỤ CỘT H1
+                            </div>
+
+                            <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', background: '#ffffff', fontSize: '0.72rem' }}>
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', padding: '6px 8px', fontWeight: 700, color: '#475569', alignItems: 'center' }}>
+                                <div style={{ gridColumn: 'span 5' }}>Nhóm H2 con</div>
+                                <div style={{ gridColumn: 'span 2', textAlign: 'center', color: '#0f766e' }}>isPass</div>
+                                <div style={{ gridColumn: 'span 3', textAlign: 'right', color: '#4338ca' }}>Score</div>
+                                <div style={{ gridColumn: 'span 2', textAlign: 'right', color: '#64748b' }}>Weight</div>
+                              </div>
+
+                              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                {childH2Summary.map((h2Item, idx) => (
+                                  <div
+                                    key={idx}
+                                    style={{
+                                      display: 'grid',
+                                      gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
+                                      padding: '5px 8px',
+                                      alignItems: 'center',
+                                      borderBottom: idx < childH2Summary.length - 1 ? '1px solid #f1f5f9' : 'none'
+                                    }}
+                                  >
+                                    <div style={{ gridColumn: 'span 5', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500, color: '#1e293b' }} title={h2Item.h2Title}>
+                                      {h2Item.h2Title}
+                                    </div>
+                                    <div style={{ gridColumn: 'span 2', textAlign: 'center', fontWeight: 700, fontSize: '0.68rem', color: h2Item.isPass ? '#0f766e' : '#e11d48' }}>
+                                      {h2Item.isPass ? 'PASS' : 'FAIL'}
+                                    </div>
+                                    <div style={{ gridColumn: 'span 3', textAlign: 'right', fontWeight: 700, color: '#0f172a' }}>
+                                      {h2Item.score}
+                                    </div>
+                                    <div style={{ gridColumn: 'span 2', textAlign: 'right', fontWeight: 600, color: '#64748b' }}>
+                                      {h2Item.weight}%
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', padding: '6px 8px', alignItems: 'center', background: '#f0fdfa', borderTop: '1px solid #ccfbf1' }}>
+                                <div style={{ gridColumn: 'span 5', fontWeight: 700, color: '#0f766e', fontSize: '0.72rem' }}>Tổng Trụ Cột:</div>
+                                <div style={{ gridColumn: 'span 2', textAlign: 'center', fontSize: '0.7rem', fontWeight: 700, color: h1CombinedScore.isPass ? '#0f766e' : '#e11d48' }}>
+                                  {h1CombinedScore.isPass ? 'PASS' : 'FAIL'}
+                                </div>
+                                <div style={{ gridColumn: 'span 5', textAlign: 'right' }}>
+                                  <span style={{ fontSize: '0.9rem', fontWeight: 900, color: '#0f766e', lineHeight: 1 }}>
+                                    {h1CombinedScore.combinedScore}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
                   )}
 
