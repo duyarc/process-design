@@ -35,6 +35,30 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-24 — Report Builder: Field Properties Weight of Section 2-Row Structured Layout
+
+**Scope:** 2 files (`src/components/report/FieldScoringInspector.tsx`, `DESIGN_REPORT_BUILDER.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | ~8.0 min |
+| Thời gian lập plan & mockup (Request → Proceed) | ~5.0 min |
+| Thời gian thực thi (Proceed → Push) | ~3.0 min |
+| Số file nguồn chỉnh sửa | 1 (`FieldScoringInspector.tsx`) |
+| Tổng lượt edit source | 1 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 2 (1 tsc + 1 vite pass) |
+| Lần build đầu thành công? | Có (100% pass ngay lần đầu) |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- **Nâng cấp Bố cục Thẻ Thuộc tính Câu hỏi (Field Properties Layout):** Triển khai theo Option 1 được người dùng phê duyệt từ 4 phương án mockup giao diện. Tái cấu trúc thanh thuộc tính dưới cùng thành card 2 hàng phân tầng: Hàng 1 gồm toggle `[ ] isKnockout` kèm phụ đề `"Loại trực tiếp"`; Hàng 2 gồm ô nhập `Weight: [ xx ] %` đi kèm badge ngữ cảnh nhóm cha `of [ {parentGroupTitle} ]` với chữ xanh Teal đậm, có tự động rút gọn `truncate` và `title` tooltip đầy đủ.
+- **Tối ưu Không gian Thanh bên:** Giải quyết triệt để vấn đề chật chội trên Right Inspector (~310px) khi tên nhóm cha dài, giữ bố cục thoáng đãng và trực quan.
+- **Chất lượng mã nguồn:** `npx tsc --noEmit` pass 100% không lỗi; `npm run build` Vite production bundle thành công trong 12.84s.
+
+---
+
 ### 2026-09-24 — Report Builder: Interactive Canvas Selection for Table Properties & H2 Group Headers
 
 **Scope:** 3 files (`src/components/report/FormReferenceCanvas.tsx`, `src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`)
@@ -259,26 +283,5 @@ eportScoring.ts, FieldScoringInspector.tsx, ReportBuilder.tsx) |
 - **Thanh Thuộc tính 1 Hàng & Tên Nhóm Động:** Thiết kế thanh thuộc tính `[ ] isKnockout` và `Weight (% trong [Tên Nhóm/Trụ cột]): [ X ] %` trên 1 hàng ngang duy nhất. Tên nhóm cha được lấy động theo ngữ cảnh (`[Tên Nhóm H2]`, `[Tên Trụ cột H1]`, `[Toàn bộ Báo cáo]`).
 - **Inspector Chuyên biệt `FieldScoringInspector.tsx`:** Tách component độc lập theo Rule 4.3 Monolith Guard, hiển thị ma trận đánh giá 3 cột (`Option / Condition`, `isPass`, `Score`), dòng SUM responsive hiển thị nhãn `PASS`/`FAIL` và Điểm tổng hợp cỡ lớn, không có hậu tố `đ` và không hardcode thang 10.
 - **Chuẩn hóa Tiêu đề Cột:** Đồng bộ header bảng ở cả 3 cấp duy nhất là `Score`.
-
----
-
-### 2026-09-22 — Report Builder: Field Properties Auto-Grow Label & Streamlined Multi-Option Value Visualizer
-
-**Scope:** 2 files (`ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Số file nguồn chỉnh sửa | 1 (`ReportBuilder.tsx`) |
-| Tổng lượt edit source | 3 |
-| Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 2 (1 tsc + 1 vite) |
-| Lần build cuối thành công? | Có (100% pass, built in 16.17s) |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Điểm nổi bật:**
-- **Auto-Grow Label:** Thay thế `<textarea>` bằng container tự co giãn chiều cao (`whiteSpace: 'pre-wrap', wordBreak: 'break-word'`), hiển thị 100% câu hỏi mà không sinh thanh cuộn dọc. Ẩn cụm nút format text `[ B ] [ I ] [ U ]` vì nhãn là read-only.
-- **Streamlined Multi-Option Value Visualizer:** Trường `Value` tự động kéo tất cả các mức điểm / tùy chọn từ form schema (`scale` / `likert_scale`, `checkbox`, `radio`, `select`). Thể hiện trạng thái được chọn qua ngôn ngữ thị giác thuần túy (viền & nền Teal `#0d9488`, icon Tích tròn `✓`, Checkbox `☑`, Radio `⦿`), triệt tiêu toàn bộ các text badge rườm rà (`Selected`, `Đã chọn`, `Active`).
-- **UI Streamlining Audit Protocol:** Đưa quy trình rà soát và tinh gọn giao diện vào bài học kinh nghiệm để agent tự động tối giản UI trong các kế hoạch tiếp theo.
 
 ---

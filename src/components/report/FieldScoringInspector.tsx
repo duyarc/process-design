@@ -877,52 +877,91 @@ export const FieldScoringInspector: React.FC<FieldScoringInspectorProps> = ({
         </div>
       )}
 
-      {/* 2. Single-Row Property Bar: [ ] isKnockout + Weight (% trong [Tên Nhóm]) */}
+      {/* 2. Structured Property Card: Row 1 [ ] isKnockout + Row 2 Weight [ xx ] % of {section} */}
       <div style={{
         display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
+        flexDirection: 'column',
+        gap: '8px',
         padding: '8px 10px',
         background: '#f8fafc',
         border: '1px solid #e2e8f0',
         borderRadius: '8px',
         fontSize: '0.75rem'
       }}>
-        {/* Left: isKnockout checkbox */}
-        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: isLocked ? 'not-allowed' : 'pointer', userSelect: 'none' }}>
-          <input
-            type="checkbox"
-            disabled={isLocked}
-            checked={Boolean(ruleOverride?.isKnockout)}
-            onChange={(e) => onUpdateRule({ isKnockout: e.target.checked })}
-            style={{ width: '14px', height: '14px', accentColor: '#e11d48', cursor: isLocked ? 'not-allowed' : 'pointer' }}
-          />
-          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#9f1239' }}>isKnockout</span>
-        </label>
+        {/* Row 1: isKnockout toggle */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: isLocked ? 'not-allowed' : 'pointer', userSelect: 'none' }}>
+            <input
+              type="checkbox"
+              disabled={isLocked}
+              checked={Boolean(ruleOverride?.isKnockout)}
+              onChange={(e) => onUpdateRule({ isKnockout: e.target.checked })}
+              style={{ width: '14px', height: '14px', accentColor: '#e11d48', cursor: isLocked ? 'not-allowed' : 'pointer' }}
+            />
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#9f1239' }}>isKnockout</span>
+          </label>
+          <span style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 500 }}>Loại trực tiếp</span>
+        </div>
 
-        {/* Right: Dynamic Weight % */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }} title={`Trọng số phần trăm của câu hỏi trong nhóm ${parentGroupTitle}`}>
-          <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#334155' }}>
-            Weight:
-          </span>
-          <input
-            type="number"
-            disabled={isLocked}
-            value={ruleOverride?.weight !== undefined ? ruleOverride.weight : 0}
-            onChange={(e) => onUpdateRule({ weight: parseFloat(e.target.value) || 0 })}
+        {/* Row 2: Weight [ xx ] % of {section} */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '6px',
+          paddingTop: '6px',
+          borderTop: '1px solid #e2e8f0'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155' }}>
+              Weight:
+            </span>
+            <input
+              type="number"
+              disabled={isLocked}
+              value={ruleOverride?.weight !== undefined ? ruleOverride.weight : 0}
+              onChange={(e) => onUpdateRule({ weight: parseFloat(e.target.value) || 0 })}
+              style={{
+                width: '46px',
+                padding: '2px 4px',
+                fontSize: '0.75rem',
+                textAlign: 'right',
+                fontWeight: 700,
+                borderRadius: '4px',
+                border: '1px solid #cbd5e1',
+                background: '#ffffff',
+                color: '#0f172a'
+              }}
+            />
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b' }}>%</span>
+          </div>
+
+          <div
             style={{
-              width: '46px',
-              padding: '2px 4px',
-              fontSize: '0.75rem',
-              textAlign: 'right',
-              fontWeight: 700,
-              borderRadius: '4px',
-              border: '1px solid #cbd5e1',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              minWidth: 0,
+              fontSize: '0.7rem',
+              color: '#475569',
               background: '#ffffff',
-              color: '#0f172a'
+              border: '1px solid #e2e8f0',
+              borderRadius: '4px',
+              padding: '2px 6px'
             }}
-          />
-          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b' }}>%</span>
+            title={parentGroupTitle || 'Nhóm câu hỏi'}
+          >
+            <span style={{ color: '#94a3b8', fontWeight: 600, flexShrink: 0 }}>of</span>
+            <span style={{
+              fontWeight: 700,
+              color: 'var(--primary)',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap'
+            }}>
+              {parentGroupTitle || 'Nhóm câu hỏi'}
+            </span>
+          </div>
         </div>
       </div>
     </div>
