@@ -1,8 +1,9 @@
 import React from 'react';
-import type { FormTemplateISO, LayoutBlockISO, FormFieldISO, SubtableColumn } from '../../types';
+import type { FormTemplateISO, LayoutBlockISO, FormFieldISO, SubtableColumn, ReportBlockConfig } from '../../types';
 import { formatFormVersion, getColStyleWidth } from '../../types';
 import {
   getEffectiveTitleFormat,
+  isSeamlessTableBlock,
   getInfoGridTemplateColumns,
   getAutoCheckboxLayoutMode,
   hasLongOptions,
@@ -15,6 +16,7 @@ import { FileText, ChevronDown, Star } from 'lucide-react';
 
 interface FormReferenceCanvasProps {
   form: FormTemplateISO;
+  reportBlocks?: ReportBlockConfig[];
   selectedFieldId: string | null;
   activeBlockId?: string | null;
   activeGroupTitle?: string | null;
@@ -27,6 +29,7 @@ interface FormReferenceCanvasProps {
 
 export const FormReferenceCanvas: React.FC<FormReferenceCanvasProps> = ({
   form,
+  reportBlocks,
   selectedFieldId,
   activeBlockId,
   activeGroupTitle,
@@ -319,100 +322,121 @@ export const FormReferenceCanvas: React.FC<FormReferenceCanvasProps> = ({
             <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>Form nguồn chưa thiết lập các khối layout.</p>
           </div>
         ) : (
-          blocks.map((block) => {
-            const isBlockActive = block.id === activeBlockId;
+          blocks.map((block, index) => {
+            const matchedReportBlock = reportBlocks?.find(rb => {
+              if (block.type === 'TITLE' && rb.type === 'TITLE') return true;
+              if (block.type === 'SECTION_LABEL' && rb.type === 'SECTION_LABEL') {
+                return rb.title.trim().toLowerCase() === (block.title || '').trim().toLowerCase();
+              }
+              if (block.type === 'INFO_GRID' && rb.type === 'INFO_GRID') {
+                const sameTitle = rb.title.trim().toLowerCase() === (block.title || '').trim().toLowerCase();
+                const sharesFields = rb.boundFieldIds?.some(fid => (block.fields || []).some(f => f.id === fid));
+                return sameTitle || Boolean(sharesFields);
+              }
+              if (block.type === 'SIGN' && rb.type === 'SIGN') return true;
+              return false;
+            });
 
-            // 1. TITLE BLOCK
-            if (block.type === 'TITLE') {
-              const hasLogo = Boolean(block.logo);
-              const logoSrc = block.logo && (block.logo.startsWith('http') || block.logo.startsWith('data:') || block.logo.startsWith('/')) ? block.logo : null;
+            const isBlockActive = block.id === activeBlockId || (Boolean(activeBlockId) && matchedReportBlock?.id === activeBlockId);
+            const prevBlock = index > 0 ? blocks[index - 1] : undefined;
+            const nextBlock = index < blocks.length - 1 ? blocks[index + 1] : undefined;
+            const isSeamless = isSeamlessTableBlock(block, prevBlock);
+            const isFollowedBySeamless = nextBlock ? isSeamlessTableBlock(nextBlock, block) : false;
 
-              return (
-                <div
-                  key={block.id}
-                  onClick={(e) => {
-                    e.stopPropagation();
+            // Step 1: Build Layout Block Shell (matching FormBuilder 2-step architecture)
+            const renderLayoutBlockShell = (content: React.ReactNode, customOnClick?: (e: React.MouseEvent) => void) => (
+              <div
+                key={block.id}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (customOnClick) {
+                    customOnClick(e);
+                  } else {
                     onSelectBlock?.(block.id);
-                  }}
-                  style={{
-                    border: isBlockActive ? '2px solid var(--primary)' : '1px dashed transparent',
-                    padding: '0.85rem',
-                    marginTop: '0px',
-                    position: 'relative',
-                    background: isBlockActive ? 'rgba(16, 163, 163, 0.02)' : 'none',
-                    borderRadius: '4px',
-                    cursor: 'pointer'
-                  }}
-                >
-                  {hasLogo ? (
-                    <div style={{ padding: '10px 0', display: 'flex', alignItems: 'center', marginBottom: '10px', position: 'relative' }}>
-                      <div style={{ marginRight: '20px', display: 'flex', alignItems: 'center', height: '65px' }}>
-                        {logoSrc ? (
-                          <img src={logoSrc} alt="Logo" style={{ maxHeight: '65px', maxWidth: '260px', objectFit: 'contain' }} />
-                        ) : (
-                          <div style={{
-                            width: '100px',
-                            height: '50px',
-                            border: '1px dashed #cbd5e1',
-                            borderRadius: '4px',
-                            background: '#f8fafc',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontWeight: 700,
-                            fontSize: '0.75rem',
-                            color: '#64748b'
-                          }}>
-                            LOGO
-                          </div>
-                        )}
-                      </div>
-                      <div style={{ textAlign: 'center', flex: 1 }}>
-                        <h1 style={{ margin: '0 0 2px 0', fontSize: '1.25rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-primary)' }}>
-                          {block.title || form.formTitle || form.formId || 'TÊN BIỂU MẪU'}
-                        </h1>
-                        {block.description && (
-                          <p style={{ margin: 0, fontSize: '0.8rem', fontStyle: 'italic', color: 'var(--text-secondary)' }}>
-                            {block.description}
-                          </p>
-                        )}
-                        {block.showDate && (block.datePosition ?? 'B') === 'B' && (
-                          <div style={{ marginTop: '4px', fontSize: '0.78rem', color: 'var(--text-secondary)', textAlign: 'center' }}>
-                            <span style={{ fontWeight: 600 }}>Ngày</span>
-                            <span style={{ marginLeft: '6px', color: 'var(--text-muted)', letterSpacing: '2px' }}>
-                              &nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                      {block.showDate && block.datePosition === 'A' && (
-                        <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap', marginLeft: '10px', alignSelf: 'flex-start', paddingTop: '4px' }}>
-                          <span style={{ fontWeight: 600 }}>Ngày</span>
-                          <span style={{ marginLeft: '6px', color: 'var(--text-muted)', letterSpacing: '2px' }}>
-                            &nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;
-                          </span>
+                  }
+                }}
+                style={{
+                  border: isBlockActive ? '2px solid var(--primary)' : '1px dashed #cbd5e1',
+                  borderTop: isSeamless && !isBlockActive ? '1px dashed transparent' : undefined,
+                  borderRadius: isSeamless && isFollowedBySeamless ? '0px' : isSeamless ? '0 0 6px 6px' : isFollowedBySeamless ? '6px 6px 0 0' : '6px',
+                  padding: block.type === 'SECTION_LABEL' ? '0.35rem 0.65rem' : '0.85rem',
+                  marginTop: '0px',
+                  position: 'relative',
+                  background: isBlockActive ? 'rgba(16, 163, 163, 0.02)' : 'none',
+                  cursor: 'pointer'
+                }}
+              >
+                {/* Floating Layout Block Type Badge (matching FormBuilder) */}
+                <div style={{
+                  position: 'absolute',
+                  top: '-10px',
+                  right: '10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.2rem',
+                  background: '#ffffff',
+                  padding: '0 5px',
+                  fontSize: '0.62rem',
+                  zIndex: 10
+                }}>
+                  <span style={{ fontWeight: 700, color: isBlockActive ? 'var(--primary)' : 'var(--text-muted)', letterSpacing: '0.3px' }}>
+                    {block.type}
+                  </span>
+                </div>
+
+                {/* Step 2: Content Filled into Layout Block */}
+                <div style={{ marginTop: '0.25rem' }}>
+                  {content}
+                </div>
+              </div>
+            );
+
+            // 1. TITLE BLOCK (Step 1: Title Block Layout Slots -> Step 2: Fill Content from Form & Report)
+            if (block.type === 'TITLE') {
+              const effectiveTitle = (matchedReportBlock?.title && matchedReportBlock.title !== 'BÁO CÁO ĐÁNH GIÁ CHẤT LƯỢNG'
+                ? matchedReportBlock.title
+                : block.title) || form.formTitle || form.formId || 'TÊN BIỂU MẪU';
+              const effectiveDesc = (matchedReportBlock?.description !== undefined && matchedReportBlock.description !== '')
+                ? matchedReportBlock.description
+                : (block.description || (block.fields?.[0]?.checkItem) || '');
+              const effectiveLogo = matchedReportBlock?.logo || block.logo;
+              const effectiveShowDate = matchedReportBlock?.showDate !== undefined ? matchedReportBlock.showDate : block.showDate;
+              const effectiveDatePos = matchedReportBlock?.datePosition || block.datePosition || 'B';
+              const hasLogo = Boolean(effectiveLogo);
+              const logoSrc = effectiveLogo && (effectiveLogo.startsWith('http') || effectiveLogo.startsWith('data:') || effectiveLogo.startsWith('/')) ? effectiveLogo : null;
+
+              return renderLayoutBlockShell(
+                hasLogo ? (
+                  <div style={{ padding: '10px 0', display: 'flex', alignItems: 'center', marginBottom: '10px', position: 'relative' }}>
+                    <div style={{ marginRight: '20px', display: 'flex', alignItems: 'center', height: '65px' }}>
+                      {logoSrc ? (
+                        <img src={logoSrc} alt="Logo" style={{ maxHeight: '65px', maxWidth: '260px', objectFit: 'contain' }} />
+                      ) : (
+                        <div style={{
+                          width: '100px',
+                          height: '50px',
+                          border: '1px dashed #cbd5e1',
+                          borderRadius: '4px',
+                          background: '#f8fafc',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: 700,
+                          fontSize: '0.75rem',
+                          color: '#64748b'
+                        }}>
+                          LOGO
                         </div>
                       )}
                     </div>
-                  ) : (
-                    <div style={{ padding: '10px 0', textAlign: 'center', marginBottom: '10px', position: 'relative' }}>
-                      {block.showDate && block.datePosition === 'A' && (
-                        <div style={{ position: 'absolute', right: 0, top: '10px', fontSize: '0.78rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-                          <span style={{ fontWeight: 600 }}>Ngày</span>
-                          <span style={{ marginLeft: '6px', color: 'var(--text-muted)', letterSpacing: '2px' }}>
-                            &nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;
-                          </span>
-                        </div>
-                      )}
-                      <h1 style={{ margin: '0 0 4px 0', fontSize: '1.25rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-primary)' }}>
-                        {block.title || form.formTitle || form.formId || 'TÊN BIỂU MẪU'}
+                    <div style={{ textAlign: 'center', flex: 1 }}>
+                      <h1 style={{ margin: '0 0 2px 0', fontSize: '1.25rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-primary)' }}>
+                        {effectiveTitle}
                       </h1>
-                      {block.description && (
-                        <p style={{ margin: 0, fontSize: '0.8rem', fontStyle: 'italic', color: 'var(--text-secondary)' }}>
-                          {block.description}
-                        </p>
-                      )}
-                      {block.showDate && (block.datePosition ?? 'B') === 'B' && (
+                      <p style={{ margin: 0, fontSize: '0.8rem', fontStyle: 'italic', color: 'var(--text-secondary)' }}>
+                        {effectiveDesc || '(mô tả ngắn kiểm tra)'}
+                      </p>
+                      {effectiveShowDate && effectiveDatePos === 'B' && (
                         <div style={{ marginTop: '4px', fontSize: '0.78rem', color: 'var(--text-secondary)', textAlign: 'center' }}>
                           <span style={{ fontWeight: 600 }}>Ngày</span>
                           <span style={{ marginLeft: '6px', color: 'var(--text-muted)', letterSpacing: '2px' }}>
@@ -421,8 +445,41 @@ export const FormReferenceCanvas: React.FC<FormReferenceCanvasProps> = ({
                         </div>
                       )}
                     </div>
-                  )}
-                </div>
+                    {effectiveShowDate && effectiveDatePos === 'A' && (
+                      <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap', marginLeft: '10px', alignSelf: 'flex-start', paddingTop: '4px' }}>
+                        <span style={{ fontWeight: 600 }}>Ngày</span>
+                        <span style={{ marginLeft: '6px', color: 'var(--text-muted)', letterSpacing: '2px' }}>
+                          &nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div style={{ padding: '10px 0', textAlign: 'center', marginBottom: '10px', position: 'relative' }}>
+                    {effectiveShowDate && effectiveDatePos === 'A' && (
+                      <div style={{ position: 'absolute', right: 0, top: '10px', fontSize: '0.78rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                        <span style={{ fontWeight: 600 }}>Ngày</span>
+                        <span style={{ marginLeft: '6px', color: 'var(--text-muted)', letterSpacing: '2px' }}>
+                          &nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;
+                        </span>
+                      </div>
+                    )}
+                    <h1 style={{ margin: '0 0 4px 0', fontSize: '1.25rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-primary)' }}>
+                      {effectiveTitle}
+                    </h1>
+                    <p style={{ margin: 0, fontSize: '0.8rem', fontStyle: 'italic', color: 'var(--text-secondary)' }}>
+                      {effectiveDesc || '(mô tả ngắn kiểm tra)'}
+                    </p>
+                    {effectiveShowDate && effectiveDatePos === 'B' && (
+                      <div style={{ marginTop: '4px', fontSize: '0.78rem', color: 'var(--text-secondary)', textAlign: 'center' }}>
+                        <span style={{ fontWeight: 600 }}>Ngày</span>
+                        <span style={{ marginLeft: '6px', color: 'var(--text-muted)', letterSpacing: '2px' }}>
+                          &nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )
               );
             }
 
@@ -431,30 +488,10 @@ export const FormReferenceCanvas: React.FC<FormReferenceCanvasProps> = ({
               const titleFmt = getEffectiveTitleFormat(block);
               if (titleFmt === 'NONE') return null;
 
-              return (
-                <div
-                  key={block.id}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (titleFmt === 'H1' && onSelectH1Section && block.title) {
-                      onSelectH1Section(block.title);
-                    } else {
-                      onSelectBlock?.(block.id);
-                    }
-                  }}
-                  style={{
-                    border: isBlockActive ? '2px solid var(--primary)' : '1px dashed transparent',
-                    padding: '0.35rem 0.65rem',
-                    marginTop: '0px',
-                    position: 'relative',
-                    background: isBlockActive ? 'rgba(16, 163, 163, 0.02)' : 'none',
-                    borderRadius: '4px',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <div style={{ marginBottom: '0.25rem' }}>
-                    {titleFmt === 'H1' ? (
-                      <div style={{
+              return renderLayoutBlockShell(
+                <div style={{ marginBottom: '0.25rem' }}>
+                  {titleFmt === 'H1' ? (
+                    <div style={{
                         fontSize: '1.1rem',
                         fontWeight: 700,
                         color: '#0f172a',
@@ -490,31 +527,22 @@ export const FormReferenceCanvas: React.FC<FormReferenceCanvasProps> = ({
                         {renderFormattedText(block.description)}
                       </div>
                     )}
-                  </div>
-                </div>
-              );
-            }
+                  </div>,
+                  () => {
+                    if (titleFmt === 'H1' && onSelectH1Section && block.title) {
+                      onSelectH1Section(block.title);
+                    } else {
+                      onSelectBlock?.(block.id);
+                    }
+                  }
+                );
+              }
 
             // 3. INFO GRID BLOCK
             if (block.type === 'INFO_GRID') {
               const gridCols = getInfoGridTemplateColumns(block);
-              return (
-                <div
-                  key={block.id}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onSelectBlock?.(block.id);
-                  }}
-                  style={{
-                    border: isBlockActive ? '2px solid var(--primary)' : '1px dashed transparent',
-                    padding: '0.85rem',
-                    marginTop: '0px',
-                    position: 'relative',
-                    background: isBlockActive ? 'rgba(16, 163, 163, 0.02)' : 'none',
-                    borderRadius: '4px',
-                    cursor: 'pointer'
-                  }}
-                >
+              return renderLayoutBlockShell(
+                <>
                   {renderTitleHeader(block)}
                   <div style={{
                     display: 'grid',
@@ -570,7 +598,7 @@ export const FormReferenceCanvas: React.FC<FormReferenceCanvasProps> = ({
                       );
                     })}
                   </div>
-                </div>
+                </>
               );
             }
 
@@ -580,28 +608,8 @@ export const FormReferenceCanvas: React.FC<FormReferenceCanvasProps> = ({
               const tableCols = block.tableColumns || [];
               const tableRows = block.tableRows || [];
 
-              return (
-                <div
-                  key={block.id}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    const hasGroupHeaders = tableRows.some(r => r.isGroupHeader || block.tableData?.[r.id]?.['_groupTitle']);
-                    if (!hasGroupHeaders && onSelectTableGroup) {
-                      onSelectTableGroup(block.title || 'Bảng');
-                    } else {
-                      onSelectBlock?.(block.id);
-                    }
-                  }}
-                  style={{
-                    border: isBlockActive ? '2px solid var(--primary)' : '1px dashed transparent',
-                    padding: '0.85rem',
-                    marginTop: '0px',
-                    position: 'relative',
-                    background: isBlockActive ? 'rgba(16, 163, 163, 0.02)' : 'none',
-                    borderRadius: '4px',
-                    cursor: 'pointer'
-                  }}
-                >
+              return renderLayoutBlockShell(
+                <>
                   {renderTitleHeader(block)}
                   <div style={{
                     overflowX: 'auto',
@@ -823,7 +831,15 @@ export const FormReferenceCanvas: React.FC<FormReferenceCanvasProps> = ({
                       </tbody>
                     </table>
                   </div>
-                </div>
+                </>,
+                () => {
+                  const hasGroupHeaders = tableRows.some(r => r.isGroupHeader || block.tableData?.[r.id]?.['_groupTitle']);
+                  if (!hasGroupHeaders && onSelectTableGroup) {
+                    onSelectTableGroup(block.title || 'Bảng');
+                  } else {
+                    onSelectBlock?.(block.id);
+                  }
+                }
               );
             }
 
@@ -838,23 +854,8 @@ export const FormReferenceCanvas: React.FC<FormReferenceCanvasProps> = ({
                 { id: 'col_reaction', label: 'Hành động khắc phục', width: '140px', align: 'left' }
               ];
 
-              return (
-                <div
-                  key={block.id}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onSelectBlock?.(block.id);
-                  }}
-                  style={{
-                    border: isBlockActive ? '2px solid var(--primary)' : '1px dashed transparent',
-                    padding: '0.85rem',
-                    marginTop: '0px',
-                    position: 'relative',
-                    background: isBlockActive ? 'rgba(16, 163, 163, 0.02)' : 'none',
-                    borderRadius: '4px',
-                    cursor: 'pointer'
-                  }}
-                >
+              return renderLayoutBlockShell(
+                <>
                   {renderTitleHeader(block)}
                   <div style={{ overflowX: 'auto', border: '1px solid #cbd5e1', borderRadius: '4px' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
@@ -940,30 +941,15 @@ export const FormReferenceCanvas: React.FC<FormReferenceCanvasProps> = ({
                       </tbody>
                     </table>
                   </div>
-                </div>
+                </>
               );
             }
 
             // 6. MATRIX TABLE BLOCK
             if (block.type === 'MATRIX_TABLE' && block.matrixConfig) {
               const mc = block.matrixConfig;
-              return (
-                <div
-                  key={block.id}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onSelectBlock?.(block.id);
-                  }}
-                  style={{
-                    border: isBlockActive ? '2px solid var(--primary)' : '1px dashed transparent',
-                    padding: '0.85rem',
-                    marginTop: '0px',
-                    position: 'relative',
-                    background: isBlockActive ? 'rgba(16, 163, 163, 0.02)' : 'none',
-                    borderRadius: '4px',
-                    cursor: 'pointer'
-                  }}
-                >
+              return renderLayoutBlockShell(
+                <>
                   {renderTitleHeader(block)}
                   <div style={{ overflowX: 'auto', border: '1px solid #cbd5e1', borderRadius: '4px' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem' }}>
@@ -1019,7 +1005,7 @@ export const FormReferenceCanvas: React.FC<FormReferenceCanvasProps> = ({
                   <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '0.25rem', fontStyle: 'italic' }}>
                     * Thiết kế mô phỏng (Hiển thị 3 hàng demo). Số dòng thực tế cấu hình: {mc.rowCount} hàng.
                   </div>
-                </div>
+                </>
               );
             }
 
@@ -1031,23 +1017,8 @@ export const FormReferenceCanvas: React.FC<FormReferenceCanvasProps> = ({
                 { id: 's2', checkItem: 'TRƯỞNG PHÒNG', reactionProtocol: 'Ký và ghi rõ họ tên' }
               ];
 
-              return (
-                <div
-                  key={block.id}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onSelectBlock?.(block.id);
-                  }}
-                  style={{
-                    border: isBlockActive ? '2px solid var(--primary)' : '1px dashed transparent',
-                    padding: '0.85rem',
-                    marginTop: '0px',
-                    position: 'relative',
-                    background: isBlockActive ? 'rgba(16, 163, 163, 0.02)' : 'none',
-                    borderRadius: '4px',
-                    cursor: 'pointer'
-                  }}
-                >
+              return renderLayoutBlockShell(
+                <>
                   {renderTitleHeader(block)}
                   <div style={{
                     display: 'grid',
@@ -1091,7 +1062,7 @@ export const FormReferenceCanvas: React.FC<FormReferenceCanvasProps> = ({
                       );
                     })}
                   </div>
-                </div>
+                </>
               );
             }
 

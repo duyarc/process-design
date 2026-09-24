@@ -746,29 +746,64 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
           const formList = Array.from(map.values());
           setAvailableForms(formList);
 
+          const syncTitleBlockFromForm = (blocks: ReportBlockConfig[], formObj?: FormTemplateISO | null): ReportBlockConfig[] => {
+            if (!formObj) return blocks;
+            const srcTitle = formObj.layoutBlocks?.find(b => b.type === 'TITLE');
+            const desiredTitle = srcTitle?.title || formObj.formTitle || formObj.formId || 'BÁO CÁO ĐÁNH GIÁ';
+            const desiredDesc = srcTitle?.description || srcTitle?.fields?.[0]?.checkItem;
+            const existingIdx = blocks.findIndex(b => b.type === 'TITLE');
+            if (existingIdx === -1) {
+              return [{
+                id: `rep_block_title_${Date.now()}`,
+                type: 'TITLE',
+                title: desiredTitle,
+                logo: srcTitle?.logo,
+                description: desiredDesc,
+                showDate: srcTitle?.showDate,
+                datePosition: srcTitle?.datePosition || 'B',
+                columns: 1,
+                borderStyle: 'grid',
+                hideHeader: false,
+                boundFieldIds: []
+              }, ...blocks];
+            }
+            return blocks.map((b, i) => i === existingIdx && (!b.title || b.title === 'BÁO CÁO ĐÁNH GIÁ CHẤT LƯỢNG')
+              ? { ...b, title: desiredTitle, logo: b.logo || srcTitle?.logo, description: b.description || desiredDesc, showDate: b.showDate ?? srcTitle?.showDate, datePosition: b.datePosition || srcTitle?.datePosition || 'B' }
+              : b
+            );
+          };
+
           const targetFormId = initialFormId || template.linkedFormId || (formList[0]?.formId || '');
+          let activeMatchedForm: FormTemplateISO | null = null;
           if (targetFormId) {
-            const matched = formList.find(f => f.formId === targetFormId) || formList[0];
-            setSelectedForm(matched || null);
+            activeMatchedForm = formList.find(f => f.formId === targetFormId) || formList[0] || null;
+            setSelectedForm(activeMatchedForm);
             setTemplate(prev => ({
               ...prev,
+              reportTitle: (!prev.reportTitle || prev.reportTitle === 'BÁO CÁO ĐÁNH GIÁ CHẤT LƯỢNG') && activeMatchedForm
+                ? (activeMatchedForm.layoutBlocks?.find(b => b.type === 'TITLE')?.title || activeMatchedForm.formTitle || prev.reportTitle)
+                : prev.reportTitle,
               linkedFormId: targetFormId,
-              reportId: prev.reportId === 'RP-NEW' ? `RP-${targetFormId}` : prev.reportId
+              reportId: prev.reportId === 'RP-NEW' ? `RP-${targetFormId}` : prev.reportId,
+              layoutBlocks: syncTitleBlockFromForm(prev.layoutBlocks, activeMatchedForm)
             }));
             fetchSubmissionsForForm(targetFormId);
           }
-        }
 
-        if (initialReportId) {
-          const repRes = await fetch(`/api/reports/${initialReportId}`);
-          if (repRes.ok) {
-            const repData = await repRes.json();
-            setTemplate(repData);
-            setInitialBlocks(repData.layoutBlocks || []);
-            setLastSavedSnapshot(getReportSnapshot(repData));
-            if (repData.effectiveDate) setEffectiveDate(repData.effectiveDate);
-            if (repData.linkedFormId) {
-              fetchSubmissionsForForm(repData.linkedFormId);
+          if (initialReportId) {
+            const repRes = await fetch(`/api/reports/${initialReportId}`);
+            if (repRes.ok) {
+              const repData = await repRes.json();
+              const linkedFormObj = formList.find(f => f.formId === (repData.linkedFormId || targetFormId)) || activeMatchedForm;
+              const syncedBlocks = syncTitleBlockFromForm(repData.layoutBlocks || [], linkedFormObj);
+              const syncedRepData = { ...repData, layoutBlocks: syncedBlocks };
+              setTemplate(syncedRepData);
+              setInitialBlocks(syncedBlocks);
+              setLastSavedSnapshot(getReportSnapshot(syncedRepData));
+              if (repData.effectiveDate) setEffectiveDate(repData.effectiveDate);
+              if (repData.linkedFormId) {
+                fetchSubmissionsForForm(repData.linkedFormId);
+              }
             }
           }
         }
@@ -922,13 +957,38 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
     const matched = availableForms.find(f => f.formId === formId);
     if (!matched) return;
     setSelectedForm(matched);
+    const formTitleBlock = matched.layoutBlocks?.find(b => b.type === 'TITLE');
+    const syncedTitle = formTitleBlock?.title || matched.formTitle || prevTitleFallback(template.reportTitle);
     setTemplate(prev => ({
       ...prev,
       linkedFormId: formId,
-      reportId: prev.status === 'DRAFT' && prev.reportId.startsWith('RP-') ? `RP-${formId}` : prev.reportId
+      reportTitle: syncedTitle,
+      reportId: prev.status === 'DRAFT' && prev.reportId.startsWith('RP-') ? `RP-${formId}` : prev.reportId,
+      layoutBlocks: prev.layoutBlocks.some(b => b.type === 'TITLE')
+        ? prev.layoutBlocks.map(b => b.type === 'TITLE' ? {
+            ...b,
+            title: syncedTitle,
+            description: formTitleBlock?.description ?? b.description ?? '',
+            logo: formTitleBlock?.logo ?? b.logo,
+            showDate: formTitleBlock?.showDate ?? b.showDate ?? true,
+            datePosition: formTitleBlock?.datePosition ?? b.datePosition ?? 'B'
+          } : b)
+        : [
+            {
+              id: `rep_block_title_${Date.now()}`,
+              type: 'TITLE',
+              title: syncedTitle,
+              description: formTitleBlock?.description || '',
+              logo: formTitleBlock?.logo,
+              showDate: formTitleBlock?.showDate ?? true,
+              datePosition: formTitleBlock?.datePosition || 'B'
+            },
+            ...prev.layoutBlocks
+          ]
     }));
     fetchSubmissionsForForm(formId);
   };
+  const prevTitleFallback = (t?: string) => (t && t !== 'BÁO CÁO ĐÁNH GIÁ') ? t : 'BÁO CÁO ĐÁNH GIÁ';
 
   const handleSaveDraft = async () => {
     try {
@@ -1370,6 +1430,70 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
       }
     }
     handleSelectH2Subgroup(groupTitle, matchedFieldIds);
+  };
+
+  // Handler when clicking a Layout Block (TITLE, SECTION_LABEL, INFO_GRID, SIGN, TABLE) in FormReferenceCanvas
+  const handleSelectBlockFromFormCanvas = (formBlockId: string) => {
+    const existingDirect = template.layoutBlocks.find(b => b.id === formBlockId);
+    if (existingDirect) {
+      setActiveBlockId(existingDirect.id);
+      setSelectedFieldId(null);
+      setRightTab('properties');
+      return;
+    }
+    const formBlock = selectedForm?.layoutBlocks?.find(b => b.id === formBlockId);
+    if (!formBlock) {
+      setActiveBlockId(formBlockId);
+      setSelectedFieldId(null);
+      setRightTab('properties');
+      return;
+    }
+    if (formBlock.type === 'TITLE') {
+      const existingTitle = template.layoutBlocks.find(b => b.type === 'TITLE');
+      if (existingTitle) {
+        setActiveBlockId(existingTitle.id);
+      } else {
+        const newId = `rep_block_title_${Date.now()}`;
+        const newTitleBlock: ReportBlockConfig = {
+          id: newId,
+          type: 'TITLE',
+          title: formBlock.title || selectedForm?.formTitle || template.reportTitle || 'BÁO CÁO ĐÁNH GIÁ',
+          description: formBlock.description || '',
+          logo: formBlock.logo,
+          showDate: formBlock.showDate ?? true,
+          datePosition: formBlock.datePosition || 'B'
+        };
+        setTemplate(prev => ({ ...prev, layoutBlocks: [newTitleBlock, ...prev.layoutBlocks] }));
+        setActiveBlockId(newId);
+      }
+      setSelectedFieldId(null);
+      setRightTab('properties');
+      return;
+    }
+    if (formBlock.type === 'SECTION_LABEL') {
+      if (formBlock.titleFormat === 'H2') {
+        handleSelectTableGroupFromCanvas(formBlock.title || '');
+      } else {
+        handleSelectH1Section(formBlock.title || '');
+      }
+      return;
+    }
+    const matchedByTypeAndTitle = template.layoutBlocks.find(
+      b => b.type === (formBlock.type as any) && (
+        (b.title || '').trim().toLowerCase() === (formBlock.title || '').trim().toLowerCase() ||
+        formBlock.type === 'INFO_GRID' ||
+        formBlock.type === 'SIGN'
+      )
+    );
+    if (matchedByTypeAndTitle) {
+      setActiveBlockId(matchedByTypeAndTitle.id);
+      setSelectedFieldId(null);
+      setRightTab('properties');
+      return;
+    }
+    setActiveBlockId(formBlockId);
+    setSelectedFieldId(null);
+    setRightTab('properties');
   };
 
   const selectedField = selectedFieldId ? allFormFields.find(f => f.id === selectedFieldId) : null;
@@ -2132,6 +2256,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
             selectedForm ? (
               <FormReferenceCanvas
                 form={selectedForm}
+                reportBlocks={template.layoutBlocks}
                 selectedFieldId={selectedFieldId}
                 activeBlockId={activeBlockId}
                 activeGroupTitle={activeBlock?.type === 'TABLE' ? activeBlock.title : null}
@@ -2142,11 +2267,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                 }}
                 onSelectTableGroup={handleSelectTableGroupFromCanvas}
                 onSelectH1Section={handleSelectH1Section}
-                onSelectBlock={(bId) => {
-                  setActiveBlockId(bId);
-                  setSelectedFieldId(null);
-                  setRightTab('properties');
-                }}
+                onSelectBlock={handleSelectBlockFromFormCanvas}
                 onDeselect={() => {
                   setActiveBlockId(null);
                   setSelectedFieldId(null);
@@ -2203,14 +2324,33 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                       setRightTab('properties');
                     }}
                     style={{
-                      border: `2px solid ${isActive ? 'var(--primary)' : 'transparent'}`,
-                      borderRadius: '6px',
+                      border: isActive ? '2px solid var(--primary)' : '1px dashed #cbd5e1',
+                      borderRadius: '4px',
                       padding: '0.5rem',
                       position: 'relative',
-                      background: isActive ? 'rgba(16, 163, 163, 0.02)' : 'transparent',
+                      background: isActive ? 'rgba(16, 163, 163, 0.02)' : '#ffffff',
                       transition: 'all 0.15s ease'
                     }}
                   >
+                    {/* Floating Block Type Label Badge (Step 1 Layout Block Shell) */}
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '-10px',
+                        right: isActive ? '84px' : '10px',
+                        background: isActive ? 'var(--primary)' : '#94a3b8',
+                        color: 'white',
+                        fontSize: '0.65rem',
+                        padding: '1px 6px',
+                        borderRadius: '4px',
+                        fontWeight: 600,
+                        letterSpacing: '0.5px',
+                        zIndex: 5
+                      }}
+                    >
+                      {block.type}
+                    </div>
+
                     {/* Block Toolbar */}
                     {isActive && (
                       <div style={{ position: 'absolute', right: '4px', top: '-14px', background: '#ffffff', border: '1px solid var(--neutral-border)', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '2px', padding: '2px', zIndex: 5, boxShadow: '0 2px 4px rgba(0,0,0,0.08)' }}>
@@ -2243,11 +2383,9 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                             <h1 style={{ margin: '0 0 2px 0', fontSize: '1.25rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-primary)' }}>
                               {block.title || template.reportTitle || 'BÁO CÁO ĐÁNH GIÁ'}
                             </h1>
-                            {block.description && (
-                              <p style={{ margin: 0, fontSize: '0.8rem', fontStyle: 'italic', color: 'var(--text-secondary)' }}>
-                                {block.description}
-                              </p>
-                            )}
+                            <p style={{ margin: 0, fontSize: '0.8rem', fontStyle: 'italic', color: 'var(--text-secondary)' }}>
+                              {block.description || '(mô tả ngắn kiểm tra)'}
+                            </p>
                             {block.showDate && (block.datePosition ?? 'B') === 'B' && (
                               <div style={{ marginTop: '4px', fontSize: '0.78rem', color: 'var(--text-secondary)', textAlign: 'center' }}>
                                 <span style={{ fontWeight: 600 }}>Ngày</span> <span style={{ marginLeft: '6px', color: sampleSubmittedAtText !== '—' ? 'var(--text-primary)' : 'var(--text-muted)', letterSpacing: sampleSubmittedAtText !== '—' ? '0px' : '2px', fontWeight: sampleSubmittedAtText !== '—' ? 600 : 400 }}>{sampleSubmittedAtText !== '—' ? sampleSubmittedAtText : '\u00a0\u00a0\u00a0/\u00a0\u00a0\u00a0/\u00a0\u00a0\u00a0\u00a0'}</span>
@@ -2275,11 +2413,9 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                           <h1 style={{ margin: '0 0 4px 0', fontSize: '1.25rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-primary)' }}>
                             {block.title || template.reportTitle || 'BÁO CÁO ĐÁNH GIÁ'}
                           </h1>
-                          {block.description && (
-                            <p style={{ margin: 0, fontSize: '0.8rem', fontStyle: 'italic', color: 'var(--text-secondary)' }}>
-                              {block.description}
-                            </p>
-                          )}
+                          <p style={{ margin: 0, fontSize: '0.8rem', fontStyle: 'italic', color: 'var(--text-secondary)' }}>
+                            {block.description || '(mô tả ngắn kiểm tra)'}
+                          </p>
                           {block.showDate && (block.datePosition ?? 'B') === 'B' && (
                             <div style={{ marginTop: '4px', fontSize: '0.78rem', color: 'var(--text-secondary)', textAlign: 'center' }}>
                               <span style={{ fontWeight: 600 }}>Ngày</span> <span style={{ marginLeft: '6px', color: sampleSubmittedAtText !== '—' ? 'var(--text-primary)' : 'var(--text-muted)', letterSpacing: sampleSubmittedAtText !== '—' ? '0px' : '2px', fontWeight: sampleSubmittedAtText !== '—' ? 600 : 400 }}>{sampleSubmittedAtText !== '—' ? sampleSubmittedAtText : '\u00a0\u00a0\u00a0/\u00a0\u00a0\u00a0/\u00a0\u00a0\u00a0\u00a0'}</span>
@@ -2899,9 +3035,9 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      {activeBlock.type === 'SECTION_LABEL' && (
+                      {(activeBlock.type === 'SECTION_LABEL' || activeBlock.type === 'TITLE') && (
                         <span style={{
-                          background: activeBlock.titleFormat === 'H2' ? '#2563eb' : 'var(--primary)',
+                          background: activeBlock.type === 'TITLE' ? 'var(--primary)' : (activeBlock.titleFormat === 'H2' ? '#2563eb' : 'var(--primary)'),
                           color: '#ffffff',
                           fontSize: '0.62rem',
                           fontWeight: 800,
@@ -2909,7 +3045,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                           borderRadius: '3px',
                           lineHeight: '14px'
                         }}>
-                          {activeBlock.titleFormat === 'H2' ? 'H2' : 'H1'}
+                          {activeBlock.type === 'TITLE' ? 'TITLE' : (activeBlock.titleFormat === 'H2' ? 'H2' : 'H1')}
                         </span>
                       )}
                       <h3 style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-primary)', margin: 0 }}>
@@ -2919,7 +3055,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                            activeBlock.titleFormat === 'H2' ? 'H2 Section Properties' : 'H1 Section Properties'
                          ) :
                          activeBlock.type === 'SIGN' ? 'Signatures Properties' :
-                         activeBlock.type === 'TITLE' ? 'Report Header Properties' : 'Block Properties'}
+                         activeBlock.type === 'TITLE' ? 'Title Block Properties' : 'Block Properties'}
                       </h3>
                     </div>
                     {activeBlock.type !== 'TITLE' && (
@@ -3313,22 +3449,33 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                   {/* TITLE Block Special Controls: Logo, Description, Date */}
                   {activeBlock.type === 'TITLE' && (
                     <>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                        <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Tiêu đề báo cáo</label>
+                      <div style={{ borderBottom: '1.5px solid #e2e8f0', paddingBottom: '3px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <input
                           type="text"
                           disabled={isLocked}
-                          value={activeBlock.title}
+                          value={activeBlock.title || ''}
                           onChange={e => {
                             const val = e.target.value;
                             setTemplate(prev => ({
                               ...prev,
+                              reportTitle: val || prev.reportTitle,
                               layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, title: val } : b)
                             }));
                           }}
-                          placeholder="Nhập tiêu đề báo cáo..."
-                          style={{ width: '100%', padding: '0.35rem 0.5rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px' }}
+                          placeholder="Nhập tiêu đề báo cáo (VD: 5C SCORECARD)..."
+                          style={{
+                            width: '100%',
+                            padding: 0,
+                            fontSize: '0.84rem',
+                            fontWeight: 700,
+                            color: '#1e293b',
+                            border: 'none',
+                            outline: 'none',
+                            background: 'transparent',
+                            textTransform: 'uppercase'
+                          }}
                         />
+                        <span style={{ color: '#94a3b8', fontSize: '0.72rem', flexShrink: 0, userSelect: 'none' }} title="Đổi tiêu đề khối TITLE">✎</span>
                       </div>
 
                       {/* Logo Section */}

@@ -30,12 +30,38 @@ phiên thực thi để không lặp lại lỗi cũ.
 | 16 | `LOGIC` | Truyền `row.id` đơn lẻ khi click canvas thay vì composite ID (`${blockId}_${rowId}_${colId}`) khiến registry lookup trả về `undefined` | Luôn dùng composite ID resolver helper (`getTableFieldId`, `getTableRowPrimaryFieldId`) khớp quy ước định danh của extractor | 1 |
 | 17 | `LOGIC` | `updateRuleOverride` silent abort khi `layoutBlocks` rỗng hoặc chưa gán trường vào khối khiến controlled inputs (Score, Weight) không thể chỉnh sửa | Xây dựng Smart Target Block Resolution (5 tầng ưu tiên) kết hợp Auto-Initialization khối Table cho Section H2 | 1 |
 | 18 | `BLOAT` | Trích xuất utility tổng hợp điểm (`summarizeH1ChildGroups`) nhưng vẫn import hàm con (`computeH1CombinedScore`) vào component cha → TS6133 unused import | Khi bọc logic vào pure utility cấp cao hơn, xóa ngay các imports cấp thấp không còn được gọi trực tiếp trong component | 1 |
+| 19 | `LOGIC` | Gọi `form.title` thay vì `form.formTitle` trên `FormTemplateISO` hoặc truyền Raw Block ID từ `FormReferenceCanvas` vào `setActiveBlockId` mà không ánh xạ sang `template.layoutBlocks` | Luôn kiểm tra tên trường chuẩn (`formTitle` vs `reportTitle`) và ánh xạ qua `handleSelectBlockFromFormCanvas` để đồng bộ ID khối giữa Form gốc và Report template | 1 |
 
 ---
 
 ## Nhật ký Phiên
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
+
+### 2026-09-24 — Report Builder: 2-Step Design Principle (Build Layout First → Fill Content Into Layout) & Complete Title Block
+
+**Scope:** 4 files (`src/components/report/FormReferenceCanvas.tsx`, `src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`, `SESSION_LOG.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | ~12.0 min |
+| Thời gian lập plan (Request → Proceed) | ~4.0 min |
+| Thời gian thực thi (Proceed → Push) | ~8.0 min |
+| Số file nguồn chỉnh sửa | 2 (`FormReferenceCanvas.tsx`, `ReportBuilder.tsx`) |
+| Tổng lượt edit source | 10 |
+| Lượt edit sửa lỗi (rework) | 2 (sửa `formTitle` và `handleSelectH1Section` 1 arg) |
+| Số lần build | 3 (2 tsc + 1 vite pass) |
+| Lần build cuối thành công? | Có (100% pass, built in 9.79s) |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- **Thực thi Nguyên tắc Thiết kế 2 Bước ("Build Layout First → Fill Content Into Layout") trên `FormReferenceCanvas.tsx` & `ReportBuilder.tsx`:**
+  - **Bước 1 (Dựng Layout Block Shell & Slots):** Xây dựng hàm `renderLayoutBlockShell` bọc toàn bộ các khối (`TITLE`, `SECTION_LABEL`, `INFO_GRID`, `TABLE`, `CHECKLIST_TABLE`, `MATRIX_TABLE`, `SIGN`) với khung `1px dashed #cbd5e1` khi nghỉ, `2px solid var(--primary)` khi chọn, huy hiệu nổi `{block.type}` ở góc trên bên phải (`top: -10px, right: 10px`), và xử lý liền mạch `isSeamlessTableBlock`. Đối với khối `TITLE`, luôn dựng đủ 4 slot chuẩn như `FormBuilder`: Logo, `<h1>` Tiêu đề chính, `<p>` Mô tả phụ (mặc định `(mô tả ngắn kiểm tra)`), và Ngày tháng (`Ngày ___/___/____`).
+  - **Bước 2 (Nạp nội dung từ Form & Report Overrides):** Nạp dữ liệu kéo từ `form.layoutBlocks` kết hợp với các tinh chỉnh từ `template.layoutBlocks` (`reportBlocks`) vào đúng các slot đã dựng.
+- **Tự động Khởi tạo & Liên kết Khối `TITLE` hoàn chỉnh:** Bổ sung `syncTitleBlockFromForm` trong `init()` và `handleFormChange()` cùng `handleSelectBlockFromFormCanvas` để khi mở báo cáo hoặc click vào khối `TITLE` (`"5C SCORECARD"`) trên tab `Form` hay `Report`, hệ thống đều kích hoạt đúng khối `TITLE` và mở bảng `TITLE BLOCK PROPERTIES` (kèm huy hiệu `[TITLE]` và ô sửa tên liền mạch `✎`).
+
+---
 
 ### 2026-09-24 — Report Builder: Section Label H1 & H2 Properties Redesign & Scoring Roll-up Summary
 
@@ -263,29 +289,4 @@ Entry mới nhất ở trên cùng. Tối đa 10 entries.
 - **Cô lập Sự kiện Khối (Event Isolation):** Bổ sung `e.stopPropagation()` trên block wrapper để click vào bất kỳ khối nào sẽ chỉ chọn khối đó mà không bị kích hoạt sự kiện bỏ chọn của Canvas.
 - **Chuẩn hóa Tiêu đề Form & Report Properties:** Bổ sung tiêu đề in hoa `FORM PROPERTIES` và `REPORT PROPERTIES` trong thanh thuộc tính bên phải khi ở trạng thái bỏ chọn, tạo sự nhất quán hoàn hảo với `FIELD PROPERTIES` và `BLOCK PROPERTIES`.
 
----
-
-### 2026-09-23 — Report Builder: Number Multi-Range & Text Completeness Scoring Rules & Minimal English Inspector
-
-**Scope:** 5 files (	ypes.ts, 
-eportScoring.ts, FieldScoringInspector.tsx, ReportBuilder.tsx, DESIGN_REPORT_BUILDER.md)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian tổng (Request → Push) | 6.5 min |
-| Thời gian lập plan (Request → Proceed) | 2.5 min |
-| Thời gian thực thi (Proceed → Push) | 4.0 min |
-| Số file nguồn chỉnh sửa | 4 (	ypes.ts, 
-eportScoring.ts, FieldScoringInspector.tsx, ReportBuilder.tsx) |
-| Tổng lượt edit source | 7 |
-| Lượt edit sửa lỗi (rework) | 1 (sửa TS2367 không có textarea trong FormFieldISO.type) |
-| Số lần build | 4 (3 tsc + 1 vite pass) |
-| Lần build cuối thành công? | Có (100% pass, built in 11.05s) |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Điểm nổi bật:**
-- **Chấm điểm Đa Dải Ngưỡng (Number Multi-Range Intervals):** Hỗ trợ cấu hình $ dải ngưỡng với trạng thái isPass và Score độc lập, nút + Add Range, xóa dải và highlight dải khớp giá trị thực tế.
-- **Kiểm tra Độ đầy đủ & Cấu hình Ký tự Inline (Text Completeness):** Tích hợp trực tiếp ô nhập số ký tự tối thiểu vào dòng điều kiện Standard (≥ [ 10 ]), tự động cập nhật dòng Short (< 10) và Empty (toggle Allow empty).
-- **Chuẩn hóa Minimal English & Tiết kiệm Chiều cao:** Đổi toàn bộ nhãn sang tiếng Anh tối giản (Value:, Range, Condition, Copy/Copied!) và thu gọn hàng Type trên cùng 1 hàng ngang phẳng.
 
