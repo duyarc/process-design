@@ -323,19 +323,26 @@ export const FormReferenceCanvas: React.FC<FormReferenceCanvasProps> = ({
           </div>
         ) : (
           blocks.map((block, index) => {
+            const formInfoGrids = blocks.filter(b => b.type === 'INFO_GRID');
+            const formInfoGridIdx = block.type === 'INFO_GRID' ? formInfoGrids.findIndex(b => b.id === block.id) : -1;
+            const reportInfoGrids = (reportBlocks || []).filter(rb => rb.type === 'INFO_GRID');
+
             const matchedReportBlock = reportBlocks?.find(rb => {
+              if (rb.id === block.id) return true;
               if (block.type === 'TITLE' && rb.type === 'TITLE') return true;
               if (block.type === 'SECTION_LABEL' && rb.type === 'SECTION_LABEL') {
                 return rb.title.trim().toLowerCase() === (block.title || '').trim().toLowerCase();
               }
               if (block.type === 'INFO_GRID' && rb.type === 'INFO_GRID') {
-                const sameTitle = rb.title.trim().toLowerCase() === (block.title || '').trim().toLowerCase();
-                const sharesFields = rb.boundFieldIds?.some(fid => (block.fields || []).some(f => f.id === fid));
-                return sameTitle || Boolean(sharesFields);
+                const blockFieldIds = (block.fields || []).map(f => f.id);
+                if (blockFieldIds.length > 0 && rb.boundFieldIds?.some(fid => blockFieldIds.includes(fid))) {
+                  return true;
+                }
+                return false;
               }
               if (block.type === 'SIGN' && rb.type === 'SIGN') return true;
               return false;
-            });
+            }) || (block.type === 'INFO_GRID' && formInfoGridIdx >= 0 ? reportInfoGrids[formInfoGridIdx] : undefined);
 
             const isBlockActive = block.id === activeBlockId || (Boolean(activeBlockId) && matchedReportBlock?.id === activeBlockId);
             const prevBlock = index > 0 ? blocks[index - 1] : undefined;
@@ -538,12 +545,29 @@ export const FormReferenceCanvas: React.FC<FormReferenceCanvasProps> = ({
                 );
               }
 
-            // 3. INFO GRID BLOCK
+            // 3. INFO GRID BLOCK (Step 1: Build Layout Block & Grid Columns -> Step 2: Arrange Fields into Slots)
             if (block.type === 'INFO_GRID') {
-              const gridCols = getInfoGridTemplateColumns(block);
+              const effectiveBlock: LayoutBlockISO = matchedReportBlock ? {
+                ...block,
+                title: matchedReportBlock.title !== undefined ? matchedReportBlock.title : block.title,
+                titleFormat: matchedReportBlock.titleFormat !== undefined ? matchedReportBlock.titleFormat : block.titleFormat,
+                columns: matchedReportBlock.columns || block.columns,
+                columnWidths: matchedReportBlock.columnWidths || block.columnWidths,
+                borderStyle: matchedReportBlock.borderStyle || block.borderStyle,
+                hideHeader: matchedReportBlock.hideHeader ?? block.hideHeader
+              } : block;
+              const gridCols = getInfoGridTemplateColumns(effectiveBlock);
+              const allBlockFields = block.fields || [];
+              const orderedFields = (matchedReportBlock?.boundFieldIds && matchedReportBlock.boundFieldIds.length > 0)
+                ? matchedReportBlock.boundFieldIds
+                    .map(fid => allBlockFields.find(f => f.id === fid))
+                    .filter((f): f is FormFieldISO => Boolean(f))
+                : allBlockFields;
+              const fieldsToRender = orderedFields.length > 0 ? orderedFields : allBlockFields;
+
               return renderLayoutBlockShell(
                 <>
-                  {renderTitleHeader(block)}
+                  {renderTitleHeader(effectiveBlock)}
                   <div style={{
                     display: 'grid',
                     gridTemplateColumns: gridCols,
@@ -551,8 +575,12 @@ export const FormReferenceCanvas: React.FC<FormReferenceCanvasProps> = ({
                     rowGap: '0.5rem',
                     gridAutoRows: 'minmax(38px, auto)'
                   }}>
-                    {(block.fields || []).map((f) => {
+                    {fieldsToRender.map((f) => {
                       const isFieldSelected = f.id === selectedFieldId;
+                      const override = matchedReportBlock?.ruleOverrides?.[f.id];
+                      const displayLabel = override?.customLabel !== undefined
+                        ? override.customLabel
+                        : (f.checkItem || '(Chưa đặt tên trường)');
                       const parsedRSpan = f.type === 'subtable' ? undefined : (f.rowSpan ? Number(f.rowSpan) : undefined);
                       const rSpan = parsedRSpan && !isNaN(parsedRSpan) && parsedRSpan > 1 ? parsedRSpan : undefined;
                       const cSpan = f.type === 'subtable' ? -1 : (f.colSpan ? Number(f.colSpan) : undefined);
@@ -582,18 +610,20 @@ export const FormReferenceCanvas: React.FC<FormReferenceCanvasProps> = ({
                             transition: 'all 0.12s ease'
                           }}
                         >
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '6px', width: '100%' }}>
-                            <span style={{
-                              fontWeight: f.type === 'label' ? 400 : 600,
-                              fontSize: '0.8rem',
-                              lineHeight: 1.4,
-                              color: 'var(--text-primary)',
-                              wordBreak: 'break-word'
-                            }}>
-                              {f.checkItem || '(Chưa đặt tên trường)'}
-                            </span>
-                          </div>
-                          {renderFieldValue(f, block)}
+                          {!override?.hideLabel && (
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '6px', width: '100%' }}>
+                              <span style={{
+                                fontWeight: f.type === 'label' ? 400 : 600,
+                                fontSize: '0.8rem',
+                                lineHeight: 1.4,
+                                color: 'var(--text-primary)',
+                                wordBreak: 'break-word'
+                              }}>
+                                {displayLabel}
+                              </span>
+                            </div>
+                          )}
+                          {renderFieldValue(f, effectiveBlock)}
                         </div>
                       );
                     })}

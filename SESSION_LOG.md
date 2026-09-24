@@ -38,28 +38,28 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
-### 2026-09-24 — Report Builder: 2-Step Design Principle (Build Layout First → Fill Content Into Layout) & Complete Title Block
+### 2026-09-24 — Report Builder: 2-Step Design Principle (`Build Layout First → Arrange Fields Into Layout`) for `TITLE` & `INFO_GRID` Blocks
 
 **Scope:** 4 files (`src/components/report/FormReferenceCanvas.tsx`, `src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`, `SESSION_LOG.md`)
 
 | Chỉ số | Giá trị |
 |---|---|
-| Thời gian tổng (Request → Push) | ~12.0 min |
-| Thời gian lập plan (Request → Proceed) | ~4.0 min |
-| Thời gian thực thi (Proceed → Push) | ~8.0 min |
+| Thời gian tổng (Request → Push) | ~18.0 min |
+| Thời gian lập plan (Request → Proceed) | ~5.0 min |
+| Thời gian thực thi (Proceed → Push) | ~13.0 min |
 | Số file nguồn chỉnh sửa | 2 (`FormReferenceCanvas.tsx`, `ReportBuilder.tsx`) |
-| Tổng lượt edit source | 10 |
-| Lượt edit sửa lỗi (rework) | 2 (sửa `formTitle` và `handleSelectH1Section` 1 arg) |
-| Số lần build | 3 (2 tsc + 1 vite pass) |
-| Lần build cuối thành công? | Có (100% pass, built in 9.79s) |
+| Tổng lượt edit source | 16 |
+| Lượt edit sửa lỗi (rework) | 2 |
+| Số lần build | 5 (3 tsc + 2 vite pass) |
+| Lần build cuối thành công? | Có (100% pass) |
 | Số lỗi mới phát sinh | 0 |
 | Số lỗi cũ lặp lại | 0 |
 
 **Điểm nổi bật:**
-- **Thực thi Nguyên tắc Thiết kế 2 Bước ("Build Layout First → Fill Content Into Layout") trên `FormReferenceCanvas.tsx` & `ReportBuilder.tsx`:**
-  - **Bước 1 (Dựng Layout Block Shell & Slots):** Xây dựng hàm `renderLayoutBlockShell` bọc toàn bộ các khối (`TITLE`, `SECTION_LABEL`, `INFO_GRID`, `TABLE`, `CHECKLIST_TABLE`, `MATRIX_TABLE`, `SIGN`) với khung `1px dashed #cbd5e1` khi nghỉ, `2px solid var(--primary)` khi chọn, huy hiệu nổi `{block.type}` ở góc trên bên phải (`top: -10px, right: 10px`), và xử lý liền mạch `isSeamlessTableBlock`. Đối với khối `TITLE`, luôn dựng đủ 4 slot chuẩn như `FormBuilder`: Logo, `<h1>` Tiêu đề chính, `<p>` Mô tả phụ (mặc định `(mô tả ngắn kiểm tra)`), và Ngày tháng (`Ngày ___/___/____`).
-  - **Bước 2 (Nạp nội dung từ Form & Report Overrides):** Nạp dữ liệu kéo từ `form.layoutBlocks` kết hợp với các tinh chỉnh từ `template.layoutBlocks` (`reportBlocks`) vào đúng các slot đã dựng.
-- **Tự động Khởi tạo & Liên kết Khối `TITLE` hoàn chỉnh:** Bổ sung `syncTitleBlockFromForm` trong `init()` và `handleFormChange()` cùng `handleSelectBlockFromFormCanvas` để khi mở báo cáo hoặc click vào khối `TITLE` (`"5C SCORECARD"`) trên tab `Form` hay `Report`, hệ thống đều kích hoạt đúng khối `TITLE` và mở bảng `TITLE BLOCK PROPERTIES` (kèm huy hiệu `[TITLE]` và ô sửa tên liền mạch `✎`).
+- **Thực thi Nguyên tắc Thiết kế 2 Bước ("Tạo Layout Block trước → Bố trí Field vào Layout Block") cho cả `TITLE` và `INFO_GRID`:**
+  - **Bước 1 (Dựng Layout Block Shell & Cấu trúc Lưới):** Xây dựng `renderLayoutBlockShell` và `syncHeaderAndInfoGridBlocksFromForm` để dựng đầy đủ khung `TITLE` (4 slots: Logo, `<h1>`, `<p>`, Ngày tháng) và từng khối `INFO_GRID` độc lập theo đúng thiết kế của Form nguồn (`INFO_GRID #1` có `titleFormat: 'H1'`, `columns: 2`, tỷ lệ cột `[65, 35]`; `INFO_GRID #2` có `titleFormat: 'NONE'`, `columns: 2`, tỷ lệ cột `[50, 50]`).
+  - **Bước 2 (Bố trí Field vào từng Ô Lưới — Field Slots):** Nạp chính xác `boundFieldIds` của từng khối `INFO_GRID` (`['ten_doanh_nghiep', 'msdn']` vào `INFO_GRID #1`; `['loai_hinh', 'nganh_hang_chinh', 'thi_truong', 'nang_luc_cung']` vào `INFO_GRID #2`), áp dụng `rowSpan`, `colSpan`, viền `1px dotted #cbd5e1` và hiển thị trực quan các lựa chọn `checkbox` / `radio` / `select` trên cả tab `Form` và `Report`.
+- **Liên kết 1-1 Độc lập giữa các Khối `INFO_GRID`:** Khớp chính xác từng khối `INFO_GRID` theo `boundFieldIds` và thứ tự khối (thay vì chỉ khớp theo `title`), đồng bộ cả trong DB PostgreSQL (`RP-5C-Scorecard`).
 
 ---
 

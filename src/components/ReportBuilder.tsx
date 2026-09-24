@@ -746,31 +746,63 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
           const formList = Array.from(map.values());
           setAvailableForms(formList);
 
-          const syncTitleBlockFromForm = (blocks: ReportBlockConfig[], formObj?: FormTemplateISO | null): ReportBlockConfig[] => {
+          const syncHeaderAndInfoGridBlocksFromForm = (blocks: ReportBlockConfig[], formObj?: FormTemplateISO | null): ReportBlockConfig[] => {
             if (!formObj) return blocks;
+            // Step 1 & 2 for TITLE Block: Build TITLE Layout Block -> Fill Title Metadata & Fields
             const srcTitle = formObj.layoutBlocks?.find(b => b.type === 'TITLE');
             const desiredTitle = srcTitle?.title || formObj.formTitle || formObj.formId || 'BÁO CÁO ĐÁNH GIÁ';
             const desiredDesc = srcTitle?.description || srcTitle?.fields?.[0]?.checkItem;
-            const existingIdx = blocks.findIndex(b => b.type === 'TITLE');
-            if (existingIdx === -1) {
-              return [{
-                id: `rep_block_title_${Date.now()}`,
-                type: 'TITLE',
-                title: desiredTitle,
-                logo: srcTitle?.logo,
-                description: desiredDesc,
-                showDate: srcTitle?.showDate,
-                datePosition: srcTitle?.datePosition || 'B',
-                columns: 1,
-                borderStyle: 'grid',
-                hideHeader: false,
-                boundFieldIds: []
-              }, ...blocks];
-            }
-            return blocks.map((b, i) => i === existingIdx && (!b.title || b.title === 'BÁO CÁO ĐÁNH GIÁ CHẤT LƯỢNG')
-              ? { ...b, title: desiredTitle, logo: b.logo || srcTitle?.logo, description: b.description || desiredDesc, showDate: b.showDate ?? srcTitle?.showDate, datePosition: b.datePosition || srcTitle?.datePosition || 'B' }
-              : b
-            );
+            const existingTitle = blocks.find(b => b.type === 'TITLE');
+            const titleBlock: ReportBlockConfig = existingTitle
+              ? {
+                  ...existingTitle,
+                  title: (!existingTitle.title || existingTitle.title === 'BÁO CÁO ĐÁNH GIÁ CHẤT LƯỢNG') ? desiredTitle : existingTitle.title,
+                  logo: existingTitle.logo || srcTitle?.logo,
+                  description: existingTitle.description || desiredDesc,
+                  showDate: existingTitle.showDate ?? srcTitle?.showDate ?? true,
+                  datePosition: existingTitle.datePosition || srcTitle?.datePosition || 'B',
+                  boundFieldIds: existingTitle.boundFieldIds?.length ? existingTitle.boundFieldIds : (srcTitle?.fields || []).map(f => f.id)
+                }
+              : {
+                  id: `rep_block_title_${Date.now()}`,
+                  type: 'TITLE',
+                  title: desiredTitle,
+                  logo: srcTitle?.logo,
+                  description: desiredDesc,
+                  showDate: srcTitle?.showDate ?? true,
+                  datePosition: srcTitle?.datePosition || 'B',
+                  columns: 1,
+                  borderStyle: 'grid',
+                  hideHeader: false,
+                  boundFieldIds: (srcTitle?.fields || []).map(f => f.id)
+                };
+
+            // Step 1 & 2 for INFO_GRID Blocks: Build each INFO_GRID Layout Block -> Arrange its Fields into Slots
+            const srcInfoGrids = (formObj.layoutBlocks || []).filter(b => b.type === 'INFO_GRID');
+            const existingInfoGrids = blocks.filter(b => b.type === 'INFO_GRID');
+            const syncedInfoGrids: ReportBlockConfig[] = srcInfoGrids.map((srcInfo, idx) => {
+              const srcFieldIds = (srcInfo.fields || []).map(f => f.id);
+              const matchedExisting = existingInfoGrids.find(eb =>
+                srcFieldIds.length > 0 && eb.boundFieldIds?.some(fid => srcFieldIds.includes(fid)) &&
+                !eb.boundFieldIds?.some(fid => fid.startsWith('b_table_'))
+              ) || existingInfoGrids[idx];
+              const isLegacyTruncated = matchedExisting && srcFieldIds.length > (matchedExisting.boundFieldIds?.length || 0);
+              return {
+                id: matchedExisting?.id || `rep_block_info_${idx}_${Date.now()}`,
+                type: 'INFO_GRID',
+                title: srcInfo.title || matchedExisting?.title || 'Thông tin chung',
+                titleFormat: srcInfo.titleFormat || (idx === 0 && srcInfo.title ? 'H1' : 'NONE'),
+                columns: srcInfo.columns || matchedExisting?.columns || 2,
+                columnWidths: srcInfo.columnWidths || matchedExisting?.columnWidths || (srcInfo.columns === 3 ? [33.33, 33.33, 33.34] : [50, 50]),
+                borderStyle: srcInfo.borderStyle || matchedExisting?.borderStyle || 'grid',
+                hideHeader: srcInfo.hideHeader ?? matchedExisting?.hideHeader ?? false,
+                boundFieldIds: (isLegacyTruncated || !matchedExisting?.boundFieldIds?.length) ? srcFieldIds : matchedExisting.boundFieldIds,
+                ruleOverrides: matchedExisting?.ruleOverrides || {}
+              };
+            });
+
+            const otherBlocks = blocks.filter(b => b.type !== 'TITLE' && b.type !== 'INFO_GRID');
+            return [titleBlock, ...(syncedInfoGrids.length > 0 ? syncedInfoGrids : existingInfoGrids), ...otherBlocks];
           };
 
           const targetFormId = initialFormId || template.linkedFormId || (formList[0]?.formId || '');
@@ -785,7 +817,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                 : prev.reportTitle,
               linkedFormId: targetFormId,
               reportId: prev.reportId === 'RP-NEW' ? `RP-${targetFormId}` : prev.reportId,
-              layoutBlocks: syncTitleBlockFromForm(prev.layoutBlocks, activeMatchedForm)
+              layoutBlocks: syncHeaderAndInfoGridBlocksFromForm(prev.layoutBlocks, activeMatchedForm)
             }));
             fetchSubmissionsForForm(targetFormId);
           }
@@ -795,8 +827,9 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
             if (repRes.ok) {
               const repData = await repRes.json();
               const linkedFormObj = formList.find(f => f.formId === (repData.linkedFormId || targetFormId)) || activeMatchedForm;
-              const syncedBlocks = syncTitleBlockFromForm(repData.layoutBlocks || [], linkedFormObj);
-              const syncedRepData = { ...repData, layoutBlocks: syncedBlocks };
+              const syncedBlocks = syncHeaderAndInfoGridBlocksFromForm(repData.layoutBlocks || [], linkedFormObj);
+              const syncedTitle = syncedBlocks.find(b => b.type === 'TITLE')?.title || repData.reportTitle;
+              const syncedRepData = { ...repData, reportTitle: syncedTitle, layoutBlocks: syncedBlocks };
               setTemplate(syncedRepData);
               setInitialBlocks(syncedBlocks);
               setLastSavedSnapshot(getReportSnapshot(syncedRepData));
@@ -959,33 +992,39 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
     setSelectedForm(matched);
     const formTitleBlock = matched.layoutBlocks?.find(b => b.type === 'TITLE');
     const syncedTitle = formTitleBlock?.title || matched.formTitle || prevTitleFallback(template.reportTitle);
-    setTemplate(prev => ({
-      ...prev,
-      linkedFormId: formId,
-      reportTitle: syncedTitle,
-      reportId: prev.status === 'DRAFT' && prev.reportId.startsWith('RP-') ? `RP-${formId}` : prev.reportId,
-      layoutBlocks: prev.layoutBlocks.some(b => b.type === 'TITLE')
-        ? prev.layoutBlocks.map(b => b.type === 'TITLE' ? {
-            ...b,
-            title: syncedTitle,
-            description: formTitleBlock?.description ?? b.description ?? '',
-            logo: formTitleBlock?.logo ?? b.logo,
-            showDate: formTitleBlock?.showDate ?? b.showDate ?? true,
-            datePosition: formTitleBlock?.datePosition ?? b.datePosition ?? 'B'
-          } : b)
-        : [
-            {
-              id: `rep_block_title_${Date.now()}`,
-              type: 'TITLE',
-              title: syncedTitle,
-              description: formTitleBlock?.description || '',
-              logo: formTitleBlock?.logo,
-              showDate: formTitleBlock?.showDate ?? true,
-              datePosition: formTitleBlock?.datePosition || 'B'
-            },
-            ...prev.layoutBlocks
-          ]
+    const srcInfoGrids = (matched.layoutBlocks || []).filter(b => b.type === 'INFO_GRID');
+    const builtInfoGrids: ReportBlockConfig[] = srcInfoGrids.map((srcInfo, idx) => ({
+      id: `rep_block_info_${idx}_${Date.now()}`,
+      type: 'INFO_GRID',
+      title: srcInfo.title || 'Thông tin chung',
+      titleFormat: srcInfo.titleFormat || (idx === 0 && srcInfo.title ? 'H1' : 'NONE'),
+      columns: srcInfo.columns || 2,
+      columnWidths: srcInfo.columnWidths || (srcInfo.columns === 3 ? [33.33, 33.33, 33.34] : [50, 50]),
+      borderStyle: srcInfo.borderStyle || 'grid',
+      hideHeader: srcInfo.hideHeader ?? false,
+      boundFieldIds: (srcInfo.fields || []).map(f => f.id),
+      ruleOverrides: {}
     }));
+    setTemplate(prev => {
+      const nonHeaderBlocks = prev.layoutBlocks.filter(b => b.type !== 'TITLE' && b.type !== 'INFO_GRID');
+      const titleBlock: ReportBlockConfig = {
+        id: prev.layoutBlocks.find(b => b.type === 'TITLE')?.id || `rep_block_title_${Date.now()}`,
+        type: 'TITLE',
+        title: syncedTitle,
+        description: formTitleBlock?.description || '',
+        logo: formTitleBlock?.logo,
+        showDate: formTitleBlock?.showDate ?? true,
+        datePosition: formTitleBlock?.datePosition || 'B',
+        boundFieldIds: (formTitleBlock?.fields || []).map(f => f.id)
+      };
+      return {
+        ...prev,
+        linkedFormId: formId,
+        reportTitle: syncedTitle,
+        reportId: prev.status === 'DRAFT' && prev.reportId.startsWith('RP-') ? `RP-${formId}` : prev.reportId,
+        layoutBlocks: [titleBlock, ...builtInfoGrids, ...nonHeaderBlocks]
+      };
+    });
     fetchSubmissionsForForm(formId);
   };
   const prevTitleFallback = (t?: string) => (t && t !== 'BÁO CÁO ĐÁNH GIÁ') ? t : 'BÁO CÁO ĐÁNH GIÁ';
@@ -1478,10 +1517,41 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
       }
       return;
     }
+    if (formBlock.type === 'INFO_GRID') {
+      const formInfoGrids = (selectedForm?.layoutBlocks || []).filter(b => b.type === 'INFO_GRID');
+      const formInfoIdx = formInfoGrids.findIndex(b => b.id === formBlock.id);
+      const reportInfoGrids = template.layoutBlocks.filter(b => b.type === 'INFO_GRID');
+      const formFieldIds = (formBlock.fields || []).map(f => f.id);
+      const matchedInfo = reportInfoGrids.find(rb =>
+        formFieldIds.length > 0 && rb.boundFieldIds?.some(fid => formFieldIds.includes(fid))
+      ) || (formInfoIdx >= 0 ? reportInfoGrids[formInfoIdx] : undefined);
+
+      if (matchedInfo) {
+        setActiveBlockId(matchedInfo.id);
+      } else {
+        const newInfoId = `rep_block_info_${Date.now()}`;
+        const newInfoBlock: ReportBlockConfig = {
+          id: newInfoId,
+          type: 'INFO_GRID',
+          title: formBlock.title || 'Thông tin chung',
+          titleFormat: formBlock.titleFormat || (formInfoIdx === 0 && formBlock.title ? 'H1' : 'NONE'),
+          columns: formBlock.columns || 2,
+          columnWidths: formBlock.columnWidths || (formBlock.columns === 3 ? [33.33, 33.33, 33.34] : [50, 50]),
+          borderStyle: formBlock.borderStyle || 'grid',
+          hideHeader: formBlock.hideHeader ?? false,
+          boundFieldIds: formFieldIds,
+          ruleOverrides: {}
+        };
+        setTemplate(prev => ({ ...prev, layoutBlocks: [...prev.layoutBlocks, newInfoBlock] }));
+        setActiveBlockId(newInfoId);
+      }
+      setSelectedFieldId(null);
+      setRightTab('properties');
+      return;
+    }
     const matchedByTypeAndTitle = template.layoutBlocks.find(
       b => b.type === (formBlock.type as any) && (
         (b.title || '').trim().toLowerCase() === (formBlock.title || '').trim().toLowerCase() ||
-        formBlock.type === 'INFO_GRID' ||
         formBlock.type === 'SIGN'
       )
     );
@@ -2507,6 +2577,10 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                   : (field?.checkItem || fid);
                                 const val = getSampleValue(fid);
                                 const isFieldSelected = selectedFieldId === fid;
+                                const parsedRSpan = field?.type === 'subtable' ? undefined : (field?.rowSpan ? Number(field.rowSpan) : undefined);
+                                const rSpan = parsedRSpan && !isNaN(parsedRSpan) && parsedRSpan > 1 ? parsedRSpan : undefined;
+                                const cSpan = field?.type === 'subtable' ? -1 : (field?.colSpan ? Number(field.colSpan) : undefined);
+                                const fieldOptions = field?.options && field.options.length > 0 ? field.options : null;
 
                                 return (
                                   <div
@@ -2517,7 +2591,9 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                       setRightTab('properties');
                                     }}
                                     style={{
-                                      border: isFieldSelected ? '2px solid var(--primary)' : '1px solid #cbd5e1',
+                                      gridRow: rSpan ? `span ${rSpan}` : undefined,
+                                      gridColumn: cSpan && cSpan > 1 ? `span ${cSpan}` : cSpan === -1 ? '1 / -1' : undefined,
+                                      border: isFieldSelected ? '2px solid var(--primary)' : '1px dotted #cbd5e1',
                                       borderRadius: '4px',
                                       padding: '6px 8px',
                                       background: isFieldSelected ? 'rgba(13, 148, 136, 0.05)' : '#ffffff',
@@ -2525,14 +2601,15 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                       display: 'flex',
                                       flexDirection: 'column',
                                       justifyContent: isLabelHidden ? 'center' : 'space-between',
-                                      minHeight: '48px',
+                                      gap: '4px',
+                                      minHeight: '42px',
                                       position: 'relative',
                                       cursor: 'pointer',
                                       transition: 'all 0.12s ease'
                                     }}
                                   >
                                     {!isLabelHidden && (
-                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
+                                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '4px' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: 1, minWidth: 0 }}>
                                           <input
                                             type="text"
@@ -2544,9 +2621,9 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                             }}
                                             onClick={(e) => e.stopPropagation()}
                                             style={{
-                                              fontSize: '0.75rem',
+                                              fontSize: '0.78rem',
                                               fontWeight: 600,
-                                              color: 'var(--text-secondary)',
+                                              color: 'var(--text-primary)',
                                               border: '1px solid transparent',
                                               background: 'transparent',
                                               borderRadius: '3px',
@@ -2604,9 +2681,40 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                         ✕
                                       </button>
                                     )}
-                                    <div style={{ fontSize: '0.88rem', color: '#0f172a', fontWeight: 600, paddingLeft: '3px' }}>
-                                      {val || '—'}
-                                    </div>
+                                    {fieldOptions && (field?.type === 'checkbox' || field?.type === 'radio') ? (
+                                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 10px', paddingTop: '2px' }}>
+                                        {fieldOptions.map((opt, oIdx) => {
+                                          const isChecked = val && val !== '—' && val.split(',').map(s => s.trim().toLowerCase()).some(s => s === (opt.value || '').toLowerCase() || s === (opt.label || '').toLowerCase());
+                                          return (
+                                            <span key={opt.value || oIdx} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: isChecked ? 'var(--primary)' : '#334155', fontWeight: isChecked ? 700 : 400 }}>
+                                              <span style={{
+                                                display: 'inline-block',
+                                                width: '11px',
+                                                height: '11px',
+                                                border: `1.5px solid ${isChecked ? 'var(--primary)' : '#64748b'}`,
+                                                borderRadius: field.type === 'radio' ? '50%' : '2px',
+                                                background: isChecked ? 'var(--primary)' : '#ffffff',
+                                                flexShrink: 0
+                                              }} />
+                                              <span>{opt.label}</span>
+                                            </span>
+                                          );
+                                        })}
+                                      </div>
+                                    ) : (
+                                      <div style={{
+                                        fontSize: '0.82rem',
+                                        color: val && val !== '—' ? '#0f172a' : '#64748b',
+                                        fontWeight: val && val !== '—' ? 600 : 400,
+                                        fontStyle: val && val !== '—' ? 'normal' : 'italic',
+                                        padding: '3px 6px',
+                                        background: '#f8fafc',
+                                        border: '1px dashed #cbd5e1',
+                                        borderRadius: '4px'
+                                      }}>
+                                        {val && val !== '—' ? val : (field?.placeholder || (field?.type === 'select' ? `-- Chọn (${fieldOptions?.length || 0} mục) --` : '[Chưa có dữ liệu]'))}
+                                      </div>
+                                    )}
                                   </div>
                                 );
                               })}
