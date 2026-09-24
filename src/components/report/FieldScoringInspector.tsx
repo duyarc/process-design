@@ -2,6 +2,7 @@ import React from 'react';
 import { Check, CheckSquare, Square, Circle, CircleDot, Plus } from 'lucide-react';
 import type { FormFieldISO, ReportFieldRuleOverride, Submission, NumberRangeSpec } from '../../types';
 import { computeFieldScoreAndPass } from '../../utils/reportScoring';
+import { SmartNumberInput } from '../common/SmartNumberInput';
 
 interface FieldScoringInspectorProps {
   selectedField: FormFieldISO;
@@ -73,7 +74,7 @@ export const FieldScoringInspector: React.FC<FieldScoringInspectorProps> = ({
         min: ruleOverride?.customMinSpec !== undefined ? ruleOverride.customMinSpec : (selectedField.minSpec ?? undefined),
         max: ruleOverride?.customMaxSpec !== undefined ? ruleOverride.customMaxSpec : (selectedField.maxSpec ?? undefined),
         isPass: true,
-        score: ruleOverride?.fixedScore !== undefined ? ruleOverride.fixedScore : 10
+        score: ruleOverride?.fixedScore !== undefined ? ruleOverride.fixedScore : 5
       }];
 
   const handleUpdateNumberRange = (rangeId: string, updates: Partial<NumberRangeSpec>) => {
@@ -89,7 +90,7 @@ export const FieldScoringInspector: React.FC<FieldScoringInspectorProps> = ({
       min: undefined,
       max: undefined,
       isPass: true,
-      score: 10
+      score: 5
     };
     onUpdateRule({ numberRanges: [...numberRanges, newRange] });
   };
@@ -108,7 +109,7 @@ export const FieldScoringInspector: React.FC<FieldScoringInspectorProps> = ({
           ? selectedField.scaleOptions
           : ['1', '2', '3', '4', '5'];
         const numOpts = scaleOpts.length;
-        const defaultScores = scaleOpts.map((_, idx) => Math.max(0, Math.round((1 - idx / Math.max(1, numOpts - 1)) * 10)));
+        const defaultScores = scaleOpts.map((_, idx) => Math.max(0, Math.round(((1 - idx / Math.max(1, numOpts - 1)) * 5) * 2) / 2));
 
         return (
           <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', background: '#ffffff', boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
@@ -180,21 +181,13 @@ export const FieldScoringInspector: React.FC<FieldScoringInspectorProps> = ({
 
                     {/* Score Column */}
                     <div style={{ gridColumn: 'span 3', display: 'flex', justifyContent: 'flex-end' }}>
-                      <input
-                        type="number"
+                      <SmartNumberInput
                         disabled={isLocked}
                         value={optScore}
-                        onChange={(e) => handleUpdateOptionScore(opt, e.target.value)}
+                        step={0.5}
+                        onChange={(val) => handleUpdateOptionScore(opt, val)}
                         style={{
-                          width: '46px',
-                          padding: '2px 4px',
-                          fontSize: '0.75rem',
-                          textAlign: 'right',
-                          fontWeight: 700,
-                          borderRadius: '4px',
-                          border: isSelected ? '1px solid #2dd4bf' : '1px solid #cbd5e1',
-                          background: '#ffffff',
-                          color: '#0f172a'
+                          border: isSelected ? '1px solid #2dd4bf' : '1px solid #cbd5e1'
                         }}
                       />
                     </div>
@@ -249,7 +242,7 @@ export const FieldScoringInspector: React.FC<FieldScoringInspectorProps> = ({
                 const optScore = ruleOverride?.optionScores?.[optVal]
                   ?? ruleOverride?.optionScores?.[optLabel]
                   ?? (opt as any)?.score
-                  ?? 10;
+                  ?? 5;
 
                 const isPass = ruleOverride?.customPassOptions
                   ? (ruleOverride.customPassOptions.includes(optVal) || ruleOverride.customPassOptions.includes(optLabel))
@@ -286,21 +279,13 @@ export const FieldScoringInspector: React.FC<FieldScoringInspectorProps> = ({
                     </div>
 
                     <div style={{ gridColumn: 'span 3', display: 'flex', justifyContent: 'flex-end' }}>
-                      <input
-                        type="number"
+                      <SmartNumberInput
                         disabled={isLocked}
                         value={optScore}
-                        onChange={(e) => handleUpdateOptionScore(optVal, e.target.value)}
+                        step={0.5}
+                        onChange={(val) => handleUpdateOptionScore(optVal, val)}
                         style={{
-                          width: '46px',
-                          padding: '2px 4px',
-                          fontSize: '0.75rem',
-                          textAlign: 'right',
-                          fontWeight: 700,
-                          borderRadius: '4px',
-                          border: isSelected ? '1px solid #2dd4bf' : '1px solid #cbd5e1',
-                          background: '#ffffff',
-                          color: '#0f172a'
+                          border: isSelected ? '1px solid #2dd4bf' : '1px solid #cbd5e1'
                         }}
                       />
                     </div>
@@ -355,7 +340,7 @@ export const FieldScoringInspector: React.FC<FieldScoringInspectorProps> = ({
                 const isSelected = rawArr.includes(optVal) || rawArr.includes(optLabel);
                 const optScore = ruleOverride?.optionScores?.[optVal]
                   ?? ruleOverride?.optionScores?.[optLabel]
-                  ?? 5;
+                  ?? 2.5;
 
                 const isPass = ruleOverride?.customPassOptions
                   ? (ruleOverride.customPassOptions.includes(optVal) || ruleOverride.customPassOptions.includes(optLabel))
@@ -392,21 +377,13 @@ export const FieldScoringInspector: React.FC<FieldScoringInspectorProps> = ({
                     </div>
 
                     <div style={{ gridColumn: 'span 3', display: 'flex', justifyContent: 'flex-end' }}>
-                      <input
-                        type="number"
+                      <SmartNumberInput
                         disabled={isLocked}
                         value={optScore}
-                        onChange={(e) => handleUpdateOptionScore(optVal, e.target.value)}
+                        step={0.5}
+                        onChange={(val) => handleUpdateOptionScore(optVal, val)}
                         style={{
-                          width: '46px',
-                          padding: '2px 4px',
-                          fontSize: '0.75rem',
-                          textAlign: 'right',
-                          fontWeight: 700,
-                          borderRadius: '4px',
-                          border: isSelected ? '1px solid #2dd4bf' : '1px solid #cbd5e1',
-                          background: '#ffffff',
-                          color: '#0f172a'
+                          border: isSelected ? '1px solid #2dd4bf' : '1px solid #cbd5e1'
                         }}
                       />
                     </div>
@@ -546,12 +523,12 @@ export const FieldScoringInspector: React.FC<FieldScoringInspectorProps> = ({
                       </div>
 
                       <div style={{ textAlign: 'right' }}>
-                        <input
-                          type="number"
+                        <SmartNumberInput
                           disabled={isLocked}
                           value={r.score}
-                          onChange={(e) => handleUpdateNumberRange(r.id, { score: parseFloat(e.target.value) || 0 })}
-                          style={{ width: '44px', padding: '3px 4px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.75rem', textAlign: 'right', fontWeight: 700 }}
+                          step={0.5}
+                          onChange={(val) => handleUpdateNumberRange(r.id, { score: val })}
+                          style={{ width: '44px' }}
                         />
                       </div>
 
@@ -606,12 +583,12 @@ export const FieldScoringInspector: React.FC<FieldScoringInspectorProps> = ({
                     />
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <input
-                      type="number"
+                    <SmartNumberInput
                       disabled={isLocked}
                       value={defScore}
-                      onChange={(e) => onUpdateRule({ numberDefaultScore: parseFloat(e.target.value) || 0 })}
-                      style={{ width: '44px', padding: '3px 4px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.75rem', textAlign: 'right', fontWeight: 700 }}
+                      step={0.5}
+                      onChange={(val) => onUpdateRule({ numberDefaultScore: val })}
+                      style={{ width: '44px' }}
                     />
                   </div>
                   <div></div>
@@ -674,8 +651,8 @@ export const FieldScoringInspector: React.FC<FieldScoringInspectorProps> = ({
         const textStr = rawValue !== undefined && rawValue !== null ? String(rawValue).trim() : '';
         const charCount = textStr.length;
         const minLen = ruleOverride?.textMinLength !== undefined ? ruleOverride.textMinLength : 10;
-        const passScore = ruleOverride?.textPassScore !== undefined ? ruleOverride.textPassScore : 10;
-        const shortScore = ruleOverride?.textShortScore !== undefined ? ruleOverride.textShortScore : 5;
+        const passScore = ruleOverride?.textPassScore !== undefined ? ruleOverride.textPassScore : 5;
+        const shortScore = ruleOverride?.textShortScore !== undefined ? ruleOverride.textShortScore : 2.5;
         const shortPass = Boolean(ruleOverride?.textShortPass);
         const allowEmpty = Boolean(ruleOverride?.textAllowEmpty);
         const emptyScore = ruleOverride?.textEmptyScore !== undefined ? ruleOverride.textEmptyScore : 0;
@@ -761,12 +738,12 @@ export const FieldScoringInspector: React.FC<FieldScoringInspectorProps> = ({
                     />
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <input
-                      type="number"
+                    <SmartNumberInput
                       disabled={isLocked}
                       value={passScore}
-                      onChange={(e) => onUpdateRule({ textPassScore: parseFloat(e.target.value) || 0 })}
-                      style={{ width: '44px', padding: '3px 4px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.75rem', textAlign: 'right', fontWeight: 700 }}
+                      step={0.5}
+                      onChange={(val) => onUpdateRule({ textPassScore: val })}
+                      style={{ width: '44px' }}
                     />
                   </div>
                 </div>
@@ -794,12 +771,12 @@ export const FieldScoringInspector: React.FC<FieldScoringInspectorProps> = ({
                     />
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <input
-                      type="number"
+                    <SmartNumberInput
                       disabled={isLocked}
                       value={shortScore}
-                      onChange={(e) => onUpdateRule({ textShortScore: parseFloat(e.target.value) || 0 })}
-                      style={{ width: '44px', padding: '3px 4px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.75rem', textAlign: 'right', fontWeight: 700 }}
+                      step={0.5}
+                      onChange={(val) => onUpdateRule({ textShortScore: val })}
+                      style={{ width: '44px' }}
                     />
                   </div>
                 </div>
@@ -828,12 +805,12 @@ export const FieldScoringInspector: React.FC<FieldScoringInspectorProps> = ({
                     />
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <input
-                      type="number"
+                    <SmartNumberInput
                       disabled={isLocked}
                       value={emptyScore}
-                      onChange={(e) => onUpdateRule({ textEmptyScore: parseFloat(e.target.value) || 0 })}
-                      style={{ width: '44px', padding: '3px 4px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.75rem', textAlign: 'right', fontWeight: 700 }}
+                      step={0.5}
+                      onChange={(val) => onUpdateRule({ textEmptyScore: val })}
+                      style={{ width: '44px' }}
                     />
                   </div>
                 </div>
@@ -918,26 +895,14 @@ export const FieldScoringInspector: React.FC<FieldScoringInspectorProps> = ({
             <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155' }}>
               Weight:
             </span>
-            <input
-              type="number"
+            <SmartNumberInput
               disabled={isLocked}
               value={ruleOverride?.weight !== undefined ? ruleOverride.weight : 0}
-              onChange={(e) => {
-                const val = e.target.value;
-                const num = val === '' ? 0 : parseFloat(val);
-                onUpdateRule({ weight: isNaN(num) ? 0 : num });
-              }}
-              style={{
-                width: '46px',
-                padding: '2px 4px',
-                fontSize: '0.75rem',
-                textAlign: 'right',
-                fontWeight: 700,
-                borderRadius: '4px',
-                border: '1px solid #cbd5e1',
-                background: '#ffffff',
-                color: '#0f172a'
-              }}
+              presets={[0, 10, 20, 25, 50, 100]}
+              min={0}
+              max={100}
+              onChange={(val) => onUpdateRule({ weight: val })}
+              style={{ width: '46px' }}
             />
             <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b' }}>%</span>
           </div>

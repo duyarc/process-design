@@ -112,7 +112,7 @@ export function computeRecordReport(
 
   const overallCombinedScore = totalWeight > 0
     ? Math.round((totalWeightedScore / totalWeight) * 1000) / 10
-    : (totalEvaluated > 0 ? Math.round((passCount / totalEvaluated) * 100) / 10 : 10);
+    : (totalEvaluated > 0 ? Math.round((passCount / totalEvaluated) * 50) / 10 : 5);
 
   const overallStatus: 'PASS' | 'FAIL' = (failCount > 0 || knockoutFailed) ? 'FAIL' : 'PASS';
 

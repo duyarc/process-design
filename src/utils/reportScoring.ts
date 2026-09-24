@@ -56,8 +56,8 @@ export function computeFieldScoreAndPass(
       : ['1', '2', '3', '4', '5'];
 
     const numOpts = scaleOpts.length;
-    // Default score gradient if not explicitly overridden: [10, 8, 6, 4, 2] or [10, 6, 2]
-    const defaultScores = scaleOpts.map((_, idx) => Math.max(0, Math.round((1 - idx / Math.max(1, numOpts - 1)) * 10)));
+    // Default score gradient on 5-point scale if not explicitly overridden: [5, 2.5, 0] or [5, 4, 2.5, 1, 0]
+    const defaultScores = scaleOpts.map((_, idx) => Math.max(0, Math.round(((1 - idx / Math.max(1, numOpts - 1)) * 5) * 2) / 2));
     const maxScore = Math.max(...scaleOpts.map((opt, idx) => {
       const explicit = ruleOverride?.optionScores?.[opt] ?? ruleOverride?.optionScores?.[String(idx + 1)];
       return explicit !== undefined ? explicit : defaultScores[idx];
@@ -97,18 +97,18 @@ export function computeFieldScoreAndPass(
     const options = formField.options || [];
     const maxScore = Math.max(0, ...options.map(opt => {
       const explicit = ruleOverride?.optionScores?.[opt.value] ?? ruleOverride?.optionScores?.[opt.label];
-      return explicit !== undefined ? explicit : 10;
+      return explicit !== undefined ? explicit : 5;
     }));
 
     const matchingOpt = options.find(opt => opt.value === rawValue || opt.label === rawValue);
     if (!matchingOpt) {
-      return { score: 0, maxScore: maxScore || 10, status: 'FAIL', deviationText: `Không có trong danh mục: ${rawValue}`, weight, isKnockout };
+      return { score: 0, maxScore: maxScore || 5, status: 'FAIL', deviationText: `Không có trong danh mục: ${rawValue}`, weight, isKnockout };
     }
 
     const score = ruleOverride?.optionScores?.[matchingOpt.value]
       ?? ruleOverride?.optionScores?.[matchingOpt.label]
       ?? (matchingOpt as any)?.score
-      ?? 10;
+      ?? 5;
 
     let isPass = true;
     if (ruleOverride?.customPassOptions && ruleOverride.customPassOptions.length > 0) {
@@ -119,7 +119,7 @@ export function computeFieldScoreAndPass(
 
     return {
       score,
-      maxScore: maxScore || 10,
+      maxScore: maxScore || 5,
       status: isPass ? 'PASS' : 'FAIL',
       deviationText: !isPass ? `Không đạt (${matchingOpt.label || matchingOpt.value})` : undefined,
       weight,
@@ -139,7 +139,7 @@ export function computeFieldScoreAndPass(
     let isPass = true;
 
     options.forEach(opt => {
-      const optScore = ruleOverride?.optionScores?.[opt.value] ?? ruleOverride?.optionScores?.[opt.label] ?? 5;
+      const optScore = ruleOverride?.optionScores?.[opt.value] ?? ruleOverride?.optionScores?.[opt.label] ?? 2.5;
       totalMaxScore += optScore;
 
       const isChecked = rawArr.includes(opt.value) || rawArr.includes(opt.label);
@@ -153,7 +153,7 @@ export function computeFieldScoreAndPass(
       }
     });
 
-    if (totalMaxScore === 0) totalMaxScore = 10;
+    if (totalMaxScore === 0) totalMaxScore = 5;
     if (!ruleOverride?.customPassOptions) {
       isPass = rawArr.length > 0;
     }
@@ -171,12 +171,12 @@ export function computeFieldScoreAndPass(
   if (formField.type === 'number') {
     const num = typeof rawValue === 'number' ? rawValue : parseFloat(String(rawValue));
     if (isNaN(num)) {
-      return { score: 0, maxScore: 10, status: 'FAIL', deviationText: 'Giá trị không phải số hợp lệ', weight, isKnockout };
+      return { score: 0, maxScore: 5, status: 'FAIL', deviationText: 'Giá trị không phải số hợp lệ', weight, isKnockout };
     }
 
     // A. Multi-Range Evaluation
     if (ruleOverride?.numberRanges && ruleOverride.numberRanges.length > 0) {
-      const maxScore = Math.max(ruleOverride.numberDefaultScore ?? 0, ...ruleOverride.numberRanges.map(r => r.score), 10);
+      const maxScore = Math.max(ruleOverride.numberDefaultScore ?? 0, ...ruleOverride.numberRanges.map(r => r.score), 5);
       const matchedRange = ruleOverride.numberRanges.find(r => {
         if (r.min !== undefined && r.max !== undefined) return num >= r.min && num <= r.max;
         if (r.min !== undefined) return num >= r.min;
@@ -208,7 +208,7 @@ export function computeFieldScoreAndPass(
     }
 
     // B. Legacy Min/Max Spec Fallback
-    const targetScore = ruleOverride?.fixedScore !== undefined ? ruleOverride.fixedScore : 10;
+    const targetScore = ruleOverride?.fixedScore !== undefined ? ruleOverride.fixedScore : 5;
     const min = ruleOverride?.customMinSpec !== undefined ? ruleOverride.customMinSpec : formField.minSpec;
     const max = ruleOverride?.customMaxSpec !== undefined ? ruleOverride.customMaxSpec : formField.maxSpec;
 
@@ -246,12 +246,12 @@ export function computeFieldScoreAndPass(
   if (formField.type === 'text') {
     const str = String(rawValue).trim();
     const minLen = ruleOverride?.textMinLength !== undefined ? ruleOverride.textMinLength : 10;
-    const passScore = ruleOverride?.textPassScore !== undefined ? ruleOverride.textPassScore : 10;
-    const shortScore = ruleOverride?.textShortScore !== undefined ? ruleOverride.textShortScore : 5;
+    const passScore = ruleOverride?.textPassScore !== undefined ? ruleOverride.textPassScore : 5;
+    const shortScore = ruleOverride?.textShortScore !== undefined ? ruleOverride.textShortScore : 2.5;
     const shortPass = Boolean(ruleOverride?.textShortPass);
     const allowEmpty = Boolean(ruleOverride?.textAllowEmpty);
     const emptyScore = ruleOverride?.textEmptyScore !== undefined ? ruleOverride.textEmptyScore : 0;
-    const maxScore = Math.max(passScore, shortScore, emptyScore, 10);
+    const maxScore = Math.max(passScore, shortScore, emptyScore, 5);
 
     if (str.length === 0) {
       return {

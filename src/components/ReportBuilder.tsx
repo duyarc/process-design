@@ -18,6 +18,7 @@ import { applyTextFormat, handleFormatKeyDown } from '../utils/textFormatter';
 import { FieldScoringInspector } from './report/FieldScoringInspector';
 import { FormReferenceCanvas } from './report/FormReferenceCanvas';
 import { extractParentGroupTitle, computeH2CombinedScore, summarizeH1ChildGroups, summarizeH2ChildElements } from '../utils/reportScoring';
+import { SmartNumberInput } from './common/SmartNumberInput';
 import ConfirmModal from './common/ConfirmModal';
 import PrintReport from './print/PrintReport';
 import { useAuth } from '../context/AuthContext';
@@ -3695,29 +3696,19 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                 <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#334155' }}>
                                   Weight:
                                 </span>
-                                <input
-                                  type="number"
+                                <SmartNumberInput
                                   disabled={isLocked}
                                   value={activeBlock.weight !== undefined ? activeBlock.weight : 0}
-                                  onChange={(e) => {
-                                    const val = e.target.value;
-                                    const num = val === '' ? 0 : parseFloat(val);
+                                  presets={[0, 10, 20, 25, 50, 100]}
+                                  min={0}
+                                  max={100}
+                                  onChange={(val) => {
                                     setTemplate(prev => ({
                                       ...prev,
-                                      layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, weight: isNaN(num) ? 0 : num } : b)
+                                      layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, weight: val } : b)
                                     }));
                                   }}
-                                  style={{
-                                    width: '42px',
-                                    padding: '2px 3px',
-                                    fontSize: '0.72rem',
-                                    textAlign: 'right',
-                                    fontWeight: 700,
-                                    borderRadius: '4px',
-                                    border: '1px solid #cbd5e1',
-                                    background: '#ffffff',
-                                    color: '#0f172a'
-                                  }}
+                                  style={{ width: '44px', fontSize: '0.72rem' }}
                                 />
                                 <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b' }}>%</span>
                               </div>
@@ -4456,29 +4447,19 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                               <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#334155' }}>
                                 Weight:
                               </span>
-                              <input
-                                type="number"
+                              <SmartNumberInput
                                 disabled={isLocked}
                                 value={activeBlock.weight !== undefined ? activeBlock.weight : 0}
-                                onChange={(e) => {
-                                  const val = e.target.value;
-                                  const num = val === '' ? 0 : parseFloat(val);
+                                presets={[0, 10, 20, 25, 50, 100]}
+                                min={0}
+                                max={100}
+                                onChange={(val) => {
                                   setTemplate(prev => ({
                                     ...prev,
-                                    layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, weight: isNaN(num) ? 0 : num } : b)
+                                    layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, weight: val } : b)
                                   }));
                                 }}
-                                style={{
-                                  width: '42px',
-                                  padding: '2px 3px',
-                                  fontSize: '0.72rem',
-                                  textAlign: 'right',
-                                  fontWeight: 700,
-                                  borderRadius: '4px',
-                                  border: '1px solid #cbd5e1',
-                                  background: '#ffffff',
-                                  color: '#0f172a'
-                                }}
+                                style={{ width: '44px', fontSize: '0.72rem' }}
                               />
                               <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b' }}>%</span>
                             </div>

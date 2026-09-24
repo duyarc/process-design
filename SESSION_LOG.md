@@ -38,6 +38,30 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-24 — Report Builder: Base-5 (`Thang 5`) Scoring Scale & Focus-Only Quick-Select `SmartNumberInput`
+
+**Scope:** 5 files (`src/components/common/SmartNumberInput.tsx`, `src/utils/reportScoring.ts`, `src/utils/reportCompute.ts`, `src/components/report/FieldScoringInspector.tsx`, `src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | ~18 min |
+| Thời gian lập plan (Request → Proceed) | ~8 min |
+| Thời gian thực thi (Proceed → Push) | ~10 min |
+| Số file nguồn chỉnh sửa | 4 (`SmartNumberInput.tsx`, `reportScoring.ts`, `reportCompute.ts`, `FieldScoringInspector.tsx`, `ReportBuilder.tsx`) |
+| Tổng lượt edit source | 7 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 3 (`npx tsc` pass + `tsc -b && vite build` pass) |
+| Lần build cuối thành công? | Có (100% pass ngay lần đầu) |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- **Chuyển toàn bộ cơ chế tính điểm mặc định từ Thang 10 sang Thang 5:** Quy đổi hệ số chia tuyến tính `likert_scale` / `rating` về thang 5 (`[5, 2.5, 0]` cho 3 lựa chọn, `[5, 4, 2.5, 1, 0]` cho 5 lựa chọn), `radio` / `select` fallback về 5, `checkbox` fallback về 2.5 (tổng max 5), `number` multi-range fallback về 5, và `text` completeness fallback về 5 (shortScore 2.5).
+- **Trích xuất component `SmartNumberInput` thuần túy:** Loại bỏ hoàn toàn mũi tên spinner mặc định `▲/▼` của browser, tự động bôi đen toàn bộ số (`select()`) khi focus/click để gõ đè tức thì, giữ state `draft` dạng chuỗi để xoá lùi `Backspace` tự nhiên mà không bị ép về `0` khi đang gõ.
+- **Thanh chọn nhanh Focus-Only Quick-Select cho Weight %:** Bố trí thanh chọn nhanh các mốc `[ 0 | 10 | 20 | 25 | 50 | 100 ]` chỉ xuất hiện khi click/focus vào các ô nhập `Weight %` (`Field`, `Table`, `H2`, `H1`) và tự động ẩn khi blur, giữ giao diện tối giản tối đa khi không thao tác.
+
+---
+
 ### 2026-09-24 — Report Builder: Streamlined Left Sidebar Option 3 (Default-Collapsed `40px` Rail) & Top Header `[Form | Report]` Switcher (Option 1)
 
 **Scope:** 3 files (`src/components/ReportBuilder.tsx`, `src/utils/tableFieldExtractor.ts`, `DESIGN_REPORT_BUILDER.md`)
