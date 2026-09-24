@@ -676,7 +676,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
   const [saving, setSaving] = useState<boolean>(false);
   const [searchFieldQuery, setSearchFieldQuery] = useState<string>('');
   const [isFieldsTrayOpen, setIsFieldsTrayOpen] = useState<boolean>(false);
-  const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState<boolean>(false);
+  const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState<boolean>(true);
   const [fieldPickerBlockId, setFieldPickerBlockId] = useState<string | null>(null);
   const [fieldPickerSearch, setFieldPickerSearch] = useState<string>('');
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
@@ -1706,15 +1706,73 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
         boxSizing: 'border-box',
         flexShrink: 0
       }}>
-        {/* 1. LEFT: Identity & Status */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexShrink: 0 }}>
-          <FileText size={18} style={{ color: 'var(--primary)' }} />
-          <h2 style={{ fontSize: '0.95rem', fontWeight: 700, margin: 0, whiteSpace: 'nowrap' }}>Report Builder</h2>
-          {template.status !== 'DRAFT' && (
-            <span className={`badge ${template.status === 'ACTIVE' ? 'badge-success' : 'badge-warning'}`} style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem' }}>
-              {template.status}
-            </span>
-          )}
+        {/* 1. LEFT: Identity, Status & Canvas Mode Switcher [Form | Report] */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+            <FileText size={18} style={{ color: 'var(--primary)' }} />
+            <h2 style={{ fontSize: '0.95rem', fontWeight: 700, margin: 0, whiteSpace: 'nowrap' }}>Report Builder</h2>
+            {template.status !== 'DRAFT' && (
+              <span className={`badge ${template.status === 'ACTIVE' ? 'badge-success' : 'badge-warning'}`} style={{ fontSize: '0.65rem', padding: '0.1rem 0.4rem' }}>
+                {template.status}
+              </span>
+            )}
+          </div>
+
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            background: '#f0fdfa',
+            padding: '2px',
+            borderRadius: '6px',
+            border: '1px solid #99f6e4'
+          }}>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveCanvasTab('form');
+                setActiveBlockId(null);
+                setSelectedFieldId(null);
+              }}
+              style={{
+                padding: '2px 10px',
+                fontSize: '0.75rem',
+                fontWeight: activeCanvasTab === 'form' ? 700 : 500,
+                color: activeCanvasTab === 'form' ? 'var(--primary)' : '#64748b',
+                background: activeCanvasTab === 'form' ? '#ffffff' : 'transparent',
+                border: 'none',
+                borderRadius: '4px',
+                boxShadow: activeCanvasTab === 'form' ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                cursor: 'pointer',
+                transition: 'all 0.15s'
+              }}
+              title="Xem biểu mẫu gốc và chọn trực tiếp câu hỏi/bảng trên Canvas"
+            >
+              Form
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveCanvasTab('report');
+                setActiveBlockId(null);
+                setSelectedFieldId(null);
+              }}
+              style={{
+                padding: '2px 10px',
+                fontSize: '0.75rem',
+                fontWeight: activeCanvasTab === 'report' ? 700 : 500,
+                color: activeCanvasTab === 'report' ? 'var(--primary)' : '#64748b',
+                background: activeCanvasTab === 'report' ? '#ffffff' : 'transparent',
+                border: 'none',
+                borderRadius: '4px',
+                boxShadow: activeCanvasTab === 'report' ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                cursor: 'pointer',
+                transition: 'all 0.15s'
+              }}
+              title="Thiết kế bố cục và bảng điểm Báo cáo"
+            >
+              Report
+            </button>
+          </div>
         </div>
 
         {/* 2. CENTER: Section Adders Toolbar */}
@@ -2532,68 +2590,8 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
             setActiveBlockId(null);
             setSelectedFieldId(null);
           }}
-          style={{ flex: 1, background: '#f1f5f9', overflowY: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'default' }}
+          style={{ flex: 1, background: '#f1f5f9', overflowY: 'auto', padding: '1rem 1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'default' }}
         >
-          {/* ── CANVAS TAB SWITCHER: Form | Report ── */}
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.25rem', zIndex: 10 }}
-          >
-            <div style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              background: '#e2e8f0',
-              padding: '3px',
-              borderRadius: '8px',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.06)'
-            }}>
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveCanvasTab('form');
-                  setActiveBlockId(null);
-                  setSelectedFieldId(null);
-                }}
-                style={{
-                  padding: '5px 22px',
-                  fontSize: '0.8rem',
-                  fontWeight: activeCanvasTab === 'form' ? 700 : 500,
-                  color: activeCanvasTab === 'form' ? 'var(--primary)' : '#475569',
-                  background: activeCanvasTab === 'form' ? '#ffffff' : 'transparent',
-                  border: 'none',
-                  borderRadius: '6px',
-                  boxShadow: activeCanvasTab === 'form' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                Form
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveCanvasTab('report');
-                  setActiveBlockId(null);
-                  setSelectedFieldId(null);
-                }}
-                style={{
-                  padding: '5px 22px',
-                  fontSize: '0.8rem',
-                  fontWeight: activeCanvasTab === 'report' ? 700 : 500,
-                  color: activeCanvasTab === 'report' ? 'var(--primary)' : '#475569',
-                  background: activeCanvasTab === 'report' ? '#ffffff' : 'transparent',
-                  border: 'none',
-                  borderRadius: '6px',
-                  boxShadow: activeCanvasTab === 'report' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                Report
-              </button>
-            </div>
-          </div>
-
           {activeCanvasTab === 'form' ? (
             selectedForm ? (
               <FormReferenceCanvas
