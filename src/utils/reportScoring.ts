@@ -403,19 +403,14 @@ export function computeH1CombinedScore(
 }
 
 /**
- * Pure Utility: Extracts intuitive parent group title from field's sectionH2, locationCode, or blocks.
+ * Pure Utility: Extracts immediate parent Element/Table title (Level 3) for a Field (Level 4).
+ * Hierarchy chain: Field (Level 4) -> Element/Table (Level 3, locationCode) -> H2 (Level 2, sectionH2) -> H1 (Level 1, sectionH1)
  */
 export function extractParentGroupTitle(field: FormFieldISO, layoutBlocks?: ReportBlockConfig[]): string {
-  if (field.sectionH2 && field.sectionH2.trim().length > 0) {
-    return field.sectionH2.trim();
-  }
-  if (field.locationCode && field.locationCode.trim().length > 0) {
-    return field.locationCode.split(' › ')[0].trim();
-  }
-
+  // 1. Check if a TABLE or INFO_GRID block in layoutBlocks explicitly binds this field
   if (layoutBlocks && layoutBlocks.length > 0) {
     for (const block of layoutBlocks) {
-      if (block.boundFieldIds?.includes(field.id)) {
+      if ((block.type === 'TABLE' || block.type === 'INFO_GRID') && block.boundFieldIds?.includes(field.id)) {
         if (block.title && block.title.trim().length > 0) {
           return block.title.trim();
         }
@@ -423,11 +418,25 @@ export function extractParentGroupTitle(field: FormFieldISO, layoutBlocks?: Repo
     }
   }
 
-  return 'Nhóm câu hỏi';
+  // 2. Use the field's Level-3 Element / Table title (locationCode)
+  if (field.locationCode && field.locationCode.trim().length > 0) {
+    return field.locationCode.split(' › ')[0].trim();
+  }
+
+  // 3. Fallback to H2 or H1 only if the field does not belong to any Table / Element
+  if (field.sectionH2 && field.sectionH2.trim().length > 0) {
+    return field.sectionH2.trim();
+  }
+  if (field.sectionH1 && field.sectionH1.trim().length > 0) {
+    return field.sectionH1.trim();
+  }
+
+  return 'Bảng đánh giá';
 }
 
 /**
  * Pure Utility: Summarizes child H2 groups (or direct Element groups if H1 has no H2) for a Section H1 block.
+ * Strictly follows the 4-tier roll-up: Field (L4) -> Table/Element (L3) -> H2 (L2) -> H1 (L1).
  */
 export function summarizeH1ChildGroups(
   h1Title: string,
@@ -445,6 +454,7 @@ export function summarizeH1ChildGroups(
   }
 
   // Case 1: H1 has real H2 sub-sections (titleFormat === 'H2')
+  // Roll-up chain: Field (L4) -> Table/Element (L3) via summarizeH2ChildElements -> H2 (L2) -> H1 (L1)
   if (matchingH1Group.h2Groups.length > 0) {
     const childH2Summary = matchingH1Group.h2Groups.map(h2Group => {
       const cleanTitle = h2Group.h2.trim().toLowerCase();
@@ -453,43 +463,20 @@ export function summarizeH1ChildGroups(
         b.titleFormat === 'H2' &&
         (b.title || '').trim().toLowerCase() === cleanTitle
       );
-      const matchingTableBlocks = layoutBlocks.filter(b =>
-        b.type === 'TABLE' && (
-          (b.title || '').trim().toLowerCase() === cleanTitle ||
-          b.boundFieldIds?.some(id => h2Group.fields.some(f => f.id === id))
-        )
+
+      const { h2CombinedScore } = summarizeH2ChildElements(
+        h2Group.h2,
+        hierarchyGroups,
+        layoutBlocks,
+        sampleSubmissionData
       );
 
-      const mergedOverrides: Record<string, ReportFieldRuleOverride> = {};
-      matchingTableBlocks.forEach(tb => {
-        if (tb.ruleOverrides) {
-          Object.assign(mergedOverrides, tb.ruleOverrides);
-        }
-      });
-
-      const evalMap: Record<string, FieldEvaluationResult> = {};
-      h2Group.fields.forEach(f => {
-        const subVal = sampleSubmissionData;
-        const rawVal = Array.isArray(subVal)
-          ? subVal.find((s: any) => s.id === f.id || s.fieldId === f.id)?.value
-          : (subVal ? (subVal as any)[f.id] : undefined);
-        const res = computeFieldScoreAndPass(rawVal, f, mergedOverrides[f.id]);
-        evalMap[f.id] = {
-          fieldId: f.id,
-          label: f.checkItem || f.id,
-          rawValue: rawVal,
-          ...res
-        };
-      });
-
-      const h2Res = computeH2CombinedScore(h2Group.fields, evalMap, mergedOverrides);
-      const primaryBlock = h2SectionBlock || matchingTableBlocks[0];
       return {
         h2Title: h2Group.h2,
-        score: h2Res.combinedScore,
-        isPass: h2Res.isPass,
-        weight: primaryBlock?.weight ?? 0,
-        isKnockout: primaryBlock?.isKnockout ?? false,
+        score: h2CombinedScore.combinedScore,
+        isPass: h2CombinedScore.isPass,
+        weight: h2SectionBlock?.weight ?? 0,
+        isKnockout: h2SectionBlock?.isKnockout ?? false,
         isElement: false
       };
     });

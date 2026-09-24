@@ -1290,6 +1290,12 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
       next[`h1_${g.h1}`] = expanded;
       g.h2Groups.forEach(sub => {
         next[`h2_${g.h1}_${sub.h2}`] = expanded;
+        sub.elements.forEach(el => {
+          next[`h2_${g.h1}_${sub.h2}_el_${el.elementTitle}`] = expanded;
+        });
+      });
+      g.directElements.forEach(el => {
+        next[`h1_${g.h1}_el_${el.elementTitle}`] = expanded;
       });
     });
     setExpandedSections(next);

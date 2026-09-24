@@ -57,7 +57,7 @@ Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
 **Điểm nổi bật:**
 - **Định nghĩa lại cấp `H2` nghiêm ngặt (`titleFormat === 'H2'`):** Loại bỏ hoàn toàn việc các khối `TABLE` bình thường (`titleFormat: undefined | 'NONE'`) và dòng `groupHeader` trong bảng tự ý ghi đè `sectionH2` trong `tableFieldExtractor.ts`. Khôi phục đầy đủ các phân mục `H2` thực sự (`Sản phẩm`, `Văn hóa doanh nghiệp`, `Năng lực cốt lõi`, `Hạ tầng & Công nghệ`, `Đặc trưng nhân sự`).
-- **Phân cấp `Element / Table` xuống một cấp dưới `H2`:** Bổ sung `ElementHierarchyGroup` (`h2Group.elements` dưới `H2` và `directElements` dưới `H1`), hiển thị các khối `[TABLE]` thụt lề một cấp bên dưới `[H2]` trên cây `FIELDS` và Quick Field Picker Modal, đồng thời bổ sung bảng `TỔNG HỢP ĐIỂM PHÂN MỤC H2` (`summarizeH2ChildElements`) trong `H2 Section Properties`.
+- **Phân cấp `Element / Table` xuống một cấp dưới `H2` & Chuẩn hóa Cấp cha của `Field` (Level 4 ➔ Level 3 Table):** Bổ sung `ElementHierarchyGroup` (`h2Group.elements` dưới `H2` và `directElements` dưới `H1`), hiển thị các khối `[TABLE]` thụt lề một cấp bên dưới `[H2]`. Đồng thời cập nhật `extractParentGroupTitle` trong `reportScoring.ts` ưu tiên trả về tên Bảng (`block.title` / `field.locationCode`, ví dụ `"Check: SP chủ lực"`) trước `sectionH2` (`"Sản phẩm"`), đảm bảo mọi câu hỏi trong bảng (Level 4) luôn nhận Bảng (Level 3) làm cha trực tiếp (`of [ Check: SP chủ lực ]`).
 
 ---
 

@@ -8,8 +8,8 @@
 |---|---|
 | **Module Name** | Report Builder |
 | **Status** | Implemented & Verified |
-| **Document Version** | 2.4 |
-| **Verified At Commit** | (2026-09-24) — Strict 4-Tier Hierarchy (`H1` ➔ `H2` strictly `titleFormat === 'H2'` ➔ `Element (TABLE/INFO_GRID)` indented below `H2` ➔ `Field`) in `tableFieldExtractor.ts`, `reportScoring.ts`, and `ReportBuilder.tsx` verified against source |
+| **Document Version** | 2.5 |
+| **Verified At Commit** | (2026-09-24) — Strict 4-Tier Hierarchy (`H1` ➔ `H2` strictly `titleFormat === 'H2'` ➔ `Element (TABLE/INFO_GRID)` ➔ `Field`) & `extractParentGroupTitle` resolving Level-4 Field parent to Level-3 Table (`locationCode`) verified against source |
 
 ### Quick File Index
 
