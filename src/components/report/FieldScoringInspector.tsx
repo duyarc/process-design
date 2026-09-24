@@ -50,10 +50,12 @@ export const FieldScoringInspector: React.FC<FieldScoringInspectorProps> = ({
     onUpdateRule({ customPassOptions: updated });
   };
 
-  const handleUpdateOptionScore = (optVal: string, scoreVal: number) => {
+  const handleUpdateOptionScore = (optVal: string, rawVal: number | string) => {
     if (isLocked) return;
+    const num = typeof rawVal === 'number' ? rawVal : parseFloat(rawVal);
+    const scoreVal = isNaN(num) ? 0 : num;
     const currentScores = { ...(ruleOverride?.optionScores || {}) };
-    currentScores[optVal] = isNaN(scoreVal) ? 0 : scoreVal;
+    currentScores[optVal] = scoreVal;
     onUpdateRule({ optionScores: currentScores });
   };
 
@@ -182,7 +184,7 @@ export const FieldScoringInspector: React.FC<FieldScoringInspectorProps> = ({
                         type="number"
                         disabled={isLocked}
                         value={optScore}
-                        onChange={(e) => handleUpdateOptionScore(opt, parseFloat(e.target.value))}
+                        onChange={(e) => handleUpdateOptionScore(opt, e.target.value)}
                         style={{
                           width: '46px',
                           padding: '2px 4px',
@@ -288,7 +290,7 @@ export const FieldScoringInspector: React.FC<FieldScoringInspectorProps> = ({
                         type="number"
                         disabled={isLocked}
                         value={optScore}
-                        onChange={(e) => handleUpdateOptionScore(optVal, parseFloat(e.target.value))}
+                        onChange={(e) => handleUpdateOptionScore(optVal, e.target.value)}
                         style={{
                           width: '46px',
                           padding: '2px 4px',
@@ -394,7 +396,7 @@ export const FieldScoringInspector: React.FC<FieldScoringInspectorProps> = ({
                         type="number"
                         disabled={isLocked}
                         value={optScore}
-                        onChange={(e) => handleUpdateOptionScore(optVal, parseFloat(e.target.value))}
+                        onChange={(e) => handleUpdateOptionScore(optVal, e.target.value)}
                         style={{
                           width: '46px',
                           padding: '2px 4px',
@@ -920,7 +922,11 @@ export const FieldScoringInspector: React.FC<FieldScoringInspectorProps> = ({
               type="number"
               disabled={isLocked}
               value={ruleOverride?.weight !== undefined ? ruleOverride.weight : 0}
-              onChange={(e) => onUpdateRule({ weight: parseFloat(e.target.value) || 0 })}
+              onChange={(e) => {
+                const val = e.target.value;
+                const num = val === '' ? 0 : parseFloat(val);
+                onUpdateRule({ weight: isNaN(num) ? 0 : num });
+              }}
               style={{
                 width: '46px',
                 padding: '2px 4px',

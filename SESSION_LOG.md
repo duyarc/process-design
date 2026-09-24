@@ -28,12 +28,39 @@ phiên thực thi để không lặp lại lỗi cũ.
 | 14 | `SCOPE` | Hardcode danh sách quy chuẩn cố định (IMO, BRCGS, ISO 22000, APICS) làm thiên lệch vào dữ liệu mẫu | Khái quát hóa thành quy trình: "Search web theo ngữ cảnh form" (Context-Driven Web Search) dựa trên domain suy diễn động | 1 |
 | 15 | `BLOAT` | Thêm text badges (Selected, Đã chọn, Active, hints) trùng lặp với visual indicator (màu sắc, border, icon) → UI bị rối | Áp dụng UI Streamlining Audit: Khi visual cues đã rõ ràng, triệt tiêu toàn bộ text badges phụ trợ để giữ UI tối giản | 1 |
 | 16 | `LOGIC` | Truyền `row.id` đơn lẻ khi click canvas thay vì composite ID (`${blockId}_${rowId}_${colId}`) khiến registry lookup trả về `undefined` | Luôn dùng composite ID resolver helper (`getTableFieldId`, `getTableRowPrimaryFieldId`) khớp quy ước định danh của extractor | 1 |
+| 17 | `LOGIC` | `updateRuleOverride` silent abort khi `layoutBlocks` rỗng hoặc chưa gán trường vào khối khiến controlled inputs (Score, Weight) không thể chỉnh sửa | Xây dựng Smart Target Block Resolution (5 tầng ưu tiên) kết hợp Auto-Initialization khối Table cho Section H2 | 1 |
 
 ---
 
 ## Nhật ký Phiên
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
+
+### 2026-09-24 — Report Builder: Smart Target Block Resolution & Auto-Initialization for Field Scoring & Weights
+
+**Scope:** 3 files (`src/components/ReportBuilder.tsx`, `src/components/report/FieldScoringInspector.tsx`, `DESIGN_REPORT_BUILDER.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | ~13.5 min |
+| Thời gian phân tích (Request → Proceed) | ~9.0 min |
+| Thời gian thực thi (Proceed → Push) | ~4.5 min |
+| Số file nguồn chỉnh sửa | 2 (`ReportBuilder.tsx`, `FieldScoringInspector.tsx`) |
+| Tổng lượt edit source | 5 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 3 (2 tsc + 1 vite pass) |
+| Lần build đầu thành công? | Có (100% pass ngay lần đầu) |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- **Giải quyết triệt để lỗi không chỉnh sửa được Score và Weight:** Xác định chính xác nguyên nhân gốc do `updateRuleOverride` bị silent abort (`if (!targetBlock) return prev;`) khi người dùng chỉnh sửa trường từ Form canvas trước khi thêm khối vào báo cáo (hoặc khi `template.layoutBlocks` rỗng `[]`). Do state không đổi, React controlled input lập tức reset về giá trị mặc định.
+- **Smart Target Block Resolution (5 tầng ưu tiên):** Xây dựng thuật toán phân giải khối thông minh: Ưu tiên 1 (khối đã chứa `fieldId`), Ưu tiên 2 (khối đã có `ruleOverrides`), Ưu tiên 3 (khối Table có tiêu đề trùng `parentGroupTitle`), Ưu tiên 4 (`activeBlock`), và Ưu tiên 5 (**Auto-Initialization**: Tự động tạo khối Table cho nhóm câu hỏi nếu chưa có khối nào trong báo cáo).
+- **Đồng bộ hóa Trạng thái Kích hoạt:** Bổ sung `setActiveBlockId(null)` khi click chọn trường từ Left Panel và gán `key={selectedField.id}` cho `FieldScoringInspector` đảm bảo đồng bộ hoàn hảo giữa canvas và danh sách.
+- **Nhập liệu Mượt mà:** Tinh chỉnh các ô nhập Score và Weight hỗ trợ xóa trắng và gõ số tự do mà không bị kẹt hay cưỡng bức về 0 tức thì.
+- **Chất lượng mã nguồn:** `npx tsc --noEmit` pass 100% không lỗi; `npm run build` Vite production bundle hoàn thành trong 11.91s.
+
+---
 
 ### 2026-09-24 — Report Builder: Field Properties Weight of Section 2-Row Structured Layout
 
@@ -260,28 +287,3 @@ eportScoring.ts, FieldScoringInspector.tsx, ReportBuilder.tsx) |
 
 ---
 
-### 2026-09-22 — Report Builder: Dual Evaluation Engine & Hierarchical Combined Score Roll-up
-
-**Scope:** 6 files (`types.ts`, `reportScoring.ts`, `reportCompute.ts`, `FieldScoringInspector.tsx`, `ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian tổng (Request → Push) | 12.5 min |
-| Thời gian lập plan (Request → Proceed) | 8.6 min |
-| Thời gian thực thi (Proceed → Push) | 3.9 min |
-| Số file nguồn chỉnh sửa / tạo mới | 5 (`types.ts`, `reportScoring.ts`, `reportCompute.ts`, `FieldScoringInspector.tsx`, `ReportBuilder.tsx`) |
-| Tổng lượt edit source | 7 |
-| Lượt edit sửa lỗi (rework) | 2 (dọn biến thừa `isFieldPass` & bổ sung import `FieldEvaluationResult`) |
-| Số lần build | 3 (2 tsc + 1 vite pass) |
-| Lần build cuối thành công? | Có (100% pass, built in 10.84s) |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Điểm nổi bật:**
-- **Động cơ Đánh giá Kép Song song (Dual Evaluation Engine):** Vận hành độc lập giữa Đạt/K.Đạt định tính (`isPass`) và Điểm số định lượng (`Score`), hỗ trợ cờ chí mạng `isKnockout` tự động đánh rớt toàn bộ nhóm/báo cáo khi vi phạm.
-- **Tính điểm Bình quân theo Trọng số 3 Cấp (Hierarchical Roll-up):** Xây dựng pure utility `src/utils/reportScoring.ts` tính Combined Score 3 cấp: Field ➔ Sub-section H2 (`computeH2CombinedScore`) ➔ Section H1 (`computeH1CombinedScore`) ➔ Report Overall (`computeRecordReport`): $\text{Combined Score} = \sum (\text{Score}_i \times \frac{\text{Weight}_i}{100})$.
-- **Thanh Thuộc tính 1 Hàng & Tên Nhóm Động:** Thiết kế thanh thuộc tính `[ ] isKnockout` và `Weight (% trong [Tên Nhóm/Trụ cột]): [ X ] %` trên 1 hàng ngang duy nhất. Tên nhóm cha được lấy động theo ngữ cảnh (`[Tên Nhóm H2]`, `[Tên Trụ cột H1]`, `[Toàn bộ Báo cáo]`).
-- **Inspector Chuyên biệt `FieldScoringInspector.tsx`:** Tách component độc lập theo Rule 4.3 Monolith Guard, hiển thị ma trận đánh giá 3 cột (`Option / Condition`, `isPass`, `Score`), dòng SUM responsive hiển thị nhãn `PASS`/`FAIL` và Điểm tổng hợp cỡ lớn, không có hậu tố `đ` và không hardcode thang 10.
-- **Chuẩn hóa Tiêu đề Cột:** Đồng bộ header bảng ở cả 3 cấp duy nhất là `Score`.
-
----
