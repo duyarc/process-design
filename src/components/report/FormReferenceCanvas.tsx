@@ -10,6 +10,7 @@ import {
   canTableOptionsFitInline
 } from '../../utils/formUtils';
 import { renderFormattedText } from '../../utils/textFormatter';
+import { getTableFieldId, getTableRowPrimaryFieldId, isFieldInTableRow } from '../../utils/tableFieldExtractor';
 import { FileText, ChevronDown, Star } from 'lucide-react';
 
 interface FormReferenceCanvasProps {
@@ -648,7 +649,8 @@ export const FormReferenceCanvas: React.FC<FormReferenceCanvasProps> = ({
                           </tr>
                         ) : (
                           tableRows.map((row, rIdx) => {
-                            const isRowActive = row.id === selectedFieldId;
+                            const rowPrimaryFieldId = getTableRowPrimaryFieldId(block, row.id);
+                            const isRowActive = isFieldInTableRow(selectedFieldId, block.id, row.id);
                             if (row.isGroupHeader) {
                               const groupTitleVal = row.groupTitle !== undefined ? row.groupTitle : (block.tableData?.[row.id]?.['_groupTitle'] || '');
                               return (
@@ -656,12 +658,12 @@ export const FormReferenceCanvas: React.FC<FormReferenceCanvasProps> = ({
                                   key={row.id}
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    onSelectField(row.id);
+                                    onSelectBlock?.(block.id);
                                   }}
                                   style={{
                                     borderBottom: bStyle === 'borderless' ? 'none' : '1px solid #cbd5e1',
                                     background: bStyle === 'borderless' ? 'transparent' : '#f8fafc',
-                                    cursor: 'pointer'
+                                    cursor: 'default'
                                   }}
                                 >
                                   <td
@@ -671,7 +673,7 @@ export const FormReferenceCanvas: React.FC<FormReferenceCanvasProps> = ({
                                       verticalAlign: 'middle',
                                       fontWeight: 700,
                                       fontSize: '0.82rem',
-                                      color: isRowActive ? 'var(--primary)' : '#1e293b'
+                                      color: '#1e293b'
                                     }}
                                   >
                                     {groupTitleVal || 'Nhóm tiêu chí'}
@@ -685,12 +687,16 @@ export const FormReferenceCanvas: React.FC<FormReferenceCanvasProps> = ({
                                 key={row.id}
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  onSelectField(row.id);
+                                  if (rowPrimaryFieldId) {
+                                    onSelectField(rowPrimaryFieldId);
+                                  }
                                 }}
                                 style={{
                                   borderBottom: bStyle === 'borderless' ? 'none' : '1px solid #cbd5e1',
+                                  borderLeft: isRowActive ? '3px solid var(--primary)' : 'none',
                                   background: isRowActive ? 'rgba(13, 148, 136, 0.08)' : (rIdx % 2 === 1 ? '#fafafa' : '#ffffff'),
-                                  cursor: 'pointer'
+                                  cursor: rowPrimaryFieldId ? 'pointer' : 'default',
+                                  transition: 'background 0.12s ease'
                                 }}
                               >
                                 {tableCols.map((col, cIdx) => {
@@ -749,16 +755,27 @@ export const FormReferenceCanvas: React.FC<FormReferenceCanvasProps> = ({
                                     content = <span style={{ color: '#cbd5e1', fontStyle: 'italic', fontSize: '0.7rem' }}>—</span>;
                                   }
 
+                                  const cellFieldId = getTableFieldId(block.id, row.id, col.id);
+                                  const isCellInput = col.type !== 'static_text' && col.id !== 'col_stt' && col.label?.toLowerCase() !== 'stt';
+                                  const isCellActive = selectedFieldId === cellFieldId;
+
                                   return (
                                     <td
                                       key={col.id}
+                                      onClick={isCellInput ? (e) => {
+                                        e.stopPropagation();
+                                        onSelectField(cellFieldId);
+                                      } : undefined}
                                       style={{
                                         padding: '4px 6px',
                                         borderRight: bStyle === 'grid' ? '1px solid #cbd5e1' : 'none',
                                         borderBottom: bStyle === 'borderless' ? 'none' : '1px solid #cbd5e1',
                                         textAlign: cellAlign as any,
                                         verticalAlign: 'middle',
-                                        fontSize: '0.75rem'
+                                        fontSize: '0.75rem',
+                                        cursor: isCellInput ? 'pointer' : 'inherit',
+                                        background: isCellActive ? 'rgba(13, 148, 136, 0.14)' : undefined,
+                                        boxShadow: isCellActive ? 'inset 0 0 0 1.5px var(--primary)' : undefined
                                       }}
                                     >
                                       {content}

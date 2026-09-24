@@ -2295,21 +2295,29 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                   ? override.customLabel
                                   : (field?.checkItem || fid);
                                 const val = getSampleValue(fid);
+                                const isFieldSelected = selectedFieldId === fid;
 
                                 return (
                                   <div
                                     key={fid}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedFieldId(fid);
+                                      setRightTab('properties');
+                                    }}
                                     style={{
-                                      border: '1px solid #cbd5e1',
+                                      border: isFieldSelected ? '2px solid var(--primary)' : '1px solid #cbd5e1',
                                       borderRadius: '4px',
                                       padding: '6px 8px',
-                                      background: '#ffffff',
+                                      background: isFieldSelected ? 'rgba(13, 148, 136, 0.05)' : '#ffffff',
                                       fontSize: '0.75rem',
                                       display: 'flex',
                                       flexDirection: 'column',
                                       justifyContent: isLabelHidden ? 'center' : 'space-between',
                                       minHeight: '48px',
-                                      position: 'relative'
+                                      position: 'relative',
+                                      cursor: 'pointer',
+                                      transition: 'all 0.12s ease'
                                     }}
                                   >
                                     {!isLabelHidden && (
@@ -2511,12 +2519,27 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                   const rawVal = getSampleValue(fid);
                                   const status = evalRes?.status || 'PASS';
                                   const displayLabel = override?.customLabel || field?.checkItem || fid;
+                                  const isSelected = selectedFieldId === fid;
 
                                   return (
-                                    <tr key={fid} style={{ borderBottom: cellBorder }}>
-                                      <td style={{ border: cellBorder, padding: '5px 6px', textAlign: 'center', color: '#64748b' }}>{rIdx + 1}</td>
+                                    <tr
+                                      key={fid}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedFieldId(fid);
+                                        setRightTab('properties');
+                                      }}
+                                      style={{
+                                        borderBottom: cellBorder,
+                                        borderLeft: isSelected ? '3px solid var(--primary)' : 'none',
+                                        background: isSelected ? 'rgba(13, 148, 136, 0.08)' : (rIdx % 2 === 1 ? '#fafafa' : '#ffffff'),
+                                        cursor: 'pointer',
+                                        transition: 'background 0.12s ease'
+                                      }}
+                                    >
+                                      <td style={{ border: cellBorder, padding: '5px 6px', textAlign: 'center', color: isSelected ? 'var(--primary)' : '#64748b', fontWeight: isSelected ? 700 : 400 }}>{rIdx + 1}</td>
                                       <td style={{ border: cellBorder, padding: '5px 8px' }}>
-                                        <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{displayLabel}</div>
+                                        <div style={{ fontWeight: 600, color: isSelected ? 'var(--primary)' : 'var(--text-primary)' }}>{displayLabel}</div>
                                       </td>
                                       <td style={{ border: cellBorder, padding: '5px 8px', textAlign: 'center', color: '#475569' }}>{specText}</td>
                                       <td style={{ border: cellBorder, padding: '5px 8px', textAlign: 'center', fontWeight: 600, color: '#0f172a' }}>{rawVal}</td>

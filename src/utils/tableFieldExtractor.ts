@@ -207,3 +207,58 @@ export function groupFieldsByHierarchy(fields: FormFieldISO[]): FieldHierarchyGr
 
   return result;
 }
+
+/**
+ * Lấy Field ID chuẩn của một ô trong TABLE block khớp với format extractTableFields
+ */
+export function getTableFieldId(blockId: string, rowId: string, colId: string): string {
+  return `${blockId}_${rowId}_${colId}`;
+}
+
+/**
+ * Lấy Field ID đại diện/chính của một dòng trong TABLE block
+ * Ưu tiên cột nhập liệu (likert_scale, rating, radio, checkbox, number, v.v.), bỏ qua static_text và cột câu hỏi
+ */
+export function getTableRowPrimaryFieldId(block: LayoutBlockISO, rowId: string): string | null {
+  if (!block.tableColumns || !block.tableRows) return null;
+  const row = block.tableRows.find(r => r.id === rowId);
+  if (!row || row.isGroupHeader) return null;
+
+  let rowQuestion = '';
+  const staticCol = block.tableColumns.find(c => c.type === 'static_text');
+  if (staticCol && block.tableData?.[row.id]?.[staticCol.id]) {
+    rowQuestion = block.tableData[row.id][staticCol.id].trim();
+  }
+  if (!rowQuestion) {
+    for (const col of block.tableColumns) {
+      const val = block.tableData?.[row.id]?.[col.id];
+      if (val && typeof val === 'string' && val.trim().length > 0 && col.type === 'text') {
+        rowQuestion = val.trim();
+        break;
+      }
+    }
+  }
+  const hasExplicitRowQuestion = !!rowQuestion;
+
+  const inputCols = block.tableColumns.filter(col => {
+    const isQuestionCol = hasExplicitRowQuestion &&
+      block.tableData?.[row.id]?.[col.id] === rowQuestion &&
+      col.type === 'text' &&
+      (!col.label || ['tên cột...', 'câu hỏi', 'tiêu chí', ''].includes(col.label.trim().toLowerCase()));
+
+    return col.type !== 'static_text' && !isQuestionCol && col.id !== 'col_stt' && col.label?.toLowerCase() !== 'stt';
+  });
+
+  if (inputCols.length === 0) return null;
+
+  const preferredCol = inputCols.find(c => c.type === 'likert_scale' || c.type === 'rating') || inputCols[0];
+  return getTableFieldId(block.id, row.id, preferredCol.id);
+}
+
+/**
+ * Kiểm tra xem một fieldId có thuộc dòng rowId của blockId không
+ */
+export function isFieldInTableRow(fieldId: string | null | undefined, blockId: string, rowId: string): boolean {
+  if (!fieldId) return false;
+  return fieldId.startsWith(`${blockId}_${rowId}_`) || fieldId === rowId;
+}
