@@ -1349,39 +1349,80 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
 
   const updateRuleOverride = (fieldId: string, updates: any) => {
     setTemplate(prev => {
-      // 1. Resolve field metadata to identify parent section / group
+      // 1. Tra cứu khối gốc trong Form để xác định chính xác loại khối và tập trường
+      const sourceFormBlock = (selectedForm?.layoutBlocks || []).find(b => {
+        if (b.type === 'TABLE') {
+          return (b.tableRows || []).some(r => (b.tableColumns || []).some(c => `${b.id}_${r.id}_${c.id}` === fieldId));
+        }
+        if (b.type === 'INFO_GRID' || b.type === 'CHECKLIST_TABLE') {
+          return (b.fields || []).some(f => f.id === fieldId);
+        }
+        return false;
+      });
+
+      const isTableField = sourceFormBlock?.type === 'TABLE';
+      const targetType = isTableField ? 'TABLE' : (sourceFormBlock?.type === 'INFO_GRID' ? 'INFO_GRID' : null);
+
       const allFields = extractAllFormFields(selectedForm?.layoutBlocks || []);
       const field = allFields.find(f => f.id === fieldId) || (selectedField?.id === fieldId ? selectedField : null);
       const groupTitle = field ? extractParentGroupTitle(field, prev.layoutBlocks) : '';
       const cleanGroup = groupTitle.trim().toLowerCase();
 
-      // 2. Priority resolution for target block
-      const targetBlock =
-        // Priority 1: Block that already explicitly includes this field in boundFieldIds
-        prev.layoutBlocks.find(b => b.boundFieldIds?.includes(fieldId)) ||
-        // Priority 2: Block that already holds an override for this field
-        prev.layoutBlocks.find(b => b.ruleOverrides?.[fieldId] !== undefined) ||
-        // Priority 3: Block with matching section title (preferring TABLE)
-        (cleanGroup ? prev.layoutBlocks.find(b => b.title && b.title.trim().toLowerCase() === cleanGroup) : undefined) ||
-        // Priority 4: Current active block if it is TABLE or INFO_GRID
-        ((activeBlock && (activeBlock.type === 'TABLE' || activeBlock.type === 'INFO_GRID')) ? activeBlock : undefined);
+      // 2. Strict Priority resolution: BẮT BUỘC lọc theo đúng targetType (CẤM SECTION_LABEL)
+      let targetBlock: ReportBlockConfig | undefined;
+
+      if (targetType) {
+        if (activeBlock && activeBlock.type === targetType && (
+          activeBlock.boundFieldIds?.includes(fieldId) ||
+          (activeBlock.title || '').trim().toLowerCase() === cleanGroup
+        )) {
+          targetBlock = prev.layoutBlocks.find(b => b.id === activeBlock.id);
+        }
+        if (!targetBlock) {
+          targetBlock = prev.layoutBlocks.find(b => b.type === targetType && b.boundFieldIds?.includes(fieldId));
+        }
+        if (!targetBlock) {
+          targetBlock = prev.layoutBlocks.find(b => b.type === targetType && b.ruleOverrides?.[fieldId] !== undefined);
+        }
+        if (!targetBlock && cleanGroup) {
+          targetBlock = prev.layoutBlocks.find(b => b.type === targetType && (b.title || '').trim().toLowerCase() === cleanGroup);
+        }
+      }
 
       if (!targetBlock) {
-        // Priority 5: If no suitable block exists (e.g. empty layoutBlocks), auto-create TABLE block for this group
+        let initialBoundIds = [fieldId];
+        if (isTableField && sourceFormBlock) {
+          initialBoundIds = extractTableFields(sourceFormBlock).map(f => f.id);
+        } else if (sourceFormBlock?.fields) {
+          initialBoundIds = sourceFormBlock.fields.map(f => f.id);
+        }
+
         const newBlock: ReportBlockConfig = {
-          id: `rep_block_${Date.now()}`,
-          type: 'TABLE',
-          title: groupTitle || 'Bảng đánh giá',
-          boundFieldIds: [fieldId],
+          id: `rep_block_${isTableField ? 'tbl_' : ''}${Date.now()}`,
+          type: (targetType || 'TABLE') as any,
+          title: sourceFormBlock?.title || groupTitle || 'Bảng đánh giá',
+          boundFieldIds: initialBoundIds,
           weight: 0,
           isKnockout: false,
+          borderStyle: sourceFormBlock?.borderStyle || 'grid',
+          hideHeader: sourceFormBlock?.hideHeader ?? false,
           ruleOverrides: {
             [fieldId]: { fieldId, ...updates }
           }
         };
+
+        const cleanedBlocks = prev.layoutBlocks.map(b => {
+          if (b.type === 'SECTION_LABEL' && (b.ruleOverrides?.[fieldId] !== undefined || b.boundFieldIds?.includes(fieldId))) {
+            const co = { ...(b.ruleOverrides || {}) };
+            delete co[fieldId];
+            return { ...b, boundFieldIds: (b.boundFieldIds || []).filter(id => id !== fieldId), ruleOverrides: co };
+          }
+          return b;
+        });
+
         return {
           ...prev,
-          layoutBlocks: [...prev.layoutBlocks, newBlock]
+          layoutBlocks: [...cleanedBlocks, newBlock]
         };
       }
 
@@ -1396,9 +1437,17 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
 
       return {
         ...prev,
-        layoutBlocks: prev.layoutBlocks.map(b =>
-          b.id === targetBlock.id ? { ...b, boundFieldIds: updatedBound, ruleOverrides: overrides } : b
-        )
+        layoutBlocks: prev.layoutBlocks.map(b => {
+          if (b.id === targetBlock!.id) {
+            return { ...b, boundFieldIds: updatedBound, ruleOverrides: overrides };
+          }
+          if (b.ruleOverrides?.[fieldId] !== undefined || (b.type === 'SECTION_LABEL' && b.boundFieldIds?.includes(fieldId))) {
+            const co = { ...(b.ruleOverrides || {}) };
+            delete co[fieldId];
+            return { ...b, boundFieldIds: (b.boundFieldIds || []).filter(id => id !== fieldId), ruleOverrides: co };
+          }
+          return b;
+        })
       };
     });
   };
@@ -1479,6 +1528,14 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
     );
 
     if (existingTableBlock) {
+      const missingIds = fieldIds.filter(id => !existingTableBlock.boundFieldIds?.includes(id));
+      if (missingIds.length > 0) {
+        const updatedBound = [...(existingTableBlock.boundFieldIds || []), ...missingIds];
+        setTemplate(prev => ({
+          ...prev,
+          layoutBlocks: prev.layoutBlocks.map(b => b.id === existingTableBlock.id ? { ...b, boundFieldIds: updatedBound } : b)
+        }));
+      }
       setActiveBlockId(existingTableBlock.id);
     } else {
       const newBlock: ReportBlockConfig = {
@@ -1677,6 +1734,14 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
       );
 
       if (matchedTable) {
+        const missingIds = tableFieldIds.filter(id => !matchedTable.boundFieldIds?.includes(id));
+        if (missingIds.length > 0) {
+          const updatedBound = [...(matchedTable.boundFieldIds || []), ...missingIds];
+          setTemplate(prev => ({
+            ...prev,
+            layoutBlocks: prev.layoutBlocks.map(b => b.id === matchedTable.id ? { ...b, boundFieldIds: updatedBound } : b)
+          }));
+        }
         setActiveBlockId(matchedTable.id);
       } else {
         const newTableId = `rep_block_tbl_${Date.now()}`;
@@ -3492,7 +3557,10 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                       key={selectedField.id}
                       selectedField={selectedField}
                       sampleSubmission={sampleSubmission}
-                      ruleOverride={template.layoutBlocks.find(b => b.ruleOverrides?.[selectedField.id])?.ruleOverrides?.[selectedField.id]}
+                      ruleOverride={
+                        (template.layoutBlocks.find(b => (b.type === 'TABLE' || b.type === 'INFO_GRID') && b.ruleOverrides?.[selectedField.id]) ||
+                         template.layoutBlocks.find(b => b.ruleOverrides?.[selectedField.id]))?.ruleOverrides?.[selectedField.id]
+                      }
                       parentGroupTitle={extractParentGroupTitle(selectedField, template.layoutBlocks)}
                       onUpdateRule={(updates) => updateRuleOverride(selectedField.id, updates)}
                       isLocked={isLocked}

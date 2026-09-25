@@ -34,12 +34,38 @@ phiên thực thi để không lặp lại lỗi cũ.
 | 20 | `BLOAT` | Thay thế sub-layout cũ (như thanh toolbar text format) làm sót import helper (`applyTextFormat`) ở đầu file → TS6133 unused import khi build production | Khi dọn dẹp cụm UI/control cũ, kiểm tra ngay đầu file để loại bỏ import của các helper chỉ dùng riêng cho control đó | 1 |
 | 21 | `CTX` | Khi lồng conditional JSX (`ternary ? :`), đóng nhầm thẻ `</div>` của wrapper cha bên ngoài → TS17015 expected closing tag | Kiểm tra kỹ cấu trúc mở/đóng thẻ của wrapper cha trước khi chèn ternary; bọc fragment độc lập cho từng nhánh | 1 |
 | 22 | `LOGIC` | Trùng tên giữa Section H2 cha và khối TABLE con khiến hàm tìm kiếm lầm tưởng là click vào Section H2 (Name Shadowing Collision) | Tách riêng luồng sự kiện theo bản chất đối tượng: click vào vỏ/thead khối dùng onSelectBlock; chỉ dùng onSelectTableGroup cho các hàng group header thực sự, và luôn ưu tiên tìm kiếm Element con trước Section cha | 1 |
+| 23 | `LOGIC` | updateRuleOverride tìm targetBlock theo tiêu đề (cleanGroup) mà không lọc theo loại khối (b.type), dẫn đến lưu nhầm ruleOverrides vào SECTION_LABEL | Bắt buộc áp dụng Strict Block Type Scoping: trường thuộc TABLE thì chỉ gán vào khối TABLE; trường thuộc INFO_GRID thì chỉ gán vào INFO_GRID | 1 |
 
 ---
 
 ## Nhật ký Phiên
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
+
+### 2026-09-25 — Report Builder: Strict Block Type Scoping for Field Rule Overrides & Table Weight Sync
+
+**Scope:** 3 files (`src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`, `SESSION_LOG.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | ~11 min |
+| Thời gian lập plan (Request → Proceed) | ~4.5 min |
+| Thời gian thực thi (Proceed → Push) | ~6.5 min |
+| Số file nguồn chỉnh sửa | 1 (`ReportBuilder.tsx`) |
+| Tổng lượt edit source | 4 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 2 (`npx tsc` pass + `tsc -b && vite build` 11.00s pass) |
+| Lần build cuối thành công? | Có (100% pass) |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- **Triệt tiêu hoàn toàn rò rỉ override sang SECTION_LABEL:** Áp dụng Strict Block Type Scoping trong `updateRuleOverride`. Khi trường bắt nguồn từ khối `TABLE`, hàm ép buộc khối nhận `ruleOverrides` trong `template.layoutBlocks` phải có `b.type === 'TABLE'`, xóa bỏ hoàn toàn kịch bản `find()` bắt nhầm khối `SECTION_LABEL` có cùng tên nằm phía trước.
+- **Auto-Initialization trọn bộ trường:** Khi tự động tạo khối `TABLE` báo cáo mới, nạp đầy đủ toàn bộ trường của bảng nguồn (`extractTableFields`) vào `boundFieldIds` thay vì chỉ 1 trường đơn lẻ.
+- **Tự động dọn dẹp & di chuyển dữ liệu rò rỉ:** Tự động phát hiện và thanh trừng sạch sẽ các `fieldId` và `ruleOverrides` bị lưu lạc trên `SECTION_LABEL` sang khối `TABLE` đích.
+- **Đồng bộ hai chiều Cell ⇄ Table Properties:** Trọng số chỉnh sửa từ ô cell (`FIELD PROPERTIES`) và bảng tổng hợp trong `Table Properties` liên kết chặt chẽ vào đúng 1 khối `TABLE` duy nhất.
+
+---
 
 ### 2026-09-25 — Report Builder: TABLE Canvas Selection & H2 Name Collision Resolution
 
@@ -260,28 +286,3 @@ Entry mới nhất ở trên cùng. Tối đa 10 entries.
 - **Đưa cụm chuyển tab `[ Form | Report ]` lên Thanh Top Header (Option 1):** Tích hợp segmented pill `[ Form | Report ]` ngay bên phải chữ `Report Builder` trên thanh Top Header và loại bỏ thanh tab rời phía trên tờ giấy A4, thu hồi ~54px chiều dọc vùng Canvas.
 - **Chuẩn hóa nhóm `INFO_GRID` dưới H1:** Cập nhật `extractAllFormFields` trong `tableFieldExtractor.ts` gán `locationCode: elementName || f.locationCode` để các trường `INFO_GRID` gom gọn vào đúng 1 khối (`Thông tin chung`).
 
----
-
-### 2026-09-24 — Report Builder: Strict 4-Tier Hierarchy (`H1` ➔ `H2` strictly `titleFormat === 'H2'` ➔ `Element` ➔ `Field`)
-
-**Scope:** 4 files (`src/utils/tableFieldExtractor.ts`, `src/utils/reportScoring.ts`, `src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian tổng (Request → Push) | ~24.0 min |
-| Thời gian lập plan (Request → Proceed) | ~4.0 min |
-| Thời gian thực thi (Proceed → Push) | ~20.0 min |
-| Số file nguồn chỉnh sửa | 3 (`tableFieldExtractor.ts`, `reportScoring.ts`, `ReportBuilder.tsx`) |
-| Tổng lượt edit source | 7 |
-| Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 4 (`3 tsc` + `1 vite build` pass) |
-| Lần build cuối thành công? | Có (100% pass ngay lần đầu) |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Điểm nổi bật:**
-- **Định nghĩa lại cấp `H2` nghiêm ngặt (`titleFormat === 'H2'`):** Loại bỏ hoàn toàn việc các khối `TABLE` bình thường (`titleFormat: undefined | 'NONE'`) và dòng `groupHeader` trong bảng tự ý ghi đè `sectionH2` trong `tableFieldExtractor.ts`. Khôi phục đầy đủ các phân mục `H2` thực sự (`Sản phẩm`, `Văn hóa doanh nghiệp`, `Năng lực cốt lõi`, `Hạ tầng & Công nghệ`, `Đặc trưng nhân sự`).
-- **Phân cấp `Element / Table` xuống một cấp dưới `H2` & Chuẩn hóa Cấp cha của `Field` (Level 4 ➔ Level 3 Table):** Bổ sung `ElementHierarchyGroup` (`h2Group.elements` dưới `H2` và `directElements` dưới `H1`), hiển thị các khối `[TABLE]` thụt lề một cấp bên dưới `[H2]`. Đồng thời cập nhật `extractParentGroupTitle` trong `reportScoring.ts` ưu tiên trả về tên Bảng (`block.title` / `field.locationCode`, ví dụ `"Check: SP chủ lực"`) trước `sectionH2` (`"Sản phẩm"`), đảm bảo mọi câu hỏi trong bảng (Level 4) luôn nhận Bảng (Level 3) làm cha trực tiếp (`of [ Check: SP chủ lực ]`).
-
-
----
