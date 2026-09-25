@@ -39,6 +39,30 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-25 — Report Builder: Removed Virtual Page Breaks & Pruned Tracking Code (ReportBuilder)
+
+**Scope:** 3 files (`src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`, `SESSION_LOG.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | ~5 min |
+| Thời gian lập plan (Request → Proceed) | ~2 min |
+| Thời gian thực thi (Proceed → Push) | ~3 min |
+| Số file nguồn chỉnh sửa | 1 (`ReportBuilder.tsx`) |
+| Tổng lượt edit source | 3 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 2 (`1 tsc` pass + `1 vite build` 19.26s pass) |
+| Lần build cuối thành công? | Có (100% pass ngay lần đầu) |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- **Loại bỏ Vạch Phân Trang Ảo:** Gỡ bỏ hoàn toàn đường kẻ phân trang ảo (`--- RANH GIỚI HẾT TRANG X (A4/A5) ---`) khỏi canvas tờ giấy theo yêu cầu của người dùng, chấm dứt việc vạch nét đứt cắt ngang qua bảng và nội dung văn bản gây khó khăn khi thao tác.
+- **Triệt tiêu Mã chết (Dead-code Pruning):** Xóa sạch `paperCardRef`, `paperScrollHeight` và hook `ResizeObserver` đo chiều cao tờ giấy khỏi `ReportBuilder.tsx` theo chuẩn Rule 4.2 / Rule 13.7, đảm bảo 0 cảnh báo `TS6133`.
+- **Bảo toàn Cải tiến Cốt lõi:** Vẫn duy trì trọn vẹn khoảng đệm đáy thoáng đãng (`padding: '1.25rem 1rem 5rem'`, `marginBottom: '2.5rem'`, spacer đáy `4rem`) và ISO Paper Footer ở cuối tờ giấy.
+
+---
+
 ### 2026-09-25 — Report Builder: Decoupled Form Scoring, Blank Slate Report, Bottom Clearance & Virtual Page Breaks (ReportBuilder, reportCompute, reportScoring, types.ts)
 
 **Scope:** 5 files (`src/types.ts`, `src/utils/reportCompute.ts`, `src/utils/reportScoring.ts`, `src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`)
@@ -259,28 +283,3 @@ Entry mới nhất ở trên cùng. Tối đa 10 entries.
 - **Dọn sạch call-sites:** Loại bỏ triệt để `presets` prop tại cả 3 vị trí Weight card: `FieldScoringInspector.tsx` (câu hỏi con), `ReportBuilder.tsx` (SECTION_LABEL H1/H2), và `ReportBuilder.tsx` (TABLE).
 - **Bảo toàn 100% UX nhập liệu bàn phím:** Tự động bôi đen toàn bộ số (`select()`) khi focus/click để gõ đè số mới ngay tức khắc; phím mũi tên `↑/↓` tăng giảm mượt mà (Shift + mũi tên bước nhảy 5); xóa lùi Backspace tự nhiên với draft state; không có spinner trình duyệt làm phiền.
 
----
-
-### 2026-09-25 — Report Builder: Streamlined Table Inspector (Single-row TABLE + Border Icons + Header Toggle, FIELDS, In-Table Weight Editing)
-
-**Scope:** 2 files (`src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian tổng (Request → Push) | ~11 min |
-| Thời gian lập plan (Request → Proceed) | ~6 min |
-| Thời gian thực thi (Proceed → Push) | ~5 min |
-| Số file nguồn chỉnh sửa | 1 (`ReportBuilder.tsx`) |
-| Tổng lượt edit source | 4 |
-| Lượt edit sửa lỗi (rework) | 1 (sửa closing tag JSX) |
-| Số lần build | 3 (`npx tsc` pass + `tsc -b && vite build` 13.36s pass) |
-| Lần build cuối thành công? | Có (100% pass) |
-| Số lỗi mới phát sinh | 1 (`TS17015`) |
-| Số lỗi cũ lặp lại | 0 |
-
-**Điểm nổi bật:**
-- **Gom Header Table Inspector trên 1 hàng duy nhất:** Tiêu đề `TABLE` in hoa đậm, 3 nút icon Border trực quan (Lưới `[ ▦ ]`, Ngang `[ ☵ ]`, Không viền `[ ▢ ]`), nhãn `Header` kèm công tắc toggle switch, và nút xóa `[🗑]` cùng nằm trên 1 hàng ngang (~210px / 310px width), tiết kiệm ~28px chiều dọc quý giá.
-- **Triệt tiêu khối Border & Header trùng lặp:** Xóa bỏ hoàn toàn khối Border/Header cũ ở bên dưới.
-- **Rút gọn nhãn danh sách trường:** Đổi `CÁC TRƯỜNG ĐÃ GÁN (x)` ➔ `FIELDS (x)` ngắn gọn, đồng bộ phong cách Left Sidebar.
-- **Bảng con Items & Chỉnh sửa Trọng số tại chỗ:** Loại bỏ tiêu đề thừa `TỔNG HỢP ĐIỂM BẢNG ĐÁNH GIÁ`, đổi cột 1 thành `Items`, áp dụng lưới `6 / 2 / 2 / 2`, màu Header trung tính `#334155`, tích hợp `<SmartNumberInput>` (32px, không popup) trực tiếp tại ô Weight của từng câu hỏi con, liên kết `updateRuleOverride(f.id, { weight: val })`.
-- **Footer Tinh gọn & Rút gọn isKnockout:** Footer hiển thị trạng thái `PASS/FAIL`, tổng điểm bảng to đậm, và tổng trọng số `∑ {totalWeight}%`. Rút gọn nhãn `isKnockout (Bảng)` thành `isKnockout`.

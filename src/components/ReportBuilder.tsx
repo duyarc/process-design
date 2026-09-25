@@ -684,18 +684,6 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
   const [autoExportPdf, setAutoExportPdf] = useState<boolean>(false);
   const sectionDescRef = useRef<HTMLTextAreaElement>(null);
-  const paperCardRef = useRef<HTMLDivElement>(null);
-  const [paperScrollHeight, setPaperScrollHeight] = useState<number>(0);
-
-  useEffect(() => {
-    if (!paperCardRef.current) return;
-    const el = paperCardRef.current;
-    const updateHeight = () => setPaperScrollHeight(el.offsetHeight);
-    updateHeight();
-    const observer = new ResizeObserver(updateHeight);
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [template.layoutBlocks, activeCanvasTab]);
 
   const [effectiveDate, setEffectiveDate] = useState<string>(template.effectiveDate || new Date().toISOString().split('T')[0]);
   const [changeSummary, setChangeSummary] = useState<string>('');
@@ -2756,7 +2744,6 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
           ) : (
             /* A4 Sheet Container (Report) */
             <div
-              ref={paperCardRef}
               className="paper-card"
               onClick={(e) => {
                 if (e.target === e.currentTarget) {
@@ -2777,49 +2764,9 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                 flexDirection: 'column',
                 gap: '1rem',
                 boxSizing: 'border-box',
-                position: 'relative',
                 marginBottom: '2.5rem'
               }}
             >
-              {/* Virtual Page Break lines */}
-              {Array.from({ length: Math.floor(paperScrollHeight / ((template.pageSize || selectedForm?.pageSize) === 'A5_LANDSCAPE' ? 650 : 1050)) }, (_, idx) => {
-                const pageH = (template.pageSize || selectedForm?.pageSize) === 'A5_LANDSCAPE' ? 650 : 1050;
-                const topPos = (idx + 1) * pageH;
-                return (
-                  <div
-                    key={`page-break-${idx}`}
-                    className="no-print"
-                    style={{
-                      position: 'absolute',
-                      left: 0,
-                      right: 0,
-                      top: `${topPos}px`,
-                      height: '0px',
-                      borderTop: '2px dashed #94a3b8',
-                      zIndex: 20,
-                      pointerEvents: 'none',
-                      display: 'flex',
-                      justifyContent: 'flex-end',
-                      alignItems: 'center'
-                    }}
-                  >
-                    <span style={{
-                      fontSize: '0.65rem',
-                      fontWeight: 600,
-                      color: '#64748b',
-                      background: '#f8fafc',
-                      padding: '1px 8px',
-                      borderRadius: '3px',
-                      border: '1px solid #cbd5e1',
-                      marginRight: '1rem',
-                      transform: 'translateY(-50%)',
-                      letterSpacing: '0.5px'
-                    }}>
-                      --- RANH GIỚI HẾT TRANG {idx + 1} ({((template.pageSize || selectedForm?.pageSize) === 'A5_LANDSCAPE') ? 'A5' : 'A4'}) ---
-                    </span>
-                  </div>
-                );
-              })}
             {template.layoutBlocks.length === 0 ? (
               <div style={{ border: '2px dashed var(--neutral-border)', borderRadius: '8px', padding: '3rem 1.5rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
                 <FileText size={36} style={{ margin: '0 auto 0.75rem', opacity: 0.4 }} />
