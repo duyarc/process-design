@@ -4,7 +4,6 @@ export interface SmartNumberInputProps {
   value: number | '' | undefined;
   onChange: (val: number) => void;
   disabled?: boolean;
-  presets?: number[];
   min?: number;
   max?: number;
   step?: number;
@@ -15,14 +14,12 @@ export interface SmartNumberInputProps {
 
 /**
  * SmartNumberInput — Spinless numeric input with instant auto-select on focus,
- * natural Backspace editing (local draft state), keyboard arrow stepping,
- * and optional Focus-Only Quick-Select Pill Bar (used for Weight %).
+ * natural Backspace editing (local draft state), and keyboard arrow stepping.
  */
 export const SmartNumberInput: React.FC<SmartNumberInputProps> = ({
   value,
   onChange,
   disabled = false,
-  presets,
   min,
   max,
   step = 1,
@@ -84,62 +81,8 @@ export const SmartNumberInput: React.FC<SmartNumberInputProps> = ({
     }
   };
 
-  const numericCurrent = parseFloat(draft);
-
   return (
     <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
-      {isFocused && !disabled && presets && presets.length > 0 && (
-        <div
-          onMouseDown={(e) => e.preventDefault()}
-          style={{
-            position: 'absolute',
-            bottom: 'calc(100% + 5px)',
-            left: 0,
-            background: '#ffffff',
-            border: '1px solid #99f6e4',
-            padding: '2px',
-            borderRadius: '6px',
-            display: 'inline-flex',
-            gap: '2px',
-            zIndex: 60,
-            boxShadow: '0 6px 16px rgba(15, 23, 42, 0.14)',
-            whiteSpace: 'nowrap'
-          }}
-        >
-          {presets.map((p) => {
-            const isActive = !isNaN(numericCurrent) && numericCurrent === p;
-            return (
-              <button
-                key={p}
-                type="button"
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  const clamped = clampValue(p);
-                  setDraft(String(clamped));
-                  onChange(clamped);
-                  setIsFocused(false);
-                  inputRef.current?.blur();
-                }}
-                style={{
-                  border: 'none',
-                  background: isActive ? 'var(--primary, #0f766e)' : '#f8fafc',
-                  color: isActive ? '#ffffff' : '#334155',
-                  fontSize: '0.66rem',
-                  fontWeight: 700,
-                  padding: '2px 5px',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  transition: 'all 0.1s'
-                }}
-              >
-                {p}
-              </button>
-            );
-          })}
-        </div>
-      )}
-
       <input
         ref={inputRef}
         type="text"

@@ -40,6 +40,30 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-25 — Report Builder: Elimination of Floating Quick-Select Pill Bar in SmartNumberInput
+
+**Scope:** 4 files (`src/components/common/SmartNumberInput.tsx`, `src/components/report/FieldScoringInspector.tsx`, `src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | ~7 min |
+| Thời gian lập plan (Request → Proceed) | ~4 min |
+| Thời gian thực thi (Proceed → Push) | ~3 min |
+| Số file nguồn chỉnh sửa | 3 (`SmartNumberInput.tsx`, `FieldScoringInspector.tsx`, `ReportBuilder.tsx`) |
+| Tổng lượt edit source | 4 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 4 (`npx tsc` 3 lần pass + `tsc -b && vite build` 8.72s pass) |
+| Lần build cuối thành công? | Có (100% pass ngay lần đầu) |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- **Triệt tiêu hoàn toàn floating pill popup:** Xóa bỏ prop `presets` và khối render floating pill bar (`[ 0 | 10 | 20 | 25 | 50 | 100 ]`) trong `SmartNumberInput.tsx`. Khi người dùng click/focus vào bất kỳ ô nhập Weight nào, giao diện luôn phẳng và sạch sẽ 100%, không còn popup nào bật lên che khuất chữ `isKnockout` hay `Loại trực tiếp` ở hàng trên.
+- **Dọn sạch call-sites:** Loại bỏ triệt để `presets` prop tại cả 3 vị trí Weight card: `FieldScoringInspector.tsx` (câu hỏi con), `ReportBuilder.tsx` (SECTION_LABEL H1/H2), và `ReportBuilder.tsx` (TABLE).
+- **Bảo toàn 100% UX nhập liệu bàn phím:** Tự động bôi đen toàn bộ số (`select()`) khi focus/click để gõ đè số mới ngay tức khắc; phím mũi tên `↑/↓` tăng giảm mượt mà (Shift + mũi tên bước nhảy 5); xóa lùi Backspace tự nhiên với draft state; không có spinner trình duyệt làm phiền.
+
+---
+
 ### 2026-09-25 — Report Builder: Streamlined Table Inspector (Single-row TABLE + Border Icons + Header Toggle, FIELDS, In-Table Weight Editing)
 
 **Scope:** 2 files (`src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`)
@@ -362,31 +386,7 @@ Entry mới nhất ở trên cùng. Tối đa 10 entries.
 - **Đồng bộ hóa trên Report Canvas:** Nâng cấp `InCanvasTitleHeader`, block wrapper và `<thead>` xóa sạch `selectedFieldId = null` và chuyển sang `setRightTab('properties')`, giúp người dùng dễ dàng chuyển đổi linh hoạt giữa `FIELD PROPERTIES` của câu hỏi con và `Table Properties` của bảng cha.
 - **Chất lượng mã nguồn:** `npx tsc --noEmit` pass 100% không lỗi; `npm run build` Vite production bundle thành công trong 19.70s.
 
----
 
-### 2026-09-24 — Report Builder: Interactive Canvas Selection for Table Likert Scale Questions
-
-**Scope:** 4 files (`src/utils/tableFieldExtractor.ts`, `src/components/report/FormReferenceCanvas.tsx`, `src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian tổng (Request → Push) | ~8.5 min |
-| Thời gian lập plan (Request → Proceed) | ~3.0 min |
-| Thời gian thực thi (Proceed → Push) | ~5.5 min |
-| Số file nguồn chỉnh sửa | 3 (`tableFieldExtractor.ts`, `FormReferenceCanvas.tsx`, `ReportBuilder.tsx`) |
-| Tổng lượt edit source | 8 |
-| Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 4 (3 tsc + 1 vite pass) |
-| Lần build đầu thành công? | Có (100% pass ngay lần đầu) |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Điểm nổi bật:**
-- **Giải quyết lỗi chọn trường bảng từ Canvas:** Khắc phục triệt để lỗi click hàng Likert scale chỉ gửi `row.id` dẫn đến `allFormFields.find()` trả về `undefined`. Xây dựng các hàm tiện ích chuẩn (`getTableFieldId`, `getTableRowPrimaryFieldId`, `isFieldInTableRow`) để map chính xác ID composite `${block.id}_${row.id}_${col.id}`.
-- **Tương tác cấp hàng và cấp ô (Row & Cell Interaction):** Hỗ trợ click vào hàng bảng để kích hoạt câu hỏi Likert scale chính của hàng, hoặc click trực tiếp vào ô input cụ thể để chọn trường chi tiết. Tự động chuyển Right Inspector sang tab `properties` và mở `FIELD PROPERTIES` (Scoring matrix, knockout, weight, option values).
-- **Chỉ báo trực quan tinh gọn (Visual Highlights):** Đường viền `borderLeft: 3px solid var(--primary)` và nền nhạt `rgba(13, 148, 136, 0.08)` cho hàng được chọn; viền nổi inset `boxShadow` và nền `rgba(13, 148, 136, 0.16)` cho ô input được chọn.
-- **Đồng bộ hóa 2 chiều trên Report Canvas:** Bổ sung xử lý click chọn và active highlight tương tự cho các khối `TABLE` và `INFO_GRID` trên tab Report.
-- **Chất lượng mã nguồn:** `npx tsc --noEmit` pass 100% không lỗi; `npm run build` Vite production bundle thành công trong 17.95s.
 
 
 

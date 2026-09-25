@@ -898,7 +898,6 @@ export const FieldScoringInspector: React.FC<FieldScoringInspectorProps> = ({
             <SmartNumberInput
               disabled={isLocked}
               value={ruleOverride?.weight !== undefined ? ruleOverride.weight : 0}
-              presets={[0, 10, 20, 25, 50, 100]}
               min={0}
               max={100}
               onChange={(val) => onUpdateRule({ weight: val })}

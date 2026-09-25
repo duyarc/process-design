@@ -8,8 +8,8 @@
 |---|---|
 | **Module Name** | Report Builder |
 | **Status** | Implemented & Verified |
-| **Document Version** | 3.2 |
-| **Verified At Commit** | (2026-09-25) — Streamlined Table Inspector (Single-row TABLE + Border Icons + Header toggle, FIELDS label, Items child table with inline SmartNumberInput, isKnockout) verified against source |
+| **Document Version** | 3.3 |
+| **Verified At Commit** | (2026-09-25) — Elimination of Floating Quick-Select Pill Bar in SmartNumberInput across all weight inputs verified against source |
 
 ### Quick File Index
 
@@ -17,7 +17,7 @@
 |---|---|
 | [`src/components/ReportBuilder.tsx`](src/components/ReportBuilder.tsx) | 3-panel authoring tool for configuring report templates |
 | [`src/components/report/FieldScoringInspector.tsx`](src/components/report/FieldScoringInspector.tsx) | Dedicated sub-component for field-level dual scoring rules & weights |
-| [`src/components/common/SmartNumberInput.tsx`](src/components/common/SmartNumberInput.tsx) | Streamlined spinner-free numeric input with auto-select on focus and optional focus-only quick-select pill bar |
+| [`src/components/common/SmartNumberInput.tsx`](src/components/common/SmartNumberInput.tsx) | Streamlined spinless numeric input with instant auto-select on focus, local draft backspace editing, and keyboard arrow stepping |
 | [`src/components/report/FormReferenceCanvas.tsx`](src/components/report/FormReferenceCanvas.tsx) | Dedicated sub-component for rendering source form WYSIWYG A4 sheet |
 | [`src/components/FormReport.tsx`](src/components/FormReport.tsx) | Interactive report viewer for single submission records |
 | [`src/components/print/PrintReport.tsx`](src/components/print/PrintReport.tsx) | Dedicated A4/PDF print renderer complying with DESIGN_UI_UX.md |
@@ -87,6 +87,7 @@ The module operates on a linear 4-stage processing and rendering pipeline:
 
 | Date | Change |
 |---|---|
+| 2026-09-25 | **Elimination of Floating Quick-Select Pill Bar in SmartNumberInput:** (1) In `SmartNumberInput.tsx`, completely removed the `presets` prop and the floating pill bar popover (`[ 0 | 10 | 20 | 25 | 50 | 100 ]`) that popped up when focusing any Weight input. This triệt tiêu triệt để tình trạng popup che khuất nhãn `isKnockout` và `Loại trực tiếp` ở hàng trên. (2) Removed `presets` call-sites across `FieldScoringInspector.tsx` (field weight card) and `ReportBuilder.tsx` (SECTION_LABEL weight card and TABLE weight card). (3) Preserved 100% of optimal keyboard input UX: instant full text selection on focus/click for immediate overwrite, Backspace editing with local draft state, arrow up/down keyboard stepping, and zero browser spinner arrows. |
 | 2026-09-25 | **Streamlined Table Inspector (Single-row TABLE + Border Icons + Header Toggle, FIELDS, In-Table Weight Editing):** In `ReportBuilder.tsx`: (1) Merged the TABLE inspector top header into a single horizontal row containing `TABLE` title, 3 visual Border icons (Grid `[ ▦ ]`, Horiz `[ ☵ ]`, None `[ ▢ ]`), `Header` toggle switch, and delete `[🗑]` button, reclaiming ~28px of vertical inspector space. (2) Removed redundant duplicate Border & Header controls block below. (3) Renamed `CÁC TRƯỜNG ĐÃ GÁN (x)` to `FIELDS (x)` for clean consistency with the Left Sidebar. (4) Redesigned the child evaluation table: removed redundant title `TỔNG HỢP ĐIỂM BẢNG ĐÁNH GIÁ`, adopted 6/2/2/2 grid ratio with `Items` column header, neutral `#334155` text styling, and integrated inline `<SmartNumberInput>` (32px, no popup) directly editing `ruleOverrides[fieldId].weight`. (5) Simplified footer displaying `PASS/FAIL`, bold score, and total weight sum `∑ {totalWeight}%`. (6) Simplified knockout label to `isKnockout`. |
 | 2026-09-25 | **Load Template Persistence Fix (Report not reloading after Save):** (1) In `ReportBuilder.tsx`, upgraded `init()` with an `else if (targetFormId)` fallback that calls `GET /api/reports/by-form/:targetFormId` when `initialReportId` is `undefined`. On HTTP 200, loads saved `layoutBlocks`, syncs header/info-grid, sets `initialBlocks` and `lastSavedSnapshot`. On 404 (no saved report yet), keeps fresh empty template — no regression. (2) In `Dashboard.tsx`, updated both `[📊 Report]` buttons (table view and card view, `onOpenReportBuilder` calls) to perform a local lookup `reportTemplates.find(r => r.linkedFormId === form.formId)` and pass `linkedRep?.reportId` as second argument, ensuring `ReportBuilder` always receives a concrete `reportId` when the form already has a saved template. The `[✏️ Edit]` button in the Reports tab was already correct (unaffected). |
 | 2026-09-25 | **Child Elements Table UI Alignment & Popover Elimination (Option A):** In `ReportBuilder.tsx`: (1) Removed `presets` popup from `SmartNumberInput` inside child elements table, completely eliminating popover overflow clipping and row obstruction in dense table cells. (2) Rebalanced grid column ratio from `5 / 2 / 2 / 3` to `6 / 2 / 2 / 2`, giving `Items` more breathing room and preventing premature title truncation. (3) Aligned `Score` and `Weight` column alignments with consistent right padding across Header, Body, and Footer. (4) Unified header text color to clean neutral `#334155`. |

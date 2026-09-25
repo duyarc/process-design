@@ -3838,7 +3838,6 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                 <SmartNumberInput
                                   disabled={isLocked}
                                   value={activeBlock.weight !== undefined ? activeBlock.weight : 0}
-                                  presets={[0, 10, 20, 25, 50, 100]}
                                   min={0}
                                   max={100}
                                   onChange={(val) => {
@@ -4556,7 +4555,6 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                               <SmartNumberInput
                                 disabled={isLocked}
                                 value={activeBlock.weight !== undefined ? activeBlock.weight : 0}
-                                presets={[0, 10, 20, 25, 50, 100]}
                                 min={0}
                                 max={100}
                                 onChange={(val) => {
