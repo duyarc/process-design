@@ -18,6 +18,7 @@ import { handleFormatKeyDown } from '../utils/textFormatter';
 import { FieldScoringInspector } from './report/FieldScoringInspector';
 import { FormReferenceCanvas } from './report/FormReferenceCanvas';
 import { extractParentGroupTitle, computeH2CombinedScore, summarizeH1ChildGroups, summarizeH2ChildElements } from '../utils/reportScoring';
+import { formatFormVersion } from '../types';
 import { SmartNumberInput } from './common/SmartNumberInput';
 import ConfirmModal from './common/ConfirmModal';
 import PrintReport from './print/PrintReport';
@@ -683,6 +684,18 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
   const [autoExportPdf, setAutoExportPdf] = useState<boolean>(false);
   const sectionDescRef = useRef<HTMLTextAreaElement>(null);
+  const paperCardRef = useRef<HTMLDivElement>(null);
+  const [paperScrollHeight, setPaperScrollHeight] = useState<number>(0);
+
+  useEffect(() => {
+    if (!paperCardRef.current) return;
+    const el = paperCardRef.current;
+    const updateHeight = () => setPaperScrollHeight(el.offsetHeight);
+    updateHeight();
+    const observer = new ResizeObserver(updateHeight);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [template.layoutBlocks, activeCanvasTab]);
 
   const [effectiveDate, setEffectiveDate] = useState<string>(template.effectiveDate || new Date().toISOString().split('T')[0]);
   const [changeSummary, setChangeSummary] = useState<string>('');
@@ -754,62 +767,37 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
           setAvailableForms(formList);
 
           const syncHeaderAndInfoGridBlocksFromForm = (blocks: ReportBlockConfig[], formObj?: FormTemplateISO | null): ReportBlockConfig[] => {
-            if (!formObj) return blocks;
-            // Step 1 & 2 for TITLE Block: Build TITLE Layout Block -> Fill Title Metadata & Fields
+            if (!formObj || blocks.length === 0) return blocks;
+            // Step 1: Sync TITLE Block if it already exists in report layout
+            const existingTitle = blocks.find(b => b.type === 'TITLE');
             const srcTitle = formObj.layoutBlocks?.find(b => b.type === 'TITLE');
             const desiredTitle = srcTitle?.title || formObj.formTitle || formObj.formId || 'BÁO CÁO ĐÁNH GIÁ';
             const desiredDesc = srcTitle?.description || srcTitle?.fields?.[0]?.checkItem;
-            const existingTitle = blocks.find(b => b.type === 'TITLE');
-            const titleBlock: ReportBlockConfig = existingTitle
-              ? {
-                  ...existingTitle,
-                  title: (!existingTitle.title || existingTitle.title === 'BÁO CÁO ĐÁNH GIÁ CHẤT LƯỢNG') ? desiredTitle : existingTitle.title,
-                  logo: existingTitle.logo || srcTitle?.logo,
-                  description: existingTitle.description || desiredDesc,
-                  showDate: existingTitle.showDate ?? srcTitle?.showDate ?? true,
-                  datePosition: existingTitle.datePosition || srcTitle?.datePosition || 'B',
-                  boundFieldIds: existingTitle.boundFieldIds?.length ? existingTitle.boundFieldIds : (srcTitle?.fields || []).map(f => f.id)
-                }
-              : {
-                  id: `rep_block_title_${Date.now()}`,
-                  type: 'TITLE',
-                  title: desiredTitle,
-                  logo: srcTitle?.logo,
-                  description: desiredDesc,
-                  showDate: srcTitle?.showDate ?? true,
-                  datePosition: srcTitle?.datePosition || 'B',
-                  columns: 1,
-                  borderStyle: 'grid',
-                  hideHeader: false,
-                  boundFieldIds: (srcTitle?.fields || []).map(f => f.id)
-                };
+            const updatedTitle: ReportBlockConfig | undefined = existingTitle ? {
+              ...existingTitle,
+              title: (!existingTitle.title || existingTitle.title === 'BÁO CÁO ĐÁNH GIÁ CHẤT LƯỢNG') ? desiredTitle : existingTitle.title,
+              logo: existingTitle.logo || srcTitle?.logo,
+              description: existingTitle.description || desiredDesc,
+              showDate: existingTitle.showDate ?? srcTitle?.showDate ?? true,
+              datePosition: existingTitle.datePosition || srcTitle?.datePosition || 'B',
+              boundFieldIds: existingTitle.boundFieldIds?.length ? existingTitle.boundFieldIds : (srcTitle?.fields || []).map(f => f.id)
+            } : undefined;
 
-            // Step 1 & 2 for INFO_GRID Blocks: Build each INFO_GRID Layout Block -> Arrange its Fields into Slots
+            // Step 2: Sync only existing INFO_GRID Blocks without auto-cloning unadded ones
             const srcInfoGrids = (formObj.layoutBlocks || []).filter(b => b.type === 'INFO_GRID');
             const existingInfoGrids = blocks.filter(b => b.type === 'INFO_GRID');
-            const syncedInfoGrids: ReportBlockConfig[] = srcInfoGrids.map((srcInfo, idx) => {
-              const srcFieldIds = (srcInfo.fields || []).map(f => f.id);
-              const matchedExisting = existingInfoGrids.find(eb =>
-                srcFieldIds.length > 0 && eb.boundFieldIds?.some(fid => srcFieldIds.includes(fid)) &&
-                !eb.boundFieldIds?.some(fid => fid.startsWith('b_table_'))
-              ) || existingInfoGrids[idx];
-              const isLegacyTruncated = matchedExisting && srcFieldIds.length > (matchedExisting.boundFieldIds?.length || 0);
+            const syncedInfoGrids: ReportBlockConfig[] = existingInfoGrids.map((eb, idx) => {
+              const srcInfo = srcInfoGrids.find(si => (si.fields || []).some(f => eb.boundFieldIds?.includes(f.id))) || srcInfoGrids[idx];
+              const srcFieldIds = (srcInfo?.fields || []).map(f => f.id);
+              const isLegacyTruncated = srcFieldIds.length > (eb.boundFieldIds?.length || 0);
               return {
-                id: matchedExisting?.id || `rep_block_info_${idx}_${Date.now()}`,
-                type: 'INFO_GRID',
-                title: srcInfo.title || matchedExisting?.title || 'Thông tin chung',
-                titleFormat: srcInfo.titleFormat || (idx === 0 && srcInfo.title ? 'H1' : 'NONE'),
-                columns: srcInfo.columns || matchedExisting?.columns || 2,
-                columnWidths: srcInfo.columnWidths || matchedExisting?.columnWidths || (srcInfo.columns === 3 ? [33.33, 33.33, 33.34] : [50, 50]),
-                borderStyle: srcInfo.borderStyle || matchedExisting?.borderStyle || 'grid',
-                hideHeader: srcInfo.hideHeader ?? matchedExisting?.hideHeader ?? false,
-                boundFieldIds: (isLegacyTruncated || !matchedExisting?.boundFieldIds?.length) ? srcFieldIds : matchedExisting.boundFieldIds,
-                ruleOverrides: matchedExisting?.ruleOverrides || {}
+                ...eb,
+                boundFieldIds: (isLegacyTruncated || !eb.boundFieldIds?.length) ? srcFieldIds : eb.boundFieldIds
               };
             });
 
             const otherBlocks = blocks.filter(b => b.type !== 'TITLE' && b.type !== 'INFO_GRID');
-            return [titleBlock, ...(syncedInfoGrids.length > 0 ? syncedInfoGrids : existingInfoGrids), ...otherBlocks];
+            return [...(updatedTitle ? [updatedTitle] : []), ...syncedInfoGrids, ...otherBlocks];
           };
 
           const targetFormId = initialFormId || template.linkedFormId || (formList[0]?.formId || '');
@@ -1016,37 +1004,17 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
     setSelectedForm(matched);
     const formTitleBlock = matched.layoutBlocks?.find(b => b.type === 'TITLE');
     const syncedTitle = formTitleBlock?.title || matched.formTitle || prevTitleFallback(template.reportTitle);
-    const srcInfoGrids = (matched.layoutBlocks || []).filter(b => b.type === 'INFO_GRID');
-    const builtInfoGrids: ReportBlockConfig[] = srcInfoGrids.map((srcInfo, idx) => ({
-      id: `rep_block_info_${idx}_${Date.now()}`,
-      type: 'INFO_GRID',
-      title: srcInfo.title || 'Thông tin chung',
-      titleFormat: srcInfo.titleFormat || (idx === 0 && srcInfo.title ? 'H1' : 'NONE'),
-      columns: srcInfo.columns || 2,
-      columnWidths: srcInfo.columnWidths || (srcInfo.columns === 3 ? [33.33, 33.33, 33.34] : [50, 50]),
-      borderStyle: srcInfo.borderStyle || 'grid',
-      hideHeader: srcInfo.hideHeader ?? false,
-      boundFieldIds: (srcInfo.fields || []).map(f => f.id),
-      ruleOverrides: {}
-    }));
     setTemplate(prev => {
-      const nonHeaderBlocks = prev.layoutBlocks.filter(b => b.type !== 'TITLE' && b.type !== 'INFO_GRID');
-      const titleBlock: ReportBlockConfig = {
-        id: prev.layoutBlocks.find(b => b.type === 'TITLE')?.id || `rep_block_title_${Date.now()}`,
-        type: 'TITLE',
-        title: syncedTitle,
-        description: formTitleBlock?.description || '',
-        logo: formTitleBlock?.logo,
-        showDate: formTitleBlock?.showDate ?? true,
-        datePosition: formTitleBlock?.datePosition || 'B',
-        boundFieldIds: (formTitleBlock?.fields || []).map(f => f.id)
-      };
+      const existingTitle = prev.layoutBlocks.find(b => b.type === 'TITLE');
+      const updatedBlocks = existingTitle
+        ? prev.layoutBlocks.map(b => b.id === existingTitle.id ? { ...b, title: syncedTitle, logo: formTitleBlock?.logo || b.logo } : b)
+        : prev.layoutBlocks;
       return {
         ...prev,
         linkedFormId: formId,
         reportTitle: syncedTitle,
         reportId: prev.status === 'DRAFT' && prev.reportId.startsWith('RP-') ? `RP-${formId}` : prev.reportId,
-        layoutBlocks: [titleBlock, ...builtInfoGrids, ...nonHeaderBlocks]
+        layoutBlocks: updatedBlocks
       };
     });
     fetchSubmissionsForForm(formId);
@@ -1392,39 +1360,15 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
       }
 
       if (!targetBlock) {
-        let initialBoundIds = [fieldId];
-        if (isTableField && sourceFormBlock) {
-          initialBoundIds = extractTableFields(sourceFormBlock).map(f => f.id);
-        } else if (sourceFormBlock?.fields) {
-          initialBoundIds = sourceFormBlock.fields.map(f => f.id);
-        }
-
-        const newBlock: ReportBlockConfig = {
-          id: `rep_block_${isTableField ? 'tbl_' : ''}${Date.now()}`,
-          type: (targetType || 'TABLE') as any,
-          title: sourceFormBlock?.title || groupTitle || 'Bảng đánh giá',
-          boundFieldIds: initialBoundIds,
-          weight: 0,
-          isKnockout: false,
-          borderStyle: sourceFormBlock?.borderStyle || 'grid',
-          hideHeader: sourceFormBlock?.hideHeader ?? false,
-          ruleOverrides: {
-            [fieldId]: { fieldId, ...updates }
-          }
-        };
-
-        const cleanedBlocks = prev.layoutBlocks.map(b => {
-          if (b.type === 'SECTION_LABEL' && (b.ruleOverrides?.[fieldId] !== undefined || b.boundFieldIds?.includes(fieldId))) {
-            const co = { ...(b.ruleOverrides || {}) };
-            delete co[fieldId];
-            return { ...b, boundFieldIds: (b.boundFieldIds || []).filter(id => id !== fieldId), ruleOverrides: co };
-          }
-          return b;
-        });
-
         return {
           ...prev,
-          layoutBlocks: [...cleanedBlocks, newBlock]
+          ruleOverrides: {
+            ...(prev.ruleOverrides || {}),
+            [fieldId]: {
+              ...(prev.ruleOverrides?.[fieldId] || { fieldId }),
+              ...updates
+            }
+          }
         };
       }
 
@@ -1439,6 +1383,13 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
 
       return {
         ...prev,
+        ruleOverrides: {
+          ...(prev.ruleOverrides || {}),
+          [fieldId]: {
+            ...(prev.ruleOverrides?.[fieldId] || { fieldId }),
+            ...updates
+          }
+        },
         layoutBlocks: prev.layoutBlocks.map(b => {
           if (b.id === targetBlock!.id) {
             return { ...b, boundFieldIds: updatedBound, ruleOverrides: overrides };
@@ -1471,6 +1422,8 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
       const anyMatchingBlock = template.layoutBlocks.find(b => b.title.trim().toLowerCase() === cleanTitle);
       if (anyMatchingBlock) {
         setActiveBlockId(anyMatchingBlock.id);
+      } else if (activeCanvasTab === 'form') {
+        setActiveBlockId(null);
       } else {
         const newBlock: ReportBlockConfig = {
           id: `rep_block_${Date.now()}`,
@@ -1502,6 +1455,8 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
 
     if (existingH2Block) {
       setActiveBlockId(existingH2Block.id);
+    } else if (activeCanvasTab === 'form') {
+      setActiveBlockId(null);
     } else {
       const newBlock: ReportBlockConfig = {
         id: `rep_block_h2_${Date.now()}`,
@@ -1539,6 +1494,8 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
         }));
       }
       setActiveBlockId(existingTableBlock.id);
+    } else if (activeCanvasTab === 'form') {
+      setActiveBlockId(null);
     } else {
       const newBlock: ReportBlockConfig = {
         id: `rep_block_${Date.now()}`,
@@ -1721,18 +1678,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
       if (existingTitle) {
         setActiveBlockId(existingTitle.id);
       } else {
-        const newId = `rep_block_title_${Date.now()}`;
-        const newTitleBlock: ReportBlockConfig = {
-          id: newId,
-          type: 'TITLE',
-          title: formBlock.title || selectedForm?.formTitle || template.reportTitle || 'BÁO CÁO ĐÁNH GIÁ',
-          description: formBlock.description || '',
-          logo: formBlock.logo,
-          showDate: formBlock.showDate ?? true,
-          datePosition: formBlock.datePosition || 'B'
-        };
-        setTemplate(prev => ({ ...prev, layoutBlocks: [newTitleBlock, ...prev.layoutBlocks] }));
-        setActiveBlockId(newId);
+        setActiveBlockId(null);
       }
       setSelectedFieldId(null);
       setRightTab('properties');
@@ -1759,21 +1705,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
       if (matchedInfo) {
         setActiveBlockId(matchedInfo.id);
       } else {
-        const newInfoId = `rep_block_info_${Date.now()}`;
-        const newInfoBlock: ReportBlockConfig = {
-          id: newInfoId,
-          type: 'INFO_GRID',
-          title: formBlock.title || 'Thông tin chung',
-          titleFormat: formBlock.titleFormat || (formInfoIdx === 0 && formBlock.title ? 'H1' : 'NONE'),
-          columns: formBlock.columns || 2,
-          columnWidths: formBlock.columnWidths || (formBlock.columns === 3 ? [33.33, 33.33, 33.34] : [50, 50]),
-          borderStyle: formBlock.borderStyle || 'grid',
-          hideHeader: formBlock.hideHeader ?? false,
-          boundFieldIds: formFieldIds,
-          ruleOverrides: {}
-        };
-        setTemplate(prev => ({ ...prev, layoutBlocks: [...prev.layoutBlocks, newInfoBlock] }));
-        setActiveBlockId(newInfoId);
+        setActiveBlockId(null);
       }
       setSelectedFieldId(null);
       setRightTab('properties');
@@ -1802,20 +1734,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
         }
         setActiveBlockId(matchedTable.id);
       } else {
-        const newTableId = `rep_block_tbl_${Date.now()}`;
-        const newTableBlock: ReportBlockConfig = {
-          id: newTableId,
-          type: 'TABLE',
-          title: formBlock.title || 'Bảng',
-          weight: 0,
-          isKnockout: false,
-          boundFieldIds: tableFieldIds,
-          borderStyle: formBlock.borderStyle || 'grid',
-          hideHeader: formBlock.hideHeader ?? false,
-          ruleOverrides: {}
-        };
-        setTemplate(prev => ({ ...prev, layoutBlocks: [...prev.layoutBlocks, newTableBlock] }));
-        setActiveBlockId(newTableId);
+        setActiveBlockId(null);
       }
       setSelectedFieldId(null);
       setRightTab('properties');
@@ -2802,7 +2721,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
             setActiveBlockId(null);
             setSelectedFieldId(null);
           }}
-          style={{ flex: 1, background: '#f1f5f9', overflowY: 'auto', padding: '1.25rem 1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'default', width: '100%', boxSizing: 'border-box' }}
+          style={{ flex: 1, background: '#f1f5f9', overflowY: 'auto', padding: '1.25rem 1rem 5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'default', width: '100%', boxSizing: 'border-box' }}
         >
           {activeCanvasTab === 'form' ? (
             selectedForm ? (
@@ -2837,6 +2756,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
           ) : (
             /* A4 Sheet Container (Report) */
             <div
+              ref={paperCardRef}
               className="paper-card"
               onClick={(e) => {
                 if (e.target === e.currentTarget) {
@@ -2856,9 +2776,50 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '1rem',
-                boxSizing: 'border-box'
+                boxSizing: 'border-box',
+                position: 'relative',
+                marginBottom: '2.5rem'
               }}
             >
+              {/* Virtual Page Break lines */}
+              {Array.from({ length: Math.floor(paperScrollHeight / ((template.pageSize || selectedForm?.pageSize) === 'A5_LANDSCAPE' ? 650 : 1050)) }, (_, idx) => {
+                const pageH = (template.pageSize || selectedForm?.pageSize) === 'A5_LANDSCAPE' ? 650 : 1050;
+                const topPos = (idx + 1) * pageH;
+                return (
+                  <div
+                    key={`page-break-${idx}`}
+                    className="no-print"
+                    style={{
+                      position: 'absolute',
+                      left: 0,
+                      right: 0,
+                      top: `${topPos}px`,
+                      height: '0px',
+                      borderTop: '2px dashed #94a3b8',
+                      zIndex: 20,
+                      pointerEvents: 'none',
+                      display: 'flex',
+                      justifyContent: 'flex-end',
+                      alignItems: 'center'
+                    }}
+                  >
+                    <span style={{
+                      fontSize: '0.65rem',
+                      fontWeight: 600,
+                      color: '#64748b',
+                      background: '#f8fafc',
+                      padding: '1px 8px',
+                      borderRadius: '3px',
+                      border: '1px solid #cbd5e1',
+                      marginRight: '1rem',
+                      transform: 'translateY(-50%)',
+                      letterSpacing: '0.5px'
+                    }}>
+                      --- RANH GIỚI HẾT TRANG {idx + 1} ({((template.pageSize || selectedForm?.pageSize) === 'A5_LANDSCAPE') ? 'A5' : 'A4'}) ---
+                    </span>
+                  </div>
+                );
+              })}
             {template.layoutBlocks.length === 0 ? (
               <div style={{ border: '2px dashed var(--neutral-border)', borderRadius: '8px', padding: '3rem 1.5rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
                 <FileText size={36} style={{ margin: '0 auto 0.75rem', opacity: 0.4 }} />
@@ -3472,8 +3433,36 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                 );
               })
             )}
+
+            {/* ISO Paper Footer */}
+            <div
+              style={{
+                marginTop: 'auto',
+                borderTop: '1px solid #334155',
+                paddingTop: '0.5rem',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                fontSize: '0.65rem',
+                color: 'var(--text-muted)',
+                fontFamily: 'monospace',
+                width: '100%',
+                boxSizing: 'border-box'
+              }}
+            >
+              <span>{template.reportId || 'PENDING'}</span>
+              <span>
+                {formatFormVersion(
+                  template.version || 'v1.0',
+                  template.status || 'ACTIVE',
+                  template.status === 'ACTIVE' ? (template.effectiveDate || (template as any).effective_date) : undefined,
+                  template.updatedAt || (template as any).updated_at || new Date().toISOString()
+                )}
+              </span>
+            </div>
           </div>
           )}
+          <div style={{ height: '4rem', flexShrink: 0, width: '100%', pointerEvents: 'none' }} />
         </div>
 
         {/* ── RIGHT PANEL: Properties & Versions Inspector ── */}
@@ -3620,7 +3609,8 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                       sampleSubmission={sampleSubmission}
                       ruleOverride={
                         (template.layoutBlocks.find(b => (b.type === 'TABLE' || b.type === 'INFO_GRID') && b.ruleOverrides?.[selectedField.id]) ||
-                         template.layoutBlocks.find(b => b.ruleOverrides?.[selectedField.id]))?.ruleOverrides?.[selectedField.id]
+                         template.layoutBlocks.find(b => b.ruleOverrides?.[selectedField.id]))?.ruleOverrides?.[selectedField.id] ||
+                        template.ruleOverrides?.[selectedField.id]
                       }
                       parentGroupTitle={extractParentGroupTitle(selectedField, template.layoutBlocks)}
                       onUpdateRule={(updates) => updateRuleOverride(selectedField.id, updates)}
@@ -4064,7 +4054,8 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                           activeBlock.title,
                           hierarchyGroups,
                           template.layoutBlocks,
-                          sampleSubmission?.formData
+                          sampleSubmission?.formData,
+                          template.ruleOverrides
                         );
                         if (!childH2Summary || childH2Summary.length === 0) return null;
 
@@ -4168,7 +4159,8 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                           activeBlock.title,
                           hierarchyGroups,
                           template.layoutBlocks,
-                          sampleSubmission?.formData
+                          sampleSubmission?.formData,
+                          template.ruleOverrides
                         );
                         if (!childElementsSummary || childElementsSummary.length === 0) return null;
 

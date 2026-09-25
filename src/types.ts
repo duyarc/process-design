@@ -462,6 +462,7 @@ export interface ReportTemplateISO {
   pageSize?: 'A4' | 'A5_LANDSCAPE' | 'A4_LANDSCAPE'; // Print paper size: A4 portrait (default), A5 landscape, A4 landscape
   effectiveDate?: string;               // ISO date string (YYYY-MM-DD)
   layoutBlocks: ReportBlockConfig[];    // Ordered visual report blocks
+  ruleOverrides?: Record<string, ReportFieldRuleOverride>; // Template-level scoring rules & weights
   revisionHistory: ReportRevisionEntry[]; // Full snapshot audit trail
   createdAt?: string;
   updatedAt?: string;

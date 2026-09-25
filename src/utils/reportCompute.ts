@@ -58,7 +58,9 @@ export function computeRecordReport(
   });
 
   // Collect all rule overrides from report template
-  const ruleOverrides: Record<string, ReportFieldRuleOverride> = {};
+  const ruleOverrides: Record<string, ReportFieldRuleOverride> = {
+    ...(reportTemplate.ruleOverrides || {})
+  };
   (reportTemplate.layoutBlocks || []).forEach(block => {
     if (block.ruleOverrides) {
       Object.assign(ruleOverrides, block.ruleOverrides);

@@ -450,7 +450,8 @@ export function summarizeH1ChildGroups(
   h1Title: string,
   hierarchyGroups: FieldHierarchyGroup[],
   layoutBlocks: ReportBlockConfig[],
-  sampleSubmissionData?: any
+  sampleSubmissionData?: any,
+  templateRuleOverrides?: Record<string, ReportFieldRuleOverride>
 ): {
   childH2Summary: { h2Title: string; score: number; isPass: boolean; weight: number; isElement?: boolean; blockId?: string }[];
   h1CombinedScore: { combinedScore: number; isPass: boolean; hasKnockoutFailed: boolean; totalWeight: number };
@@ -476,7 +477,8 @@ export function summarizeH1ChildGroups(
         h2Group.h2,
         hierarchyGroups,
         layoutBlocks,
-        sampleSubmissionData
+        sampleSubmissionData,
+        templateRuleOverrides
       );
 
       return {
@@ -511,7 +513,7 @@ export function summarizeH1ChildGroups(
         const rawVal = Array.isArray(subVal)
           ? subVal.find((s: any) => s.id === f.id || s.fieldId === f.id)?.value
           : (subVal ? (subVal as any)[f.id] : undefined);
-        const res = computeFieldScoreAndPass(rawVal, f, matchingBlock?.ruleOverrides?.[f.id]);
+        const res = computeFieldScoreAndPass(rawVal, f, matchingBlock?.ruleOverrides?.[f.id] || templateRuleOverrides?.[f.id]);
         evalMap[f.id] = {
           fieldId: f.id,
           label: f.checkItem || f.id,
@@ -520,7 +522,8 @@ export function summarizeH1ChildGroups(
         };
       });
 
-      const elRes = computeH2CombinedScore(elGroup.fields, evalMap, matchingBlock?.ruleOverrides);
+      const elOverrides = matchingBlock?.ruleOverrides || templateRuleOverrides;
+      const elRes = computeH2CombinedScore(elGroup.fields, evalMap, elOverrides);
       return {
         h2Title: elGroup.elementTitle,
         score: elRes.combinedScore,
@@ -546,7 +549,8 @@ export function summarizeH2ChildElements(
   h2Title: string,
   hierarchyGroups: FieldHierarchyGroup[],
   layoutBlocks: ReportBlockConfig[],
-  sampleSubmissionData?: any
+  sampleSubmissionData?: any,
+  templateRuleOverrides?: Record<string, ReportFieldRuleOverride>
 ): {
   childElementsSummary: { elementTitle: string; fieldsCount: number; score: number; isPass: boolean; weight: number; blockId?: string }[];
   h2CombinedScore: { combinedScore: number; isPass: boolean; hasKnockoutFailed: boolean; totalWeight: number };
@@ -584,7 +588,7 @@ export function summarizeH2ChildElements(
       const rawVal = Array.isArray(subVal)
         ? subVal.find((s: any) => s.id === f.id || s.fieldId === f.id)?.value
         : (subVal ? (subVal as any)[f.id] : undefined);
-      const res = computeFieldScoreAndPass(rawVal, f, matchingBlock?.ruleOverrides?.[f.id]);
+      const res = computeFieldScoreAndPass(rawVal, f, matchingBlock?.ruleOverrides?.[f.id] || templateRuleOverrides?.[f.id]);
       evalMap[f.id] = {
         fieldId: f.id,
         label: f.checkItem || f.id,
@@ -593,7 +597,8 @@ export function summarizeH2ChildElements(
       };
     });
 
-    const elRes = computeH2CombinedScore(elGroup.fields, evalMap, matchingBlock?.ruleOverrides);
+    const elOverrides = matchingBlock?.ruleOverrides || templateRuleOverrides;
+    const elRes = computeH2CombinedScore(elGroup.fields, evalMap, elOverrides);
     return {
       elementTitle: elGroup.elementTitle,
       fieldsCount: elGroup.fields.length,
