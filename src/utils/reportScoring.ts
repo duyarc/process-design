@@ -452,7 +452,7 @@ export function summarizeH1ChildGroups(
   layoutBlocks: ReportBlockConfig[],
   sampleSubmissionData?: any
 ): {
-  childH2Summary: { h2Title: string; score: number; isPass: boolean; weight: number; isElement?: boolean }[];
+  childH2Summary: { h2Title: string; score: number; isPass: boolean; weight: number; isElement?: boolean; blockId?: string }[];
   h1CombinedScore: { combinedScore: number; isPass: boolean; hasKnockoutFailed: boolean; totalWeight: number };
 } {
   const cleanH1 = (h1Title || '').trim().toLowerCase();
@@ -485,7 +485,8 @@ export function summarizeH1ChildGroups(
         isPass: h2CombinedScore.isPass,
         weight: h2SectionBlock?.weight ?? 0,
         isKnockout: h2SectionBlock?.isKnockout ?? false,
-        isElement: false
+        isElement: false,
+        blockId: h2SectionBlock?.id
       };
     });
 
@@ -526,7 +527,8 @@ export function summarizeH1ChildGroups(
         isPass: elRes.isPass,
         weight: matchingBlock?.weight ?? 0,
         isKnockout: matchingBlock?.isKnockout ?? false,
-        isElement: true
+        isElement: true,
+        blockId: matchingBlock?.id
       };
     });
 

@@ -1588,6 +1588,62 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
     });
   };
 
+  const handleUpdateH1ChildWeight = (childTitle: string, blockId: string | undefined, newWeight: number, isElement?: boolean) => {
+    setTemplate(prev => {
+      if (blockId) {
+        return {
+          ...prev,
+          layoutBlocks: prev.layoutBlocks.map(b => b.id === blockId ? { ...b, weight: newWeight } : b)
+        };
+      }
+      const cleanTitle = childTitle.trim().toLowerCase();
+      const existingIdx = prev.layoutBlocks.findIndex(b => {
+        if (isElement) {
+          return b.type === 'TABLE' && (b.title || '').trim().toLowerCase() === cleanTitle;
+        } else {
+          return b.type === 'SECTION_LABEL' && b.titleFormat === 'H2' && (b.title || '').trim().toLowerCase() === cleanTitle;
+        }
+      });
+      if (existingIdx >= 0) {
+        return {
+          ...prev,
+          layoutBlocks: prev.layoutBlocks.map((b, idx) => idx === existingIdx ? { ...b, weight: newWeight } : b)
+        };
+      }
+      if (isElement) {
+        const allElements = hierarchyGroups.flatMap(h1 => [
+          ...(h1.directElements || []),
+          ...h1.h2Groups.flatMap(h2 => h2.elements || [])
+        ]);
+        const matchedEl = allElements.find(el => el.elementTitle.trim().toLowerCase() === cleanTitle);
+        const newBlock: ReportBlockConfig = {
+          id: `rep_block_tbl_${Date.now()}`,
+          type: 'TABLE',
+          title: childTitle,
+          weight: newWeight,
+          boundFieldIds: matchedEl ? matchedEl.fields.map(f => f.id) : []
+        };
+        return {
+          ...prev,
+          layoutBlocks: [...prev.layoutBlocks, newBlock]
+        };
+      } else {
+        const newBlock: ReportBlockConfig = {
+          id: `rep_block_h2_${Date.now()}`,
+          type: 'SECTION_LABEL',
+          title: childTitle,
+          titleFormat: 'H2',
+          weight: newWeight,
+          isKnockout: false
+        };
+        return {
+          ...prev,
+          layoutBlocks: [...prev.layoutBlocks, newBlock]
+        };
+      }
+    });
+  };
+
   const allFormFields: FormFieldISO[] = extractAllFormFields(selectedForm?.layoutBlocks || []);
   const filteredFormFields = allFormFields.filter(f =>
     (f.checkItem || '').toLowerCase().includes(searchFieldQuery.toLowerCase()) ||
@@ -4000,20 +4056,15 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                           sampleSubmission?.formData
                         );
                         if (!childH2Summary || childH2Summary.length === 0) return null;
-                        const hasDirectElements = childH2Summary.some(item => item.isElement);
 
                         return (
                           <div style={{ borderTop: '1px solid var(--neutral-border)', paddingTop: '0.6rem', marginTop: '2px', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                              TỔNG HỢP ĐIỂM TRỤ CỘT H1
-                            </div>
-
-                            <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', background: '#ffffff', fontSize: '0.72rem' }}>
-                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', padding: '6px 8px', fontWeight: 700, color: '#475569', alignItems: 'center' }}>
-                                <div style={{ gridColumn: 'span 5' }}>{hasDirectElements ? 'Bảng / Phần tử con' : 'Nhóm H2 con'}</div>
+                            <div style={{ border: '1px solid #99f6e4', borderRadius: '8px', overflow: 'hidden', background: '#ffffff', fontSize: '0.72rem' }}>
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', background: '#f0fdfa', borderBottom: '1px solid #99f6e4', padding: '6px 8px', fontWeight: 700, color: '#334155', alignItems: 'center' }}>
+                                <div style={{ gridColumn: 'span 6', color: '#0f766e' }}>Items</div>
                                 <div style={{ gridColumn: 'span 2', textAlign: 'center', color: '#0f766e' }}>isPass</div>
-                                <div style={{ gridColumn: 'span 3', textAlign: 'right', color: '#4338ca' }}>Score</div>
-                                <div style={{ gridColumn: 'span 2', textAlign: 'right', color: '#64748b' }}>Weight</div>
+                                <div style={{ gridColumn: 'span 2', textAlign: 'right', paddingRight: '4px', color: '#4338ca' }}>Score</div>
+                                <div style={{ gridColumn: 'span 2', textAlign: 'right', paddingRight: '2px', color: '#64748b' }}>Weight</div>
                               </div>
 
                               <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -4028,30 +4079,66 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                       borderBottom: idx < childH2Summary.length - 1 ? '1px solid #f1f5f9' : 'none'
                                     }}
                                   >
-                                    <div style={{ gridColumn: 'span 5', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500, color: '#1e293b' }} title={h2Item.h2Title}>
+                                    <div
+                                      onClick={() => {
+                                        if (h2Item.isElement) {
+                                          const allElements = hierarchyGroups.flatMap(h1 => [
+                                            ...(h1.directElements || []),
+                                            ...h1.h2Groups.flatMap(h2 => h2.elements || [])
+                                          ]);
+                                          const matchedEl = allElements.find(el => el.elementTitle.trim().toLowerCase() === h2Item.h2Title.trim().toLowerCase());
+                                          handleSelectElementGroup(h2Item.h2Title, matchedEl ? matchedEl.fields.map(f => f.id) : []);
+                                        } else {
+                                          handleSelectH2Subgroup(h2Item.h2Title);
+                                        }
+                                      }}
+                                      style={{
+                                        gridColumn: 'span 6',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        whiteSpace: 'nowrap',
+                                        fontWeight: 600,
+                                        color: '#0f766e',
+                                        cursor: 'pointer'
+                                      }}
+                                      title={`Click để chuyển sang xem/cấu hình ${h2Item.isElement ? 'Table Properties' : 'H2 Section Properties'} cho: ${h2Item.h2Title}`}
+                                    >
                                       {h2Item.h2Title}
                                     </div>
                                     <div style={{ gridColumn: 'span 2', textAlign: 'center', fontWeight: 700, fontSize: '0.68rem', color: h2Item.isPass ? '#0f766e' : '#e11d48' }}>
                                       {h2Item.isPass ? 'PASS' : 'FAIL'}
                                     </div>
-                                    <div style={{ gridColumn: 'span 3', textAlign: 'right', fontWeight: 700, color: '#0f172a' }}>
+                                    <div style={{ gridColumn: 'span 2', textAlign: 'right', fontWeight: 700, color: '#0f172a', paddingRight: '4px' }}>
                                       {h2Item.score}
                                     </div>
-                                    <div style={{ gridColumn: 'span 2', textAlign: 'right', fontWeight: 600, color: '#64748b' }}>
-                                      {h2Item.weight}%
+                                    <div style={{ gridColumn: 'span 2', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '2px', paddingRight: '2px' }}>
+                                      <SmartNumberInput
+                                        disabled={isLocked}
+                                        value={h2Item.weight}
+                                        min={0}
+                                        max={100}
+                                        onChange={(val) => handleUpdateH1ChildWeight(h2Item.h2Title, h2Item.blockId, val, h2Item.isElement)}
+                                        style={{ width: '32px', fontSize: '0.72rem', height: '22px' }}
+                                      />
+                                      <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#64748b' }}>%</span>
                                     </div>
                                   </div>
                                 ))}
                               </div>
 
-                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', padding: '6px 8px', alignItems: 'center', background: '#f0fdfa', borderTop: '1px solid #ccfbf1' }}>
-                                <div style={{ gridColumn: 'span 5', fontWeight: 700, color: '#0f766e', fontSize: '0.72rem' }}>Tổng Trụ Cột:</div>
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', padding: '6px 8px', alignItems: 'center', background: '#f0fdfa', borderTop: '1px solid #99f6e4' }}>
+                                <div style={{ gridColumn: 'span 6' }}></div>
                                 <div style={{ gridColumn: 'span 2', textAlign: 'center', fontSize: '0.7rem', fontWeight: 700, color: h1CombinedScore.isPass ? '#0f766e' : '#e11d48' }}>
                                   {h1CombinedScore.isPass ? 'PASS' : 'FAIL'}
                                 </div>
-                                <div style={{ gridColumn: 'span 5', textAlign: 'right' }}>
+                                <div style={{ gridColumn: 'span 2', textAlign: 'right', paddingRight: '4px' }}>
                                   <span style={{ fontSize: '0.9rem', fontWeight: 900, color: '#0f766e', lineHeight: 1 }}>
                                     {h1CombinedScore.combinedScore}
+                                  </span>
+                                </div>
+                                <div style={{ gridColumn: 'span 2', textAlign: 'right', paddingRight: '2px' }}>
+                                  <span style={{ fontSize: '0.7rem', fontWeight: 800, color: h1CombinedScore.totalWeight === 100 ? '#059669' : '#d97706' }} title={`Tổng trọng số = ${h1CombinedScore.totalWeight}%`}>
+                                    ∑ {h1CombinedScore.totalWeight}%
                                   </span>
                                 </div>
                               </div>
