@@ -2646,6 +2646,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
             selectedForm ? (
               <FormReferenceCanvas
                 form={selectedForm}
+                sampleSubmission={sampleSubmission}
                 reportBlocks={template.layoutBlocks}
                 selectedFieldId={selectedFieldId}
                 activeBlockId={activeBlockId}

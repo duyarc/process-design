@@ -40,6 +40,30 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-25 — Report Builder: Live Submission Canvas Rendering & formUtils Pure Extraction
+
+**Scope:** 4 files (`src/utils/formUtils.ts`, `src/components/ReportBuilder.tsx`, `src/components/report/FormReferenceCanvas.tsx`, `DESIGN_REPORT_BUILDER.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | ~8 min |
+| Thời gian lập plan (Request → Proceed) | ~3.8 min |
+| Thời gian thực thi (Proceed → Push) | ~4.2 min |
+| Số file nguồn chỉnh sửa | 3 (`formUtils.ts`, `ReportBuilder.tsx`, `FormReferenceCanvas.tsx`) |
+| Tổng lượt edit source | 5 |
+| Lượt edit sửa lỗi (rework) | 1 (lệch dòng replace do thêm code phía trước, đã view_file khắc phục ngay) |
+| Số lần build | 4 (`npx tsc` 3 lần pass + `tsc -b && vite build` 15.44s pass) |
+| Lần build cuối thành công? | Có (100% pass ngay lần đầu) |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- **Đồng bộ 100% giữa Center Canvas và Right Inspector:** Truyền `sampleSubmission` từ `ReportBuilder` vào `FormReferenceCanvas`, giúp hiển thị trực quan các câu trả lời thực tế từ phiếu nộp mẫu: Likert scale hiển thị chấm tròn teal đặc `●` kèm halo ring; Rating hiển thị các ngôi sao vàng đặc `★`; Checkbox/Radio hiển thị tick `[✓]` và `(●)`; Text/Number/Date/Select hiển thị chữ số đậm `#0f172a`.
+- **Pure Utility Extraction (Rule 13.8):** Trích xuất logic bóc tách `extractSubmissionValue`, `isLikertSelected`, `isOptionSelected` vào `src/utils/formUtils.ts` để tái sử dụng xuyên suốt toàn hệ thống.
+- **Null-Safety & Zero Regression:** Khi không có phiếu mẫu, Canvas tự động giữ nguyên chế độ xem mẫu đơn rỗng (Blank Form Preview).
+
+---
+
 ### 2026-09-25 — Report Builder: Elimination of Floating Quick-Select Pill Bar in SmartNumberInput
 
 **Scope:** 4 files (`src/components/common/SmartNumberInput.tsx`, `src/components/report/FieldScoringInspector.tsx`, `src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`)
@@ -260,138 +284,3 @@ Entry mới nhất ở trên cùng. Tối đa 10 entries.
 - **Liên kết 1-1 Độc lập giữa các Khối `INFO_GRID`:** Khớp chính xác từng khối `INFO_GRID` theo `boundFieldIds` và thứ tự khối (thay vì chỉ khớp theo `title`), đồng bộ cả trong DB PostgreSQL (`RP-5C-Scorecard`).
 
 ---
-
-### 2026-09-24 — Report Builder: Section Label H1 & H2 Properties Redesign & Scoring Roll-up Summary
-
-**Scope:** 3 files (`src/utils/reportScoring.ts`, `src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian tổng (Request → Push) | ~18.0 min |
-| Thời gian phân tích (Request → Proceed) | ~8.0 min |
-| Thời gian thực thi (Proceed → Push) | ~10.0 min |
-| Số file nguồn chỉnh sửa | 2 (`reportScoring.ts`, `ReportBuilder.tsx`) |
-| Tổng lượt edit source | 6 |
-| Lượt edit sửa lỗi (rework) | 2 |
-| Số lần build | 3 (2 tsc + 1 vite pass) |
-| Lần build đầu thành công? | Có (100% pass ngay lần đầu) |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Điểm nổi bật:**
-- **Tiêu đề Phân đoạn Động & Badge phân cấp [H1] / [H2]:** Header của Right Inspector tự động hiển thị `H1 SECTION PROPERTIES` với huy hiệu Teal hoặc `H2 SECTION PROPERTIES` với huy hiệu Blue tùy theo `activeBlock.titleFormat`, giải quyết hoàn toàn sự mơ hồ khi xem thuộc tính của nhãn phân đoạn.
-- **Tiêu đề Liền mạch (Seamless Borderless Title Input):** Đặt ngay dưới header kèm icon bút chì `✎`, hỗ trợ click để sửa tên phân đoạn trực tiếp mà không tốn diện tích, đồng bộ phản hồi ngay lập tức trên canvas.
-- **Bộ chuyển đổi Định dạng Tiêu đề (Title Format Pills):** Bổ sung cụm nút chọn viên thuốc `[ H1 | H2 | Body | None ]` cho phép người dùng thay đổi phân cấp trực tiếp ngay từ thanh thuộc tính Inspector.
-- **Thẻ Trọng số 2 Hàng (Structured Weight Card):** Hàng 1 gồm switch `isKnockout (H1)` / `isKnockout (H2)` và nhãn `"Loại trực tiếp"`; Hàng 2 gồm ô nhập `Weight: [ xx ] %` và huy hiệu ngữ cảnh: với H1 là `of [ Toàn bộ Báo cáo ]`, với H2 tự động dò tìm Trụ cột H1 cha để hiển thị `of [ {parentH1ForH2} ]`.
-- **Bảng Tổng hợp Điểm Trụ cột H1 (H1 Combined Scoring Summary Table):** Trích xuất logic tính điểm sang hàm thuần túy `summarizeH1ChildGroups` trong `src/utils/reportScoring.ts` (tuân thủ Rule 13.8). Hiển thị bảng tổng hợp điểm số chi tiết của tất cả các nhóm câu hỏi H2 con và điểm tổng kết có trọng số của toàn bộ Trụ cột H1.
-- **Chất lượng mã nguồn:** `npx tsc --noEmit` pass 100% không lỗi; `npm run build` Vite production bundle thành công trong 18.79s.
-
----
-
-### 2026-09-24 — Report Builder: Table Properties Streamlined Layout (Seamless Title, Combined Border & Header, 2-Row Weight Card)
-
-**Scope:** 2 files (`src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian tổng (Request → Push) | ~12.0 min |
-| Thời gian phân tích (Request → Proceed) | ~8.0 min |
-| Thời gian thực thi (Proceed → Push) | ~4.0 min |
-| Số file nguồn chỉnh sửa | 1 (`ReportBuilder.tsx`) |
-| Tổng lượt edit source | 4 |
-| Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 2 (1 tsc + 1 vite pass) |
-| Lần build đầu thành công? | Có (100% pass ngay lần đầu) |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Điểm nổi bật:**
-- **Tiêu đề bảng Liền mạch (Seamless Borderless Table Name):** Đặt ngay dưới tiêu đề `TABLE PROPERTIES` với icon bút chì `✎`. Bình thường phẳng không viền, khi focus/hover chuyển sang ô nhập có viền teal và shadow sắc nét, hỗ trợ đổi tên trực tiếp vào `layoutBlocks[].title`.
-- **Gộp Border & Header trên cùng 1 hàng ngang (Biến thể 2A):** Rút gọn nhãn `Border Style` thành `"Border"`, tinh gọn nút chọn `[ Grid | Horiz | None ]` và đặt công tắc `Header` (ToggleSwitch) kế bên trên cùng một dòng ngang, tiết kiệm ~24px chiều dọc quý giá cho thanh sidebar inspector.
-- **Cấu trúc Thẻ Trọng số H2 2 hàng (Đồng bộ Field Properties):** Chuyển đổi khối thuộc tính H2 sang định dạng thẻ 2 hàng: Row 1 hiển thị `[ ] isKnockout (H2)` và nhãn `"Loại trực tiếp"`; Row 2 hiển thị ô nhập `Weight: [ xx ] %` và huy hiệu `of [ {parentH1Title} ]` với thuật toán tự động giải quyết Trụ cột H1 cha đa tầng từ `boundFields`, `sectionH2` title matching và `hierarchyGroups`.
-
----
-
-### 2026-09-24 — Report Builder: Smart Target Block Resolution & Auto-Initialization for Field Scoring & Weights
-
-**Scope:** 3 files (`src/components/ReportBuilder.tsx`, `src/components/report/FieldScoringInspector.tsx`, `DESIGN_REPORT_BUILDER.md`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian tổng (Request → Push) | ~13.5 min |
-| Thời gian phân tích (Request → Proceed) | ~9.0 min |
-| Thời gian thực thi (Proceed → Push) | ~4.5 min |
-| Số file nguồn chỉnh sửa | 2 (`ReportBuilder.tsx`, `FieldScoringInspector.tsx`) |
-| Tổng lượt edit source | 5 |
-| Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 3 (2 tsc + 1 vite pass) |
-| Lần build đầu thành công? | Có (100% pass ngay lần đầu) |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Điểm nổi bật:**
-- **Giải quyết triệt để lỗi không chỉnh sửa được Score và Weight:** Xác định chính xác nguyên nhân gốc do `updateRuleOverride` bị silent abort (`if (!targetBlock) return prev;`) khi người dùng chỉnh sửa trường từ Form canvas trước khi thêm khối vào báo cáo (hoặc khi `template.layoutBlocks` rỗng `[]`). Do state không đổi, React controlled input lập tức reset về giá trị mặc định.
-- **Smart Target Block Resolution (5 tầng ưu tiên):** Xây dựng thuật toán phân giải khối thông minh: Ưu tiên 1 (khối đã chứa `fieldId`), Ưu tiên 2 (khối đã có `ruleOverrides`), Ưu tiên 3 (khối Table có tiêu đề trùng `parentGroupTitle`), Ưu tiên 4 (`activeBlock`), và Ưu tiên 5 (**Auto-Initialization**: Tự động tạo khối Table cho nhóm câu hỏi nếu chưa có khối nào trong báo cáo).
-- **Đồng bộ hóa Trạng thái Kích hoạt:** Bổ sung `setActiveBlockId(null)` khi click chọn trường từ Left Panel và gán `key={selectedField.id}` cho `FieldScoringInspector` đảm bảo đồng bộ hoàn hảo giữa canvas và danh sách.
-- **Nhập liệu Mượt mà:** Tinh chỉnh các ô nhập Score và Weight hỗ trợ xóa trắng và gõ số tự do mà không bị kẹt hay cưỡng bức về 0 tức thì.
-- **Chất lượng mã nguồn:** `npx tsc --noEmit` pass 100% không lỗi; `npm run build` Vite production bundle hoàn thành trong 11.91s.
-
----
-
-### 2026-09-24 — Report Builder: Field Properties Weight of Section 2-Row Structured Layout
-
-**Scope:** 2 files (`src/components/report/FieldScoringInspector.tsx`, `DESIGN_REPORT_BUILDER.md`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian tổng (Request → Push) | ~8.0 min |
-| Thời gian lập plan & mockup (Request → Proceed) | ~5.0 min |
-| Thời gian thực thi (Proceed → Push) | ~3.0 min |
-| Số file nguồn chỉnh sửa | 1 (`FieldScoringInspector.tsx`) |
-| Tổng lượt edit source | 1 |
-| Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 2 (1 tsc + 1 vite pass) |
-| Lần build đầu thành công? | Có (100% pass ngay lần đầu) |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Điểm nổi bật:**
-- **Nâng cấp Bố cục Thẻ Thuộc tính Câu hỏi (Field Properties Layout):** Triển khai theo Option 1 được người dùng phê duyệt từ 4 phương án mockup giao diện. Tái cấu trúc thanh thuộc tính dưới cùng thành card 2 hàng phân tầng: Hàng 1 gồm toggle `[ ] isKnockout` kèm phụ đề `"Loại trực tiếp"`; Hàng 2 gồm ô nhập `Weight: [ xx ] %` đi kèm badge ngữ cảnh nhóm cha `of [ {parentGroupTitle} ]` với chữ xanh Teal đậm, có tự động rút gọn `truncate` và `title` tooltip đầy đủ.
-- **Tối ưu Không gian Thanh bên:** Giải quyết triệt để vấn đề chật chội trên Right Inspector (~310px) khi tên nhóm cha dài, giữ bố cục thoáng đãng và trực quan.
-- **Chất lượng mã nguồn:** `npx tsc --noEmit` pass 100% không lỗi; `npm run build` Vite production bundle thành công trong 12.84s.
-
----
-
-### 2026-09-24 — Report Builder: Interactive Canvas Selection for Table Properties & H2 Group Headers
-
-**Scope:** 3 files (`src/components/report/FormReferenceCanvas.tsx`, `src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian tổng (Request → Push) | ~7.0 min |
-| Thời gian lập plan (Request → Proceed) | ~2.5 min |
-| Thời gian thực thi (Proceed → Push) | ~4.5 min |
-| Số file nguồn chỉnh sửa | 2 (`FormReferenceCanvas.tsx`, `ReportBuilder.tsx`) |
-| Tổng lượt edit source | 5 |
-| Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 3 (2 tsc + 1 vite pass) |
-| Lần build đầu thành công? | Có (100% pass ngay lần đầu) |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Điểm nổi bật:**
-- **Giải quyết triệt để lỗi chọn Table Properties từ Canvas:** Khắc phục lỗi click dòng tiêu đề nhóm bảng (`row.isGroupHeader`) hoặc tiêu đề bảng chỉ gửi ID form block cũ khiến `activeBlock` bị `undefined`. Xây dựng `handleSelectTableGroupFromCanvas` liên kết chính xác tên nhóm với `hierarchyGroups` và gọi `handleSelectH2Subgroup` đồng bộ 100% với Left Panel.
-- **Tương tác 2 Chiều Form Canvas & Report Canvas:** Hỗ trợ click vào dòng tiêu đề nhóm hoặc tiêu đề bảng/thead để mở ngay `Table Properties` bên Right Inspector; click vào tiêu đề phân đoạn H1 mở ngay `Section Label Properties`.
-- **Chỉ báo trực quan nổi bật:** Dòng tiêu đề nhóm trên Form canvas hiển thị viền nổi bật `borderLeft: 4px solid #2563eb`, nền `#eff6ff` và text xanh đậm khi nhóm tương ứng đang active; con trỏ chuột chuyển sang `cursor: 'pointer'`.
-- **Đồng bộ hóa trên Report Canvas:** Nâng cấp `InCanvasTitleHeader`, block wrapper và `<thead>` xóa sạch `selectedFieldId = null` và chuyển sang `setRightTab('properties')`, giúp người dùng dễ dàng chuyển đổi linh hoạt giữa `FIELD PROPERTIES` của câu hỏi con và `Table Properties` của bảng cha.
-- **Chất lượng mã nguồn:** `npx tsc --noEmit` pass 100% không lỗi; `npm run build` Vite production bundle thành công trong 19.70s.
-
-
-
-
-
-
-
-
-
-

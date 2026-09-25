@@ -1,5 +1,5 @@
 import React from 'react';
-import type { FormTemplateISO, LayoutBlockISO, FormFieldISO, SubtableColumn, ReportBlockConfig } from '../../types';
+import type { FormTemplateISO, LayoutBlockISO, FormFieldISO, SubtableColumn, ReportBlockConfig, Submission } from '../../types';
 import { formatFormVersion, getColStyleWidth } from '../../types';
 import {
   getEffectiveTitleFormat,
@@ -8,7 +8,10 @@ import {
   getAutoCheckboxLayoutMode,
   hasLongOptions,
   getEffectiveCellOptions,
-  canTableOptionsFitInline
+  canTableOptionsFitInline,
+  extractSubmissionValue,
+  isLikertSelected,
+  isOptionSelected
 } from '../../utils/formUtils';
 import { renderFormattedText } from '../../utils/textFormatter';
 import { getTableFieldId, getTableRowPrimaryFieldId, isFieldInTableRow } from '../../utils/tableFieldExtractor';
@@ -16,6 +19,7 @@ import { FileText, ChevronDown, Star } from 'lucide-react';
 
 interface FormReferenceCanvasProps {
   form: FormTemplateISO;
+  sampleSubmission?: Submission | null;
   reportBlocks?: ReportBlockConfig[];
   selectedFieldId: string | null;
   activeBlockId?: string | null;
@@ -29,6 +33,7 @@ interface FormReferenceCanvasProps {
 
 export const FormReferenceCanvas: React.FC<FormReferenceCanvasProps> = ({
   form,
+  sampleSubmission,
   reportBlocks,
   selectedFieldId,
   activeBlockId,
@@ -91,6 +96,9 @@ export const FormReferenceCanvas: React.FC<FormReferenceCanvasProps> = ({
   };
 
   const renderFieldValue = (f: FormFieldISO, block: LayoutBlockISO) => {
+    const subVal = extractSubmissionValue(sampleSubmission, f.id);
+    const hasSubVal = subVal !== undefined && subVal !== null && subVal !== '';
+
     if (f.type === 'photo') {
       return (
         <div style={{
@@ -119,14 +127,15 @@ export const FormReferenceCanvas: React.FC<FormReferenceCanvasProps> = ({
             width: '100%',
             padding: '3px 6px',
             fontSize: '0.78rem',
-            fontStyle: 'italic',
-            color: f.placeholder ? '#475569' : '#94a3b8',
-            background: '#f8fafc',
-            border: '1px dashed #cbd5e1',
+            fontStyle: hasSubVal ? 'normal' : 'italic',
+            fontWeight: hasSubVal ? 600 : 400,
+            color: hasSubVal ? '#0f172a' : f.placeholder ? '#475569' : '#94a3b8',
+            background: hasSubVal ? '#f0fdfa' : '#f8fafc',
+            border: hasSubVal ? '1px solid var(--primary)' : '1px dashed #cbd5e1',
             borderRadius: '4px',
             boxSizing: 'border-box'
           }}>
-            {f.placeholder || (f.type === 'number' ? '[0]' : '[Nhập chữ...]')}
+            {hasSubVal ? String(subVal) : (f.placeholder || (f.type === 'number' ? '[0]' : '[Nhập chữ...]'))}
           </div>
         </div>
       );
@@ -139,14 +148,15 @@ export const FormReferenceCanvas: React.FC<FormReferenceCanvasProps> = ({
             width: '100%',
             padding: '3px 6px',
             fontSize: '0.78rem',
-            fontStyle: 'italic',
-            color: '#94a3b8',
-            background: '#f8fafc',
-            border: '1px dashed #cbd5e1',
+            fontStyle: hasSubVal ? 'normal' : 'italic',
+            fontWeight: hasSubVal ? 600 : 400,
+            color: hasSubVal ? '#0f172a' : '#94a3b8',
+            background: hasSubVal ? '#f0fdfa' : '#f8fafc',
+            border: hasSubVal ? '1px solid var(--primary)' : '1px dashed #cbd5e1',
             borderRadius: '4px',
             boxSizing: 'border-box'
           }}>
-            {f.type === 'date' ? '[DD/MM/YYYY]' : f.timeMode === 'dual' ? '[Từ] ~ [Đến]' : '[HH:MM]'}
+            {hasSubVal ? String(subVal) : (f.type === 'date' ? '[DD/MM/YYYY]' : f.timeMode === 'dual' ? '[Từ] ~ [Đến]' : '[HH:MM]')}
           </div>
         </div>
       );
@@ -156,13 +166,25 @@ export const FormReferenceCanvas: React.FC<FormReferenceCanvasProps> = ({
       const isStars = f.likertVariant === 'stars' || (f.type as any) === 'rating';
       if (isStars) {
         const scale = f.ratingScale === 3 ? 3 : 5;
+        const currentRating = parseInt(String(subVal), 10) || 0;
         return (
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '6px', paddingTop: '2px' }}>
-            {Array.from({ length: scale }).map((_, idx) => (
-              <Star key={idx} size={16} style={{ color: '#f59e0b', fill: '#fef3c7', strokeWidth: 1.5 }} />
-            ))}
-            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginLeft: '4px', fontWeight: 500 }}>
-              ({scale} sao)
+            {Array.from({ length: scale }).map((_, idx) => {
+              const isFilled = currentRating > 0 && idx < currentRating;
+              return (
+                <Star
+                  key={idx}
+                  size={16}
+                  style={{
+                    color: isFilled ? '#f59e0b' : '#cbd5e1',
+                    fill: isFilled ? '#f59e0b' : '#fef3c7',
+                    strokeWidth: 1.5
+                  }}
+                />
+              );
+            })}
+            <span style={{ fontSize: '0.72rem', color: currentRating > 0 ? '#0f172a' : 'var(--text-muted)', marginLeft: '4px', fontWeight: currentRating > 0 ? 700 : 500 }}>
+              {currentRating > 0 ? `(${currentRating}/${scale} sao)` : `(${scale} sao)`}
             </span>
           </div>
         );
@@ -170,12 +192,27 @@ export const FormReferenceCanvas: React.FC<FormReferenceCanvasProps> = ({
       const scales = f.scaleOptions && f.scaleOptions.length > 0 ? f.scaleOptions : ['1', '2', '3', '4', '5'];
       return (
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '4px', marginTop: '6px', paddingTop: '2px', width: '100%', overflowX: 'auto' }}>
-          {scales.map((opt, idx) => (
-            <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', flex: 1, minWidth: '32px', textAlign: 'center' }}>
-              <span style={{ fontSize: '0.68rem', color: '#334155', fontWeight: 600 }}>{opt}</span>
-              <span style={{ display: 'inline-block', width: '13px', height: '13px', borderRadius: '50%', border: '1.5px solid #64748b', background: '#ffffff' }} />
-            </div>
-          ))}
+          {scales.map((opt, idx) => {
+            const isSelected = isLikertSelected(subVal, opt, idx);
+            return (
+              <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', flex: 1, minWidth: '32px', textAlign: 'center' }}>
+                <span style={{ fontSize: '0.68rem', color: isSelected ? 'var(--primary)' : '#334155', fontWeight: isSelected ? 800 : 600 }}>{opt}</span>
+                <span style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '13px',
+                  height: '13px',
+                  borderRadius: '50%',
+                  border: `1.5px solid ${isSelected ? 'var(--primary)' : '#64748b'}`,
+                  background: isSelected ? 'var(--primary)' : '#ffffff',
+                  boxShadow: isSelected ? '0 0 0 2px rgba(13, 148, 136, 0.2)' : 'none'
+                }}>
+                  {isSelected && <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#ffffff' }} />}
+                </span>
+              </div>
+            );
+          })}
         </div>
       );
     }
@@ -197,20 +234,31 @@ export const FormReferenceCanvas: React.FC<FormReferenceCanvasProps> = ({
           paddingLeft: isOptionC ? '0.5rem' : '0',
           maxWidth: '100%'
         }}>
-          {options.map((opt: any, optIdx: number) => (
-            <span key={opt.value || optIdx} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.78rem', color: '#334155' }}>
-              <span style={{
-                display: 'inline-block',
-                width: '12px',
-                height: '12px',
-                border: '1.5px solid #64748b',
-                borderRadius: f.type === 'radio' ? '50%' : '2px',
-                background: '#ffffff',
-                flexShrink: 0
-              }} />
-              <span>{opt.label}</span>
-            </span>
-          ))}
+          {options.map((opt: any, optIdx: number) => {
+            const isChecked = isOptionSelected(subVal, opt.value || opt.label, f.type);
+            return (
+              <span key={opt.value || optIdx} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.78rem', color: isChecked ? 'var(--primary)' : '#334155', fontWeight: isChecked ? 700 : 400 }}>
+                <span style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '12px',
+                  height: '12px',
+                  border: `1.5px solid ${isChecked ? 'var(--primary)' : '#64748b'}`,
+                  borderRadius: f.type === 'radio' ? '50%' : '2px',
+                  background: isChecked ? 'var(--primary)' : '#ffffff',
+                  boxShadow: isChecked ? '0 0 0 2px rgba(13, 148, 136, 0.2)' : 'none',
+                  color: '#ffffff',
+                  fontSize: '8px',
+                  fontWeight: 900,
+                  flexShrink: 0
+                }}>
+                  {isChecked && f.type === 'checkbox' ? '✓' : isChecked && f.type === 'radio' ? <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#ffffff' }} /> : null}
+                </span>
+                <span>{opt.label}</span>
+              </span>
+            );
+          })}
         </div>
       );
     }
@@ -224,15 +272,16 @@ export const FormReferenceCanvas: React.FC<FormReferenceCanvasProps> = ({
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: '4px 8px',
-            border: '1px solid #cbd5e1',
+            border: hasSubVal ? '1px solid var(--primary)' : '1px solid #cbd5e1',
             borderRadius: '4px',
-            background: '#f8fafc',
-            color: '#64748b',
+            background: hasSubVal ? '#f0fdfa' : '#f8fafc',
+            color: hasSubVal ? '#0f172a' : '#64748b',
+            fontWeight: hasSubVal ? 600 : 400,
             fontSize: '0.78rem',
             width: '100%'
           }}>
-            <span>{f.placeholder || (options.length > 0 ? `-- Chọn (${options.length} mục) --` : '-- Chọn --')}</span>
-            <ChevronDown size={14} style={{ color: '#94a3b8' }} />
+            <span>{hasSubVal ? String(subVal) : f.placeholder || (options.length > 0 ? `-- Chọn (${options.length} mục) --` : '-- Chọn --')}</span>
+            <ChevronDown size={14} style={{ color: hasSubVal ? 'var(--primary)' : '#94a3b8' }} />
           </div>
         </div>
       );
@@ -772,6 +821,9 @@ export const FormReferenceCanvas: React.FC<FormReferenceCanvasProps> = ({
                                 }}
                               >
                                 {tableCols.map((col, cIdx) => {
+                                  const cellFieldId = getTableFieldId(block.id, row.id, col.id);
+                                  const subVal = extractSubmissionValue(sampleSubmission, cellFieldId);
+                                  const hasSubVal = subVal !== undefined && subVal !== null && subVal !== '';
                                   const cellOptions = getEffectiveCellOptions(block.cellOptionsMap, row.id, col.id, col.options);
                                   const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'date' || col.type === 'time' || col.type === 'likert_scale' ? 'center' : 'left'));
                                   const rowData = block.tableData?.[row.id] || {};
@@ -785,34 +837,88 @@ export const FormReferenceCanvas: React.FC<FormReferenceCanvasProps> = ({
                                     const canInline = canTableOptionsFitInline(opts, col.width, col.checkboxLayout);
                                     content = (
                                       <div style={{ display: 'flex', flexDirection: canInline ? 'row' : 'column', gap: canInline ? '8px' : '3px', alignItems: canInline ? 'center' : 'flex-start', flexWrap: 'wrap', justifyContent: cellAlign === 'center' ? 'center' : 'flex-start' }}>
-                                        {opts.map((opt, oIdx) => (
-                                          <span key={oIdx} style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '0.72rem', color: '#334155' }}>
-                                            <span style={{ display: 'inline-block', width: '11px', height: '11px', borderRadius: col.type === 'radio' ? '50%' : '2px', border: '1.2px solid #64748b', background: '#fff' }} />
-                                            <span>{opt.label}</span>
-                                          </span>
-                                        ))}
+                                        {opts.map((opt, oIdx) => {
+                                          const isChecked = isOptionSelected(subVal, opt.value || opt.label, col.type);
+                                          return (
+                                            <span key={oIdx} style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '0.72rem', color: isChecked ? 'var(--primary)' : '#334155', fontWeight: isChecked ? 700 : 400 }}>
+                                              <span style={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                width: '11px',
+                                                height: '11px',
+                                                borderRadius: col.type === 'radio' ? '50%' : '2px',
+                                                border: `1.2px solid ${isChecked ? 'var(--primary)' : '#64748b'}`,
+                                                background: isChecked ? 'var(--primary)' : '#fff',
+                                                boxShadow: isChecked ? '0 0 0 2px rgba(13, 148, 136, 0.2)' : 'none',
+                                                color: '#fff',
+                                                fontSize: '8px',
+                                                fontWeight: 900
+                                              }}>
+                                                {isChecked && col.type === 'checkbox' ? '✓' : isChecked && col.type === 'radio' ? <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#fff' }} /> : null}
+                                              </span>
+                                              <span>{opt.label}</span>
+                                            </span>
+                                          );
+                                        })}
                                       </div>
                                     );
                                   } else if (col.type === 'rating') {
                                     const scale = col.ratingScale === 3 ? 3 : 5;
+                                    const currentRating = parseInt(String(subVal), 10) || 0;
                                     content = (
                                       <div style={{ display: 'flex', justifyContent: cellAlign === 'center' ? 'center' : 'flex-start', gap: '2px' }}>
-                                        {Array.from({ length: scale }).map((_, sIdx) => (
-                                          <Star key={sIdx} size={13} style={{ color: '#f59e0b', fill: '#fef3c7' }} />
-                                        ))}
+                                        {Array.from({ length: scale }).map((_, sIdx) => {
+                                          const isFilled = currentRating > 0 && sIdx < currentRating;
+                                          return (
+                                            <Star
+                                              key={sIdx}
+                                              size={13}
+                                              style={{
+                                                color: isFilled ? '#f59e0b' : '#94a3b8',
+                                                fill: isFilled ? '#f59e0b' : '#fef3c7'
+                                              }}
+                                            />
+                                          );
+                                        })}
                                       </div>
                                     );
                                   } else if (col.type === 'likert_scale') {
                                     const count = (col.scaleOptions || []).length || 3;
+                                    const scales = col.scaleOptions && col.scaleOptions.length > 0 ? col.scaleOptions : Array.from({ length: count }, (_, i) => String(i + 1));
                                     content = (
                                       <div style={{ display: 'grid', gridTemplateColumns: `repeat(${count}, 1fr)`, gap: '4px', textAlign: 'center' }}>
-                                        {Array.from({ length: count }).map((_, lIdx) => (
-                                          <div key={lIdx} style={{ display: 'flex', justifyContent: 'center' }}>
-                                            <span style={{ display: 'inline-block', width: '12px', height: '12px', borderRadius: '50%', border: '1.2px solid #64748b', background: '#fff' }} />
-                                          </div>
-                                        ))}
+                                        {scales.map((opt, lIdx) => {
+                                          const isSelected = isLikertSelected(subVal, opt, lIdx);
+                                          return (
+                                            <div key={lIdx} style={{ display: 'flex', justifyContent: 'center' }}>
+                                              {isSelected ? (
+                                                <span
+                                                  style={{
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    width: '13px',
+                                                    height: '13px',
+                                                    borderRadius: '50%',
+                                                    border: '1.5px solid var(--primary)',
+                                                    background: 'var(--primary)',
+                                                    boxShadow: '0 0 0 2px rgba(13, 148, 136, 0.2)'
+                                                  }}
+                                                  title={`Đã chọn: ${opt}`}
+                                                >
+                                                  <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#ffffff' }} />
+                                                </span>
+                                              ) : (
+                                                <span style={{ display: 'inline-block', width: '12px', height: '12px', borderRadius: '50%', border: '1.2px solid #64748b', background: '#fff' }} />
+                                              )}
+                                            </div>
+                                          );
+                                        })}
                                       </div>
                                     );
+                                  } else if (hasSubVal) {
+                                    content = <span style={{ color: '#0f172a', fontWeight: 600 }}>{String(subVal)}</span>;
                                   } else if (col.type === 'select') {
                                     content = <span style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '0.7rem' }}>-- Chọn --</span>;
                                   } else if (col.type === 'date') {
@@ -827,7 +933,6 @@ export const FormReferenceCanvas: React.FC<FormReferenceCanvasProps> = ({
                                     content = <span style={{ color: '#cbd5e1', fontStyle: 'italic', fontSize: '0.7rem' }}>—</span>;
                                   }
 
-                                  const cellFieldId = getTableFieldId(block.id, row.id, col.id);
                                   const isCellInput = col.type !== 'static_text' && col.id !== 'col_stt' && col.label?.toLowerCase() !== 'stt';
                                   const isCellActive = selectedFieldId === cellFieldId;
 
@@ -946,20 +1051,34 @@ export const FormReferenceCanvas: React.FC<FormReferenceCanvasProps> = ({
                                 <td style={{ padding: '4px 6px', color: 'var(--text-secondary)', textAlign: 'center' }}>{f.unit || ''}</td>
                                 <td style={{ padding: '4px 6px', color: 'var(--text-secondary)' }}>{specText}</td>
                                 <td style={{ padding: '4px 6px', textAlign: 'center' }}>
-                                  {(f.type === 'radio' || f.type === 'checkbox') ? (
-                                    <div style={{ display: 'flex', justifyContent: 'center', gap: '4px', flexWrap: 'wrap' }}>
-                                      {(f.options ?? [{ label: 'Đạt', value: 'PASS' }, { label: 'KĐ', value: 'FAIL' }]).map(opt => (
-                                        <span key={opt.value} style={{
-                                          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                                          padding: '0 5px', height: '16px', borderRadius: '8px',
-                                          border: '1px solid #cbd5e1', fontSize: '0.6rem',
-                                          color: 'var(--text-secondary)', whiteSpace: 'nowrap'
-                                        }}>{opt.label}</span>
-                                      ))}
-                                    </div>
-                                  ) : (
-                                    <span style={{ color: 'var(--text-muted)', fontSize: '0.65rem' }}>{f.type}</span>
-                                  )}
+                                  {(() => {
+                                    const chkVal = extractSubmissionValue(sampleSubmission, f.id);
+                                    if (f.type === 'radio' || f.type === 'checkbox') {
+                                      return (
+                                        <div style={{ display: 'flex', justifyContent: 'center', gap: '4px', flexWrap: 'wrap' }}>
+                                          {(f.options ?? [{ label: 'Đạt', value: 'PASS' }, { label: 'KĐ', value: 'FAIL' }]).map(opt => {
+                                            const isChecked = isOptionSelected(chkVal, opt.value || opt.label, f.type);
+                                            return (
+                                              <span key={opt.value} style={{
+                                                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                                                padding: '0 5px', height: '16px', borderRadius: '8px',
+                                                border: `1px solid ${isChecked ? 'var(--primary)' : '#cbd5e1'}`, fontSize: '0.6rem',
+                                                background: isChecked ? 'var(--primary)' : 'transparent',
+                                                color: isChecked ? '#ffffff' : 'var(--text-secondary)',
+                                                fontWeight: isChecked ? 700 : 500,
+                                                boxShadow: isChecked ? '0 0 0 1.5px rgba(13, 148, 136, 0.2)' : 'none',
+                                                whiteSpace: 'nowrap'
+                                              }}>{opt.label}</span>
+                                            );
+                                          })}
+                                        </div>
+                                      );
+                                    }
+                                    if (chkVal !== undefined && chkVal !== null && chkVal !== '') {
+                                      return <span style={{ color: '#0f172a', fontWeight: 600, fontSize: '0.75rem' }}>{String(chkVal)}</span>;
+                                    }
+                                    return <span style={{ color: 'var(--text-muted)', fontSize: '0.65rem' }}>{f.type}</span>;
+                                  })()}
                                 </td>
                                 <td style={{ padding: '4px 6px', borderLeft: '1px solid #e2e8f0', color: 'var(--text-muted)', fontStyle: 'italic', fontSize: '0.65rem' }}>
                                   {f.reactionProtocol || ''}

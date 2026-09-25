@@ -1,4 +1,4 @@
-import type { FormFieldISO, TitleFormatISO, LayoutBlockISO, RadioOption, ProcessStep, LinkedWorkStepInfo } from '../types';
+import type { FormFieldISO, TitleFormatISO, LayoutBlockISO, RadioOption, ProcessStep, LinkedWorkStepInfo, Submission } from '../types';
 
 /**
  * Automatically determines whether a checkbox or radio field should render using
@@ -993,3 +993,58 @@ export function linkDuplicatedFormToSteps(
     };
   });
 }
+
+/**
+ * Trích xuất giá trị trường từ Submission formData (hỗ trợ cả dạng Object và Array snapshot)
+ * Tuân thủ Rule 13.8 (Pure Utility Extraction Invariant).
+ */
+export function extractSubmissionValue(
+  submission: Submission | null | undefined,
+  fieldId: string | null | undefined
+): any {
+  if (!submission || !fieldId) return undefined;
+  const subData = submission.formData || (submission as any).form_data;
+  if (!subData) return undefined;
+  if (Array.isArray(subData)) {
+    const match = subData.find((item: any) => item.id === fieldId || item.fieldId === fieldId);
+    return match ? match.value : undefined;
+  }
+  if (typeof subData === 'object') {
+    return subData[fieldId];
+  }
+  return undefined;
+}
+
+/**
+ * Kiểm tra xem giá trị Likert có khớp với Option quy định không (so khớp text hoặc index)
+ * Tuân thủ Rule 13.8 (Pure Utility Extraction Invariant).
+ */
+export function isLikertSelected(cellVal: any, opt: string, optIndex: number): boolean {
+  if (cellVal === undefined || cellVal === null || cellVal === '') return false;
+  const cleanVal = String(cellVal).trim();
+  const cleanOpt = String(opt).trim();
+  if (cleanVal === cleanOpt) return true;
+  if (cleanVal.toLowerCase() === cleanOpt.toLowerCase()) return true;
+  if (cleanVal === String(optIndex) || cleanVal === String(optIndex + 1)) return true;
+  return false;
+}
+
+/**
+ * Kiểm tra xem option checkbox hoặc radio có được chọn không
+ * Tuân thủ Rule 13.8 (Pure Utility Extraction Invariant).
+ */
+export function isOptionSelected(
+  fieldValue: any,
+  optValue: string,
+  colType?: 'radio' | 'checkbox' | string
+): boolean {
+  if (fieldValue === undefined || fieldValue === null || fieldValue === '') return false;
+  const cleanVal = String(fieldValue).trim();
+  const cleanOpt = String(optValue).trim();
+  if (colType === 'radio') {
+    return cleanVal.toLowerCase() === cleanOpt.toLowerCase();
+  }
+  const parts = cleanVal.split(',').map(v => v.trim().toLowerCase());
+  return parts.includes(cleanOpt.toLowerCase());
+}
+
