@@ -679,8 +679,12 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
   const [searchFieldQuery, setSearchFieldQuery] = useState<string>('');
   const [isFieldsTrayOpen, setIsFieldsTrayOpen] = useState<boolean>(false);
   const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState<boolean>(true);
-  const [fieldPickerBlockId, setFieldPickerBlockId] = useState<string | null>(null);
-  const [fieldPickerSearch, setFieldPickerSearch] = useState<string>('');
+  const [isDraggingField, setIsDraggingField] = useState<boolean>(false);
+  const [dragOverBlockId, setDragOverBlockId] = useState<string | null>(null);
+
+  const getFieldUsageCount = (fieldId: string): number => {
+    return template.layoutBlocks.reduce((acc, b) => acc + ((b.boundFieldIds || []).includes(fieldId) ? 1 : 0), 0);
+  };
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
   const [autoExportPdf, setAutoExportPdf] = useState<boolean>(false);
   const sectionDescRef = useRef<HTMLTextAreaElement>(null);
@@ -2413,11 +2417,23 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', paddingLeft: '10px', borderLeft: '1.5px dashed #cbd5e1', marginLeft: '5px' }}>
                             {elGroup.fields.map(field => {
                               const isBoundToActive = activeBlock?.boundFieldIds?.includes(field.id);
+                              const usageCount = getFieldUsageCount(field.id);
                               const badgeStyle = getFieldBadgeStyle(field.type);
                               const isSelected = selectedFieldId === field.id;
                               return (
                                 <div
                                   key={field.id}
+                                  draggable={true}
+                                  onDragStart={(e) => {
+                                    e.dataTransfer.setData('text/plain', field.id);
+                                    e.dataTransfer.setData('application/json', JSON.stringify({ fieldId: field.id }));
+                                    e.dataTransfer.effectAllowed = 'copy';
+                                    setIsDraggingField(true);
+                                  }}
+                                  onDragEnd={() => {
+                                    setIsDraggingField(false);
+                                    setDragOverBlockId(null);
+                                  }}
                                   onClick={() => {
                                     setSelectedFieldId(field.id);
                                     setActiveBlockId(null);
@@ -2436,22 +2452,42 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                       : isBoundToActive
                                       ? '#eff6ff'
                                       : '#ffffff',
-                                    cursor: 'pointer',
+                                    cursor: 'grab',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'space-between',
                                     fontSize: '0.73rem',
-                                    gap: '0.4rem',
+                                    gap: '0.35rem',
                                     transition: 'all 0.1s',
                                     boxShadow: isSelected ? '0 1px 3px rgba(13, 148, 136, 0.15)' : 'none'
                                   }}
-                                  title={`Click để xem chi tiết trường (${field.id})`}
+                                  title={`Kéo thả vào bảng/lưới hoặc click xem chi tiết (${field.id})`}
                                 >
-                                  <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                                  <span style={{ color: '#94a3b8', fontSize: '0.85rem', cursor: 'grab', userSelect: 'none', lineHeight: 1, flexShrink: 0 }}>
+                                    ⠿
+                                  </span>
+                                  <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, minWidth: 0 }}>
                                     <div style={{ fontWeight: isSelected ? 600 : 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                       {field.checkItem || field.id}
                                     </div>
                                   </div>
+                                  {usageCount >= 1 && (
+                                    <span
+                                      style={{
+                                        fontSize: '0.62rem',
+                                        padding: '1px 5px',
+                                        borderRadius: '10px',
+                                        background: '#e0f2fe',
+                                        color: '#0369a1',
+                                        fontWeight: 700,
+                                        border: '1px solid #bae6fd',
+                                        flexShrink: 0
+                                      }}
+                                      title={`Đã gán vào ${usageCount} vị trí trong báo cáo`}
+                                    >
+                                      x{usageCount}
+                                    </span>
+                                  )}
                                   <span style={{
                                     fontSize: '0.58rem',
                                     padding: '0.08rem 0.28rem',
@@ -2778,6 +2814,9 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
             ) : (
               template.layoutBlocks.map((block, idx) => {
                 const isActive = block.id === activeBlockId;
+                const isDroppable = block.type === 'INFO_GRID' || block.type === 'TABLE';
+                const isDragOverThis = dragOverBlockId === block.id;
+
                 return (
                   <div
                     key={block.id}
@@ -2787,12 +2826,47 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                       setSelectedFieldId(null);
                       setRightTab('properties');
                     }}
+                    onDragOver={(e) => {
+                      if (isDroppable) {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = 'copy';
+                        if (dragOverBlockId !== block.id) {
+                          setDragOverBlockId(block.id);
+                        }
+                      }
+                    }}
+                    onDragLeave={(e) => {
+                      if (isDroppable) {
+                        if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+                        setDragOverBlockId(null);
+                      }
+                    }}
+                    onDrop={(e) => {
+                      if (isDroppable) {
+                        e.preventDefault();
+                        setDragOverBlockId(null);
+                        setIsDraggingField(false);
+                        const fieldId = e.dataTransfer.getData('text/plain');
+                        if (fieldId) {
+                          addFieldToBlock(block.id, fieldId);
+                          setActiveBlockId(block.id);
+                        }
+                      }
+                    }}
                     style={{
-                      border: isActive ? '2px solid var(--primary)' : '1px dashed #cbd5e1',
+                      border: isDragOverThis
+                        ? '2px dashed var(--primary)'
+                        : isActive
+                        ? '2px solid var(--primary)'
+                        : '1px dashed #cbd5e1',
                       borderRadius: '4px',
                       padding: '0.5rem',
                       position: 'relative',
-                      background: isActive ? 'rgba(16, 163, 163, 0.02)' : '#ffffff',
+                      background: isDragOverThis
+                        ? 'rgba(13, 148, 136, 0.05)'
+                        : isActive
+                        ? 'rgba(16, 163, 163, 0.02)'
+                        : '#ffffff',
                       transition: 'all 0.15s ease'
                     }}
                   >
@@ -2950,8 +3024,23 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
 
                           {/* Grid Container */}
                           {(!block.boundFieldIds || block.boundFieldIds.length === 0) ? (
-                            <div style={{ padding: '1rem', border: '1.5px dashed #cbd5e1', borderRadius: '6px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.8rem', background: '#f8fafc' }}>
-                              + Nhấp chọn các trường từ danh mục <strong>FIELDS</strong> bên trái để nạp vào khung lưới này
+                            <div
+                              style={{
+                                padding: '1.25rem 1rem',
+                                border: isDragOverThis ? '2px dashed var(--primary)' : '1.5px dashed #94a3b8',
+                                borderRadius: '6px',
+                                textAlign: 'center',
+                                color: isDragOverThis ? 'var(--primary)' : '#64748b',
+                                fontSize: '0.8rem',
+                                background: isDragOverThis ? '#f0fdfa' : '#f8fafc',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '6px',
+                                transition: 'all 0.15s ease'
+                              }}
+                            >
+                              <Plus size={15} /> Thả vào đây
                             </div>
                           ) : (
                             <div style={{
@@ -3112,35 +3201,28 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                   </div>
                                 );
                               })}
-                              {/* Slot + Thêm trường trực tiếp trên Canvas */}
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setActiveBlockId(block.id);
-                                  setFieldPickerBlockId(block.id);
-                                  setFieldPickerSearch('');
-                                }}
-                                style={{
-                                  border: '1.5px dashed var(--primary)',
-                                  borderRadius: '4px',
-                                  padding: '6px 8px',
-                                  background: '#f0fdfa',
-                                  color: 'var(--primary)',
-                                  fontSize: '0.72rem',
-                                  fontWeight: 600,
-                                  cursor: 'pointer',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  gap: '4px',
-                                  minHeight: '48px',
-                                  transition: 'all 0.15s ease'
-                                }}
-                                title="Nhấp để thêm trường vào lưới này"
-                              >
-                                <Plus size={13} /> Thêm trường
-                              </button>
+                              {/* Option 4 Adaptive Drag Drop Slot */}
+                              {isDraggingField && (
+                                <div
+                                  style={{
+                                    border: isDragOverThis ? '2px dashed var(--primary)' : '1.5px dashed #0d9488',
+                                    borderRadius: '4px',
+                                    padding: '6px 8px',
+                                    background: isDragOverThis ? '#ccfbf1' : '#f0fdfa',
+                                    color: 'var(--primary)',
+                                    fontSize: '0.75rem',
+                                    fontWeight: 600,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '6px',
+                                    minHeight: '42px',
+                                    transition: 'all 0.15s ease'
+                                  }}
+                                >
+                                  <Plus size={14} /> Thả vào đây
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
@@ -3179,34 +3261,23 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                           />
 
                           {(!block.boundFieldIds || block.boundFieldIds.length === 0) ? (
-                            <div style={{ padding: '1rem', border: '1.5px dashed #cbd5e1', borderRadius: '6px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.8rem', background: '#f8fafc' }}>
-                              <div style={{ marginBottom: '6px' }}>Chưa có tiêu chí nào trong bảng đánh giá này.</div>
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setActiveBlockId(block.id);
-                                  setSelectedFieldId(null);
-                                  setRightTab('properties');
-                                  setFieldPickerBlockId(block.id);
-                                  setFieldPickerSearch('');
-                                }}
-                                style={{
-                                  padding: '4px 10px',
-                                  border: '1px solid var(--primary)',
-                                  borderRadius: '4px',
-                                  background: 'var(--primary)',
-                                  color: '#ffffff',
-                                  fontSize: '0.72rem',
-                                  fontWeight: 600,
-                                  cursor: 'pointer',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '4px'
-                                }}
-                              >
-                                <Plus size={12} /> Thêm trường
-                              </button>
+                            <div
+                              style={{
+                                padding: '1.25rem 1rem',
+                                border: isDragOverThis ? '2px dashed var(--primary)' : '1.5px dashed #94a3b8',
+                                borderRadius: '6px',
+                                textAlign: 'center',
+                                color: isDragOverThis ? 'var(--primary)' : '#64748b',
+                                fontSize: '0.8rem',
+                                background: isDragOverThis ? '#f0fdfa' : '#f8fafc',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '6px',
+                                transition: 'all 0.15s ease'
+                              }}
+                            >
+                              <Plus size={15} /> Thả vào đây
                             </div>
                           ) : (
                             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem', border: tableBorder }}>
@@ -3300,40 +3371,33 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                   );
                                 })}
                               </tbody>
-                              <tfoot>
-                                <tr>
-                                  <td colSpan={6} style={{ padding: '4px 0 0 0' }}>
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setActiveBlockId(block.id);
-                                        setFieldPickerBlockId(block.id);
-                                        setFieldPickerSearch('');
-                                      }}
-                                      style={{
-                                        width: '100%',
-                                        padding: '4px 8px',
-                                        border: '1.5px dashed var(--primary)',
-                                        borderRadius: '4px',
-                                        background: '#f0fdfa',
-                                        color: 'var(--primary)',
-                                        fontSize: '0.72rem',
-                                        fontWeight: 600,
-                                        cursor: 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        gap: '4px',
-                                        transition: 'all 0.15s ease'
-                                      }}
-                                      title="Nhấp để thêm dòng tiêu chí vào bảng này"
-                                    >
-                                      <Plus size={12} /> Thêm trường
-                                    </button>
-                                  </td>
-                                </tr>
-                              </tfoot>
+                              {isDraggingField && (
+                                <tfoot>
+                                  <tr>
+                                    <td colSpan={6} style={{ padding: '6px 0 0 0' }}>
+                                      <div
+                                        style={{
+                                          width: '100%',
+                                          padding: '8px',
+                                          border: isDragOverThis ? '2px dashed var(--primary)' : '1.5px dashed #0d9488',
+                                          borderRadius: '4px',
+                                          background: isDragOverThis ? '#ccfbf1' : '#f0fdfa',
+                                          color: 'var(--primary)',
+                                          fontSize: '0.75rem',
+                                          fontWeight: 600,
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          gap: '6px',
+                                          transition: 'all 0.15s ease'
+                                        }}
+                                      >
+                                        <Plus size={14} /> Thả vào đây
+                                      </div>
+                                    </td>
+                                  </tr>
+                                </tfoot>
+                              )}
                             </table>
                           )}
                         </div>
@@ -4531,33 +4595,34 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                         </div>
                       )}
 
-                      {/* + Thêm trường Button */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setFieldPickerBlockId(activeBlock.id);
-                          setFieldPickerSearch('');
+                      {/* Drag & Drop Hint Target */}
+                      <div
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          e.dataTransfer.dropEffect = 'copy';
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          const fid = e.dataTransfer.getData('text/plain');
+                          if (fid) addFieldToBlock(activeBlock.id, fid);
                         }}
                         style={{
                           width: '100%',
-                          padding: '5px',
-                          border: '1px dashed var(--primary)',
+                          padding: '6px 8px',
+                          border: '1.5px dashed #cbd5e1',
                           borderRadius: '4px',
-                          background: '#f0fdfa',
-                          color: 'var(--primary)',
+                          background: '#f8fafc',
+                          color: '#64748b',
                           fontSize: '0.72rem',
-                          fontWeight: 600,
-                          cursor: 'pointer',
+                          textAlign: 'center',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          gap: '4px',
-                          transition: 'all 0.15s ease'
+                          gap: '4px'
                         }}
-                        title="Mở bảng chọn trường để gán vào khối này"
                       >
-                        <Plus size={13} /> Thêm trường
-                      </button>
+                        <Plus size={12} /> Kéo trường từ danh mục thả vào đây
+                      </div>
                     </div>
                   )}
 
@@ -5173,372 +5238,6 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
           }}
           onClose={() => setShowPrintPreview(false)}
         />
-      )}
-
-      {/* ── Quick Field Picker Modal ── */}
-      {fieldPickerBlockId && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.45)',
-            zIndex: 9999,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '1rem'
-          }}
-          onClick={() => setFieldPickerBlockId(null)}
-        >
-          <div
-            style={{
-              background: '#ffffff',
-              borderRadius: '8px',
-              width: '100%',
-              maxWidth: '480px',
-              maxHeight: '80vh',
-              display: 'flex',
-              flexDirection: 'column',
-              boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)',
-              overflow: 'hidden'
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem', borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, fontSize: '0.88rem', color: '#0f172a' }}>
-                <Plus size={16} color="var(--primary)" />
-                Thêm trường vào khối
-              </div>
-              <button
-                type="button"
-                onClick={() => setFieldPickerBlockId(null)}
-                style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#64748b', fontSize: '1.1rem', lineHeight: 1 }}
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Search Input */}
-            <div style={{ padding: '0.6rem 1rem', borderBottom: '1px solid #e2e8f0' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: '#f1f5f9', borderRadius: '4px', padding: '4px 8px' }}>
-                <Search size={14} color="#64748b" />
-                <input
-                  type="text"
-                  placeholder="Tìm kiếm theo tên trường hoặc ID..."
-                  value={fieldPickerSearch}
-                  onChange={(e) => setFieldPickerSearch(e.target.value)}
-                  autoFocus
-                  style={{ border: 'none', background: 'transparent', outline: 'none', width: '100%', fontSize: '0.8rem' }}
-                />
-                {fieldPickerSearch && (
-                  <button type="button" onClick={() => setFieldPickerSearch('')} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#94a3b8', fontSize: '0.75rem' }}>✕</button>
-                )}
-              </div>
-            </div>
-
-            {/* Field List */}
-            <div style={{ padding: '0.6rem 1rem', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              {(() => {
-                const targetBlock = template.layoutBlocks.find(b => b.id === fieldPickerBlockId);
-                const boundIds = targetBlock?.boundFieldIds || [];
-                const q = fieldPickerSearch.toLowerCase().trim();
-
-                const unassigned = allFormFields.filter(f => !boundIds.includes(f.id));
-                const filtered = unassigned.filter(f => {
-                  if (!q) return true;
-                  return (
-                    (f.checkItem || '').toLowerCase().includes(q) ||
-                    (f.id || '').toLowerCase().includes(q) ||
-                    (f.sectionH1 || '').toLowerCase().includes(q) ||
-                    (f.sectionH2 || '').toLowerCase().includes(q)
-                  );
-                });
-
-                if (filtered.length === 0) {
-                  return (
-                    <div style={{ padding: '2rem 1rem', textAlign: 'center', color: '#64748b', fontSize: '0.8rem' }}>
-                      {allFormFields.length === 0
-                        ? 'Chưa nạp được trường nào từ Biểu mẫu nguồn.'
-                        : 'Tất cả các trường phù hợp đã được gán vào khối này.'}
-                    </div>
-                  );
-                }
-
-                const modalGroups = groupFieldsByHierarchy(filtered);
-
-                return modalGroups.map(h1Group => {
-                  const h1Key = `picker_h1_${h1Group.h1}`;
-                  const isH1Expanded = q ? true : (expandedSections[h1Key] ?? true);
-                  const allH1FieldIds = [
-                    ...h1Group.h2Groups.flatMap(g => g.fields.map(f => f.id)),
-                    ...h1Group.directElements.flatMap(e => e.fields.map(f => f.id))
-                  ];
-
-                  const renderPickerElementGroup = (elGroup: { elementTitle: string; fields: FormFieldISO[] }, parentKey: string) => {
-                    const elKey = `${parentKey}_el_${elGroup.elementTitle}`;
-                    const isElExpanded = q ? true : (expandedSections[elKey] ?? true);
-                    const elFieldIds = elGroup.fields.map(f => f.id);
-
-                    return (
-                      <div key={elGroup.elementTitle} style={{ display: 'flex', flexDirection: 'column', gap: '3px', flexShrink: 0 }}>
-                        <div
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            padding: '3px 6px',
-                            minHeight: '26px',
-                            boxSizing: 'border-box',
-                            background: '#f8fafc',
-                            border: '1px solid #e2e8f0',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            userSelect: 'none'
-                          }}
-                          onClick={() => toggleSectionExpand(elKey)}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: 1, minWidth: 0 }}>
-                            {isElExpanded ? <ChevronDown size={11} color="#64748b" /> : <ChevronRight size={11} color="#64748b" />}
-                            <TableIcon size={11} color="#64748b" />
-                            <span style={{ fontSize: '0.56rem', fontWeight: 700, padding: '0px 3px', borderRadius: '2px', background: '#e2e8f0', color: '#475569' }}>
-                              TABLE
-                            </span>
-                            <span style={{ fontWeight: 600, fontSize: '0.72rem', color: '#334155', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {elGroup.elementTitle}
-                            </span>
-                            <span style={{ fontSize: '0.62rem', color: '#94a3b8' }}>({elGroup.fields.length})</span>
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              addMultipleFieldsToBlock(fieldPickerBlockId, elFieldIds);
-                            }}
-                            style={{
-                              padding: '1px 5px',
-                              fontSize: '0.6rem',
-                              background: '#ffffff',
-                              color: 'var(--primary)',
-                              border: '1px solid #cbd5e1',
-                              borderRadius: '3px',
-                              cursor: 'pointer',
-                              fontWeight: 600,
-                              whiteSpace: 'nowrap'
-                            }}
-                          >
-                            + Bảng ({elFieldIds.length})
-                          </button>
-                        </div>
-
-                        {isElExpanded && (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', paddingLeft: '8px', borderLeft: '1.5px dashed #cbd5e1', marginLeft: '4px' }}>
-                            {elGroup.fields.map(field => {
-                              const badgeStyle = getFieldBadgeStyle(field.type);
-                              return (
-                                <div
-                                  key={field.id}
-                                  style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'space-between',
-                                    padding: '4px 6px',
-                                    border: '1px solid #e2e8f0',
-                                    borderRadius: '4px',
-                                    background: '#ffffff',
-                                    gap: '6px'
-                                  }}
-                                >
-                                  <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{ fontWeight: 600, fontSize: '0.75rem', color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={field.checkItem || field.id}>
-                                      {field.checkItem || field.id}
-                                    </div>
-                                    <div style={{ fontSize: '0.6rem', color: '#64748b', fontFamily: 'monospace', marginTop: '1px' }}>
-                                      ID: {field.id.length > 24 ? `${field.id.substring(0, 10)}...${field.id.slice(-8)}` : field.id}
-                                    </div>
-                                  </div>
-
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-                                    <span style={{ fontSize: '0.58rem', padding: '1px 4px', borderRadius: '3px', background: badgeStyle.bg, color: badgeStyle.color, fontWeight: 700, textTransform: 'uppercase' }}>
-                                      {badgeStyle.label}
-                                    </span>
-                                    <button
-                                      type="button"
-                                      onClick={() => addFieldToBlock(fieldPickerBlockId, field.id)}
-                                      style={{
-                                        padding: '2px 7px',
-                                        background: 'var(--primary)',
-                                        color: '#ffffff',
-                                        border: 'none',
-                                        borderRadius: '3px',
-                                        fontSize: '0.68rem',
-                                        fontWeight: 600,
-                                        cursor: 'pointer'
-                                      }}
-                                    >
-                                      + Gán
-                                    </button>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  };
-
-                  return (
-                    <div key={h1Group.h1} style={{ border: '1px solid #e2e8f0', borderRadius: '6px', background: '#ffffff', overflow: 'hidden', flexShrink: 0 }}>
-                      {/* H1 Header */}
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '6px 8px',
-                          minHeight: '34px',
-                          boxSizing: 'border-box',
-                          background: '#f8fafc',
-                          borderBottom: isH1Expanded ? '1px solid #e2e8f0' : 'none',
-                          cursor: 'pointer',
-                          userSelect: 'none'
-                        }}
-                        onClick={() => toggleSectionExpand(h1Key)}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flex: 1, minWidth: 0, lineHeight: 1.3 }}>
-                          {isH1Expanded ? <ChevronDown size={13} color="#475569" /> : <ChevronRight size={13} color="#475569" />}
-                          <Layers size={13} color="var(--primary)" />
-                          <span style={{ fontWeight: 700, fontSize: '0.78rem', color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {h1Group.h1}
-                          </span>
-                          <span style={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 600 }}>({h1Group.totalFieldsCount})</span>
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            addMultipleFieldsToBlock(fieldPickerBlockId, allH1FieldIds);
-                          }}
-                          style={{
-                            padding: '2px 7px',
-                            fontSize: '0.65rem',
-                            background: '#eff6ff',
-                            color: 'var(--primary)',
-                            border: '1px solid #bfdbfe',
-                            borderRadius: '3px',
-                            cursor: 'pointer',
-                            fontWeight: 600,
-                            whiteSpace: 'nowrap'
-                          }}
-                          title={`Gán toàn bộ ${allH1FieldIds.length} trường của phần này`}
-                        >
-                          + Gán cả H1 ({allH1FieldIds.length})
-                        </button>
-                      </div>
-
-                      {/* H1 Children */}
-                      {isH1Expanded && (
-                        <div style={{ padding: '4px 6px', display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                          {h1Group.h2Groups.map(h2Group => {
-                            const h2Key = `picker_h2_${h1Group.h1}_${h2Group.h2}`;
-                            const isH2Expanded = q ? true : (expandedSections[h2Key] ?? true);
-                            const h2FieldIds = h2Group.fields.map(f => f.id);
-
-                            return (
-                              <div key={h2Group.h2} style={{ display: 'flex', flexDirection: 'column', gap: '3px', flexShrink: 0 }}>
-                                <div
-                                  style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'space-between',
-                                    padding: '4px 6px',
-                                    minHeight: '28px',
-                                    boxSizing: 'border-box',
-                                    background: '#eff6ff',
-                                    border: '1px solid #bfdbfe',
-                                    borderRadius: '4px',
-                                    cursor: 'pointer',
-                                    userSelect: 'none'
-                                  }}
-                                  onClick={() => toggleSectionExpand(h2Key)}
-                                >
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: 1, minWidth: 0 }}>
-                                    {isH2Expanded ? <ChevronDown size={11} color="#2563eb" /> : <ChevronRight size={11} color="#2563eb" />}
-                                    {isH2Expanded ? <FolderOpen size={12} color="#2563eb" /> : <Folder size={12} color="#2563eb" />}
-                                    <span style={{ fontSize: '0.58rem', fontWeight: 800, padding: '0px 4px', borderRadius: '3px', background: '#dbeafe', color: '#1d4ed8' }}>
-                                      H2
-                                    </span>
-                                    <span style={{ fontWeight: 700, fontSize: '0.74rem', color: '#1e293b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                      {h2Group.h2}
-                                    </span>
-                                    <span style={{ fontSize: '0.63rem', color: '#2563eb', fontWeight: 600 }}>({h2Group.fields.length})</span>
-                                  </div>
-
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      addMultipleFieldsToBlock(fieldPickerBlockId, h2FieldIds);
-                                    }}
-                                    style={{
-                                      padding: '1px 5px',
-                                      fontSize: '0.62rem',
-                                      background: '#ffffff',
-                                      color: '#2563eb',
-                                      border: '1px solid #93c5fd',
-                                      borderRadius: '3px',
-                                      cursor: 'pointer',
-                                      fontWeight: 600,
-                                      whiteSpace: 'nowrap'
-                                    }}
-                                    title={`Gán toàn bộ ${h2FieldIds.length} trường của phân mục H2 này`}
-                                  >
-                                    + Cả H2 ({h2FieldIds.length})
-                                  </button>
-                                </div>
-
-                                {isH2Expanded && (
-                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingLeft: '10px', borderLeft: '2px solid #bfdbfe', marginLeft: '6px' }}>
-                                    {h2Group.elements.map(elGroup => renderPickerElementGroup(elGroup, h2Key))}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-
-                          {h1Group.directElements.map(elGroup => renderPickerElementGroup(elGroup, h1Key))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                });
-              })()}
-            </div>
-
-            {/* Footer */}
-            <div style={{ padding: '0.6rem 1rem', borderTop: '1px solid #e2e8f0', background: '#f8fafc', display: 'flex', justifyContent: 'flex-end' }}>
-              <button
-                type="button"
-                onClick={() => setFieldPickerBlockId(null)}
-                style={{
-                  padding: '4px 12px',
-                  background: '#e2e8f0',
-                  color: '#334155',
-                  border: 'none',
-                  borderRadius: '4px',
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
-                  cursor: 'pointer'
-                }}
-              >
-                Xong
-              </button>
-            </div>
-          </div>
-        </div>
       )}
 
       {/* ── Confirmation Modal ── */}

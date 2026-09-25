@@ -39,6 +39,31 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-25 — Report Builder: Pure Native Drag & Drop Field Assignment & Pruned Modal (ReportBuilder)
+
+**Scope:** 3 files (`src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`, `SESSION_LOG.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | ~6 min |
+| Thời gian lập plan (Request → Proceed) | ~2 min |
+| Thời gian thực thi (Proceed → Push) | ~4 min |
+| Số file nguồn chỉnh sửa | 1 (`ReportBuilder.tsx`) |
+| Tổng lượt edit source | 7 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 3 (`1 tsc` pass + `1 tsc -b` pass + `1 vite build` 15.88s pass) |
+| Lần build cuối thành công? | Có (100% pass) |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- **Chuyển đổi sang Pure Native Drag and Drop:** Thay thế hoàn toàn cơ chế gán trường cồng kềnh qua modal và nút bấm bằng chuẩn Native HTML5 Drag and Drop không phụ thuộc thư viện ngoài.
+- **Tối ưu Left Sidebar Data Palette:** Toàn bộ card trường trong danh mục `FIELDS` được gắn grip `⠿` và `draggable={true}`. Tính toán số lần tái sử dụng `getFieldUsageCount`: các trường đã gán hiển thị badge gọn gàng (`x1`, `x2`,...), các trường chưa gán hoàn toàn sạch sẽ (không hiện badge hay chữ 'o' gây rối mắt).
+- **Option 4 Adaptive Microcopy trên Canvas:** Khối `INFO_GRID` và `TABLE` rỗng hiển thị hộp đứt nét `+ Thả vào đây`. Khi khối đã có dữ liệu, ở trạng thái nghỉ toàn bộ slot dropzone ẩn đi giúp canvas trang nhã; khi người dùng bắt đầu kéo trường (`isDraggingField === true`), slot đứt nét `+ Thả vào đây` tự động xuất hiện ở cuối lưới/bảng để đón nhận.
+- **Triệt tiêu Mã Chết (Dead-Code Pruning — Rule 4.2):** Xóa sạch modal `Quick Field Picker` (~365 dòng JSX) và các nút `+ Thêm trường` rườm rà trên Canvas và Right Inspector, giảm net hơn 310 dòng code.
+
+---
+
 ### 2026-09-25 — Report Builder: Removed Virtual Page Breaks & Pruned Tracking Code (ReportBuilder)
 
 **Scope:** 3 files (`src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`, `SESSION_LOG.md`)
@@ -258,28 +283,4 @@ Entry mới nhất ở trên cùng. Tối đa 10 entries.
 - **Đồng bộ 100% giữa Center Canvas và Right Inspector:** Truyền `sampleSubmission` từ `ReportBuilder` vào `FormReferenceCanvas`, giúp hiển thị trực quan các câu trả lời thực tế từ phiếu nộp mẫu: Likert scale hiển thị chấm tròn teal đặc `●` kèm halo ring; Rating hiển thị các ngôi sao vàng đặc `★`; Checkbox/Radio hiển thị tick `[✓]` và `(●)`; Text/Number/Date/Select hiển thị chữ số đậm `#0f172a`.
 - **Pure Utility Extraction (Rule 13.8):** Trích xuất logic bóc tách `extractSubmissionValue`, `isLikertSelected`, `isOptionSelected` vào `src/utils/formUtils.ts` để tái sử dụng xuyên suốt toàn hệ thống.
 - **Null-Safety & Zero Regression:** Khi không có phiếu mẫu, Canvas tự động giữ nguyên chế độ xem mẫu đơn rỗng (Blank Form Preview).
-
----
-
-### 2026-09-25 — Report Builder: Elimination of Floating Quick-Select Pill Bar in SmartNumberInput
-
-**Scope:** 4 files (`src/components/common/SmartNumberInput.tsx`, `src/components/report/FieldScoringInspector.tsx`, `src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian tổng (Request → Push) | ~7 min |
-| Thời gian lập plan (Request → Proceed) | ~4 min |
-| Thời gian thực thi (Proceed → Push) | ~3 min |
-| Số file nguồn chỉnh sửa | 3 (`SmartNumberInput.tsx`, `FieldScoringInspector.tsx`, `ReportBuilder.tsx`) |
-| Tổng lượt edit source | 4 |
-| Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 4 (`npx tsc` 3 lần pass + `tsc -b && vite build` 8.72s pass) |
-| Lần build cuối thành công? | Có (100% pass ngay lần đầu) |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Điểm nổi bật:**
-- **Triệt tiêu hoàn toàn floating pill popup:** Xóa bỏ prop `presets` và khối render floating pill bar (`[ 0 | 10 | 20 | 25 | 50 | 100 ]`) trong `SmartNumberInput.tsx`. Khi người dùng click/focus vào bất kỳ ô nhập Weight nào, giao diện luôn phẳng và sạch sẽ 100%, không còn popup nào bật lên che khuất chữ `isKnockout` hay `Loại trực tiếp` ở hàng trên.
-- **Dọn sạch call-sites:** Loại bỏ triệt để `presets` prop tại cả 3 vị trí Weight card: `FieldScoringInspector.tsx` (câu hỏi con), `ReportBuilder.tsx` (SECTION_LABEL H1/H2), và `ReportBuilder.tsx` (TABLE).
-- **Bảo toàn 100% UX nhập liệu bàn phím:** Tự động bôi đen toàn bộ số (`select()`) khi focus/click để gõ đè số mới ngay tức khắc; phím mũi tên `↑/↓` tăng giảm mượt mà (Shift + mũi tên bước nhảy 5); xóa lùi Backspace tự nhiên với draft state; không có spinner trình duyệt làm phiền.
 
