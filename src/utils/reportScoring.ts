@@ -5,6 +5,7 @@ import type {
   ReportBlockConfig
 } from '../types';
 import type { FieldHierarchyGroup } from './tableFieldExtractor';
+import { isOtherValue } from './formUtils';
 
 /**
  * Pure Utility: Computes score, maxScore, and pass/fail evaluation for an individual form field.
@@ -100,7 +101,11 @@ export function computeFieldScoreAndPass(
       return explicit !== undefined ? explicit : 5;
     }));
 
-    const matchingOpt = options.find(opt => opt.value === rawValue || opt.label === rawValue);
+    const matchingOpt = options.find(opt =>
+      opt.value === rawValue ||
+      opt.label === rawValue ||
+      ((opt.value === '__other__' || opt.label === '__other__' || (opt as any).isOther) && isOtherValue(rawValue))
+    );
     if (!matchingOpt) {
       return { score: 0, maxScore: maxScore || 5, status: 'FAIL', deviationText: `Không có trong danh mục: ${rawValue}`, weight, isKnockout };
     }

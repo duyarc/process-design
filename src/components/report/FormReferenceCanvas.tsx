@@ -11,7 +11,8 @@ import {
   canTableOptionsFitInline,
   extractSubmissionValue,
   isLikertSelected,
-  isOptionSelected
+  isOptionSelected,
+  formatOptionDisplay
 } from '../../utils/formUtils';
 import { renderFormattedText } from '../../utils/textFormatter';
 import { getTableFieldId, getTableRowPrimaryFieldId, isFieldInTableRow } from '../../utils/tableFieldExtractor';
@@ -280,7 +281,7 @@ export const FormReferenceCanvas: React.FC<FormReferenceCanvasProps> = ({
             fontSize: '0.78rem',
             width: '100%'
           }}>
-            <span>{hasSubVal ? String(subVal) : f.placeholder || (options.length > 0 ? `-- Chọn (${options.length} mục) --` : '-- Chọn --')}</span>
+            <span>{hasSubVal ? formatOptionDisplay(String(subVal), options) : f.placeholder || (options.length > 0 ? `-- Chọn (${options.length} mục) --` : '-- Chọn --')}</span>
             <ChevronDown size={14} style={{ color: hasSubVal ? 'var(--primary)' : '#94a3b8' }} />
           </div>
         </div>
@@ -388,6 +389,13 @@ export const FormReferenceCanvas: React.FC<FormReferenceCanvasProps> = ({
                   return true;
                 }
                 return false;
+              }
+              if (block.type === 'TABLE' && rb.type === 'TABLE') {
+                const blockTableFieldIds = (block.tableRows || []).flatMap(r => (block.tableColumns || []).map(c => getTableFieldId(block.id, r.id, c.id)));
+                if (blockTableFieldIds.length > 0 && rb.boundFieldIds?.some(fid => blockTableFieldIds.includes(fid))) {
+                  return true;
+                }
+                return (rb.title || '').trim().toLowerCase() === (block.title || '').trim().toLowerCase();
               }
               if (block.type === 'SIGN' && rb.type === 'SIGN') return true;
               return false;
@@ -706,9 +714,9 @@ export const FormReferenceCanvas: React.FC<FormReferenceCanvasProps> = ({
                       <thead
                         onClick={(e) => {
                           const hasGroupHeaders = tableRows.some(r => r.isGroupHeader || block.tableData?.[r.id]?.['_groupTitle']);
-                          if (!hasGroupHeaders && onSelectTableGroup) {
+                          if (!hasGroupHeaders) {
                             e.stopPropagation();
-                            onSelectTableGroup(block.title || 'Bảng');
+                            onSelectBlock?.(block.id);
                           }
                         }}
                         style={{ opacity: block.hideHeader ? 0.45 : 1, cursor: tableRows.some(r => r.isGroupHeader) ? 'default' : 'pointer' }}
@@ -968,12 +976,7 @@ export const FormReferenceCanvas: React.FC<FormReferenceCanvasProps> = ({
                   </div>
                 </>,
                 () => {
-                  const hasGroupHeaders = tableRows.some(r => r.isGroupHeader || block.tableData?.[r.id]?.['_groupTitle']);
-                  if (!hasGroupHeaders && onSelectTableGroup) {
-                    onSelectTableGroup(block.title || 'Bảng');
-                  } else {
-                    onSelectBlock?.(block.id);
-                  }
+                  onSelectBlock?.(block.id);
                 }
               );
             }

@@ -33,12 +33,37 @@ phiên thực thi để không lặp lại lỗi cũ.
 | 19 | `LOGIC` | Gọi `form.title` thay vì `form.formTitle` trên `FormTemplateISO` hoặc truyền Raw Block ID từ `FormReferenceCanvas` vào `setActiveBlockId` mà không ánh xạ sang `template.layoutBlocks` | Luôn kiểm tra tên trường chuẩn (`formTitle` vs `reportTitle`) và ánh xạ qua `handleSelectBlockFromFormCanvas` để đồng bộ ID khối giữa Form gốc và Report template | 1 |
 | 20 | `BLOAT` | Thay thế sub-layout cũ (như thanh toolbar text format) làm sót import helper (`applyTextFormat`) ở đầu file → TS6133 unused import khi build production | Khi dọn dẹp cụm UI/control cũ, kiểm tra ngay đầu file để loại bỏ import của các helper chỉ dùng riêng cho control đó | 1 |
 | 21 | `CTX` | Khi lồng conditional JSX (`ternary ? :`), đóng nhầm thẻ `</div>` của wrapper cha bên ngoài → TS17015 expected closing tag | Kiểm tra kỹ cấu trúc mở/đóng thẻ của wrapper cha trước khi chèn ternary; bọc fragment độc lập cho từng nhánh | 1 |
+| 22 | `LOGIC` | Trùng tên giữa Section H2 cha và khối TABLE con khiến hàm tìm kiếm lầm tưởng là click vào Section H2 (Name Shadowing Collision) | Tách riêng luồng sự kiện theo bản chất đối tượng: click vào vỏ/thead khối dùng onSelectBlock; chỉ dùng onSelectTableGroup cho các hàng group header thực sự, và luôn ưu tiên tìm kiếm Element con trước Section cha | 1 |
 
 ---
 
 ## Nhật ký Phiên
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
+
+### 2026-09-25 — Report Builder: TABLE Canvas Selection & H2 Name Collision Resolution
+
+**Scope:** 5 files (`src/components/report/FormReferenceCanvas.tsx`, `src/components/ReportBuilder.tsx`, `src/components/report/FieldScoringInspector.tsx`, `src/utils/reportScoring.ts`, `DESIGN_REPORT_BUILDER.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | ~17 min |
+| Thời gian lập plan (Request → Proceed) | ~6 min |
+| Thời gian thực thi (Proceed → Push) | ~11 min |
+| Số file nguồn chỉnh sửa | 4 (`FormReferenceCanvas.tsx`, `ReportBuilder.tsx`, `FieldScoringInspector.tsx`, `reportScoring.ts`) |
+| Tổng lượt edit source | 9 |
+| Lượt edit sửa lỗi (rework) | 1 (sửa kiểu `fieldOptions \|\| undefined` cho `formatOptionDisplay`) |
+| Số lần build | 5 (`npx tsc` 4 lần pass + `tsc -b && vite build` 10.56s pass) |
+| Lần build cuối thành công? | Có (100% pass) |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- **Giải quyết triệt để Name Shadowing Collision:** Tách biệt luồng sự kiện click khối TABLE trên Canvas (`onSelectBlock?.(block.id)` thay vì `onSelectTableGroup(block.title)`), bổ sung nhánh xử lý `TABLE` chuyên biệt trong `handleSelectBlockFromFormCanvas` và đảo ngược thứ tự ưu tiên trong `handleSelectTableGroupFromCanvas` (tìm element trước Section H2). Nhờ đó, bảng con trùng tên với Section H2 cha (ví dụ Section H2 "Đặc trưng nhân sự" và bảng "ĐẶC TRƯNG NHÂN SỰ") luôn được chọn chuẩn xác.
+- **H2 Drill-down:** Cho phép bấm trực tiếp vào tên bảng con trong bảng tóm tắt con của Section H2 ở Right Inspector để mở cấu hình Table Properties.
+- **Chuẩn hóa hiển thị `__other__`:** Áp dụng `formatOptionDisplay` trên Canvas và Report Preview, tích hợp `isOtherValue` trong `FieldScoringInspector.tsx` và `reportScoring.ts` để nhận diện và tính điểm chính xác cho các giá trị tùy chọn "Khác".
+
+---
 
 ### 2026-09-25 — Report Builder: Live Submission Canvas Rendering & formUtils Pure Extraction
 
@@ -258,29 +283,5 @@ Entry mới nhất ở trên cùng. Tối đa 10 entries.
 - **Định nghĩa lại cấp `H2` nghiêm ngặt (`titleFormat === 'H2'`):** Loại bỏ hoàn toàn việc các khối `TABLE` bình thường (`titleFormat: undefined | 'NONE'`) và dòng `groupHeader` trong bảng tự ý ghi đè `sectionH2` trong `tableFieldExtractor.ts`. Khôi phục đầy đủ các phân mục `H2` thực sự (`Sản phẩm`, `Văn hóa doanh nghiệp`, `Năng lực cốt lõi`, `Hạ tầng & Công nghệ`, `Đặc trưng nhân sự`).
 - **Phân cấp `Element / Table` xuống một cấp dưới `H2` & Chuẩn hóa Cấp cha của `Field` (Level 4 ➔ Level 3 Table):** Bổ sung `ElementHierarchyGroup` (`h2Group.elements` dưới `H2` và `directElements` dưới `H1`), hiển thị các khối `[TABLE]` thụt lề một cấp bên dưới `[H2]`. Đồng thời cập nhật `extractParentGroupTitle` trong `reportScoring.ts` ưu tiên trả về tên Bảng (`block.title` / `field.locationCode`, ví dụ `"Check: SP chủ lực"`) trước `sectionH2` (`"Sản phẩm"`), đảm bảo mọi câu hỏi trong bảng (Level 4) luôn nhận Bảng (Level 3) làm cha trực tiếp (`of [ Check: SP chủ lực ]`).
 
----
-
-### 2026-09-24 — Report Builder: 2-Step Design Principle (`Build Layout First → Arrange Fields Into Layout`) for `TITLE` & `INFO_GRID` Blocks
-
-**Scope:** 4 files (`src/components/report/FormReferenceCanvas.tsx`, `src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`, `SESSION_LOG.md`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian tổng (Request → Push) | ~18.0 min |
-| Thời gian lập plan (Request → Proceed) | ~5.0 min |
-| Thời gian thực thi (Proceed → Push) | ~13.0 min |
-| Số file nguồn chỉnh sửa | 2 (`FormReferenceCanvas.tsx`, `ReportBuilder.tsx`) |
-| Tổng lượt edit source | 16 |
-| Lượt edit sửa lỗi (rework) | 2 |
-| Số lần build | 5 (3 tsc + 2 vite pass) |
-| Lần build cuối thành công? | Có (100% pass) |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Điểm nổi bật:**
-- **Thực thi Nguyên tắc Thiết kế 2 Bước ("Tạo Layout Block trước → Bố trí Field vào Layout Block") cho cả `TITLE` và `INFO_GRID`:**
-  - **Bước 1 (Dựng Layout Block Shell & Cấu trúc Lưới):** Xây dựng `renderLayoutBlockShell` và `syncHeaderAndInfoGridBlocksFromForm` để dựng đầy đủ khung `TITLE` (4 slots: Logo, `<h1>`, `<p>`, Ngày tháng) và từng khối `INFO_GRID` độc lập theo đúng thiết kế của Form nguồn (`INFO_GRID #1` có `titleFormat: 'H1'`, `columns: 2`, tỷ lệ cột `[65, 35]`; `INFO_GRID #2` có `titleFormat: 'NONE'`, `columns: 2`, tỷ lệ cột `[50, 50]`).
-  - **Bước 2 (Bố trí Field vào từng Ô Lưới — Field Slots):** Nạp chính xác `boundFieldIds` của từng khối `INFO_GRID` (`['ten_doanh_nghiep', 'msdn']` vào `INFO_GRID #1`; `['loai_hinh', 'nganh_hang_chinh', 'thi_truong', 'nang_luc_cung']` vào `INFO_GRID #2`), áp dụng `rowSpan`, `colSpan`, viền `1px dotted #cbd5e1` và hiển thị trực quan các lựa chọn `checkbox` / `radio` / `select` trên cả tab `Form` và `Report`.
-- **Liên kết 1-1 Độc lập giữa các Khối `INFO_GRID`:** Khớp chính xác từng khối `INFO_GRID` theo `boundFieldIds` và thứ tự khối (thay vì chỉ khớp theo `title`), đồng bộ cả trong DB PostgreSQL (`RP-5C-Scorecard`).
 
 ---

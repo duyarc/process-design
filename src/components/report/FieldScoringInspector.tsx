@@ -2,6 +2,7 @@ import React from 'react';
 import { Check, CheckSquare, Square, Circle, CircleDot, Plus } from 'lucide-react';
 import type { FormFieldISO, ReportFieldRuleOverride, Submission, NumberRangeSpec } from '../../types';
 import { computeFieldScoreAndPass } from '../../utils/reportScoring';
+import { isOtherValue } from '../../utils/formUtils';
 import { SmartNumberInput } from '../common/SmartNumberInput';
 
 interface FieldScoringInspectorProps {
@@ -238,7 +239,8 @@ export const FieldScoringInspector: React.FC<FieldScoringInspectorProps> = ({
               {options.map((opt, idx) => {
                 const optVal = opt.value || opt.label || '';
                 const optLabel = opt.label || opt.value || '';
-                const isSelected = optVal === rawValue || optLabel === rawValue;
+                const isOtherOpt = optVal === '__other__' || optLabel === '__other__' || (opt as any)?.isOther;
+                const isSelected = optVal === rawValue || optLabel === rawValue || (isOtherOpt && isOtherValue(rawValue));
                 const optScore = ruleOverride?.optionScores?.[optVal]
                   ?? ruleOverride?.optionScores?.[optLabel]
                   ?? (opt as any)?.score

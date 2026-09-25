@@ -12,8 +12,8 @@ import type {
   TitleFormatISO
 } from '../types';
 import { computeRecordReport, evaluateFieldSpec } from '../utils/reportCompute';
-import { extractAllFormFields, groupFieldsByHierarchy, type FieldHierarchyGroup } from '../utils/tableFieldExtractor';
-import { getInfoGridTemplateColumns, snap2ColWidth, snap3ColWidths } from '../utils/formUtils';
+import { extractAllFormFields, extractTableFields, groupFieldsByHierarchy, type FieldHierarchyGroup } from '../utils/tableFieldExtractor';
+import { getInfoGridTemplateColumns, snap2ColWidth, snap3ColWidths, formatOptionDisplay } from '../utils/formUtils';
 import { handleFormatKeyDown } from '../utils/textFormatter';
 import { FieldScoringInspector } from './report/FieldScoringInspector';
 import { FormReferenceCanvas } from './report/FormReferenceCanvas';
@@ -1543,15 +1543,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
 
   const handleSelectTableGroupFromCanvas = (groupTitle: string) => {
     const cleanTarget = groupTitle.trim().toLowerCase();
-    // Nếu là tiêu đề H2 thực sự -> mở H2 Section Properties
-    for (const h1 of hierarchyGroups) {
-      const h2 = h1.h2Groups.find(g => g.h2.trim().toLowerCase() === cleanTarget);
-      if (h2) {
-        handleSelectH2Subgroup(h2.h2);
-        return;
-      }
-    }
-    // Nếu là Element / Table cấp dưới H2 hoặc trực tiếp dưới H1 -> mở Table Properties
+    // Ưu tiên 1: Nếu là Element / Table cấp dưới H2 hoặc trực tiếp dưới H1 -> mở Table Properties
     let matchedFieldIds: string[] = [];
     for (const h1 of hierarchyGroups) {
       for (const h2 of h1.h2Groups) {
@@ -1568,14 +1560,27 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
         break;
       }
     }
-    if (matchedFieldIds.length === 0) {
-      const fieldMatches = allFormFields.filter(f =>
-        (f.locationCode && f.locationCode.split(' › ')[0].trim().toLowerCase() === cleanTarget) ||
-        (f.locationCode && f.locationCode.trim().toLowerCase() === cleanTarget)
-      );
-      if (fieldMatches.length > 0) {
-        matchedFieldIds = fieldMatches.map(f => f.id);
+    if (matchedFieldIds.length > 0) {
+      handleSelectElementGroup(groupTitle, matchedFieldIds);
+      return;
+    }
+
+    // Ưu tiên 2: Nếu là tiêu đề H2 thực sự -> mở H2 Section Properties
+    for (const h1 of hierarchyGroups) {
+      const h2 = h1.h2Groups.find(g => g.h2.trim().toLowerCase() === cleanTarget);
+      if (h2) {
+        handleSelectH2Subgroup(h2.h2);
+        return;
       }
+    }
+
+    // Ưu tiên 3: Fallback tìm theo locationCode
+    const fieldMatches = allFormFields.filter(f =>
+      (f.locationCode && f.locationCode.split(' › ')[0].trim().toLowerCase() === cleanTarget) ||
+      (f.locationCode && f.locationCode.trim().toLowerCase() === cleanTarget)
+    );
+    if (fieldMatches.length > 0) {
+      matchedFieldIds = fieldMatches.map(f => f.id);
     }
     handleSelectElementGroup(groupTitle, matchedFieldIds);
   };
@@ -1654,6 +1659,40 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
         };
         setTemplate(prev => ({ ...prev, layoutBlocks: [...prev.layoutBlocks, newInfoBlock] }));
         setActiveBlockId(newInfoId);
+      }
+      setSelectedFieldId(null);
+      setRightTab('properties');
+      return;
+    }
+    if (formBlock.type === 'TABLE') {
+      const tableFields = extractTableFields(formBlock);
+      const tableFieldIds = tableFields.map(f => f.id);
+      const cleanTitle = (formBlock.title || 'Bảng').trim().toLowerCase();
+
+      const matchedTable = template.layoutBlocks.find(b =>
+        b.type === 'TABLE' && (
+          (tableFieldIds.length > 0 && b.boundFieldIds?.some(fid => tableFieldIds.includes(fid))) ||
+          (b.title || '').trim().toLowerCase() === cleanTitle
+        )
+      );
+
+      if (matchedTable) {
+        setActiveBlockId(matchedTable.id);
+      } else {
+        const newTableId = `rep_block_tbl_${Date.now()}`;
+        const newTableBlock: ReportBlockConfig = {
+          id: newTableId,
+          type: 'TABLE',
+          title: formBlock.title || 'Bảng',
+          weight: 0,
+          isKnockout: false,
+          boundFieldIds: tableFieldIds,
+          borderStyle: formBlock.borderStyle || 'grid',
+          hideHeader: formBlock.hideHeader ?? false,
+          ruleOverrides: {}
+        };
+        setTemplate(prev => ({ ...prev, layoutBlocks: [...prev.layoutBlocks, newTableBlock] }));
+        setActiveBlockId(newTableId);
       }
       setSelectedFieldId(null);
       setRightTab('properties');
@@ -3033,7 +3072,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                         border: '1px dashed #cbd5e1',
                                         borderRadius: '4px'
                                       }}>
-                                        {val && val !== '—' ? val : (field?.placeholder || (field?.type === 'select' ? `-- Chọn (${fieldOptions?.length || 0} mục) --` : '[Chưa có dữ liệu]'))}
+                                        {val && val !== '—' ? (field?.type === 'select' ? formatOptionDisplay(val, fieldOptions || undefined) : val) : (field?.placeholder || (field?.type === 'select' ? `-- Chọn (${fieldOptions?.length || 0} mục) --` : '[Chưa có dữ liệu]'))}
                                       </div>
                                     )}
                                   </div>
@@ -3985,7 +4024,23 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                       borderBottom: idx < childElementsSummary.length - 1 ? '1px solid #f1f5f9' : 'none'
                                     }}
                                   >
-                                    <div style={{ gridColumn: 'span 6', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500, color: '#1e293b' }} title={`${elItem.elementTitle} (${elItem.fieldsCount} câu hỏi)`}>
+                                    <div
+                                      onClick={() => {
+                                        const allElements = hierarchyGroups.flatMap(h1 => h1.h2Groups).flatMap(h2 => h2.elements || []);
+                                        const matchedEl = allElements.find(el => el.elementTitle.trim().toLowerCase() === elItem.elementTitle.trim().toLowerCase());
+                                        handleSelectElementGroup(elItem.elementTitle, matchedEl ? matchedEl.fields.map(f => f.id) : []);
+                                      }}
+                                      style={{
+                                        gridColumn: 'span 6',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        whiteSpace: 'nowrap',
+                                        fontWeight: 600,
+                                        color: '#0f766e',
+                                        cursor: 'pointer'
+                                      }}
+                                      title={`Click để chuyển sang xem/cấu hình Table Properties cho: ${elItem.elementTitle} (${elItem.fieldsCount} câu hỏi)`}
+                                    >
                                       {elItem.elementTitle}
                                     </div>
                                     <div style={{ gridColumn: 'span 2', textAlign: 'center', fontWeight: 700, fontSize: '0.68rem', color: elItem.isPass ? '#0f766e' : '#e11d48' }}>
