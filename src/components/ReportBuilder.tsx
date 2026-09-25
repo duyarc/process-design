@@ -14,7 +14,7 @@ import type {
 import { computeRecordReport, evaluateFieldSpec } from '../utils/reportCompute';
 import { extractAllFormFields, groupFieldsByHierarchy, type FieldHierarchyGroup } from '../utils/tableFieldExtractor';
 import { getInfoGridTemplateColumns, snap2ColWidth, snap3ColWidths } from '../utils/formUtils';
-import { applyTextFormat, handleFormatKeyDown } from '../utils/textFormatter';
+import { handleFormatKeyDown } from '../utils/textFormatter';
 import { FieldScoringInspector } from './report/FieldScoringInspector';
 import { FormReferenceCanvas } from './report/FormReferenceCanvas';
 import { extractParentGroupTitle, computeH2CombinedScore, summarizeH1ChildGroups, summarizeH2ChildElements } from '../utils/reportScoring';
@@ -1480,6 +1480,40 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
       }));
       setActiveBlockId(newBlock.id);
     }
+  };
+
+  const handleUpdateChildElementWeight = (elementTitle: string, blockId: string | undefined, newWeight: number) => {
+    setTemplate(prev => {
+      if (blockId) {
+        return {
+          ...prev,
+          layoutBlocks: prev.layoutBlocks.map(b => b.id === blockId ? { ...b, weight: newWeight } : b)
+        };
+      }
+      const cleanTitle = elementTitle.trim().toLowerCase();
+      const existingIdx = prev.layoutBlocks.findIndex(b =>
+        b.type === 'TABLE' && (b.title || '').trim().toLowerCase() === cleanTitle
+      );
+      if (existingIdx >= 0) {
+        return {
+          ...prev,
+          layoutBlocks: prev.layoutBlocks.map((b, idx) => idx === existingIdx ? { ...b, weight: newWeight } : b)
+        };
+      }
+      const allElements = hierarchyGroups.flatMap(h1 => h1.h2Groups).flatMap(h2 => h2.elements || []);
+      const matchedEl = allElements.find(el => el.elementTitle.trim().toLowerCase() === cleanTitle);
+      const newBlock: ReportBlockConfig = {
+        id: `rep_block_tbl_${Date.now()}`,
+        type: 'TABLE',
+        title: elementTitle,
+        weight: newWeight,
+        boundFieldIds: matchedEl ? matchedEl.fields.map(f => f.id) : []
+      };
+      return {
+        ...prev,
+        layoutBlocks: [...prev.layoutBlocks, newBlock]
+      };
+    });
   };
 
   const allFormFields: FormFieldISO[] = extractAllFormFields(selectedForm?.layoutBlocks || []);
@@ -3413,40 +3447,89 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
               ) : activeBlock ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      {(activeBlock.type === 'SECTION_LABEL' || activeBlock.type === 'TITLE') && (
-                        <span style={{
-                          background: activeBlock.type === 'TITLE' ? 'var(--primary)' : (activeBlock.titleFormat === 'H2' ? '#2563eb' : 'var(--primary)'),
-                          color: '#ffffff',
-                          fontSize: '0.62rem',
-                          fontWeight: 800,
-                          padding: '1px 5px',
-                          borderRadius: '3px',
-                          lineHeight: '14px'
-                        }}>
-                          {activeBlock.type === 'TITLE' ? 'TITLE' : (activeBlock.titleFormat === 'H2' ? 'H2' : 'H1')}
-                        </span>
-                      )}
-                      <h3 style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-primary)', margin: 0 }}>
-                        {activeBlock.type === 'TABLE' ? 'Table Properties' :
-                         activeBlock.type === 'INFO_GRID' ? 'Info Grid Properties' :
-                         activeBlock.type === 'SECTION_LABEL' ? (
-                           activeBlock.titleFormat === 'H2' ? 'H2 Section Properties' : 'H1 Section Properties'
-                         ) :
-                         activeBlock.type === 'SIGN' ? 'Signatures Properties' :
-                         activeBlock.type === 'TITLE' ? 'Title Block Properties' : 'Block Properties'}
-                      </h3>
-                    </div>
-                    {activeBlock.type !== 'TITLE' && (
-                      <button 
-                        type="button" 
-                        disabled={isLocked}
-                        onClick={() => handleDeleteBlock(activeBlock.id)}
-                        style={{ border: 'none', background: 'none', color: isLocked ? 'var(--text-muted)' : 'var(--danger)', cursor: isLocked ? 'not-allowed' : 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}
-                        title="Xóa khối"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                    {activeBlock.type === 'SECTION_LABEL' ? (
+                      <>
+                        <h3 style={{ fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-primary)', margin: 0, letterSpacing: '0.02em' }}>
+                          SECTION_LABEL
+                        </h3>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <div style={{ display: 'inline-flex', background: '#f1f5f9', padding: '2px', borderRadius: '5px', border: '1px solid #cbd5e1', gap: '2px' }}>
+                            {(['H1', 'H2', 'BODY', 'NONE'] as const).map(fmt => {
+                              const isSelected = (activeBlock.titleFormat || 'H1') === fmt;
+                              const labelText = fmt === 'BODY' ? 'Body' : fmt === 'NONE' ? 'None' : fmt;
+                              return (
+                                <button
+                                  key={fmt}
+                                  type="button"
+                                  disabled={isLocked}
+                                  onClick={() => {
+                                    setTemplate(prev => ({
+                                      ...prev,
+                                      layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, titleFormat: fmt } : b)
+                                    }));
+                                  }}
+                                  style={{
+                                    padding: '1px 6px',
+                                    fontSize: '0.65rem',
+                                    fontWeight: isSelected ? 700 : 500,
+                                    border: 'none',
+                                    borderRadius: '3px',
+                                    cursor: isLocked ? 'not-allowed' : 'pointer',
+                                    background: isSelected ? (fmt === 'H2' ? '#2563eb' : 'var(--primary)') : 'transparent',
+                                    color: isSelected ? '#ffffff' : 'var(--text-secondary)'
+                                  }}
+                                >
+                                  {labelText}
+                                </button>
+                              );
+                            })}
+                          </div>
+                          <button 
+                            type="button" 
+                            disabled={isLocked}
+                            onClick={() => handleDeleteBlock(activeBlock.id)}
+                            style={{ border: 'none', background: 'none', color: isLocked ? 'var(--text-muted)' : 'var(--danger)', cursor: isLocked ? 'not-allowed' : 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}
+                            title="Xóa phân đoạn"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          {activeBlock.type === 'TITLE' && (
+                            <span style={{
+                              background: 'var(--primary)',
+                              color: '#ffffff',
+                              fontSize: '0.62rem',
+                              fontWeight: 800,
+                              padding: '1px 5px',
+                              borderRadius: '3px',
+                              lineHeight: '14px'
+                            }}>
+                              TITLE
+                            </span>
+                          )}
+                          <h3 style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-primary)', margin: 0 }}>
+                            {activeBlock.type === 'TABLE' ? 'Table Properties' :
+                             activeBlock.type === 'INFO_GRID' ? 'Info Grid Properties' :
+                             activeBlock.type === 'SIGN' ? 'Signatures Properties' :
+                             activeBlock.type === 'TITLE' ? 'Title Block Properties' : 'Block Properties'}
+                          </h3>
+                        </div>
+                        {activeBlock.type !== 'TITLE' && (
+                          <button 
+                            type="button" 
+                            disabled={isLocked}
+                            onClick={() => handleDeleteBlock(activeBlock.id)}
+                            style={{ border: 'none', background: 'none', color: isLocked ? 'var(--text-muted)' : 'var(--danger)', cursor: isLocked ? 'not-allowed' : 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}
+                            title="Xóa khối"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </>
                     )}
                   </div>
 
@@ -3493,156 +3576,100 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                     </div>
                   )}
 
-                  {/* SECTION_LABEL Name Inline Header (Seamless Borderless) */}
+                  {/* SECTION_LABEL Unified Name & Description Header (Style 2A: Liền mạch, không có line giữa) */}
                   {activeBlock.type === 'SECTION_LABEL' && (
-                    <div style={{ borderBottom: '1.5px solid #e2e8f0', paddingBottom: '3px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <input
-                        type="text"
-                        disabled={isLocked}
-                        value={activeBlock.title || ''}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setTemplate(prev => ({
-                            ...prev,
-                            layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, title: val } : b)
-                          }));
-                        }}
-                        placeholder="Nhập tên phân đoạn..."
-                        title="Bấm để đổi tên phân đoạn"
-                        style={{
-                          width: '100%',
-                          padding: '2px 4px',
-                          border: '1px solid transparent',
-                          borderRadius: '4px',
-                          fontSize: '0.88rem',
-                          fontWeight: 700,
-                          color: '#0f172a',
-                          background: 'transparent',
-                          outline: 'none',
-                          transition: 'all 0.15s ease'
-                        }}
-                        onFocus={(e) => {
-                          e.currentTarget.style.background = '#ffffff';
-                          e.currentTarget.style.borderColor = activeBlock.titleFormat === 'H2' ? '#2563eb' : 'var(--primary)';
-                          e.currentTarget.style.boxShadow = activeBlock.titleFormat === 'H2' ? '0 0 0 2px rgba(37, 99, 235, 0.15)' : '0 0 0 2px rgba(13, 148, 136, 0.15)';
-                        }}
-                        onBlur={(e) => {
-                          e.currentTarget.style.background = 'transparent';
-                          e.currentTarget.style.borderColor = 'transparent';
-                          e.currentTarget.style.boxShadow = 'none';
-                        }}
-                      />
-                      <Pencil size={12} style={{ color: '#94a3b8', flexShrink: 0, pointerEvents: 'none' }} />
+                    <div style={{ borderBottom: '1.5px solid #e2e8f0', paddingBottom: '3px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <input
+                          type="text"
+                          disabled={isLocked}
+                          value={activeBlock.title || ''}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setTemplate(prev => ({
+                              ...prev,
+                              layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, title: val } : b)
+                            }));
+                          }}
+                          placeholder="Nhập tên phân đoạn..."
+                          title="Bấm để đổi tên phân đoạn"
+                          style={{
+                            width: '100%',
+                            padding: '2px 4px',
+                            border: '1px solid transparent',
+                            borderRadius: '4px',
+                            fontSize: '0.88rem',
+                            fontWeight: 700,
+                            color: '#0f172a',
+                            background: 'transparent',
+                            outline: 'none',
+                            transition: 'all 0.15s ease'
+                          }}
+                          onFocus={(e) => {
+                            e.currentTarget.style.background = '#ffffff';
+                            e.currentTarget.style.borderColor = activeBlock.titleFormat === 'H2' ? '#2563eb' : 'var(--primary)';
+                            e.currentTarget.style.boxShadow = activeBlock.titleFormat === 'H2' ? '0 0 0 2px rgba(37, 99, 235, 0.15)' : '0 0 0 2px rgba(13, 148, 136, 0.15)';
+                          }}
+                          onBlur={(e) => {
+                            e.currentTarget.style.background = 'transparent';
+                            e.currentTarget.style.borderColor = 'transparent';
+                            e.currentTarget.style.boxShadow = 'none';
+                          }}
+                        />
+                        <Pencil size={12} style={{ color: '#94a3b8', flexShrink: 0, pointerEvents: 'none' }} />
+                      </div>
+
+                      {Boolean(activeBlock.description && activeBlock.description.trim()) && (
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '4px' }}>
+                          <textarea
+                            ref={sectionDescRef}
+                            rows={2}
+                            disabled={isLocked}
+                            value={activeBlock.description || ''}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setTemplate(prev => ({
+                                ...prev,
+                                layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, description: val } : b)
+                              }));
+                            }}
+                            placeholder="Nhập mô tả..."
+                            title="Bấm để chỉnh sửa Description"
+                            style={{
+                              width: '100%',
+                              padding: '2px 4px',
+                              border: '1px solid transparent',
+                              borderRadius: '4px',
+                              fontSize: '0.75rem',
+                              fontWeight: 400,
+                              color: '#475569',
+                              background: 'transparent',
+                              outline: 'none',
+                              lineHeight: 1.35,
+                              resize: 'vertical',
+                              minHeight: '32px',
+                              fontFamily: 'inherit',
+                              transition: 'all 0.15s ease'
+                            }}
+                            onFocus={(e) => {
+                              e.currentTarget.style.background = '#ffffff';
+                              e.currentTarget.style.borderColor = activeBlock.titleFormat === 'H2' ? '#2563eb' : 'var(--primary)';
+                              e.currentTarget.style.boxShadow = activeBlock.titleFormat === 'H2' ? '0 0 0 2px rgba(37, 99, 235, 0.15)' : '0 0 0 2px rgba(13, 148, 136, 0.15)';
+                            }}
+                            onBlur={(e) => {
+                              e.currentTarget.style.background = 'transparent';
+                              e.currentTarget.style.borderColor = 'transparent';
+                              e.currentTarget.style.boxShadow = 'none';
+                            }}
+                          />
+                          <Pencil size={12} style={{ color: '#94a3b8', flexShrink: 0, pointerEvents: 'none', marginTop: '4px' }} />
+                        </div>
+                      )}
                     </div>
                   )}
 
                   {activeBlock.type === 'SECTION_LABEL' && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
-                      {/* Title Format Selector Pills */}
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: '2px' }}>
-                        <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Định dạng</span>
-                        <div style={{ display: 'inline-flex', background: '#f1f5f9', padding: '2px', borderRadius: '5px', border: '1px solid #cbd5e1', gap: '2px' }}>
-                          {(['H1', 'H2', 'BODY', 'NONE'] as const).map(fmt => {
-                            const isSelected = (activeBlock.titleFormat || 'H1') === fmt;
-                            const labelText = fmt === 'BODY' ? 'Body' : fmt === 'NONE' ? 'None' : fmt;
-                            return (
-                              <button
-                                key={fmt}
-                                type="button"
-                                disabled={isLocked}
-                                onClick={() => {
-                                  setTemplate(prev => ({
-                                    ...prev,
-                                    layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, titleFormat: fmt } : b)
-                                  }));
-                                }}
-                                style={{
-                                  padding: '1px 6px',
-                                  fontSize: '0.65rem',
-                                  fontWeight: isSelected ? 700 : 500,
-                                  border: 'none',
-                                  borderRadius: '3px',
-                                  cursor: isLocked ? 'not-allowed' : 'pointer',
-                                  background: isSelected ? (fmt === 'H2' ? '#2563eb' : 'var(--primary)') : 'transparent',
-                                  color: isSelected ? '#ffffff' : 'var(--text-secondary)'
-                                }}
-                              >
-                                {labelText}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Mô tả phân đoạn (Description)</label>
-                        <div style={{ display: 'flex', gap: '4px' }}>
-                          <button
-                            type="button"
-                            title="In đậm (Ctrl+B)"
-                            disabled={isLocked}
-                            onClick={() => applyTextFormat(sectionDescRef.current, 'bold', activeBlock.description || '', (val) => {
-                              setTemplate(prev => ({
-                                ...prev,
-                                layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, description: val } : b)
-                              }));
-                            })}
-                            style={{ width: '22px', height: '22px', border: '1px solid #cbd5e1', borderRadius: '3px', background: '#ffffff', fontWeight: 'bold', fontSize: '0.75rem', cursor: isLocked ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                          >
-                            B
-                          </button>
-                          <button
-                            type="button"
-                            title="In nghiêng (Ctrl+I)"
-                            disabled={isLocked}
-                            onClick={() => applyTextFormat(sectionDescRef.current, 'italic', activeBlock.description || '', (val) => {
-                              setTemplate(prev => ({
-                                ...prev,
-                                layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, description: val } : b)
-                              }));
-                            })}
-                            style={{ width: '22px', height: '22px', border: '1px solid #cbd5e1', borderRadius: '3px', background: '#ffffff', fontStyle: 'italic', fontSize: '0.75rem', cursor: isLocked ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                          >
-                            I
-                          </button>
-                          <button
-                            type="button"
-                            title="Gạch chân (Ctrl+U)"
-                            disabled={isLocked}
-                            onClick={() => applyTextFormat(sectionDescRef.current, 'underline', activeBlock.description || '', (val) => {
-                              setTemplate(prev => ({
-                                ...prev,
-                                layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, description: val } : b)
-                              }));
-                            })}
-                            style={{ width: '22px', height: '22px', border: '1px solid #cbd5e1', borderRadius: '3px', background: '#ffffff', textDecoration: 'underline', fontSize: '0.75rem', cursor: isLocked ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                          >
-                            U
-                          </button>
-                        </div>
-                      </div>
-                      <textarea
-                        ref={sectionDescRef}
-                        rows={4}
-                        disabled={isLocked}
-                        value={activeBlock.description || ''}
-                        onKeyDown={(e) => handleFormatKeyDown(e, activeBlock.description || '', (val) => {
-                          setTemplate(prev => ({
-                            ...prev,
-                            layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, description: val } : b)
-                          }));
-                        })}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setTemplate(prev => ({
-                            ...prev,
-                            layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, description: val } : b)
-                          }));
-                        }}
-                        placeholder="Nhập mô tả hoặc hướng dẫn..."
-                        style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', fontSize: '0.8rem', resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.4 }}
-                      />
-
                       {/* SECTION_LABEL Structured 2-Row Weight Card (H1 vs H2 aware) */}
                       {(() => {
                         const isH2 = activeBlock.titleFormat === 'H2';
@@ -3678,7 +3705,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                   style={{ width: '13px', height: '13px', accentColor: '#e11d48', cursor: isLocked ? 'not-allowed' : 'pointer' }}
                                 />
                                 <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#9f1239' }}>
-                                  isKnockout ({isH2 ? 'H2' : 'H1'})
+                                  isKnockout
                                 </span>
                               </label>
                               <span style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 500 }}>Loại trực tiếp</span>
@@ -3826,16 +3853,12 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
 
                         return (
                           <div style={{ borderTop: '1px solid var(--neutral-border)', paddingTop: '0.6rem', marginTop: '2px', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#1d4ed8' }}>
-                              TỔNG HỢP ĐIỂM PHÂN MỤC H2
-                            </div>
-
                             <div style={{ border: '1px solid #bfdbfe', borderRadius: '8px', overflow: 'hidden', background: '#ffffff', fontSize: '0.72rem' }}>
                               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', background: '#eff6ff', borderBottom: '1px solid #bfdbfe', padding: '6px 8px', fontWeight: 700, color: '#1e3a8a', alignItems: 'center' }}>
-                                <div style={{ gridColumn: 'span 5' }}>Bảng / Phần tử con</div>
+                                <div style={{ gridColumn: 'span 5' }}>Items</div>
                                 <div style={{ gridColumn: 'span 2', textAlign: 'center', color: '#0f766e' }}>isPass</div>
-                                <div style={{ gridColumn: 'span 3', textAlign: 'right', color: '#4338ca' }}>Score</div>
-                                <div style={{ gridColumn: 'span 2', textAlign: 'right', color: '#64748b' }}>Weight</div>
+                                <div style={{ gridColumn: 'span 2', textAlign: 'right', color: '#4338ca' }}>Score</div>
+                                <div style={{ gridColumn: 'span 3', textAlign: 'right', color: '#64748b' }}>Weight</div>
                               </div>
 
                               <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -3856,24 +3879,38 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                     <div style={{ gridColumn: 'span 2', textAlign: 'center', fontWeight: 700, fontSize: '0.68rem', color: elItem.isPass ? '#0f766e' : '#e11d48' }}>
                                       {elItem.isPass ? 'PASS' : 'FAIL'}
                                     </div>
-                                    <div style={{ gridColumn: 'span 3', textAlign: 'right', fontWeight: 700, color: '#0f172a' }}>
+                                    <div style={{ gridColumn: 'span 2', textAlign: 'right', fontWeight: 700, color: '#0f172a' }}>
                                       {elItem.score}
                                     </div>
-                                    <div style={{ gridColumn: 'span 2', textAlign: 'right', fontWeight: 600, color: '#64748b' }}>
-                                      {elItem.weight}%
+                                    <div style={{ gridColumn: 'span 3', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '2px' }}>
+                                      <SmartNumberInput
+                                        disabled={isLocked}
+                                        value={elItem.weight}
+                                        presets={[0, 10, 20, 25, 50, 100]}
+                                        min={0}
+                                        max={100}
+                                        onChange={(val) => handleUpdateChildElementWeight(elItem.elementTitle, elItem.blockId, val)}
+                                        style={{ width: '38px', fontSize: '0.72rem' }}
+                                      />
+                                      <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#64748b' }}>%</span>
                                     </div>
                                   </div>
                                 ))}
                               </div>
 
                               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', padding: '6px 8px', alignItems: 'center', background: '#eff6ff', borderTop: '1px solid #bfdbfe' }}>
-                                <div style={{ gridColumn: 'span 5', fontWeight: 700, color: '#1d4ed8', fontSize: '0.72rem' }}>Tổng Phân Mục H2:</div>
+                                <div style={{ gridColumn: 'span 5' }}></div>
                                 <div style={{ gridColumn: 'span 2', textAlign: 'center', fontSize: '0.7rem', fontWeight: 700, color: h2CombinedScore.isPass ? '#0f766e' : '#e11d48' }}>
                                   {h2CombinedScore.isPass ? 'PASS' : 'FAIL'}
                                 </div>
-                                <div style={{ gridColumn: 'span 5', textAlign: 'right' }}>
+                                <div style={{ gridColumn: 'span 2', textAlign: 'right' }}>
                                   <span style={{ fontSize: '0.9rem', fontWeight: 900, color: '#1d4ed8', lineHeight: 1 }}>
                                     {h2CombinedScore.combinedScore}
+                                  </span>
+                                </div>
+                                <div style={{ gridColumn: 'span 3', textAlign: 'right' }}>
+                                  <span style={{ fontSize: '0.7rem', fontWeight: 800, color: h2CombinedScore.totalWeight === 100 ? '#059669' : '#d97706' }} title={`Tổng trọng số = ${h2CombinedScore.totalWeight}%`}>
+                                    ∑ {h2CombinedScore.totalWeight}%
                                   </span>
                                 </div>
                               </div>

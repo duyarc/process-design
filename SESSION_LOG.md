@@ -31,12 +31,39 @@ phiên thực thi để không lặp lại lỗi cũ.
 | 17 | `LOGIC` | `updateRuleOverride` silent abort khi `layoutBlocks` rỗng hoặc chưa gán trường vào khối khiến controlled inputs (Score, Weight) không thể chỉnh sửa | Xây dựng Smart Target Block Resolution (5 tầng ưu tiên) kết hợp Auto-Initialization khối Table cho Section H2 | 1 |
 | 18 | `BLOAT` | Trích xuất utility tổng hợp điểm (`summarizeH1ChildGroups`) nhưng vẫn import hàm con (`computeH1CombinedScore`) vào component cha → TS6133 unused import | Khi bọc logic vào pure utility cấp cao hơn, xóa ngay các imports cấp thấp không còn được gọi trực tiếp trong component | 1 |
 | 19 | `LOGIC` | Gọi `form.title` thay vì `form.formTitle` trên `FormTemplateISO` hoặc truyền Raw Block ID từ `FormReferenceCanvas` vào `setActiveBlockId` mà không ánh xạ sang `template.layoutBlocks` | Luôn kiểm tra tên trường chuẩn (`formTitle` vs `reportTitle`) và ánh xạ qua `handleSelectBlockFromFormCanvas` để đồng bộ ID khối giữa Form gốc và Report template | 1 |
+| 20 | `BLOAT` | Thay thế sub-layout cũ (như thanh toolbar text format) làm sót import helper (`applyTextFormat`) ở đầu file → TS6133 unused import khi build production | Khi dọn dẹp cụm UI/control cũ, kiểm tra ngay đầu file để loại bỏ import của các helper chỉ dùng riêng cho control đó | 1 |
 
 ---
 
 ## Nhật ký Phiên
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
+
+### 2026-09-25 — Report Builder: Streamlined H2 Section Inspector (Style 2A & In-Table Child Weight Editing)
+
+**Scope:** 3 files (`src/utils/reportScoring.ts`, `src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | ~38 min |
+| Thời gian lập plan (Request → Proceed) | ~24 min |
+| Thời gian thực thi (Proceed → Push) | ~14 min |
+| Số file nguồn chỉnh sửa | 2 (`reportScoring.ts`, `ReportBuilder.tsx`) |
+| Tổng lượt edit source | 5 |
+| Lượt edit sửa lỗi (rework) | 1 (xóa TS6133 unused import `applyTextFormat`) |
+| Số lần build | 3 (`npx tsc` pass + `tsc -b && vite build` pass) |
+| Lần build cuối thành công? | Có (100% pass) |
+| Số lỗi mới phát sinh | 1 (`TS6133`) |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- **Tinh giản Tiêu đề Thanh Inspector H2:** Gom `SECTION_LABEL`, cụm selector pills `[ H1 | H2 | Body | None ]`, và nút xoá `[🗑]` trên cùng 1 hàng duy nhất, triệt tiêu sự lặp lại của nhãn `H2` và `Properties`.
+- **Khối Tiêu đề & Mô tả Liền mạch (Style 2A):** Gom Section Title và Description vào chung một container liền mạch không có đường line phân cách ở giữa; Description tự động ẩn (0px) nếu rỗng và chỉ hiện khi form có dữ liệu thực tế.
+- **Rút gọn nhãn `isKnockout`:** Bỏ chữ `(H2)` dư thừa.
+- **Bảng thành phần con H2 & Chỉnh sửa Trọng số tại chỗ:** Đổi tên cột `Bảng / Phần tử con` thành `Items`, bỏ dòng tiêu đề `TỔNG HỢP ĐIỂM PHÂN MỤC H2`, tích hợp `<SmartNumberInput>` với preset dải nhanh `[0, 10, 20, 25, 50, 100]` trực tiếp tại cột Weight, cập nhật `layoutBlocks` ngay lập tức qua `blockId` bổ sung trong `summarizeH2ChildElements`.
+- **Footer Tinh gọn:** Bỏ nhãn `Tổng Phân Mục H2:`, chỉ hiển thị trạng thái `PASS/FAIL`, tổng điểm `combinedScore`, và tổng trọng số `∑ {totalWeight}%`.
+
+---
 
 ### 2026-09-24 — Report Builder: Base-5 (`Thang 5`) Scoring Scale & Focus-Only Quick-Select `SmartNumberInput`
 
@@ -336,28 +363,6 @@ Entry mới nhất ở trên cùng. Tối đa 10 entries.
 - **Khớp dữ liệu thực tế 5C-Scorecard:** Hỗ trợ chuẩn xác cấu trúc bảng động với các hàng nhóm tiêu đề (`row.isGroupHeader`, `row.groupTitle`) phân chia theo 6 Trụ cột chiến lược của Form 5C-Scorecard.
 - **Tương tác trực tiếp:** Cho phép click chọn trường từ trang Form gốc và click ra lề giấy để bỏ chọn về Report Properties.
 
----
 
-### 2026-09-23 — Form & Report Designer: Blank Space Click-to-Deselect to View & Edit Form/Report Properties
-
-**Scope:** 4 files (`FormBuilder.tsx`, `ReportBuilder.tsx`, `DESIGN_FORM_DESIGNER.md`, `DESIGN_REPORT_BUILDER.md`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian tổng (Request → Push) | 4.0 min |
-| Thời gian lập plan (Request → Proceed) | 1.0 min |
-| Thời gian thực thi (Proceed → Push) | 3.0 min |
-| Số file nguồn chỉnh sửa | 2 (`FormBuilder.tsx`, `ReportBuilder.tsx`) |
-| Tổng lượt edit source | 4 |
-| Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 3 (2 tsc + 1 vite pass) |
-| Lần build đầu thành công? | Có (100% pass ngay lần đầu) |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Điểm nổi bật:**
-- **Cơ chế Bỏ chọn khi Click Khoảng trắng (Canvas & Paper Click Delegation):** Gắn sự kiện `onClick` lên khung cuộn Canvas trung tâm (`#f1f5f9`) và khoảng trống lề trang giấy in (`.paper-card`) trong cả `FormBuilder.tsx` và `ReportBuilder.tsx`, tự động reset `activeBlockId = null`, `activeFieldId = null`, `selectedFieldId = null`.
-- **Cô lập Sự kiện Khối (Event Isolation):** Bổ sung `e.stopPropagation()` trên block wrapper để click vào bất kỳ khối nào sẽ chỉ chọn khối đó mà không bị kích hoạt sự kiện bỏ chọn của Canvas.
-- **Chuẩn hóa Tiêu đề Form & Report Properties:** Bổ sung tiêu đề in hoa `FORM PROPERTIES` và `REPORT PROPERTIES` trong thanh thuộc tính bên phải khi ở trạng thái bỏ chọn, tạo sự nhất quán hoàn hảo với `FIELD PROPERTIES` và `BLOCK PROPERTIES`.
 
 

@@ -538,7 +538,7 @@ export function summarizeH2ChildElements(
   layoutBlocks: ReportBlockConfig[],
   sampleSubmissionData?: any
 ): {
-  childElementsSummary: { elementTitle: string; fieldsCount: number; score: number; isPass: boolean; weight: number }[];
+  childElementsSummary: { elementTitle: string; fieldsCount: number; score: number; isPass: boolean; weight: number; blockId?: string }[];
   h2CombinedScore: { combinedScore: number; isPass: boolean; hasKnockoutFailed: boolean; totalWeight: number };
 } {
   const cleanH2 = (h2Title || '').trim().toLowerCase();
@@ -590,7 +590,8 @@ export function summarizeH2ChildElements(
       score: elRes.combinedScore,
       isPass: elRes.isPass,
       weight: matchingBlock?.weight ?? 0,
-      isKnockout: matchingBlock?.isKnockout ?? false
+      isKnockout: matchingBlock?.isKnockout ?? false,
+      blockId: matchingBlock?.id
     };
   });
 
