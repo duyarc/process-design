@@ -4136,10 +4136,14 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                     {h1CombinedScore.combinedScore}
                                   </span>
                                 </div>
-                                <div style={{ gridColumn: 'span 2', textAlign: 'right', paddingRight: '2px' }}>
-                                  <span style={{ fontSize: '0.7rem', fontWeight: 800, color: h1CombinedScore.totalWeight === 100 ? '#059669' : '#d97706' }} title={`Tổng trọng số = ${h1CombinedScore.totalWeight}%`}>
-                                    ∑ {h1CombinedScore.totalWeight}%
+                                <div
+                                  style={{ gridColumn: 'span 2', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '2px', paddingRight: '2px' }}
+                                  title={`Tổng trọng số = ${h1CombinedScore.totalWeight}%`}
+                                >
+                                  <span style={{ width: '32px', textAlign: 'center', fontSize: '0.72rem', fontWeight: 800, color: h1CombinedScore.totalWeight === 100 ? '#059669' : '#d97706', fontVariantNumeric: 'tabular-nums' }}>
+                                    {h1CombinedScore.totalWeight}
                                   </span>
+                                  <span style={{ fontSize: '0.68rem', fontWeight: 700, color: h1CombinedScore.totalWeight === 100 ? '#059669' : '#d97706' }}>%</span>
                                 </div>
                               </div>
                             </div>
@@ -4229,10 +4233,14 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                     {h2CombinedScore.combinedScore}
                                   </span>
                                 </div>
-                                <div style={{ gridColumn: 'span 2', textAlign: 'right', paddingRight: '2px' }}>
-                                  <span style={{ fontSize: '0.7rem', fontWeight: 800, color: h2CombinedScore.totalWeight === 100 ? '#059669' : '#d97706' }} title={`Tổng trọng số = ${h2CombinedScore.totalWeight}%`}>
-                                    ∑ {h2CombinedScore.totalWeight}%
+                                <div
+                                  style={{ gridColumn: 'span 2', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '2px', paddingRight: '2px' }}
+                                  title={`Tổng trọng số = ${h2CombinedScore.totalWeight}%`}
+                                >
+                                  <span style={{ width: '32px', textAlign: 'center', fontSize: '0.72rem', fontWeight: 800, color: h2CombinedScore.totalWeight === 100 ? '#059669' : '#d97706', fontVariantNumeric: 'tabular-nums' }}>
+                                    {h2CombinedScore.totalWeight}
                                   </span>
+                                  <span style={{ fontSize: '0.68rem', fontWeight: 700, color: h2CombinedScore.totalWeight === 100 ? '#059669' : '#d97706' }}>%</span>
                                 </div>
                               </div>
                             </div>
@@ -4711,10 +4719,14 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                   {h2Score.combinedScore}
                                 </span>
                               </div>
-                              <div style={{ gridColumn: 'span 2', textAlign: 'right', paddingRight: '2px' }}>
-                                <span style={{ fontSize: '0.7rem', fontWeight: 800, color: totalChildWeight === 100 ? '#059669' : '#d97706' }} title={`Tổng trọng số = ${totalChildWeight}%`}>
-                                  ∑ {totalChildWeight}%
+                              <div
+                                style={{ gridColumn: 'span 2', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '2px', paddingRight: '2px' }}
+                                title={`Tổng trọng số = ${totalChildWeight}%`}
+                              >
+                                <span style={{ width: '32px', textAlign: 'center', fontSize: '0.72rem', fontWeight: 800, color: totalChildWeight === 100 ? '#059669' : '#d97706', fontVariantNumeric: 'tabular-nums' }}>
+                                  {totalChildWeight}
                                 </span>
+                                <span style={{ fontSize: '0.68rem', fontWeight: 700, color: totalChildWeight === 100 ? '#059669' : '#d97706' }}>%</span>
                               </div>
                             </div>
                           </div>

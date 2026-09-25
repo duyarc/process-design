@@ -39,6 +39,32 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-25 — Report Builder: Realigned Footer Weight Slots & Removed Sigma Symbol (ReportBuilder)
+
+**Scope:** 3 files (`src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`, `SESSION_LOG.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | ~7 min |
+| Thời gian lập plan (Request → Proceed) | ~3 min |
+| Thời gian thực thi (Proceed → Push) | ~4 min |
+| Số file nguồn chỉnh sửa | 1 (`ReportBuilder.tsx`) |
+| Tổng lượt edit source | 3 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 2 (`1 tsc` pass + `1 vite build` 14.73s pass) |
+| Lần build cuối thành công? | Có (100% pass ngay lần đầu) |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- **Loại bỏ Ký hiệu `∑`:** Chấm dứt tình trạng ký hiệu `∑ ` chèn ép diện tích ngang, đẩy chuỗi `100%` lệch khỏi trục ô nhập và nằm quá sát cột `Score`.
+- **Căn chỉnh Thẳng Hàng Trục Dọc (Vertical Center Alignment) Chuẩn Xác:** Đồng bộ cấu trúc footer với các hàng thành phần (`display: flex, justifyContent: flex-end, gap: 2px, paddingRight: 2px`).
+- **Slot Số Tổng 32px Căn giữa:** Số tổng trọng số được bọc trong thẻ `<span>` có chiều rộng cố định đúng `32px`, căn giữa (`textAlign: 'center'`), `fontVariantNumeric: 'tabular-nums'` và `fontWeight: 800`. Tâm số `100` thẳng hàng 100% theo phương thẳng đứng với tâm các ô input `<SmartNumberInput>` (32px) phía trên.
+- **Ký tự `%` Thẳng Hàng:** Ký tự `%` được tách riêng trong thẻ `<span>` sau `gap: 2px`, thẳng trục tuyệt đối với `%` của các hàng trên.
+- **Đồng bộ trên Cả 3 Bảng Tổng hợp:** Áp dụng chuẩn thiết kế này cho Bảng Tổng hợp Trụ cột H1, Bảng Tổng hợp Phân mục H2 và Bảng Đánh giá FIELDS của Khối Table.
+
+---
+
 ### 2026-09-25 — Report Builder: Streamlined H1 Pillar Summary Table & In-Table Weight Editing (ReportBuilder & reportScoring)
 
 **Scope:** 3 files (`src/utils/reportScoring.ts`, `src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`)
@@ -258,31 +284,8 @@ Entry mới nhất ở trên cùng. Tối đa 10 entries.
 - **Căn thẳng trục 100% từ Header đến Footer:** Cột `Score` và `Weight` căn phải kèm đệm chuẩn xác, thẳng hàng tuyệt đối giữa tiêu đề cột, giá trị từng dòng và tổng kết `∑ 100%`.
 - **Đồng bộ màu Header trung tính:** Đưa toàn bộ chữ Header về màu trung tính `#334155` / `#475569`, loại bỏ tình trạng 4 cột 4 màu gây rối mắt.
 
----
 
-### 2026-09-25 — Report Builder: Streamlined H2 Section Inspector (Style 2A & In-Table Child Weight Editing)
 
-**Scope:** 3 files (`src/utils/reportScoring.ts`, `src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian tổng (Request → Push) | ~38 min |
-| Thời gian lập plan (Request → Proceed) | ~24 min |
-| Thời gian thực thi (Proceed → Push) | ~14 min |
-| Số file nguồn chỉnh sửa | 2 (`reportScoring.ts`, `ReportBuilder.tsx`) |
-| Tổng lượt edit source | 5 |
-| Lượt edit sửa lỗi (rework) | 1 (xóa TS6133 unused import `applyTextFormat`) |
-| Số lần build | 3 (`npx tsc` pass + `tsc -b && vite build` pass) |
-| Lần build cuối thành công? | Có (100% pass) |
-| Số lỗi mới phát sinh | 1 (`TS6133`) |
-| Số lỗi cũ lặp lại | 0 |
-
-**Điểm nổi bật:**
-- **Tinh giản Tiêu đề Thanh Inspector H2:** Gom `SECTION_LABEL`, cụm selector pills `[ H1 | H2 | Body | None ]`, và nút xoá `[🗑]` trên cùng 1 hàng duy nhất, triệt tiêu sự lặp lại của nhãn `H2` và `Properties`.
-- **Khối Tiêu đề & Mô tả Liền mạch (Style 2A):** Gom Section Title và Description vào chung một container liền mạch không có đường line phân cách ở giữa; Description tự động ẩn (0px) nếu rỗng và chỉ hiện khi form có dữ liệu thực tế.
-- **Rút gọn nhãn `isKnockout`:** Bỏ chữ `(H2)` dư thừa.
-- **Bảng thành phần con H2 & Chỉnh sửa Trọng số tại chỗ:** Đổi tên cột `Bảng / Phần tử con` thành `Items`, bỏ dòng tiêu đề `TỔNG HỢP ĐIỂM PHÂN MỤC H2`, tích hợp `<SmartNumberInput>` với preset dải nhanh `[0, 10, 20, 25, 50, 100]` trực tiếp tại cột Weight, cập nhật `layoutBlocks` ngay lập tức qua `blockId` bổ sung trong `summarizeH2ChildElements`.
-- **Footer Tinh gọn:** Bỏ nhãn `Tổng Phân Mục H2:`, chỉ hiển thị trạng thái `PASS/FAIL`, tổng điểm `combinedScore`, và tổng trọng số `∑ {totalWeight}%`.
 
 
 
