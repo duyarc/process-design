@@ -913,6 +913,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
   const sampleSupervisorText = (sampleSubmission as any)?.supervisorSignoff?.signedBy || (sampleSubmission as any)?.supervisor_signoff?.supervisor_name || '';
 
   const handleAddBlock = (type: ReportBlockType) => {
+    if (activeCanvasTab === 'form') return; // Ngầm khóa edit: Tab Form chỉ load từ form nguồn, không thêm layout
     const newId = `rep_block_${Date.now()}`;
     let title = 'Tiêu đề khối';
     let boundFieldIds: string[] = [];
@@ -993,6 +994,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
   };
 
   const handleDeleteBlock = (blockId: string) => {
+    if (activeCanvasTab === 'form') return; // Ngầm khóa edit: Không xóa khối khi đang xem Form nguồn
     setConfirmModal({
       isOpen: true,
       title: 'Xoá khối báo cáo',
@@ -2800,7 +2802,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
             setActiveBlockId(null);
             setSelectedFieldId(null);
           }}
-          style={{ flex: 1, background: '#f1f5f9', overflowY: 'auto', padding: '1rem 1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'default' }}
+          style={{ flex: 1, background: '#f1f5f9', overflowY: 'auto', padding: '1.25rem 1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'default', width: '100%', boxSizing: 'border-box' }}
         >
           {activeCanvasTab === 'form' ? (
             selectedForm ? (
@@ -2808,6 +2810,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                 form={selectedForm}
                 sampleSubmission={sampleSubmission}
                 reportBlocks={template.layoutBlocks}
+                pageSize={template.pageSize || selectedForm?.pageSize || 'A4'}
                 selectedFieldId={selectedFieldId}
                 activeBlockId={activeBlockId}
                 activeGroupTitle={activeBlock?.type === 'TABLE' ? activeBlock.title : null}
@@ -2825,7 +2828,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                 }}
               />
             ) : (
-              <div style={{ border: '2px dashed var(--neutral-border)', borderRadius: '8px', padding: '3rem 1.5rem', textAlign: 'center', color: 'var(--text-secondary)', background: '#ffffff', width: '100%', maxWidth: '698px' }}>
+              <div style={{ border: '2px dashed var(--neutral-border)', borderRadius: '8px', padding: '3rem 1.5rem', textAlign: 'center', color: 'var(--text-secondary)', background: '#ffffff', width: '100%', maxWidth: template.pageSize === 'A5_LANDSCAPE' ? '920px' : '820px' }}>
                 <FileText size={36} style={{ margin: '0 auto 0.75rem', opacity: 0.4 }} />
                 <h4 style={{ margin: '0 0 0.25rem 0', color: 'var(--text-primary)', fontSize: '0.95rem' }}>Chưa chọn Biểu mẫu nguồn</h4>
                 <p style={{ fontSize: '0.8rem', margin: 0 }}>Vui lòng chọn hoặc liên kết với một biểu mẫu để xem cấu trúc Form gốc.</p>
@@ -2843,15 +2846,17 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
               }}
               style={{
                 width: '100%',
-                maxWidth: '698px',
-                minHeight: '842px',
+                maxWidth: (template.pageSize || selectedForm?.pageSize) === 'A5_LANDSCAPE' ? '920px' : '820px',
+                minHeight: (template.pageSize || selectedForm?.pageSize) === 'A5_LANDSCAPE' ? '650px' : '1050px',
                 background: '#ffffff',
-                padding: '1.5rem',
-                boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)',
-                borderRadius: '4px',
+                border: '1px solid #cbd5e1',
+                borderRadius: '6px',
+                boxShadow: '0 4px 6px -1px rgba(0,0,0,0.06), 0 2px 4px -1px rgba(0,0,0,0.04)',
+                padding: '1.75rem 2rem',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '1rem'
+                gap: '1rem',
+                boxSizing: 'border-box'
               }}
             >
             {template.layoutBlocks.length === 0 ? (
@@ -3642,6 +3647,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                   type="button"
                                   disabled={isLocked}
                                   onClick={() => {
+                                    if (activeCanvasTab === 'form') return; // Ngầm khóa edit: Không đổi format khối form nguồn
                                     setTemplate(prev => ({
                                       ...prev,
                                       layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, titleFormat: fmt } : b)
@@ -3722,6 +3728,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                 type="button"
                                 disabled={isLocked}
                                 onClick={() => {
+                                  if (activeCanvasTab === 'form') return; // Ngầm khóa edit: Không đổi viền bảng form nguồn
                                   setTemplate(prev => ({
                                     ...prev,
                                     layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, borderStyle: styleOpt.id as any } : b)
@@ -3754,6 +3761,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                           <ToggleSwitch
                             checked={!(activeBlock.hideHeader ?? false)}
                             onChange={(show) => {
+                              if (activeCanvasTab === 'form') return; // Ngầm khóa edit: Không đổi header bảng form nguồn
                               setTemplate(prev => ({
                                 ...prev,
                                 layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, hideHeader: !show } : b)
@@ -3817,6 +3825,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                         disabled={isLocked}
                         value={activeBlock.title || ''}
                         onChange={(e) => {
+                          if (activeCanvasTab === 'form') return; // Ngầm khóa edit: Không đổi tên bảng form nguồn
                           const val = e.target.value;
                           setTemplate(prev => ({
                             ...prev,
@@ -3861,6 +3870,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                           disabled={isLocked}
                           value={activeBlock.title || ''}
                           onChange={(e) => {
+                            if (activeCanvasTab === 'form') return; // Ngầm khóa edit: Không đổi tên phân đoạn form nguồn
                             const val = e.target.value;
                             setTemplate(prev => ({
                               ...prev,
@@ -3903,6 +3913,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                             disabled={isLocked}
                             value={activeBlock.description || ''}
                             onChange={(e) => {
+                              if (activeCanvasTab === 'form') return; // Ngầm khóa edit: Không đổi mô tả form nguồn
                               const val = e.target.value;
                               setTemplate(prev => ({
                                 ...prev,

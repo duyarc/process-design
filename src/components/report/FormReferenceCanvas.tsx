@@ -22,6 +22,7 @@ interface FormReferenceCanvasProps {
   form: FormTemplateISO;
   sampleSubmission?: Submission | null;
   reportBlocks?: ReportBlockConfig[];
+  pageSize?: string;
   selectedFieldId: string | null;
   activeBlockId?: string | null;
   activeGroupTitle?: string | null;
@@ -36,6 +37,7 @@ export const FormReferenceCanvas: React.FC<FormReferenceCanvasProps> = ({
   form,
   sampleSubmission,
   reportBlocks,
+  pageSize: propPageSize,
   selectedFieldId,
   activeBlockId,
   activeGroupTitle,
@@ -45,7 +47,7 @@ export const FormReferenceCanvas: React.FC<FormReferenceCanvasProps> = ({
   onSelectH1Section,
   onDeselect
 }) => {
-  const pageSize = form.pageSize || (form as any).page_size || 'A4';
+  const pageSize = propPageSize || form.pageSize || (form as any).page_size || 'A4';
   const isA5 = pageSize === 'A5_LANDSCAPE';
   const blocks = form.layoutBlocks || [];
 
@@ -330,15 +332,11 @@ export const FormReferenceCanvas: React.FC<FormReferenceCanvasProps> = ({
     <div
       onClick={onDeselect}
       style={{
-        flex: 1,
-        background: '#f1f5f9',
-        overflowY: 'auto',
-        padding: '1.5rem',
+        width: '100%',
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'flex-start',
         cursor: 'default',
-        width: '100%',
         boxSizing: 'border-box'
       }}
     >
@@ -352,12 +350,12 @@ export const FormReferenceCanvas: React.FC<FormReferenceCanvasProps> = ({
         style={{
           width: '100%',
           maxWidth: isA5 ? '920px' : '820px',
+          minHeight: isA5 ? '650px' : '1050px',
           background: '#ffffff',
           border: '1px solid #cbd5e1',
           borderRadius: '6px',
-          boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)',
-          padding: '2.5rem',
-          minHeight: '1050px',
+          boxShadow: '0 4px 6px -1px rgba(0,0,0,0.06), 0 2px 4px -1px rgba(0,0,0,0.04)',
+          padding: '1.75rem 2rem',
           display: 'flex',
           flexDirection: 'column',
           gap: '0px',

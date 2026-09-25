@@ -39,6 +39,30 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-25 — Report Builder: Unified Canvas Dimensions & Tab Form Silent Edit Lock (ReportBuilder & FormReferenceCanvas)
+
+**Scope:** 3 files (`src/components/ReportBuilder.tsx`, `src/components/report/FormReferenceCanvas.tsx`, `DESIGN_REPORT_BUILDER.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | ~7.1 min |
+| Thời gian lập plan (Request → Proceed) | ~3.5 min |
+| Thời gian thực thi (Proceed → Push) | ~3.5 min |
+| Số file nguồn chỉnh sửa | 2 (`ReportBuilder.tsx`, `FormReferenceCanvas.tsx`) |
+| Tổng lượt edit source | 3 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 2 (`1 tsc` pass + `1 vite build` 14.90s pass) |
+| Lần build cuối thành công? | Có (100% pass ngay lần đầu) |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- **Thống nhất Kích thước Canvas Tờ Giấy:** Đồng bộ `maxWidth` sang `920px` (A5 Landscape) / `820px` (A4 Portrait), `minHeight` sang `650px` / `1050px`, và `padding: '1.75rem 2rem'` trên cả 2 Tab `Form` và `Report`, xóa bỏ hoàn toàn cú nhảy giật khung hình 122px khi chuyển tab.
+- **Triệt tiêu Thanh Cuộn Kép (Double Scrollbar):** Xóa bỏ outer scroll wrapper thừa (`overflowY: 'auto'`, background xám `#f1f5f9`) trong `FormReferenceCanvas`, giúp canvas cắm trực tiếp vào container cuộn trung tâm duy nhất của `ReportBuilder`.
+- **Cơ chế Ngầm Khóa Edit (Silent Lock) trên Tab Form:** Đúng yêu cầu "không ẩn công cụ, không mô tả readonly, chỉ ngầm khóa edit", đặt kiểm tra `if (activeCanvasTab === 'form') return;` chặn các thao tác thay đổi layout/nội dung (`handleAddBlock`, `handleDeleteBlock`, title format, borders, headers, title inputs) trong khi vẫn bảo lưu 100% khả năng cấu hình quy tắc chấm điểm và trọng số (`isKnockout`, `weight`, `ruleOverrides`).
+
+---
+
 ### 2026-09-25 — Report Builder: Realigned Footer Weight Slots & Removed Sigma Symbol (ReportBuilder)
 
 **Scope:** 3 files (`src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`, `SESSION_LOG.md`)
@@ -258,31 +282,6 @@ Entry mới nhất ở trên cùng. Tối đa 10 entries.
 - **Root cause triệt để:** `init()` trong `ReportBuilder.tsx` bỏ qua hoàn toàn việc nạp dữ liệu khi `initialReportId` là `undefined` — dẫn đến component khởi tạo lại từ `layoutBlocks: []` rỗng, mất toàn bộ dữ liệu đã lưu.
 - **Fallback `else if (targetFormId)` trong `init()`:** Khi không có `reportId`, tự động gọi `GET /api/reports/by-form/:formId` để nạp bản báo cáo đã lưu gần nhất. Nếu API trả về 404 (form mới chưa có report) → giữ nguyên template rỗng như thiết kế ban đầu.
 - **Dashboard lookup `linkedRep?.reportId`:** Cả 2 nút `[📊 Report]` (table view và card view) tự tra cứu `reportTemplates.find(r => r.linkedFormId === form.formId)` trong state sẵn có và truyền `reportId` đầy đủ, loại bỏ hoàn toàn việc phụ thuộc fallback.
-
----
-
-### 2026-09-25 — Report Builder: Child Elements Table UI Alignment & Popover Elimination (Option A)
-
-**Scope:** 2 files (`src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian tổng (Request → Push) | ~4 min |
-| Thời gian lập plan (Request → Proceed) | ~2 min |
-| Thời gian thực thi (Proceed → Push) | ~2 min |
-| Số file nguồn chỉnh sửa | 1 (`ReportBuilder.tsx`) |
-| Tổng lượt edit source | 2 |
-| Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 2 (`npx tsc` pass + `tsc -b && vite build` pass) |
-| Lần build cuối thành công? | Có (100% pass ngay lần đầu) |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Điểm nổi bật:**
-- **Triệt tiêu hoàn toàn Popover Presets trong bảng compact:** Bỏ thuộc tính `presets` khỏi `SmartNumberInput` trong bảng thành phần con, chấm dứt hoàn toàn tình trạng popup bị cắt cụt mép phải do `overflow: hidden` và che khuất dòng dữ liệu bên trên khi focus.
-- **Tái cân bằng tỷ lệ lưới sang `6 / 2 / 2 / 2`:** Tăng diện tích cột `Items` lên 6 span giúp tên bảng con không bị cắt chữ sớm; rút gọn `Weight` thành 2 span chứa vừa vặn ô input 32px và ký tự `%`.
-- **Căn thẳng trục 100% từ Header đến Footer:** Cột `Score` và `Weight` căn phải kèm đệm chuẩn xác, thẳng hàng tuyệt đối giữa tiêu đề cột, giá trị từng dòng và tổng kết `∑ 100%`.
-- **Đồng bộ màu Header trung tính:** Đưa toàn bộ chữ Header về màu trung tính `#334155` / `#475569`, loại bỏ tình trạng 4 cột 4 màu gây rối mắt.
 
 
 
