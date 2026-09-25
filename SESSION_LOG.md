@@ -39,6 +39,32 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-25 — Report Builder: Pure Native Drag & Drop Field Reordering on Canvas & Inspector (ReportBuilder)
+
+**Scope:** 3 files (`src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`, `SESSION_LOG.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | ~7 min |
+| Thời gian lập plan (Request → Proceed) | ~2.5 min |
+| Thời gian thực thi (Proceed → Push) | ~4.5 min |
+| Số file nguồn chỉnh sửa | 1 (`ReportBuilder.tsx`) |
+| Tổng lượt edit source | 7 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 3 (`1 tsc -b` pass + `1 npm run build` 11.92s pass) |
+| Lần build cuối thành công? | Có (100% pass ngay lần đầu) |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- **Native HTML5 Drag and Drop Reordering:** Hỗ trợ kéo thả trực quan để sắp xếp lại thứ tự trường ở cả Canvas (ô lưới `INFO_GRID`, hàng `TABLE`) và Right Inspector (danh sách `FIELDS`).
+- **Đồng bộ hai chiều thời gian thực (Two-way Reactive Sync):** Việc sắp xếp lại vị trí trên Canvas tự động phản ánh tức thì sang danh sách Inspector và ngược lại thông qua mảng `boundFieldIds` và utility `reorderArray`.
+- **Tối giản hóa giao diện & Triệt tiêu Clutter (Lesson 11):** Bỏ hoàn toàn các dòng hướng dẫn phụ trợ rườm rà ("Kéo để xếp lại", hint boxes). Trải nghiệm dựa hoàn toàn vào visual affordances trực quan: biểu tượng grip `⠿`, con trỏ `cursor: grab`, độ mờ ghost `0.35`, và vạch định vị primary teal `borderTop: 2.5px solid var(--primary)` khi rê qua vị trí đích.
+- **Triệt tiêu Mã Chết (Dead-Code Pruning — Rule 4.2 / Rule 13.7):** Xóa sạch các nút bước đơn `↑` / `↓` ở Inspector và thay thế hoàn toàn hàm cũ `moveFieldInBlock` bằng `reorderFieldInBlock` sử dụng pure utility `reorderArray` từ `src/utils/formUtils.ts`.
+- **Bảo vệ thao tác người dùng (Drag Safety):** Chặn kích hoạt drag khi click/select trên thẻ `<input>` trong card trường để không cản trở việc chỉnh sửa văn bản.
+
+---
+
 ### 2026-09-25 — Report Builder: Pure Native Drag & Drop Field Assignment & Pruned Modal (ReportBuilder)
 
 **Scope:** 3 files (`src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`, `SESSION_LOG.md`)
@@ -260,27 +286,5 @@ Entry mới nhất ở trên cùng. Tối đa 10 entries.
 - **H2 Drill-down:** Cho phép bấm trực tiếp vào tên bảng con trong bảng tóm tắt con của Section H2 ở Right Inspector để mở cấu hình Table Properties.
 - **Chuẩn hóa hiển thị `__other__`:** Áp dụng `formatOptionDisplay` trên Canvas và Report Preview, tích hợp `isOtherValue` trong `FieldScoringInspector.tsx` và `reportScoring.ts` để nhận diện và tính điểm chính xác cho các giá trị tùy chọn "Khác".
 
----
 
-### 2026-09-25 — Report Builder: Live Submission Canvas Rendering & formUtils Pure Extraction
-
-**Scope:** 4 files (`src/utils/formUtils.ts`, `src/components/ReportBuilder.tsx`, `src/components/report/FormReferenceCanvas.tsx`, `DESIGN_REPORT_BUILDER.md`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian tổng (Request → Push) | ~8 min |
-| Thời gian lập plan (Request → Proceed) | ~3.8 min |
-| Thời gian thực thi (Proceed → Push) | ~4.2 min |
-| Số file nguồn chỉnh sửa | 3 (`formUtils.ts`, `ReportBuilder.tsx`, `FormReferenceCanvas.tsx`) |
-| Tổng lượt edit source | 5 |
-| Lượt edit sửa lỗi (rework) | 1 (lệch dòng replace do thêm code phía trước, đã view_file khắc phục ngay) |
-| Số lần build | 4 (`npx tsc` 3 lần pass + `tsc -b && vite build` 15.44s pass) |
-| Lần build cuối thành công? | Có (100% pass ngay lần đầu) |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Điểm nổi bật:**
-- **Đồng bộ 100% giữa Center Canvas và Right Inspector:** Truyền `sampleSubmission` từ `ReportBuilder` vào `FormReferenceCanvas`, giúp hiển thị trực quan các câu trả lời thực tế từ phiếu nộp mẫu: Likert scale hiển thị chấm tròn teal đặc `●` kèm halo ring; Rating hiển thị các ngôi sao vàng đặc `★`; Checkbox/Radio hiển thị tick `[✓]` và `(●)`; Text/Number/Date/Select hiển thị chữ số đậm `#0f172a`.
-- **Pure Utility Extraction (Rule 13.8):** Trích xuất logic bóc tách `extractSubmissionValue`, `isLikertSelected`, `isOptionSelected` vào `src/utils/formUtils.ts` để tái sử dụng xuyên suốt toàn hệ thống.
-- **Null-Safety & Zero Regression:** Khi không có phiếu mẫu, Canvas tự động giữ nguyên chế độ xem mẫu đơn rỗng (Blank Form Preview).
 

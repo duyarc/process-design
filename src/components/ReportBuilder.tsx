@@ -13,7 +13,7 @@ import type {
 } from '../types';
 import { computeRecordReport, evaluateFieldSpec } from '../utils/reportCompute';
 import { extractAllFormFields, extractTableFields, groupFieldsByHierarchy, type FieldHierarchyGroup } from '../utils/tableFieldExtractor';
-import { getInfoGridTemplateColumns, snap2ColWidth, snap3ColWidths, formatOptionDisplay } from '../utils/formUtils';
+import { getInfoGridTemplateColumns, snap2ColWidth, snap3ColWidths, formatOptionDisplay, reorderArray } from '../utils/formUtils';
 import { handleFormatKeyDown } from '../utils/textFormatter';
 import { FieldScoringInspector } from './report/FieldScoringInspector';
 import { FormReferenceCanvas } from './report/FormReferenceCanvas';
@@ -681,6 +681,15 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
   const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState<boolean>(true);
   const [isDraggingField, setIsDraggingField] = useState<boolean>(false);
   const [dragOverBlockId, setDragOverBlockId] = useState<string | null>(null);
+  const [reorderDrag, setReorderDrag] = useState<{
+    blockId: string;
+    fromIndex: number;
+    fieldId: string;
+  } | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<{
+    blockId: string;
+    index: number;
+  } | null>(null);
 
   const getFieldUsageCount = (fieldId: string): number => {
     return template.layoutBlocks.reduce((acc, b) => acc + ((b.boundFieldIds || []).includes(fieldId) ? 1 : 0), 0);
@@ -1230,16 +1239,24 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
 
   const activeBlock = template.layoutBlocks.find(b => b.id === activeBlockId);
 
-  const addFieldToBlock = (blockId: string, fieldId: string) => {
+  const addFieldToBlock = (blockId: string, fieldId: string, targetIndex?: number) => {
     setTemplate(prev => ({
       ...prev,
       layoutBlocks: prev.layoutBlocks.map(b => {
         if (b.id !== blockId) return b;
         const current = b.boundFieldIds || [];
         if (current.includes(fieldId)) return b;
+        if (targetIndex === undefined || targetIndex < 0 || targetIndex >= current.length) {
+          return {
+            ...b,
+            boundFieldIds: [...current, fieldId]
+          };
+        }
+        const next = [...current];
+        next.splice(targetIndex, 0, fieldId);
         return {
           ...b,
-          boundFieldIds: [...current, fieldId]
+          boundFieldIds: next
         };
       })
     }));
@@ -1294,17 +1311,16 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
     }));
   };
 
-  const moveFieldInBlock = (blockId: string, fieldIdx: number, direction: 'up' | 'down') => {
+  const reorderFieldInBlock = (blockId: string, fromIndex: number, toIndex: number) => {
+    if (fromIndex === toIndex) return;
     setTemplate(prev => ({
       ...prev,
       layoutBlocks: prev.layoutBlocks.map(b => {
         if (b.id !== blockId || !b.boundFieldIds) return b;
-        const targetIdx = direction === 'up' ? fieldIdx - 1 : fieldIdx + 1;
-        if (targetIdx < 0 || targetIdx >= b.boundFieldIds.length) return b;
-        const newIds = [...b.boundFieldIds];
-        const [moved] = newIds.splice(fieldIdx, 1);
-        newIds.splice(targetIdx, 0, moved);
-        return { ...b, boundFieldIds: newIds };
+        return {
+          ...b,
+          boundFieldIds: reorderArray(b.boundFieldIds, fromIndex, toIndex)
+        };
       })
     }));
   };
@@ -2846,6 +2862,12 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                         e.preventDefault();
                         setDragOverBlockId(null);
                         setIsDraggingField(false);
+                        const reorderRaw = e.dataTransfer.getData('application/x-report-reorder');
+                        if (reorderRaw) {
+                          setReorderDrag(null);
+                          setDragOverIndex(null);
+                          return;
+                        }
                         const fieldId = e.dataTransfer.getData('text/plain');
                         if (fieldId) {
                           addFieldToBlock(block.id, fieldId);
@@ -3050,7 +3072,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                               rowGap: '0.5rem',
                               gridAutoRows: 'minmax(38px, auto)'
                             }}>
-                              {block.boundFieldIds.map((fid) => {
+                              {block.boundFieldIds.map((fid, fIdx) => {
                                 const field = allFormFields.find(f => f.id === fid);
                                 const override = block.ruleOverrides?.[fid];
                                 const isLabelHidden = !!override?.hideLabel;
@@ -3064,10 +3086,64 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                 const rSpan = parsedRSpan && !isNaN(parsedRSpan) && parsedRSpan > 1 ? parsedRSpan : undefined;
                                 const cSpan = field?.type === 'subtable' ? -1 : (field?.colSpan ? Number(field.colSpan) : undefined);
                                 const fieldOptions = field?.options && field.options.length > 0 ? field.options : null;
+                                const isThisCellDragging = reorderDrag?.blockId === block.id && reorderDrag?.fromIndex === fIdx;
+                                const isThisDragOver = dragOverIndex?.blockId === block.id && dragOverIndex?.index === fIdx;
 
                                 return (
                                   <div
                                     key={fid}
+                                    draggable={true}
+                                    onDragStart={(e) => {
+                                      if ((e.target as HTMLElement).tagName === 'INPUT') {
+                                        e.preventDefault();
+                                        return;
+                                      }
+                                      e.stopPropagation();
+                                      e.dataTransfer.setData('text/plain', fid);
+                                      e.dataTransfer.setData('application/x-report-reorder', JSON.stringify({ fieldId: fid, blockId: block.id, fromIndex: fIdx }));
+                                      e.dataTransfer.effectAllowed = 'move';
+                                      setReorderDrag({ blockId: block.id, fromIndex: fIdx, fieldId: fid });
+                                    }}
+                                    onDragEnd={() => {
+                                      setReorderDrag(null);
+                                      setDragOverIndex(null);
+                                    }}
+                                    onDragOver={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      e.dataTransfer.dropEffect = 'move';
+                                      if (dragOverIndex?.blockId !== block.id || dragOverIndex?.index !== fIdx) {
+                                        setDragOverIndex({ blockId: block.id, index: fIdx });
+                                      }
+                                    }}
+                                    onDragLeave={(e) => {
+                                      if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+                                      if (dragOverIndex?.index === fIdx) setDragOverIndex(null);
+                                    }}
+                                    onDrop={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      const reorderRaw = e.dataTransfer.getData('application/x-report-reorder');
+                                      if (reorderRaw) {
+                                        try {
+                                          const data = JSON.parse(reorderRaw);
+                                          if (data.blockId === block.id) {
+                                            reorderFieldInBlock(block.id, data.fromIndex, fIdx);
+                                          } else {
+                                            addFieldToBlock(block.id, data.fieldId, fIdx);
+                                          }
+                                        } catch (err) {
+                                          console.error(err);
+                                        }
+                                      } else {
+                                        const fieldId = e.dataTransfer.getData('text/plain');
+                                        if (fieldId) addFieldToBlock(block.id, fieldId, fIdx);
+                                      }
+                                      setReorderDrag(null);
+                                      setDragOverIndex(null);
+                                      setIsDraggingField(false);
+                                      setActiveBlockId(block.id);
+                                    }}
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       setSelectedFieldId(fid);
@@ -3076,10 +3152,19 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                     style={{
                                       gridRow: rSpan ? `span ${rSpan}` : undefined,
                                       gridColumn: cSpan && cSpan > 1 ? `span ${cSpan}` : cSpan === -1 ? '1 / -1' : undefined,
-                                      border: isFieldSelected ? '2px solid var(--primary)' : '1px dotted #cbd5e1',
+                                      border: isThisDragOver
+                                        ? '2px solid var(--primary)'
+                                        : isFieldSelected
+                                        ? '2px solid var(--primary)'
+                                        : '1px dotted #cbd5e1',
                                       borderRadius: '4px',
                                       padding: '6px 8px',
-                                      background: isFieldSelected ? 'rgba(13, 148, 136, 0.05)' : '#ffffff',
+                                      background: isThisDragOver
+                                        ? '#ccfbf1'
+                                        : isFieldSelected
+                                        ? 'rgba(13, 148, 136, 0.05)'
+                                        : '#ffffff',
+                                      opacity: isThisCellDragging ? 0.35 : 1,
                                       fontSize: '0.75rem',
                                       display: 'flex',
                                       flexDirection: 'column',
@@ -3087,13 +3172,16 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                       gap: '4px',
                                       minHeight: '42px',
                                       position: 'relative',
-                                      cursor: 'pointer',
+                                      cursor: 'grab',
                                       transition: 'all 0.12s ease'
                                     }}
                                   >
                                     {!isLabelHidden && (
                                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '4px' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: 1, minWidth: 0 }}>
+                                          <span style={{ color: '#94a3b8', fontSize: '0.85rem', cursor: 'grab', userSelect: 'none', lineHeight: 1, padding: '1px 2px', flexShrink: 0 }}>
+                                            ⠿
+                                          </span>
                                           <input
                                             type="text"
                                             value={displayLabel}
@@ -3320,9 +3408,60 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                   const displayLabel = override?.customLabel || field?.checkItem || fid;
                                   const isSelected = selectedFieldId === fid;
 
+                                  const isThisRowDragging = reorderDrag?.blockId === block.id && reorderDrag?.fromIndex === rIdx;
+                                  const isThisDragOver = dragOverIndex?.blockId === block.id && dragOverIndex?.index === rIdx;
+
                                   return (
                                     <tr
                                       key={fid}
+                                      draggable={true}
+                                      onDragStart={(e) => {
+                                        e.stopPropagation();
+                                        e.dataTransfer.setData('text/plain', fid);
+                                        e.dataTransfer.setData('application/x-report-reorder', JSON.stringify({ fieldId: fid, blockId: block.id, fromIndex: rIdx }));
+                                        e.dataTransfer.effectAllowed = 'move';
+                                        setReorderDrag({ blockId: block.id, fromIndex: rIdx, fieldId: fid });
+                                      }}
+                                      onDragEnd={() => {
+                                        setReorderDrag(null);
+                                        setDragOverIndex(null);
+                                      }}
+                                      onDragOver={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        e.dataTransfer.dropEffect = 'move';
+                                        if (dragOverIndex?.blockId !== block.id || dragOverIndex?.index !== rIdx) {
+                                          setDragOverIndex({ blockId: block.id, index: rIdx });
+                                        }
+                                      }}
+                                      onDragLeave={(e) => {
+                                        if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+                                        if (dragOverIndex?.index === rIdx) setDragOverIndex(null);
+                                      }}
+                                      onDrop={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        const reorderRaw = e.dataTransfer.getData('application/x-report-reorder');
+                                        if (reorderRaw) {
+                                          try {
+                                            const data = JSON.parse(reorderRaw);
+                                            if (data.blockId === block.id) {
+                                              reorderFieldInBlock(block.id, data.fromIndex, rIdx);
+                                            } else {
+                                              addFieldToBlock(block.id, data.fieldId, rIdx);
+                                            }
+                                          } catch (err) {
+                                            console.error(err);
+                                          }
+                                        } else {
+                                          const fieldId = e.dataTransfer.getData('text/plain');
+                                          if (fieldId) addFieldToBlock(block.id, fieldId, rIdx);
+                                        }
+                                        setReorderDrag(null);
+                                        setDragOverIndex(null);
+                                        setIsDraggingField(false);
+                                        setActiveBlockId(block.id);
+                                      }}
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         setSelectedFieldId(fid);
@@ -3330,13 +3469,21 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                       }}
                                       style={{
                                         borderBottom: cellBorder,
+                                        borderTop: isThisDragOver ? '2.5px solid var(--primary)' : undefined,
                                         borderLeft: isSelected ? '3px solid var(--primary)' : 'none',
-                                        background: isSelected ? 'rgba(13, 148, 136, 0.08)' : (rIdx % 2 === 1 ? '#fafafa' : '#ffffff'),
-                                        cursor: 'pointer',
+                                        background: isThisDragOver
+                                          ? '#ccfbf1'
+                                          : isSelected
+                                          ? 'rgba(13, 148, 136, 0.08)'
+                                          : (rIdx % 2 === 1 ? '#fafafa' : '#ffffff'),
+                                        opacity: isThisRowDragging ? 0.35 : 1,
+                                        cursor: 'grab',
                                         transition: 'background 0.12s ease'
                                       }}
                                     >
-                                      <td style={{ border: cellBorder, padding: '5px 6px', textAlign: 'center', color: isSelected ? 'var(--primary)' : '#64748b', fontWeight: isSelected ? 700 : 400 }}>{rIdx + 1}</td>
+                                      <td style={{ border: cellBorder, padding: '5px 6px', textAlign: 'center', color: isSelected ? 'var(--primary)' : '#64748b', fontWeight: isSelected ? 700 : 400 }}>
+                                        <span style={{ color: '#94a3b8', fontSize: '0.85rem', cursor: 'grab', userSelect: 'none', marginRight: '4px', lineHeight: 1 }}>⠿</span>{rIdx + 1}
+                                      </td>
                                       <td style={{ border: cellBorder, padding: '5px 8px' }}>
                                         <div style={{ fontWeight: 600, color: isSelected ? 'var(--primary)' : 'var(--text-primary)' }}>{displayLabel}</div>
                                       </td>
@@ -4502,21 +4649,81 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                             const override = activeBlock.ruleOverrides?.[fid];
                             const hasCustomLabel = override?.customLabel !== undefined && override.customLabel !== (field?.checkItem || fid);
 
+                            const isThisItemDragging = reorderDrag?.blockId === activeBlock.id && reorderDrag?.fromIndex === fIdx;
+                            const isThisDragOver = dragOverIndex?.blockId === activeBlock.id && dragOverIndex?.index === fIdx;
+
                             return (
                               <div
                                 key={fid}
+                                draggable={true}
+                                onDragStart={(e) => {
+                                  if ((e.target as HTMLElement).tagName === 'INPUT') {
+                                    e.preventDefault();
+                                    return;
+                                  }
+                                  e.stopPropagation();
+                                  e.dataTransfer.setData('text/plain', fid);
+                                  e.dataTransfer.setData('application/x-report-reorder', JSON.stringify({ fieldId: fid, blockId: activeBlock.id, fromIndex: fIdx }));
+                                  e.dataTransfer.effectAllowed = 'move';
+                                  setReorderDrag({ blockId: activeBlock.id, fromIndex: fIdx, fieldId: fid });
+                                }}
+                                onDragEnd={() => {
+                                  setReorderDrag(null);
+                                  setDragOverIndex(null);
+                                }}
+                                onDragOver={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  e.dataTransfer.dropEffect = 'move';
+                                  if (dragOverIndex?.blockId !== activeBlock.id || dragOverIndex?.index !== fIdx) {
+                                    setDragOverIndex({ blockId: activeBlock.id, index: fIdx });
+                                  }
+                                }}
+                                onDragLeave={(e) => {
+                                  if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+                                  if (dragOverIndex?.index === fIdx) setDragOverIndex(null);
+                                }}
+                                onDrop={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  const reorderRaw = e.dataTransfer.getData('application/x-report-reorder');
+                                  if (reorderRaw) {
+                                    try {
+                                      const data = JSON.parse(reorderRaw);
+                                      if (data.blockId === activeBlock.id) {
+                                        reorderFieldInBlock(activeBlock.id, data.fromIndex, fIdx);
+                                      } else {
+                                        addFieldToBlock(activeBlock.id, data.fieldId, fIdx);
+                                      }
+                                    } catch (err) {
+                                      console.error(err);
+                                    }
+                                  } else {
+                                    const fieldId = e.dataTransfer.getData('text/plain');
+                                    if (fieldId) addFieldToBlock(activeBlock.id, fieldId, fIdx);
+                                  }
+                                  setReorderDrag(null);
+                                  setDragOverIndex(null);
+                                }}
                                 style={{
                                   display: 'flex',
                                   alignItems: 'center',
                                   gap: '4px',
                                   padding: '4px 6px',
-                                  background: '#f8fafc',
+                                  background: isThisDragOver ? '#ccfbf1' : '#f8fafc',
                                   border: '1px solid #e2e8f0',
+                                  borderTop: isThisDragOver ? '2.5px solid var(--primary)' : '1px solid #e2e8f0',
                                   borderRadius: '4px',
-                                  fontSize: '0.72rem'
+                                  fontSize: '0.72rem',
+                                  opacity: isThisItemDragging ? 0.35 : 1,
+                                  cursor: 'grab',
+                                  transition: 'all 0.12s ease'
                                 }}
                               >
-                                <span style={{ fontWeight: 700, color: 'var(--text-secondary)', minWidth: '14px' }}>
+                                <span style={{ color: '#94a3b8', fontSize: '0.85rem', cursor: 'grab', userSelect: 'none', lineHeight: 1, padding: '1px 2px', flexShrink: 0 }}>
+                                  ⠿
+                                </span>
+                                <span style={{ fontWeight: 700, color: 'var(--text-secondary)', minWidth: '14px', flexShrink: 0 }}>
                                   {fIdx + 1}.
                                 </span>
 
@@ -4560,34 +4767,16 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                     </div>
                                   )}
 
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '1px', borderLeft: '1px solid #cbd5e1', paddingLeft: '3px' }}>
-                                    <button
-                                      type="button"
-                                      disabled={fIdx === 0}
-                                      onClick={() => moveFieldInBlock(activeBlock.id, fIdx, 'up')}
-                                      style={{ border: 'none', background: 'none', cursor: fIdx === 0 ? 'not-allowed' : 'pointer', color: fIdx === 0 ? '#cbd5e1' : '#64748b', padding: '1px 2px' }}
-                                      title="Di chuyển lên"
-                                    >
-                                      ↑
-                                    </button>
-                                    <button
-                                      type="button"
-                                      disabled={fIdx === (activeBlock.boundFieldIds?.length || 0) - 1}
-                                      onClick={() => moveFieldInBlock(activeBlock.id, fIdx, 'down')}
-                                      style={{ border: 'none', background: 'none', cursor: fIdx === (activeBlock.boundFieldIds?.length || 0) - 1 ? 'not-allowed' : 'pointer', color: fIdx === (activeBlock.boundFieldIds?.length || 0) - 1 ? '#cbd5e1' : '#64748b', padding: '1px 2px' }}
-                                      title="Di chuyển xuống"
-                                    >
-                                      ↓
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => removeFieldFromBlock(activeBlock.id, fid)}
-                                      style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#ef4444', padding: '1px 2px' }}
-                                      title="Gỡ trường"
-                                    >
-                                      ✕
-                                    </button>
-                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => removeFieldFromBlock(activeBlock.id, fid)}
+                                    style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#94a3b8', padding: '1px 3px', fontSize: '0.8rem', lineHeight: 1 }}
+                                    onMouseEnter={(e) => (e.currentTarget.style.color = '#ef4444')}
+                                    onMouseLeave={(e) => (e.currentTarget.style.color = '#94a3b8')}
+                                    title="Gỡ trường"
+                                  >
+                                    ✕
+                                  </button>
                                 </div>
                               </div>
                             );
