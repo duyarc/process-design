@@ -39,6 +39,30 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-25 — Report Builder: Load Template Persistence Fix (by-form Fallback & Dashboard reportId Lookup)
+
+**Scope:** 3 files (`src/components/ReportBuilder.tsx`, `src/components/Dashboard.tsx`, `DESIGN_REPORT_BUILDER.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | ~10 min |
+| Thời gian lập plan (Request → Proceed) | ~8 min (2 phiên: viết plan + review) |
+| Thời gian thực thi (Proceed → Push) | ~2 min |
+| Số file nguồn chỉnh sửa | 2 (`ReportBuilder.tsx`, `Dashboard.tsx`) |
+| Tổng lượt edit source | 3 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 2 (`npx tsc` pass + `vite build` 10.12s pass) |
+| Lần build cuối thành công? | Có (100% pass ngay lần đầu) |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- **Root cause triệt để:** `init()` trong `ReportBuilder.tsx` bỏ qua hoàn toàn việc nạp dữ liệu khi `initialReportId` là `undefined` — dẫn đến component khởi tạo lại từ `layoutBlocks: []` rỗng, mất toàn bộ dữ liệu đã lưu.
+- **Fallback `else if (targetFormId)` trong `init()`:** Khi không có `reportId`, tự động gọi `GET /api/reports/by-form/:formId` để nạp bản báo cáo đã lưu gần nhất. Nếu API trả về 404 (form mới chưa có report) → giữ nguyên template rỗng như thiết kế ban đầu.
+- **Dashboard lookup `linkedRep?.reportId`:** Cả 2 nút `[📊 Report]` (table view và card view) tự tra cứu `reportTemplates.find(r => r.linkedFormId === form.formId)` trong state sẵn có và truyền `reportId` đầy đủ, loại bỏ hoàn toàn việc phụ thuộc fallback.
+
+---
+
 ### 2026-09-25 — Report Builder: Child Elements Table UI Alignment & Popover Elimination (Option A)
 
 **Scope:** 2 files (`src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`)

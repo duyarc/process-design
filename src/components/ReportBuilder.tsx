@@ -845,6 +845,21 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                 fetchSubmissionsForForm(repData.linkedFormId);
               }
             }
+          } else if (targetFormId) {
+            // Fallback: no reportId passed → try to load the latest saved report for this form
+            const byFormRes = await fetch(`/api/reports/by-form/${targetFormId}`);
+            if (byFormRes.ok) {
+              const repData = await byFormRes.json();
+              const linkedFormObj = formList.find(f => f.formId === targetFormId) || activeMatchedForm;
+              const syncedBlocks = syncHeaderAndInfoGridBlocksFromForm(repData.layoutBlocks || [], linkedFormObj);
+              const syncedTitle = syncedBlocks.find(b => b.type === 'TITLE')?.title || repData.reportTitle;
+              const syncedRepData = { ...repData, reportTitle: syncedTitle, layoutBlocks: syncedBlocks };
+              setTemplate(syncedRepData);
+              setInitialBlocks(syncedBlocks);
+              setLastSavedSnapshot(getReportSnapshot(syncedRepData));
+              if (repData.effectiveDate) setEffectiveDate(repData.effectiveDate);
+            }
+            // If 404 (no saved report yet for this form) → keep the fresh template initialized above
           }
         }
       } catch (err) {

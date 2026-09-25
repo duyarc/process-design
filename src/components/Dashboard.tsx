@@ -1280,7 +1280,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                           <button 
                                             className="btn-cluster-item"
                                             title="Cấu hình Mẫu Báo cáo (Report Template)"
-                                            onClick={() => onOpenReportBuilder(form.formId)}
+                                            onClick={() => {
+                                              const linkedRep = reportTemplates.find(r => r.linkedFormId === form.formId);
+                                              onOpenReportBuilder(form.formId, linkedRep?.reportId);
+                                            }}
                                           >
                                             <SlidersHorizontal size={12} />
                                           </button>
@@ -1532,7 +1535,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                 className="btn btn-secondary btn-sm"
                                 style={{ flex: 1, padding: '0.3rem 0.4rem', fontSize: '0.75rem', margin: 0, gap: '0.2rem', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
                                 title="Cấu hình Mẫu Báo cáo (Report Template)"
-                                onClick={() => onOpenReportBuilder(form.formId)}
+                                onClick={() => {
+                                  const linkedRep = reportTemplates.find(r => r.linkedFormId === form.formId);
+                                  onOpenReportBuilder(form.formId, linkedRep?.reportId);
+                                }}
                               >
                                 <SlidersHorizontal size={13} style={{ flexShrink: 0 }} />
                                 Report
