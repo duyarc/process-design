@@ -32,12 +32,39 @@ phiên thực thi để không lặp lại lỗi cũ.
 | 18 | `BLOAT` | Trích xuất utility tổng hợp điểm (`summarizeH1ChildGroups`) nhưng vẫn import hàm con (`computeH1CombinedScore`) vào component cha → TS6133 unused import | Khi bọc logic vào pure utility cấp cao hơn, xóa ngay các imports cấp thấp không còn được gọi trực tiếp trong component | 1 |
 | 19 | `LOGIC` | Gọi `form.title` thay vì `form.formTitle` trên `FormTemplateISO` hoặc truyền Raw Block ID từ `FormReferenceCanvas` vào `setActiveBlockId` mà không ánh xạ sang `template.layoutBlocks` | Luôn kiểm tra tên trường chuẩn (`formTitle` vs `reportTitle`) và ánh xạ qua `handleSelectBlockFromFormCanvas` để đồng bộ ID khối giữa Form gốc và Report template | 1 |
 | 20 | `BLOAT` | Thay thế sub-layout cũ (như thanh toolbar text format) làm sót import helper (`applyTextFormat`) ở đầu file → TS6133 unused import khi build production | Khi dọn dẹp cụm UI/control cũ, kiểm tra ngay đầu file để loại bỏ import của các helper chỉ dùng riêng cho control đó | 1 |
+| 21 | `CTX` | Khi lồng conditional JSX (`ternary ? :`), đóng nhầm thẻ `</div>` của wrapper cha bên ngoài → TS17015 expected closing tag | Kiểm tra kỹ cấu trúc mở/đóng thẻ của wrapper cha trước khi chèn ternary; bọc fragment độc lập cho từng nhánh | 1 |
 
 ---
 
 ## Nhật ký Phiên
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
+
+### 2026-09-25 — Report Builder: Streamlined Table Inspector (Single-row TABLE + Border Icons + Header Toggle, FIELDS, In-Table Weight Editing)
+
+**Scope:** 2 files (`src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | ~11 min |
+| Thời gian lập plan (Request → Proceed) | ~6 min |
+| Thời gian thực thi (Proceed → Push) | ~5 min |
+| Số file nguồn chỉnh sửa | 1 (`ReportBuilder.tsx`) |
+| Tổng lượt edit source | 4 |
+| Lượt edit sửa lỗi (rework) | 1 (sửa closing tag JSX) |
+| Số lần build | 3 (`npx tsc` pass + `tsc -b && vite build` 13.36s pass) |
+| Lần build cuối thành công? | Có (100% pass) |
+| Số lỗi mới phát sinh | 1 (`TS17015`) |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- **Gom Header Table Inspector trên 1 hàng duy nhất:** Tiêu đề `TABLE` in hoa đậm, 3 nút icon Border trực quan (Lưới `[ ▦ ]`, Ngang `[ ☵ ]`, Không viền `[ ▢ ]`), nhãn `Header` kèm công tắc toggle switch, và nút xóa `[🗑]` cùng nằm trên 1 hàng ngang (~210px / 310px width), tiết kiệm ~28px chiều dọc quý giá.
+- **Triệt tiêu khối Border & Header trùng lặp:** Xóa bỏ hoàn toàn khối Border/Header cũ ở bên dưới.
+- **Rút gọn nhãn danh sách trường:** Đổi `CÁC TRƯỜNG ĐÃ GÁN (x)` ➔ `FIELDS (x)` ngắn gọn, đồng bộ phong cách Left Sidebar.
+- **Bảng con Items & Chỉnh sửa Trọng số tại chỗ:** Loại bỏ tiêu đề thừa `TỔNG HỢP ĐIỂM BẢNG ĐÁNH GIÁ`, đổi cột 1 thành `Items`, áp dụng lưới `6 / 2 / 2 / 2`, màu Header trung tính `#334155`, tích hợp `<SmartNumberInput>` (32px, không popup) trực tiếp tại ô Weight của từng câu hỏi con, liên kết `updateRuleOverride(f.id, { weight: val })`.
+- **Footer Tinh gọn & Rút gọn isKnockout:** Footer hiển thị trạng thái `PASS/FAIL`, tổng điểm bảng to đậm, và tổng trọng số `∑ {totalWeight}%`. Rút gọn nhãn `isKnockout (Bảng)` thành `isKnockout`.
+
+---
 
 ### 2026-09-25 — Report Builder: Load Template Persistence Fix (by-form Fallback & Dashboard reportId Lookup)
 
@@ -361,31 +388,7 @@ Entry mới nhất ở trên cùng. Tối đa 10 entries.
 - **Đồng bộ hóa 2 chiều trên Report Canvas:** Bổ sung xử lý click chọn và active highlight tương tự cho các khối `TABLE` và `INFO_GRID` trên tab Report.
 - **Chất lượng mã nguồn:** `npx tsc --noEmit` pass 100% không lỗi; `npm run build` Vite production bundle thành công trong 17.95s.
 
----
 
-### 2026-09-23 — Report Builder: FormReferenceCanvas FormBuilder-Parity Rewrite
-
-**Scope:** 3 files (`src/components/report/FormReferenceCanvas.tsx`, `DESIGN_REPORT_BUILDER.md`, `walkthrough.md`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian tổng (Request → Push) | ~15.6 min |
-| Thời gian lập plan (Request → Proceed) | ~9.5 min |
-| Thời gian thực thi (Proceed → Push) | ~6.1 min |
-| Số file nguồn chỉnh sửa | 1 (`FormReferenceCanvas.tsx`) |
-| Tổng lượt edit source | 1 |
-| Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 2 (`tsc` + `vite` 12.09s) |
-| Lần build đầu thành công? | Có (100% pass ngay lần đầu) |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Điểm nổi bật:**
-- **Đồng bộ trung thực 100% (FormBuilder WYSIWYG Parity):** Tái cấu trúc hoàn toàn `FormReferenceCanvas.tsx`, chuyển đổi toàn bộ cấu trúc paper sheet thành `maxWidth: 820px` (A4) / `920px` (A5), `padding: 2.5rem`, `minHeight: 1050px`, `gap: 0px`.
-- **Triệt tiêu khoảng cách Block Margin-Top:** Đặt `marginTop: 0px` cho toàn bộ các block theo đúng chỉ đạo người dùng, triệt tiêu hoàn toàn khoảng cách lồi lõm không đồng đều.
-- **Footer chuẩn FormBuilder:** Khớp định dạng chân trang `formId || 'PENDING'` và `formatFormVersion(version, status, effectiveDate, updatedAt)`.
-- **Type-Aware Field Rendering & Table Colgroup Parity:** Hỗ trợ render đầy đủ mọi loại trường (`photo`, `text`/`number`, `date`/`time`, `rating`/`likert_scale`, `radio`/`checkbox`, `select`, `subtable`) và định dạng bảng chuẩn (`tableLayout: fixed`, `<colgroup>` với `getColStyleWidth`, `hideHeader` mờ thead, group header resolution, `getEffectiveCellOptions`, và MATRIX_TABLE demo).
-- **Chất lượng mã nguồn:** TypeScript compilation pass 100% không lỗi, Vite production bundle hoàn tất trong 12.09s.
 
 
 

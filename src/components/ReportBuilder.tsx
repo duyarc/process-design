@@ -3510,6 +3510,104 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                           </button>
                         </div>
                       </>
+                    ) : activeBlock.type === 'TABLE' ? (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', width: '100%' }}>
+                        <h3 style={{ fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-primary)', margin: 0, letterSpacing: '0.3px' }}>
+                          TABLE
+                        </h3>
+
+                        {/* Border Icon Buttons */}
+                        <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: '4px', padding: '1px', border: '1px solid #cbd5e1', gap: '1px' }} title="Kiểu đường viền: Lưới / Ngang / Không viền">
+                          {[
+                            {
+                              id: 'grid',
+                              title: 'Đường viền lưới (Grid)',
+                              icon: (
+                                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8">
+                                  <rect x="2" y="2" width="12" height="12" rx="1" />
+                                  <line x1="2" y1="8" x2="14" y2="8" />
+                                  <line x1="8" y1="2" x2="8" y2="14" />
+                                </svg>
+                              )
+                            },
+                            {
+                              id: 'horizontal_only',
+                              title: 'Đường kẻ ngang (Horizontal)',
+                              icon: (
+                                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8">
+                                  <line x1="2" y1="3" x2="14" y2="3" />
+                                  <line x1="2" y1="8" x2="14" y2="8" />
+                                  <line x1="2" y1="13" x2="14" y2="13" />
+                                </svg>
+                              )
+                            },
+                            {
+                              id: 'borderless',
+                              title: 'Không đường viền (None)',
+                              icon: (
+                                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeDasharray="2 2">
+                                  <rect x="2.5" y="2.5" width="11" height="11" rx="1" />
+                                </svg>
+                              )
+                            }
+                          ].map(styleOpt => {
+                            const isActive = (activeBlock.borderStyle || 'grid') === styleOpt.id;
+                            return (
+                              <button
+                                key={styleOpt.id}
+                                type="button"
+                                disabled={isLocked}
+                                onClick={() => {
+                                  setTemplate(prev => ({
+                                    ...prev,
+                                    layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, borderStyle: styleOpt.id as any } : b)
+                                  }));
+                                }}
+                                title={styleOpt.title}
+                                style={{
+                                  width: '21px',
+                                  height: '20px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  background: isActive ? 'var(--primary)' : 'transparent',
+                                  color: isActive ? '#ffffff' : '#64748b',
+                                  border: 'none',
+                                  borderRadius: '3px',
+                                  cursor: isLocked ? 'not-allowed' : 'pointer',
+                                  padding: 0
+                                }}
+                              >
+                                {styleOpt.icon}
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {/* Header toggle */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }} title="Ẩn / Hiện dòng tiêu đề cột của Bảng (Header)">
+                          <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Header</span>
+                          <ToggleSwitch
+                            checked={!(activeBlock.hideHeader ?? false)}
+                            onChange={(show) => {
+                              setTemplate(prev => ({
+                                ...prev,
+                                layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, hideHeader: !show } : b)
+                              }));
+                            }}
+                          />
+                        </div>
+
+                        <button 
+                          type="button" 
+                          disabled={isLocked}
+                          onClick={() => handleDeleteBlock(activeBlock.id)}
+                          style={{ border: 'none', background: 'none', color: isLocked ? 'var(--text-muted)' : 'var(--danger)', cursor: isLocked ? 'not-allowed' : 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}
+                          title="Xóa bảng này"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     ) : (
                       <>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -3527,8 +3625,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                             </span>
                           )}
                           <h3 style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-primary)', margin: 0 }}>
-                            {activeBlock.type === 'TABLE' ? 'Table Properties' :
-                             activeBlock.type === 'INFO_GRID' ? 'Info Grid Properties' :
+                            {activeBlock.type === 'INFO_GRID' ? 'Info Grid Properties' :
                              activeBlock.type === 'SIGN' ? 'Signatures Properties' :
                              activeBlock.type === 'TITLE' ? 'Title Block Properties' : 'Block Properties'}
                           </h3>
@@ -4156,63 +4253,11 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                     </div>
                   )}
 
-                  {/* TABLE Special Controls: Combined Single-Row Border & Header (Biến thể 2A) */}
-                  {activeBlock.type === 'TABLE' && (
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                        <label style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Border</label>
-                        <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: '4px', padding: '1px', border: '1px solid #cbd5e1' }}>
-                          {[
-                            { id: 'grid', label: 'Grid' },
-                            { id: 'horizontal_only', label: 'Horiz' },
-                            { id: 'borderless', label: 'None' }
-                          ].map(styleOpt => (
-                            <button
-                              key={styleOpt.id}
-                              type="button"
-                              onClick={() => {
-                                setTemplate(prev => ({
-                                  ...prev,
-                                  layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, borderStyle: styleOpt.id as any } : b)
-                                }));
-                              }}
-                              style={{
-                                padding: '2px 5px',
-                                fontSize: '0.67rem',
-                                fontWeight: (activeBlock.borderStyle || 'grid') === styleOpt.id ? 700 : 500,
-                                background: (activeBlock.borderStyle || 'grid') === styleOpt.id ? 'var(--primary)' : 'transparent',
-                                color: (activeBlock.borderStyle || 'grid') === styleOpt.id ? '#ffffff' : 'var(--text-secondary)',
-                                border: 'none',
-                                borderRadius: '3px',
-                                cursor: 'pointer'
-                              }}
-                            >
-                              {styleOpt.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                        <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Header</span>
-                        <ToggleSwitch
-                          checked={!(activeBlock.hideHeader ?? false)}
-                          onChange={(show) => {
-                            setTemplate(prev => ({
-                              ...prev,
-                              layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, hideHeader: !show } : b)
-                            }));
-                          }}
-                        />
-                      </div>
-                    </div>
-                  )}
-
                   {/* Bound Fields Manager for INFO_GRID and TABLE */}
                   {(activeBlock.type === 'INFO_GRID' || activeBlock.type === 'TABLE') && (
                     <div style={{ borderTop: '1px solid var(--neutral-border)', paddingTop: '0.6rem' }}>
                       <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.4rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span>CÁC TRƯỜNG ĐÃ GÁN ({(activeBlock.boundFieldIds || []).length})</span>
+                        <span>{activeBlock.type === 'TABLE' ? 'FIELDS' : 'CÁC TRƯỜNG ĐÃ GÁN'} ({(activeBlock.boundFieldIds || []).length})</span>
                       </div>
                       {(!activeBlock.boundFieldIds || activeBlock.boundFieldIds.length === 0) ? (
                         <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontStyle: 'italic', marginBottom: '6px' }}>
@@ -4391,19 +4436,17 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                     };
                     const parentH1Title = resolveParentH1Title();
 
-                    return (
-                      <div style={{ borderTop: '1px solid var(--neutral-border)', paddingTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                        <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                          TỔNG HỢP ĐIỂM BẢNG ĐÁNH GIÁ
-                        </div>
+                    const totalChildWeight = boundFields.reduce((sum, f) => sum + (activeBlock.ruleOverrides?.[f.id]?.weight ?? 0), 0);
 
+                    return (
+                      <div style={{ borderTop: '1px solid var(--neutral-border)', paddingTop: '0.6rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                         {boundFields.length > 0 && (
-                          <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden', background: '#ffffff' }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', padding: '6px 8px', fontSize: '0.7rem', fontWeight: 700, color: '#475569', alignItems: 'center' }}>
-                              <div style={{ gridColumn: 'span 5' }}>Câu hỏi con</div>
+                          <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', overflow: 'hidden', background: '#ffffff', fontSize: '0.72rem' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', background: '#f1f5f9', borderBottom: '1px solid #cbd5e1', padding: '6px 8px', fontWeight: 700, color: '#334155', alignItems: 'center' }}>
+                              <div style={{ gridColumn: 'span 6', color: '#0f172a' }}>Items</div>
                               <div style={{ gridColumn: 'span 2', textAlign: 'center', color: '#0f766e' }}>isPass</div>
-                              <div style={{ gridColumn: 'span 3', textAlign: 'right', color: '#4338ca' }}>Score</div>
-                              <div style={{ gridColumn: 'span 2', textAlign: 'right', color: '#64748b' }}>Weight</div>
+                              <div style={{ gridColumn: 'span 2', textAlign: 'right', paddingRight: '4px', color: '#334155' }}>Score</div>
+                              <div style={{ gridColumn: 'span 2', textAlign: 'right', paddingRight: '2px', color: '#334155' }}>Weight</div>
                             </div>
 
                             <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -4420,35 +4463,47 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                       gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
                                       padding: '5px 8px',
                                       alignItems: 'center',
-                                      borderBottom: fIdx < boundFields.length - 1 ? '1px solid #f1f5f9' : 'none',
-                                      fontSize: '0.72rem'
+                                      borderBottom: fIdx < boundFields.length - 1 ? '1px solid #f1f5f9' : 'none'
                                     }}
                                   >
-                                    <div style={{ gridColumn: 'span 5', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500, color: '#1e293b' }} title={f.checkItem || f.id}>
+                                    <div style={{ gridColumn: 'span 6', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500, color: '#1e293b' }} title={f.checkItem || f.id}>
                                       {f.checkItem || f.id}
                                     </div>
                                     <div style={{ gridColumn: 'span 2', textAlign: 'center', fontWeight: 700, fontSize: '0.68rem', color: evalRes?.status === 'PASS' ? '#0f766e' : '#e11d48' }}>
                                       {evalRes?.status === 'PASS' ? 'PASS' : 'FAIL'}
                                     </div>
-                                    <div style={{ gridColumn: 'span 3', textAlign: 'right', fontWeight: 700, color: '#0f172a' }}>
+                                    <div style={{ gridColumn: 'span 2', textAlign: 'right', fontWeight: 700, color: '#0f172a', paddingRight: '4px' }}>
                                       {evalRes?.score ?? 0}
                                     </div>
-                                    <div style={{ gridColumn: 'span 2', textAlign: 'right', fontWeight: 600, color: '#64748b' }}>
-                                      {weight}%
+                                    <div style={{ gridColumn: 'span 2', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '2px', paddingRight: '2px' }}>
+                                      <SmartNumberInput
+                                        disabled={isLocked}
+                                        value={weight}
+                                        min={0}
+                                        max={100}
+                                        onChange={(val) => updateRuleOverride(f.id, { weight: val })}
+                                        style={{ width: '32px', fontSize: '0.72rem', height: '22px' }}
+                                      />
+                                      <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#64748b' }}>%</span>
                                     </div>
                                   </div>
                                 );
                               })}
                             </div>
 
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', padding: '7px 8px', alignItems: 'center', background: '#f5f3ff', borderTop: '1px solid #ddd6fe' }}>
-                              <div style={{ gridColumn: 'span 5', fontWeight: 700, color: '#4c1d95', fontSize: '0.72rem' }}>Tổng Bảng:</div>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', padding: '6px 8px', alignItems: 'center', background: '#f8fafc', borderTop: '1px solid #cbd5e1' }}>
+                              <div style={{ gridColumn: 'span 6' }}></div>
                               <div style={{ gridColumn: 'span 2', textAlign: 'center', fontSize: '0.7rem', fontWeight: 700, color: h2Score.isPass ? '#0f766e' : '#e11d48' }}>
                                 {h2Score.isPass ? 'PASS' : 'FAIL'}
                               </div>
-                              <div style={{ gridColumn: 'span 5', textAlign: 'right' }}>
-                                <span style={{ fontSize: '0.9rem', fontWeight: 900, color: '#2e1065', lineHeight: 1 }}>
+                              <div style={{ gridColumn: 'span 2', textAlign: 'right', paddingRight: '4px' }}>
+                                <span style={{ fontSize: '0.9rem', fontWeight: 900, color: '#0f172a', lineHeight: 1 }}>
                                   {h2Score.combinedScore}
+                                </span>
+                              </div>
+                              <div style={{ gridColumn: 'span 2', textAlign: 'right', paddingRight: '2px' }}>
+                                <span style={{ fontSize: '0.7rem', fontWeight: 800, color: totalChildWeight === 100 ? '#059669' : '#d97706' }} title={`Tổng trọng số = ${totalChildWeight}%`}>
+                                  ∑ {totalChildWeight}%
                                 </span>
                               </div>
                             </div>
@@ -4481,7 +4536,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                 }}
                                 style={{ width: '13px', height: '13px', accentColor: '#e11d48', cursor: isLocked ? 'not-allowed' : 'pointer' }}
                               />
-                              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#9f1239' }}>isKnockout (Bảng)</span>
+                              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#9f1239' }}>isKnockout</span>
                             </label>
                             <span style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 500 }}>Loại trực tiếp</span>
                           </div>
