@@ -39,6 +39,31 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-25 — Report Builder: Child Elements Table UI Alignment & Popover Elimination (Option A)
+
+**Scope:** 2 files (`src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | ~4 min |
+| Thời gian lập plan (Request → Proceed) | ~2 min |
+| Thời gian thực thi (Proceed → Push) | ~2 min |
+| Số file nguồn chỉnh sửa | 1 (`ReportBuilder.tsx`) |
+| Tổng lượt edit source | 2 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 2 (`npx tsc` pass + `tsc -b && vite build` pass) |
+| Lần build cuối thành công? | Có (100% pass ngay lần đầu) |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- **Triệt tiêu hoàn toàn Popover Presets trong bảng compact:** Bỏ thuộc tính `presets` khỏi `SmartNumberInput` trong bảng thành phần con, chấm dứt hoàn toàn tình trạng popup bị cắt cụt mép phải do `overflow: hidden` và che khuất dòng dữ liệu bên trên khi focus.
+- **Tái cân bằng tỷ lệ lưới sang `6 / 2 / 2 / 2`:** Tăng diện tích cột `Items` lên 6 span giúp tên bảng con không bị cắt chữ sớm; rút gọn `Weight` thành 2 span chứa vừa vặn ô input 32px và ký tự `%`.
+- **Căn thẳng trục 100% từ Header đến Footer:** Cột `Score` và `Weight` căn phải kèm đệm chuẩn xác, thẳng hàng tuyệt đối giữa tiêu đề cột, giá trị từng dòng và tổng kết `∑ 100%`.
+- **Đồng bộ màu Header trung tính:** Đưa toàn bộ chữ Header về màu trung tính `#334155` / `#475569`, loại bỏ tình trạng 4 cột 4 màu gây rối mắt.
+
+---
+
 ### 2026-09-25 — Report Builder: Streamlined H2 Section Inspector (Style 2A & In-Table Child Weight Editing)
 
 **Scope:** 3 files (`src/utils/reportScoring.ts`, `src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`)
@@ -338,30 +363,7 @@ Entry mới nhất ở trên cùng. Tối đa 10 entries.
 - **Type-Aware Field Rendering & Table Colgroup Parity:** Hỗ trợ render đầy đủ mọi loại trường (`photo`, `text`/`number`, `date`/`time`, `rating`/`likert_scale`, `radio`/`checkbox`, `select`, `subtable`) và định dạng bảng chuẩn (`tableLayout: fixed`, `<colgroup>` với `getColStyleWidth`, `hideHeader` mờ thead, group header resolution, `getEffectiveCellOptions`, và MATRIX_TABLE demo).
 - **Chất lượng mã nguồn:** TypeScript compilation pass 100% không lỗi, Vite production bundle hoàn tất trong 12.09s.
 
----
 
-### 2026-09-23 — Report Builder: Dual Tab Canvas [ Form | Report ] & Form Reference Canvas Sub-Component
-
-**Scope:** 4 files (`src/components/report/FormReferenceCanvas.tsx`, `ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`, `walkthrough.md`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian tổng (Request → Push) | ~9.5 min |
-| Thời gian lập plan (Request → Proceed) | ~5.8 min |
-| Thời gian thực thi (Proceed → Push) | ~3.5 min |
-| Số file nguồn chỉnh sửa / tạo mới | 2 (`ReportBuilder.tsx`, `FormReferenceCanvas.tsx`) |
-| Tổng lượt edit source | 4 |
-| Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 3 (2 tsc + 1 vite pass) |
-| Lần build đầu thành công? | Có (100% pass ngay lần đầu) |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Điểm nổi bật:**
-- **Canvas 2 Trang [ Form | Report ] (Minimal Tab Switcher):** Tái cấu trúc Center Canvas thành 2 chế độ xem trang đơn A4 độc lập `Form` và `Report`, loại bỏ chế độ split view rườm rà.
-- **Trích xuất Sub-Component `FormReferenceCanvas.tsx` (Rule 4.3 Monolith Guard):** Đóng gói toàn bộ logic render trang mẫu biểu WYSIWYG gốc của form nguồn (ISO Title, Info Grid, Section Labels H1/H2, Tables với `isGroupHeader` và `tableData`, Sign block, Form footer) ra file riêng `src/components/report/FormReferenceCanvas.tsx`.
-- **Khớp dữ liệu thực tế 5C-Scorecard:** Hỗ trợ chuẩn xác cấu trúc bảng động với các hàng nhóm tiêu đề (`row.isGroupHeader`, `row.groupTitle`) phân chia theo 6 Trụ cột chiến lược của Form 5C-Scorecard.
-- **Tương tác trực tiếp:** Cho phép click chọn trường từ trang Form gốc và click ra lề giấy để bỏ chọn về Report Properties.
 
 
 

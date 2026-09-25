@@ -3854,11 +3854,11 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                         return (
                           <div style={{ borderTop: '1px solid var(--neutral-border)', paddingTop: '0.6rem', marginTop: '2px', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                             <div style={{ border: '1px solid #bfdbfe', borderRadius: '8px', overflow: 'hidden', background: '#ffffff', fontSize: '0.72rem' }}>
-                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', background: '#eff6ff', borderBottom: '1px solid #bfdbfe', padding: '6px 8px', fontWeight: 700, color: '#1e3a8a', alignItems: 'center' }}>
-                                <div style={{ gridColumn: 'span 5' }}>Items</div>
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', background: '#eff6ff', borderBottom: '1px solid #bfdbfe', padding: '6px 8px', fontWeight: 700, color: '#334155', alignItems: 'center' }}>
+                                <div style={{ gridColumn: 'span 6', color: '#1e3a8a' }}>Items</div>
                                 <div style={{ gridColumn: 'span 2', textAlign: 'center', color: '#0f766e' }}>isPass</div>
-                                <div style={{ gridColumn: 'span 2', textAlign: 'right', color: '#4338ca' }}>Score</div>
-                                <div style={{ gridColumn: 'span 3', textAlign: 'right', color: '#64748b' }}>Weight</div>
+                                <div style={{ gridColumn: 'span 2', textAlign: 'right', paddingRight: '4px', color: '#4338ca' }}>Score</div>
+                                <div style={{ gridColumn: 'span 2', textAlign: 'right', paddingRight: '2px', color: '#64748b' }}>Weight</div>
                               </div>
 
                               <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -3873,24 +3873,23 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                       borderBottom: idx < childElementsSummary.length - 1 ? '1px solid #f1f5f9' : 'none'
                                     }}
                                   >
-                                    <div style={{ gridColumn: 'span 5', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500, color: '#1e293b' }} title={`${elItem.elementTitle} (${elItem.fieldsCount} câu hỏi)`}>
+                                    <div style={{ gridColumn: 'span 6', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500, color: '#1e293b' }} title={`${elItem.elementTitle} (${elItem.fieldsCount} câu hỏi)`}>
                                       {elItem.elementTitle}
                                     </div>
                                     <div style={{ gridColumn: 'span 2', textAlign: 'center', fontWeight: 700, fontSize: '0.68rem', color: elItem.isPass ? '#0f766e' : '#e11d48' }}>
                                       {elItem.isPass ? 'PASS' : 'FAIL'}
                                     </div>
-                                    <div style={{ gridColumn: 'span 2', textAlign: 'right', fontWeight: 700, color: '#0f172a' }}>
+                                    <div style={{ gridColumn: 'span 2', textAlign: 'right', fontWeight: 700, color: '#0f172a', paddingRight: '4px' }}>
                                       {elItem.score}
                                     </div>
-                                    <div style={{ gridColumn: 'span 3', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '2px' }}>
+                                    <div style={{ gridColumn: 'span 2', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '2px', paddingRight: '2px' }}>
                                       <SmartNumberInput
                                         disabled={isLocked}
                                         value={elItem.weight}
-                                        presets={[0, 10, 20, 25, 50, 100]}
                                         min={0}
                                         max={100}
                                         onChange={(val) => handleUpdateChildElementWeight(elItem.elementTitle, elItem.blockId, val)}
-                                        style={{ width: '38px', fontSize: '0.72rem' }}
+                                        style={{ width: '32px', fontSize: '0.72rem', height: '22px' }}
                                       />
                                       <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#64748b' }}>%</span>
                                     </div>
@@ -3899,16 +3898,16 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                               </div>
 
                               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', padding: '6px 8px', alignItems: 'center', background: '#eff6ff', borderTop: '1px solid #bfdbfe' }}>
-                                <div style={{ gridColumn: 'span 5' }}></div>
+                                <div style={{ gridColumn: 'span 6' }}></div>
                                 <div style={{ gridColumn: 'span 2', textAlign: 'center', fontSize: '0.7rem', fontWeight: 700, color: h2CombinedScore.isPass ? '#0f766e' : '#e11d48' }}>
                                   {h2CombinedScore.isPass ? 'PASS' : 'FAIL'}
                                 </div>
-                                <div style={{ gridColumn: 'span 2', textAlign: 'right' }}>
+                                <div style={{ gridColumn: 'span 2', textAlign: 'right', paddingRight: '4px' }}>
                                   <span style={{ fontSize: '0.9rem', fontWeight: 900, color: '#1d4ed8', lineHeight: 1 }}>
                                     {h2CombinedScore.combinedScore}
                                   </span>
                                 </div>
-                                <div style={{ gridColumn: 'span 3', textAlign: 'right' }}>
+                                <div style={{ gridColumn: 'span 2', textAlign: 'right', paddingRight: '2px' }}>
                                   <span style={{ fontSize: '0.7rem', fontWeight: 800, color: h2CombinedScore.totalWeight === 100 ? '#059669' : '#d97706' }} title={`Tổng trọng số = ${h2CombinedScore.totalWeight}%`}>
                                     ∑ {h2CombinedScore.totalWeight}%
                                   </span>
