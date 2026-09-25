@@ -337,15 +337,17 @@ export const FieldScoringInspector: React.FC<FieldScoringInspectorProps> = ({
 
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               {options.map((opt, idx) => {
-                const optVal = opt.value || opt.label || '';
-                const optLabel = opt.label || opt.value || '';
-                const isSelected = rawArr.includes(optVal) || rawArr.includes(optLabel);
+                const optVal = typeof opt === 'string' ? opt : (opt.value || opt.label || '');
+                const rawOptLabel = typeof opt === 'string' ? opt : (opt.label || opt.value || '');
+                const optLabel = rawOptLabel === '__other__' ? 'Khác' : rawOptLabel;
+                const isOtherOpt = optVal === '__other__' || rawOptLabel === '__other__' || (opt as any)?.isOther;
+                const isSelected = rawArr.includes(optVal) || rawArr.includes(rawOptLabel) || (isOtherOpt && rawArr.some(v => isOtherValue(v)));
                 const optScore = ruleOverride?.optionScores?.[optVal]
-                  ?? ruleOverride?.optionScores?.[optLabel]
+                  ?? ruleOverride?.optionScores?.[rawOptLabel]
                   ?? 2.5;
 
                 const isPass = ruleOverride?.customPassOptions
-                  ? (ruleOverride.customPassOptions.includes(optVal) || ruleOverride.customPassOptions.includes(optLabel))
+                  ? (ruleOverride.customPassOptions.includes(optVal) || ruleOverride.customPassOptions.includes(rawOptLabel))
                   : true;
 
                 return (
@@ -373,7 +375,7 @@ export const FieldScoringInspector: React.FC<FieldScoringInspectorProps> = ({
                         type="checkbox"
                         disabled={isLocked}
                         checked={isPass}
-                        onChange={() => handleToggleOptionPass(optVal, true, options.map(o => o.value || o.label || ''))}
+                        onChange={() => handleToggleOptionPass(optVal, true, options.map(o => (typeof o === 'string' ? o : (o.value || o.label || ''))))}
                         style={{ width: '14px', height: '14px', accentColor: 'var(--primary)', cursor: isLocked ? 'not-allowed' : 'pointer' }}
                       />
                     </div>

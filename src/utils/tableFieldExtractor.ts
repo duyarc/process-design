@@ -1,4 +1,5 @@
 import type { FormFieldISO, LayoutBlockISO, TableColumnConfig, TableRowConfig } from '../types';
+import { getEffectiveCellOptions } from './formUtils';
 
 /**
  * Interface cho nhóm Element bình thường (TABLE, INFO_GRID) nằm dưới H2 hoặc trực tiếp dưới H1
@@ -109,14 +110,17 @@ export function extractTableFields(
 
       // ID trường chuẩn khớp 100% với key lưu trong phiếu nộp
       const fieldId = `${block.id}_${row.id}_${col.id}`;
+      const effectiveOptions = getEffectiveCellOptions(block.cellOptionsMap, row.id, col.id, col.options);
+      const effectivePlaceholder = block.cellPlaceholderMap?.[`${row.id}_${col.id}`] || col.placeholder;
 
       fields.push({
         id: fieldId,
         type: col.type as any,
         checkItem,
-        options: col.options,
+        options: effectiveOptions.length > 0 ? effectiveOptions : (col.options || undefined),
         scaleOptions: col.scaleOptions,
         ratingScale: col.ratingScale,
+        placeholder: effectivePlaceholder,
         locationCode: elementLocationCode,
         sectionH1: parentH1,
         sectionH2: effectiveH2,

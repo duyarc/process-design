@@ -144,15 +144,18 @@ export function computeFieldScoreAndPass(
     let isPass = true;
 
     options.forEach(opt => {
-      const optScore = ruleOverride?.optionScores?.[opt.value] ?? ruleOverride?.optionScores?.[opt.label] ?? 2.5;
+      const optVal = typeof opt === 'string' ? opt : (opt.value || opt.label || '');
+      const optLabel = typeof opt === 'string' ? opt : (opt.label || opt.value || '');
+      const isOtherOpt = optVal === '__other__' || optLabel === '__other__' || (opt as any)?.isOther;
+      const isChecked = rawArr.includes(optVal) || rawArr.includes(optLabel) || (isOtherOpt && rawArr.some(v => isOtherValue(v)));
+      const optScore = ruleOverride?.optionScores?.[optVal] ?? ruleOverride?.optionScores?.[optLabel] ?? 2.5;
       totalMaxScore += optScore;
 
-      const isChecked = rawArr.includes(opt.value) || rawArr.includes(opt.label);
       if (isChecked) {
         earnedScore += optScore;
       }
       if (ruleOverride?.customPassOptions && ruleOverride.customPassOptions.length > 0) {
-        if (ruleOverride.customPassOptions.includes(opt.value) && !isChecked) {
+        if ((ruleOverride.customPassOptions.includes(optVal) || ruleOverride.customPassOptions.includes(optLabel)) && !isChecked) {
           isPass = false;
         }
       }
