@@ -423,6 +423,39 @@ export interface ReportFieldRuleOverride {
   textEmptyScore?: number;
 }
 
+export interface ChartComponentItem {
+  id: string;
+  fieldId: string;
+  title: string;
+  score: number;
+  weight: number;
+}
+
+export interface SummaryFieldBinding {
+  fieldId: string;
+  title: string;
+  score: number;
+  weight: number;
+}
+
+export interface ScoreRangeCommentRule {
+  id: string;
+  label?: string;
+  minScore: number;
+  maxScore: number;
+  commentText: string;
+}
+
+export interface ReportChartItemConfig {
+  id: string;
+  chartType: 'RADAR' | 'BAR';
+  numLabel?: string;
+  manualTitle?: string;
+  boundSummaryField?: SummaryFieldBinding | null;
+  components: ChartComponentItem[];
+  commentRanges?: ScoreRangeCommentRule[];
+}
+
 export interface ReportBlockConfig {
   id: string;
   type: ReportBlockType;
@@ -436,6 +469,7 @@ export interface ReportBlockConfig {
   showDate?: boolean;                   // For TITLE block
   datePosition?: 'A' | 'B';             // 'A' (top-right) or 'B' (bottom-center)
   boundFieldIds?: string[];             // Form field IDs included in this block
+  chartItems?: ReportChartItemConfig[]; // Radar / Bar chart items inside INFO_GRID
   ruleOverrides?: Record<string, ReportFieldRuleOverride>; // Field ID -> Custom Rules
   tableColumns?: { id: string; label: string; width?: string; align?: 'left' | 'center' | 'right' }[];
   borderStyle?: 'grid' | 'borderless' | 'horizontal_only';

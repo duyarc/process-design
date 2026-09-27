@@ -39,6 +39,30 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-27 — Report Builder: Radar & Bar Chart Components (`INFO_GRID` Blocks, Option B+D Hybrid Summary Drop-Slot & Two-Way Weight Sync)
+
+**Scope:** 10 files (`src/types.ts`, `src/utils/reportChartUtils.ts`, `src/components/report/RadarChartBlock.tsx`, `src/components/report/BarChartBlock.tsx`, `src/components/report/RadarChartInspector.tsx`, `src/components/report/BarChartInspector.tsx`, `src/components/ReportBuilder.tsx`, `src/components/FormReport.tsx`, `src/components/print/PrintReport.tsx`, `DESIGN_REPORT_BUILDER.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | 15.3 min |
+| Thời gian lập plan (Request → Proceed) | 8.7 min |
+| Thời gian thực thi (Proceed → Push) | 6.6 min |
+| Số file nguồn chỉnh sửa | 9 |
+| Tổng lượt edit source | 12 |
+| Lượt edit sửa lỗi (rework) | 2 (đồng bộ tên prop `chart` / `onUpdateChart` khi nối sub-components vào `ReportBuilder.tsx`) |
+| Số lần build | 2 (`tsc -b && vite build` 10.11s pass) |
+| Lần build cuối thành công? | Có (100% pass) |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- **Tách Sub-components & Pure Utilities (Rule 4.1 & Rule 4.3):** Tách hoàn toàn logic tính toán biểu đồ vào `src/utils/reportChartUtils.ts` và tách 4 sub-components độc lập (`RadarChartBlock.tsx`, `BarChartBlock.tsx`, `RadarChartInspector.tsx`, `BarChartInspector.tsx`) giúp `ReportBuilder.tsx` gọn sạch, không phình to monolith.
+- **Option B + D Hybrid Summary Drop-Slot:** Hàng tổng hợp duy nhất ngay dưới tiêu đề `RADAR CHART` / `BAR CHART` hỗ trợ vừa gõ tiêu đề thủ công (điểm tổng tự tính từ `THÀNH PHẦN (x)`), vừa kéo thả Field đơn lẻ hoặc Nhóm (`H1` / `H2` / `Element Table`) để liên kết điểm tổng + tự động điền toàn bộ thành phần con vào `THÀNH PHẦN (x)`.
+- **Căn thẳng hàng dọc tuyệt đối (`38px | 48px | 18px`) & Đồng bộ Trọng số 2 Chiều:** Điểm tổng/thành phần (`38px`), Trọng số `%` (`48px`), và nút xóa/gỡ (`18px`) thẳng trục dọc 100%; chỉnh sửa `%` trong giao diện biểu đồ tự động đồng bộ hai chiều với thuộc tính `weight` của Field/Block nguồn.
+
+---
+
 ### 2026-09-25 — Report Builder: Pure Native Drag & Drop Field Reordering on Canvas & Inspector (ReportBuilder)
 
 **Scope:** 3 files (`src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`, `SESSION_LOG.md`)
@@ -261,30 +285,6 @@ Entry mới nhất ở trên cùng. Tối đa 10 entries.
 - **Auto-Initialization trọn bộ trường:** Khi tự động tạo khối `TABLE` báo cáo mới, nạp đầy đủ toàn bộ trường của bảng nguồn (`extractTableFields`) vào `boundFieldIds` thay vì chỉ 1 trường đơn lẻ.
 - **Tự động dọn dẹp & di chuyển dữ liệu rò rỉ:** Tự động phát hiện và thanh trừng sạch sẽ các `fieldId` và `ruleOverrides` bị lưu lạc trên `SECTION_LABEL` sang khối `TABLE` đích.
 - **Đồng bộ hai chiều Cell ⇄ Table Properties:** Trọng số chỉnh sửa từ ô cell (`FIELD PROPERTIES`) và bảng tổng hợp trong `Table Properties` liên kết chặt chẽ vào đúng 1 khối `TABLE` duy nhất.
-
----
-
-### 2026-09-25 — Report Builder: TABLE Canvas Selection & H2 Name Collision Resolution
-
-**Scope:** 5 files (`src/components/report/FormReferenceCanvas.tsx`, `src/components/ReportBuilder.tsx`, `src/components/report/FieldScoringInspector.tsx`, `src/utils/reportScoring.ts`, `DESIGN_REPORT_BUILDER.md`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian tổng (Request → Push) | ~17 min |
-| Thời gian lập plan (Request → Proceed) | ~6 min |
-| Thời gian thực thi (Proceed → Push) | ~11 min |
-| Số file nguồn chỉnh sửa | 4 (`FormReferenceCanvas.tsx`, `ReportBuilder.tsx`, `FieldScoringInspector.tsx`, `reportScoring.ts`) |
-| Tổng lượt edit source | 9 |
-| Lượt edit sửa lỗi (rework) | 1 (sửa kiểu `fieldOptions \|\| undefined` cho `formatOptionDisplay`) |
-| Số lần build | 5 (`npx tsc` 4 lần pass + `tsc -b && vite build` 10.56s pass) |
-| Lần build cuối thành công? | Có (100% pass) |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Điểm nổi bật:**
-- **Giải quyết triệt để Name Shadowing Collision:** Tách biệt luồng sự kiện click khối TABLE trên Canvas (`onSelectBlock?.(block.id)` thay vì `onSelectTableGroup(block.title)`), bổ sung nhánh xử lý `TABLE` chuyên biệt trong `handleSelectBlockFromFormCanvas` và đảo ngược thứ tự ưu tiên trong `handleSelectTableGroupFromCanvas` (tìm element trước Section H2). Nhờ đó, bảng con trùng tên với Section H2 cha (ví dụ Section H2 "Đặc trưng nhân sự" và bảng "ĐẶC TRƯNG NHÂN SỰ") luôn được chọn chuẩn xác.
-- **H2 Drill-down:** Cho phép bấm trực tiếp vào tên bảng con trong bảng tóm tắt con của Section H2 ở Right Inspector để mở cấu hình Table Properties.
-- **Chuẩn hóa hiển thị `__other__`:** Áp dụng `formatOptionDisplay` trên Canvas và Report Preview, tích hợp `isOtherValue` trong `FieldScoringInspector.tsx` và `reportScoring.ts` để nhận diện và tính điểm chính xác cho các giá trị tùy chọn "Khác".
 
 
 

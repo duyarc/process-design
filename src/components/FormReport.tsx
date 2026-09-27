@@ -10,6 +10,8 @@ import { computeRecordReport } from '../utils/reportCompute';
 import { extractAllFormFields } from '../utils/tableFieldExtractor';
 import { renderFormattedText } from '../utils/textFormatter';
 import PrintReport from './print/PrintReport';
+import { RadarChartBlock } from './report/RadarChartBlock';
+import { BarChartBlock } from './report/BarChartBlock';
 import {
   FileText,
   Printer,
@@ -283,6 +285,13 @@ export const FormReport: React.FC<FormReportProps> = ({
                         </div>
                       );
                     })}
+                    {(block.chartItems || []).map(chart => (
+                      chart.chartType === 'RADAR' ? (
+                        <RadarChartBlock key={chart.id} chart={chart} />
+                      ) : (
+                        <BarChartBlock key={chart.id} chart={chart} />
+                      )
+                    ))}
                   </div>
                 </div>
               )}

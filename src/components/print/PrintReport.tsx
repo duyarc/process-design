@@ -12,6 +12,8 @@ import { getInfoGridTemplateColumns, to5SFileName } from '../../utils/formUtils'
 import { renderFormattedText } from '../../utils/textFormatter';
 import { extractAllFormFields } from '../../utils/tableFieldExtractor';
 import { exportFillablePdfFromDOM } from '../../utils/pdfFormExporter';
+import { RadarChartBlock } from '../report/RadarChartBlock';
+import { BarChartBlock } from '../report/BarChartBlock';
 import { FileText, Printer } from 'lucide-react';
 
 interface PrintReportProps {
@@ -412,6 +414,13 @@ export const PrintReport: React.FC<PrintReportProps> = ({
                               </div>
                             );
                           })}
+                          {(block.chartItems || []).map(chart => (
+                            chart.chartType === 'RADAR' ? (
+                              <RadarChartBlock key={chart.id} chart={chart} />
+                            ) : (
+                              <BarChartBlock key={chart.id} chart={chart} />
+                            )
+                          ))}
                         </div>
                       </div>
                     );

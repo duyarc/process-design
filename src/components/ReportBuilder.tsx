@@ -9,7 +9,8 @@ import type {
   Submission,
   ReportDataModel,
   FieldEvaluationResult,
-  TitleFormatISO
+  TitleFormatISO,
+  ReportChartItemConfig
 } from '../types';
 import { computeRecordReport, evaluateFieldSpec } from '../utils/reportCompute';
 import { extractAllFormFields, extractTableFields, groupFieldsByHierarchy, type FieldHierarchyGroup } from '../utils/tableFieldExtractor';
@@ -17,6 +18,11 @@ import { getInfoGridTemplateColumns, snap2ColWidth, snap3ColWidths, formatOption
 import { handleFormatKeyDown } from '../utils/textFormatter';
 import { FieldScoringInspector } from './report/FieldScoringInspector';
 import { FormReferenceCanvas } from './report/FormReferenceCanvas';
+import { RadarChartBlock } from './report/RadarChartBlock';
+import { BarChartBlock } from './report/BarChartBlock';
+import { RadarChartInspector, type ChartDragSourcePayload } from './report/RadarChartInspector';
+import { BarChartInspector } from './report/BarChartInspector';
+import { createDefaultRadarChartConfig, createDefaultBarChartConfig, calculateWeightedChartScore } from '../utils/reportChartUtils';
 import { extractParentGroupTitle, computeH2CombinedScore, summarizeH1ChildGroups, summarizeH2ChildElements } from '../utils/reportScoring';
 import { formatFormVersion } from '../types';
 import { SmartNumberInput } from './common/SmartNumberInput';
@@ -677,6 +683,11 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
   const [searchFieldQuery, setSearchFieldQuery] = useState<string>('');
+  const [isChartsTrayOpen, setIsChartsTrayOpen] = useState<boolean>(false);
+  const [activeChartSelection, setActiveChartSelection] = useState<{
+    blockId: string;
+    chartId: string;
+  } | null>(null);
   const [isFieldsTrayOpen, setIsFieldsTrayOpen] = useState<boolean>(false);
   const [isLeftSidebarCollapsed, setIsLeftSidebarCollapsed] = useState<boolean>(true);
   const [isDraggingField, setIsDraggingField] = useState<boolean>(false);
@@ -1621,6 +1632,107 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
   );
   const hierarchyGroups = React.useMemo(() => groupFieldsByHierarchy(filteredFormFields), [filteredFormFields]);
 
+  const handleInsertChartIntoInfoGrid = (chartType: 'RADAR' | 'BAR', targetBlockId?: string) => {
+    if (isLocked || activeCanvasTab === 'form') return;
+    const newChart = chartType === 'RADAR' ? createDefaultRadarChartConfig() : createDefaultBarChartConfig();
+    const resolvedBlockId = targetBlockId || (
+      template.layoutBlocks.find(b => b.id === activeBlockId && b.type === 'INFO_GRID')?.id
+    );
+    if (resolvedBlockId) {
+      setTemplate(prev => ({
+        ...prev,
+        layoutBlocks: prev.layoutBlocks.map(b =>
+          b.id === resolvedBlockId
+            ? { ...b, chartItems: [...(b.chartItems || []), newChart] }
+            : b
+        )
+      }));
+      setActiveBlockId(resolvedBlockId);
+      setSelectedFieldId(null);
+      setActiveChartSelection({ blockId: resolvedBlockId, chartId: newChart.id });
+      setRightTab('properties');
+    } else {
+      const newGridId = `rep_block_grid_${Date.now()}`;
+      const newGridBlock: ReportBlockConfig = {
+        id: newGridId,
+        type: 'INFO_GRID',
+        title: '',
+        titleFormat: 'NONE',
+        columns: 1,
+        boundFieldIds: [],
+        chartItems: [newChart]
+      };
+      setTemplate(prev => ({
+        ...prev,
+        layoutBlocks: [...prev.layoutBlocks, newGridBlock]
+      }));
+      setActiveBlockId(newGridId);
+      setSelectedFieldId(null);
+      setActiveChartSelection({ blockId: newGridId, chartId: newChart.id });
+      setRightTab('properties');
+    }
+  };
+
+  const handleUpdateChartItem = (blockId: string, updatedChart: ReportChartItemConfig) => {
+    setTemplate(prev => ({
+      ...prev,
+      layoutBlocks: prev.layoutBlocks.map(b =>
+        b.id === blockId
+          ? {
+              ...b,
+              chartItems: (b.chartItems || []).map(c =>
+                c.id === updatedChart.id ? updatedChart : c
+              )
+            }
+          : b
+      )
+    }));
+  };
+
+  const handleDeleteChartItem = (blockId: string, chartId: string) => {
+    setTemplate(prev => ({
+      ...prev,
+      layoutBlocks: prev.layoutBlocks.map(b =>
+        b.id === blockId
+          ? { ...b, chartItems: (b.chartItems || []).filter(c => c.id !== chartId) }
+          : b
+      )
+    }));
+    if (activeChartSelection?.chartId === chartId) {
+      setActiveChartSelection(null);
+    }
+  };
+
+  const handleSyncChartWeightToSource = (fieldOrGroupId: string, newWeight: number) => {
+    const matchedField = allFormFields.find(f => f.id === fieldOrGroupId);
+    if (matchedField) {
+      updateRuleOverride(fieldOrGroupId, { weight: newWeight });
+      return;
+    }
+    setTemplate(prev => ({
+      ...prev,
+      layoutBlocks: prev.layoutBlocks.map(b =>
+        b.id === fieldOrGroupId || (b.title || '').trim().toLowerCase() === fieldOrGroupId.trim().toLowerCase()
+          ? { ...b, weight: newWeight }
+          : b
+      )
+    }));
+  };
+
+  const resolveDroppedFieldPayload = (fieldId: string): ChartDragSourcePayload | null => {
+    const f = allFormFields.find(item => item.id === fieldId);
+    if (!f) return null;
+    const evalRes = computedData?.evaluations?.[f.id];
+    const override = template.ruleOverrides?.[f.id];
+    return {
+      kind: 'field',
+      id: f.id,
+      title: f.checkItem || f.id,
+      score: evalRes?.score !== undefined ? evalRes.score : 3.0,
+      weight: override?.weight !== undefined ? override.weight : 20
+    };
+  };
+
   const handleSelectTableGroupFromCanvas = (groupTitle: string) => {
     const cleanTarget = groupTitle.trim().toLowerCase();
     // Ưu tiên 1: Nếu là Element / Table cấp dưới H2 hoặc trực tiếp dưới H1 -> mở Table Properties
@@ -2232,6 +2344,68 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                 </select>
               </div>
 
+              {/* Collapsible CHARTS Toggle Bar (Radar & Bar) */}
+              <div
+                onClick={() => setIsChartsTrayOpen(prev => !prev)}
+                style={{
+                  padding: '0.52rem 0.75rem',
+                  borderBottom: '1px solid var(--neutral-border)',
+                  background: isChartsTrayOpen ? '#f0fdfa' : '#f8fafc',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  cursor: 'pointer',
+                  userSelect: 'none'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '0.78rem' }}>📊</span>
+                  <span style={{ fontSize: '0.7rem', fontWeight: 700, color: isChartsTrayOpen ? 'var(--primary)' : '#334155', letterSpacing: '0.03em' }}>
+                    CHARTS
+                  </span>
+                  <span style={{ fontSize: '0.62rem', fontWeight: 700, padding: '1px 6px', borderRadius: '99px', background: isChartsTrayOpen ? '#ccfbf1' : '#e2e8f0', color: isChartsTrayOpen ? 'var(--primary)' : '#475569' }}>
+                    2
+                  </span>
+                </div>
+                <span style={{ color: isChartsTrayOpen ? 'var(--primary)' : '#64748b' }}>
+                  {isChartsTrayOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                </span>
+              </div>
+
+              {isChartsTrayOpen && (
+                <div style={{ padding: '0.45rem 0.75rem', borderBottom: '1px solid var(--neutral-border)', display: 'flex', flexDirection: 'column', gap: '0.35rem', background: '#ffffff' }}>
+                  {(['RADAR', 'BAR'] as const).map(cType => (
+                    <div
+                      key={cType}
+                      draggable={true}
+                      onDragStart={e => {
+                        e.dataTransfer.setData('application/x-report-chart-type', cType);
+                        e.dataTransfer.effectAllowed = 'copy';
+                      }}
+                      onClick={() => handleInsertChartIntoInfoGrid(cType)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.45rem',
+                        padding: '0.35rem 0.5rem',
+                        border: '1px solid #cbd5e1',
+                        borderRadius: '5px',
+                        background: '#f8fafc',
+                        cursor: 'grab',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        color: '#1e293b'
+                      }}
+                      title={`Kéo thả vào INFO_GRID hoặc bấm để thêm ${cType === 'RADAR' ? 'Radar Chart' : 'Bar Chart'}`}
+                    >
+                      <span style={{ color: '#94a3b8' }}>⠿</span>
+                      <span>{cType === 'RADAR' ? '🕸' : '📊'}</span>
+                      <span>{cType === 'RADAR' ? 'Radar' : 'Bar'}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {/* Collapsible Icon-First FIELDS Toggle Bar */}
               <div
                 onClick={() => setIsFieldsTrayOpen(prev => !prev)}
@@ -2335,6 +2509,22 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                     return (
                       <div key={elGroup.elementTitle} style={{ display: 'flex', flexDirection: 'column', gap: '3px', flexShrink: 0 }}>
                         <div
+                          draggable={true}
+                          onDragStart={(e) => {
+                            const tblBlock = template.layoutBlocks.find(b => b.type === 'TABLE' && b.title?.trim().toLowerCase() === elGroup.elementTitle.trim().toLowerCase());
+                            const childPayloads = elFieldIds.map(id => resolveDroppedFieldPayload(id)).filter((x): x is NonNullable<typeof x> => !!x);
+                            const elScore = calculateWeightedChartScore(childPayloads.map(c => ({ id: c.id, fieldId: c.id, title: c.title, score: c.score, weight: c.weight })));
+                            const groupPayload: ChartDragSourcePayload = {
+                              kind: 'group',
+                              id: tblBlock?.id || elGroup.elementTitle,
+                              title: elGroup.elementTitle,
+                              score: elScore.combinedScore,
+                              weight: tblBlock?.weight !== undefined ? tblBlock.weight : 20,
+                              children: childPayloads.map(c => ({ fieldId: c.id, title: c.title, score: c.score, weight: c.weight }))
+                            };
+                            e.dataTransfer.setData('application/x-report-chart-source', JSON.stringify(groupPayload));
+                            e.dataTransfer.effectAllowed = 'copy';
+                          }}
                           style={{
                             display: 'flex',
                             alignItems: 'center',
@@ -2345,7 +2535,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                             background: isElActive ? '#f0fdfa' : '#f8fafc',
                             border: isElActive ? '1px solid var(--primary)' : '1px solid #e2e8f0',
                             borderRadius: '4px',
-                            cursor: 'pointer',
+                            cursor: 'grab',
                             userSelect: 'none',
                             transition: 'all 0.12s'
                           }}
@@ -2540,6 +2730,35 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                     >
                       {/* H1 Section Header */}
                       <div
+                        draggable={true}
+                        onDragStart={e => {
+                          const h1Block = template.layoutBlocks.find(
+                            b => b.type === 'SECTION_LABEL' && (b.titleFormat === 'H1' || !b.titleFormat) && (b.title || '').trim().toLowerCase() === h1Group.h1.trim().toLowerCase()
+                          );
+                          const { childH2Summary, h1CombinedScore } = summarizeH1ChildGroups(
+                            h1Group.h1,
+                            hierarchyGroups,
+                            template.layoutBlocks,
+                            sampleSubmission?.formData,
+                            template.ruleOverrides
+                          );
+                          const childrenPayload = childH2Summary.map(r => ({
+                            fieldId: r.blockId || r.h2Title,
+                            title: r.h2Title,
+                            score: r.score !== null ? r.score : 3.0,
+                            weight: r.weight
+                          }));
+                          const groupPayload: ChartDragSourcePayload = {
+                            kind: 'group',
+                            id: h1Block?.id || h1Group.h1,
+                            title: h1Group.h1,
+                            score: h1CombinedScore.combinedScore ?? 3.0,
+                            weight: h1Block?.weight !== undefined ? h1Block.weight : 20,
+                            children: childrenPayload
+                          };
+                          e.dataTransfer.setData('application/x-report-chart-source', JSON.stringify(groupPayload));
+                          e.dataTransfer.effectAllowed = 'copy';
+                        }}
                         style={{
                           display: 'flex',
                           alignItems: 'center',
@@ -2549,7 +2768,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                           boxSizing: 'border-box',
                           background: isH1Active ? '#f0fdfa' : '#f8fafc',
                           borderBottom: isH1Expanded ? (isH1Active ? '1px solid #ccfbf1' : '1px solid #e2e8f0') : 'none',
-                          cursor: 'pointer',
+                          cursor: 'grab',
                           userSelect: 'none',
                           transition: 'background 0.12s'
                         }}
@@ -2636,6 +2855,22 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                               <div key={h2Group.h2} style={{ display: 'flex', flexDirection: 'column', gap: '4px', flexShrink: 0 }}>
                                 {/* Level 2: Strictly H2 Header */}
                                 <div
+                                  draggable={true}
+                                  onDragStart={(e) => {
+                                    const h2Block = template.layoutBlocks.find(b => b.type === 'SECTION_LABEL' && b.titleFormat === 'H2' && b.title?.trim().toLowerCase() === h2Group.h2.trim().toLowerCase());
+                                    const childPayloads = h2FieldIds.map(id => resolveDroppedFieldPayload(id)).filter((x): x is NonNullable<typeof x> => !!x);
+                                    const h2Score = calculateWeightedChartScore(childPayloads.map(c => ({ id: c.id, fieldId: c.id, title: c.title, score: c.score, weight: c.weight })));
+                                    const groupPayload: ChartDragSourcePayload = {
+                                      kind: 'group',
+                                      id: h2Block?.id || h2Group.h2,
+                                      title: h2Group.h2,
+                                      score: h2Score.combinedScore,
+                                      weight: h2Block?.weight !== undefined ? h2Block.weight : 20,
+                                      children: childPayloads.map(c => ({ fieldId: c.id, title: c.title, score: c.score, weight: c.weight }))
+                                    };
+                                    e.dataTransfer.setData('application/x-report-chart-source', JSON.stringify(groupPayload));
+                                    e.dataTransfer.effectAllowed = 'copy';
+                                  }}
                                   style={{
                                     display: 'flex',
                                     alignItems: 'center',
@@ -2646,7 +2881,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                     background: isH2Active ? '#eff6ff' : '#f1f5f9',
                                     border: isH2Active ? '1.5px solid #3b82f6' : '1px solid #cbd5e1',
                                     borderRadius: '4px',
-                                    cursor: 'pointer',
+                                    cursor: 'grab',
                                     userSelect: 'none',
                                     transition: 'all 0.12s'
                                   }}
@@ -2840,6 +3075,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                       e.stopPropagation();
                       setActiveBlockId(block.id);
                       setSelectedFieldId(null);
+                      setActiveChartSelection(null);
                       setRightTab('properties');
                     }}
                     onDragOver={(e) => {
@@ -2862,6 +3098,11 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                         e.preventDefault();
                         setDragOverBlockId(null);
                         setIsDraggingField(false);
+                        const chartTypeRaw = e.dataTransfer.getData('application/x-report-chart-type');
+                        if (block.type === 'INFO_GRID' && (chartTypeRaw === 'RADAR' || chartTypeRaw === 'BAR')) {
+                          handleInsertChartIntoInfoGrid(chartTypeRaw, block.id);
+                          return;
+                        }
                         const reorderRaw = e.dataTransfer.getData('application/x-report-reorder');
                         if (reorderRaw) {
                           setReorderDrag(null);
@@ -3045,7 +3286,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                           />
 
                           {/* Grid Container */}
-                          {(!block.boundFieldIds || block.boundFieldIds.length === 0) ? (
+                          {((!block.boundFieldIds || block.boundFieldIds.length === 0) && (!block.chartItems || block.chartItems.length === 0)) ? (
                             <div
                               style={{
                                 padding: '1.25rem 1rem',
@@ -3072,7 +3313,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                               rowGap: '0.5rem',
                               gridAutoRows: 'minmax(38px, auto)'
                             }}>
-                              {block.boundFieldIds.map((fid, fIdx) => {
+                              {(block.boundFieldIds || []).map((fid, fIdx) => {
                                 const field = allFormFields.find(f => f.id === fid);
                                 const override = block.ruleOverrides?.[fid];
                                 const isLabelHidden = !!override?.hideLabel;
@@ -3287,6 +3528,36 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                       </div>
                                     )}
                                   </div>
+                                );
+                              })}
+                              {(block.chartItems || []).map(chart => {
+                                const isChartSelected = activeChartSelection?.blockId === block.id && activeChartSelection?.chartId === chart.id;
+                                return chart.chartType === 'RADAR' ? (
+                                  <RadarChartBlock
+                                    key={chart.id}
+                                    chart={chart}
+                                    isSelected={isChartSelected}
+                                    onSelect={(e: React.MouseEvent) => {
+                                      e.stopPropagation();
+                                      setActiveChartSelection({ blockId: block.id, chartId: chart.id });
+                                      setActiveBlockId(block.id);
+                                      setSelectedFieldId(null);
+                                      setRightTab('properties');
+                                    }}
+                                  />
+                                ) : (
+                                  <BarChartBlock
+                                    key={chart.id}
+                                    chart={chart}
+                                    isSelected={isChartSelected}
+                                    onSelect={(e: React.MouseEvent) => {
+                                      e.stopPropagation();
+                                      setActiveChartSelection({ blockId: block.id, chartId: chart.id });
+                                      setActiveBlockId(block.id);
+                                      setSelectedFieldId(null);
+                                      setRightTab('properties');
+                                    }}
+                                  />
                                 );
                               })}
                               {/* Option 4 Adaptive Drag Drop Slot */}
@@ -3676,14 +3947,40 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
           </div>
 
           {/* Tab 1: Properties */}
-          {rightTab === 'properties' && (
-            <div style={{ flex: 1, overflowY: 'auto', padding: '0.75rem' }}>
-              {selectedField ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h3 style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-primary)', margin: 0 }}>
-                      FIELD PROPERTIES
-                    </h3>
+          {rightTab === 'properties' && (() => {
+            const activeChartBlock = activeChartSelection
+              ? template.layoutBlocks.find(b => b.id === activeChartSelection.blockId) || null
+              : null;
+            const activeChartItem = activeChartBlock?.chartItems?.find(c => c.id === activeChartSelection?.chartId) || null;
+
+            return (
+              <div style={{ flex: 1, overflowY: 'auto', padding: '0.75rem' }}>
+                {activeChartBlock && activeChartItem ? (
+                  activeChartItem.chartType === 'RADAR' ? (
+                    <RadarChartInspector
+                      chart={activeChartItem}
+                      isLocked={isLocked}
+                      onUpdateChart={(updated) => handleUpdateChartItem(activeChartBlock.id, updated)}
+                      onDeleteChart={() => handleDeleteChartItem(activeChartBlock.id, activeChartItem.id)}
+                      onSyncWeightToSource={handleSyncChartWeightToSource}
+                      onResolveDroppedFieldId={resolveDroppedFieldPayload}
+                    />
+                  ) : (
+                    <BarChartInspector
+                      chart={activeChartItem}
+                      isLocked={isLocked}
+                      onUpdateChart={(updated) => handleUpdateChartItem(activeChartBlock.id, updated)}
+                      onDeleteChart={() => handleDeleteChartItem(activeChartBlock.id, activeChartItem.id)}
+                      onSyncWeightToSource={handleSyncChartWeightToSource}
+                      onResolveDroppedFieldId={resolveDroppedFieldPayload}
+                    />
+                  )
+                ) : selectedField ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <h3 style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-primary)', margin: 0 }}>
+                        FIELD PROPERTIES
+                      </h3>
                     <button
                       type="button"
                       onClick={() => setSelectedFieldId(null)}
@@ -5049,8 +5346,9 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                   </div>
                 </div>
               )}
-            </div>
-          )}
+              </div>
+            );
+          })()}
 
           {/* Tab 2: Versions */}
           {rightTab === 'versions' && (
