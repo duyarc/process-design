@@ -60,6 +60,7 @@ Entry mới nhất ở trên cùng. Tối đa 10 entries.
 - **Tách Sub-components & Pure Utilities (Rule 4.1 & Rule 4.3):** Tách hoàn toàn logic tính toán biểu đồ vào `src/utils/reportChartUtils.ts` và tách 4 sub-components độc lập (`RadarChartBlock.tsx`, `BarChartBlock.tsx`, `RadarChartInspector.tsx`, `BarChartInspector.tsx`) giúp `ReportBuilder.tsx` gọn sạch, không phình to monolith.
 - **Option B + D Hybrid Summary Drop-Slot:** Hàng tổng hợp duy nhất ngay dưới tiêu đề `RADAR CHART` / `BAR CHART` hỗ trợ vừa gõ tiêu đề thủ công (điểm tổng tự tính từ `THÀNH PHẦN (x)`), vừa kéo thả Field đơn lẻ hoặc Nhóm (`H1` / `H2` / `Element Table`) để liên kết điểm tổng + tự động điền toàn bộ thành phần con vào `THÀNH PHẦN (x)`.
 - **Căn thẳng hàng dọc tuyệt đối (`38px | 48px | 18px`) & Đồng bộ Trọng số 2 Chiều:** Điểm tổng/thành phần (`38px`), Trọng số `%` (`48px`), và nút xóa/gỡ (`18px`) thẳng trục dọc 100%; chỉnh sửa `%` trong giao diện biểu đồ tự động đồng bộ hai chiều với thuộc tính `weight` của Field/Block nguồn.
+- **Khắc phục triệt để lỗi cắt đáy trang `.paper-card` (`1050px` Clipping Bug):** Bổ sung `height: 'auto', flexShrink: 0, overflow: 'visible'` vào container `.paper-card` trong `ReportBuilder.tsx` và `FormReport.tsx`, ngăn Flexbox ép co trang giấy về `minHeight: 1050px` và ngăn `overflow: hidden` cắt mất phần dưới của khối `INFO_GRID`.
 
 ---
 
