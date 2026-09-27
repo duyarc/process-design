@@ -175,21 +175,9 @@ export function createDefaultRadarChartConfig(id?: string): ReportChartItemConfi
     id: id || `radar_${Date.now()}`,
     chartType: 'RADAR',
     numLabel: '',
-    manualTitle: 'Đánh giá sức khỏe doanh nghiệp',
-    boundSummaryField: {
-      fieldId: 'root_health',
-      title: 'Đánh giá sức khỏe doanh nghiệp',
-      score: 3.0,
-      weight: 100
-    },
-    components: [
-      { id: 'ax_1', fieldId: 'p1', title: 'Định hướng doanh nghiệp', score: 2.7, weight: 20 },
-      { id: 'ax_2', fieldId: 'p2', title: 'Thị trường & khách hàng', score: 3.0, weight: 20 },
-      { id: 'ax_3', fieldId: 'p3', title: 'Quản trị tài chính', score: 3.0, weight: 15 },
-      { id: 'ax_4', fieldId: 'p4', title: 'Quản trị sản xuất', score: 3.5, weight: 20 },
-      { id: 'ax_5', fieldId: 'p5', title: 'Quản trị công nghệ', score: 3.0, weight: 15 },
-      { id: 'ax_6', fieldId: 'p6', title: 'Kế thừa & phát triển tổ chức', score: 3.0, weight: 10 }
-    ]
+    manualTitle: '',
+    boundSummaryField: null,
+    components: []
   };
 }
 
@@ -197,46 +185,76 @@ export function createDefaultBarChartConfig(id?: string): ReportChartItemConfig 
   return {
     id: id || `bar_${Date.now()}`,
     chartType: 'BAR',
-    numLabel: '1',
-    manualTitle: 'Định hướng doanh nghiệp',
-    boundSummaryField: {
-      fieldId: 'p1',
-      title: 'Định hướng doanh nghiệp',
-      score: 2.7,
-      weight: 20
-    },
-    components: [
-      { id: 'cr_1', fieldId: 'c1', title: 'Sản phẩm chủ lực', score: 5.0, weight: 20 },
-      { id: 'cr_2', fieldId: 'c2', title: 'Văn hóa tổ chức', score: 0.5, weight: 15 },
-      { id: 'cr_3', fieldId: 'c3', title: 'Năng lực cốt lõi', score: 2.5, weight: 25 },
-      { id: 'cr_4', fieldId: 'c4', title: 'Hạ tầng & công nghệ', score: 2.0, weight: 15 },
-      { id: 'cr_5', fieldId: 'c5', title: 'Đặc trưng nhân sự', score: 2.8, weight: 25 }
-    ],
+    numLabel: '',
+    manualTitle: '',
+    boundSummaryField: null,
+    components: [],
     commentRanges: [
       {
         id: 'r1',
         label: 'Cao',
         minScore: 3.5,
         maxScore: 5.0,
-        commentText:
-          'Doanh nghiệp có nền tảng chiến lược xuất sắc, định hướng phát triển rõ ràng và nhận được sự đồng thuận cao từ toàn bộ ban lãnh đạo và đội ngũ nhân sự.'
+        commentText: ''
       },
       {
         id: 'r2',
         label: 'Trung bình',
         minScore: 2.5,
         maxScore: 3.4,
-        commentText:
-          'Doanh nghiệp đã định hình được một số thông tin nền tảng ban đầu nhưng bức tranh định hướng chiến lược tổng thể vẫn còn phân tán và cần đạt được sự đồng thuận nội bộ cao hơn giữa các cấp lãnh đạo.'
+        commentText: ''
       },
       {
         id: 'r3',
         label: 'Cần cải thiện',
         minScore: 0.0,
         maxScore: 2.4,
-        commentText:
-          'Bức tranh định hướng còn sơ khai, thiếu sự gắn kết giữa các bộ phận cốt lõi, cần nhanh chóng tái định vị và xây dựng lộ trình hành động khẩn cấp.'
+        commentText: ''
       }
     ]
   };
 }
+
+const DEMO_SUMMARY_FIELD_IDS = new Set(['root_health', 'p1']);
+const DEMO_COMPONENT_IDS = new Set([
+  'ax_1', 'ax_2', 'ax_3', 'ax_4', 'ax_5', 'ax_6',
+  'cr_1', 'cr_2', 'cr_3', 'cr_4', 'cr_5'
+]);
+const DEMO_TITLES = new Set([
+  'Đánh giá sức khỏe doanh nghiệp',
+  'Định hướng doanh nghiệp'
+]);
+
+export function sanitizeDemoChartConfig(chart: ReportChartItemConfig): ReportChartItemConfig {
+  const isDemoSummary =
+    chart.boundSummaryField &&
+    DEMO_SUMMARY_FIELD_IDS.has(chart.boundSummaryField.fieldId) &&
+    DEMO_TITLES.has(chart.boundSummaryField.title);
+
+  const isAllDemoComponents =
+    Array.isArray(chart.components) &&
+    chart.components.length > 0 &&
+    chart.components.every(c => DEMO_COMPONENT_IDS.has(c.id));
+
+  if (!isDemoSummary && !isAllDemoComponents) {
+    return chart;
+  }
+
+  return {
+    ...chart,
+    numLabel: isDemoSummary && chart.numLabel === '1' ? '' : chart.numLabel,
+    manualTitle: DEMO_TITLES.has(chart.manualTitle || '') ? '' : chart.manualTitle,
+    boundSummaryField: isDemoSummary ? null : chart.boundSummaryField,
+    components: isAllDemoComponents ? [] : chart.components,
+    commentRanges: chart.commentRanges?.map(r => ({
+      ...r,
+      commentText:
+        r.commentText.startsWith('Doanh nghiệp có nền tảng chiến lược xuất sắc') ||
+        r.commentText.startsWith('Doanh nghiệp đã định hình được một số thông tin nền tảng') ||
+        r.commentText.startsWith('Bức tranh định hướng còn sơ khai')
+          ? ''
+          : r.commentText
+    }))
+  };
+}
+

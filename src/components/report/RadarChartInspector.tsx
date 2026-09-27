@@ -6,7 +6,8 @@ import type {
 } from '../../types';
 import {
   getScoreColorHex,
-  resolveChartSummaryState
+  resolveChartSummaryState,
+  sanitizeDemoChartConfig
 } from '../../utils/reportChartUtils';
 import { reorderArray } from '../../utils/formUtils';
 
@@ -35,13 +36,14 @@ interface RadarChartInspectorProps {
 }
 
 export const RadarChartInspector: React.FC<RadarChartInspectorProps> = ({
-  chart,
+  chart: rawChart,
   isLocked,
   onUpdateChart,
   onDeleteChart,
   onSyncWeightToSource,
   onResolveDroppedFieldId
 }) => {
+  const chart = sanitizeDemoChartConfig(rawChart);
   const [isSummaryDragOver, setIsSummaryDragOver] = useState(false);
   const [isAddDropzoneDragOver, setIsAddDropzoneDragOver] = useState(false);
   const [draggedIdx, setDraggedIdx] = useState<number | null>(null);

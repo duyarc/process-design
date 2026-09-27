@@ -3,7 +3,8 @@ import type { ReportChartItemConfig } from '../../types';
 import {
   getScoreColorHex,
   resolveChartSummaryState,
-  resolveScoreRangeComment
+  resolveScoreRangeComment,
+  sanitizeDemoChartConfig
 } from '../../utils/reportChartUtils';
 
 interface BarChartBlockProps {
@@ -13,10 +14,11 @@ interface BarChartBlockProps {
 }
 
 export const BarChartBlock: React.FC<BarChartBlockProps> = ({
-  chart,
+  chart: rawChart,
   isSelected,
   onSelect
 }) => {
+  const chart = sanitizeDemoChartConfig(rawChart);
   const {
     displayNum,
     displayTitle,
@@ -101,25 +103,27 @@ export const BarChartBlock: React.FC<BarChartBlockProps> = ({
       )}
 
       {/* 2. Overall Progress Bar */}
-      <div
-        style={{
-          width: '100%',
-          height: '8px',
-          background: '#e2e8f0',
-          borderRadius: '99px',
-          overflow: 'hidden'
-        }}
-      >
+      {(isHeaderVisible || (chart.components && chart.components.length > 0)) && (
         <div
           style={{
-            width: `${overallPercent}%`,
-            height: '100%',
-            background: 'var(--primary)',
+            width: '100%',
+            height: '8px',
+            background: '#e2e8f0',
             borderRadius: '99px',
-            transition: 'width 0.25s ease'
+            overflow: 'hidden'
           }}
-        />
-      </div>
+        >
+          <div
+            style={{
+              width: `${overallPercent}%`,
+              height: '100%',
+              background: 'var(--primary)',
+              borderRadius: '99px',
+              transition: 'width 0.25s ease'
+            }}
+          />
+        </div>
+      )}
 
       {/* 3. Commentary Box (Synchronized with active score range) */}
       {activeRange && activeRange.commentText && (
@@ -138,7 +142,24 @@ export const BarChartBlock: React.FC<BarChartBlockProps> = ({
         </div>
       )}
 
-      {/* 4. Sub-criteria Progress Bars (2-Col Grid) */}
+      {/* 4. Sub-criteria Progress Bars (2-Col Grid) or Empty Placeholder */}
+      {!isHeaderVisible && (!chart.components || chart.components.length === 0) ? (
+        <div
+          style={{
+            width: '100%',
+            padding: '1.25rem 1rem',
+            border: isSelected ? '1.5px dashed var(--primary)' : '1.5px dashed #cbd5e1',
+            borderRadius: '6px',
+            background: isSelected ? '#f0fdfa' : '#f8fafc',
+            fontSize: '0.78rem',
+            fontWeight: 600,
+            color: isSelected ? 'var(--primary)' : '#64748b',
+            textAlign: 'center'
+          }}
+        >
+          📊 Bar Chart (Chưa có dữ liệu thành phần — Kéo thả Field/Nhóm vào Properties)
+        </div>
+      ) : (
       <div
         style={{
           display: 'grid',
@@ -212,6 +233,7 @@ export const BarChartBlock: React.FC<BarChartBlockProps> = ({
           );
         })}
       </div>
+      )}
     </div>
   );
 };

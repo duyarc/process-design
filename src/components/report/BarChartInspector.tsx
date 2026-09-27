@@ -7,7 +7,8 @@ import type {
 } from '../../types';
 import {
   getScoreColorHex,
-  resolveChartSummaryState
+  resolveChartSummaryState,
+  sanitizeDemoChartConfig
 } from '../../utils/reportChartUtils';
 import { reorderArray } from '../../utils/formUtils';
 import type { ChartDragSourcePayload } from './RadarChartInspector';
@@ -22,13 +23,14 @@ interface BarChartInspectorProps {
 }
 
 export const BarChartInspector: React.FC<BarChartInspectorProps> = ({
-  chart,
+  chart: rawChart,
   isLocked,
   onUpdateChart,
   onDeleteChart,
   onSyncWeightToSource,
   onResolveDroppedFieldId
 }) => {
+  const chart = sanitizeDemoChartConfig(rawChart);
   const [isSummaryDragOver, setIsSummaryDragOver] = useState(false);
   const [isAddDropzoneDragOver, setIsAddDropzoneDragOver] = useState(false);
   const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
@@ -156,10 +158,10 @@ export const BarChartInspector: React.FC<BarChartInspectorProps> = ({
   const handleAddRange = () => {
     const newRange: ScoreRangeCommentRule = {
       id: `r_${Date.now()}`,
-      label: 'Tùy chỉnh',
+      label: '',
       minScore: 0.0,
       maxScore: 5.0,
-      commentText: 'Nhận xét mới cho khoảng điểm tùy chỉnh...'
+      commentText: ''
     };
     onUpdateChart({
       ...chart,

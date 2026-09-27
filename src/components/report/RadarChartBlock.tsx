@@ -2,7 +2,8 @@ import React from 'react';
 import type { ReportChartItemConfig } from '../../types';
 import {
   buildRadarPolygonPoints,
-  resolveChartSummaryState
+  resolveChartSummaryState,
+  sanitizeDemoChartConfig
 } from '../../utils/reportChartUtils';
 
 interface RadarChartBlockProps {
@@ -12,10 +13,11 @@ interface RadarChartBlockProps {
 }
 
 export const RadarChartBlock: React.FC<RadarChartBlockProps> = ({
-  chart,
+  chart: rawChart,
   isSelected,
   onSelect
 }) => {
+  const chart = sanitizeDemoChartConfig(rawChart);
   const {
     displayNum,
     displayTitle,
@@ -106,13 +108,18 @@ export const RadarChartBlock: React.FC<RadarChartBlockProps> = ({
         {chart.components.length < 3 ? (
           <div
             style={{
-              padding: '1.5rem',
+              width: '100%',
+              padding: '1.25rem 1rem',
+              border: isSelected ? '1.5px dashed var(--primary)' : '1.5px dashed #cbd5e1',
+              borderRadius: '6px',
+              background: isSelected ? '#f0fdfa' : '#f8fafc',
               fontSize: '0.78rem',
-              color: '#64748b',
+              fontWeight: 600,
+              color: isSelected ? 'var(--primary)' : '#64748b',
               textAlign: 'center'
             }}
           >
-            (Cần ít nhất 3 thành phần để vẽ biểu đồ Radar)
+            🕸 Radar Chart ({chart.components.length}/3 thành phần tối thiểu — Kéo thả Field/Nhóm vào Properties)
           </div>
         ) : (
           <svg
