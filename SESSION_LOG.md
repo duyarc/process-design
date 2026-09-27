@@ -61,6 +61,7 @@ Entry mới nhất ở trên cùng. Tối đa 10 entries.
 - **Option B + D Hybrid Summary Drop-Slot:** Hàng tổng hợp duy nhất ngay dưới tiêu đề `RADAR CHART` / `BAR CHART` hỗ trợ vừa gõ tiêu đề thủ công (điểm tổng tự tính từ `THÀNH PHẦN (x)`), vừa kéo thả Field đơn lẻ hoặc Nhóm (`H1` / `H2` / `Element Table`) để liên kết điểm tổng + tự động điền toàn bộ thành phần con vào `THÀNH PHẦN (x)`.
 - **Căn thẳng hàng dọc tuyệt đối (`38px | 48px | 18px`) & Đồng bộ Trọng số 2 Chiều:** Điểm tổng/thành phần (`38px`), Trọng số `%` (`48px`), và nút xóa/gỡ (`18px`) thẳng trục dọc 100%; chỉnh sửa `%` trong giao diện biểu đồ tự động đồng bộ hai chiều với thuộc tính `weight` của Field/Block nguồn.
 - **Khắc phục triệt để lỗi cắt đáy trang `.paper-card` (`1050px` Clipping Bug):** Bổ sung `height: 'auto', flexShrink: 0, overflow: 'visible'` vào container `.paper-card` trong `ReportBuilder.tsx` và `FormReport.tsx`, ngăn Flexbox ép co trang giấy về `minHeight: 1050px` và ngăn `overflow: hidden` cắt mất phần dưới của khối `INFO_GRID`.
+- **Khôi phục chọn `SECTION_LABEL` (H1/H2) và `TABLE` trong `tab Form` (`hiddenInReport`):** Bổ sung cờ `hiddenInReport?: boolean` trên `ReportBlockConfig`, cho phép click chọn bất kỳ Section H1, H2 hoặc Table nào trong `tab Form` để xem bảng điểm tổng hợp và chỉnh `weight`/`isKnockout` ở cột Properties mà không làm tự sinh khối thừa bên trang `tab Report`.
 
 ---
 

@@ -271,7 +271,7 @@ export const PrintReport: React.FC<PrintReportProps> = ({
         <tbody>
           <tr>
             <td>
-              {template.layoutBlocks.map((block) => (
+              {template.layoutBlocks.filter(b => !b.hiddenInReport).map((block) => (
                 <div key={block.id} className="print-block-avoid" style={{ marginBottom: '14px' }}>
                   
                   {/* 1. TITLE Block */}

@@ -228,7 +228,7 @@ export const FormReport: React.FC<FormReportProps> = ({
             gap: '1rem'
           }}
         >
-          {reportTemplate.layoutBlocks.map((block) => (
+          {reportTemplate.layoutBlocks.filter(b => !b.hiddenInReport).map((block) => (
             <div key={block.id}>
               
               {/* TITLE */}

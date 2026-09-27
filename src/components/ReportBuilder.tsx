@@ -1426,6 +1426,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
 
   const handleSelectH1Section = (h1Title: string) => {
     setSelectedFieldId(null);
+    setActiveChartSelection(null);
     setRightTab('properties');
 
     const cleanTitle = h1Title.trim().toLowerCase();
@@ -1441,8 +1442,6 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
       const anyMatchingBlock = template.layoutBlocks.find(b => b.title.trim().toLowerCase() === cleanTitle);
       if (anyMatchingBlock) {
         setActiveBlockId(anyMatchingBlock.id);
-      } else if (activeCanvasTab === 'form') {
-        setActiveBlockId(null);
       } else {
         const newBlock: ReportBlockConfig = {
           id: `rep_block_${Date.now()}`,
@@ -1450,7 +1449,8 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
           title: h1Title,
           titleFormat: 'H1',
           weight: 0,
-          isKnockout: false
+          isKnockout: false,
+          hiddenInReport: activeCanvasTab === 'form'
         };
         setTemplate(prev => ({
           ...prev,
@@ -1463,6 +1463,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
 
   const handleSelectH2Subgroup = (h2Title: string) => {
     setSelectedFieldId(null);
+    setActiveChartSelection(null);
     setRightTab('properties');
 
     const cleanTitle = h2Title.trim().toLowerCase();
@@ -1474,8 +1475,6 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
 
     if (existingH2Block) {
       setActiveBlockId(existingH2Block.id);
-    } else if (activeCanvasTab === 'form') {
-      setActiveBlockId(null);
     } else {
       const newBlock: ReportBlockConfig = {
         id: `rep_block_h2_${Date.now()}`,
@@ -1483,7 +1482,8 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
         title: h2Title,
         titleFormat: 'H2',
         weight: 0,
-        isKnockout: false
+        isKnockout: false,
+        hiddenInReport: activeCanvasTab === 'form'
       };
       setTemplate(prev => ({
         ...prev,
@@ -1495,6 +1495,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
 
   const handleSelectElementGroup = (elementTitle: string, fieldIds: string[]) => {
     setSelectedFieldId(null);
+    setActiveChartSelection(null);
     setRightTab('properties');
 
     const cleanTitle = elementTitle.trim().toLowerCase();
@@ -1513,8 +1514,6 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
         }));
       }
       setActiveBlockId(existingTableBlock.id);
-    } else if (activeCanvasTab === 'form') {
-      setActiveBlockId(null);
     } else {
       const newBlock: ReportBlockConfig = {
         id: `rep_block_${Date.now()}`,
@@ -1522,7 +1521,8 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
         title: elementTitle,
         boundFieldIds: fieldIds,
         weight: 0,
-        isKnockout: false
+        isKnockout: false,
+        hiddenInReport: activeCanvasTab === 'form'
       };
       setTemplate(prev => ({
         ...prev,
@@ -1779,6 +1779,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
 
   // Handler when clicking a Layout Block (TITLE, SECTION_LABEL, INFO_GRID, SIGN, TABLE) in FormReferenceCanvas
   const handleSelectBlockFromFormCanvas = (formBlockId: string) => {
+    setActiveChartSelection(null);
     const existingDirect = template.layoutBlocks.find(b => b.id === formBlockId);
     if (existingDirect) {
       setActiveBlockId(existingDirect.id);
@@ -1834,30 +1835,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
     if (formBlock.type === 'TABLE') {
       const tableFields = extractTableFields(formBlock);
       const tableFieldIds = tableFields.map(f => f.id);
-      const cleanTitle = (formBlock.title || 'Bảng').trim().toLowerCase();
-
-      const matchedTable = template.layoutBlocks.find(b =>
-        b.type === 'TABLE' && (
-          (tableFieldIds.length > 0 && b.boundFieldIds?.some(fid => tableFieldIds.includes(fid))) ||
-          (b.title || '').trim().toLowerCase() === cleanTitle
-        )
-      );
-
-      if (matchedTable) {
-        const missingIds = tableFieldIds.filter(id => !matchedTable.boundFieldIds?.includes(id));
-        if (missingIds.length > 0) {
-          const updatedBound = [...(matchedTable.boundFieldIds || []), ...missingIds];
-          setTemplate(prev => ({
-            ...prev,
-            layoutBlocks: prev.layoutBlocks.map(b => b.id === matchedTable.id ? { ...b, boundFieldIds: updatedBound } : b)
-          }));
-        }
-        setActiveBlockId(matchedTable.id);
-      } else {
-        setActiveBlockId(null);
-      }
-      setSelectedFieldId(null);
-      setRightTab('properties');
+      handleSelectElementGroup(formBlock.title || 'Bảng', tableFieldIds);
       return;
     }
     const matchedByTypeAndTitle = template.layoutBlocks.find(
@@ -3011,6 +2989,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                 onSelectField={(fId) => {
                   setSelectedFieldId(fId);
                   setActiveBlockId(null);
+                  setActiveChartSelection(null);
                   setRightTab('properties');
                 }}
                 onSelectTableGroup={handleSelectTableGroupFromCanvas}
@@ -3019,6 +2998,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                 onDeselect={() => {
                   setActiveBlockId(null);
                   setSelectedFieldId(null);
+                  setActiveChartSelection(null);
                 }}
               />
             ) : (
@@ -3036,6 +3016,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                 if (e.target === e.currentTarget) {
                   setActiveBlockId(null);
                   setSelectedFieldId(null);
+                  setActiveChartSelection(null);
                 }
               }}
               style={{
@@ -3057,7 +3038,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                 marginBottom: '2.5rem'
               }}
             >
-            {template.layoutBlocks.length === 0 ? (
+            {template.layoutBlocks.filter(b => !b.hiddenInReport).length === 0 ? (
               <div style={{ border: '2px dashed var(--neutral-border)', borderRadius: '8px', padding: '3rem 1.5rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
                 <FileText size={36} style={{ margin: '0 auto 0.75rem', opacity: 0.4 }} />
                 <h4 style={{ margin: '0 0 0.25rem 0', color: 'var(--text-primary)', fontSize: '0.95rem' }}>Trang báo cáo đang trống (Blank Page)</h4>
@@ -3067,6 +3048,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
               </div>
             ) : (
               template.layoutBlocks.map((block, idx) => {
+                if (block.hiddenInReport) return null;
                 const isActive = block.id === activeBlockId;
                 const isDroppable = block.type === 'INFO_GRID' || block.type === 'TABLE';
                 const isDragOverThis = dragOverBlockId === block.id;

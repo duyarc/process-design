@@ -475,6 +475,7 @@ export interface ReportBlockConfig {
   borderStyle?: 'grid' | 'borderless' | 'horizontal_only';
   weight?: number;                      // Weight % within parent (H2 in H1, or H1 in Report)
   isKnockout?: boolean;                 // Knockout condition at H2 / H1 level
+  hiddenInReport?: boolean;             // True if auto-created in Form tab for scoring/weight properties only
 }
 
 export interface ReportRevisionEntry {
