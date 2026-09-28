@@ -935,21 +935,8 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
       title = '1. THÔNG TIN ĐÁNH GIÁ';
     } else if (type === 'INFO_GRID') {
       title = 'Thông tin chung';
-      if (selectedForm) {
-        boundFieldIds = selectedForm.layoutBlocks
-          .flatMap(b => b.fields || [])
-          .filter(f => f.type === 'text' || f.type === 'date' || f.type === 'time')
-          .slice(0, 4)
-          .map(f => f.id);
-      }
     } else if (type === 'TABLE') {
       title = 'Bảng đánh giá thông số & quy cách (Specs vs Actual)';
-      if (selectedForm) {
-        boundFieldIds = selectedForm.layoutBlocks
-          .flatMap(b => b.fields || [])
-          .filter(f => f.type === 'number' || f.type === 'radio' || f.type === 'checkbox')
-          .map(f => f.id);
-      }
     } else if (type === 'SIGN') {
       title = 'Xác nhận & Thẩm định';
       if (selectedForm) {

@@ -40,26 +40,26 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
-### 2026-09-28 — Report Builder: Khôi phục hiển thị dữ liệu `sampleSubmission` trên cấu trúc 1:1 của `tab Form` (`FormReferenceCanvas`)
+### 2026-09-28 — Report Builder: Khôi phục hiển thị `sampleSubmission` trên `tab Form` & Dọn bỏ Pre-populate cứng trong `handleAddBlock` (`FormReferenceCanvas`, `ReportBuilder`)
 
-**Scope:** 3 files (`src/components/report/FormReferenceCanvas.tsx`, `DESIGN_REPORT_BUILDER.md`, `SESSION_LOG.md`)
+**Scope:** 4 files (`src/components/report/FormReferenceCanvas.tsx`, `src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`, `SESSION_LOG.md`)
 
 | Chỉ số | Giá trị |
 |---|---|
-| Thời gian tổng (Request → Push) | ~9.5 min |
-| Thời gian lập plan (Request → Proceed) | ~3.0 min |
-| Thời gian thực thi (Proceed → Push) | ~6.5 min |
-| Số file nguồn chỉnh sửa | 1 (`FormReferenceCanvas.tsx`) |
-| Tổng lượt edit source | 6 |
+| Thời gian tổng (Request → Push) | ~3.0 min |
+| Thời gian lập plan (Request → Proceed) | ~1.5 min |
+| Thời gian thực thi (Proceed → Push) | ~1.5 min |
+| Số file nguồn chỉnh sửa | 2 (`FormReferenceCanvas.tsx`, `ReportBuilder.tsx`) |
+| Tổng lượt edit source | 7 (6 trên `FormReferenceCanvas.tsx` + 1 trên `ReportBuilder.tsx`) |
 | Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 1 (`tsc -b && vite build` 20.54s pass) |
+| Số lần build | 2 (`tsc -b && vite build` 12.89s pass) |
 | Lần build cuối thành công? | Có (100% pass ngay lần đầu) |
 | Số lỗi mới phát sinh | 0 |
 | Số lỗi cũ lặp lại | 0 |
 
 **Điểm nổi bật:**
 - **Tách bạch Cấu trúc Bố cục 1:1 và Dữ liệu Bản nộp (`sampleSubmission`):** Giữ nguyên toàn bộ bản sửa bố cục 1:1 của `form.layoutBlocks` (không merge `matchedReportBlock` vào `TITLE` và `INFO_GRID`, giữ `shouldStackVertically` cho Checkbox/Radio), đồng thời khôi phục đầy đủ `sampleSubmission` cùng các hàm `extractSubmissionValue`, `isLikertSelected`, `isOptionSelected`, `formatOptionDisplay` trong `renderFieldValue`, `TABLE`, và `CHECKLIST_TABLE`.
-- **Trải nghiệm cấu hình Scoring liền mạch:** Người thiết kế vừa nhìn thấy bố cục biểu mẫu trung thực 100% với `Form Builder`, vừa xem trực tiếp dữ liệu của bản nộp (`sampleSubmission`) đang chọn ngay trên `tab Form`.
+- **Khởi tạo Khối Trống (`Blank Slate`) khi thêm `+ Info Grid` và `+ Table`:** Loại bỏ đoạn code legacy tự động nhét 4 trường `text`/`date`/`time` đầu tiên (`.slice(0, 4)`) vào `INFO_GRID` và các trường `number`/`radio`/`checkbox` vào `TABLE` trong `handleAddBlock` (`ReportBuilder.tsx`), giúp mọi khối mới thêm vào luôn khởi tạo trống (`boundFieldIds = []`) với vùng thả `+ Thả vào đây`.
 
 ---
 
