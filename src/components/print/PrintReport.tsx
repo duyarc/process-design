@@ -374,7 +374,12 @@ export const PrintReport: React.FC<PrintReportProps> = ({
 
                   {/* 3. INFO_GRID Block */}
                   {block.type === 'INFO_GRID' && (() => {
-                    const titleFmt = block.titleFormat || 'H2';
+                    const isLegacyDefaultInfoGridTitle =
+                      block.title === 'Thông tin chung' &&
+                      (!block.boundFieldIds || block.boundFieldIds.length === 0);
+                    const titleFmt = isLegacyDefaultInfoGridTitle
+                      ? 'NONE'
+                      : (block.titleFormat || 'NONE');
                     return (
                       <div style={{ marginBottom: '8px' }}>
                         {titleFmt !== 'NONE' && (

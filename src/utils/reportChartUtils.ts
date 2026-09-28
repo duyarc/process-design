@@ -170,6 +170,46 @@ export function buildRadarPolygonPoints(
   };
 }
 
+/**
+ * Splits a long Radar Chart axis title into at most 2 balanced lines
+ * (accounting for the trailing scoreText on the last line) so SVG labels never clip.
+ */
+export function wrapSvgAxisLabel(
+  title: string,
+  scoreText: string = '',
+  maxCharsPerLine: number = 20
+): string[] {
+  const clean = (title || '').trim();
+  if (!clean) return [''];
+  const totalLen = clean.length + (scoreText ? scoreText.length + 1 : 0);
+  if (totalLen <= maxCharsPerLine || !clean.includes(' ')) {
+    return [clean];
+  }
+
+  const targetFirstLineLen = Math.round(totalLen / 2);
+  let bestSplitIdx = -1;
+  let bestDiff = Infinity;
+
+  for (let i = 0; i < clean.length; i++) {
+    if (clean[i] === ' ') {
+      const diff = Math.abs(i - targetFirstLineLen);
+      if (diff < bestDiff) {
+        bestDiff = diff;
+        bestSplitIdx = i;
+      }
+    }
+  }
+
+  if (bestSplitIdx <= 0 || bestSplitIdx >= clean.length - 1) {
+    return [clean];
+  }
+
+  return [
+    clean.slice(0, bestSplitIdx).trim(),
+    clean.slice(bestSplitIdx + 1).trim()
+  ];
+}
+
 export function createDefaultRadarChartConfig(id?: string): ReportChartItemConfig {
   return {
     id: id || `radar_${Date.now()}`,

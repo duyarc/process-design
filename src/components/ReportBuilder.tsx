@@ -367,7 +367,14 @@ function InCanvasTitleHeader({
   onUpdateTitleFormat,
   onSelectBlock
 }: InCanvasTitleHeaderProps) {
-  const titleFmt = block.titleFormat || (block.type === 'SECTION_LABEL' ? 'H1' : 'H2');
+  const isLegacyDefaultInfoGridTitle =
+    block.type === 'INFO_GRID' &&
+    block.title === 'Thông tin chung' &&
+    (!block.boundFieldIds || block.boundFieldIds.length === 0);
+  const effectiveTitle = isLegacyDefaultInfoGridTitle ? '' : block.title;
+  const titleFmt = isLegacyDefaultInfoGridTitle
+    ? 'NONE'
+    : (block.titleFormat || (block.type === 'SECTION_LABEL' ? 'H1' : block.type === 'INFO_GRID' ? 'NONE' : 'H2'));
 
   const renderStylePill = () => (
     <div
@@ -500,7 +507,7 @@ function InCanvasTitleHeader({
               <input
                 type="text"
                 disabled={isLocked}
-                value={block.title}
+                value={effectiveTitle}
                 onClick={onSelectBlock}
                 onChange={(e) => onUpdateTitle(e.target.value)}
                 placeholder={block.type === 'SECTION_LABEL' ? '(Section Label đang ẩn - Format: NONE)' : '(Tiêu đề đang ẩn)'}
@@ -934,7 +941,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
     } else if (type === 'SECTION_LABEL') {
       title = '1. THÔNG TIN ĐÁNH GIÁ';
     } else if (type === 'INFO_GRID') {
-      title = 'Thông tin chung';
+      title = '';
     } else if (type === 'TABLE') {
       title = 'Bảng đánh giá thông số & quy cách (Specs vs Actual)';
     } else if (type === 'SIGN') {
@@ -958,7 +965,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
       boundFieldIds,
       columns: type === 'INFO_GRID' ? 2 : 1,
       columnWidths: type === 'INFO_GRID' ? [50, 50] : undefined,
-      titleFormat: type === 'SECTION_LABEL' ? 'H1' : 'H2',
+      titleFormat: type === 'INFO_GRID' ? 'NONE' : (type === 'SECTION_LABEL' ? 'H1' : 'H2'),
       borderStyle: 'grid',
       hideHeader: false
     };

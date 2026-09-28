@@ -3,7 +3,8 @@ import type { ReportChartItemConfig } from '../../types';
 import {
   buildRadarPolygonPoints,
   resolveChartSummaryState,
-  sanitizeDemoChartConfig
+  sanitizeDemoChartConfig,
+  wrapSvgAxisLabel
 } from '../../utils/reportChartUtils';
 
 interface RadarChartBlockProps {
@@ -25,11 +26,11 @@ export const RadarChartBlock: React.FC<RadarChartBlockProps> = ({
     isHeaderVisible
   } = resolveChartSummaryState(chart);
 
-  const viewBoxWidth = 560;
+  const viewBoxWidth = 640;
   const viewBoxHeight = 360;
   const cx = viewBoxWidth / 2;
   const cy = viewBoxHeight / 2;
-  const radius = 120;
+  const radius = 115;
 
   const { gridRings, axesLines, polygonPoints, dots, labels } =
     buildRadarPolygonPoints(chart.components || [], cx, cy, radius, 5);
@@ -125,7 +126,7 @@ export const RadarChartBlock: React.FC<RadarChartBlockProps> = ({
           <svg
             viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`}
             preserveAspectRatio="xMidYMid meet"
-            style={{ width: '100%', maxWidth: '560px', height: 'auto' }}
+            style={{ width: '100%', maxWidth: '640px', height: 'auto', overflow: 'visible' }}
           >
             {gridRings.map((pts, idx) => (
               <polygon
@@ -166,22 +167,51 @@ export const RadarChartBlock: React.FC<RadarChartBlockProps> = ({
                 strokeWidth="2.2"
               />
             ))}
-            {labels.map((lbl, idx) => (
-              <text
-                key={idx}
-                x={lbl.x.toFixed(1)}
-                y={lbl.y.toFixed(1)}
-                textAnchor={lbl.anchor}
-                dy={lbl.dy}
-                fontSize="11"
-                fill="#0f172a"
-              >
-                <tspan fontWeight="700">{lbl.title}</tspan>{' '}
-                <tspan fontWeight="800" fill={lbl.scoreColor}>
-                  {lbl.scoreText}
-                </tspan>
-              </text>
-            ))}
+            {labels.map((lbl, idx) => {
+              const lines = wrapSvgAxisLabel(lbl.title, lbl.scoreText, 20);
+              const xStr = lbl.x.toFixed(1);
+              const yStr = lbl.y.toFixed(1);
+              const firstLineDy =
+                lines.length > 1
+                  ? lbl.dy === '1.0em'
+                    ? '0.55em'
+                    : lbl.dy === '-0.4em'
+                    ? '-1.1em'
+                    : '-0.25em'
+                  : lbl.dy;
+
+              return (
+                <text
+                  key={idx}
+                  x={xStr}
+                  y={yStr}
+                  textAnchor={lbl.anchor}
+                  fontSize="11"
+                  fill="#0f172a"
+                >
+                  {lines.length === 1 ? (
+                    <tspan x={xStr} dy={firstLineDy}>
+                      <tspan fontWeight="700">{lines[0]}</tspan>{' '}
+                      <tspan fontWeight="800" fill={lbl.scoreColor}>
+                        {lbl.scoreText}
+                      </tspan>
+                    </tspan>
+                  ) : (
+                    <>
+                      <tspan x={xStr} dy={firstLineDy} fontWeight="700">
+                        {lines[0]}
+                      </tspan>
+                      <tspan x={xStr} dy="1.25em">
+                        <tspan fontWeight="700">{lines[1]}</tspan>{' '}
+                        <tspan fontWeight="800" fill={lbl.scoreColor}>
+                          {lbl.scoreText}
+                        </tspan>
+                      </tspan>
+                    </>
+                  )}
+                </text>
+              );
+            })}
           </svg>
         )}
       </div>

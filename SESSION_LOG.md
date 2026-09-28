@@ -40,6 +40,29 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-28 — Report Builder: Sửa lỗi cắt chữ trục Radar Chart (`wrapSvgAxisLabel`) & Gỡ Title hardcode `"Thông tin chung"` của `INFO_GRID` (`reportChartUtils`, `RadarChartBlock`, `ReportBuilder`, `PrintReport`)
+
+**Scope:** 6 files (`src/utils/reportChartUtils.ts`, `src/components/report/RadarChartBlock.tsx`, `src/components/ReportBuilder.tsx`, `src/components/print/PrintReport.tsx`, `DESIGN_REPORT_BUILDER.md`, `SESSION_LOG.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | ~9.0 min |
+| Thời gian lập plan (Request → Proceed) | ~2.5 min |
+| Thời gian thực thi (Proceed → Push) | ~6.5 min |
+| Số file nguồn chỉnh sửa | 4 (`reportChartUtils.ts`, `RadarChartBlock.tsx`, `ReportBuilder.tsx`, `PrintReport.tsx`) |
+| Tổng lượt edit source | 7 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 3 (`tsc --noEmit` x2 + `npm run build` 11.53s pass) |
+| Lần build cuối thành công? | Có (100% pass ngay lần đầu) |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- **Ngắt dòng cân đối nhãn trục Radar Chart (`wrapSvgAxisLabel`):** Tự động tách các nhãn trục dài thành 2 dòng `<tspan>` tại khoảng trắng gần điểm giữa nhất (kết hợp mở rộng `viewBoxWidth = 640` và `overflow: 'visible'`), triệt tiêu hoàn toàn hiện tượng cắt chữ ở mép trái/phải của khung SVG.
+- **Khởi tạo `INFO_GRID` sạch 100% (`title = ''`, `titleFormat = 'NONE'`):** Gỡ bỏ tiêu đề hardcode `"Thông tin chung"` trong `handleAddBlock` và tự động ẩn tiêu đề mặc định cũ trên các khối `INFO_GRID` trống/chỉ chứa biểu đồ.
+
+---
+
 ### 2026-09-28 — Report Builder: Vẽ Biểu đồ từ Toàn bộ `H1` (Cách A), Kéo thả `H1` Đơn lẻ & Cơ chế Accordion Toàn Sidebar (`ReportBuilder`, `RadarChartInspector`, `BarChartInspector`, `FormReferenceCanvas`)
 
 **Scope:** 6 files (`src/components/ReportBuilder.tsx`, `src/components/report/RadarChartInspector.tsx`, `src/components/report/BarChartInspector.tsx`, `src/components/report/FormReferenceCanvas.tsx`, `DESIGN_REPORT_BUILDER.md`, `SESSION_LOG.md`)
