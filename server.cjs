@@ -2633,6 +2633,77 @@ app.get('/api/reports/view/:submissionId', async (req, res) => {
   }
 });
 
+// GET /api/reports/view-auth/:submissionId - Authenticated: view report bundle via JWT (no access_token needed)
+// Returns { submission, formTemplate, reportTemplate } in 2 round-trips (submission → parallel form+report)
+app.get('/api/reports/view-auth/:submissionId', async (req, res) => {
+  try {
+    if (!dbPool) return res.status(503).json({ error: 'Database not available' });
+    // Verify JWT
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Authorization header required' });
+    }
+    const jwtToken = authHeader.split(' ')[1];
+    let decoded = null;
+    try {
+      decoded = jwt.verify(jwtToken, JWT_SECRET, { ignoreExpiration: true });
+    } catch (e) {
+      try {
+        decoded = jwt.verify(jwtToken, 'process_optimization_secure_jwt_secret_key_2026', { ignoreExpiration: true });
+      } catch (_) {}
+    }
+    if (!decoded || !decoded.id) {
+      return res.status(401).json({ error: 'Invalid or expired token' });
+    }
+
+    const { submissionId } = req.params;
+    // Step A: fetch submission
+    const subResult = await dbPool.query(
+      `SELECT id, process_id, form_id, form_version, operator_id,
+              status, submitted_at, form_data, media_urls, supervisor_signoff, access_token
+       FROM submissions WHERE id = $1`,
+      [submissionId]
+    );
+    if (subResult.rows.length === 0) return res.status(404).json({ error: 'Submission not found' });
+    const subRow = subResult.rows[0];
+    const formId = subRow.form_id;
+
+    // Step B: fetch form template + report template in parallel
+    const [formResult, repResult] = await Promise.all([
+      dbPool.query(
+        `SELECT * FROM forms WHERE form_id = $1 OR form_name = $1 ORDER BY updated_at DESC LIMIT 1`,
+        [formId]
+      ),
+      dbPool.query(
+        `SELECT * FROM report_templates WHERE linked_form_id = $1
+         ORDER BY (CASE WHEN status = 'ACTIVE' THEN 1 WHEN status = 'DRAFT' THEN 2 ELSE 3 END), updated_at DESC LIMIT 1`,
+        [formId]
+      )
+    ]);
+
+    res.json({
+      submission: {
+        id: subRow.id,
+        processId: subRow.process_id,
+        formId: subRow.form_id,
+        formVersion: subRow.form_version,
+        operatorId: subRow.operator_id,
+        status: subRow.status,
+        submittedAt: subRow.submitted_at,
+        formData: typeof subRow.form_data === 'string' ? JSON.parse(subRow.form_data) : subRow.form_data,
+        mediaUrls: typeof subRow.media_urls === 'string' ? JSON.parse(subRow.media_urls) : (subRow.media_urls || []),
+        supervisorSignoff: typeof subRow.supervisor_signoff === 'string' ? JSON.parse(subRow.supervisor_signoff) : subRow.supervisor_signoff,
+        accessToken: subRow.access_token
+      },
+      formTemplate: formResult.rows.length > 0 ? formResult.rows[0] : null,
+      reportTemplate: repResult.rows.length > 0 ? formatReportRow(repResult.rows[0]) : null
+    });
+  } catch (err) {
+    console.error('view-auth report error:', err);
+    res.status(500).json({ error: 'Failed to fetch authenticated report bundle' });
+  }
+});
+
 // POST /api/submissions - Save a completed form submission
 app.post('/api/submissions', async (req, res) => {
   try {

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
 import type {
   Submission,
   FormTemplateISO,
@@ -46,6 +47,7 @@ export const FormReport: React.FC<FormReportProps> = ({
   triggerPrint,
   onPrintHandled
 }) => {
+  const { currentUser } = useAuth();
   const [submission, setSubmission] = useState<Submission | null>(null);
   const [formTemplate, setFormTemplate] = useState<FormTemplateISO | null>(null);
   const [reportTemplate, setReportTemplate] = useState<ReportTemplateISO | null>(null);
@@ -68,33 +70,47 @@ export const FormReport: React.FC<FormReportProps> = ({
     const fetchData = async () => {
       try {
         setLoading(true);
-        // 1. Fetch submission record
-        const subUrl = token
-          ? `/api/submissions/view/${encodeURIComponent(submissionId)}?token=${encodeURIComponent(token)}`
-          : `/api/submissions/${encodeURIComponent(submissionId)}`;
-        const subRes = await fetch(subUrl);
-        if (!subRes.ok) throw new Error(`Không tìm thấy bản nộp ID ${submissionId}`);
-        const subData: any = await subRes.json();
-        setSubmission(subData);
+        const jwtToken = currentUser ? localStorage.getItem('jwt_token') : null;
 
-        const formId = subData.formId || subData.form_id;
-
-        // 2. Fetch source form template
-        const formRes = await fetch(`/api/forms/${formId}`);
-        if (!formRes.ok) throw new Error(`Không tìm thấy biểu mẫu gốc ID ${formId}`);
-        const formData = await formRes.json();
-        setFormTemplate(formData);
-
-        // 3. Fetch active report template linked to this form
-        const repRes = await fetch(`/api/reports/by-form/${formId}`);
-        if (repRes.ok) {
-          const repData: ReportTemplateISO = await repRes.json();
-          setReportTemplate(repData);
-          // Compute report insights
-          const computed = computeRecordReport(subData, formData, repData);
-          setComputedData(computed);
+        if (jwtToken && !token) {
+          // ── Fast path: authenticated bundle (2 RTT instead of 3) ──
+          const bundleRes = await fetch(
+            `/api/reports/view-auth/${encodeURIComponent(submissionId)}`,
+            { headers: { Authorization: `Bearer ${jwtToken}` } }
+          );
+          if (!bundleRes.ok) throw new Error(`Không tìm thấy bản nộp ID ${submissionId}`);
+          const bundle = await bundleRes.json();
+          setSubmission(bundle.submission);
+          setFormTemplate(bundle.formTemplate);
+          if (bundle.reportTemplate) {
+            setReportTemplate(bundle.reportTemplate);
+            const computed = computeRecordReport(bundle.submission, bundle.formTemplate, bundle.reportTemplate);
+            setComputedData(computed);
+          }
         } else {
-          setReportTemplate(null);
+          // ── Public/token path: 3 sequential fetches (unchanged) ──
+          const subUrl = token
+            ? `/api/submissions/view/${encodeURIComponent(submissionId)}?token=${encodeURIComponent(token)}`
+            : `/api/submissions/${encodeURIComponent(submissionId)}`;
+          const subRes = await fetch(subUrl);
+          if (!subRes.ok) throw new Error(`Không tìm thấy bản nộp ID ${submissionId}`);
+          const subData: any = await subRes.json();
+          setSubmission(subData);
+          const formId = subData.formId || subData.form_id;
+
+          const [formRes, repRes] = await Promise.all([
+            fetch(`/api/forms/${formId}`),
+            fetch(`/api/reports/by-form/${formId}`)
+          ]);
+          if (!formRes.ok) throw new Error(`Không tìm thấy biểu mẫu gốc ID ${formId}`);
+          const formData = await formRes.json();
+          setFormTemplate(formData);
+          if (repRes.ok) {
+            const repData: ReportTemplateISO = await repRes.json();
+            setReportTemplate(repData);
+            const computed = computeRecordReport(subData, formData, repData);
+            setComputedData(computed);
+          }
         }
       } catch (err: any) {
         console.error('Error loading report view:', err);
@@ -104,19 +120,35 @@ export const FormReport: React.FC<FormReportProps> = ({
       }
     };
     fetchData();
-  }, [submissionId]);
+  }, [submissionId, currentUser]);
 
   if (loading) {
+    const skeletonRow = (w: string) => (
+      <div style={{ height: '12px', background: 'var(--neutral-bg)', borderRadius: '4px', width: w, marginBottom: '8px' }} />
+    );
+    const skeletonBlock = (
+      <div style={{ marginBottom: '1.5rem' }}>
+        {skeletonRow('40%')}
+        {skeletonRow('80%')}
+        {skeletonRow('60%')}
+      </div>
+    );
     if (isEmbedded) {
       return (
-        <div style={{ padding: '3rem 1rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-          Đang tạo báo cáo đánh giá chất lượng...
+        <div style={{ padding: '2rem 1rem', display: 'flex', justifyContent: 'center' }}>
+          <div className="paper-card" style={{ maxWidth: '720px', width: '100%', padding: '2rem', background: '#ffffff' }}>
+            <div style={{ height: '14px', background: 'var(--neutral-bg)', borderRadius: '4px', width: '55%', marginBottom: '1.5rem' }} />
+            {skeletonBlock}{skeletonBlock}{skeletonBlock}
+          </div>
         </div>
       );
     }
     return (
-      <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <p style={{ color: 'var(--text-secondary)' }}>Đang tạo báo cáo đánh giá chất lượng...</p>
+      <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="paper-card" style={{ maxWidth: '560px', width: '100%', padding: '2.5rem 2rem', background: '#ffffff' }}>
+          <div style={{ height: '14px', background: 'var(--neutral-bg)', borderRadius: '4px', width: '55%', marginBottom: '1.5rem' }} />
+          {skeletonBlock}{skeletonBlock}{skeletonBlock}
+        </div>
       </div>
     );
   }

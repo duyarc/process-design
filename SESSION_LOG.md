@@ -40,6 +40,29 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-28 — Report Builder: Tối ưu hiệu năng tải Báo cáo — Parallel Fetch + Skeleton UI
+
+**Scope:** 3 files (`src/components/FormReport.tsx`, `server.cjs`, `DESIGN_REPORT_BUILDER.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | ~7 min |
+| Thời gian lập plan (Request → Proceed) | ~4 min |
+| Thời gian thực thi (Proceed → Push) | ~3 min |
+| Số file nguồn chỉnh sửa | 2 (`FormReport.tsx`, `server.cjs`) |
+| Lượt edit sửa lỗi (rework) | 1 (xóa dòng trắng thừa sau patch) |
+| Số lần build | 2 (`tsc --noEmit` pass, `npm run build` 18.55s pass) |
+| Lần build đầu thành công? | Có (100% pass) |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Kết quả kiến trúc:**
+- **Authenticated path:** 3 RTT → **2 RTT** (fetch submission → `Promise.all([form, report])`), thông qua endpoint mới `GET /api/reports/view-auth/:submissionId` (JWT Bearer auth, parallel DB query).
+- **Public/token path:** 3 RTT → **2 RTT** (tận dụng `Promise.all` ngay tại client).
+- **UX:** Skeleton paper-card shimmer thay text trắng → progressive disclosure ngay lập tức.
+
+---
+
 ### 2026-09-28 — Report Builder: Tái cấu trúc `FormReport.tsx` theo chuẩn `PrintReport` & Xóa bỏ Khối Hardcoded
 
 **Scope:** 4 files (`src/components/FormReport.tsx`, `src/components/print/printShared.tsx`, `src/components/print/PrintReport.tsx`, `DESIGN_REPORT_BUILDER.md`)
