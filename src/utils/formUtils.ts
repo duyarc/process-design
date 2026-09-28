@@ -642,8 +642,29 @@ export function formatOptionDisplay(val: string, options?: { label: string; valu
     const label = rawLabel.endsWith(':') ? rawLabel : `${rawLabel}:`;
     return customText ? `${label} ${customText}` : rawLabel;
   }
-  const matched = options?.find(o => o.value === val || o.label === val);
+  const clean = val.trim();
+  const matched = options?.find(o =>
+    o.value === clean ||
+    o.label === clean ||
+    (o.value && o.value.toLowerCase() === clean.toLowerCase()) ||
+    (o.label && o.label.toLowerCase() === clean.toLowerCase())
+  );
   return matched ? matched.label : val;
+}
+
+/**
+ * Định dạng hiển thị cho các trường lựa chọn có thể chứa nhiều giá trị (phân tách bởi dấu phẩy).
+ * Tự động ánh xạ từng giá trị thô/mã ID thành nhãn hiển thị tương ứng.
+ */
+export function formatMultiOptionDisplay(
+  val: string,
+  options?: { label: string; value: string; isOther?: boolean }[]
+): string {
+  if (!val) return '';
+  const parts = val.split(',').map(s => s.trim()).filter(Boolean);
+  if (parts.length === 0) return '';
+  if (parts.length === 1) return formatOptionDisplay(parts[0], options);
+  return parts.map(part => formatOptionDisplay(part, options)).join(', ');
 }
 
 /**

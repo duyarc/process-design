@@ -40,6 +40,34 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-28 — Report Builder: Chuẩn hóa Render Engine & Kiểu In ấn Khối INFO_GRID cho `PrintReport.tsx`
+
+**Scope:** 3 files (`src/components/print/PrintReport.tsx`, `src/utils/formUtils.ts`, `DESIGN_REPORT_BUILDER.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | ~13 min |
+| Thời gian lập plan (Request → Proceed) | ~4.7 min |
+| Thời gian thực thi (Proceed → Push) | ~8.2 min |
+| Số file nguồn chỉnh sửa | 2 (`formUtils.ts`, `PrintReport.tsx`) |
+| Lượt edit sửa lỗi (rework) | 1 (khôi phục `operatorText`/`supervisorText` bị ghi đè khi chèn `renderReportField`) |
+| Số lần build | 3 (`tsc --noEmit` pass, `npm run build` 8.53s pass) |
+| Lần build cuối thành công? | Có (100% pass) |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- **Khắc phục Triệt để Lộ ID & Cờ Logic Thô:**
+  - `field.type === 'select'`: Tự động gọi `formatOptionDisplay(val, field.options)` để ánh xạ mã `OPT_...` thành nhãn tiếng Việt (*Cá*).
+  - `field.type === 'checkbox' | 'radio'`: Render ô kiểm trực quan `[✓]` và `[ ]` (hoặc `(✓)` cho radio) kèm nhãn tiếng Việt, không còn in chuỗi thô `PASS,FAIL`. Hỗ trợ cả `OPTION_C` và `OPTION_A`.
+  - Cơ chế so khớp kép `isOptionSelected(val, opt.value) || isOptionSelected(val, opt.label)` đảm bảo tương thích mọi kiểu lưu trữ.
+- **Tái cấu trúc Bố cục In ấn Trang nhã:**
+  - Loại bỏ hoàn toàn `justify-content: space-between` kéo dãn nhãn và giá trị về 2 mép giấy.
+  - Sử dụng khoảng cách tự nhiên (`gap: 8px`) và gạch chân chấm mờ chân chữ, đồng bộ 100% phong cách với `PrintFilledForm` và `PrintScoring`.
+  - Hỗ trợ đầy đủ `colSpan` và `rowSpan` trong CSS Grid.
+
+---
+
 ### 2026-09-28 — Report Builder: Chuẩn hóa `PrintReport.tsx` Tái sử dụng Tài nguyên In Dùng chung (`printShared.tsx`)
 
 **Scope:** 4 files (`src/components/print/PrintReport.tsx`, `src/components/print/printShared.tsx`, `DESIGN_REPORT_BUILDER.md`, `AGENTS.md`)
