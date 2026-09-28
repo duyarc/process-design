@@ -1,7 +1,16 @@
 import React from 'react';
-import type { FormTemplateISO, LayoutBlockISO, ReportBlockConfig } from '../../types';
+import type { FormTemplateISO, LayoutBlockISO, ReportBlockConfig, FormFieldISO } from '../../types';
 import { formatFormVersion } from '../../types';
-import { getEffectiveTitleFormat } from '../../utils/formUtils';
+import {
+  getEffectiveTitleFormat,
+  sanitizeLabel,
+  getAutoCheckboxLayoutMode,
+  hasLongOptions,
+  isOptionSelected,
+  isOtherValue,
+  extractOtherText,
+  formatOptionDisplay
+} from '../../utils/formUtils';
 import { renderFormattedText } from '../../utils/textFormatter';
 
 /**
@@ -143,7 +152,7 @@ export function PrintTitleBlock({
 }: {
   block: LayoutBlockISO | ReportBlockConfig | any;
   logoUrl: string;
-  onImgSettled: () => void;
+  onImgSettled?: () => void;
   dateValueNode?: React.ReactNode;
 }) {
   const defaultDateBlank = (
@@ -342,6 +351,153 @@ export function PrintPageFooter({ template, leftLabel }: { template: FormTemplat
     <div className="print-footer">
       <span>{resolvedLeft}</span>
       <span>{resolvedRight}</span>
+    </div>
+  );
+}
+
+/**
+ * Shared Type-Aware Field Renderer for INFO_GRID blocks.
+ * Used by both PrintReport (PDF/Print) and FormReport (Screen View) ensuring 100% WYSIWYG consistency.
+ */
+export function renderReportField(
+  fid: string,
+  block: any,
+  allFormFields: FormFieldISO[],
+  getFieldValue: (id: string) => string
+): React.ReactNode {
+  const field = allFormFields.find(f => f.id === fid);
+  const override = block.ruleOverrides?.[fid];
+  const isLabelHidden = !!override?.hideLabel;
+  const displayLabel = override?.customLabel !== undefined
+    ? override.customLabel
+    : (field?.checkItem || fid);
+  const cleanLabel = sanitizeLabel(displayLabel);
+  const val = getFieldValue(fid);
+
+  const parsedRSpan = field?.type === 'subtable' ? undefined : (field?.rowSpan ? Number(field.rowSpan) : undefined);
+  const rSpan = parsedRSpan && !isNaN(parsedRSpan) && parsedRSpan > 1 ? parsedRSpan : undefined;
+  const cSpan = field?.type === 'subtable' ? -1 : (field?.colSpan ? Number(field.colSpan) : undefined);
+  const gridItemStyle: React.CSSProperties = {
+    gridRow: rSpan ? `span ${rSpan}` : undefined,
+    gridColumn: cSpan && cSpan > 1 ? `span ${cSpan}` : cSpan === -1 ? '1 / -1' : undefined,
+    alignSelf: field?.type === 'photo' ? 'stretch' : 'start',
+  };
+
+  if (field?.type === 'checkbox' || field?.type === 'radio') {
+    const options = field.options ?? [{ label: 'Có', value: 'YES' }, { label: 'Không', value: 'NO' }];
+    const layoutMode = getAutoCheckboxLayoutMode(field, block.columns || 2);
+    const isLongOpt = hasLongOptions(field);
+    const isOptionC = layoutMode === 'OPTION_C';
+
+    return (
+      <div key={fid} style={{
+        ...gridItemStyle,
+        display: isOptionC ? 'flex' : 'grid',
+        flexDirection: isOptionC ? 'column' : undefined,
+        gridTemplateColumns: !isOptionC ? ((block.columns || 2) === 1 ? 'auto 1fr' : '35% 65%') : undefined,
+        gap: isOptionC ? '4px' : '8px 20px',
+        alignItems: isOptionC ? undefined : 'center',
+        minHeight: 'var(--pw-line-h)',
+        fontSize: '0.82rem'
+      }}>
+        {!isLabelHidden && cleanLabel && (
+          <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', lineHeight: 1.4, whiteSpace: !isOptionC && (block.columns || 2) === 1 ? 'nowrap' : 'normal' }}>
+            {renderFormattedText(cleanLabel)}
+          </span>
+        )}
+        <div style={{
+          display: 'flex',
+          flexDirection: isOptionC && isLongOpt ? 'column' : 'row',
+          flexWrap: isOptionC && isLongOpt ? 'nowrap' : 'wrap',
+          gap: isOptionC ? (isLongOpt ? '4px' : '4px 20px') : '4px 20px',
+          paddingLeft: isOptionC ? (isLabelHidden ? '0' : '1.25rem') : '0',
+          alignItems: isOptionC && isLongOpt ? 'flex-start' : 'center',
+          maxWidth: '100%'
+        }}>
+          {options.map((opt: any) => {
+            const selected = isOptionSelected(val, opt.value, field.type as 'radio' | 'checkbox') ||
+                             isOptionSelected(val, opt.label, field.type as 'radio' | 'checkbox');
+            const isOther = opt.isOther || opt.value === '__other__';
+            const otherText = isOther && selected ? extractOtherText(val) : '';
+            return (
+              <span key={opt.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.8rem', whiteSpace: 'normal', wordBreak: 'break-word', maxWidth: '100%' }}>
+                <span style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '13px',
+                  height: '13px',
+                  border: '1.2px solid #000000',
+                  background: '#ffffff',
+                  borderRadius: field.type === 'radio' ? '50%' : '2px',
+                  flexShrink: 0,
+                  color: '#000000',
+                  fontSize: '9px',
+                  fontWeight: 'bold',
+                  lineHeight: 1,
+                  textAlign: 'center',
+                  boxSizing: 'border-box'
+                }}>
+                  {selected ? '✓' : ''}
+                </span>
+                <span style={{ lineHeight: '1.3' }}>
+                  {opt.label}
+                  {isOther && selected && otherText && (
+                    <span style={{ fontWeight: 600, textDecoration: 'underline', marginLeft: '4px' }}>
+                      {opt.label.trim().endsWith(':') ? otherText : `: ${otherText}`}
+                    </span>
+                  )}
+                </span>
+              </span>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  if (field?.type === 'select') {
+    const displayVal = formatOptionDisplay(val, field.options);
+    return (
+      <div key={fid} style={{ ...gridItemStyle, display: 'flex', alignItems: 'center', minHeight: 'var(--pw-line-h)', gap: '8px', fontSize: '0.85rem' }}>
+        {!isLabelHidden && cleanLabel && (
+          <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap', lineHeight: 1.4 }}>
+            {renderFormattedText(cleanLabel)}:
+          </span>
+        )}
+        <div style={{ flex: 1, borderBottom: '1px dotted #cbd5e1', minHeight: '16px', fontWeight: 600, color: '#0f172a' }}>
+          {displayVal && displayVal !== '—' ? renderFormattedText(displayVal) : '\u00A0'}
+        </div>
+      </div>
+    );
+  }
+
+  if (field?.type === 'date' || field?.type === 'time') {
+    return (
+      <div key={fid} style={{ ...gridItemStyle, display: 'flex', alignItems: 'center', minHeight: 'var(--pw-line-h)', gap: '8px', fontSize: '0.85rem' }}>
+        {!isLabelHidden && cleanLabel && (
+          <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap', lineHeight: 1.4 }}>
+            {renderFormattedText(cleanLabel)}:
+          </span>
+        )}
+        <span style={{ fontWeight: 600, color: '#0f172a', minWidth: field.type === 'time' ? '60px' : '80px', borderBottom: '1px dotted #cbd5e1' }}>
+          {val && val !== '—' ? val : '\u00A0'}
+        </span>
+      </div>
+    );
+  }
+
+  const displayVal = isOtherValue(val) ? formatOptionDisplay(val, field?.options) : val;
+  return (
+    <div key={fid} style={{ ...gridItemStyle, display: 'flex', alignItems: 'center', minHeight: 'var(--pw-line-h)', gap: '8px', fontSize: '0.85rem' }}>
+      {!isLabelHidden && cleanLabel && (
+        <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap', lineHeight: 1.4 }}>
+          {renderFormattedText(cleanLabel)}:
+        </span>
+      )}
+      <div style={{ flex: 1, borderBottom: '1px dotted #cbd5e1', minHeight: '16px', fontWeight: 600, color: '#0f172a' }}>
+        {displayVal && displayVal !== '—' ? renderFormattedText(displayVal) : '\u00A0'}
+      </div>
     </div>
   );
 }

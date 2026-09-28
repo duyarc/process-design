@@ -7,17 +7,7 @@ import type {
   FormFieldISO
 } from '../../types';
 import { computeRecordReport } from '../../utils/reportCompute';
-import {
-  getInfoGridTemplateColumns,
-  to5SFileName,
-  sanitizeLabel,
-  getAutoCheckboxLayoutMode,
-  hasLongOptions,
-  isOptionSelected,
-  isOtherValue,
-  extractOtherText,
-  formatOptionDisplay
-} from '../../utils/formUtils';
+import { getInfoGridTemplateColumns, to5SFileName } from '../../utils/formUtils';
 import { renderFormattedText } from '../../utils/textFormatter';
 import { extractAllFormFields } from '../../utils/tableFieldExtractor';
 import { exportFillablePdfFromDOM } from '../../utils/pdfFormExporter';
@@ -29,7 +19,8 @@ import {
   PrintDocumentStyles,
   PrintTitleBlock,
   PrintSectionHeader,
-  PrintPageFooter
+  PrintPageFooter,
+  renderReportField
 } from './printShared';
 
 interface PrintReportProps {
@@ -138,144 +129,6 @@ export const PrintReport: React.FC<PrintReportProps> = ({
   const submittedAtText = (submission as any)?.submittedAt || (submission as any)?.submitted_at
     ? new Date((submission as any).submittedAt || (submission as any)?.submitted_at).toLocaleDateString('vi-VN')
     : '—';
-
-  const renderReportField = (fid: string, block: any) => {
-    const field = allFormFields.find(f => f.id === fid);
-    const override = block.ruleOverrides?.[fid];
-    const isLabelHidden = !!override?.hideLabel;
-    const displayLabel = override?.customLabel !== undefined
-      ? override.customLabel
-      : (field?.checkItem || fid);
-    const cleanLabel = sanitizeLabel(displayLabel);
-    const val = getFieldValue(fid);
-
-    const parsedRSpan = field?.type === 'subtable' ? undefined : (field?.rowSpan ? Number(field.rowSpan) : undefined);
-    const rSpan = parsedRSpan && !isNaN(parsedRSpan) && parsedRSpan > 1 ? parsedRSpan : undefined;
-    const cSpan = field?.type === 'subtable' ? -1 : (field?.colSpan ? Number(field.colSpan) : undefined);
-    const gridItemStyle: React.CSSProperties = {
-      gridRow: rSpan ? `span ${rSpan}` : undefined,
-      gridColumn: cSpan && cSpan > 1 ? `span ${cSpan}` : cSpan === -1 ? '1 / -1' : undefined,
-      alignSelf: field?.type === 'photo' ? 'stretch' : 'start',
-    };
-
-    if (field?.type === 'checkbox' || field?.type === 'radio') {
-      const options = field.options ?? [{ label: 'Có', value: 'YES' }, { label: 'Không', value: 'NO' }];
-      const layoutMode = getAutoCheckboxLayoutMode(field, block.columns || 2);
-      const isLongOpt = hasLongOptions(field);
-      const isOptionC = layoutMode === 'OPTION_C';
-
-      return (
-        <div key={fid} style={{
-          ...gridItemStyle,
-          display: isOptionC ? 'flex' : 'grid',
-          flexDirection: isOptionC ? 'column' : undefined,
-          gridTemplateColumns: !isOptionC ? ((block.columns || 2) === 1 ? 'auto 1fr' : '35% 65%') : undefined,
-          gap: isOptionC ? '4px' : '8px 20px',
-          alignItems: isOptionC ? undefined : 'center',
-          minHeight: 'var(--pw-line-h)',
-          fontSize: '0.82rem'
-        }}>
-          {!isLabelHidden && cleanLabel && (
-            <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', lineHeight: 1.4, whiteSpace: !isOptionC && (block.columns || 2) === 1 ? 'nowrap' : 'normal' }}>
-              {renderFormattedText(cleanLabel)}
-            </span>
-          )}
-          <div style={{
-            display: 'flex',
-            flexDirection: isOptionC && isLongOpt ? 'column' : 'row',
-            flexWrap: isOptionC && isLongOpt ? 'nowrap' : 'wrap',
-            gap: isOptionC ? (isLongOpt ? '4px' : '4px 20px') : '4px 20px',
-            paddingLeft: isOptionC ? (isLabelHidden ? '0' : '1.25rem') : '0',
-            alignItems: isOptionC && isLongOpt ? 'flex-start' : 'center',
-            maxWidth: '100%'
-          }}>
-            {options.map((opt: any) => {
-              const selected = isOptionSelected(val, opt.value, field.type as 'radio' | 'checkbox') ||
-                               isOptionSelected(val, opt.label, field.type as 'radio' | 'checkbox');
-              const isOther = opt.isOther || opt.value === '__other__';
-              const otherText = isOther && selected ? extractOtherText(val) : '';
-              return (
-                <span key={opt.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.8rem', whiteSpace: 'normal', wordBreak: 'break-word', maxWidth: '100%' }}>
-                  <span style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: '13px',
-                    height: '13px',
-                    border: '1.2px solid #000000',
-                    background: '#ffffff',
-                    borderRadius: field.type === 'radio' ? '50%' : '2px',
-                    flexShrink: 0,
-                    color: '#000000',
-                    fontSize: '9px',
-                    fontWeight: 'bold',
-                    lineHeight: 1,
-                    textAlign: 'center',
-                    boxSizing: 'border-box'
-                  }}>
-                    {selected ? '✓' : ''}
-                  </span>
-                  <span style={{ lineHeight: '1.3' }}>
-                    {opt.label}
-                    {isOther && selected && otherText && (
-                      <span style={{ fontWeight: 600, textDecoration: 'underline', marginLeft: '4px' }}>
-                        {opt.label.trim().endsWith(':') ? otherText : `: ${otherText}`}
-                      </span>
-                    )}
-                  </span>
-                </span>
-              );
-            })}
-          </div>
-        </div>
-      );
-    }
-
-    if (field?.type === 'select') {
-      const displayVal = formatOptionDisplay(val, field.options);
-      return (
-        <div key={fid} style={{ ...gridItemStyle, display: 'flex', alignItems: 'center', minHeight: 'var(--pw-line-h)', gap: '8px', fontSize: '0.85rem' }}>
-          {!isLabelHidden && cleanLabel && (
-            <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap', lineHeight: 1.4 }}>
-              {renderFormattedText(cleanLabel)}:
-            </span>
-          )}
-          <div style={{ flex: 1, borderBottom: '1px dotted #cbd5e1', minHeight: '16px', fontWeight: 600, color: '#0f172a' }}>
-            {displayVal && displayVal !== '—' ? renderFormattedText(displayVal) : '\u00A0'}
-          </div>
-        </div>
-      );
-    }
-
-    if (field?.type === 'date' || field?.type === 'time') {
-      return (
-        <div key={fid} style={{ ...gridItemStyle, display: 'flex', alignItems: 'center', minHeight: 'var(--pw-line-h)', gap: '8px', fontSize: '0.85rem' }}>
-          {!isLabelHidden && cleanLabel && (
-            <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap', lineHeight: 1.4 }}>
-              {renderFormattedText(cleanLabel)}:
-            </span>
-          )}
-          <span style={{ fontWeight: 600, color: '#0f172a', minWidth: field.type === 'time' ? '60px' : '80px', borderBottom: '1px dotted #cbd5e1' }}>
-            {val && val !== '—' ? val : '\u00A0'}
-          </span>
-        </div>
-      );
-    }
-
-    const displayVal = isOtherValue(val) ? formatOptionDisplay(val, field?.options) : val;
-    return (
-      <div key={fid} style={{ ...gridItemStyle, display: 'flex', alignItems: 'center', minHeight: 'var(--pw-line-h)', gap: '8px', fontSize: '0.85rem' }}>
-        {!isLabelHidden && cleanLabel && (
-          <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap', lineHeight: 1.4 }}>
-            {renderFormattedText(cleanLabel)}:
-          </span>
-        )}
-        <div style={{ flex: 1, borderBottom: '1px dotted #cbd5e1', minHeight: '16px', fontWeight: 600, color: '#0f172a' }}>
-          {displayVal && displayVal !== '—' ? renderFormattedText(displayVal) : '\u00A0'}
-        </div>
-      </div>
-    );
-  };
 
   const operatorText = (submission as any)?.operatorId || (submission as any)?.operator_id || 'Người vận hành';
   const supervisorText = (submission as any)?.supervisorSignoff?.signedBy || (submission as any)?.supervisor_signoff?.supervisor_name || '(Chưa ký duyệt)';
@@ -388,7 +241,7 @@ export const PrintReport: React.FC<PrintReportProps> = ({
                           rowGap: '6px',
                           fontSize: 'var(--pw-font-body)'
                         }}>
-                          {(block.boundFieldIds || []).map(fid => renderReportField(fid, block))}
+                          {(block.boundFieldIds || []).map(fid => renderReportField(fid, block, allFormFields, getFieldValue))}
                           {(block.chartItems || []).map(chart => (
                             chart.chartType === 'RADAR' ? (
                               <RadarChartBlock key={chart.id} chart={chart} />
@@ -462,18 +315,27 @@ export const PrintReport: React.FC<PrintReportProps> = ({
 
                   {/* 5. SIGN Block */}
                   {block.type === 'SIGN' && (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', border: '1px solid #000', padding: '10px', textAlign: 'center', marginTop: '10px' }}>
-                      <div>
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(2, 1fr)',
+                      gap: '24px',
+                      padding: '12px 0',
+                      textAlign: 'center',
+                      marginTop: '16px',
+                      pageBreakInside: 'avoid',
+                      breakInside: 'avoid'
+                    }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                         <div style={{ fontSize: 'var(--pw-font-sub)', fontWeight: 'var(--pw-weight-heavy)', textTransform: 'uppercase' }}>NGƯỜI KIỂM TRA</div>
-                        <div style={{ fontSize: 'var(--pw-font-xs)', color: '#64748b', marginBottom: '28px' }}>(Ký và ghi rõ họ tên)</div>
-                        <div style={{ fontSize: 'var(--pw-font-body)', fontWeight: 'var(--pw-weight-heavy)', borderTop: '1px dotted #94a3b8', paddingTop: '4px' }}>
+                        <div style={{ fontSize: 'var(--pw-font-xs)', fontStyle: 'italic', color: '#64748b', marginBottom: '32px' }}>(Ký và ghi rõ họ tên)</div>
+                        <div style={{ fontSize: 'var(--pw-font-body)', fontWeight: 'var(--pw-weight-heavy)', minWidth: '160px', borderTop: '1px dotted #94a3b8', paddingTop: '4px' }}>
                           {operatorText}
                         </div>
                       </div>
-                      <div>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                         <div style={{ fontSize: 'var(--pw-font-sub)', fontWeight: 'var(--pw-weight-heavy)', textTransform: 'uppercase' }}>NGƯỜI THẨM TRA (QA/QC)</div>
-                        <div style={{ fontSize: 'var(--pw-font-xs)', color: '#64748b', marginBottom: '28px' }}>(Ký và ghi rõ họ tên)</div>
-                        <div style={{ fontSize: 'var(--pw-font-body)', fontWeight: 'var(--pw-weight-heavy)', borderTop: '1px dotted #94a3b8', paddingTop: '4px' }}>
+                        <div style={{ fontSize: 'var(--pw-font-xs)', fontStyle: 'italic', color: '#64748b', marginBottom: '32px' }}>(Ký và ghi rõ họ tên)</div>
+                        <div style={{ fontSize: 'var(--pw-font-body)', fontWeight: 'var(--pw-weight-heavy)', minWidth: '160px', borderTop: '1px dotted #94a3b8', paddingTop: '4px' }}>
                           {supervisorText}
                         </div>
                       </div>

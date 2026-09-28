@@ -11,6 +11,12 @@ import { extractAllFormFields } from '../utils/tableFieldExtractor';
 import { renderFormattedText } from '../utils/textFormatter';
 import { getInfoGridTemplateColumns } from '../utils/formUtils';
 import PrintReport from './print/PrintReport';
+import {
+  usePrintLogo,
+  PrintTitleBlock,
+  PrintSectionHeader,
+  renderReportField
+} from './print/printShared';
 import { RadarChartBlock } from './report/RadarChartBlock';
 import { BarChartBlock } from './report/BarChartBlock';
 import {
@@ -47,6 +53,9 @@ export const FormReport: React.FC<FormReportProps> = ({
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [showPrintPortal, setShowPrintPortal] = useState<boolean>(false);
+
+  const titleBlock = reportTemplate?.layoutBlocks?.find(b => b.type === 'TITLE');
+  const { logoUrl } = usePrintLogo(titleBlock?.logo);
 
   useEffect(() => {
     if (triggerPrint) {
@@ -224,110 +233,73 @@ export const FormReport: React.FC<FormReportProps> = ({
 
   const operatorText = (submission as any)?.operatorId || (submission as any)?.operator_id || '—';
   const supervisorText = (submission as any)?.supervisorSignoff?.signedBy || (submission as any)?.supervisor_signoff?.supervisor_name || '';
+  const isA5 = (reportTemplate as any)?.pageSize === 'A5';
 
   const reportContent = (
     <div style={{ padding: isEmbedded ? '0.5rem 0 2rem' : '1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
-        
-        {/* KPI Scorecard Cards Summary */}
-        <div style={{ width: '100%', maxWidth: '698px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem', marginBottom: '1rem' }}>
-          <div className="paper-card" style={{ padding: '0.75rem', textAlign: 'center', background: '#ffffff' }}>
-            <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 600 }}>TỔNG HẠNG MỤC</div>
-            <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)', marginTop: '0.2rem' }}>{computedData?.totalEvaluated || 0}</div>
-          </div>
-          <div className="paper-card" style={{ padding: '0.75rem', textAlign: 'center', background: '#ffffff' }}>
-            <div style={{ fontSize: '0.7rem', color: '#15803d', fontWeight: 600 }}>ĐẠT TIÊU CHUẨN</div>
-            <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#15803d', marginTop: '0.2rem' }}>{computedData?.passCount || 0}</div>
-          </div>
-          <div className="paper-card" style={{ padding: '0.75rem', textAlign: 'center', background: '#ffffff' }}>
-            <div style={{ fontSize: '0.7rem', color: '#b91c1c', fontWeight: 600 }}>LỆCH CHUẨN (NG)</div>
-            <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#b91c1c', marginTop: '0.2rem' }}>{computedData?.failCount || 0}</div>
-          </div>
-          <div className="paper-card" style={{ padding: '0.75rem', textAlign: 'center', background: computedData?.overallStatus === 'PASS' ? '#f0fdf4' : '#fef2f2', border: `1px solid ${computedData?.overallStatus === 'PASS' ? '#bbf7d0' : '#fecaca'}` }}>
-            <div style={{ fontSize: '0.7rem', color: computedData?.overallStatus === 'PASS' ? '#15803d' : '#b91c1c', fontWeight: 700 }}>ĐÁNH GIÁ CHUNG</div>
-            <div style={{ fontSize: '1.1rem', fontWeight: 800, color: computedData?.overallStatus === 'PASS' ? '#15803d' : '#b91c1c', marginTop: '0.2rem' }}>
-              {computedData?.overallStatus === 'PASS' ? '✓ ĐẠT (PASS)' : '✗ KHÔNG ĐẠT'}
-            </div>
-          </div>
-        </div>
+      {/* A4/A5 Printable Paper Card Preview */}
+      <div
+        className="paper-card print-doc"
+        style={{
+          width: '100%',
+          maxWidth: isA5 ? '520px' : '698px',
+          height: 'auto',
+          flexShrink: 0,
+          overflow: 'visible',
+          background: '#ffffff',
+          padding: '1.75rem',
+          boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)',
+          borderRadius: '4px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.85rem',
+          fontFamily: "'Be Vietnam Pro', system-ui, -apple-system, sans-serif",
+          color: '#000000'
+        }}
+      >
+        {reportTemplate.layoutBlocks.filter(b => !b.hiddenInReport).map((block) => (
+          <div key={block.id} style={{ marginBottom: '8px' }}>
+            
+            {/* 1. TITLE */}
+            {block.type === 'TITLE' && (
+              <PrintTitleBlock
+                block={{
+                  ...block,
+                  title: block.title || reportTemplate.reportTitle || 'BÁO CÁO ĐÁNH GIÁ'
+                }}
+                logoUrl={logoUrl}
+                dateValueNode={
+                  <span style={{ marginLeft: '6px', color: '#000000', letterSpacing: submittedAtText !== '—' ? '0px' : '2px', fontWeight: submittedAtText !== '—' ? 'var(--pw-weight-medium)' : 'var(--pw-weight-regular)' }}>
+                    {submittedAtText !== '—' ? submittedAtText : '\u00a0\u00a0\u00a0/\u00a0\u00a0\u00a0/\u00a0\u00a0\u00a0\u00a0'}
+                  </span>
+                }
+              />
+            )}
 
-        {/* A4 Printable Paper Card Preview */}
-        <div
-          className="paper-card"
-          style={{
-            width: '100%',
-            maxWidth: '698px',
-            height: 'auto',
-            flexShrink: 0,
-            overflow: 'visible',
-            background: '#ffffff',
-            padding: '1.75rem',
-            boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)',
-            borderRadius: '4px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '1rem'
-          }}
-        >
-          {reportTemplate.layoutBlocks.filter(b => !b.hiddenInReport).map((block) => (
-            <div key={block.id}>
-              
-              {/* TITLE */}
-              {block.type === 'TITLE' && (
-                <div style={{ border: '1px solid #000', padding: '0.75rem', textAlign: 'center' }}>
-                  <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>{reportTemplate.reportId}</div>
-                  <h3 style={{ margin: '0.25rem 0', fontSize: '1.15rem', fontWeight: 700 }}>{block.title || reportTemplate.reportTitle}</h3>
-                  <div style={{ display: 'flex', justifyContent: 'space-around', fontSize: '0.75rem', marginTop: '0.5rem', color: '#475569', borderTop: '1px solid #000', paddingTop: '0.4rem' }}>
-                    <span>Biểu mẫu: <strong>{reportTemplate.linkedFormId}</strong></span>
-                    <span>Ngày lập: <strong>{submittedAtText}</strong></span>
-                    <span>Người kiểm tra: <strong>{operatorText}</strong></span>
-                  </div>
-                </div>
-              )}
+            {/* 2. SECTION_LABEL */}
+            {block.type === 'SECTION_LABEL' && (
+              <PrintSectionHeader block={block} showDescription={true} marginBottom="6px" />
+            )}
 
-              {/* SECTION_LABEL */}
-              {block.type === 'SECTION_LABEL' && (() => {
-                const titleFmt = block.titleFormat || 'H1';
-                if (titleFmt === 'NONE') return null;
-
-                return (
-                  <div style={{ marginBottom: '8px' }}>
-                    {titleFmt === 'H1' ? (
-                      <h2 style={{ margin: '0 0 4px 0', fontSize: '1.1rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: '#0f172a' }}>
-                        {renderFormattedText(block.title)}
-                      </h2>
-                    ) : titleFmt === 'H2' ? (
-                      <div style={{ padding: '2px 0 2px 8px', background: 'transparent', borderLeft: '3px solid var(--primary)', fontWeight: 700, fontSize: '0.92rem', color: '#0f172a', marginBottom: '4px' }}>
-                        {renderFormattedText(block.title)}
-                      </div>
-                    ) : (
-                      <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
-                        {renderFormattedText(block.title)}
-                      </div>
-                    )}
-                    {block.description && (
-                      <p style={{ margin: '2px 0 0 0', fontSize: '0.82rem', color: 'var(--text-secondary)', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
-                        {renderFormattedText(block.description)}
-                      </p>
-                    )}
-                  </div>
-                );
-              })()}
-
-              {/* INFO_GRID */}
-              {block.type === 'INFO_GRID' && (
-                <div>
-                  {block.title && <div style={{ fontWeight: 600, fontSize: '0.8rem', marginBottom: '0.35rem' }}>{block.title}</div>}
-                  <div style={{ display: 'grid', gridTemplateColumns: getInfoGridTemplateColumns(block as any), gap: '0.5rem', border: '1px solid #000', padding: '0.5rem' }}>
-                    {(block.boundFieldIds || []).map(fid => {
-                      const field = allFormFields.find(f => f.id === fid);
-                      const val = getFieldValue(fid);
-                      return (
-                        <div key={fid} style={{ fontSize: '0.75rem' }}>
-                          <span style={{ color: '#64748b' }}>{field?.checkItem || fid}: </span>
-                          <strong>{val}</strong>
-                        </div>
-                      );
-                    })}
+            {/* 3. INFO_GRID */}
+            {block.type === 'INFO_GRID' && (() => {
+              const isLegacyDefaultInfoGridTitle =
+                block.title === 'Thông tin chung' &&
+                (!block.boundFieldIds || block.boundFieldIds.length === 0);
+              const effectiveBlock = isLegacyDefaultInfoGridTitle
+                ? { ...block, titleFormat: 'NONE' as const }
+                : block;
+              return (
+                <div style={{ marginBottom: '8px' }}>
+                  <PrintSectionHeader block={effectiveBlock} marginBottom="6px" />
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: getInfoGridTemplateColumns(block as any),
+                    columnGap: '12px',
+                    rowGap: '6px',
+                    fontSize: 'var(--pw-font-body)'
+                  }}>
+                    {(block.boundFieldIds || []).map(fid => renderReportField(fid, block, allFormFields, getFieldValue))}
                     {(block.chartItems || []).map(chart => (
                       chart.chartType === 'RADAR' ? (
                         <RadarChartBlock key={chart.id} chart={chart} />
@@ -337,52 +309,64 @@ export const FormReport: React.FC<FormReportProps> = ({
                     ))}
                   </div>
                 </div>
-              )}
+              );
+            })()}
 
-              {/* TABLE: Spec Evaluation */}
-              {block.type === 'TABLE' && (
-                <div>
-                  {block.title && <div style={{ fontWeight: 600, fontSize: '0.8rem', marginBottom: '0.35rem' }}>{block.title}</div>}
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.75rem', border: '1px solid #000' }}>
-                    <thead>
-                      <tr style={{ background: '#f8fafc', borderBottom: '1px solid #000' }}>
-                        <th style={{ border: '1px solid #000', padding: '4px 6px', textAlign: 'left', width: '30%' }}>Hạng mục kiểm tra</th>
-                        <th style={{ border: '1px solid #000', padding: '4px 6px', textAlign: 'center', width: '25%' }}>Quy cách / Tiêu chuẩn</th>
-                        <th style={{ border: '1px solid #000', padding: '4px 6px', textAlign: 'center', width: '20%' }}>Kết quả thực tế</th>
-                        <th style={{ border: '1px solid #000', padding: '4px 6px', textAlign: 'center', width: '25%' }}>Đánh giá</th>
-                      </tr>
-                    </thead>
+            {/* 4. TABLE: Spec Evaluation */}
+            {block.type === 'TABLE' && (() => {
+              const borderStyle = block.borderStyle || 'grid';
+              const tableBorder = borderStyle === 'grid' ? '1px solid #000' : 'none';
+              const cellBorder = borderStyle === 'grid' ? '1px solid #000' : borderStyle === 'horizontal_only' ? '1px solid #cbd5e1' : 'none';
+
+              return (
+                <div style={{ marginBottom: '8px' }}>
+                  <PrintSectionHeader block={block} marginBottom="6px" />
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--pw-font-body)', border: tableBorder }}>
+                    {!block.hideHeader && (
+                      <thead>
+                        <tr style={{ background: '#f8fafc', borderBottom: '1px solid #000' }}>
+                          <th style={{ border: cellBorder, padding: '4px 6px', textAlign: 'center', width: '30px', fontWeight: 'var(--pw-weight-heavy)' }}>STT</th>
+                          <th style={{ border: cellBorder, padding: '4px 6px', textAlign: 'left', fontWeight: 'var(--pw-weight-heavy)' }}>Hạng mục kiểm tra / Tiêu chí</th>
+                          <th style={{ border: cellBorder, padding: '4px 6px', textAlign: 'center', width: '25%', fontWeight: 'var(--pw-weight-heavy)' }}>Quy cách / Tiêu chuẩn</th>
+                          <th style={{ border: cellBorder, padding: '4px 6px', textAlign: 'center', width: '20%', fontWeight: 'var(--pw-weight-heavy)' }}>Kết quả thực tế</th>
+                          <th style={{ border: cellBorder, padding: '4px 6px', textAlign: 'center', width: '18%', fontWeight: 'var(--pw-weight-heavy)' }}>Đánh giá</th>
+                        </tr>
+                      </thead>
+                    )}
                     <tbody>
-                      {(block.boundFieldIds || []).map(fid => {
+                      {(block.boundFieldIds || []).map((fid, rIdx) => {
                         const field = allFormFields.find(f => f.id === fid);
                         const evalRes = computedData?.evaluations?.[fid];
                         const override = block.ruleOverrides?.[fid];
                         const min = override?.customMinSpec !== undefined ? override.customMinSpec : field?.minSpec;
                         const max = override?.customMaxSpec !== undefined ? override.customMaxSpec : field?.maxSpec;
 
-                        let specText = field?.targetRange || '—';
+                        let specText = override?.customTargetRange || field?.targetRange || '—';
                         if (min !== undefined && max !== undefined) specText = `${min} ~ ${max} ${field?.unit || ''}`;
                         else if (min !== undefined) specText = `≥ ${min} ${field?.unit || ''}`;
                         else if (max !== undefined) specText = `≤ ${max} ${field?.unit || ''}`;
 
                         const rawVal = getFieldValue(fid);
-                        const status = evalRes?.status || 'PASS';
+                        const isPass = evalRes?.status === 'PASS';
+                        const isFail = evalRes?.status === 'FAIL';
+                        const displayLabel = override?.customLabel || field?.checkItem || fid;
 
                         return (
-                          <tr key={fid} style={{ borderBottom: '1px solid #000' }}>
-                            <td style={{ border: '1px solid #000', padding: '4px 6px' }}>{field?.checkItem || fid}</td>
-                            <td style={{ border: '1px solid #000', padding: '4px 6px', textAlign: 'center' }}>{specText}</td>
-                            <td style={{ border: '1px solid #000', padding: '4px 6px', textAlign: 'center', fontWeight: 600 }}>{rawVal}</td>
-                            <td style={{ border: '1px solid #000', padding: '4px 6px', textAlign: 'center' }}>
+                          <tr key={fid} style={{ borderBottom: cellBorder }}>
+                            <td style={{ border: cellBorder, padding: '4px 6px', textAlign: 'center', color: '#64748b' }}>{rIdx + 1}</td>
+                            <td style={{ border: cellBorder, padding: '4px 6px', fontWeight: 'var(--pw-weight-medium)' }}>{renderFormattedText(displayLabel)}</td>
+                            <td style={{ border: cellBorder, padding: '4px 6px', textAlign: 'center' }}>{specText}</td>
+                            <td style={{ border: cellBorder, padding: '4px 6px', textAlign: 'center', fontWeight: 'var(--pw-weight-heavy)' }}>{rawVal}</td>
+                            <td style={{ border: cellBorder, padding: '4px 6px', textAlign: 'center', fontWeight: 'var(--pw-weight-heavy)' }}>
                               <span style={{
                                 padding: '1px 6px',
                                 borderRadius: '3px',
                                 fontSize: '0.7rem',
-                                fontWeight: 700,
-                                background: status === 'PASS' ? '#dcfce7' : status === 'FAIL' ? '#fee2e2' : '#f1f5f9',
-                                color: status === 'PASS' ? '#15803d' : status === 'FAIL' ? '#b91c1c' : '#475569'
+                                fontWeight: 'var(--pw-weight-heavy)',
+                                background: isPass ? '#dcfce7' : isFail ? '#fee2e2' : '#f1f5f9',
+                                color: isPass ? '#15803d' : isFail ? '#b91c1c' : '#475569'
                               }}>
-                                {status === 'PASS' ? '✓ ĐẠT (PASS)' : status === 'FAIL' ? '✗ KHÔNG ĐẠT' : '—'}
+                                {isPass ? '✓ ĐẠT' : isFail ? '✗ K.ĐẠT' : '—'}
                               </span>
                             </td>
                           </tr>
@@ -391,30 +375,54 @@ export const FormReport: React.FC<FormReportProps> = ({
                     </tbody>
                   </table>
                 </div>
-              )}
+              );
+            })()}
 
-              {/* SIGN */}
-              {block.type === 'SIGN' && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem', border: '1px solid #000', padding: '0.75rem', textAlign: 'center', marginTop: '0.5rem' }}>
-                  <div>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 600 }}>NGƯỜI KIỂM TRA</div>
-                    <div style={{ height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', color: '#64748b' }}>
-                      {operatorText !== '—' ? `[Đã ký: ${operatorText}]` : '(Ký và ghi rõ họ tên)'}
-                    </div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 600 }}>NGƯỜI THẨM TRA (QA/QC)</div>
-                    <div style={{ height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', color: '#64748b' }}>
-                      {supervisorText ? `[Thẩm tra: ${supervisorText}]` : '(Chưa ký duyệt)'}
-                    </div>
+            {/* 5. SIGN */}
+            {block.type === 'SIGN' && (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, 1fr)',
+                gap: '24px',
+                padding: '12px 0',
+                textAlign: 'center',
+                marginTop: '16px'
+              }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <div style={{ fontSize: 'var(--pw-font-sub)', fontWeight: 'var(--pw-weight-heavy)', textTransform: 'uppercase' }}>NGƯỜI KIỂM TRA</div>
+                  <div style={{ fontSize: 'var(--pw-font-xs)', fontStyle: 'italic', color: '#64748b', marginBottom: '32px' }}>(Ký và ghi rõ họ tên)</div>
+                  <div style={{ fontSize: 'var(--pw-font-body)', fontWeight: 'var(--pw-weight-heavy)', minWidth: '160px', borderTop: '1px dotted #94a3b8', paddingTop: '4px' }}>
+                    {operatorText !== '—' ? operatorText : '\u00a0'}
                   </div>
                 </div>
-              )}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <div style={{ fontSize: 'var(--pw-font-sub)', fontWeight: 'var(--pw-weight-heavy)', textTransform: 'uppercase' }}>NGƯỜI THẨM TRA (QA/QC)</div>
+                  <div style={{ fontSize: 'var(--pw-font-xs)', fontStyle: 'italic', color: '#64748b', marginBottom: '32px' }}>(Ký và ghi rõ họ tên)</div>
+                  <div style={{ fontSize: 'var(--pw-font-body)', fontWeight: 'var(--pw-weight-heavy)', minWidth: '160px', borderTop: '1px dotted #94a3b8', paddingTop: '4px' }}>
+                    {supervisorText || '\u00a0'}
+                  </div>
+                </div>
+              </div>
+            )}
 
-            </div>
-          ))}
+          </div>
+        ))}
+
+        {/* Footer info at paper bottom */}
+        <div style={{
+          marginTop: '1.5rem',
+          paddingTop: '0.75rem',
+          borderTop: '1px solid #e2e8f0',
+          display: 'flex',
+          justifyContent: 'space-between',
+          fontSize: '0.75rem',
+          color: '#64748b'
+        }}>
+          <span>{reportTemplate.reportId}</span>
+          <span>{reportTemplate.version || 'v1.0'} &bull; Biểu mẫu liên kết: {reportTemplate.linkedFormId}</span>
         </div>
       </div>
+    </div>
   );
 
   if (isEmbedded) {
