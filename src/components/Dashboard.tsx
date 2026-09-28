@@ -771,6 +771,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           onBack={onClearFormFilter} 
           layoutMode={layoutMode}
           onOpenReport={onOpenFormReport}
+          onOpenReportBuilder={onOpenReportBuilder}
           onViewingChange={(isViewing) => {
             setIsViewingSubmission(isViewing);
             onViewingSubmissionChange?.(isViewing);

@@ -2507,6 +2507,43 @@ app.post('/api/submissions/batch-lookup', async (req, res) => {
   }
 });
 
+// GET /api/submissions/:id - Retrieve single submission by ID
+app.get('/api/submissions/:id', async (req, res) => {
+  try {
+    if (!dbPool) return res.status(503).json({ error: 'Database not available' });
+    const { id } = req.params;
+    const result = await dbPool.query(
+      `SELECT id, process_id, form_id, form_version, operator_id,
+              status, submitted_at, form_data, media_urls, supervisor_signoff, access_token
+       FROM submissions WHERE id = $1`,
+      [id]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Not found' });
+    const row = result.rows[0];
+    let token = row.access_token;
+    if (!token) {
+      token = generateAccessToken();
+      await dbPool.query(`UPDATE submissions SET access_token = $1 WHERE id = $2`, [token, id]).catch(() => {});
+    }
+    res.json({
+      id: row.id,
+      processId: row.process_id,
+      formId: row.form_id,
+      formVersion: row.form_version,
+      operatorId: row.operator_id,
+      status: row.status,
+      submittedAt: row.submitted_at,
+      formData: typeof row.form_data === 'string' ? JSON.parse(row.form_data) : row.form_data,
+      mediaUrls: typeof row.media_urls === 'string' ? JSON.parse(row.media_urls) : (row.media_urls || []),
+      supervisorSignoff: typeof row.supervisor_signoff === 'string' ? JSON.parse(row.supervisor_signoff) : row.supervisor_signoff,
+      accessToken: token
+    });
+  } catch (err) {
+    console.error('get submission error:', err);
+    res.status(500).json({ error: 'Failed to fetch submission' });
+  }
+});
+
 // GET /api/submissions/view/:id - Public: view submission with access token
 app.get('/api/submissions/view/:id', async (req, res) => {
   try {
@@ -2543,11 +2580,56 @@ app.get('/api/submissions/view/:id', async (req, res) => {
       formData: typeof row.form_data === 'string' ? JSON.parse(row.form_data) : row.form_data,
       mediaUrls: typeof row.media_urls === 'string' ? JSON.parse(row.media_urls) : (row.media_urls || []),
       supervisorSignoff: typeof row.supervisor_signoff === 'string' ? JSON.parse(row.supervisor_signoff) : row.supervisor_signoff,
-      canEdit: row.supervisor_signoff === null
+      canEdit: row.supervisor_signoff === null,
+      accessToken: token
     });
   } catch (err) {
     console.error('view submission error:', err);
     res.status(500).json({ error: 'Failed to fetch submission record.' });
+  }
+});
+
+// GET /api/reports/view/:submissionId - Public: view report data bundle with token
+app.get('/api/reports/view/:submissionId', async (req, res) => {
+  try {
+    if (!dbPool) return res.status(503).json({ error: 'Database not available' });
+    const { submissionId } = req.params;
+    const token = req.query.token;
+    if (!token) return res.status(403).json({ error: 'Access token required' });
+    const subRes = await dbPool.query(
+      `SELECT * FROM submissions WHERE id = $1 AND access_token = $2`,
+      [submissionId, token]
+    );
+    if (subRes.rows.length === 0) return res.status(403).json({ error: 'Invalid token or submission not found' });
+    const subRow = subRes.rows[0];
+    const formRes = await dbPool.query(
+      `SELECT * FROM forms WHERE form_id = $1 OR form_name = $1 ORDER BY updated_at DESC LIMIT 1`,
+      [subRow.form_id]
+    );
+    const repRes = await dbPool.query(
+      `SELECT * FROM report_templates WHERE linked_form_id = $1 ORDER BY (CASE WHEN status = 'ACTIVE' THEN 1 WHEN status = 'DRAFT' THEN 2 ELSE 3 END), updated_at DESC LIMIT 1`,
+      [subRow.form_id]
+    );
+    res.json({
+      submission: {
+        id: subRow.id,
+        processId: subRow.process_id,
+        formId: subRow.form_id,
+        formVersion: subRow.form_version,
+        operatorId: subRow.operator_id,
+        status: subRow.status,
+        submittedAt: subRow.submitted_at,
+        formData: typeof subRow.form_data === 'string' ? JSON.parse(subRow.form_data) : subRow.form_data,
+        mediaUrls: typeof subRow.media_urls === 'string' ? JSON.parse(subRow.media_urls) : (subRow.media_urls || []),
+        supervisorSignoff: typeof subRow.supervisor_signoff === 'string' ? JSON.parse(subRow.supervisor_signoff) : subRow.supervisor_signoff,
+        accessToken: token
+      },
+      formTemplate: formRes.rows.length > 0 ? formRes.rows[0] : null,
+      reportTemplate: repRes.rows.length > 0 ? formatReportRow(repRes.rows[0]) : null
+    });
+  } catch (err) {
+    console.error('view report error:', err);
+    res.status(500).json({ error: 'Failed to fetch report bundle' });
   }
 });
 

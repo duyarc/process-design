@@ -68,6 +68,7 @@ import {
 import { renderFormattedText, stripMarkdownTokens } from '../utils/textFormatter';
 import { useAuth } from '../context/AuthContext';
 import PrintFilledForm from './print/PrintFilledForm';
+import FormReport from './FormReport';
 import { 
   ArrowLeft, 
   CheckCircle2, 
@@ -255,7 +256,6 @@ interface FormFillerProps {
   onBack?: () => void;
   onSubmitSuccess?: (submissionId: string) => void;
   onSubmitSuccessWithToken?: (submissionId: string, token: string) => void;
-  onCopySubmission?: (sub: Submission) => void;
   initialSubmission?: Submission;
   editSubmissionId?: string;
   editToken?: string;
@@ -264,6 +264,8 @@ interface FormFillerProps {
   isPublicGuestMode?: boolean;
   readOnly?: boolean;
   isShortLinkFlow?: boolean;
+  initialSubmissionTab?: 'form' | 'report';
+  onOpenReportBuilder?: (formId: string) => void;
 }
 
 
@@ -273,7 +275,6 @@ function FormFillerInner({
   onBack, 
   onSubmitSuccess,
   onSubmitSuccessWithToken,
-  onCopySubmission,
   initialSubmission, 
   editSubmissionId,
   editToken,
@@ -281,7 +282,9 @@ function FormFillerInner({
   initialEditMode,
   isPublicGuestMode,
   readOnly,
-  isShortLinkFlow
+  isShortLinkFlow,
+  initialSubmissionTab,
+  onOpenReportBuilder
 }: FormFillerProps) {
   const [process, setProcess] = useState<Process | null>(null);
   const [loading, setLoading] = useState(true);
@@ -315,6 +318,9 @@ function FormFillerInner({
   const canAmend = canAdminEdit || Boolean(effectiveEditToken && (canEditSubmission ?? true) && !initialSubmission?.supervisorSignoff);
   const [isEditModeActive, setIsEditModeActive] = useState<boolean>(Boolean(initialEditMode && canAmend));
   const effectiveReadOnly = Boolean(readOnly && !isEditModeActive);
+  const [submissionTab, setSubmissionTab] = useState<'form' | 'report'>(initialSubmissionTab || 'form');
+  const [copiedShareLink, setCopiedShareLink] = useState(false);
+  const [triggerReportPrint, setTriggerReportPrint] = useState(false);
 
   const handleCancelEdit = () => {
     if (initialSubmission && process && rawFormTemplate) {
@@ -385,6 +391,26 @@ function FormFillerInner({
 
   // Smart Public Link State
   const rawFormTemplate = (process?.workflowFormsData?.[formName] || null) as FormTemplateISO | null;
+
+  const currentShareUrl = (() => {
+    if (!initialSubmission) return '';
+    const origin = window.location.origin;
+    const token = effectiveEditToken || '';
+    const rawTitle = rawFormTemplate?.formTitle || formName || initialSubmission.formId;
+    const slug = rawTitle ? rawTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : initialSubmission.formId;
+    const tokenParam = token ? `?token=${encodeURIComponent(token)}` : '';
+    if (submissionTab === 'report') {
+      return `${origin}/f/${slug}/r/${initialSubmission.id}${tokenParam}`;
+    }
+    return `${origin}/f/${slug}/s/${initialSubmission.id}${tokenParam}`;
+  })();
+
+  const handleCopyCurrentLink = () => {
+    if (!currentShareUrl) return;
+    navigator.clipboard.writeText(currentShareUrl);
+    setCopiedShareLink(true);
+    setTimeout(() => setCopiedShareLink(false), 2000);
+  };
 
   useEffect(() => {
     if (isPublicGuestMode && rawFormTemplate?.formId) {
@@ -3134,18 +3160,17 @@ function FormFillerInner({
       {/* Unified Executive Header Toolbar for Submission View / Edit / Fill */}
       {initialSubmission ? (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'nowrap', gap: '0.5rem', width: '100%' }}>
-          {/* Left Context: Back button + Submission ID + Status badge + Submitter info */}
+          {/* Left Context: Back button + Submission ID + Segmented Tab [ Form | Report ] */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'nowrap', flexShrink: 0 }}>
             {onBack && (
               <button
                 type="button"
                 className="btn btn-secondary btn-sm"
                 onClick={isEditModeActive ? handleCancelEdit : onBack}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.25rem 0.5rem' }}
+                style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px', padding: 0 }}
                 title={isEditModeActive ? "Hủy bỏ các thay đổi và quay lại xem" : (isPublicGuestMode ? "Về biểu mẫu" : "Quay lại")}
               >
                 <ArrowLeft size={14} />
-                <span>{isEditModeActive ? 'Hủy' : (isPublicGuestMode ? 'Về biểu mẫu' : 'Back')}</span>
               </button>
             )}
 
@@ -3159,48 +3184,61 @@ function FormFillerInner({
                   Phiếu <code style={{ fontFamily: 'monospace', color: 'var(--primary)' }}>{initialSubmission.id}</code>
                 </span>
 
-                <span
-                  className={`badge ${initialSubmission.status === 'PASS' ? 'badge-success' : 'badge-danger'}`}
-                  style={{ fontSize: '0.65rem', padding: '0.1rem 0.35rem', whiteSpace: 'nowrap' }}
-                >
-                  {initialSubmission.status}
-                </span>
-
-                {initialSubmission.supervisorSignoff && (
-                  <span
+                {/* Segmented Tab [ Form | Report ] */}
+                <div style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  background: '#f0fdfa',
+                  padding: '2px',
+                  borderRadius: '6px',
+                  border: '1px solid #99f6e4',
+                  marginLeft: '0.2rem'
+                }}>
+                  <button
+                    type="button"
+                    onClick={() => setSubmissionTab('form')}
                     style={{
-                      fontSize: '0.68rem',
-                      padding: '0.1rem 0.35rem',
+                      padding: '2px 10px',
+                      fontSize: '0.75rem',
+                      fontWeight: submissionTab === 'form' ? 700 : 500,
+                      color: submissionTab === 'form' ? 'var(--primary)' : '#64748b',
+                      background: submissionTab === 'form' ? '#ffffff' : 'transparent',
+                      border: 'none',
                       borderRadius: '4px',
-                      background: '#ffffff',
-                      border: '1px solid var(--neutral-border)',
-                      color: 'var(--text-secondary)',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '2px',
-                      fontWeight: 500,
-                      whiteSpace: 'nowrap'
+                      boxShadow: submissionTab === 'form' ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s'
                     }}
-                    title={`Đã ký xác nhận bởi ${initialSubmission.supervisorSignoff.signedBy} lúc ${new Date(initialSubmission.supervisorSignoff.signedAt).toLocaleString('vi-VN')}`}
                   >
-                    🔒 Đã ký
-                  </span>
-                )}
-
-                <span 
-                  style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap', maxWidth: '90px', overflow: 'hidden', textOverflow: 'ellipsis' }}
-                  title={`${initialSubmission.operatorId} — ${new Date(initialSubmission.submittedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}, ${new Date(initialSubmission.submittedAt).toLocaleDateString('vi-VN')}`}
-                >
-                  • {initialSubmission.operatorId}
-                </span>
+                    Form
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSubmissionTab('report')}
+                    style={{
+                      padding: '2px 10px',
+                      fontSize: '0.75rem',
+                      fontWeight: submissionTab === 'report' ? 700 : 500,
+                      color: submissionTab === 'report' ? 'var(--primary)' : '#64748b',
+                      background: submissionTab === 'report' ? '#ffffff' : 'transparent',
+                      border: 'none',
+                      borderRadius: '4px',
+                      boxShadow: submissionTab === 'report' ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s'
+                    }}
+                  >
+                    Report
+                  </button>
+                </div>
               </div>
             )}
           </div>
 
-          {/* Right Actions: Focus mode + Print + Copy + Single Edit button (when in View Mode) or Save (when in Edit Mode) */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'nowrap', flexShrink: 0 }}>
-            {/* Focus Mode Switch Toggle */}
-            {sections.length > 1 && (
+          {/* Right Actions: Focus mode + Dynamic Link Box + Print + Edit */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'nowrap', flexShrink: 0 }}>
+            {/* Focus Mode Switch Toggle - Only in Form tab */}
+            {submissionTab === 'form' && sections.length > 1 && (
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', marginRight: '0.15rem' }}>
                 <label
                   onClick={() => setViewMode(prev => prev === 'focus' ? 'all' : 'focus')}
@@ -3244,6 +3282,57 @@ function FormFillerInner({
               </div>
             )}
 
+            {/* Direct Inline Link & Copy Box */}
+            {!isEditModeActive && currentShareUrl && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'stretch',
+                borderRadius: '6px',
+                border: '1px solid var(--neutral-border)',
+                background: '#ffffff',
+                overflow: 'hidden',
+                height: '28px'
+              }}>
+                <input
+                  type="text"
+                  readOnly
+                  value={currentShareUrl}
+                  style={{
+                    width: '180px',
+                    padding: '0 0.45rem',
+                    fontSize: '0.72rem',
+                    border: 'none',
+                    background: 'transparent',
+                    color: '#0f766e',
+                    outline: 'none',
+                    fontFamily: 'monospace'
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={handleCopyCurrentLink}
+                  style={{
+                    padding: '0 0.55rem',
+                    fontSize: '0.72rem',
+                    fontWeight: 600,
+                    border: 'none',
+                    borderLeft: '1px solid var(--neutral-border)',
+                    background: copiedShareLink ? '#dcfce7' : '#f8fafc',
+                    color: copiedShareLink ? '#15803d' : 'var(--text-primary)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.25rem',
+                    transition: 'all 0.15s ease'
+                  }}
+                  title="Sao chép liên kết vào clipboard"
+                >
+                  <Copy size={12} />
+                  <span>{copiedShareLink ? 'Đã chép!' : 'Copy'}</span>
+                </button>
+              </div>
+            )}
+
             {isEditModeActive ? (
               <button
                 type="button"
@@ -3257,47 +3346,49 @@ function FormFillerInner({
               </button>
             ) : (
               <>
-                {/* In bản khai */}
+                {/* In button */}
                 <button 
                   type="button"
                   className="btn btn-secondary btn-sm" 
                   onClick={() => {
-                    if (initialSubmission && formTemplate) {
+                    if (submissionTab === 'report') {
+                      setTriggerReportPrint(true);
+                    } else if (initialSubmission && rawFormTemplate) {
                       setPrintCurrentSubmission(initialSubmission);
                     }
                   }}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.78rem', padding: '0.25rem 0.55rem', whiteSpace: 'nowrap' }}
-                  title="In bản khai"
+                  title={submissionTab === 'report' ? 'In Báo cáo đánh giá' : 'In bản khai'}
                 >
                   <Printer size={13} style={{ color: '#0d9488' }} />
-                  <span>In bản khai</span>
+                  <span>In</span>
                 </button>
 
-                {/* Sao chép phiếu này (nếu có callback onCopySubmission) */}
-                {effectiveReadOnly && onCopySubmission && (
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-sm"
-                    onClick={() => onCopySubmission(initialSubmission)}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.78rem', padding: '0.25rem 0.55rem', whiteSpace: 'nowrap' }}
-                    title="Sao chép thành bản ghi mới"
-                  >
-                    <Copy size={13} />
-                    <span>Sao chép</span>
-                  </button>
-                )}
-
-                {/* DUY NHẤT 1 NÚT CHỈNH SỬA Ở CHẾ ĐỘ VIEW */}
-                {effectiveReadOnly && canAmend && (
-                  <button
-                    type="button"
-                    className="btn btn-primary btn-sm"
-                    onClick={() => setIsEditModeActive(true)}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.78rem', padding: '0.25rem 0.65rem', whiteSpace: 'nowrap' }}
-                  >
-                    <Pencil size={13} />
-                    <span>Chỉnh sửa</span>
-                  </button>
+                {/* Chỉnh sửa button */}
+                {submissionTab === 'form' ? (
+                  effectiveReadOnly && canAmend && (
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm"
+                      onClick={() => setIsEditModeActive(true)}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.78rem', padding: '0.25rem 0.65rem', whiteSpace: 'nowrap' }}
+                    >
+                      <Pencil size={13} />
+                      <span>Chỉnh sửa</span>
+                    </button>
+                  )
+                ) : (
+                  onOpenReportBuilder && (
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm"
+                      onClick={() => onOpenReportBuilder(rawFormTemplate?.formId || initialSubmission.formId)}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.78rem', padding: '0.25rem 0.65rem', whiteSpace: 'nowrap' }}
+                    >
+                      <Pencil size={13} />
+                      <span>Chỉnh sửa</span>
+                    </button>
+                  )
                 )}
               </>
             )}
@@ -3412,7 +3503,17 @@ function FormFillerInner({
         </div>
       )}
 
-      {/* Main Form Paper Card */}
+      {/* Main Canvas: Form Paper Card OR Report Card depending on submissionTab */}
+      {submissionTab === 'report' && initialSubmission ? (
+        <FormReport
+          submissionId={initialSubmission.id}
+          isEmbedded={true}
+          token={effectiveEditToken}
+          triggerPrint={triggerReportPrint}
+          onPrintHandled={() => setTriggerReportPrint(false)}
+          onOpenBuilder={onOpenReportBuilder}
+        />
+      ) : (
       <fieldset disabled={effectiveReadOnly} style={{ border: 'none', padding: 0, margin: 0, minWidth: 0 }}>
             <div className="paper-card" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '0px' }}>
               
@@ -3681,6 +3782,7 @@ function FormFillerInner({
 
       </div>
       </fieldset>
+      )}
 
       {/* Action Footer Bar (Only shown in Edit or Fill mode, completely hidden in View mode) */}
       {!effectiveReadOnly && (

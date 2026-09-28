@@ -23,14 +23,22 @@ import {
 
 interface FormReportProps {
   submissionId: string;
-  onClose: () => void;
+  onClose?: () => void;
   onOpenBuilder?: (formId: string) => void;
+  isEmbedded?: boolean;
+  token?: string;
+  triggerPrint?: boolean;
+  onPrintHandled?: () => void;
 }
 
 export const FormReport: React.FC<FormReportProps> = ({
   submissionId,
   onClose,
-  onOpenBuilder
+  onOpenBuilder,
+  isEmbedded = false,
+  token,
+  triggerPrint,
+  onPrintHandled
 }) => {
   const [submission, setSubmission] = useState<Submission | null>(null);
   const [formTemplate, setFormTemplate] = useState<FormTemplateISO | null>(null);
@@ -41,11 +49,21 @@ export const FormReport: React.FC<FormReportProps> = ({
   const [showPrintPortal, setShowPrintPortal] = useState<boolean>(false);
 
   useEffect(() => {
+    if (triggerPrint) {
+      setShowPrintPortal(true);
+      onPrintHandled?.();
+    }
+  }, [triggerPrint, onPrintHandled]);
+
+  useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         // 1. Fetch submission record
-        const subRes = await fetch(`/api/submissions/${submissionId}`);
+        const subUrl = token
+          ? `/api/submissions/view/${encodeURIComponent(submissionId)}?token=${encodeURIComponent(token)}`
+          : `/api/submissions/${encodeURIComponent(submissionId)}`;
+        const subRes = await fetch(subUrl);
         if (!subRes.ok) throw new Error(`Không tìm thấy bản nộp ID ${submissionId}`);
         const subData: any = await subRes.json();
         setSubmission(subData);
@@ -80,6 +98,13 @@ export const FormReport: React.FC<FormReportProps> = ({
   }, [submissionId]);
 
   if (loading) {
+    if (isEmbedded) {
+      return (
+        <div style={{ padding: '3rem 1rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+          Đang tạo báo cáo đánh giá chất lượng...
+        </div>
+      );
+    }
     return (
       <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <p style={{ color: 'var(--text-secondary)' }}>Đang tạo báo cáo đánh giá chất lượng...</p>
@@ -88,26 +113,64 @@ export const FormReport: React.FC<FormReportProps> = ({
   }
 
   if (error || !submission || !formTemplate) {
+    if (isEmbedded) {
+      return (
+        <div style={{ padding: '2rem 1rem', textAlign: 'center' }}>
+          <AlertTriangle size={32} color="#ef4444" style={{ margin: '0 auto 0.75rem' }} />
+          <h4 style={{ margin: '0 0 0.5rem 0' }}>Không thể hiển thị báo cáo</h4>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{error || 'Dữ liệu không đầy đủ.'}</p>
+        </div>
+      );
+    }
     return (
       <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: '#ffffff', padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
         <AlertTriangle size={36} color="#ef4444" style={{ marginBottom: '1rem' }} />
         <h3 style={{ margin: '0 0 0.5rem 0' }}>Không thể hiển thị báo cáo</h3>
         <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>{error || 'Dữ liệu không đầy đủ.'}</p>
-        <button className="btn btn-secondary btn-sm" onClick={onClose}>
-          <ArrowLeft size={14} /> Quay lại
-        </button>
+        {onClose && (
+          <button className="btn btn-secondary btn-sm" onClick={onClose}>
+            <ArrowLeft size={14} /> Quay lại
+          </button>
+        )}
       </div>
     );
   }
 
   // ─── Empty State View (Decision 5: Option B) ───
   if (!reportTemplate) {
+    if (isEmbedded) {
+      return (
+        <div style={{ width: '100%', padding: '2rem 1rem', display: 'flex', justifyContent: 'center' }}>
+          <div className="paper-card" style={{ maxWidth: '540px', width: '100%', background: '#ffffff', padding: '2rem', textAlign: 'center', borderRadius: '12px' }}>
+            <FileText size={40} style={{ color: 'var(--primary)', margin: '0 auto 0.75rem', opacity: 0.8 }} />
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: '0 0 0.5rem 0', color: 'var(--text-primary)' }}>
+              Chưa có mẫu Báo cáo cho biểu mẫu này
+            </h3>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: '1.25rem' }}>
+              Biểu mẫu <strong>{formTemplate.formTitle || formTemplate.formId}</strong> hiện chưa được thiết lập mẫu Report Template để tính điểm đánh giá và biểu đồ.
+            </p>
+            {onOpenBuilder && (
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={() => onOpenBuilder(formTemplate.formId)}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+              >
+                <Plus size={14} /> Thiết lập Báo cáo ngay
+              </button>
+            )}
+          </div>
+        </div>
+      );
+    }
     return (
       <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: '#f8fafc', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
         <div style={{ height: '56px', background: '#ffffff', borderBottom: '1px solid var(--neutral-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 1.5rem' }}>
-          <button className="btn btn-secondary btn-sm" onClick={onClose} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-            <ArrowLeft size={14} /> Quay lại danh sách
-          </button>
+          {onClose && (
+            <button className="btn btn-secondary btn-sm" onClick={onClose} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <ArrowLeft size={14} /> Quay lại danh sách
+            </button>
+          )}
           <span style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Báo cáo nộp: {submission.id}</span>
         </div>
 
@@ -121,9 +184,11 @@ export const FormReport: React.FC<FormReportProps> = ({
               Biểu mẫu <strong>{formTemplate.formTitle || formTemplate.formId}</strong> hiện chưa được thiết lập mẫu Report Template tương ứng để tính điểm đánh giá và bảng đối chiếu quy cách.
             </p>
             <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem' }}>
-              <button className="btn btn-secondary btn-sm" onClick={onClose}>
-                Đóng
-              </button>
+              {onClose && (
+                <button className="btn btn-secondary btn-sm" onClick={onClose}>
+                  Đóng
+                </button>
+              )}
               {onOpenBuilder && (
                 <button
                   className="btn btn-primary btn-sm"
@@ -160,34 +225,8 @@ export const FormReport: React.FC<FormReportProps> = ({
   const operatorText = (submission as any)?.operatorId || (submission as any)?.operator_id || '—';
   const supervisorText = (submission as any)?.supervisorSignoff?.signedBy || (submission as any)?.supervisor_signoff?.supervisor_name || '';
 
-  return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: '#f1f5f9', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
-      
-      {/* ── Top Header Bar ── */}
-      <div style={{ height: '56px', background: '#ffffff', borderBottom: '1px solid var(--neutral-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 1.5rem', position: 'sticky', top: 0, zIndex: 20 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <button className="btn btn-secondary btn-sm" onClick={onClose} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-            <ArrowLeft size={14} /> Quay lại
-          </button>
-          <div>
-            <span style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)' }}>{reportTemplate.reportTitle}</span>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginLeft: '0.5rem' }}>({reportTemplate.reportId})</span>
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <button
-            className="btn btn-primary btn-sm"
-            onClick={() => setShowPrintPortal(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
-          >
-            <Printer size={14} /> In Báo cáo / Lưu PDF
-          </button>
-        </div>
-      </div>
-
-      {/* ── Report Content Container ── */}
-      <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+  const reportContent = (
+    <div style={{ padding: isEmbedded ? '0.5rem 0 2rem' : '1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
         
         {/* KPI Scorecard Cards Summary */}
         <div style={{ width: '100%', maxWidth: '698px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem', marginBottom: '1rem' }}>
@@ -376,8 +415,52 @@ export const FormReport: React.FC<FormReportProps> = ({
           ))}
         </div>
       </div>
+  );
 
-      {/* ── Print Portal Renderer ── */}
+  if (isEmbedded) {
+    return (
+      <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        {reportContent}
+        {showPrintPortal && (
+          <PrintReport
+            template={reportTemplate}
+            submission={submission}
+            formTemplate={formTemplate}
+            onClose={() => setShowPrintPortal(false)}
+          />
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: '#f1f5f9', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ height: '56px', background: '#ffffff', borderBottom: '1px solid var(--neutral-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 1.5rem', position: 'sticky', top: 0, zIndex: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          {onClose && (
+            <button className="btn btn-secondary btn-sm" onClick={onClose} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <ArrowLeft size={14} /> Quay lại
+            </button>
+          )}
+          <div>
+            <span style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)' }}>{reportTemplate.reportTitle}</span>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginLeft: '0.5rem' }}>({reportTemplate.reportId})</span>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <button
+            className="btn btn-primary btn-sm"
+            onClick={() => setShowPrintPortal(true)}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+          >
+            <Printer size={14} /> In Báo cáo / Lưu PDF
+          </button>
+        </div>
+      </div>
+
+      {reportContent}
+
       {showPrintPortal && (
         <PrintReport
           template={reportTemplate}

@@ -47,6 +47,7 @@ const MainApp: React.FC = () => {
   const [viewerSubmissionId, setViewerSubmissionId] = useState<string | null>(null);
   const [viewerToken, setViewerToken] = useState<string | null>(null);
   const [viewerEditMode, setViewerEditMode] = useState<boolean>(false);
+  const [viewerInitialTab, setViewerInitialTab] = useState<'form' | 'report'>('form');
 
   // Form view tracking across Dashboard & FormManager
   const [isViewingSubmissionInChild, setIsViewingSubmissionInChild] = useState(false);
@@ -69,18 +70,38 @@ const MainApp: React.FC = () => {
   // Public / Short Link State
   const [resolvedShortForm, setResolvedShortForm] = useState<{ processId: string; formName: string } | null>(null);
   const [shortLinkLoading, setShortLinkLoading] = useState<boolean>(() => {
-    return window.location.pathname.startsWith('/f/');
+    return window.location.pathname.startsWith('/f/') || /^\/[sr]\//.test(window.location.pathname);
   });
 
   // Detect and resolve shareable form links (Clean path /f/:identifier, /f/:formName/s/:submissionId, or legacy query params)
   // eslint-disable-next-line react-hooks/rules-of-hooks
   useEffect(() => {
     const pathname = window.location.pathname;
+    const shortRecordMatch = pathname.match(/^\/([sr])\/([^/]+)$/);
+    if (shortRecordMatch) {
+      const recordType = shortRecordMatch[1];
+      const subId = decodeURIComponent(shortRecordMatch[2]);
+      const urlParams = new URLSearchParams(window.location.search);
+      const token = urlParams.get('token');
+      const mode = urlParams.get('mode');
+      if (token) {
+        setViewerSubmissionId(subId);
+        setViewerToken(token);
+        setViewerEditMode(mode === 'edit');
+        setViewerInitialTab(recordType === 'r' ? 'report' : 'form');
+        setSelectedFormName('submission');
+        setPage('submission-viewer');
+        setShortLinkLoading(false);
+        return;
+      }
+    }
+
     if (pathname.startsWith('/f/')) {
-      const submissionMatch = pathname.match(/^\/f\/([^/]+)\/s\/([^/]+)$/);
-      if (submissionMatch) {
-        const formName = decodeURIComponent(submissionMatch[1]);
-        const subId = decodeURIComponent(submissionMatch[2]);
+      const recordMatch = pathname.match(/^\/f\/([^/]+)\/([sr])\/([^/]+)$/);
+      if (recordMatch) {
+        const formName = decodeURIComponent(recordMatch[1]);
+        const recordType = recordMatch[2];
+        const subId = decodeURIComponent(recordMatch[3]);
         const urlParams = new URLSearchParams(window.location.search);
         const token = urlParams.get('token');
         const mode = urlParams.get('mode');
@@ -93,6 +114,7 @@ const MainApp: React.FC = () => {
         setViewerSubmissionId(subId);
         setViewerToken(token);
         setViewerEditMode(mode === 'edit');
+        setViewerInitialTab(recordType === 'r' ? 'report' : 'form');
         setSelectedFormName(formName);
         setPage('submission-viewer');
         setShortLinkLoading(false);
@@ -236,6 +258,7 @@ const MainApp: React.FC = () => {
             submissionId={viewerSubmissionId}
             token={viewerToken}
             initialEditMode={viewerEditMode}
+            initialTab={viewerInitialTab}
             onBack={() => { window.location.href = `/f/${encodeURIComponent(selectedFormName)}`; }}
           />
         </div>
@@ -464,6 +487,7 @@ const MainApp: React.FC = () => {
             submissionId={viewerSubmissionId}
             token={viewerToken}
             initialEditMode={viewerEditMode}
+            initialTab={viewerInitialTab}
             onBack={() => {
               setPage('dashboard');
               setViewerSubmissionId(null);

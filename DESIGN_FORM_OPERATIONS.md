@@ -8,7 +8,7 @@
 |---|---|
 | **Module Name** | Form Operations |
 | **Status** | Active Development |
-| **Verified At Commit** | (2026-09-17) — Section 8 (Pure utilities generateNextFormId and duplicateFormTemplate in formUtils.ts for automated form duplication) |
+| **Verified At Commit** | (2026-09-28) — Streamlined Submission View toolbar, segmented [Form | Report] pill tab, dynamic inline share box, embedded FormReport |
 
 ### Quick File Index
 
@@ -439,7 +439,6 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 
 | Date | Commit | Change |
 |---|---|---|
-| 2026-09-09 | `CURRENT` | **Public Submission Review & Amendment UI:** Created `SubmissionViewer.tsx` orchestrating token-based read-only and edit modes. Updated `FormFiller.tsx` with access token persistence in `localStorage`, submission success screen with copyable review link, and dynamic local device history card powered by batch-lookup. |
 | 2026-09-09 | `CURRENT` | **Minimalist Executive Toolbar & Single Edit Button in Form View:** Unified submission viewing across internal and public access into a single executive header in `FormFiller.tsx`. In view mode, exactly one edit button is rendered (in the header), while the footer action strip is completely suppressed. In edit mode, fields unlock and minimalist footer appears with Cancel and Save actions. `SubmissionViewer.tsx` delegates directly to `FormFiller` to eliminate duplicate outer headers. |
 | 2026-09-09 | `CURRENT` | **Near Full-Screen Submission View Coordination:** Added `onViewingChange` prop in `SubmissionManager.tsx` and lifecycle coordination to suppress outer dashboard quote card and tabs when viewing/copying a submission record, achieving visual parity with fill-form. |
 | 2026-09-09 | `CURRENT` | **SubmissionManager Toast Feedback & Connection Error Recovery:** Replaced all 5 blocking `window.alert()` calls in `SubmissionManager.tsx` with floating toast notifications (`setToast`) and auto-dismiss timer. Added inline server connection error banner with retry button for serverless resilience. |
@@ -455,6 +454,7 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 | 2026-09-14 | `CURRENT` | **Unified Table Cell Custom Options Resolution & Print Rendering:** (1) Implemented pure utility `getEffectiveCellOptions` in `formUtils.ts` with dual-compatibility lookup (`${rowId}_${colId}` and `[rowId][colId]`), eliminating hardcoded lookups across 5 components. (2) Fixed key resolution mismatch in `PrintFilledForm.tsx` where cell custom options were bypassed in favor of column defaults, accurately printing per-cell options and checkmarks. (3) Added 2-column grid layout support and single boolean checkbox rendering in filled form print. |
 | 2026-09-17 | `CURRENT` | **Dropdown & Custom "Other" Option Resolution in Print:** (1) Standardized `formatOptionDisplay` in `formUtils.ts` to normalize custom other label with consistent colon separation and handle option value/label lookup. (2) Added dedicated select rendering branch and defense-in-depth fallback in `INFO_GRID` of `PrintFilledForm.tsx`, eliminating raw `__other__:<text>` technical prefix leakage. (3) Unified select decoding across `CHECKLIST_TABLE` and `TABLE`, and eliminated duplicate colons in radio/checkbox otherText labels. |
 | 2026-09-17 | `CURRENT` | **Automated Form Duplication Utilities:** Added `generateNextFormId` (smart numeric suffix detection, auto-increment, and collision check) and `duplicateFormTemplate` (deep clone of layout blocks, UUID regeneration for blocks/fields/rows, cell map re-indexing, title update, and DRAFT v0.1 reset) in `formUtils.ts`. |
+| 2026-09-28 | `CURRENT` | **Streamlined Submission View Toolbar & Dynamic Form/Report Segmented Tab UI:** (1) Streamlined submission viewing toolbar in `FormFiller.tsx`: removed visual clutter (`[ ABNORMALITY ]` badge, submitter name, `[📋 Sao chép]` button, simplified Back and Print labels). (2) Added segmented pill tab `[ Form | Report ]` matching `ReportBuilder.tsx` aesthetics, preserving the Focus mode toggle on the Form tab. (3) Replaced sharing popup/modal with an inline link sharing box: on the Form tab, displays and copies the Form Submission link (`/f/:slug/s/:subId?token=...`); on the Report tab, displays and copies the Report link (`/f/:slug/r/:subId?token=...`). (4) Standardized edit button to `[✏️ Chỉnh sửa]` across both tabs. (5) Embedded `FormReport.tsx` inside `FormFiller.tsx` in `isEmbedded` mode. (6) Updated `App.tsx` and `SubmissionViewer.tsx` to route both `/s/:id` and `/r/:id` paths with token support. |
 
 
 

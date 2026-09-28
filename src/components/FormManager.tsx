@@ -257,10 +257,6 @@ export default function FormManager({ processId, formName, onOpenFormFiller, onB
         editToken={viewingSubmission.accessToken || (viewingSubmission as any).access_token}
         canEditSubmission={!viewingSubmission.supervisorSignoff}
         readOnly={true}
-        onCopySubmission={(sub) => {
-          setViewingSubmission(null);
-          setCopySubmission(sub);
-        }}
         onBack={() => {
           setViewingSubmission(null);
           fetchData();

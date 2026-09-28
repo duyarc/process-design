@@ -26,10 +26,11 @@ interface SubmissionManagerProps {
   isEmbedded?: boolean;
   layoutMode?: 'grid' | 'list';
   onOpenReport?: (submissionId: string) => void;
+  onOpenReportBuilder?: (formId: string) => void;
   onViewingChange?: (isViewing: boolean) => void;
 }
 
-export default function SubmissionManager({ onBack, initialFormFilter, isEmbedded = false, layoutMode = 'list', onOpenReport, onViewingChange }: SubmissionManagerProps) {
+export default function SubmissionManager({ onBack, initialFormFilter, isEmbedded = false, layoutMode = 'list', onOpenReport, onOpenReportBuilder, onViewingChange }: SubmissionManagerProps) {
   const { currentUser } = useAuth();
   
   // Data States
@@ -272,10 +273,7 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
         editToken={viewingSubmission.accessToken || (viewingSubmission as any).access_token}
         canEditSubmission={!viewingSubmission.supervisorSignoff}
         readOnly={true}
-        onCopySubmission={(sub) => {
-          setViewingSubmission(null);
-          setCopyingSubmission(sub);
-        }}
+        onOpenReportBuilder={onOpenReportBuilder}
         onBack={() => {
           setViewingSubmission(null);
           fetchData();

@@ -8,6 +8,7 @@ export interface SubmissionViewerProps {
   submissionId: string;
   token: string;
   initialEditMode?: boolean;
+  initialTab?: 'form' | 'report';
   onBack?: () => void;
 }
 
@@ -16,6 +17,7 @@ export const SubmissionViewer: React.FC<SubmissionViewerProps> = ({
   submissionId,
   token,
   initialEditMode = false,
+  initialTab,
   onBack
 }) => {
   const [loading, setLoading] = useState(true);
@@ -111,6 +113,7 @@ export const SubmissionViewer: React.FC<SubmissionViewerProps> = ({
         editToken={token}
         canEditSubmission={canEdit}
         initialEditMode={initialEditMode}
+        initialSubmissionTab={initialTab}
         readOnly={true}
         isPublicGuestMode={true}
         onBack={onBack || (() => { window.location.href = `/f/${encodeURIComponent(formName)}`; })}

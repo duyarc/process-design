@@ -8,8 +8,8 @@
 |---|---|
 | **Module Name** | Platform Shell |
 | **Status** | Active Development |
-| **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-09-18) — Dashboard Form Duplication Process Linking (POST /api/processes & linkDuplicatedFormToSteps pure utility) verified against source |
+| **Document Version** | 1.1 |
+| **Verified At Commit** | (2026-09-28) — Direct Report View Routing (/r/:id, /f/:slug/r/:id) and Report Builder navigation in Dashboard/SubmissionManager verified against source |
 
 ### Quick File Index
 
@@ -208,7 +208,6 @@ lives in `git log`; run `git show <commit>` for the full diff of any entry below
 
 | Date | Commit | Change |
 |---|---|---|
-| 2026-07-27 | `f9271da` | Re-style LoginPage to the Master UI/UX Design System: all colors via CSS variables, Executive Paper Card layout. Establishes that shell UI must consume `DESIGN_UI_UX.md` tokens rather than local styles. |
 | 2026-07-27 | `9a555cb` | **Auth flow change:** Email-First progressive disclosure across `LoginPage.tsx`, `AuthContext.tsx`, `server.cjs`. Adds `POST /api/auth/check-email` and `POST /api/auth/register` (self-service); login query now matches on either email or username. |
 | 2026-07-24 | 9a6bb9aa | **Fill Form Navigation Fix in Forms Tab:** Connected missing `onOpenFormFiller` prop from `App.tsx` into `<Dashboard />` component and updated `handleFillAction` & `processSelectDialog` in `Dashboard.tsx` to route to online form filler screen (`FormFiller`) when clicking Fill Form (`PenTool`) button, resolving route collision with View Submissions (`History`) button. |
 | 2026-07-28 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Sort Process Families by Last Update Descending:** Added `getFamilyTimestamp` sorting helper in `Dashboard.tsx` to sort process families descending by most recent `lastUpdated` timestamp across all versions, placing recently modified processes at the top of the Dashboard. |
@@ -223,3 +222,4 @@ lives in `git log`; run `git show <commit>` for the full diff of any entry below
 | 2026-09-17 | `CURRENT` | **1-Click Fast Form Duplication in Dashboard Forms Tab:** Added duplicate action in both List and Grid views under `design_document` permission. Generates new Form ID, preserves exact form title, links new form directly to matching process work step (`step.formNames`) and metadata (`workflowFormsData`), and displays non-blocking toast feedback without popup dialogs. |
 | 2026-09-17 | `CURRENT` | **Actions Area Tinh Gọn & Hover-to-Reveal trong Tab Forms:** Tái cấu trúc 7 nút thao tác thành 3 khối nghiệp vụ chuẩn (Vận hành: Fill/Audit; In ấn: Print/PDF; Thiết kế: Edit/Copy/Report) với vách ngăn dọc tinh tế. Tích hợp cơ chế Hover-to-Reveal bằng CSS thuần (`.dashboard-form-row:hover`), ẩn các nút khi idle và chỉ hiển thị trên dòng được hover, triệt tiêu rối mắt và bảo đảm Zero Layout Shift. |
 | 2026-09-18 | `CURRENT` | **Fix Duplicated Form Process Re-linking:** (1) In `Dashboard.tsx`, fixed process persistence by replacing non-existent `PUT /api/processes/:id` (404) with `POST /api/processes` and added error handling. (2) Replaced `getRepresentative` lookup with direct process matching to prevent multi-version step divergence. (3) Extracted pure utility `linkDuplicatedFormToSteps` in `formUtils.ts` (Rule 13.8). (4) Added backend defensive alias `PUT /api/processes/:id` in `server.cjs`. |
+| 2026-09-28 | `CURRENT` | **Direct Report View Routing & SubmissionManager Report Action:** (1) Updated `App.tsx` regex matching and URL resolution to recognize `/f/:formSlug/r/:subId` and `/r/:subId` routes alongside `/s/:subId`, passing `initialTab` (`form` or `report`) to `SubmissionViewer`. (2) Connected `onOpenReportBuilder` callback through `Dashboard.tsx` into `SubmissionManager.tsx` and `FormFiller.tsx`. |

@@ -40,6 +40,33 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-28 — Form Operations & Report Builder: Tinh gọn Thanh Công cụ Xem Bản nộp (`FormFiller`), Bổ sung Segmented Pill Tab `[ Form | Report ]`, Tích hợp Hộp Chia sẻ Link Động và Embedded FormReport
+
+**Scope:** 8 files (`server.cjs`, `src/App.tsx`, `src/components/Dashboard.tsx`, `src/components/FormFiller.tsx`, `src/components/FormManager.tsx`, `src/components/FormReport.tsx`, `src/components/SubmissionManager.tsx`, `src/components/SubmissionViewer.tsx`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | ~45 min |
+| Thời gian lập plan (Request → Proceed) | ~11 min |
+| Thời gian thực thi (Proceed → Push) | ~34 min |
+| Số file nguồn chỉnh sửa | 8 |
+| Tổng lượt edit source | 16 |
+| Lượt edit sửa lỗi (rework) | 2 (`FormFiller.tsx` hoisting & `FormManager.tsx` call-site pruning) |
+| Số lần build | 3 (`tsc --noEmit` pass, `tsc -b` pass, `vite build` 8.10s pass) |
+| Lần build cuối thành công? | Có (100% pass) |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- **Tinh gọn Thanh Công cụ Submission View Toolbar (`FormFiller.tsx`):** Loại bỏ hoàn toàn các thành phần dư thừa gây chật chội (`[ ABNORMALITY ]` badge, tên người nộp `• NGUYỄN VĂ...`, nút `[📋 Sao chép]`, rút gọn chữ `Quay lại` thành `[←] ID`, chữ `In bản khai` thành `[🖨 In]`). Giữ nguyên Pill Button Focus Mode (`Focus mode [ ●]`) trên tab Form.
+- **Segmented Pill Tab `[ Form | Report ]`:** Tái hiện chuẩn mực giao diện từ `ReportBuilder.tsx` (nền `#f0fdfa`, viền `#99f6e4`, nút trắng active nổi bật kèm chữ teal đậm).
+- **Hộp Chia sẻ Link Trực quan (Zero-Modal Sharing):** Triệt tiêu modal popup chia sẻ rườm rà. Tích hợp trực tiếp hộp input kèm nút `Sao chép` trên toolbar: khi ở tab Form, tự động sinh và sao chép link Form Submission (`/f/:slug/s/:subId?token=...`); khi ở tab Report, tự động sinh và sao chép link Report (`/f/:slug/r/:subId?token=...`).
+- **Nút Thao tác Thống nhất `[✏️ Chỉnh sửa]`:** Hiển thị đồng nhất trên cả 2 tab: ở tab Form chuyển sang chế độ inline edit bản nộp; ở tab Report điều hướng trực tiếp sang Report Builder để tinh chỉnh mẫu báo cáo.
+- **Embedded Report Canvas (`FormReport.tsx`):** Bổ sung chế độ `isEmbedded`, loại bỏ fixed outer header 56px và padding ngoài, render trực tiếp nội dung canvas báo cáo lồng trong view bản nộp.
+- **Đồng bộ Định tuyến & Quyền Guest Token (`server.cjs`, `App.tsx`, `SubmissionViewer.tsx`):** Hỗ trợ đầy đủ routing `/f/:slug/[sr]/:subId` và `/[sr]/:subId`, bổ sung endpoint `GET /api/reports/view/:submissionId` trả về trọn bộ submission + formTemplate + reportTemplate cho khách xem bằng token không cần đăng nhập.
+
+---
+
 ### 2026-09-28 — Report Builder: Tinh gọn Bản In Chấm điểm (`PrintScoring`), Kế thừa Layout Minimal của `PrintBlankForm` & Tách Module In Dùng chung (`printShared`, `formUtils`)
 
 **Scope:** 7 files (`src/utils/formUtils.ts`, `src/components/print/printShared.tsx`, `src/components/print/PrintBlankForm.tsx`, `src/components/print/PrintFilledForm.tsx`, `src/components/print/PrintScoring.tsx`, `src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`, `SESSION_LOG.md`)
@@ -312,29 +339,6 @@ Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
 ---
 
-### 2026-09-25 — Report Builder: Removed Virtual Page Breaks & Pruned Tracking Code (ReportBuilder)
-
-**Scope:** 3 files (`src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`, `SESSION_LOG.md`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian tổng (Request → Push) | ~5 min |
-| Thời gian lập plan (Request → Proceed) | ~2 min |
-| Thời gian thực thi (Proceed → Push) | ~3 min |
-| Số file nguồn chỉnh sửa | 1 (`ReportBuilder.tsx`) |
-| Tổng lượt edit source | 3 |
-| Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 2 (`1 tsc` pass + `1 vite build` 19.26s pass) |
-| Lần build cuối thành công? | Có (100% pass ngay lần đầu) |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Điểm nổi bật:**
-- **Loại bỏ Vạch Phân Trang Ảo:** Gỡ bỏ hoàn toàn đường kẻ phân trang ảo (`--- RANH GIỚI HẾT TRANG X (A4/A5) ---`) khỏi canvas tờ giấy theo yêu cầu của người dùng, chấm dứt việc vạch nét đứt cắt ngang qua bảng và nội dung văn bản gây khó khăn khi thao tác.
-- **Triệt tiêu Mã chết (Dead-code Pruning):** Xóa sạch `paperCardRef`, `paperScrollHeight` và hook `ResizeObserver` đo chiều cao tờ giấy khỏi `ReportBuilder.tsx` theo chuẩn Rule 4.2 / Rule 13.7, đảm bảo 0 cảnh báo `TS6133`.
-- **Bảo toàn Cải tiến Cốt lõi:** Vẫn duy trì trọn vẹn khoảng đệm đáy thoáng đãng (`padding: '1.25rem 1rem 5rem'`, `marginBottom: '2.5rem'`, spacer đáy `4rem`) và ISO Paper Footer ở cuối tờ giấy.
-
----
 
 
 
