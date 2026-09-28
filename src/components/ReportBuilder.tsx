@@ -3515,34 +3515,14 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                             }}
                           />
 
-                          {/* Grid Container */}
-                          {((!block.boundFieldIds || block.boundFieldIds.length === 0) && (!block.chartItems || block.chartItems.length === 0)) ? (
-                            <div
-                              style={{
-                                padding: '1.25rem 1rem',
-                                border: isDragOverThis ? '2px dashed var(--primary)' : '1.5px dashed #94a3b8',
-                                borderRadius: '6px',
-                                textAlign: 'center',
-                                color: isDragOverThis ? 'var(--primary)' : '#64748b',
-                                fontSize: '0.8rem',
-                                background: isDragOverThis ? '#f0fdfa' : '#f8fafc',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                gap: '6px',
-                                transition: 'all 0.15s ease'
-                              }}
-                            >
-                              <Plus size={15} /> Thả vào đây
-                            </div>
-                          ) : (
-                            <div style={{
-                              display: 'grid',
-                              gridTemplateColumns: getInfoGridTemplateColumns(block as any),
-                              columnGap: '0.75rem',
-                              rowGap: '0.5rem',
-                              gridAutoRows: 'minmax(38px, auto)'
-                            }}>
+                          {/* Grid Container (Unified with FormBuilder) */}
+                          <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: getInfoGridTemplateColumns(block as any),
+                            columnGap: '0.75rem',
+                            rowGap: '0.5rem',
+                            gridAutoRows: 'minmax(38px, auto)'
+                          }}>
                               {(block.boundFieldIds || []).map((fid, fIdx) => {
                                 const field = allFormFields.find(f => f.id === fid);
                                 const override = block.ruleOverrides?.[fid];
@@ -3790,30 +3770,43 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                   />
                                 );
                               })}
-                              {/* Option 4 Adaptive Drag Drop Slot */}
-                              {isDraggingField && (
-                                <div
-                                  style={{
-                                    border: isDragOverThis ? '2px dashed var(--primary)' : '1.5px dashed #0d9488',
-                                    borderRadius: '4px',
-                                    padding: '6px 8px',
-                                    background: isDragOverThis ? '#ccfbf1' : '#f0fdfa',
-                                    color: 'var(--primary)',
-                                    fontSize: '0.75rem',
-                                    fontWeight: 600,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: '6px',
-                                    minHeight: '42px',
-                                    transition: 'all 0.15s ease'
-                                  }}
-                                >
-                                  <Plus size={14} /> Thả vào đây
-                                </div>
-                              )}
+                              {/* Column-Aware Empty & Drag-Drop Slots */}
+                              {(() => {
+                                const cols = block.columns || 2;
+                                const totalItems = (block.boundFieldIds?.length || 0) + (block.chartItems?.length || 0);
+                                const emptySlotCount = totalItems === 0
+                                  ? cols
+                                  : totalItems < cols
+                                  ? cols - totalItems
+                                  : isDraggingField
+                                  ? 1
+                                  : 0;
+                                if (emptySlotCount <= 0) return null;
+                                return Array.from({ length: emptySlotCount }).map((_, slotIdx) => (
+                                  <div
+                                    key={`empty_slot_${slotIdx}`}
+                                    style={{
+                                      padding: totalItems === 0 ? '1.1rem 0.75rem' : '6px 8px',
+                                      border: isDragOverThis ? '2px dashed var(--primary)' : '1.5px dashed #94a3b8',
+                                      borderRadius: '6px',
+                                      textAlign: 'center',
+                                      color: isDragOverThis ? 'var(--primary)' : '#64748b',
+                                      fontSize: '0.78rem',
+                                      fontWeight: isDragOverThis ? 600 : 500,
+                                      background: isDragOverThis ? '#f0fdfa' : '#f8fafc',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      gap: '6px',
+                                      minHeight: '42px',
+                                      transition: 'all 0.15s ease'
+                                    }}
+                                  >
+                                    <Plus size={14} /> Thả vào đây
+                                  </div>
+                                ));
+                              })()}
                             </div>
-                          )}
                         </div>
                       );
                     })()}

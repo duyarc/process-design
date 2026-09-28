@@ -39,8 +39,8 @@ export const RadarChartBlock: React.FC<RadarChartBlockProps> = ({
     <div
       onClick={onSelect}
       style={{
-        gridColumn: '1 / -1',
         width: '100%',
+        minWidth: 0,
         padding: '0.25rem 0',
         background: isSelected ? 'rgba(13, 148, 136, 0.03)' : 'transparent',
         borderRadius: '6px',

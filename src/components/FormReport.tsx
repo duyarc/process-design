@@ -9,6 +9,7 @@ import type {
 import { computeRecordReport } from '../utils/reportCompute';
 import { extractAllFormFields } from '../utils/tableFieldExtractor';
 import { renderFormattedText } from '../utils/textFormatter';
+import { getInfoGridTemplateColumns } from '../utils/formUtils';
 import PrintReport from './print/PrintReport';
 import { RadarChartBlock } from './report/RadarChartBlock';
 import { BarChartBlock } from './report/BarChartBlock';
@@ -277,7 +278,7 @@ export const FormReport: React.FC<FormReportProps> = ({
               {block.type === 'INFO_GRID' && (
                 <div>
                   {block.title && <div style={{ fontWeight: 600, fontSize: '0.8rem', marginBottom: '0.35rem' }}>{block.title}</div>}
-                  <div style={{ display: 'grid', gridTemplateColumns: `repeat(${block.columns || 2}, 1fr)`, gap: '0.5rem', border: '1px solid #000', padding: '0.5rem' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: getInfoGridTemplateColumns(block as any), gap: '0.5rem', border: '1px solid #000', padding: '0.5rem' }}>
                     {(block.boundFieldIds || []).map(fid => {
                       const field = allFormFields.find(f => f.id === fid);
                       const val = getFieldValue(fid);

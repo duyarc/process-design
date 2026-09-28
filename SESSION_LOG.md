@@ -40,6 +40,30 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-28 — Report Builder: Khắc phục Hiển thị Đa cột (`Columns = 2, 3`) của `INFO_GRID` trên Canvas & Đồng bộ Bố cục với `FormBuilder` (`ReportBuilder`, `RadarChartBlock`, `BarChartBlock`, `FormReport`)
+
+**Scope:** 6 files (`src/components/ReportBuilder.tsx`, `src/components/report/RadarChartBlock.tsx`, `src/components/report/BarChartBlock.tsx`, `src/components/FormReport.tsx`, `DESIGN_REPORT_BUILDER.md`, `SESSION_LOG.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | ~11.0 min |
+| Thời gian lập plan (Request → Proceed) | ~6.5 min |
+| Thời gian thực thi (Proceed → Push) | ~4.5 min |
+| Số file nguồn chỉnh sửa | 4 (`ReportBuilder.tsx`, `RadarChartBlock.tsx`, `BarChartBlock.tsx`, `FormReport.tsx`) |
+| Tổng lượt edit source | 6 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 2 (`tsc --noEmit` + `npm run build` 17.17s pass) |
+| Lần build cuối thành công? | Có (100% pass ngay lần đầu) |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- **Đồng bộ Grid Container của `INFO_GRID` với `FormBuilder` (`getInfoGridTemplateColumns`):** Loại bỏ nhánh ternary `items === 0` từng bỏ qua CSS Grid và chỉ vẽ 1 thẻ `<div>` 1 cột. Giờ đây `INFO_GRID` luôn khởi tạo `<div style={{ display: 'grid', gridTemplateColumns: getInfoGridTemplateColumns(block) }}>` ở mọi trạng thái và đồng bộ `getInfoGridTemplateColumns` sang cả `FormReport.tsx`.
+- **Hiển thị trực quan các ô Slot `+ Thả vào đây` theo đúng số cột `block.columns`:** Khi `Columns = 2` (hoặc `3`), Canvas hiển thị ngay 2 (hoặc 3) ô `+ Thả vào đây` nằm cạnh nhau theo đúng tỷ lệ `columnWidths` (`50% | 50%`, `30% | 70%`, ...); khi mới thả 1 phần tử vào cột 1, cột 2 bên phải vẫn hiển thị ô `+ Thả vào đây`.
+- **Gỡ `gridColumn: '1 / -1'` trên `RadarChartBlock` & `BarChartBlock`:** Cho phép đặt 2 biểu đồ nằm cạnh nhau trong `INFO_GRID` 2 cột hoặc kết hợp trường thông tin ở cột trái và biểu đồ ở cột phải.
+
+---
+
 ### 2026-09-28 — Report Builder: Cơ chế Trọng số Tự động Cân bằng 4 Tầng (`Zero-Sum Auto-Balance`), Khóa Thủ công (`isWeightManual`), Nút Reset `↺` & Đôn Cấp Khuyết (`Skip-Level Promotion`) (`reportScoring`, `reportCompute`, `FieldScoringInspector`, `ReportBuilder`, `types`)
 
 **Scope:** 7 files (`src/types.ts`, `src/utils/reportScoring.ts`, `src/utils/reportCompute.ts`, `src/components/report/FieldScoringInspector.tsx`, `src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`, `SESSION_LOG.md`)
@@ -310,30 +334,6 @@ Entry mới nhất ở trên cùng. Tối đa 10 entries.
 - **Hỗ trợ Click Drill-down trực tiếp trên tên thành phần con:** Tên các phân mục H2 con hoặc bảng trực thuộc H1 có màu teal đậm `#0f766e`, con trỏ chuột pointer và gạch chân khi hover, cho phép click để chuyển ngay sang xem/cấu hình H2 Section Properties hoặc Table Properties tương ứng.
 - **Tích hợp Chỉnh sửa Trọng số Tại Chỗ (`handleUpdateH1ChildWeight`):** Tích hợp `<SmartNumberInput>` (32px, `min={0}`, `max={100}`, hậu tố `%`) trực tiếp tại cột `Weight`. Hỗ trợ cập nhật ngay lập tức trọng số của Section H2 con (`layoutBlocks`) hoặc Element trực thuộc (`tableRow.weight` / `ruleOverrides.weight`) với cơ chế tái cân bằng phần trăm tự động.
 - **Footer Tinh giản & Trực quan:** Loại bỏ nhãn `"Tổng Trụ Cột:"`, để trống cột 1 (span 6), hiển thị huy hiệu trạng thái `PASS/FAIL` (span 2), tổng điểm trụ cột (span 2) và tổng trọng số `∑ {totalWeight}%` (span 2, màu xanh lục `#059669` nếu đủ 100%, màu hổ phách `#d97706` nếu chưa đủ 100%).
-
----
-
-### 2026-09-25 — Report Builder: Custom Cell Options & Checkbox Scoring Resolution (tableFieldExtractor, FieldScoringInspector, reportScoring)
-
-**Scope:** 6 files (`src/utils/tableFieldExtractor.ts`, `src/utils/formUtils.ts`, `src/components/report/FieldScoringInspector.tsx`, `src/utils/reportScoring.ts`, `DESIGN_REPORT_BUILDER.md`, `SESSION_LOG.md`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian tổng (Request → Push) | ~17.5 min |
-| Thời gian lập plan (Request → Proceed) | ~12.5 min |
-| Thời gian thực thi (Proceed → Push) | ~5.0 min |
-| Số file nguồn chỉnh sửa | 4 (`tableFieldExtractor.ts`, `formUtils.ts`, `FieldScoringInspector.tsx`, `reportScoring.ts`) |
-| Tổng lượt edit source | 5 |
-| Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 5 (`4 tsc` + `1 vite build` 14.92s pass) |
-| Lần build cuối thành công? | Có (100% pass) |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Điểm nổi bật:**
-- **Ưu tiên nạp Custom Cell Options từ `block.cellOptionsMap`:** Trong `tableFieldExtractor.ts`, nâng cấp `extractTableFields` sử dụng `getEffectiveCellOptions(block.cellOptionsMap, row.id, col.id, col.options)`, triệt tiêu hoàn toàn lỗi làm mất tùy chọn tùy biến của ô cell và bị rơi về giá trị mặc định của cột (`Có / Không`). Đồng thời nạp `placeholder` từ `cellPlaceholderMap`.
-- **Dọn dẹp triệt để Dead Re-exports (Rule 13.7):** Xóa bỏ các re-export không dùng của `tableFieldExtractor` trong `formUtils.ts`, ngăn chặn 100% nguy cơ hình thành vòng lặp circular dependency.
-- **Hỗ trợ toàn diện Tùy chọn Khác (`__other__`) cho Checkbox:** Trong `FieldScoringInspector.tsx` và `reportScoring.ts`, bổ sung nhận diện `isOtherOpt` (`__other__` / `isOther`) kết hợp `isOtherValue` cho checkbox, giúp highlight teal các mục đã chọn trong phiếu mẫu và tính điểm chính xác tuyệt đối.
 
 ---
 
