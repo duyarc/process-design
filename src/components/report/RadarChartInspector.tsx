@@ -127,33 +127,19 @@ export const RadarChartInspector: React.FC<RadarChartInspectorProps> = ({
     const payload = parseDropPayload(e);
     if (!payload) return;
 
-    if (payload.kind === 'group' && payload.children && payload.children.length > 0) {
-      const added: ChartComponentItem[] = payload.children.map((ch, idx) => ({
-        id: `ax_${Date.now()}_${idx}`,
-        fieldId: ch.fieldId,
-        title: ch.title,
-        score: ch.score,
-        weight: ch.weight
-      }));
-      onUpdateChart({
-        ...chart,
-        components: [...chart.components, ...added]
-      });
-    } else {
-      onUpdateChart({
-        ...chart,
-        components: [
-          ...chart.components,
-          {
-            id: `ax_${Date.now()}`,
-            fieldId: payload.id,
-            title: payload.title,
-            score: payload.score,
-            weight: payload.weight
-          }
-        ]
-      });
-    }
+    onUpdateChart({
+      ...chart,
+      components: [
+        ...chart.components,
+        {
+          id: `ax_${Date.now()}`,
+          fieldId: payload.id,
+          title: payload.title,
+          score: payload.score,
+          weight: payload.weight
+        }
+      ]
+    });
   };
 
   return (

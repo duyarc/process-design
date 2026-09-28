@@ -1276,11 +1276,44 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
     }));
   };
 
-  const toggleSectionExpand = (key: string) => {
-    setExpandedSections(prev => ({
-      ...prev,
-      [key]: prev[key] === undefined ? false : !prev[key]
-    }));
+  const toggleSectionExpand = (key: string, defaultOpen = false) => {
+    setExpandedSections(prev => {
+      const current = prev[key] === undefined ? defaultOpen : prev[key];
+      const nextOpen = !current;
+      const updated: Record<string, boolean> = { ...prev };
+
+      if (nextOpen) {
+        if (key.startsWith('h1_') && !key.includes('_el_')) {
+          hierarchyGroups.forEach(g => {
+            updated[`h1_${g.h1}`] = false;
+          });
+        } else if (key.startsWith('h2_') && !key.includes('_el_')) {
+          const parentH1 = hierarchyGroups.find(g => key.startsWith(`h2_${g.h1}_`));
+          if (parentH1) {
+            parentH1.h2Groups.forEach(sub => {
+              updated[`h2_${parentH1.h1}_${sub.h2}`] = false;
+            });
+          }
+        } else if (key.includes('_el_')) {
+          const parentPrefix = `${key.split('_el_')[0]}_el_`;
+          hierarchyGroups.forEach(g => {
+            g.directElements.forEach(el => {
+              const k = `h1_${g.h1}_el_${el.elementTitle}`;
+              if (k.startsWith(parentPrefix)) updated[k] = false;
+            });
+            g.h2Groups.forEach(sub => {
+              sub.elements.forEach(el => {
+                const k = `h2_${g.h1}_${sub.h2}_el_${el.elementTitle}`;
+                if (k.startsWith(parentPrefix)) updated[k] = false;
+              });
+            });
+          });
+        }
+      }
+
+      updated[key] = nextOpen;
+      return updated;
+    });
   };
 
   const setAllSectionsExpanded = (expanded: boolean, groups: FieldHierarchyGroup[]) => {
@@ -1696,14 +1729,49 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
       updateRuleOverride(fieldOrGroupId, { weight: newWeight });
       return;
     }
-    setTemplate(prev => ({
-      ...prev,
-      layoutBlocks: prev.layoutBlocks.map(b =>
-        b.id === fieldOrGroupId || (b.title || '').trim().toLowerCase() === fieldOrGroupId.trim().toLowerCase()
-          ? { ...b, weight: newWeight }
-          : b
-      )
-    }));
+    setTemplate(prev => {
+      const cleanId = fieldOrGroupId.trim().toLowerCase();
+      const exists = prev.layoutBlocks.some(
+        b => b.id === fieldOrGroupId || (b.title || '').trim().toLowerCase() === cleanId
+      );
+      if (exists) {
+        return {
+          ...prev,
+          layoutBlocks: prev.layoutBlocks.map(b =>
+            b.id === fieldOrGroupId || (b.title || '').trim().toLowerCase() === cleanId
+              ? { ...b, weight: newWeight }
+              : b
+          )
+        };
+      }
+      const matchedH1 = hierarchyGroups.find(g => g.h1.trim().toLowerCase() === cleanId);
+      if (matchedH1) {
+        const newH1Block: ReportBlockConfig = {
+          id: `rep_block_h1_${Date.now()}`,
+          type: 'SECTION_LABEL',
+          title: matchedH1.h1,
+          titleFormat: 'H1',
+          weight: newWeight,
+          isKnockout: false,
+          hiddenInReport: true
+        };
+        return { ...prev, layoutBlocks: [...prev.layoutBlocks, newH1Block] };
+      }
+      const matchedH2 = hierarchyGroups.flatMap(g => g.h2Groups).find(sub => sub.h2.trim().toLowerCase() === cleanId);
+      if (matchedH2) {
+        const newH2Block: ReportBlockConfig = {
+          id: `rep_block_h2_${Date.now()}`,
+          type: 'SECTION_LABEL',
+          title: matchedH2.h2,
+          titleFormat: 'H2',
+          weight: newWeight,
+          isKnockout: false,
+          hiddenInReport: true
+        };
+        return { ...prev, layoutBlocks: [...prev.layoutBlocks, newH2Block] };
+      }
+      return prev;
+    });
   };
 
   const resolveDroppedFieldPayload = (fieldId: string): ChartDragSourcePayload | null => {
@@ -2311,7 +2379,13 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
 
               {/* Collapsible CHARTS Toggle Bar (Radar & Bar) */}
               <div
-                onClick={() => setIsChartsTrayOpen(prev => !prev)}
+                onClick={() => {
+                  setIsChartsTrayOpen(prev => {
+                    const next = !prev;
+                    if (next) setIsFieldsTrayOpen(false);
+                    return next;
+                  });
+                }}
                 style={{
                   padding: '0.52rem 0.75rem',
                   borderBottom: '1px solid var(--neutral-border)',
@@ -2373,7 +2447,13 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
 
               {/* Collapsible Icon-First FIELDS Toggle Bar */}
               <div
-                onClick={() => setIsFieldsTrayOpen(prev => !prev)}
+                onClick={() => {
+                  setIsFieldsTrayOpen(prev => {
+                    const next = !prev;
+                    if (next) setIsChartsTrayOpen(false);
+                    return next;
+                  });
+                }}
                 style={{
                   padding: '0.52rem 0.75rem',
                   borderBottom: '1px solid var(--neutral-border)',
@@ -2450,9 +2530,91 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                   {allFormFields.length === 0 ? 'Chưa nạp được trường nào.' : 'Không tìm thấy trường khớp từ khoá.'}
                 </div>
               ) : (
-                hierarchyGroups.map(h1Group => {
+                <>
+                  {/* Option A: Form Root Draggable Card (All H1 Pillars) */}
+                  <div
+                    draggable={true}
+                    onDragStart={e => {
+                      const equalWeight = hierarchyGroups.length > 0 ? Math.round((100 / hierarchyGroups.length) * 10) / 10 : 100;
+                      const h1Children = hierarchyGroups.map(g => {
+                        const h1Block = template.layoutBlocks.find(
+                          b => b.type === 'SECTION_LABEL' && (b.titleFormat === 'H1' || !b.titleFormat) && (b.title || '').trim().toLowerCase() === g.h1.trim().toLowerCase()
+                        );
+                        const { h1CombinedScore } = summarizeH1ChildGroups(
+                          g.h1,
+                          hierarchyGroups,
+                          template.layoutBlocks,
+                          sampleSubmission?.formData,
+                          template.ruleOverrides
+                        );
+                        return {
+                          fieldId: h1Block?.id || g.h1,
+                          title: g.h1,
+                          score: h1CombinedScore.combinedScore ?? 3.0,
+                          weight: h1Block?.weight !== undefined && h1Block.weight > 0 ? h1Block.weight : equalWeight
+                        };
+                      });
+                      const formScore = calculateWeightedChartScore(
+                        h1Children.map((c, idx) => ({ id: `h1_${idx}`, fieldId: c.fieldId, title: c.title, score: c.score, weight: c.weight }))
+                      );
+                      const formRootTitle = selectedForm?.formTitle || selectedForm?.layoutBlocks?.find(b => b.type === 'TITLE')?.title || selectedForm?.formId || 'Toàn bộ Biểu mẫu';
+                      const rootPayload: ChartDragSourcePayload = {
+                        kind: 'group',
+                        id: selectedForm?.formId || 'form_root',
+                        title: formRootTitle,
+                        score: formScore.combinedScore ?? 3.0,
+                        weight: 100,
+                        children: h1Children
+                      };
+                      e.dataTransfer.setData('application/x-report-chart-source', JSON.stringify(rootPayload));
+                      e.dataTransfer.effectAllowed = 'copy';
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '5px 8px',
+                      minHeight: '30px',
+                      background: '#f0fdfa',
+                      border: '1.5px solid #99f6e4',
+                      borderRadius: '6px',
+                      cursor: 'grab',
+                      userSelect: 'none',
+                      flexShrink: 0,
+                      gap: '6px'
+                    }}
+                    title="Kéo thả vào Hàng Tổng của Biểu đồ để nạp toàn bộ các mục H1"
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0, flex: 1 }}>
+                      <span style={{ color: 'var(--primary)', fontSize: '0.75rem', flexShrink: 0 }}>⠿</span>
+                      <FileText size={13} color="var(--primary)" style={{ flexShrink: 0 }} />
+                      <span style={{
+                        fontSize: '0.74rem',
+                        fontWeight: 800,
+                        color: '#0f766e',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {selectedForm?.formTitle || selectedForm?.layoutBlocks?.find(b => b.type === 'TITLE')?.title || selectedForm?.formId || 'Toàn bộ Biểu mẫu'}
+                      </span>
+                    </div>
+                    <span style={{
+                      fontSize: '0.6rem',
+                      fontWeight: 800,
+                      padding: '1px 6px',
+                      borderRadius: '99px',
+                      background: 'var(--primary)',
+                      color: '#ffffff',
+                      flexShrink: 0
+                    }}>
+                      {hierarchyGroups.length} H1
+                    </span>
+                  </div>
+
+                  {hierarchyGroups.map((h1Group, h1Idx) => {
                   const h1Key = `h1_${h1Group.h1}`;
-                  const isH1Expanded = searchFieldQuery ? true : (expandedSections[h1Key] ?? true);
+                  const isH1Expanded = searchFieldQuery ? true : (expandedSections[h1Key] ?? (h1Idx === 0));
                   const allH1FieldIds = [
                     ...h1Group.h2Groups.flatMap(g => g.fields.map(f => f.id)),
                     ...h1Group.directElements.flatMap(e => e.fields.map(f => f.id))
@@ -2462,9 +2624,9 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                     (activeBlock.title?.trim().toLowerCase() === h1Group.h1.trim().toLowerCase())
                   );
 
-                  const renderElementGroupNode = (elGroup: { elementTitle: string; fields: FormFieldISO[] }, parentKey: string) => {
+                  const renderElementGroupNode = (elGroup: { elementTitle: string; fields: FormFieldISO[] }, parentKey: string, elIdx = 0) => {
                     const elKey = `${parentKey}_el_${elGroup.elementTitle}`;
-                    const isElExpanded = searchFieldQuery ? true : (expandedSections[elKey] ?? true);
+                    const isElExpanded = searchFieldQuery ? true : (expandedSections[elKey] ?? (elIdx === 0));
                     const elFieldIds = elGroup.fields.map(f => f.id);
                     const isElActive = !selectedFieldId && activeBlock && activeBlock.type === 'TABLE' && (
                       activeBlock.title?.trim().toLowerCase() === elGroup.elementTitle.trim().toLowerCase() ||
@@ -2511,7 +2673,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                toggleSectionExpand(elKey);
+                                toggleSectionExpand(elKey, elIdx === 0);
                               }}
                               style={{
                                 background: 'none',
@@ -2744,7 +2906,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              toggleSectionExpand(h1Key);
+                              toggleSectionExpand(h1Key, h1Idx === 0);
                             }}
                             style={{
                               background: 'none',
@@ -2807,9 +2969,9 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                       {/* H1 Children: Level-2 H2 Sections (strictly format H2) + Level-3 Elements */}
                       {isH1Expanded && (
                         <div style={{ padding: '4px 6px', display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                          {h1Group.h2Groups.map(h2Group => {
+                          {h1Group.h2Groups.map((h2Group, h2Idx) => {
                             const h2Key = `h2_${h1Group.h1}_${h2Group.h2}`;
-                            const isH2Expanded = searchFieldQuery ? true : (expandedSections[h2Key] ?? true);
+                            const isH2Expanded = searchFieldQuery ? true : (expandedSections[h2Key] ?? (h2Idx === 0));
                             const h2FieldIds = h2Group.fields.map(f => f.id);
                             const isH2Active = !selectedFieldId && activeBlock &&
                               activeBlock.type === 'SECTION_LABEL' &&
@@ -2857,7 +3019,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                       type="button"
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        toggleSectionExpand(h2Key);
+                                        toggleSectionExpand(h2Key, h2Idx === 0);
                                       }}
                                       style={{
                                         background: 'none',
@@ -2931,7 +3093,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                 {/* Level 3: Normal Elements (TABLE / INFO_GRID) Indented One Level Below H2 */}
                                 {isH2Expanded && (
                                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingLeft: '10px', borderLeft: '2px solid #bfdbfe', marginLeft: '6px' }}>
-                                    {h2Group.elements.map(elGroup => renderElementGroupNode(elGroup, h2Key))}
+                                    {h2Group.elements.map((elGroup, elIdx) => renderElementGroupNode(elGroup, h2Key, elIdx))}
                                   </div>
                                 )}
                               </div>
@@ -2939,12 +3101,13 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                           })}
 
                           {/* Direct Elements under H1 (when H1 has no intermediate H2 section) */}
-                          {h1Group.directElements.map(elGroup => renderElementGroupNode(elGroup, h1Key))}
+                          {h1Group.directElements.map((elGroup, elIdx) => renderElementGroupNode(elGroup, h1Key, elIdx))}
                         </div>
                       )}
                     </div>
                   );
-                })
+                })}
+                </>
               )}
                   </div>
                 </div>

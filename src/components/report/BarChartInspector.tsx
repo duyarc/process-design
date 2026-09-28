@@ -116,33 +116,19 @@ export const BarChartInspector: React.FC<BarChartInspectorProps> = ({
     const payload = parseDropPayload(e);
     if (!payload) return;
 
-    if (payload.kind === 'group' && payload.children && payload.children.length > 0) {
-      const added: ChartComponentItem[] = payload.children.map((ch, idx) => ({
-        id: `cr_${Date.now()}_${idx}`,
-        fieldId: ch.fieldId,
-        title: ch.title,
-        score: ch.score,
-        weight: ch.weight
-      }));
-      onUpdateChart({
-        ...chart,
-        components: [...chart.components, ...added]
-      });
-    } else {
-      onUpdateChart({
-        ...chart,
-        components: [
-          ...chart.components,
-          {
-            id: `cr_${Date.now()}`,
-            fieldId: payload.id,
-            title: payload.title,
-            score: payload.score,
-            weight: payload.weight
-          }
-        ]
-      });
-    }
+    onUpdateChart({
+      ...chart,
+      components: [
+        ...chart.components,
+        {
+          id: `cr_${Date.now()}`,
+          fieldId: payload.id,
+          title: payload.title,
+          score: payload.score,
+          weight: payload.weight
+        }
+      ]
+    });
   };
 
   const handleUpdateRange = (

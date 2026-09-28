@@ -40,26 +40,27 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
-### 2026-09-28 — Report Builder: Khôi phục hiển thị `sampleSubmission` trên `tab Form` & Dọn bỏ Pre-populate cứng trong `handleAddBlock` (`FormReferenceCanvas`, `ReportBuilder`)
+### 2026-09-28 — Report Builder: Vẽ Biểu đồ từ Toàn bộ `H1` (Cách A), Kéo thả `H1` Đơn lẻ & Cơ chế Accordion Toàn Sidebar (`ReportBuilder`, `RadarChartInspector`, `BarChartInspector`, `FormReferenceCanvas`)
 
-**Scope:** 4 files (`src/components/report/FormReferenceCanvas.tsx`, `src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`, `SESSION_LOG.md`)
+**Scope:** 6 files (`src/components/ReportBuilder.tsx`, `src/components/report/RadarChartInspector.tsx`, `src/components/report/BarChartInspector.tsx`, `src/components/report/FormReferenceCanvas.tsx`, `DESIGN_REPORT_BUILDER.md`, `SESSION_LOG.md`)
 
 | Chỉ số | Giá trị |
 |---|---|
-| Thời gian tổng (Request → Push) | ~3.0 min |
-| Thời gian lập plan (Request → Proceed) | ~1.5 min |
-| Thời gian thực thi (Proceed → Push) | ~1.5 min |
-| Số file nguồn chỉnh sửa | 2 (`FormReferenceCanvas.tsx`, `ReportBuilder.tsx`) |
-| Tổng lượt edit source | 7 (6 trên `FormReferenceCanvas.tsx` + 1 trên `ReportBuilder.tsx`) |
+| Thời gian tổng (Request → Push) | ~8.5 min |
+| Thời gian lập plan (Request → Proceed) | ~4.5 min |
+| Thời gian thực thi (Proceed → Push) | ~4.0 min |
+| Số file nguồn chỉnh sửa | 3 (`RadarChartInspector.tsx`, `BarChartInspector.tsx`, `ReportBuilder.tsx`) |
+| Tổng lượt edit source | 8 |
 | Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 2 (`tsc -b && vite build` 12.89s pass) |
+| Số lần build | 2 (`tsc --noEmit` + `npm run build` 13.25s pass) |
 | Lần build cuối thành công? | Có (100% pass ngay lần đầu) |
 | Số lỗi mới phát sinh | 0 |
 | Số lỗi cũ lặp lại | 0 |
 
 **Điểm nổi bật:**
-- **Tách bạch Cấu trúc Bố cục 1:1 và Dữ liệu Bản nộp (`sampleSubmission`):** Giữ nguyên toàn bộ bản sửa bố cục 1:1 của `form.layoutBlocks` (không merge `matchedReportBlock` vào `TITLE` và `INFO_GRID`, giữ `shouldStackVertically` cho Checkbox/Radio), đồng thời khôi phục đầy đủ `sampleSubmission` cùng các hàm `extractSubmissionValue`, `isLikertSelected`, `isOptionSelected`, `formatOptionDisplay` trong `renderFieldValue`, `TABLE`, và `CHECKLIST_TABLE`.
-- **Khởi tạo Khối Trống (`Blank Slate`) khi thêm `+ Info Grid` và `+ Table`:** Loại bỏ đoạn code legacy tự động nhét 4 trường `text`/`date`/`time` đầu tiên (`.slice(0, 4)`) vào `INFO_GRID` và các trường `number`/`radio`/`checkbox` vào `TABLE` trong `handleAddBlock` (`ReportBuilder.tsx`), giúp mọi khối mới thêm vào luôn khởi tạo trống (`boundFieldIds = []`) với vùng thả `+ Thả vào đây`.
+- **Phân tách ngữ nghĩa 2 vùng thả (`Summary Row` vs `THÀNH PHẦN`) & Thẻ gốc Cách A (`{selectedForm.formTitle} [N H1]`):** Thả thẻ gốc biểu mẫu vào `Summary Row` sẽ tự động nạp toàn bộ các khối `H1` vào biểu đồ; thả một khối `H1` hoặc `H2` vào vùng `+ Kéo trường hoặc nhóm vào đây` sẽ thêm chính khối đó làm 1 trục đơn lẻ mà không bung cấp con.
+- **Accordion 2 tầng trên toàn bộ Left Sidebar:** Tự động thu gọn `FIELDS` khi mở `CHARTS` (và ngược lại), đồng thời áp dụng Accordion đa cấp (`H1` ↔ `H2` ↔ `Element`) bên trong cây `FIELDS` giúp người dùng tập trung tối đa vào nhánh đang thao tác.
+- **Khôi phục `sampleSubmission` trên `tab Form` & Khởi tạo trống `handleAddBlock`:** Giữ nguyên bố cục 1:1 với Form Builder đồng thời hiển thị dữ liệu bản nộp trên `FormReferenceCanvas.tsx` và dọn sạch pre-populate cứng khi thêm `INFO_GRID` / `TABLE`.
 
 ---
 
