@@ -407,6 +407,7 @@ export interface ReportFieldRuleOverride {
   customTargetRange?: string;           // Override target text
   customPassOptions?: string[];         // Override pass radio/checkbox values
   weight?: number;                      // Scoring weight (% within parent group H2)
+  isWeightManual?: boolean;             // True when weight was explicitly set/locked by user
   isKnockout?: boolean;                 // Critical knock-out condition
   optionScores?: Record<string, number>; // Map option value/label -> score
   fixedScore?: number;                  // Passing score for numeric/spec fields
@@ -474,6 +475,7 @@ export interface ReportBlockConfig {
   tableColumns?: { id: string; label: string; width?: string; align?: 'left' | 'center' | 'right' }[];
   borderStyle?: 'grid' | 'borderless' | 'horizontal_only';
   weight?: number;                      // Weight % within parent (H2 in H1, or H1 in Report)
+  isWeightManual?: boolean;             // True when weight was explicitly set/locked by user
   isKnockout?: boolean;                 // Knockout condition at H2 / H1 level
   hiddenInReport?: boolean;             // True if auto-created in Form tab for scoring/weight properties only
 }

@@ -301,7 +301,50 @@ export function computeFieldScoreAndPass(
 }
 
 /**
- * Pure Utility: Computes Combined Score for a Sub-section H2 from its child fields.
+ * Distributes an integer total (e.g. 100 or remaining %) across `count` items using Largest Remainder method.
+ */
+export function distributeIntegerTotal(total: number, count: number): number[] {
+  if (count <= 0) return [];
+  const safeTotal = Math.max(0, Math.round(total));
+  const base = Math.floor(safeTotal / count);
+  const remainder = safeTotal - base * count;
+  return Array.from({ length: count }, (_, idx) => (idx < remainder ? base + 1 : base));
+}
+
+/**
+ * Smart Zero-Sum Auto-Balance Weight Resolver:
+ * - Items with `isWeightManual === true` (or legacy `isWeightManual === undefined && weight > 0`) are locked at their stored `weight`.
+ * - Unlocked (`AUTO`) items share `Math.max(0, 100 - lockedSum)` equally via `distributeIntegerTotal`.
+ */
+export function resolveSmartGroupWeights(
+  items: { weight?: number; isWeightManual?: boolean }[]
+): { weights: number[]; isManualFlags: boolean[] } {
+  if (!items || items.length === 0) {
+    return { weights: [], isManualFlags: [] };
+  }
+
+  const isManualFlags = items.map(it =>
+    it.isWeightManual === true || (it.isWeightManual === undefined && (it.weight || 0) > 0)
+  );
+
+  const lockedSum = items.reduce(
+    (sum, it, idx) => (isManualFlags[idx] ? sum + Math.max(0, Number(it.weight) || 0) : sum),
+    0
+  );
+  const autoCount = isManualFlags.filter(flag => !flag).length;
+  const remaining = Math.max(0, 100 - lockedSum);
+  const autoPool = distributeIntegerTotal(remaining, autoCount);
+
+  let autoPtr = 0;
+  const weights = items.map((it, idx) =>
+    isManualFlags[idx] ? Math.max(0, Math.round(Number(it.weight) || 0)) : autoPool[autoPtr++]
+  );
+
+  return { weights, isManualFlags };
+}
+
+/**
+ * Pure Utility: Computes Combined Score for a Sub-section H2 / Table from its child fields.
  * Formula: Combined Score = sum(Score_i * (Weight_i / 100))
  */
 export function computeH2CombinedScore(
@@ -313,22 +356,42 @@ export function computeH2CombinedScore(
   isPass: boolean;
   hasKnockoutFailed: boolean;
   totalWeight: number;
+  effectiveWeights: Record<string, number>;
+  manualFlags: Record<string, boolean>;
 } {
   if (!childFields || childFields.length === 0) {
-    return { combinedScore: 0, isPass: true, hasKnockoutFailed: false, totalWeight: 0 };
+    return {
+      combinedScore: 0,
+      isPass: true,
+      hasKnockoutFailed: false,
+      totalWeight: 0,
+      effectiveWeights: {},
+      manualFlags: {}
+    };
   }
+
+  const { weights, isManualFlags } = resolveSmartGroupWeights(
+    childFields.map(f => ({
+      weight: ruleOverrides?.[f.id]?.weight,
+      isWeightManual: ruleOverrides?.[f.id]?.isWeightManual
+    }))
+  );
 
   let totalWeightedScore = 0;
   let totalWeight = 0;
   let hasFail = false;
   let hasKnockoutFailed = false;
+  const effectiveWeights: Record<string, number> = {};
+  const manualFlags: Record<string, boolean> = {};
 
-  childFields.forEach(field => {
+  childFields.forEach((field, idx) => {
     const override = ruleOverrides?.[field.id];
-    const weight = override?.weight !== undefined ? override.weight : 0;
+    const weight = weights[idx] ?? 0;
+    effectiveWeights[field.id] = weight;
+    manualFlags[field.id] = isManualFlags[idx] ?? false;
+
     const isKnockout = Boolean(override?.isKnockout);
     const evalRes = evaluations[field.id];
-
     const score = evalRes?.score !== undefined ? evalRes.score : 0;
 
     totalWeight += weight;
@@ -342,7 +405,7 @@ export function computeH2CombinedScore(
     }
   });
 
-  // If weights don't sum to 100% (e.g. partial setup), normalize proportionally
+  // If weights don't sum to 100% (e.g. all items manually set to custom total), normalize proportionally
   let finalScore = totalWeightedScore;
   if (totalWeight > 0 && totalWeight !== 100) {
     finalScore = (totalWeightedScore / totalWeight) * 100;
@@ -356,7 +419,9 @@ export function computeH2CombinedScore(
     combinedScore: roundedScore,
     isPass,
     hasKnockoutFailed,
-    totalWeight
+    totalWeight,
+    effectiveWeights,
+    manualFlags
   };
 }
 
@@ -453,7 +518,15 @@ export function summarizeH1ChildGroups(
   sampleSubmissionData?: any,
   templateRuleOverrides?: Record<string, ReportFieldRuleOverride>
 ): {
-  childH2Summary: { h2Title: string; score: number; isPass: boolean; weight: number; isElement?: boolean; blockId?: string }[];
+  childH2Summary: {
+    h2Title: string;
+    score: number;
+    isPass: boolean;
+    weight: number;
+    isWeightManual?: boolean;
+    isElement?: boolean;
+    blockId?: string;
+  }[];
   h1CombinedScore: { combinedScore: number; isPass: boolean; hasKnockoutFailed: boolean; totalWeight: number };
 } {
   const cleanH1 = (h1Title || '').trim().toLowerCase();
@@ -463,9 +536,8 @@ export function summarizeH1ChildGroups(
   }
 
   // Case 1: H1 has real H2 sub-sections (titleFormat === 'H2')
-  // Roll-up chain: Field (L4) -> Table/Element (L3) via summarizeH2ChildElements -> H2 (L2) -> H1 (L1)
   if (matchingH1Group.h2Groups.length > 0) {
-    const childH2Summary = matchingH1Group.h2Groups.map(h2Group => {
+    const rawItems = matchingH1Group.h2Groups.map(h2Group => {
       const cleanTitle = h2Group.h2.trim().toLowerCase();
       const h2SectionBlock = layoutBlocks.find(b =>
         b.type === 'SECTION_LABEL' &&
@@ -485,20 +557,36 @@ export function summarizeH1ChildGroups(
         h2Title: h2Group.h2,
         score: h2CombinedScore.combinedScore,
         isPass: h2CombinedScore.isPass,
-        weight: h2SectionBlock?.weight ?? 0,
+        storedWeight: h2SectionBlock?.weight,
+        isWeightManual: h2SectionBlock?.isWeightManual,
         isKnockout: h2SectionBlock?.isKnockout ?? false,
         isElement: false,
         blockId: h2SectionBlock?.id
       };
     });
 
+    const { weights, isManualFlags } = resolveSmartGroupWeights(
+      rawItems.map(r => ({ weight: r.storedWeight, isWeightManual: r.isWeightManual }))
+    );
+
+    const childH2Summary = rawItems.map((r, idx) => ({
+      h2Title: r.h2Title,
+      score: r.score,
+      isPass: r.isPass,
+      weight: weights[idx] ?? 0,
+      isWeightManual: isManualFlags[idx] ?? false,
+      isKnockout: r.isKnockout,
+      isElement: r.isElement,
+      blockId: r.blockId
+    }));
+
     const h1CombinedScore = computeH1CombinedScore(childH2Summary);
     return { childH2Summary, h1CombinedScore };
   }
 
-  // Case 2: H1 has no H2 sub-sections -> roll up directly from child Element / Table blocks
+  // Case 2: H1 has no H2 sub-sections -> Skip-Level roll up directly from child Element / Table blocks
   if (matchingH1Group.directElements && matchingH1Group.directElements.length > 0) {
-    const childH2Summary = matchingH1Group.directElements.map(elGroup => {
+    const rawItems = matchingH1Group.directElements.map(elGroup => {
       const cleanTitle = elGroup.elementTitle.trim().toLowerCase();
       const matchingBlock = layoutBlocks.find(b =>
         b.type === 'TABLE' && (
@@ -528,12 +616,28 @@ export function summarizeH1ChildGroups(
         h2Title: elGroup.elementTitle,
         score: elRes.combinedScore,
         isPass: elRes.isPass,
-        weight: matchingBlock?.weight ?? 0,
+        storedWeight: matchingBlock?.weight,
+        isWeightManual: matchingBlock?.isWeightManual,
         isKnockout: matchingBlock?.isKnockout ?? false,
         isElement: true,
         blockId: matchingBlock?.id
       };
     });
+
+    const { weights, isManualFlags } = resolveSmartGroupWeights(
+      rawItems.map(r => ({ weight: r.storedWeight, isWeightManual: r.isWeightManual }))
+    );
+
+    const childH2Summary = rawItems.map((r, idx) => ({
+      h2Title: r.h2Title,
+      score: r.score,
+      isPass: r.isPass,
+      weight: weights[idx] ?? 0,
+      isWeightManual: isManualFlags[idx] ?? false,
+      isKnockout: r.isKnockout,
+      isElement: r.isElement,
+      blockId: r.blockId
+    }));
 
     const h1CombinedScore = computeH1CombinedScore(childH2Summary);
     return { childH2Summary, h1CombinedScore };
@@ -552,7 +656,15 @@ export function summarizeH2ChildElements(
   sampleSubmissionData?: any,
   templateRuleOverrides?: Record<string, ReportFieldRuleOverride>
 ): {
-  childElementsSummary: { elementTitle: string; fieldsCount: number; score: number; isPass: boolean; weight: number; blockId?: string }[];
+  childElementsSummary: {
+    elementTitle: string;
+    fieldsCount: number;
+    score: number;
+    isPass: boolean;
+    weight: number;
+    isWeightManual?: boolean;
+    blockId?: string;
+  }[];
   h2CombinedScore: { combinedScore: number; isPass: boolean; hasKnockoutFailed: boolean; totalWeight: number };
 } {
   const cleanH2 = (h2Title || '').trim().toLowerCase();
@@ -573,7 +685,7 @@ export function summarizeH2ChildElements(
     };
   }
 
-  const childElementsSummary = targetH2Group.elements.map(elGroup => {
+  const rawItems = targetH2Group.elements.map(elGroup => {
     const cleanElTitle = elGroup.elementTitle.trim().toLowerCase();
     const matchingBlock = layoutBlocks.find(b =>
       b.type === 'TABLE' && (
@@ -604,14 +716,149 @@ export function summarizeH2ChildElements(
       fieldsCount: elGroup.fields.length,
       score: elRes.combinedScore,
       isPass: elRes.isPass,
-      weight: matchingBlock?.weight ?? 0,
+      storedWeight: matchingBlock?.weight,
+      isWeightManual: matchingBlock?.isWeightManual,
       isKnockout: matchingBlock?.isKnockout ?? false,
       blockId: matchingBlock?.id
     };
   });
 
+  const { weights, isManualFlags } = resolveSmartGroupWeights(
+    rawItems.map(r => ({ weight: r.storedWeight, isWeightManual: r.isWeightManual }))
+  );
+
+  const childElementsSummary = rawItems.map((r, idx) => ({
+    elementTitle: r.elementTitle,
+    fieldsCount: r.fieldsCount,
+    score: r.score,
+    isPass: r.isPass,
+    weight: weights[idx] ?? 0,
+    isWeightManual: isManualFlags[idx] ?? false,
+    isKnockout: r.isKnockout,
+    blockId: r.blockId
+  }));
+
   const h2CombinedScore = computeH1CombinedScore(childElementsSummary);
   return { childElementsSummary, h2CombinedScore };
 }
+
+/**
+ * Resolves the top-level sibling groups of a Form with Skip-Level / Tier Promotion support:
+ * - Scenario A (Standard H1s): When the form has multiple H1 groups (or a real H1), resolves H1 weights via `resolveSmartGroupWeights`.
+ * - Scenario B (Missing H1: `Form -> H2`): When the form has only the default virtual H1 bucket (`Thông tin chung`) containing H2s,
+ *   promotes the H2 sub-sections to be the top-level sibling group (`tierLabel: 'H2'`).
+ * - Scenario C (Missing H1 & H2: `Form -> Bảng`): Promotes direct Element/Table blocks to top-level (`tierLabel: 'Bảng'`).
+ */
+export function resolveFormTopLevelGroups(
+  hierarchyGroups: FieldHierarchyGroup[],
+  layoutBlocks: ReportBlockConfig[],
+  sampleSubmissionData?: any,
+  templateRuleOverrides?: Record<string, ReportFieldRuleOverride>
+): {
+  tierLabel: 'H1' | 'H2' | 'Bảng';
+  items: {
+    fieldId: string;
+    title: string;
+    score: number;
+    isPass: boolean;
+    weight: number;
+    isWeightManual: boolean;
+    blockId?: string;
+  }[];
+  formCombinedScore: { combinedScore: number; isPass: boolean; hasKnockoutFailed: boolean; totalWeight: number };
+} {
+  if (!hierarchyGroups || hierarchyGroups.length === 0) {
+    return {
+      tierLabel: 'H1',
+      items: [],
+      formCombinedScore: { combinedScore: 0, isPass: true, hasKnockoutFailed: false, totalWeight: 0 }
+    };
+  }
+
+  const hasExplicitH1Block = layoutBlocks.some(
+    b => b.type === 'SECTION_LABEL' && (b.titleFormat === 'H1' || !b.titleFormat) && b.title.trim().toLowerCase() !== 'thông tin chung'
+  );
+  const isSingleVirtualH1 =
+    hierarchyGroups.length === 1 &&
+    hierarchyGroups[0].h1.trim().toLowerCase() === 'thông tin chung' &&
+    !hasExplicitH1Block;
+
+  // Scenario B (`Form -> H2`) or Scenario C (`Form -> Bảng`) when H1 is omitted
+  if (isSingleVirtualH1) {
+    const virtualH1 = hierarchyGroups[0];
+    const { childH2Summary, h1CombinedScore } = summarizeH1ChildGroups(
+      virtualH1.h1,
+      hierarchyGroups,
+      layoutBlocks,
+      sampleSubmissionData,
+      templateRuleOverrides
+    );
+    const tierLabel: 'H2' | 'Bảng' = virtualH1.h2Groups.length > 0 ? 'H2' : 'Bảng';
+    return {
+      tierLabel,
+      items: childH2Summary.map(c => ({
+        fieldId: c.blockId || c.h2Title,
+        title: c.h2Title,
+        score: c.score,
+        isPass: c.isPass,
+        weight: c.weight,
+        isWeightManual: Boolean(c.isWeightManual),
+        blockId: c.blockId
+      })),
+      formCombinedScore: h1CombinedScore
+    };
+  }
+
+  // Scenario A: Standard H1 pillars at the top of the Form
+  const rawH1s = hierarchyGroups.map(g => {
+    const cleanTitle = g.h1.trim().toLowerCase();
+    const h1Block = layoutBlocks.find(
+      b =>
+        b.type === 'SECTION_LABEL' &&
+        (b.titleFormat === 'H1' || !b.titleFormat) &&
+        (b.title || '').trim().toLowerCase() === cleanTitle
+    );
+    const { h1CombinedScore } = summarizeH1ChildGroups(
+      g.h1,
+      hierarchyGroups,
+      layoutBlocks,
+      sampleSubmissionData,
+      templateRuleOverrides
+    );
+    return {
+      fieldId: h1Block?.id || g.h1,
+      title: g.h1,
+      score: h1CombinedScore.combinedScore,
+      isPass: h1CombinedScore.isPass,
+      storedWeight: h1Block?.weight,
+      isWeightManual: h1Block?.isWeightManual,
+      isKnockout: h1Block?.isKnockout ?? false,
+      blockId: h1Block?.id
+    };
+  });
+
+  const { weights, isManualFlags } = resolveSmartGroupWeights(
+    rawH1s.map(r => ({ weight: r.storedWeight, isWeightManual: r.isWeightManual }))
+  );
+
+  const items = rawH1s.map((r, idx) => ({
+    fieldId: r.fieldId,
+    title: r.title,
+    score: r.score,
+    isPass: r.isPass,
+    weight: weights[idx] ?? 0,
+    isWeightManual: isManualFlags[idx] ?? false,
+    isKnockout: r.isKnockout,
+    blockId: r.blockId
+  }));
+
+  const formCombinedScore = computeH1CombinedScore(items);
+  return {
+    tierLabel: 'H1',
+    items,
+    formCombinedScore
+  };
+}
+
 
 

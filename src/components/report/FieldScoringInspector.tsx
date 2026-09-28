@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, CheckSquare, Square, Circle, CircleDot, Plus } from 'lucide-react';
+import { Check, CheckSquare, Square, Circle, CircleDot, Plus, RotateCcw } from 'lucide-react';
 import type { FormFieldISO, ReportFieldRuleOverride, Submission, NumberRangeSpec } from '../../types';
 import { computeFieldScoreAndPass } from '../../utils/reportScoring';
 import { isOtherValue } from '../../utils/formUtils';
@@ -9,6 +9,7 @@ interface FieldScoringInspectorProps {
   selectedField: FormFieldISO;
   sampleSubmission: Submission | null;
   ruleOverride?: ReportFieldRuleOverride;
+  effectiveWeight?: number;
   parentGroupTitle: string;
   onUpdateRule: (override: Partial<ReportFieldRuleOverride>) => void;
   isLocked?: boolean;
@@ -18,6 +19,7 @@ export const FieldScoringInspector: React.FC<FieldScoringInspectorProps> = ({
   selectedField,
   sampleSubmission,
   ruleOverride,
+  effectiveWeight,
   parentGroupTitle,
   onUpdateRule,
   isLocked = false
@@ -887,56 +889,94 @@ export const FieldScoringInspector: React.FC<FieldScoringInspectorProps> = ({
         </div>
 
         {/* Row 2: Weight [ xx ] % of {section} */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '6px',
-          paddingTop: '6px',
-          borderTop: '1px solid #e2e8f0'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155' }}>
-              Weight:
-            </span>
-            <SmartNumberInput
-              disabled={isLocked}
-              value={ruleOverride?.weight !== undefined ? ruleOverride.weight : 0}
-              min={0}
-              max={100}
-              onChange={(val) => onUpdateRule({ weight: val })}
-              style={{ width: '46px' }}
-            />
-            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b' }}>%</span>
-          </div>
+        {(() => {
+          const isManualWeight =
+            ruleOverride?.isWeightManual === true ||
+            (ruleOverride?.isWeightManual === undefined && (ruleOverride?.weight || 0) > 0);
+          const displayedWeight =
+            isManualWeight && ruleOverride?.weight !== undefined
+              ? ruleOverride.weight
+              : effectiveWeight !== undefined
+              ? effectiveWeight
+              : (ruleOverride?.weight ?? 0);
 
-          <div
-            style={{
+          return (
+            <div style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '4px',
-              minWidth: 0,
-              fontSize: '0.7rem',
-              color: '#475569',
-              background: '#ffffff',
-              border: '1px solid #e2e8f0',
-              borderRadius: '4px',
-              padding: '2px 6px'
-            }}
-            title={parentGroupTitle || 'Nhóm câu hỏi'}
-          >
-            <span style={{ color: '#94a3b8', fontWeight: 600, flexShrink: 0 }}>of</span>
-            <span style={{
-              fontWeight: 700,
-              color: 'var(--primary)',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap'
+              justifyContent: 'space-between',
+              gap: '6px',
+              paddingTop: '6px',
+              borderTop: '1px solid #e2e8f0'
             }}>
-              {parentGroupTitle || 'Nhóm câu hỏi'}
-            </span>
-          </div>
-        </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#334155' }}>
+                  Weight:
+                </span>
+                {isManualWeight && !isLocked && (
+                  <button
+                    type="button"
+                    onClick={() => onUpdateRule({ weight: undefined, isWeightManual: false })}
+                    style={{
+                      border: 'none',
+                      background: 'none',
+                      color: 'var(--primary)',
+                      cursor: 'pointer',
+                      padding: '1px',
+                      display: 'inline-flex',
+                      alignItems: 'center'
+                    }}
+                    title="Trả mục này về tự động chia đều"
+                  >
+                    <RotateCcw size={11} />
+                  </button>
+                )}
+                <SmartNumberInput
+                  disabled={isLocked}
+                  value={displayedWeight}
+                  min={0}
+                  max={100}
+                  onChange={(val) => onUpdateRule({ weight: val, isWeightManual: true })}
+                  style={{
+                    width: '46px',
+                    border: isManualWeight ? '1.5px solid var(--primary)' : undefined,
+                    background: isManualWeight ? '#f0fdfa' : undefined,
+                    color: isManualWeight ? '#0f766e' : undefined,
+                    fontWeight: isManualWeight ? 700 : undefined
+                  }}
+                />
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748b' }}>%</span>
+              </div>
+
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  minWidth: 0,
+                  fontSize: '0.7rem',
+                  color: '#475569',
+                  background: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '4px',
+                  padding: '2px 6px'
+                }}
+                title={parentGroupTitle || 'Nhóm câu hỏi'}
+              >
+                <span style={{ color: '#94a3b8', fontWeight: 600, flexShrink: 0 }}>of</span>
+                <span style={{
+                  fontWeight: 700,
+                  color: 'var(--primary)',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}>
+                  {parentGroupTitle || 'Nhóm câu hỏi'}
+                </span>
+              </div>
+            </div>
+          );
+        })()}
       </div>
     </div>
   );

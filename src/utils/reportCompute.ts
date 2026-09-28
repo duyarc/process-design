@@ -7,8 +7,8 @@ import type {
   FieldEvaluationResult,
   ReportDataModel
 } from '../types';
-import { extractAllFormFields } from './tableFieldExtractor';
-import { computeFieldScoreAndPass } from './reportScoring';
+import { extractAllFormFields, groupFieldsByHierarchy } from './tableFieldExtractor';
+import { computeFieldScoreAndPass, resolveFormTopLevelGroups } from './reportScoring';
 
 /**
  * Evaluates an individual form field's submitted value against specifications and scoring rules.
@@ -72,8 +72,6 @@ export function computeRecordReport(
   let passCount = 0;
   let failCount = 0;
   let knockoutFailed = false;
-  let totalWeightedScore = 0;
-  let totalWeight = 0;
 
   const extractValue = (fid: string): any => {
     if (!submission.formData) return undefined;
@@ -101,22 +99,28 @@ export function computeRecordReport(
         knockoutFailed = true;
       }
     }
-
-    if (evalResult.weight && evalResult.weight > 0 && evalResult.score !== undefined) {
-      totalWeight += evalResult.weight;
-      totalWeightedScore += evalResult.score * (evalResult.weight / 100);
-    }
   });
 
   const scorePercentage = totalEvaluated > 0
     ? Math.round((passCount / totalEvaluated) * 100)
     : 100;
 
-  const overallCombinedScore = totalWeight > 0
-    ? Math.round((totalWeightedScore / totalWeight) * 1000) / 10
-    : (totalEvaluated > 0 ? Math.round((passCount / totalEvaluated) * 50) / 10 : 5);
+  const hierarchyGroups = groupFieldsByHierarchy(allFields);
+  const { formCombinedScore } = resolveFormTopLevelGroups(
+    hierarchyGroups,
+    reportTemplate.layoutBlocks || [],
+    submission.formData,
+    ruleOverrides
+  );
 
-  const overallStatus: 'PASS' | 'FAIL' = (failCount > 0 || knockoutFailed) ? 'FAIL' : 'PASS';
+  const overallCombinedScore =
+    formCombinedScore.totalWeight > 0
+      ? formCombinedScore.combinedScore
+      : totalEvaluated > 0
+      ? Math.round((passCount / totalEvaluated) * 50) / 10
+      : 5;
+
+  const overallStatus: 'PASS' | 'FAIL' = (failCount > 0 || knockoutFailed || formCombinedScore.hasKnockoutFailed) ? 'FAIL' : 'PASS';
 
   return {
     reportId: reportTemplate.reportId,

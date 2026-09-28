@@ -40,6 +40,30 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-28 — Report Builder: Cơ chế Trọng số Tự động Cân bằng 4 Tầng (`Zero-Sum Auto-Balance`), Khóa Thủ công (`isWeightManual`), Nút Reset `↺` & Đôn Cấp Khuyết (`Skip-Level Promotion`) (`reportScoring`, `reportCompute`, `FieldScoringInspector`, `ReportBuilder`, `types`)
+
+**Scope:** 7 files (`src/types.ts`, `src/utils/reportScoring.ts`, `src/utils/reportCompute.ts`, `src/components/report/FieldScoringInspector.tsx`, `src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`, `SESSION_LOG.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | ~26.5 min |
+| Thời gian lập plan (Request → Proceed) | ~16.8 min |
+| Thời gian thực thi (Proceed → Push) | ~9.7 min |
+| Số file nguồn chỉnh sửa | 5 (`types.ts`, `reportScoring.ts`, `reportCompute.ts`, `FieldScoringInspector.tsx`, `ReportBuilder.tsx`) |
+| Tổng lượt edit source | 20 |
+| Lượt edit sửa lỗi (rework) | 0 (`tsc --noEmit` pass 100% ở mọi bước) |
+| Số lần build | 6 (`tsc --noEmit` x5 + `npm run build` 8.37s pass) |
+| Lần build cuối thành công? | Có (100% pass ngay lần đầu) |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- **Tự động cân bằng trọng số thông minh 4 tầng (`resolveSmartGroupWeights` & `distributeIntegerTotal`):** Toàn bộ 4 cấp (`Form -> H1 -> H2 -> Table -> Field`) mặc định chia đều `100%` cho các phần tử `AUTO` (`!isWeightManual`). Khi người dùng chỉnh sửa tay bất kỳ phần tử nào (kể cả nhập `0%`), phần tử đó tự động gắn cờ `isWeightManual: true` (khóa cứng, không bao giờ bị ghi đè), và phần dư `Math.max(0, 100 - sum(manualWeights))` tự động chia đều cho các phần tử `AUTO` còn lại trong cùng nhóm.
+- **Tự động Đôn Cấp khi khuyết tầng (`Skip-Level / Tier Promotion` trong `resolveFormTopLevelGroups` & `summarizeH1ChildGroups`):** Xử lý trọn vẹn biểu mẫu khuyết `H1` (`Form -> H2` với tổng `H2 = 100%`), khuyết cả `H1` & `H2` (`Form -> Bảng` với tổng `Bảng = 100%`), hoặc `H1` khuyết `H2` (`H1 -> Bảng`). Thẻ kéo ở đầu cây `FIELDS` tự động đổi nhãn (`[N H1]` / `[K H2]` / `[M Bảng]`).
+- **Nhận diện trực quan không nở dòng (`Zero Layout Shift`) & Nút `↺` 1-Click Reset:** Ô `<SmartNumberInput>` đã chỉnh tay (`isWeightManual === true`) đổi viền Teal đậm và nền `#f0fdfa` trên đúng kích thước `32px x 22px`; tiêu đề cột `Weight` và thẻ `Weight (%)` đơn lẻ hiển thị nút `↺` (`RotateCcw`) cho phép khôi phục về chia đều tự động chỉ với 1 cú click.
+
+---
+
 ### 2026-09-28 — Report Builder: Sửa lỗi cắt chữ trục Radar Chart (`wrapSvgAxisLabel`) & Gỡ Title hardcode `"Thông tin chung"` của `INFO_GRID` (`reportChartUtils`, `RadarChartBlock`, `ReportBuilder`, `PrintReport`)
 
 **Scope:** 6 files (`src/utils/reportChartUtils.ts`, `src/components/report/RadarChartBlock.tsx`, `src/components/ReportBuilder.tsx`, `src/components/print/PrintReport.tsx`, `DESIGN_REPORT_BUILDER.md`, `SESSION_LOG.md`)
@@ -312,29 +336,6 @@ Entry mới nhất ở trên cùng. Tối đa 10 entries.
 - **Hỗ trợ toàn diện Tùy chọn Khác (`__other__`) cho Checkbox:** Trong `FieldScoringInspector.tsx` và `reportScoring.ts`, bổ sung nhận diện `isOtherOpt` (`__other__` / `isOther`) kết hợp `isOtherValue` cho checkbox, giúp highlight teal các mục đã chọn trong phiếu mẫu và tính điểm chính xác tuyệt đối.
 
 ---
-
-### 2026-09-25 — Report Builder: Strict Block Type Scoping for Field Rule Overrides & Table Weight Sync
-
-**Scope:** 3 files (`src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`, `SESSION_LOG.md`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian tổng (Request → Push) | ~11 min |
-| Thời gian lập plan (Request → Proceed) | ~4.5 min |
-| Thời gian thực thi (Proceed → Push) | ~6.5 min |
-| Số file nguồn chỉnh sửa | 1 (`ReportBuilder.tsx`) |
-| Tổng lượt edit source | 4 |
-| Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 2 (`npx tsc` pass + `tsc -b && vite build` 11.00s pass) |
-| Lần build cuối thành công? | Có (100% pass) |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Điểm nổi bật:**
-- **Triệt tiêu hoàn toàn rò rỉ override sang SECTION_LABEL:** Áp dụng Strict Block Type Scoping trong `updateRuleOverride`. Khi trường bắt nguồn từ khối `TABLE`, hàm ép buộc khối nhận `ruleOverrides` trong `template.layoutBlocks` phải có `b.type === 'TABLE'`, xóa bỏ hoàn toàn kịch bản `find()` bắt nhầm khối `SECTION_LABEL` có cùng tên nằm phía trước.
-- **Auto-Initialization trọn bộ trường:** Khi tự động tạo khối `TABLE` báo cáo mới, nạp đầy đủ toàn bộ trường của bảng nguồn (`extractTableFields`) vào `boundFieldIds` thay vì chỉ 1 trường đơn lẻ.
-- **Tự động dọn dẹp & di chuyển dữ liệu rò rỉ:** Tự động phát hiện và thanh trừng sạch sẽ các `fieldId` và `ruleOverrides` bị lưu lạc trên `SECTION_LABEL` sang khối `TABLE` đích.
-- **Đồng bộ hai chiều Cell ⇄ Table Properties:** Trọng số chỉnh sửa từ ô cell (`FIELD PROPERTIES`) và bảng tổng hợp trong `Table Properties` liên kết chặt chẽ vào đúng 1 khối `TABLE` duy nhất.
 
 
 

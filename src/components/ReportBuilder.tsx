@@ -23,7 +23,14 @@ import { BarChartBlock } from './report/BarChartBlock';
 import { RadarChartInspector, type ChartDragSourcePayload } from './report/RadarChartInspector';
 import { BarChartInspector } from './report/BarChartInspector';
 import { createDefaultRadarChartConfig, createDefaultBarChartConfig, calculateWeightedChartScore } from '../utils/reportChartUtils';
-import { extractParentGroupTitle, computeH2CombinedScore, summarizeH1ChildGroups, summarizeH2ChildElements } from '../utils/reportScoring';
+import {
+  extractParentGroupTitle,
+  computeH2CombinedScore,
+  summarizeH1ChildGroups,
+  summarizeH2ChildElements,
+  resolveFormTopLevelGroups,
+  resolveSmartGroupWeights
+} from '../utils/reportScoring';
 import { formatFormVersion } from '../types';
 import { SmartNumberInput } from './common/SmartNumberInput';
 import ConfirmModal from './common/ConfirmModal';
@@ -1475,7 +1482,8 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
           type: 'SECTION_LABEL',
           title: h1Title,
           titleFormat: 'H1',
-          weight: 0,
+          weight: undefined,
+          isWeightManual: false,
           isKnockout: false,
           hiddenInReport: activeCanvasTab === 'form'
         };
@@ -1508,7 +1516,8 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
         type: 'SECTION_LABEL',
         title: h2Title,
         titleFormat: 'H2',
-        weight: 0,
+        weight: undefined,
+        isWeightManual: false,
         isKnockout: false,
         hiddenInReport: activeCanvasTab === 'form'
       };
@@ -1547,7 +1556,8 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
         type: 'TABLE',
         title: elementTitle,
         boundFieldIds: fieldIds,
-        weight: 0,
+        weight: undefined,
+        isWeightManual: false,
         isKnockout: false,
         hiddenInReport: activeCanvasTab === 'form'
       };
@@ -1564,7 +1574,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
       if (blockId) {
         return {
           ...prev,
-          layoutBlocks: prev.layoutBlocks.map(b => b.id === blockId ? { ...b, weight: newWeight } : b)
+          layoutBlocks: prev.layoutBlocks.map(b => b.id === blockId ? { ...b, weight: newWeight, isWeightManual: true } : b)
         };
       }
       const cleanTitle = elementTitle.trim().toLowerCase();
@@ -1574,7 +1584,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
       if (existingIdx >= 0) {
         return {
           ...prev,
-          layoutBlocks: prev.layoutBlocks.map((b, idx) => idx === existingIdx ? { ...b, weight: newWeight } : b)
+          layoutBlocks: prev.layoutBlocks.map((b, idx) => idx === existingIdx ? { ...b, weight: newWeight, isWeightManual: true } : b)
         };
       }
       const allElements = hierarchyGroups.flatMap(h1 => h1.h2Groups).flatMap(h2 => h2.elements || []);
@@ -1584,6 +1594,8 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
         type: 'TABLE',
         title: elementTitle,
         weight: newWeight,
+        isWeightManual: true,
+        hiddenInReport: activeCanvasTab === 'form',
         boundFieldIds: matchedEl ? matchedEl.fields.map(f => f.id) : []
       };
       return {
@@ -1598,7 +1610,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
       if (blockId) {
         return {
           ...prev,
-          layoutBlocks: prev.layoutBlocks.map(b => b.id === blockId ? { ...b, weight: newWeight } : b)
+          layoutBlocks: prev.layoutBlocks.map(b => b.id === blockId ? { ...b, weight: newWeight, isWeightManual: true } : b)
         };
       }
       const cleanTitle = childTitle.trim().toLowerCase();
@@ -1612,7 +1624,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
       if (existingIdx >= 0) {
         return {
           ...prev,
-          layoutBlocks: prev.layoutBlocks.map((b, idx) => idx === existingIdx ? { ...b, weight: newWeight } : b)
+          layoutBlocks: prev.layoutBlocks.map((b, idx) => idx === existingIdx ? { ...b, weight: newWeight, isWeightManual: true } : b)
         };
       }
       if (isElement) {
@@ -1626,6 +1638,8 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
           type: 'TABLE',
           title: childTitle,
           weight: newWeight,
+          isWeightManual: true,
+          hiddenInReport: activeCanvasTab === 'form',
           boundFieldIds: matchedEl ? matchedEl.fields.map(f => f.id) : []
         };
         return {
@@ -1639,6 +1653,8 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
           title: childTitle,
           titleFormat: 'H2',
           weight: newWeight,
+          isWeightManual: true,
+          hiddenInReport: activeCanvasTab === 'form',
           isKnockout: false
         };
         return {
@@ -1646,6 +1662,78 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
           layoutBlocks: [...prev.layoutBlocks, newBlock]
         };
       }
+    });
+  };
+
+  const handleResetH1ChildrenWeights = (h1Title: string) => {
+    const cleanH1 = (h1Title || '').trim().toLowerCase();
+    const matchingH1 = hierarchyGroups.find(g => g.h1.trim().toLowerCase() === cleanH1);
+    if (!matchingH1) return;
+    const h2Titles = new Set(matchingH1.h2Groups.map(g => g.h2.trim().toLowerCase()));
+    const directElTitles = new Set((matchingH1.directElements || []).map(el => el.elementTitle.trim().toLowerCase()));
+
+    setTemplate(prev => ({
+      ...prev,
+      layoutBlocks: prev.layoutBlocks.map(b => {
+        const t = (b.title || '').trim().toLowerCase();
+        if (b.type === 'SECTION_LABEL' && b.titleFormat === 'H2' && h2Titles.has(t)) {
+          return { ...b, weight: undefined, isWeightManual: false };
+        }
+        if (b.type === 'TABLE' && directElTitles.has(t)) {
+          return { ...b, weight: undefined, isWeightManual: false };
+        }
+        return b;
+      })
+    }));
+  };
+
+  const handleResetH2ChildrenWeights = (h2Title: string) => {
+    const cleanH2 = (h2Title || '').trim().toLowerCase();
+    let targetH2: FieldHierarchyGroup['h2Groups'][number] | undefined;
+    for (const h1 of hierarchyGroups) {
+      const found = h1.h2Groups.find(g => g.h2.trim().toLowerCase() === cleanH2);
+      if (found) {
+        targetH2 = found;
+        break;
+      }
+    }
+    if (!targetH2) return;
+    const elTitles = new Set((targetH2.elements || []).map(el => el.elementTitle.trim().toLowerCase()));
+
+    setTemplate(prev => ({
+      ...prev,
+      layoutBlocks: prev.layoutBlocks.map(b => {
+        if (b.type === 'TABLE' && elTitles.has((b.title || '').trim().toLowerCase())) {
+          return { ...b, weight: undefined, isWeightManual: false };
+        }
+        return b;
+      })
+    }));
+  };
+
+  const handleResetTableFieldsWeights = (blockId: string, fieldIds: string[]) => {
+    const idSet = new Set(fieldIds);
+    setTemplate(prev => {
+      const nextTemplateOverrides = { ...(prev.ruleOverrides || {}) };
+      idSet.forEach(fid => {
+        if (nextTemplateOverrides[fid]) {
+          nextTemplateOverrides[fid] = { ...nextTemplateOverrides[fid], weight: undefined, isWeightManual: false };
+        }
+      });
+      return {
+        ...prev,
+        ruleOverrides: nextTemplateOverrides,
+        layoutBlocks: prev.layoutBlocks.map(b => {
+          if (b.id !== blockId && !b.boundFieldIds?.some(id => idSet.has(id))) return b;
+          const nextBlockOverrides = { ...(b.ruleOverrides || {}) };
+          idSet.forEach(fid => {
+            if (nextBlockOverrides[fid]) {
+              nextBlockOverrides[fid] = { ...nextBlockOverrides[fid], weight: undefined, isWeightManual: false };
+            }
+          });
+          return { ...b, ruleOverrides: nextBlockOverrides };
+        })
+      };
     });
   };
 
@@ -1733,7 +1821,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
   const handleSyncChartWeightToSource = (fieldOrGroupId: string, newWeight: number) => {
     const matchedField = allFormFields.find(f => f.id === fieldOrGroupId);
     if (matchedField) {
-      updateRuleOverride(fieldOrGroupId, { weight: newWeight });
+      updateRuleOverride(fieldOrGroupId, { weight: newWeight, isWeightManual: true });
       return;
     }
     setTemplate(prev => {
@@ -1746,7 +1834,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
           ...prev,
           layoutBlocks: prev.layoutBlocks.map(b =>
             b.id === fieldOrGroupId || (b.title || '').trim().toLowerCase() === cleanId
-              ? { ...b, weight: newWeight }
+              ? { ...b, weight: newWeight, isWeightManual: true }
               : b
           )
         };
@@ -1759,6 +1847,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
           title: matchedH1.h1,
           titleFormat: 'H1',
           weight: newWeight,
+          isWeightManual: true,
           isKnockout: false,
           hiddenInReport: true
         };
@@ -1772,6 +1861,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
           title: matchedH2.h2,
           titleFormat: 'H2',
           weight: newWeight,
+          isWeightManual: true,
           isKnockout: false,
           hiddenInReport: true
         };
@@ -2538,86 +2628,84 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                 </div>
               ) : (
                 <>
-                  {/* Option A: Form Root Draggable Card (All H1 Pillars) */}
-                  <div
-                    draggable={true}
-                    onDragStart={e => {
-                      const equalWeight = hierarchyGroups.length > 0 ? Math.round((100 / hierarchyGroups.length) * 10) / 10 : 100;
-                      const h1Children = hierarchyGroups.map(g => {
-                        const h1Block = template.layoutBlocks.find(
-                          b => b.type === 'SECTION_LABEL' && (b.titleFormat === 'H1' || !b.titleFormat) && (b.title || '').trim().toLowerCase() === g.h1.trim().toLowerCase()
-                        );
-                        const { h1CombinedScore } = summarizeH1ChildGroups(
-                          g.h1,
-                          hierarchyGroups,
-                          template.layoutBlocks,
-                          sampleSubmission?.formData,
-                          template.ruleOverrides
-                        );
-                        return {
-                          fieldId: h1Block?.id || g.h1,
-                          title: g.h1,
-                          score: h1CombinedScore.combinedScore ?? 3.0,
-                          weight: h1Block?.weight !== undefined && h1Block.weight > 0 ? h1Block.weight : equalWeight
-                        };
-                      });
-                      const formScore = calculateWeightedChartScore(
-                        h1Children.map((c, idx) => ({ id: `h1_${idx}`, fieldId: c.fieldId, title: c.title, score: c.score, weight: c.weight }))
-                      );
-                      const formRootTitle = selectedForm?.formTitle || selectedForm?.layoutBlocks?.find(b => b.type === 'TITLE')?.title || selectedForm?.formId || 'Toàn bộ Biểu mẫu';
-                      const rootPayload: ChartDragSourcePayload = {
-                        kind: 'group',
-                        id: selectedForm?.formId || 'form_root',
-                        title: formRootTitle,
-                        score: formScore.combinedScore ?? 3.0,
-                        weight: 100,
-                        children: h1Children
-                      };
-                      e.dataTransfer.setData('application/x-report-chart-source', JSON.stringify(rootPayload));
-                      e.dataTransfer.effectAllowed = 'copy';
-                    }}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '5px 8px',
-                      minHeight: '30px',
-                      background: '#f0fdfa',
-                      border: '1.5px solid #99f6e4',
-                      borderRadius: '6px',
-                      cursor: 'grab',
-                      userSelect: 'none',
-                      flexShrink: 0,
-                      gap: '6px'
-                    }}
-                    title="Kéo thả vào Hàng Tổng của Biểu đồ để nạp toàn bộ các mục H1"
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0, flex: 1 }}>
-                      <span style={{ color: 'var(--primary)', fontSize: '0.75rem', flexShrink: 0 }}>⠿</span>
-                      <FileText size={13} color="var(--primary)" style={{ flexShrink: 0 }} />
-                      <span style={{
-                        fontSize: '0.74rem',
-                        fontWeight: 800,
-                        color: '#0f766e',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap'
-                      }}>
-                        {selectedForm?.formTitle || selectedForm?.layoutBlocks?.find(b => b.type === 'TITLE')?.title || selectedForm?.formId || 'Toàn bộ Biểu mẫu'}
-                      </span>
-                    </div>
-                    <span style={{
-                      fontSize: '0.6rem',
-                      fontWeight: 800,
-                      padding: '1px 6px',
-                      borderRadius: '99px',
-                      background: 'var(--primary)',
-                      color: '#ffffff',
-                      flexShrink: 0
-                    }}>
-                      {hierarchyGroups.length} H1
-                    </span>
-                  </div>
+                  {/* Option A: Form Root Draggable Card (All Top-Level Pillars: H1 / H2 / Bảng) */}
+                  {(() => {
+                    const topLevelInfo = resolveFormTopLevelGroups(
+                      hierarchyGroups,
+                      template.layoutBlocks,
+                      sampleSubmission?.formData,
+                      template.ruleOverrides
+                    );
+                    const formRootTitle =
+                      selectedForm?.formTitle ||
+                      selectedForm?.layoutBlocks?.find(b => b.type === 'TITLE')?.title ||
+                      selectedForm?.formId ||
+                      'Toàn bộ Biểu mẫu';
+
+                    return (
+                      <div
+                        draggable={true}
+                        onDragStart={e => {
+                          const rootPayload: ChartDragSourcePayload = {
+                            kind: 'group',
+                            id: selectedForm?.formId || 'form_root',
+                            title: formRootTitle,
+                            score: topLevelInfo.formCombinedScore.combinedScore ?? 3.0,
+                            weight: 100,
+                            children: topLevelInfo.items.map(c => ({
+                              fieldId: c.fieldId,
+                              title: c.title,
+                              score: c.score,
+                              weight: c.weight
+                            }))
+                          };
+                          e.dataTransfer.setData('application/x-report-chart-source', JSON.stringify(rootPayload));
+                          e.dataTransfer.effectAllowed = 'copy';
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '5px 8px',
+                          minHeight: '30px',
+                          background: '#f0fdfa',
+                          border: '1.5px solid #99f6e4',
+                          borderRadius: '6px',
+                          cursor: 'grab',
+                          userSelect: 'none',
+                          flexShrink: 0,
+                          gap: '6px'
+                        }}
+                        title={`Kéo thả vào Hàng Tổng của Biểu đồ để nạp toàn bộ ${topLevelInfo.items.length} mục ${topLevelInfo.tierLabel}`}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0, flex: 1 }}>
+                          <span style={{ color: 'var(--primary)', fontSize: '0.75rem', flexShrink: 0 }}>⠿</span>
+                          <FileText size={13} color="var(--primary)" style={{ flexShrink: 0 }} />
+                          <span style={{
+                            fontSize: '0.74rem',
+                            fontWeight: 800,
+                            color: '#0f766e',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}>
+                            {formRootTitle}
+                          </span>
+                        </div>
+                        <span style={{
+                          fontSize: '0.6rem',
+                          fontWeight: 800,
+                          padding: '1px 6px',
+                          borderRadius: '99px',
+                          background: 'var(--primary)',
+                          color: '#ffffff',
+                          flexShrink: 0
+                        }}>
+                          {topLevelInfo.items.length} {topLevelInfo.tierLabel}
+                        </span>
+                      </div>
+                    );
+                  })()}
 
                   {hierarchyGroups.map((h1Group, h1Idx) => {
                   const h1Key = `h1_${h1Group.h1}`;
@@ -4200,19 +4288,38 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                     })()}
 
                     {/* 4. Unified Scoring & Value Matrix */}
-                    <FieldScoringInspector
-                      key={selectedField.id}
-                      selectedField={selectedField}
-                      sampleSubmission={sampleSubmission}
-                      ruleOverride={
-                        (template.layoutBlocks.find(b => (b.type === 'TABLE' || b.type === 'INFO_GRID') && b.ruleOverrides?.[selectedField.id]) ||
-                         template.layoutBlocks.find(b => b.ruleOverrides?.[selectedField.id]))?.ruleOverrides?.[selectedField.id] ||
-                        template.ruleOverrides?.[selectedField.id]
-                      }
-                      parentGroupTitle={extractParentGroupTitle(selectedField, template.layoutBlocks)}
-                      onUpdateRule={(updates) => updateRuleOverride(selectedField.id, updates)}
-                      isLocked={isLocked}
-                    />
+                    {(() => {
+                      const parentTitle = extractParentGroupTitle(selectedField, template.layoutBlocks);
+                      const siblingFields = allFormFields.filter(
+                        f => extractParentGroupTitle(f, template.layoutBlocks).toLowerCase() === parentTitle.toLowerCase()
+                      );
+                      const findFieldOverride = (fid: string) =>
+                        (template.layoutBlocks.find(b => (b.type === 'TABLE' || b.type === 'INFO_GRID') && b.ruleOverrides?.[fid]) ||
+                         template.layoutBlocks.find(b => b.ruleOverrides?.[fid]))?.ruleOverrides?.[fid] ||
+                        template.ruleOverrides?.[fid];
+
+                      const { weights } = resolveSmartGroupWeights(
+                        siblingFields.map(sf => ({
+                          weight: findFieldOverride(sf.id)?.weight,
+                          isWeightManual: findFieldOverride(sf.id)?.isWeightManual
+                        }))
+                      );
+                      const selfIdx = siblingFields.findIndex(sf => sf.id === selectedField.id);
+                      const resolvedEffWeight = selfIdx >= 0 ? weights[selfIdx] : undefined;
+
+                      return (
+                        <FieldScoringInspector
+                          key={selectedField.id}
+                          selectedField={selectedField}
+                          sampleSubmission={sampleSubmission}
+                          ruleOverride={findFieldOverride(selectedField.id)}
+                          effectiveWeight={resolvedEffWeight}
+                          parentGroupTitle={parentTitle}
+                          onUpdateRule={(updates) => updateRuleOverride(selectedField.id, updates)}
+                          isLocked={isLocked}
+                        />
+                      );
+                    })()}
                   </div>
                 </div>
               ) : activeBlock ? (
@@ -4547,9 +4654,45 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                       {/* SECTION_LABEL Structured 2-Row Weight Card (H1 vs H2 aware) */}
                       {(() => {
                         const isH2 = activeBlock.titleFormat === 'H2';
+                        const cleanActiveTitle = (activeBlock.title || '').trim().toLowerCase();
+                        const matchedParentH1 = isH2
+                          ? hierarchyGroups.find(h1 => h1.h2Groups.some(g => g.h2.trim().toLowerCase() === cleanActiveTitle))?.h1
+                          : undefined;
                         const parentH1ForH2 = isH2
-                          ? (hierarchyGroups.find(h1 => h1.h2Groups.some(g => g.h2.trim().toLowerCase() === (activeBlock.title || '').trim().toLowerCase()))?.h1 || 'Toàn bộ Báo cáo')
+                          ? (matchedParentH1 || 'Toàn bộ Báo cáo')
                           : 'Toàn bộ Báo cáo';
+
+                        let effectiveSectionWeight = activeBlock.weight ?? 0;
+                        let isSectionManual =
+                          activeBlock.isWeightManual === true ||
+                          (activeBlock.isWeightManual === undefined && (activeBlock.weight || 0) > 0);
+
+                        if (isH2 && matchedParentH1) {
+                          const { childH2Summary } = summarizeH1ChildGroups(
+                            matchedParentH1,
+                            hierarchyGroups,
+                            template.layoutBlocks,
+                            sampleSubmission?.formData,
+                            template.ruleOverrides
+                          );
+                          const matchH2 = childH2Summary.find(c => c.h2Title.trim().toLowerCase() === cleanActiveTitle);
+                          if (matchH2) {
+                            effectiveSectionWeight = matchH2.weight;
+                            isSectionManual = Boolean(matchH2.isWeightManual);
+                          }
+                        } else if (!isH2) {
+                          const topLevelInfo = resolveFormTopLevelGroups(
+                            hierarchyGroups,
+                            template.layoutBlocks,
+                            sampleSubmission?.formData,
+                            template.ruleOverrides
+                          );
+                          const matchH1 = topLevelInfo.items.find(c => c.title.trim().toLowerCase() === cleanActiveTitle);
+                          if (matchH1) {
+                            effectiveSectionWeight = matchH1.weight;
+                            isSectionManual = Boolean(matchH1.isWeightManual);
+                          }
+                        }
 
                         return (
                           <div style={{
@@ -4597,18 +4740,52 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                 <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#334155' }}>
                                   Weight:
                                 </span>
+                                {isSectionManual && !isLocked && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setTemplate(prev => ({
+                                        ...prev,
+                                        layoutBlocks: prev.layoutBlocks.map(b =>
+                                          b.id === activeBlock.id ? { ...b, weight: undefined, isWeightManual: false } : b
+                                        )
+                                      }));
+                                    }}
+                                    style={{
+                                      border: 'none',
+                                      background: 'none',
+                                      color: 'var(--primary)',
+                                      cursor: 'pointer',
+                                      padding: '1px',
+                                      display: 'inline-flex',
+                                      alignItems: 'center'
+                                    }}
+                                    title="Trả mục này về tự động chia đều"
+                                  >
+                                    <RotateCcw size={11} />
+                                  </button>
+                                )}
                                 <SmartNumberInput
                                   disabled={isLocked}
-                                  value={activeBlock.weight !== undefined ? activeBlock.weight : 0}
+                                  value={effectiveSectionWeight}
                                   min={0}
                                   max={100}
                                   onChange={(val) => {
                                     setTemplate(prev => ({
                                       ...prev,
-                                      layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, weight: val } : b)
+                                      layoutBlocks: prev.layoutBlocks.map(b =>
+                                        b.id === activeBlock.id ? { ...b, weight: val, isWeightManual: true } : b
+                                      )
                                     }));
                                   }}
-                                  style={{ width: '44px', fontSize: '0.72rem' }}
+                                  style={{
+                                    width: '44px',
+                                    fontSize: '0.72rem',
+                                    border: isSectionManual ? '1.5px solid var(--primary)' : undefined,
+                                    background: isSectionManual ? '#f0fdfa' : undefined,
+                                    color: isSectionManual ? '#0f766e' : undefined,
+                                    fontWeight: isSectionManual ? 700 : undefined
+                                  }}
                                 />
                                 <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b' }}>%</span>
                               </div>
@@ -4663,7 +4840,19 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                 <div style={{ gridColumn: 'span 6', color: '#0f766e' }}>Items</div>
                                 <div style={{ gridColumn: 'span 2', textAlign: 'center', color: '#0f766e' }}>isPass</div>
                                 <div style={{ gridColumn: 'span 2', textAlign: 'right', paddingRight: '4px', color: '#4338ca' }}>Score</div>
-                                <div style={{ gridColumn: 'span 2', textAlign: 'right', paddingRight: '2px', color: '#64748b' }}>Weight</div>
+                                <div style={{ gridColumn: 'span 2', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '2px', paddingRight: '2px', color: '#64748b' }}>
+                                  <span>Weight</span>
+                                  {childH2Summary.some(c => c.isWeightManual) && !isLocked && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleResetH1ChildrenWeights(activeBlock.title)}
+                                      style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#0f766e', padding: '1px', display: 'flex', alignItems: 'center' }}
+                                      title="Khôi phục chia đều tự động (Reset to AUTO)"
+                                    >
+                                      <RotateCcw size={11} />
+                                    </button>
+                                  )}
+                                </div>
                               </div>
 
                               <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -4710,14 +4899,19 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                     <div style={{ gridColumn: 'span 2', textAlign: 'right', fontWeight: 700, color: '#0f172a', paddingRight: '4px' }}>
                                       {h2Item.score}
                                     </div>
-                                    <div style={{ gridColumn: 'span 2', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '2px', paddingRight: '2px' }}>
+                                    <div style={{ gridColumn: 'span 2', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '2px', paddingRight: '2px' }} title={h2Item.isWeightManual ? 'Đã chỉnh tay (Locked) — Click ↺ ở tiêu đề để reset' : 'Tự động chia đều (Auto-balanced)'}>
                                       <SmartNumberInput
                                         disabled={isLocked}
                                         value={h2Item.weight}
                                         min={0}
                                         max={100}
                                         onChange={(val) => handleUpdateH1ChildWeight(h2Item.h2Title, h2Item.blockId, val, h2Item.isElement)}
-                                        style={{ width: '32px', fontSize: '0.72rem', height: '22px' }}
+                                        style={{
+                                          width: '32px',
+                                          fontSize: '0.72rem',
+                                          height: '22px',
+                                          ...(h2Item.isWeightManual ? { border: '1.5px solid var(--primary)', background: '#f0fdfa', color: '#0f766e', fontWeight: 700 } : {})
+                                        }}
                                       />
                                       <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#64748b' }}>%</span>
                                     </div>
@@ -4768,7 +4962,19 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                 <div style={{ gridColumn: 'span 6', color: '#1e3a8a' }}>Items</div>
                                 <div style={{ gridColumn: 'span 2', textAlign: 'center', color: '#0f766e' }}>isPass</div>
                                 <div style={{ gridColumn: 'span 2', textAlign: 'right', paddingRight: '4px', color: '#4338ca' }}>Score</div>
-                                <div style={{ gridColumn: 'span 2', textAlign: 'right', paddingRight: '2px', color: '#64748b' }}>Weight</div>
+                                <div style={{ gridColumn: 'span 2', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '2px', paddingRight: '2px', color: '#64748b' }}>
+                                  <span>Weight</span>
+                                  {childElementsSummary.some(c => c.isWeightManual) && !isLocked && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleResetH2ChildrenWeights(activeBlock.title)}
+                                      style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#0f766e', padding: '1px', display: 'flex', alignItems: 'center' }}
+                                      title="Khôi phục chia đều tự động (Reset to AUTO)"
+                                    >
+                                      <RotateCcw size={11} />
+                                    </button>
+                                  )}
+                                </div>
                               </div>
 
                               <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -4808,14 +5014,19 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                     <div style={{ gridColumn: 'span 2', textAlign: 'right', fontWeight: 700, color: '#0f172a', paddingRight: '4px' }}>
                                       {elItem.score}
                                     </div>
-                                    <div style={{ gridColumn: 'span 2', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '2px', paddingRight: '2px' }}>
+                                    <div style={{ gridColumn: 'span 2', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '2px', paddingRight: '2px' }} title={elItem.isWeightManual ? 'Đã chỉnh tay (Locked) — Click ↺ ở tiêu đề để reset' : 'Tự động chia đều (Auto-balanced)'}>
                                       <SmartNumberInput
                                         disabled={isLocked}
                                         value={elItem.weight}
                                         min={0}
                                         max={100}
                                         onChange={(val) => handleUpdateChildElementWeight(elItem.elementTitle, elItem.blockId, val)}
-                                        style={{ width: '32px', fontSize: '0.72rem', height: '22px' }}
+                                        style={{
+                                          width: '32px',
+                                          fontSize: '0.72rem',
+                                          height: '22px',
+                                          ...(elItem.isWeightManual ? { border: '1.5px solid var(--primary)', background: '#f0fdfa', color: '#0f766e', fontWeight: 700 } : {})
+                                        }}
                                       />
                                       <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#64748b' }}>%</span>
                                     </div>
@@ -5297,7 +5508,8 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                     };
                     const parentH1Title = resolveParentH1Title();
 
-                    const totalChildWeight = boundFields.reduce((sum, f) => sum + (activeBlock.ruleOverrides?.[f.id]?.weight ?? 0), 0);
+                    const totalChildWeight = h2Score.totalWeight;
+                    const hasManualFieldWeight = boundFields.some(f => Boolean(h2Score.manualFlags?.[f.id]));
 
                     return (
                       <div style={{ borderTop: '1px solid var(--neutral-border)', paddingTop: '0.6rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -5307,14 +5519,26 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                               <div style={{ gridColumn: 'span 6', color: '#0f172a' }}>Items</div>
                               <div style={{ gridColumn: 'span 2', textAlign: 'center', color: '#0f766e' }}>isPass</div>
                               <div style={{ gridColumn: 'span 2', textAlign: 'right', paddingRight: '4px', color: '#334155' }}>Score</div>
-                              <div style={{ gridColumn: 'span 2', textAlign: 'right', paddingRight: '2px', color: '#334155' }}>Weight</div>
+                              <div style={{ gridColumn: 'span 2', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '2px', paddingRight: '2px', color: '#334155' }}>
+                                <span>Weight</span>
+                                {hasManualFieldWeight && !isLocked && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleResetTableFieldsWeights(activeBlock.id, boundFields.map(f => f.id))}
+                                    style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#0f766e', padding: '1px', display: 'flex', alignItems: 'center' }}
+                                    title="Khôi phục chia đều tự động (Reset to AUTO)"
+                                  >
+                                    <RotateCcw size={11} />
+                                  </button>
+                                )}
+                              </div>
                             </div>
 
                             <div style={{ display: 'flex', flexDirection: 'column' }}>
                               {boundFields.map((f, fIdx) => {
                                 const evalRes = h2EvalMap[f.id];
-                                const override = activeBlock.ruleOverrides?.[f.id];
-                                const weight = override?.weight !== undefined ? override.weight : 0;
+                                const weight = h2Score.effectiveWeights?.[f.id] ?? 0;
+                                const isFieldManual = Boolean(h2Score.manualFlags?.[f.id]);
 
                                 return (
                                   <div
@@ -5336,14 +5560,19 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                     <div style={{ gridColumn: 'span 2', textAlign: 'right', fontWeight: 700, color: '#0f172a', paddingRight: '4px' }}>
                                       {evalRes?.score ?? 0}
                                     </div>
-                                    <div style={{ gridColumn: 'span 2', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '2px', paddingRight: '2px' }}>
+                                    <div style={{ gridColumn: 'span 2', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '2px', paddingRight: '2px' }} title={isFieldManual ? 'Đã chỉnh tay (Locked) — Click ↺ ở tiêu đề để reset' : 'Tự động chia đều (Auto-balanced)'}>
                                       <SmartNumberInput
                                         disabled={isLocked}
                                         value={weight}
                                         min={0}
                                         max={100}
-                                        onChange={(val) => updateRuleOverride(f.id, { weight: val })}
-                                        style={{ width: '32px', fontSize: '0.72rem', height: '22px' }}
+                                        onChange={(val) => updateRuleOverride(f.id, { weight: val, isWeightManual: true })}
+                                        style={{
+                                          width: '32px',
+                                          fontSize: '0.72rem',
+                                          height: '22px',
+                                          ...(isFieldManual ? { border: '1.5px solid var(--primary)', background: '#f0fdfa', color: '#0f766e', fontWeight: 700 } : {})
+                                        }}
                                       />
                                       <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#64748b' }}>%</span>
                                     </div>
@@ -5414,25 +5643,65 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                             paddingTop: '5px',
                             borderTop: '1px solid #e2e8f0'
                           }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '3px', flexShrink: 0 }}>
-                              <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#334155' }}>
-                                Weight:
-                              </span>
-                              <SmartNumberInput
-                                disabled={isLocked}
-                                value={activeBlock.weight !== undefined ? activeBlock.weight : 0}
-                                min={0}
-                                max={100}
-                                onChange={(val) => {
-                                  setTemplate(prev => ({
-                                    ...prev,
-                                    layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, weight: val } : b)
-                                  }));
-                                }}
-                                style={{ width: '44px', fontSize: '0.72rem' }}
-                              />
-                              <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b' }}>%</span>
-                            </div>
+                            {(() => {
+                              const isTableManual = Boolean(activeBlock.isWeightManual || (activeBlock.weight !== undefined && activeBlock.weight > 0));
+                              let effectiveTableWeight = activeBlock.weight !== undefined ? activeBlock.weight : 100;
+                              if (parentH1Title.startsWith('[H2] ')) {
+                                const h2Title = parentH1Title.replace('[H2] ', '').trim();
+                                const { childElementsSummary } = summarizeH2ChildElements(h2Title, hierarchyGroups, template.layoutBlocks, sampleSubmission?.formData, template.ruleOverrides);
+                                const found = childElementsSummary.find(c => c.blockId === activeBlock.id || c.elementTitle.trim().toLowerCase() === (activeBlock.title || '').trim().toLowerCase());
+                                if (found) effectiveTableWeight = found.weight;
+                              } else if (parentH1Title.startsWith('[H1] ')) {
+                                const h1Title = parentH1Title.replace('[H1] ', '').trim();
+                                const { childH2Summary } = summarizeH1ChildGroups(h1Title, hierarchyGroups, template.layoutBlocks, sampleSubmission?.formData, template.ruleOverrides);
+                                const found = childH2Summary.find(c => c.blockId === activeBlock.id || c.h2Title.trim().toLowerCase() === (activeBlock.title || '').trim().toLowerCase());
+                                if (found) effectiveTableWeight = found.weight;
+                              } else {
+                                const topInfo = resolveFormTopLevelGroups(hierarchyGroups, template.layoutBlocks, sampleSubmission?.formData, template.ruleOverrides);
+                                const found = topInfo.items.find(c => c.blockId === activeBlock.id || c.title.trim().toLowerCase() === (activeBlock.title || '').trim().toLowerCase());
+                                if (found) effectiveTableWeight = found.weight;
+                              }
+                              return (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '3px', flexShrink: 0 }}>
+                                  <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#334155' }}>
+                                    Weight:
+                                  </span>
+                                  <SmartNumberInput
+                                    disabled={isLocked}
+                                    value={effectiveTableWeight}
+                                    min={0}
+                                    max={100}
+                                    onChange={(val) => {
+                                      setTemplate(prev => ({
+                                        ...prev,
+                                        layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, weight: val, isWeightManual: true } : b)
+                                      }));
+                                    }}
+                                    style={{
+                                      width: '44px',
+                                      fontSize: '0.72rem',
+                                      ...(isTableManual ? { border: '1.5px solid var(--primary)', background: '#f0fdfa', color: '#0f766e', fontWeight: 700 } : {})
+                                    }}
+                                  />
+                                  <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#64748b' }}>%</span>
+                                  {isTableManual && !isLocked && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setTemplate(prev => ({
+                                          ...prev,
+                                          layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, weight: undefined, isWeightManual: false } : b)
+                                        }));
+                                      }}
+                                      style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#0f766e', padding: '1px', display: 'flex', alignItems: 'center' }}
+                                      title="Khôi phục chia đều tự động (Reset to AUTO)"
+                                    >
+                                      <RotateCcw size={11} />
+                                    </button>
+                                  )}
+                                </div>
+                              );
+                            })()}
 
                             <div
                               style={{
