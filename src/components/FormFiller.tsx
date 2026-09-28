@@ -3103,8 +3103,12 @@ function FormFillerInner({
           );
         };
 
+  const effectivePageSize = rawFormTemplate?.pageSize || (rawFormTemplate as any)?.page_size || 'A4';
+  const isA5Page = effectivePageSize === 'A5_LANDSCAPE' || effectivePageSize === 'A5';
+  const canvasMaxWidth = isA5Page ? '920px' : '820px';
+
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+    <div style={{ maxWidth: canvasMaxWidth, margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       
 
 
@@ -3298,7 +3302,7 @@ function FormFillerInner({
                   readOnly
                   value={currentShareUrl}
                   style={{
-                    width: '180px',
+                    width: '210px',
                     padding: '0 0.45rem',
                     fontSize: '0.72rem',
                     border: 'none',

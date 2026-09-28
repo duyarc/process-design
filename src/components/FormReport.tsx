@@ -142,8 +142,8 @@ export const FormReport: React.FC<FormReportProps> = ({
     );
     if (isEmbedded) {
       return (
-        <div style={{ padding: '2rem 1rem', display: 'flex', justifyContent: 'center' }}>
-          <div className="paper-card" style={{ maxWidth: '720px', width: '100%', padding: '2rem', background: '#ffffff' }}>
+        <div style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+          <div className="paper-card" style={{ width: '100%', padding: '2rem', background: '#ffffff', boxShadow: 'var(--shadow-md)', borderRadius: 'var(--card-radius, 8px)' }}>
             <div style={{ height: '14px', background: 'var(--neutral-bg)', borderRadius: '4px', width: '55%', marginBottom: '1.5rem' }} />
             {skeletonBlock}{skeletonBlock}{skeletonBlock}
           </div>
@@ -152,7 +152,7 @@ export const FormReport: React.FC<FormReportProps> = ({
     }
     return (
       <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div className="paper-card" style={{ maxWidth: '560px', width: '100%', padding: '2.5rem 2rem', background: '#ffffff' }}>
+        <div className="paper-card" style={{ maxWidth: '820px', width: '100%', padding: '2.5rem 2rem', background: '#ffffff', boxShadow: 'var(--shadow-md)', borderRadius: 'var(--card-radius, 8px)' }}>
           <div style={{ height: '14px', background: 'var(--neutral-bg)', borderRadius: '4px', width: '55%', marginBottom: '1.5rem' }} />
           {skeletonBlock}{skeletonBlock}{skeletonBlock}
         </div>
@@ -272,23 +272,25 @@ export const FormReport: React.FC<FormReportProps> = ({
 
   const operatorText = (submission as any)?.operatorId || (submission as any)?.operator_id || '—';
   const supervisorText = (submission as any)?.supervisorSignoff?.signedBy || (submission as any)?.supervisor_signoff?.supervisor_name || '';
-  const isA5 = (reportTemplate as any)?.pageSize === 'A5';
+  const effectivePageSize = (reportTemplate as any)?.pageSize || (reportTemplate as any)?.page_size || (formTemplate as any)?.pageSize || (formTemplate as any)?.page_size || 'A4';
+  const isA5 = effectivePageSize === 'A5_LANDSCAPE' || effectivePageSize === 'A5';
+  const reportMaxWidth = isA5 ? '920px' : '820px';
 
   const reportContent = (
-    <div style={{ padding: isEmbedded ? '0.5rem 0 2rem' : '1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+    <div style={{ padding: isEmbedded ? '0 0 2rem' : '1.5rem 0 2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
       {/* A4/A5 Printable Paper Card Preview */}
       <div
         className="paper-card print-doc"
         style={{
           width: '100%',
-          maxWidth: isA5 ? '520px' : '698px',
+          maxWidth: isEmbedded ? '100%' : reportMaxWidth,
           height: 'auto',
           flexShrink: 0,
           overflow: 'visible',
           background: '#ffffff',
-          padding: '1.75rem',
-          boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)',
-          borderRadius: '4px',
+          padding: '2rem',
+          boxShadow: 'var(--shadow-md)',
+          borderRadius: 'var(--card-radius, 8px)',
           display: 'flex',
           flexDirection: 'column',
           gap: '0.85rem',

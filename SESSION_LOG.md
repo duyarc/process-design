@@ -42,6 +42,35 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-28 — Report Builder & Form: Đồng bộ Khổ giấy A4 820px (A5 920px) & Căn mép Toolbar
+
+**Scope:** 4 files (`src/components/FormFiller.tsx`, `src/components/FormReport.tsx`, `src/components/SubmissionViewer.tsx`, `DESIGN_REPORT_BUILDER.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | ~7 min |
+| Thời gian lập plan (Request → Proceed) | ~3.5 min |
+| Thời gian thực thi (Proceed → Push) | ~3.5 min |
+| Số file nguồn chỉnh sửa | 3 (`FormFiller.tsx`, `FormReport.tsx`, `SubmissionViewer.tsx`) |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 3 (`tsc --noEmit` pass từng file, `npm run build` 11.40s pass) |
+| Lần build đầu thành công? | Có (100% pass) |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- **Nâng chuẩn khổ giấy Canvas Builder:**
+  - Nâng `maxWidth` container của `FormFiller` từ `800px` lên `canvasMaxWidth`: `820px` (A4) / `920px` (A5_LANDSCAPE), đúng tỷ lệ tiêu chuẩn của `FormBuilder` và `ReportBuilder`.
+  - Loại bỏ hoàn toàn hardcode `698px` và khoảng đệm thụt lùi trong `FormReport.tsx`.
+- **Đồng bộ 100% hình học giữa tab Form và Report:**
+  - Cả 2 tab đều dùng chung độ rộng `820px`, `padding: 2rem`, `boxShadow: var(--shadow-md)`, và `borderRadius: var(--card-radius, 8px)`.
+  - Triệt tiêu hoàn toàn hiện tượng co giật (nhảy kích thước 102px) khi bấm chuyển đổi giữa `[ Form | Report ]`.
+- **Căn mép hoàn hảo Thanh Toolbar:**
+  - Toolbar trải rộng đủ 820px, hai mép trái/phải gióng thẳng hàng tuyệt đối với hai góc trên của tờ giấy trắng bên dưới.
+  - Mở rộng ô URL liên kết chia sẻ từ 180px lên 210px để hiển thị đường dẫn thoáng đẹp, dễ đọc hơn.
+
+---
+
 ### 2026-09-28 — Report Builder: Fix INFO_GRID Display Bugs — normalizeForm layoutBlocks
 
 **Scope:** 1 file (`src/components/FormReport.tsx`)

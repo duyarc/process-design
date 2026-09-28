@@ -81,7 +81,7 @@ export const SubmissionViewer: React.FC<SubmissionViewerProps> = ({
   const effectiveProcessId = submission.processId || 'unlinked';
 
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto', width: '100%' }}>
+    <div style={{ width: '100%', margin: '0 auto' }}>
       {/* Toast Notification */}
       {toastMessage && (
         <div style={{
