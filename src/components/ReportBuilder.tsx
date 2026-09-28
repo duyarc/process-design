@@ -54,8 +54,6 @@ import {
   Sparkles,
   Plus,
   GitBranch,
-  Folder,
-  FolderOpen,
   ChevronDown,
   ChevronRight,
   Layers,
@@ -2745,12 +2743,19 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                               children: childPayloads.map(c => ({ fieldId: c.id, title: c.title, score: c.score, weight: c.weight }))
                             };
                             e.dataTransfer.setData('application/x-report-chart-source', JSON.stringify(groupPayload));
+                            e.dataTransfer.setData('application/x-report-group-fields', JSON.stringify(elFieldIds));
                             e.dataTransfer.effectAllowed = 'copy';
+                            setIsDraggingField(true);
+                          }}
+                          onDragEnd={() => {
+                            setIsDraggingField(false);
+                            setDragOverBlockId(null);
                           }}
                           style={{
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
+                            gap: '6px',
                             padding: '3px 6px',
                             minHeight: '26px',
                             boxSizing: 'border-box',
@@ -2778,67 +2783,31 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                color: isElActive ? 'var(--primary)' : '#64748b'
+                                color: isElActive ? 'var(--primary)' : '#64748b',
+                                flexShrink: 0
                               }}
                               title={isElExpanded ? 'Thu gọn bảng' : 'Mở rộng bảng'}
                             >
                               {isElExpanded ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
                             </button>
-                            <TableIcon size={11} color={isElActive ? 'var(--primary)' : '#64748b'} />
-                            <span
-                              style={{
-                                fontSize: '0.56rem',
-                                fontWeight: 700,
-                                padding: '0px 3px',
-                                borderRadius: '2px',
-                                background: isElActive ? '#ccfbf1' : '#e2e8f0',
-                                color: isElActive ? '#0f766e' : '#475569',
-                                flexShrink: 0
-                              }}
-                            >
-                              TABLE
-                            </span>
+                            <TableIcon size={11} color={isElActive ? 'var(--primary)' : '#64748b'} style={{ flexShrink: 0 }} />
                             <span
                               style={{
                                 fontWeight: isElActive ? 700 : 600,
-                                fontSize: '0.7rem',
+                                fontSize: '0.71rem',
                                 color: isElActive ? '#0f766e' : '#334155',
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
                                 whiteSpace: 'nowrap'
                               }}
-                              title={`Click để xem/cấu hình thuộc tính Bảng: ${elGroup.elementTitle}`}
+                              title={`${elGroup.elementTitle} (${elGroup.fields.length} trường) — Click xem thuộc tính hoặc Kéo thả vào Báo cáo`}
                             >
                               {elGroup.elementTitle}
                             </span>
-                            <span style={{ fontSize: '0.62rem', color: isElActive ? '#0f766e' : '#94a3b8' }}>
-                              ({elGroup.fields.length})
-                            </span>
                           </div>
-
-                          {activeBlock && (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                addMultipleFieldsToBlock(activeBlock.id, elFieldIds);
-                              }}
-                              style={{
-                                padding: '1px 4px',
-                                fontSize: '0.58rem',
-                                background: '#ffffff',
-                                color: 'var(--primary)',
-                                border: '1px solid #cbd5e1',
-                                borderRadius: '3px',
-                                cursor: 'pointer',
-                                fontWeight: 500,
-                                whiteSpace: 'nowrap'
-                              }}
-                              title={`Gán toàn bộ ${elFieldIds.length} trường của bảng này`}
-                            >
-                              + Bảng
-                            </button>
-                          )}
+                          <span style={{ fontSize: '0.65rem', color: isElActive ? '#0f766e' : '#94a3b8', fontWeight: 600, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
+                            {elGroup.fields.length}
+                          </span>
                         </div>
 
                         {isElExpanded && (
@@ -2979,14 +2948,21 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                             children: childrenPayload
                           };
                           e.dataTransfer.setData('application/x-report-chart-source', JSON.stringify(groupPayload));
+                          e.dataTransfer.setData('application/x-report-group-fields', JSON.stringify(allH1FieldIds));
                           e.dataTransfer.effectAllowed = 'copy';
+                          setIsDraggingField(true);
+                        }}
+                        onDragEnd={() => {
+                          setIsDraggingField(false);
+                          setDragOverBlockId(null);
                         }}
                         style={{
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'space-between',
+                          gap: '6px',
                           padding: '5px 8px',
-                          minHeight: '34px',
+                          minHeight: '32px',
                           boxSizing: 'border-box',
                           background: isH1Active ? '#f0fdfa' : '#f8fafc',
                           borderBottom: isH1Expanded ? (isH1Active ? '1px solid #ccfbf1' : '1px solid #e2e8f0') : 'none',
@@ -2996,7 +2972,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                         }}
                         onClick={() => handleSelectH1Section(h1Group.h1)}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flex: 1, minWidth: 0, lineHeight: 1.3 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: 1, minWidth: 0, lineHeight: 1.3 }}>
                           <button
                             type="button"
                             onClick={(e) => {
@@ -3006,59 +2982,36 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                             style={{
                               background: 'none',
                               border: 'none',
-                              padding: '2px',
+                              padding: '1px',
                               cursor: 'pointer',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              color: isH1Active ? 'var(--primary)' : '#475569'
+                              color: isH1Active ? 'var(--primary)' : '#475569',
+                              flexShrink: 0
                             }}
                             title={isH1Expanded ? 'Thu gọn phân đoạn' : 'Mở rộng phân đoạn'}
                           >
                             {isH1Expanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
                           </button>
-                          <Layers size={13} color="var(--primary)" />
                           <span
                             style={{
                               fontWeight: isH1Active ? 800 : 700,
-                              fontSize: '0.75rem',
+                              fontSize: '0.74rem',
                               color: isH1Active ? 'var(--primary)' : '#0f172a',
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
                               whiteSpace: 'nowrap'
                             }}
-                            title={`Click để xem/cấu hình thuộc tính Section H1: ${h1Group.h1}`}
+                            title={`${h1Group.h1} (${h1Group.totalFieldsCount} trường) — Click xem thuộc tính hoặc Kéo thả vào Báo cáo`}
                           >
                             {h1Group.h1}
                           </span>
-                          <span style={{ fontSize: '0.65rem', color: isH1Active ? 'var(--primary)' : '#64748b', fontWeight: 600 }}>
-                            ({h1Group.totalFieldsCount})
-                          </span>
                         </div>
 
-                        {activeBlock && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              addMultipleFieldsToBlock(activeBlock.id, allH1FieldIds);
-                            }}
-                            style={{
-                              padding: '1px 5px',
-                              fontSize: '0.63rem',
-                              background: '#eff6ff',
-                              color: 'var(--primary)',
-                              border: '1px solid #bfdbfe',
-                              borderRadius: '3px',
-                              cursor: 'pointer',
-                              fontWeight: 600,
-                              whiteSpace: 'nowrap'
-                            }}
-                            title={`Gán toàn bộ ${allH1FieldIds.length} trường của phần này vào khối đang chọn`}
-                          >
-                            + Gán cả H1
-                          </button>
-                        )}
+                        <span style={{ fontSize: '0.68rem', color: isH1Active ? 'var(--primary)' : '#64748b', fontWeight: 600, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
+                          {h1Group.totalFieldsCount}
+                        </span>
                       </div>
 
                       {/* H1 Children: Level-2 H2 Sections (strictly format H2) + Level-3 Elements */}
@@ -3091,12 +3044,19 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                       children: childPayloads.map(c => ({ fieldId: c.id, title: c.title, score: c.score, weight: c.weight }))
                                     };
                                     e.dataTransfer.setData('application/x-report-chart-source', JSON.stringify(groupPayload));
+                                    e.dataTransfer.setData('application/x-report-group-fields', JSON.stringify(h2FieldIds));
                                     e.dataTransfer.effectAllowed = 'copy';
+                                    setIsDraggingField(true);
+                                  }}
+                                  onDragEnd={() => {
+                                    setIsDraggingField(false);
+                                    setDragOverBlockId(null);
                                   }}
                                   style={{
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'space-between',
+                                    gap: '6px',
                                     padding: '4px 6px',
                                     minHeight: '28px',
                                     boxSizing: 'border-box',
@@ -3124,18 +3084,18 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
-                                        color: isH2Active ? '#2563eb' : '#475569'
+                                        color: isH2Active ? '#2563eb' : '#475569',
+                                        flexShrink: 0
                                       }}
                                       title={isH2Expanded ? 'Thu gọn phân mục H2' : 'Mở rộng phân mục H2'}
                                     >
                                       {isH2Expanded ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
                                     </button>
-                                    {isH2Expanded ? <FolderOpen size={12} color="#2563eb" /> : <Folder size={12} color="#2563eb" />}
                                     <span
                                       style={{
-                                        fontSize: '0.58rem',
+                                        fontSize: '0.56rem',
                                         fontWeight: 800,
-                                        padding: '0px 4px',
+                                        padding: '0px 3px',
                                         borderRadius: '3px',
                                         background: '#dbeafe',
                                         color: '#1d4ed8',
@@ -3147,42 +3107,20 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                     <span
                                       style={{
                                         fontWeight: 700,
-                                        fontSize: '0.73rem',
+                                        fontSize: '0.72rem',
                                         color: isH2Active ? '#1d4ed8' : '#1e293b',
                                         overflow: 'hidden',
                                         textOverflow: 'ellipsis',
                                         whiteSpace: 'nowrap'
                                       }}
-                                      title={`Click để xem/cấu hình thuộc tính Phân mục H2: ${h2Group.h2}`}
+                                      title={`${h2Group.h2} (${h2Group.fields.length} trường) — Click xem thuộc tính hoặc Kéo thả vào Báo cáo`}
                                     >
                                       {h2Group.h2}
                                     </span>
-                                    <span style={{ fontSize: '0.63rem', color: '#2563eb', fontWeight: 600 }}>({h2Group.fields.length})</span>
                                   </div>
-
-                                  {activeBlock && (
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        addMultipleFieldsToBlock(activeBlock.id, h2FieldIds);
-                                      }}
-                                      style={{
-                                        padding: '1px 4px',
-                                        fontSize: '0.6rem',
-                                        background: '#ffffff',
-                                        color: '#2563eb',
-                                        border: '1px solid #93c5fd',
-                                        borderRadius: '3px',
-                                        cursor: 'pointer',
-                                        fontWeight: 600,
-                                        whiteSpace: 'nowrap'
-                                      }}
-                                      title={`Gán toàn bộ ${h2FieldIds.length} trường của phân mục H2 này`}
-                                    >
-                                      + Cả H2
-                                    </button>
-                                  )}
+                                  <span style={{ fontSize: '0.65rem', color: '#2563eb', fontWeight: 600, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
+                                    {h2Group.fields.length}
+                                  </span>
                                 </div>
 
                                 {/* Level 3: Normal Elements (TABLE / INFO_GRID) Indented One Level Below H2 */}
@@ -3338,6 +3276,19 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                           setReorderDrag(null);
                           setDragOverIndex(null);
                           return;
+                        }
+                        const groupFieldsRaw = e.dataTransfer.getData('application/x-report-group-fields');
+                        if (groupFieldsRaw) {
+                          try {
+                            const fids = JSON.parse(groupFieldsRaw);
+                            if (Array.isArray(fids) && fids.length > 0) {
+                              addMultipleFieldsToBlock(block.id, fids);
+                              setActiveBlockId(block.id);
+                              return;
+                            }
+                          } catch {
+                            // Ignore malformed JSON
+                          }
                         }
                         const fieldId = e.dataTransfer.getData('text/plain');
                         if (fieldId) {
@@ -5435,6 +5386,18 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                         }}
                         onDrop={(e) => {
                           e.preventDefault();
+                          const groupFieldsRaw = e.dataTransfer.getData('application/x-report-group-fields');
+                          if (groupFieldsRaw) {
+                            try {
+                              const fids = JSON.parse(groupFieldsRaw);
+                              if (Array.isArray(fids) && fids.length > 0) {
+                                addMultipleFieldsToBlock(activeBlock.id, fids);
+                                return;
+                              }
+                            } catch {
+                              // Ignore malformed JSON
+                            }
+                          }
                           const fid = e.dataTransfer.getData('text/plain');
                           if (fid) addFieldToBlock(activeBlock.id, fid);
                         }}

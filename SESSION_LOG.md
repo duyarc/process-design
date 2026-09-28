@@ -40,6 +40,29 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-28 — Report Builder: Tối giản Cây `FIELDS` Sidebar Trái (`Option A`) & Gán Nhóm Trường bằng Kéo-Thả (`ReportBuilder`)
+
+**Scope:** 3 files (`src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`, `SESSION_LOG.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | ~9.5 min |
+| Thời gian lập plan (Request → Proceed) | ~4.5 min |
+| Thời gian thực thi (Proceed → Push) | ~5.0 min |
+| Số file nguồn chỉnh sửa | 1 (`ReportBuilder.tsx`) |
+| Tổng lượt edit source | 6 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 1 (`tsc --noEmit` + `npm run build` 12.54s pass) |
+| Lần build cuối thành công? | Có (100% pass ngay lần đầu) |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- **Tối giản 1 dòng (`Option A`) giải phóng `68px`–`98px` chiều ngang cho tiêu đề trong cây `FIELDS`:** Loại bỏ icon `<Layers />` và nút `[+ Gán cả H1]` (`82px`) ở cấp `H1`; loại bỏ icon `<Folder />` / `<FolderOpen />` (cùng import dư thừa trong `lucide-react`) và nút `[+ Cả H2]` (`60px`) ở cấp `H2`; loại bỏ badge chữ `[TABLE]` trùng lặp (`45px`) và nút `[+ Bảng]` (`52px`) ở cấp `Element`; thay thế dấu ngoặc đơn `(count)` bằng số đếm `tabular-nums` gọn sát lề phải.
+- **Bảo toàn 100% tính năng gán cả nhóm trường bằng Kéo-Thả (`application/x-report-group-fields`):** Tích hợp payload `application/x-report-group-fields` (`fieldIds`) kèm trạng thái `setIsDraggingField(true)` trên cả 3 cấp `H1`, `H2`, `Element`, cho phép kéo-thả trực tiếp bất kỳ mục/bảng nào vào khối `INFO_GRID` hoặc `TABLE` trên Canvas (hoặc vào dropzone của Right Inspector) để gán hàng loạt toàn bộ trường thông qua `addMultipleFieldsToBlock`.
+
+---
+
 ### 2026-09-28 — Report Builder: Khắc phục Hiển thị Đa cột (`Columns = 2, 3`) của `INFO_GRID` trên Canvas & Đồng bộ Bố cục với `FormBuilder` (`ReportBuilder`, `RadarChartBlock`, `BarChartBlock`, `FormReport`)
 
 **Scope:** 6 files (`src/components/ReportBuilder.tsx`, `src/components/report/RadarChartBlock.tsx`, `src/components/report/BarChartBlock.tsx`, `src/components/FormReport.tsx`, `DESIGN_REPORT_BUILDER.md`, `SESSION_LOG.md`)
@@ -312,30 +335,7 @@ Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
 ---
 
-### 2026-09-25 — Report Builder: Streamlined H1 Pillar Summary Table & In-Table Weight Editing (ReportBuilder & reportScoring)
 
-**Scope:** 3 files (`src/utils/reportScoring.ts`, `src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian tổng (Request → Push) | ~18 min |
-| Thời gian lập plan (Request → Proceed) | ~13 min |
-| Thời gian thực thi (Proceed → Push) | ~5 min |
-| Số file nguồn chỉnh sửa | 2 (`reportScoring.ts`, `ReportBuilder.tsx`) |
-| Tổng lượt edit source | 3 |
-| Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 3 (`2 tsc` pass + `1 vite build` 13.55s pass) |
-| Lần build cuối thành công? | Có (100% pass ngay lần đầu) |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Điểm nổi bật:**
-- **Đồng bộ hóa Giao diện Bảng H1 theo Thiết kế Tinh gọn của H2:** Loại bỏ dòng tiêu đề lặp thừa `"TỔNG HỢP ĐIỂM TRỤ CỘT H1"`, áp dụng tỷ lệ lưới 4 cột chuẩn `6 / 2 / 2 / 2`, viền teal `#99f6e4`, nền header `#f0fdfa` và cột đầu tiên mang tên `"Items"`.
-- **Hỗ trợ Click Drill-down trực tiếp trên tên thành phần con:** Tên các phân mục H2 con hoặc bảng trực thuộc H1 có màu teal đậm `#0f766e`, con trỏ chuột pointer và gạch chân khi hover, cho phép click để chuyển ngay sang xem/cấu hình H2 Section Properties hoặc Table Properties tương ứng.
-- **Tích hợp Chỉnh sửa Trọng số Tại Chỗ (`handleUpdateH1ChildWeight`):** Tích hợp `<SmartNumberInput>` (32px, `min={0}`, `max={100}`, hậu tố `%`) trực tiếp tại cột `Weight`. Hỗ trợ cập nhật ngay lập tức trọng số của Section H2 con (`layoutBlocks`) hoặc Element trực thuộc (`tableRow.weight` / `ruleOverrides.weight`) với cơ chế tái cân bằng phần trăm tự động.
-- **Footer Tinh giản & Trực quan:** Loại bỏ nhãn `"Tổng Trụ Cột:"`, để trống cột 1 (span 6), hiển thị huy hiệu trạng thái `PASS/FAIL` (span 2), tổng điểm trụ cột (span 2) và tổng trọng số `∑ {totalWeight}%` (span 2, màu xanh lục `#059669` nếu đủ 100%, màu hổ phách `#d97706` nếu chưa đủ 100%).
-
----
 
 
 
