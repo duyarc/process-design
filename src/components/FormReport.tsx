@@ -67,6 +67,12 @@ export const FormReport: React.FC<FormReportProps> = ({
   }, [triggerPrint, onPrintHandled]);
 
   useEffect(() => {
+    // Normalize raw DB row → camelCase FormTemplateISO (layout_blocks → layoutBlocks)
+    const normalizeForm = (raw: any): any => ({
+      ...raw,
+      layoutBlocks: raw.layoutBlocks || raw.layout_blocks || []
+    });
+
     const fetchData = async () => {
       try {
         setLoading(true);
@@ -80,15 +86,16 @@ export const FormReport: React.FC<FormReportProps> = ({
           );
           if (!bundleRes.ok) throw new Error(`Không tìm thấy bản nộp ID ${submissionId}`);
           const bundle = await bundleRes.json();
+          const normForm = normalizeForm(bundle.formTemplate);
           setSubmission(bundle.submission);
-          setFormTemplate(bundle.formTemplate);
+          setFormTemplate(normForm);
           if (bundle.reportTemplate) {
             setReportTemplate(bundle.reportTemplate);
-            const computed = computeRecordReport(bundle.submission, bundle.formTemplate, bundle.reportTemplate);
+            const computed = computeRecordReport(bundle.submission, normForm, bundle.reportTemplate);
             setComputedData(computed);
           }
         } else {
-          // ── Public/token path: 3 sequential fetches (unchanged) ──
+          // ── Public/token path ──
           const subUrl = token
             ? `/api/submissions/view/${encodeURIComponent(submissionId)}?token=${encodeURIComponent(token)}`
             : `/api/submissions/${encodeURIComponent(submissionId)}`;
@@ -103,12 +110,12 @@ export const FormReport: React.FC<FormReportProps> = ({
             fetch(`/api/reports/by-form/${formId}`)
           ]);
           if (!formRes.ok) throw new Error(`Không tìm thấy biểu mẫu gốc ID ${formId}`);
-          const formData = await formRes.json();
-          setFormTemplate(formData);
+          const normForm = normalizeForm(await formRes.json());
+          setFormTemplate(normForm);
           if (repRes.ok) {
             const repData: ReportTemplateISO = await repRes.json();
             setReportTemplate(repData);
-            const computed = computeRecordReport(subData, formData, repData);
+            const computed = computeRecordReport(subData, normForm, repData);
             setComputedData(computed);
           }
         }

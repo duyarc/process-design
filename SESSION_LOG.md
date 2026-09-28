@@ -33,12 +33,38 @@ phiên thực thi để không lặp lại lỗi cũ.
 | 19 | `LOGIC` | updateRuleOverride tìm targetBlock theo tiêu đề (cleanGroup) mà không lọc theo loại khối (b.type), dẫn đến lưu nhầm ruleOverrides vào SECTION_LABEL | Bắt buộc áp dụng Strict Block Type Scoping: trường thuộc TABLE thì chỉ gán vào khối TABLE; trường thuộc INFO_GRID thì chỉ gán vào INFO_GRID | 1 |
 | 20 | `SCOPE` | `extractTableFields` chỉ đọc `col.options` mà bỏ qua `block.cellOptionsMap` khiến trường bóc tách rơi về giá trị mặc định của cột (Có/Không) thay vì các tùy chọn tùy biến của ô | Luôn dùng `getEffectiveCellOptions(block.cellOptionsMap, row.id, col.id, col.options)` và `cellPlaceholderMap` khi duyệt trích xuất các ô trong khối `TABLE` | 1 |
 | 21 | `SCOPE` | Khi sửa lỗi lệch bố cục trên `FormReferenceCanvas` (`tab Form`), đánh đồng việc hiển thị dữ liệu `sampleSubmission` với lỗi ghi đè cấu trúc `matchedReportBlock` dẫn đến xóa nhầm tính năng xem dữ liệu bản nộp | Phân tách rõ 2 tầng trách nhiệm trên `FormReferenceCanvas`: (1) Cấu trúc & Bố cục (`layoutBlocks`, `fields`, `titleFormat`, `showDate`) luôn lấy 1:1 từ `form` gốc; (2) Giá trị hiển thị trong ô nhập liệu đọc từ `sampleSubmission` để hỗ trợ cấu hình chấm điểm | 1 |
+| 22 | `CTX` | API `/api/forms/:formId` trả về raw DB row với key snake_case `layout_blocks` nhưng component đọc camelCase `layoutBlocks` → `undefined` → mọi field lookup đều fail theo kiểu cascade (label, decode option, render type) | Luôn normalize raw DB response ngay tại điểm nhận: `layoutBlocks: raw.layoutBlocks \|\| raw.layout_blocks \|\| []`. Áp dụng cho mọi path (authenticated + public) | 1 |
+| 23 | `TOOL` | Thêm `field?.label` vào fallback chain nhưng `FormFieldISO` không có property `label` → TS2339 build fail | Luôn tra cứu interface type (`FormFieldISO`) trước khi dùng optional chain trên typed object. `checkItem` là nhãn duy nhất trong `FormFieldISO` | 1 |
 
 ---
 
 ## Nhật ký Phiên
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
+
+### 2026-09-28 — Report Builder: Fix INFO_GRID Display Bugs — normalizeForm layoutBlocks
+
+**Scope:** 1 file (`src/components/FormReport.tsx`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | ~5 min |
+| Thời gian lập plan (Request → Proceed) | ~2 min |
+| Thời gian thực thi (Proceed → Push) | ~3 min |
+| Số file nguồn chỉnh sửa | 1 (`FormReport.tsx`) |
+| Lượt edit sửa lỗi (rework) | 1 (`field?.label` không tồn tại trong `FormFieldISO` → build fail → revert `printShared.tsx`) |
+| Số lần build | 3 (build fail lần 1 TS2339, pass lần 2 sau revert, pass final) |
+| Lần build đầu thành công? | Không (lỗi `printShared.tsx` `field?.label` không thuộc `FormFieldISO`) |
+| Số lỗi mới phát sinh | 0 (sau revert) |
+
+**Bài học mới:**
+- `FormFieldISO.checkItem` là nhãn duy nhất — không có `label`. Khi cần fallback label cho field, kiểm tra type interface trước khi dùng `field?.label`. Sau khi fix root cause (`normalizeForm`), `field.checkItem` sẽ luôn được resolve đúng.
+
+**Root cause & Fix:**
+- `/api/forms/:formId` trả về raw DB row với key `layout_blocks` (snake_case). `extractAllFormFields(formTemplate.layoutBlocks)` nhận `undefined` → `allFormFields = []` → mọi field lookup fail → 3 bugs cascade.
+- Fix: `normalizeForm(raw)` helper trong `useEffect`, áp dụng cho cả 2 fetch path.
+
+---
 
 ### 2026-09-28 — Report Builder: Tối ưu hiệu năng tải Báo cáo — Parallel Fetch + Skeleton UI
 
