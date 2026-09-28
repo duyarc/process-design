@@ -40,6 +40,30 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-28 — Report Builder: Chuẩn hóa Ký hiệu Trọng số Đa ngôn ngữ (`Option D: / & ⊞`), Gắn Trọng số Góc Trên-Phải & Tạm lược bỏ `isPass` trên Bản In `tab Form` (`reportScoring`, `PrintFormScoringSpec`)
+
+**Scope:** 4 files (`src/utils/reportScoring.ts`, `src/components/print/PrintFormScoringSpec.tsx`, `DESIGN_REPORT_BUILDER.md`, `SESSION_LOG.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | ~6.5 min |
+| Thời gian lập plan (Request → Proceed) | ~2.5 min |
+| Thời gian thực thi (Proceed → Push) | ~4.0 min |
+| Số file nguồn chỉnh sửa | 2 (`reportScoring.ts`, `PrintFormScoringSpec.tsx`) |
+| Tổng lượt edit source | 8 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 2 (`tsc --noEmit` + `npm run build` 9.22s pass) |
+| Lần build cuối thành công? | Có (100% pass ngay lần đầu) |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- **Chuẩn hóa Ký hiệu Trọng số Đa ngôn ngữ (`Option D` — `/` & `⊞`):** Thay thế giới từ tiếng Anh `"of"` bằng ký hiệu toán học `"/"` và thay thế chữ tiếng Việt `"Bảng"` bằng ký hiệu bảng quốc tế `"⊞"` trong `WeightBadgeSpec` (`src/utils/reportScoring.ts`) và `renderWeightBadge` (`src/components/print/PrintFormScoringSpec.tsx`), tạo thành bộ ký hiệu `[35% / Form]`, `[50% / H1]`, `[100% / H2]`, `[17% / ⊞]` dùng chung tự nhiên cho cả tiếng Việt lẫn tiếng Anh.
+- **Định vị Trọng số tại Góc Trên-Phải của Mọi Khối Giao diện:** Chuyển toàn bộ huy hiệu trọng số của `H1`, `H2`, header khối `INFO_GRID`, từng ô trường `INFO_GRID`, header khối `TABLE` và từng ô dữ liệu `TABLE` về góc trên bên phải (`display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between'`), tạo trục thị giác đồng nhất để rà soát nhanh tổng `100%`.
+- **Tạm lược bỏ `isPass` để Giữ Bản In Tinh gọn:** Lược bỏ phân biệt màu sắc/biểu tượng `◉` vs `○` (`isPass`) và dòng `ruleSummary` ngưỡng Đạt trong `renderInlineFieldAnswerKey` cũng như trên thanh chú giải đầu trang; hiển thị đồng nhất mọi phương án lựa chọn/thang đo kèm điểm số (`• {label} · {scoreText}`, `[{label}: {scoreText}]`).
+
+---
+
 ### 2026-09-28 — Report Builder: Bản In Đặc tả Công thức, Trọng số & Quy luật Chấm điểm từ `tab Form` (`Biến thể 2A` + `Option 1 [X% of Parent]`) (`reportScoring`, `PrintFormScoringSpec`, `ReportBuilder`)
 
 **Scope:** 5 files (`src/utils/reportScoring.ts`, `src/components/print/PrintFormScoringSpec.tsx`, `src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`, `SESSION_LOG.md`)
@@ -307,30 +331,6 @@ Entry mới nhất ở trên cùng. Tối đa 10 entries.
 - **Triệt tiêu Hoàn toàn Lỗi Cụt Cuối Trang (Bottom Clearance):** Nâng padding đáy của container cuộn ngoài lên `5rem` (`padding: '1.25rem 1rem 5rem'`), gán `marginBottom: '2.5rem'` cho `.paper-card`, và bổ sung spacer đáy `4rem` (`<div style={{ height: '4rem', flexShrink: 0, width: '100%' }} />`), đảm bảo trên mọi trình duyệt flex-column không bao giờ bị dính sát mép dưới viewport.
 - **Vạch Phân Trang Ảo (Virtual Page Breaks):** Tích hợp đường ranh giới trang in nét đứt (`--- RANH GIỚI HẾT TRANG X (A4/A5) ---`) mỗi 1050px (A4) hoặc 650px (A5) dựa trên `ResizeObserver` theo dõi chiều cao thực tế của tờ giấy.
 - **ISO Paper Footer cho Tab Report:** Bổ sung footer chuẩn ISO (`Mã BC: template.reportId` bên trái, `Phiên bản: formatFormVersion(...)` bên phải, `marginTop: 'auto'`, đường kẻ viền `#334155`) khớp 100% với chuẩn tờ giấy của FormBuilder và FormReferenceCanvas.
-
----
-
-### 2026-09-25 — Report Builder: Unified Canvas Dimensions & Tab Form Silent Edit Lock (ReportBuilder & FormReferenceCanvas)
-
-**Scope:** 3 files (`src/components/ReportBuilder.tsx`, `src/components/report/FormReferenceCanvas.tsx`, `DESIGN_REPORT_BUILDER.md`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian tổng (Request → Push) | ~7.1 min |
-| Thời gian lập plan (Request → Proceed) | ~3.5 min |
-| Thời gian thực thi (Proceed → Push) | ~3.5 min |
-| Số file nguồn chỉnh sửa | 2 (`ReportBuilder.tsx`, `FormReferenceCanvas.tsx`) |
-| Tổng lượt edit source | 3 |
-| Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 2 (`1 tsc` pass + `1 vite build` 14.90s pass) |
-| Lần build cuối thành công? | Có (100% pass ngay lần đầu) |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Điểm nổi bật:**
-- **Thống nhất Kích thước Canvas Tờ Giấy:** Đồng bộ `maxWidth` sang `920px` (A5 Landscape) / `820px` (A4 Portrait), `minHeight` sang `650px` / `1050px`, và `padding: '1.75rem 2rem'` trên cả 2 Tab `Form` và `Report`, xóa bỏ hoàn toàn cú nhảy giật khung hình 122px khi chuyển tab.
-- **Triệt tiêu Thanh Cuộn Kép (Double Scrollbar):** Xóa bỏ outer scroll wrapper thừa (`overflowY: 'auto'`, background xám `#f1f5f9`) trong `FormReferenceCanvas`, giúp canvas cắm trực tiếp vào container cuộn trung tâm duy nhất của `ReportBuilder`.
-- **Cơ chế Ngầm Khóa Edit (Silent Lock) trên Tab Form:** Đúng yêu cầu "không ẩn công cụ, không mô tả readonly, chỉ ngầm khóa edit", đặt kiểm tra `if (activeCanvasTab === 'form') return;` chặn các thao tác thay đổi layout/nội dung (`handleAddBlock`, `handleDeleteBlock`, title format, borders, headers, title inputs) trong khi vẫn bảo lưu 100% khả năng cấu hình quy tắc chấm điểm và trọng số (`isKnockout`, `weight`, `ruleOverrides`).
 
 ---
 

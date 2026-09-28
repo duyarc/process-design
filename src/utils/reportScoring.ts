@@ -864,7 +864,7 @@ export function resolveFormTopLevelGroups(
 
 export interface WeightBadgeSpec {
   weight: number;
-  parentLabel: 'Form' | 'H1' | 'H2' | 'Bảng';
+  parentLabel: 'Form' | 'H1' | 'H2' | '⊞';
   isWeightManual: boolean;
   isKnockout: boolean;
 }
@@ -879,7 +879,7 @@ export interface AnswerKeyItemSpec {
 export interface FieldBlueprintSpec {
   fieldId: string;
   weight: number;
-  parentLabel: 'Bảng';
+  parentLabel: '⊞';
   isWeightManual: boolean;
   isKnockout: boolean;
   fieldType: string;
@@ -1083,7 +1083,7 @@ export function buildFormScoringBlueprintMap(
       fieldMap[f.id] = {
         fieldId: f.id,
         weight: weights[idx] ?? 0,
-        parentLabel: 'Bảng',
+        parentLabel: '⊞',
         isWeightManual: isManualFlags[idx] ?? false,
         isKnockout: Boolean(ov?.isKnockout),
         fieldType: f.type || 'text',

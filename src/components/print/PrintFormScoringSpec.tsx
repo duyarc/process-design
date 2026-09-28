@@ -143,7 +143,7 @@ export const PrintFormScoringSpec: React.FC<PrintFormScoringSpecProps> = ({
             whiteSpace: 'nowrap'
           }}
         >
-          [{spec.weight}%{spec.isWeightManual ? '•' : ''} of {spec.parentLabel}]
+          [{spec.weight}%{spec.isWeightManual ? '•' : ''} / {spec.parentLabel}]
         </span>
         {spec.isKnockout && (
           <span
@@ -174,39 +174,10 @@ export const PrintFormScoringSpec: React.FC<PrintFormScoringSpecProps> = ({
         style={{
           display: 'flex',
           flexDirection: 'column',
-          gap: '4px',
+          gap: '3px',
           marginTop: '3px'
         }}
       >
-        {/* Top Metadata Strip: [Weight% of Bảng] [KO] (Rule Summary) */}
-        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '5px' }}>
-          {renderWeightBadge(
-            {
-              weight: spec.weight,
-              parentLabel: spec.parentLabel,
-              isWeightManual: spec.isWeightManual,
-              isKnockout: spec.isKnockout
-            },
-            'sm'
-          )}
-          {spec.ruleSummary && (
-            <span
-              style={{
-                fontSize: '0.66rem',
-                fontWeight: 700,
-                color: '#0f766e',
-                background: '#f0fdfa',
-                padding: '1px 5px',
-                borderRadius: '3px',
-                border: '1px solid #99f6e4'
-              }}
-            >
-              ({spec.ruleSummary})
-            </span>
-          )}
-        </div>
-
-        {/* Answer Key Options (Variant 2A) */}
         {isScale ? (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', alignItems: 'center' }}>
             {spec.answerKeyItems.map((item, idx) => (
@@ -214,16 +185,16 @@ export const PrintFormScoringSpec: React.FC<PrintFormScoringSpecProps> = ({
                 key={idx}
                 style={{
                   fontSize: '0.68rem',
-                  fontWeight: item.isPass ? 800 : 500,
-                  color: item.isPass ? '#0f766e' : '#64748b',
-                  background: item.isPass ? '#f0fdfa' : '#f8fafc',
-                  border: item.isPass ? '1.5px solid #0d9488' : '1px dashed #cbd5e1',
+                  fontWeight: 600,
+                  color: '#1e293b',
+                  background: '#f8fafc',
+                  border: '1px solid #cbd5e1',
                   padding: '1px 6px',
                   borderRadius: '4px',
                   fontVariantNumeric: 'tabular-nums'
                 }}
               >
-                {item.isPass ? `[${item.label}:${item.scoreText}]` : `(${item.label}:${item.scoreText})`}
+                [{item.label}: {item.scoreText}]
               </span>
             ))}
           </div>
@@ -236,52 +207,32 @@ export const PrintFormScoringSpec: React.FC<PrintFormScoringSpecProps> = ({
               gap: spec.answerKeyItems.length > 3 ? '4px 10px' : '2.5px'
             }}
           >
-            {spec.answerKeyItems.map((item, idx) => {
-              const isCheckbox = spec.fieldType === 'checkbox';
-              const symbol = isCheckbox ? '☑' : item.isPass ? '◉' : '○';
-              return (
-                <div
-                  key={idx}
+            {spec.answerKeyItems.map((item, idx) => (
+              <div
+                key={idx}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  fontSize: '0.71rem',
+                  fontWeight: 500,
+                  color: '#1e293b',
+                  lineHeight: 1.35
+                }}
+              >
+                <span style={{ color: '#64748b', fontWeight: 700 }}>•</span>
+                <span>{item.label}</span>
+                <span
                   style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    fontSize: '0.71rem',
-                    fontWeight: item.isPass ? 700 : 400,
-                    color: item.isPass ? '#0f172a' : '#64748b',
-                    lineHeight: 1.35
+                    fontWeight: 800,
+                    color: '#0f766e',
+                    fontVariantNumeric: 'tabular-nums'
                   }}
                 >
-                  <span style={{ color: item.isPass ? '#0d9488' : '#94a3b8', fontWeight: 800 }}>
-                    {symbol}
-                  </span>
-                  <span>{item.label}</span>
-                  {item.isRequired && (
-                    <span
-                      style={{
-                        fontSize: '0.58rem',
-                        fontWeight: 800,
-                        color: '#dc2626',
-                        background: '#fef2f2',
-                        padding: '0 3px',
-                        borderRadius: '2px'
-                      }}
-                    >
-                      Bắt buộc
-                    </span>
-                  )}
-                  <span
-                    style={{
-                      fontWeight: 800,
-                      color: item.isPass ? '#0f766e' : '#64748b',
-                      fontVariantNumeric: 'tabular-nums'
-                    }}
-                  >
-                    · {item.scoreText}
-                  </span>
-                </div>
-              );
-            })}
+                  · {item.scoreText}
+                </span>
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -612,7 +563,7 @@ export const PrintFormScoringSpec: React.FC<PrintFormScoringSpecProps> = ({
                       color: '#0f172a'
                     }}
                   >
-                    {item.title}: {item.weight}%{item.isWeightManual ? '•' : ''} of Form
+                    {item.title}: {item.weight}%{item.isWeightManual ? '•' : ''} / Form
                   </span>
                 ))}
               </div>
@@ -620,17 +571,15 @@ export const PrintFormScoringSpec: React.FC<PrintFormScoringSpecProps> = ({
           </div>
           <div style={{ color: '#475569', borderTop: '1px dashed #cbd5e1', paddingTop: '3px', fontSize: '0.66rem' }}>
             <strong>• Ký hiệu:</strong>{' '}
-            <span style={{ color: '#0f766e', fontWeight: 700 }}>◉ / [ ] Đậm</span> = Phương án ĐẠT (PASS)
+            <span style={{ color: '#0f172a', fontWeight: 800 }}>⊞</span> = Bảng / Lưới (Table / Grid)
             &nbsp;│&nbsp;
-            <span style={{ color: '#64748b' }}>○ / ( ) Mờ</span> = Phương án TRƯỢT (FAIL)
+            <span style={{ color: '#0f766e', fontWeight: 800 }}>•</span> = Trọng số khóa tay (Manual Weight)
             &nbsp;│&nbsp;
-            <span style={{ color: '#0f766e', fontWeight: 800 }}>•</span> = Trọng số khóa tay
-            &nbsp;│&nbsp;
-            <span style={{ color: '#dc2626', fontWeight: 800 }}>[KO]</span> = Tiêu chí Điểm liệt (Trượt KO sẽ đánh trượt toàn nhóm)
+            <span style={{ color: '#dc2626', fontWeight: 800 }}>[KO]</span> = Tiêu chí Điểm liệt (Knockout)
           </div>
         </div>
 
-        {/* 3. Source Form Layout Blocks with Variant 2A Inline Answer-Key & Option 1 [X% of Parent] */}
+        {/* 3. Source Form Layout Blocks with Variant 2A Inline Answer-Key & Option D [X% / Parent] */}
         {blocks.map((block, blockIdx) => {
           if (block.type === 'TITLE') return null;
 
@@ -653,20 +602,21 @@ export const PrintFormScoringSpec: React.FC<PrintFormScoringSpecProps> = ({
             const elBadge = blueprint.elementMap[cleanBlockTitle];
             return (
               <div key={block.id} style={{ marginBottom: '4px' }}>
-                {block.title && (
+                {(block.title || elBadge) && (
                   <div
                     style={{
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      marginBottom: '4px',
-                      padding: '2px 6px',
+                      padding: '4px 8px',
                       background: '#f1f5f9',
-                      borderRadius: '4px'
+                      border: '1px solid #94a3b8',
+                      borderBottom: 'none',
+                      borderRadius: '4px 4px 0 0'
                     }}
                   >
-                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#1e293b' }}>
-                      {renderFormattedText(block.title)}
+                    <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#1e293b' }}>
+                      {renderFormattedText(block.title || '⊞ Thông tin chung')}
                     </span>
                     {renderWeightBadge(elBadge, 'sm')}
                   </div>
@@ -676,7 +626,7 @@ export const PrintFormScoringSpec: React.FC<PrintFormScoringSpecProps> = ({
                     display: 'grid',
                     gridTemplateColumns: getInfoGridTemplateColumns(block),
                     border: '1px solid #94a3b8',
-                    borderRadius: '4px',
+                    borderRadius: block.title || elBadge ? '0 0 4px 4px' : '4px',
                     overflow: 'hidden'
                   }}
                 >
@@ -696,8 +646,28 @@ export const PrintFormScoringSpec: React.FC<PrintFormScoringSpecProps> = ({
                           justifyContent: 'space-between'
                         }}
                       >
-                        <div style={{ fontSize: '0.76rem', fontWeight: 700, color: '#0f172a' }}>
-                          {renderFormattedText(f.checkItem || f.id)}
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            justifyContent: 'space-between',
+                            gap: '6px',
+                            width: '100%'
+                          }}
+                        >
+                          <div style={{ fontSize: '0.76rem', fontWeight: 700, color: '#0f172a', flex: 1 }}>
+                            {renderFormattedText(f.checkItem || f.id)}
+                          </div>
+                          {spec &&
+                            renderWeightBadge(
+                              {
+                                weight: spec.weight,
+                                parentLabel: spec.parentLabel,
+                                isWeightManual: spec.isWeightManual,
+                                isKnockout: spec.isKnockout
+                              },
+                              'sm'
+                            )}
                         </div>
                         {renderInlineFieldAnswerKey(spec)}
                       </div>
@@ -719,7 +689,7 @@ export const PrintFormScoringSpec: React.FC<PrintFormScoringSpecProps> = ({
 
             return (
               <div key={block.id} style={{ marginTop: isSeamless ? '-8px' : '4px', marginBottom: '4px' }}>
-                {block.title && getEffectiveTitleFormat(block) !== 'NONE' && (
+                {((block.title && getEffectiveTitleFormat(block) !== 'NONE') || tableBadge) && (
                   <div
                     style={{
                       display: 'flex',
@@ -733,7 +703,7 @@ export const PrintFormScoringSpec: React.FC<PrintFormScoringSpecProps> = ({
                     }}
                   >
                     <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#0f172a', textTransform: 'uppercase' }}>
-                      {renderFormattedText(block.title)}
+                      {renderFormattedText(block.title || '⊞ Bảng đánh giá')}
                     </span>
                     {renderWeightBadge(tableBadge, 'sm')}
                   </div>
@@ -833,15 +803,37 @@ export const PrintFormScoringSpec: React.FC<PrintFormScoringSpecProps> = ({
                                   verticalAlign: 'top'
                                 }}
                               >
-                                {staticCellText && (
+                                {(staticCellText || fieldSpec) && (
                                   <div
                                     style={{
-                                      fontWeight: colIdx === 0 ? 600 : 500,
-                                      color: '#0f172a',
+                                      display: 'flex',
+                                      alignItems: 'flex-start',
+                                      justifyContent: staticCellText ? 'space-between' : 'flex-end',
+                                      gap: '6px',
                                       marginBottom: fieldSpec ? '3px' : 0
                                     }}
                                   >
-                                    {renderFormattedText(String(staticCellText))}
+                                    {staticCellText && (
+                                      <div
+                                        style={{
+                                          fontWeight: colIdx === 0 ? 600 : 500,
+                                          color: '#0f172a',
+                                          flex: 1
+                                        }}
+                                      >
+                                        {renderFormattedText(String(staticCellText))}
+                                      </div>
+                                    )}
+                                    {fieldSpec &&
+                                      renderWeightBadge(
+                                        {
+                                          weight: fieldSpec.weight,
+                                          parentLabel: fieldSpec.parentLabel,
+                                          isWeightManual: fieldSpec.isWeightManual,
+                                          isKnockout: fieldSpec.isKnockout
+                                        },
+                                        'sm'
+                                      )}
                                   </div>
                                 )}
                                 {fieldSpec && renderInlineFieldAnswerKey(fieldSpec)}
