@@ -35,6 +35,7 @@ import { formatFormVersion } from '../types';
 import { SmartNumberInput } from './common/SmartNumberInput';
 import ConfirmModal from './common/ConfirmModal';
 import PrintReport from './print/PrintReport';
+import PrintFormScoringSpec from './print/PrintFormScoringSpec';
 import { useAuth } from '../context/AuthContext';
 import {
   FileText,
@@ -6060,29 +6061,45 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
 
       {/* ── Print Preview Portal ── */}
       {showPrintPreview && (
-        <PrintReport
-          template={template}
-          autoExportPdf={autoExportPdf}
-          submission={sampleSubmission || {
-            id: 'SAMPLE-001',
-            processId: 'PROC-001',
-            formId: template.linkedFormId,
-            formVersion: 'v1.0',
-            operatorId: 'Operator',
-            submittedAt: new Date().toISOString(),
-            status: 'PASS',
-            formData: []
-          }}
-          formTemplate={selectedForm || {
-            formId: template.linkedFormId,
-            formTitle: 'Source Form',
-            version: 'v1.0',
-            status: 'ACTIVE',
-            layoutBlocks: [],
-            revisionHistory: []
-          }}
-          onClose={() => setShowPrintPreview(false)}
-        />
+        activeCanvasTab === 'form' ? (
+          <PrintFormScoringSpec
+            template={template}
+            autoExportPdf={autoExportPdf}
+            formTemplate={selectedForm || {
+              formId: template.linkedFormId,
+              formTitle: 'Source Form',
+              version: 'v1.0',
+              status: 'ACTIVE',
+              layoutBlocks: [],
+              revisionHistory: []
+            }}
+            onClose={() => setShowPrintPreview(false)}
+          />
+        ) : (
+          <PrintReport
+            template={template}
+            autoExportPdf={autoExportPdf}
+            submission={sampleSubmission || {
+              id: 'SAMPLE-001',
+              processId: 'PROC-001',
+              formId: template.linkedFormId,
+              formVersion: 'v1.0',
+              operatorId: 'Operator',
+              submittedAt: new Date().toISOString(),
+              status: 'PASS',
+              formData: []
+            }}
+            formTemplate={selectedForm || {
+              formId: template.linkedFormId,
+              formTitle: 'Source Form',
+              version: 'v1.0',
+              status: 'ACTIVE',
+              layoutBlocks: [],
+              revisionHistory: []
+            }}
+            onClose={() => setShowPrintPreview(false)}
+          />
+        )
       )}
 
       {/* ── Confirmation Modal ── */}

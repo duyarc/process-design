@@ -2,10 +2,12 @@ import type {
   FormFieldISO,
   ReportFieldRuleOverride,
   FieldEvaluationResult,
-  ReportBlockConfig
+  ReportBlockConfig,
+  FormTemplateISO,
+  ReportTemplateISO
 } from '../types';
-import type { FieldHierarchyGroup } from './tableFieldExtractor';
-import { isOtherValue } from './formUtils';
+import { extractAllFormFields, groupFieldsByHierarchy, type FieldHierarchyGroup } from './tableFieldExtractor';
+import { isOtherValue, formatOptionDisplay } from './formUtils';
 
 /**
  * Pure Utility: Computes score, maxScore, and pass/fail evaluation for an individual form field.
@@ -859,6 +861,321 @@ export function resolveFormTopLevelGroups(
     formCombinedScore
   };
 }
+
+export interface WeightBadgeSpec {
+  weight: number;
+  parentLabel: 'Form' | 'H1' | 'H2' | 'Bảng';
+  isWeightManual: boolean;
+  isKnockout: boolean;
+}
+
+export interface AnswerKeyItemSpec {
+  label: string;
+  scoreText: string;
+  isPass: boolean;
+  isRequired?: boolean;
+}
+
+export interface FieldBlueprintSpec {
+  fieldId: string;
+  weight: number;
+  parentLabel: 'Bảng';
+  isWeightManual: boolean;
+  isKnockout: boolean;
+  fieldType: string;
+  ruleSummary?: string;
+  answerKeyItems: AnswerKeyItemSpec[];
+}
+
+export interface FormScoringBlueprintMap {
+  topLevelSummary: Array<{
+    title: string;
+    weight: number;
+    parentLabel: 'Form';
+    isWeightManual: boolean;
+    isKnockout: boolean;
+  }>;
+  h1Map: Record<string, WeightBadgeSpec>;
+  h2Map: Record<string, WeightBadgeSpec>;
+  elementMap: Record<string, WeightBadgeSpec>;
+  fieldMap: Record<string, FieldBlueprintSpec>;
+}
+
+function buildFieldAnswerKeySpec(
+  field: FormFieldISO,
+  override?: ReportFieldRuleOverride
+): { ruleSummary?: string; answerKeyItems: AnswerKeyItemSpec[] } {
+  const fType = field.type || 'text';
+
+  if (fType === 'likert_scale' || fType === 'rating') {
+    const scaleCount = field.ratingScale === 3 ? 3 : (field.scaleOptions && field.scaleOptions.length > 0 ? field.scaleOptions.length : 5);
+    const minPassLevel = override?.customMinSpec !== undefined ? override.customMinSpec : Math.ceil(scaleCount / 2);
+    const items: AnswerKeyItemSpec[] = [];
+    for (let lvl = 1; lvl <= scaleCount; lvl++) {
+      const score = override?.optionScores?.[String(lvl)] !== undefined ? override.optionScores[String(lvl)] : lvl;
+      const isPass = lvl >= minPassLevel;
+      const optLabel = field.scaleOptions?.[lvl - 1] ? `${lvl} (${field.scaleOptions[lvl - 1]})` : `${lvl}`;
+      items.push({
+        label: optLabel,
+        scoreText: `${score}đ`,
+        isPass
+      });
+    }
+    return {
+      ruleSummary: `Đạt ≥ Mức ${minPassLevel}`,
+      answerKeyItems: items
+    };
+  }
+
+  if (fType === 'radio' || fType === 'select') {
+    const rawOpts = field.options && field.options.length > 0
+      ? field.options
+      : [{ label: 'Đạt', value: 'PASS' }, { label: 'Không Đạt', value: 'FAIL' }];
+    const allValues = rawOpts.map((o: any) => typeof o === 'string' ? o : (o.value || o.label));
+    const defaultPassSet = allValues.filter((_, idx) => idx < Math.ceil(allValues.length / 2));
+    const passOptions = override?.customPassOptions || defaultPassSet;
+
+    const items: AnswerKeyItemSpec[] = rawOpts.map((o: any) => {
+      const val = typeof o === 'string' ? o : (o.value || o.label);
+      const rawLabel = typeof o === 'string' ? o : (o.label || o.value);
+      const label = formatOptionDisplay(rawLabel);
+      const isPass = passOptions.includes(val);
+      const score = override?.optionScores?.[val] !== undefined
+        ? override.optionScores[val]
+        : (isPass ? 5 : 1);
+      return {
+        label,
+        scoreText: `${score}đ`,
+        isPass
+      };
+    });
+    return { answerKeyItems: items };
+  }
+
+  if (fType === 'checkbox') {
+    const minChecked = override?.customMinSpec !== undefined ? override.customMinSpec : 1;
+    const rawOpts = field.options || [];
+    const reqSet = override?.customPassOptions || [];
+
+    const items: AnswerKeyItemSpec[] = rawOpts.map((o: any) => {
+      const val = typeof o === 'string' ? o : (o.value || o.label);
+      const rawLabel = typeof o === 'string' ? o : (o.label || o.value);
+      const label = formatOptionDisplay(rawLabel);
+      const isRequired = reqSet.includes(val);
+      const score = override?.optionScores?.[val] !== undefined ? override.optionScores[val] : 1;
+      const prefix = score >= 0 ? '+' : '';
+      return {
+        label,
+        scoreText: `${prefix}${score}đ`,
+        isPass: true,
+        isRequired
+      };
+    });
+    return {
+      ruleSummary: `Cộng dồn · Đạt ≥ ${minChecked} mục`,
+      answerKeyItems: items
+    };
+  }
+
+  if (fType === 'number') {
+    const ranges = override?.numberRanges && override.numberRanges.length > 0
+      ? override.numberRanges
+      : [{
+          id: 'r_default',
+          min: override?.customMinSpec !== undefined ? override.customMinSpec : field.minSpec,
+          max: override?.customMaxSpec !== undefined ? override.customMaxSpec : field.maxSpec,
+          isPass: true,
+          score: override?.fixedScore !== undefined ? override.fixedScore : 5
+        }];
+    const items: AnswerKeyItemSpec[] = ranges.map(r => {
+      const minText = r.min !== undefined && r.min !== null ? String(r.min) : '-∞';
+      const maxText = r.max !== undefined && r.max !== null ? String(r.max) : '+∞';
+      const rangeLabel = (r.min === undefined || r.min === null) && (r.max === undefined || r.max === null)
+        ? 'Mọi giá trị số'
+        : `[${minText} .. ${maxText}]`;
+      return {
+        label: rangeLabel,
+        scoreText: `${r.score}đ`,
+        isPass: r.isPass
+      };
+    });
+    return { answerKeyItems: items };
+  }
+
+  // text / date / time / photo / signature
+  const fixedScore = override?.textPassScore !== undefined
+    ? override.textPassScore
+    : (override?.fixedScore !== undefined ? override.fixedScore : 5);
+  const kw = override?.customTargetRange?.trim();
+  const minLen = override?.textMinLength;
+  return {
+    answerKeyItems: [{
+      label: kw
+        ? `Chứa "${kw}"`
+        : minLen
+        ? `Tối thiểu ${minLen} ký tự`
+        : 'Có nhập nội dung hợp lệ',
+      scoreText: `${fixedScore}đ`,
+      isPass: true
+    }]
+  };
+}
+
+/**
+ * Pure Utility: Builds the complete 4-tier Parent-Relative Weight Map (`[X% of Form/H1/H2/Bảng]`)
+ * and Inline Answer-Key specification for printing `tab Form` of ReportBuilder.
+ */
+export function buildFormScoringBlueprintMap(
+  formTemplate: FormTemplateISO,
+  reportTemplate: ReportTemplateISO
+): FormScoringBlueprintMap {
+  const allFormFields = extractAllFormFields(formTemplate?.layoutBlocks || []);
+  const hierarchyGroups = groupFieldsByHierarchy(allFormFields);
+  const layoutBlocks = reportTemplate?.layoutBlocks || [];
+  const templateOverrides = reportTemplate?.ruleOverrides || {};
+
+  const h1Map: Record<string, WeightBadgeSpec> = {};
+  const h2Map: Record<string, WeightBadgeSpec> = {};
+  const elementMap: Record<string, WeightBadgeSpec> = {};
+  const fieldMap: Record<string, FieldBlueprintSpec> = {};
+
+  const topLevelInfo = resolveFormTopLevelGroups(
+    hierarchyGroups,
+    layoutBlocks,
+    undefined,
+    templateOverrides
+  );
+
+  const topLevelSummary = topLevelInfo.items.map(item => {
+    const cleanTitle = item.title.trim().toLowerCase();
+    const matchedBlock = layoutBlocks.find(b => (b.title || '').trim().toLowerCase() === cleanTitle);
+    return {
+      title: item.title,
+      weight: item.weight,
+      parentLabel: 'Form' as const,
+      isWeightManual: Boolean(item.isWeightManual),
+      isKnockout: Boolean(matchedBlock?.isKnockout)
+    };
+  });
+
+  const populateElementFields = (elTitle: string, fields: FormFieldISO[]) => {
+    const cleanEl = elTitle.trim().toLowerCase();
+    const matchingBlock = layoutBlocks.find(b =>
+      (b.type === 'TABLE' || b.type === 'INFO_GRID') && (
+        (b.title || '').trim().toLowerCase() === cleanEl ||
+        b.boundFieldIds?.some(id => fields.some(f => f.id === id))
+      )
+    );
+    const blockOverrides = matchingBlock?.ruleOverrides || {};
+
+    const rawFieldWeights = fields.map(f => {
+      const ov = blockOverrides[f.id] || templateOverrides[f.id];
+      return {
+        weight: ov?.weight,
+        isWeightManual: ov?.isWeightManual
+      };
+    });
+    const { weights, isManualFlags } = resolveSmartGroupWeights(rawFieldWeights);
+
+    fields.forEach((f, idx) => {
+      const ov = blockOverrides[f.id] || templateOverrides[f.id];
+      const { ruleSummary, answerKeyItems } = buildFieldAnswerKeySpec(f, ov);
+      fieldMap[f.id] = {
+        fieldId: f.id,
+        weight: weights[idx] ?? 0,
+        parentLabel: 'Bảng',
+        isWeightManual: isManualFlags[idx] ?? false,
+        isKnockout: Boolean(ov?.isKnockout),
+        fieldType: f.type || 'text',
+        ruleSummary,
+        answerKeyItems
+      };
+    });
+  };
+
+  hierarchyGroups.forEach((h1Group, h1Idx) => {
+    const cleanH1 = h1Group.h1.trim().toLowerCase();
+    if (topLevelInfo.tierLabel === 'H1') {
+      const topItem = topLevelInfo.items[h1Idx];
+      const h1Block = layoutBlocks.find(
+        b => b.type === 'SECTION_LABEL' && (b.titleFormat === 'H1' || !b.titleFormat) && (b.title || '').trim().toLowerCase() === cleanH1
+      );
+      h1Map[cleanH1] = {
+        weight: topItem?.weight ?? 0,
+        parentLabel: 'Form',
+        isWeightManual: Boolean(topItem?.isWeightManual),
+        isKnockout: Boolean(h1Block?.isKnockout)
+      };
+    }
+
+    const { childH2Summary } = summarizeH1ChildGroups(
+      h1Group.h1,
+      hierarchyGroups,
+      layoutBlocks,
+      undefined,
+      templateOverrides
+    );
+
+    const h2ParentLabel: 'Form' | 'H1' = topLevelInfo.tierLabel === 'H1' ? 'H1' : 'Form';
+
+    childH2Summary.forEach(child => {
+      const cleanChild = child.h2Title.trim().toLowerCase();
+      const childBlock = layoutBlocks.find(b => (b.title || '').trim().toLowerCase() === cleanChild);
+      if (child.isElement) {
+        elementMap[cleanChild] = {
+          weight: child.weight,
+          parentLabel: h2ParentLabel,
+          isWeightManual: Boolean(child.isWeightManual),
+          isKnockout: Boolean(childBlock?.isKnockout)
+        };
+      } else {
+        h2Map[cleanChild] = {
+          weight: child.weight,
+          parentLabel: h2ParentLabel,
+          isWeightManual: Boolean(child.isWeightManual),
+          isKnockout: Boolean(childBlock?.isKnockout)
+        };
+      }
+    });
+
+    h1Group.h2Groups.forEach(h2Group => {
+      const { childElementsSummary } = summarizeH2ChildElements(
+        h2Group.h2,
+        hierarchyGroups,
+        layoutBlocks,
+        undefined,
+        templateOverrides
+      );
+      childElementsSummary.forEach(elSum => {
+        const cleanElTitle = elSum.elementTitle.trim().toLowerCase();
+        const elBlock = layoutBlocks.find(b => (b.title || '').trim().toLowerCase() === cleanElTitle);
+        elementMap[cleanElTitle] = {
+          weight: elSum.weight,
+          parentLabel: 'H2',
+          isWeightManual: Boolean(elSum.isWeightManual),
+          isKnockout: Boolean(elBlock?.isKnockout)
+        };
+      });
+
+      h2Group.elements.forEach(el => {
+        populateElementFields(el.elementTitle, el.fields);
+      });
+    });
+
+    h1Group.directElements.forEach(el => {
+      populateElementFields(el.elementTitle, el.fields);
+    });
+  });
+
+  return {
+    topLevelSummary,
+    h1Map,
+    h2Map,
+    elementMap,
+    fieldMap
+  };
+}
+
 
 
 

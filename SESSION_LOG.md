@@ -40,6 +40,30 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-28 — Report Builder: Bản In Đặc tả Công thức, Trọng số & Quy luật Chấm điểm từ `tab Form` (`Biến thể 2A` + `Option 1 [X% of Parent]`) (`reportScoring`, `PrintFormScoringSpec`, `ReportBuilder`)
+
+**Scope:** 5 files (`src/utils/reportScoring.ts`, `src/components/print/PrintFormScoringSpec.tsx`, `src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`, `SESSION_LOG.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | ~9.5 min |
+| Thời gian lập plan (Request → Proceed) | ~2.0 min |
+| Thời gian thực thi (Proceed → Push) | ~7.5 min |
+| Số file nguồn chỉnh sửa | 3 (`reportScoring.ts`, `PrintFormScoringSpec.tsx`, `ReportBuilder.tsx`) |
+| Tổng lượt edit source | 7 |
+| Lượt edit sửa lỗi (rework) | 3 (đồng bộ tên trường `ReportFieldRuleOverride` & `TableRowConfig`) |
+| Số lần build | 3 (`tsc --noEmit` + `npm run build` 13.60s pass) |
+| Lần build cuối thành công? | Có |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- **Pure Utility `buildFormScoringBlueprintMap` (`src/utils/reportScoring.ts` — Rule 4.1):** Tính toán toàn bộ trọng số 4 tầng kèm nhãn tham chiếu cấp cha động (`[35% of Form]`, `[50% of H1]`, `[100% of H2]`, `[40%• of Bảng]` — tự động thích ứng khi biểu mẫu khuyết `H1` hoặc khuyết `H2`) và chuẩn hóa dữ liệu đáp án `InlineAnswerKeySpec` cho mọi kiểu trường (`radio`, `select`, `likert_scale`, `rating`, `checkbox`, `number`, `text`).
+- **Component In Đặc tả Độc lập `PrintFormScoringSpec.tsx` (`src/components/print/PrintFormScoringSpec.tsx` — Rule 4.3 Monolith Guard):** Kết xuất trực tiếp trên nền bố cục Biểu mẫu gốc (`Biến thể 2A: Inline Answer-Key`) kèm thanh công thức 2 dòng, ký hiệu `◉ Đậm · Điểm` (ĐẠT) / `○ Mờ · Điểm` (TRƯỢT), huy hiệu `[KO]`, hỗ trợ cả `Ctrl+P` và xuất file PDF vector (`exportFillablePdfFromDOM`).
+- **Điều hướng In ấn Thông minh theo Ngữ cảnh Tab (`ReportBuilder.tsx`):** Khi đang ở `tab Form` bấm `Print` / `PDF` sẽ mở `<PrintFormScoringSpec />`; khi đang ở `tab Report` bấm `Print` / `PDF` sẽ mở `<PrintReport />`.
+
+---
+
 ### 2026-09-28 — Report Builder: Tối giản Cây `FIELDS` Sidebar Trái (`Option A` Cấp Nhóm + `Option B` Cấp Trường) & Gán Nhóm bằng Kéo-Thả (`ReportBuilder`)
 
 **Scope:** 3 files (`src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`, `SESSION_LOG.md`)
@@ -310,31 +334,7 @@ Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
 ---
 
-### 2026-09-25 — Report Builder: Realigned Footer Weight Slots & Removed Sigma Symbol (ReportBuilder)
 
-**Scope:** 3 files (`src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`, `SESSION_LOG.md`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian tổng (Request → Push) | ~7 min |
-| Thời gian lập plan (Request → Proceed) | ~3 min |
-| Thời gian thực thi (Proceed → Push) | ~4 min |
-| Số file nguồn chỉnh sửa | 1 (`ReportBuilder.tsx`) |
-| Tổng lượt edit source | 3 |
-| Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 2 (`1 tsc` pass + `1 vite build` 14.73s pass) |
-| Lần build cuối thành công? | Có (100% pass ngay lần đầu) |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Điểm nổi bật:**
-- **Loại bỏ Ký hiệu `∑`:** Chấm dứt tình trạng ký hiệu `∑ ` chèn ép diện tích ngang, đẩy chuỗi `100%` lệch khỏi trục ô nhập và nằm quá sát cột `Score`.
-- **Căn chỉnh Thẳng Hàng Trục Dọc (Vertical Center Alignment) Chuẩn Xác:** Đồng bộ cấu trúc footer với các hàng thành phần (`display: flex, justifyContent: flex-end, gap: 2px, paddingRight: 2px`).
-- **Slot Số Tổng 32px Căn giữa:** Số tổng trọng số được bọc trong thẻ `<span>` có chiều rộng cố định đúng `32px`, căn giữa (`textAlign: 'center'`), `fontVariantNumeric: 'tabular-nums'` và `fontWeight: 800`. Tâm số `100` thẳng hàng 100% theo phương thẳng đứng với tâm các ô input `<SmartNumberInput>` (32px) phía trên.
-- **Ký tự `%` Thẳng Hàng:** Ký tự `%` được tách riêng trong thẻ `<span>` sau `gap: 2px`, thẳng trục tuyệt đối với `%` của các hàng trên.
-- **Đồng bộ trên Cả 3 Bảng Tổng hợp:** Áp dụng chuẩn thiết kế này cho Bảng Tổng hợp Trụ cột H1, Bảng Tổng hợp Phân mục H2 và Bảng Đánh giá FIELDS của Khối Table.
-
----
 
 
 
