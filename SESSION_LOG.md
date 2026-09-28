@@ -40,6 +40,36 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-28 — Report Builder: Chuẩn hóa `PrintReport.tsx` Tái sử dụng Tài nguyên In Dùng chung (`printShared.tsx`)
+
+**Scope:** 4 files (`src/components/print/PrintReport.tsx`, `src/components/print/printShared.tsx`, `DESIGN_REPORT_BUILDER.md`, `AGENTS.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | ~8 min |
+| Thời gian lập plan (Request → Proceed) | ~2 min |
+| Thời gian thực thi (Proceed → Push) | ~6 min |
+| Số file nguồn chỉnh sửa | 2 (`PrintReport.tsx`, `printShared.tsx`) |
+| Tổng lượt edit source | 5 |
+| Lượt edit sửa lỗi (rework) | 1 (`ReportBlockConfig` type union in `printShared.tsx`) |
+| Số lần build | 3 (`tsc --noEmit` pass, `tsc -b` pass, `vite build` 9.09s pass) |
+| Lần build cuối thành công? | Có (100% pass) |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- **Triệt tiêu Trùng lặp & Chuẩn hóa In ấn Toàn diện:** Đồng bộ `PrintReport.tsx` theo chuẩn kiến trúc của `PrintBlankForm`, `PrintFilledForm` và `PrintScoring`.
+- **Áp dụng `printShared.tsx` Primitives:**
+  - Thay thế 30 dòng tự quản lý state & fetch logo Cloudflare R2 bằng hook `usePrintLogo(titleBlock?.logo)`.
+  - Thay thế 53 dòng CSS inline `@media print` bằng component chuẩn `<PrintDocumentStyles isA5={isA5} />`.
+  - Thay thế khối render `TITLE` thủ công (66 dòng) bằng `<PrintTitleBlock />`, hỗ trợ hiển thị ngày nộp bản ghi linh hoạt.
+  - Tái sử dụng `<PrintSectionHeader />` cho tiêu đề `SECTION_LABEL`, `INFO_GRID` và `TABLE`, giải quyết triệt để các đoạn switch-case rườm rà.
+  - Thay thế chân trang tĩnh bằng `<PrintPageFooter />` chuẩn ISO.
+- **Mở rộng Type Contract `printShared.tsx`:** Cho phép `PrintTitleBlock` và `PrintSectionHeader` nhận cả `LayoutBlockISO` và `ReportBlockConfig`, loại bỏ ép kiểu cưỡng bức.
+- **Kỷ luật Module Ownership (`AGENTS.md`):** Đăng ký chính thức các component của phân hệ Report Builder (`ReportBuilder.tsx`, `FormReport.tsx`, `PrintReport.tsx`, `PrintScoring.tsx`) thay thế cho `*(Components TBD)*`.
+
+---
+
 ### 2026-09-28 — Form Operations & Report Builder: Tinh gọn Thanh Công cụ Xem Bản nộp (`FormFiller`), Bổ sung Segmented Pill Tab `[ Form | Report ]`, Tích hợp Hộp Chia sẻ Link Động và Embedded FormReport
 
 **Scope:** 8 files (`server.cjs`, `src/App.tsx`, `src/components/Dashboard.tsx`, `src/components/FormFiller.tsx`, `src/components/FormManager.tsx`, `src/components/FormReport.tsx`, `src/components/SubmissionManager.tsx`, `src/components/SubmissionViewer.tsx`)
@@ -314,30 +344,6 @@ Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
 ---
 
-### 2026-09-25 — Report Builder: Pure Native Drag & Drop Field Assignment & Pruned Modal (ReportBuilder)
-
-**Scope:** 3 files (`src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`, `SESSION_LOG.md`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian tổng (Request → Push) | ~6 min |
-| Thời gian lập plan (Request → Proceed) | ~2 min |
-| Thời gian thực thi (Proceed → Push) | ~4 min |
-| Số file nguồn chỉnh sửa | 1 (`ReportBuilder.tsx`) |
-| Tổng lượt edit source | 7 |
-| Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 3 (`1 tsc` pass + `1 tsc -b` pass + `1 vite build` 15.88s pass) |
-| Lần build cuối thành công? | Có (100% pass) |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Điểm nổi bật:**
-- **Chuyển đổi sang Pure Native Drag and Drop:** Thay thế hoàn toàn cơ chế gán trường cồng kềnh qua modal và nút bấm bằng chuẩn Native HTML5 Drag and Drop không phụ thuộc thư viện ngoài.
-- **Tối ưu Left Sidebar Data Palette:** Toàn bộ card trường trong danh mục `FIELDS` được gắn grip `⠿` và `draggable={true}`. Tính toán số lần tái sử dụng `getFieldUsageCount`: các trường đã gán hiển thị badge gọn gàng (`x1`, `x2`,...), các trường chưa gán hoàn toàn sạch sẽ (không hiện badge hay chữ 'o' gây rối mắt).
-- **Option 4 Adaptive Microcopy trên Canvas:** Khối `INFO_GRID` và `TABLE` rỗng hiển thị hộp đứt nét `+ Thả vào đây`. Khi khối đã có dữ liệu, ở trạng thái nghỉ toàn bộ slot dropzone ẩn đi giúp canvas trang nhã; khi người dùng bắt đầu kéo trường (`isDraggingField === true`), slot đứt nét `+ Thả vào đây` tự động xuất hiện ở cuối lưới/bảng để đón nhận.
-- **Triệt tiêu Mã Chết (Dead-Code Pruning — Rule 4.2):** Xóa sạch modal `Quick Field Picker` (~365 dòng JSX) và các nút `+ Thêm trường` rườm rà trên Canvas và Right Inspector, giảm net hơn 310 dòng code.
-
----
 
 
 

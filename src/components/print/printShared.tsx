@@ -1,5 +1,5 @@
 import React from 'react';
-import type { FormTemplateISO, LayoutBlockISO } from '../../types';
+import type { FormTemplateISO, LayoutBlockISO, ReportBlockConfig } from '../../types';
 import { formatFormVersion } from '../../types';
 import { getEffectiveTitleFormat } from '../../utils/formUtils';
 import { renderFormattedText } from '../../utils/textFormatter';
@@ -141,7 +141,7 @@ export function PrintTitleBlock({
   onImgSettled,
   dateValueNode
 }: {
-  block: LayoutBlockISO;
+  block: LayoutBlockISO | ReportBlockConfig | any;
   logoUrl: string;
   onImgSettled: () => void;
   dateValueNode?: React.ReactNode;
@@ -235,7 +235,7 @@ export function PrintSectionHeader({
   marginBottom = 'var(--pw-title-gap)',
   showDescription = false
 }: {
-  block: LayoutBlockISO;
+  block: LayoutBlockISO | ReportBlockConfig | any;
   rightBadge?: React.ReactNode;
   marginBottom?: string;
   showDescription?: boolean;

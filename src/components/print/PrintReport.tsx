@@ -6,7 +6,6 @@ import type {
   FormTemplateISO,
   FormFieldISO
 } from '../../types';
-import { formatFormVersion } from '../../types';
 import { computeRecordReport } from '../../utils/reportCompute';
 import { getInfoGridTemplateColumns, to5SFileName } from '../../utils/formUtils';
 import { renderFormattedText } from '../../utils/textFormatter';
@@ -15,6 +14,13 @@ import { exportFillablePdfFromDOM } from '../../utils/pdfFormExporter';
 import { RadarChartBlock } from '../report/RadarChartBlock';
 import { BarChartBlock } from '../report/BarChartBlock';
 import { FileText, Printer } from 'lucide-react';
+import {
+  usePrintLogo,
+  PrintDocumentStyles,
+  PrintTitleBlock,
+  PrintSectionHeader,
+  PrintPageFooter
+} from './printShared';
 
 interface PrintReportProps {
   template: ReportTemplateISO;
@@ -33,10 +39,8 @@ export const PrintReport: React.FC<PrintReportProps> = ({
   exportMode = false,
   autoExportPdf = false
 }) => {
-  const [logoUrl, setLogoUrl] = useState<string>('');
-  const [imgLoaded, setImgLoaded] = useState<boolean>(false);
-  const [isExportingPdf, setIsExportingPdf] = useState<boolean>(false);
   const printContainerRef = useRef<HTMLDivElement>(null);
+  const [isExportingPdf, setIsExportingPdf] = useState<boolean>(false);
 
   const pageSize = template.pageSize || (template as any).page_size || 'A4';
   const isA5 = pageSize === 'A5_LANDSCAPE';
@@ -45,33 +49,7 @@ export const PrintReport: React.FC<PrintReportProps> = ({
   const allFormFields: FormFieldISO[] = extractAllFormFields(formTemplate?.layoutBlocks || []);
 
   const titleBlock = template.layoutBlocks.find(b => b.type === 'TITLE');
-  const titleBlockLogo = titleBlock?.logo;
-
-  // 1. Fetch inline base64 logo from R2 to prevent CORS and export issues
-  useEffect(() => {
-    if (!titleBlockLogo) {
-      setLogoUrl('');
-      setImgLoaded(true);
-      return;
-    }
-    if (titleBlockLogo.startsWith('uploads/')) {
-      fetch(`/api/storage/download-inline?key=${encodeURIComponent(titleBlockLogo)}`)
-        .then(res => res.json())
-        .then(data => {
-          if (data.dataUrl) {
-            setLogoUrl(data.dataUrl);
-          } else {
-            setImgLoaded(true);
-          }
-        })
-        .catch(err => {
-          console.error('Error fetching inline logo for report print:', err);
-          setImgLoaded(true);
-        });
-    } else {
-      setLogoUrl(titleBlockLogo);
-    }
-  }, [titleBlockLogo]);
+  const { logoUrl, imgLoaded, setImgLoaded } = usePrintLogo(titleBlock?.logo);
 
   const hasAutoExportedRef = useRef(false);
   const isExportingRef = useRef(false);
@@ -168,59 +146,7 @@ export const PrintReport: React.FC<PrintReportProps> = ({
       padding: '20px',
       overflowY: 'auto'
     }}>
-      <style>{`
-        @media print {
-          #root {
-            display: none !important;
-          }
-          .print-container {
-            position: static !important;
-            width: 100% !important;
-            height: auto !important;
-            overflow: visible !important;
-            padding: 0 !important;
-            margin: 0 !important;
-            box-sizing: border-box !important;
-          }
-          @page {
-            size: ${isA5 ? 'A5 landscape' : 'A4 portrait'};
-            margin: ${isA5 ? '8mm 10mm 10mm 10mm' : '12mm 15mm 15mm 15mm'};
-          }
-          body {
-            background: #ffffff !important;
-            color: #000000 !important;
-            padding: 0 !important;
-            margin: 0 !important;
-          }
-          .no-print {
-            display: none !important;
-          }
-          .print-block-avoid {
-            page-break-inside: avoid;
-            break-inside: avoid;
-          }
-          thead {
-            display: table-header-group;
-          }
-          tr {
-            page-break-inside: avoid;
-            break-inside: avoid;
-          }
-          .print-footer {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 20px;
-            display: flex !important;
-            align-items: center;
-            justify-content: space-between;
-            font-size: var(--pw-font-xs);
-            font-family: inherit;
-            color: #475569;
-          }
-        }
-      `}</style>
+      <PrintDocumentStyles isA5={isA5} />
 
       {/* Screen Action Bar (No-print) */}
       <div className="no-print" style={{
@@ -276,127 +202,37 @@ export const PrintReport: React.FC<PrintReportProps> = ({
                   
                   {/* 1. TITLE Block */}
                   {block.type === 'TITLE' && (
-                    (logoUrl || block.logo) ? (
-                      <div style={{
-                        padding: '8px 0',
-                        display: 'flex',
-                        alignItems: 'center',
-                        marginBottom: '10px',
-                        position: 'relative'
-                      }}>
-                        <div style={{ marginRight: '16px', display: 'flex', alignItems: 'center', height: '60px' }}>
-                          <img 
-                            src={logoUrl || block.logo} 
-                            alt="Logo" 
-                            style={{ maxHeight: '60px', maxWidth: '240px', objectFit: 'contain' }}
-                            onLoad={() => setImgLoaded(true)}
-                            onError={() => setImgLoaded(true)}
-                          />
-                        </div>
-                        <div style={{ textAlign: 'center', flex: 1 }}>
-                          <h1 style={{ margin: '0 0 2px 0', fontSize: 'var(--pw-font-banner)', fontWeight: 'var(--pw-weight-banner)', textTransform: 'uppercase', color: '#000000' }}>
-                            {renderFormattedText(block.title || template.reportTitle || 'BÁO CÁO ĐÁNH GIÁ')}
-                          </h1>
-                          {block.description && (
-                            <p style={{ margin: 0, fontSize: 'var(--pw-font-sub)', fontStyle: 'italic', color: '#475569' }}>
-                              {renderFormattedText(block.description)}
-                            </p>
-                          )}
-                          {block.showDate && (block.datePosition ?? 'B') === 'B' && (
-                            <div style={{ marginTop: '4px', fontSize: 'var(--pw-font-sub)', color: '#475569', textAlign: 'center' }}>
-                              <span style={{ fontWeight: 'var(--pw-weight-medium)' }}>Ngày</span> <span style={{ marginLeft: '6px', color: '#000000', letterSpacing: submittedAtText !== '—' ? '0px' : '2px', fontWeight: submittedAtText !== '—' ? 'var(--pw-weight-medium)' : 'var(--pw-weight-regular)' }}>{submittedAtText !== '—' ? submittedAtText : '\u00a0\u00a0\u00a0/\u00a0\u00a0\u00a0/\u00a0\u00a0\u00a0\u00a0'}</span>
-                            </div>
-                          )}
-                        </div>
-                        {block.showDate && block.datePosition === 'A' && (
-                          <div style={{ fontSize: 'var(--pw-font-sub)', color: '#475569', whiteSpace: 'nowrap', marginLeft: '10px', alignSelf: 'flex-start', paddingTop: '2px' }}>
-                            <span style={{ fontWeight: 'var(--pw-weight-medium)' }}>Ngày</span> <span style={{ marginLeft: '6px', color: '#000000', letterSpacing: submittedAtText !== '—' ? '0px' : '2px', fontWeight: submittedAtText !== '—' ? 'var(--pw-weight-medium)' : 'var(--pw-weight-regular)' }}>{submittedAtText !== '—' ? submittedAtText : '\u00a0\u00a0\u00a0/\u00a0\u00a0\u00a0/\u00a0\u00a0\u00a0\u00a0'}</span>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div style={{
-                        padding: '8px 0',
-                        textAlign: 'center',
-                        marginBottom: '10px',
-                        position: 'relative'
-                      }}>
-                        {block.showDate && block.datePosition === 'A' && (
-                          <div style={{ position: 'absolute', right: 0, top: '8px', fontSize: 'var(--pw-font-sub)', color: '#475569', whiteSpace: 'nowrap' }}>
-                            <span style={{ fontWeight: 'var(--pw-weight-medium)' }}>Ngày</span> <span style={{ marginLeft: '6px', color: '#000000', letterSpacing: submittedAtText !== '—' ? '0px' : '2px', fontWeight: submittedAtText !== '—' ? 'var(--pw-weight-medium)' : 'var(--pw-weight-regular)' }}>{submittedAtText !== '—' ? submittedAtText : '\u00a0\u00a0\u00a0/\u00a0\u00a0\u00a0/\u00a0\u00a0\u00a0\u00a0'}</span>
-                          </div>
-                        )}
-                        <h1 style={{ margin: '0 0 4px 0', fontSize: 'var(--pw-font-banner)', fontWeight: 'var(--pw-weight-banner)', textTransform: 'uppercase', color: '#000000' }}>
-                          {renderFormattedText(block.title || template.reportTitle || 'BÁO CÁO ĐÁNH GIÁ')}
-                        </h1>
-                        {block.description && (
-                          <p style={{ margin: 0, fontSize: 'var(--pw-font-sub)', fontStyle: 'italic', color: '#475569' }}>
-                            {renderFormattedText(block.description)}
-                          </p>
-                        )}
-                        {block.showDate && (block.datePosition ?? 'B') === 'B' && (
-                          <div style={{ marginTop: '4px', fontSize: 'var(--pw-font-sub)', color: '#475569', textAlign: 'center' }}>
-                            <span style={{ fontWeight: 'var(--pw-weight-medium)' }}>Ngày</span> <span style={{ marginLeft: '6px', color: '#000000', letterSpacing: submittedAtText !== '—' ? '0px' : '2px', fontWeight: submittedAtText !== '—' ? 'var(--pw-weight-medium)' : 'var(--pw-weight-regular)' }}>{submittedAtText !== '—' ? submittedAtText : '\u00a0\u00a0\u00a0/\u00a0\u00a0\u00a0/\u00a0\u00a0\u00a0\u00a0'}</span>
-                          </div>
-                        )}
-                      </div>
-                    )
+                    <PrintTitleBlock
+                      block={{
+                        ...block,
+                        title: block.title || template.reportTitle || 'BÁO CÁO ĐÁNH GIÁ'
+                      }}
+                      logoUrl={logoUrl}
+                      onImgSettled={() => setImgLoaded(true)}
+                      dateValueNode={
+                        <span style={{ marginLeft: '6px', color: '#000000', letterSpacing: submittedAtText !== '—' ? '0px' : '2px', fontWeight: submittedAtText !== '—' ? 'var(--pw-weight-medium)' : 'var(--pw-weight-regular)' }}>
+                          {submittedAtText !== '—' ? submittedAtText : '\u00a0\u00a0\u00a0/\u00a0\u00a0\u00a0/\u00a0\u00a0\u00a0\u00a0'}
+                        </span>
+                      }
+                    />
                   )}
 
                   {/* 2. SECTION_LABEL Block */}
-                  {block.type === 'SECTION_LABEL' && (() => {
-                    const titleFmt = block.titleFormat || 'H1';
-                    if (titleFmt === 'NONE') return null;
-
-                    return (
-                      <div style={{ marginBottom: '6px' }}>
-                        {titleFmt === 'H1' ? (
-                          <h2 style={{ margin: '0 0 4px 0', fontSize: 'var(--pw-font-h1)', fontWeight: 'var(--pw-weight-heavy)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
-                            {renderFormattedText(block.title)}
-                          </h2>
-                        ) : titleFmt === 'H2' ? (
-                          <div style={{ padding: '2px 0 2px 8px', background: 'transparent', borderLeft: '3px solid #000', fontWeight: 'var(--pw-weight-heavy)', fontSize: 'var(--pw-font-h2)', marginBottom: '4px' }}>
-                            {renderFormattedText(block.title)}
-                          </div>
-                        ) : (
-                          <div style={{ fontSize: 'var(--pw-font-body)', fontWeight: 'var(--pw-weight-heavy)', marginBottom: '4px' }}>
-                            {renderFormattedText(block.title)}
-                          </div>
-                        )}
-                        {block.description && (
-                          <p style={{ margin: '2px 0 0 0', fontSize: 'var(--pw-font-small)', color: '#475569', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
-                            {renderFormattedText(block.description)}
-                          </p>
-                        )}
-                      </div>
-                    );
-                  })()}
+                  {block.type === 'SECTION_LABEL' && (
+                    <PrintSectionHeader block={block} showDescription={true} marginBottom="6px" />
+                  )}
 
                   {/* 3. INFO_GRID Block */}
                   {block.type === 'INFO_GRID' && (() => {
                     const isLegacyDefaultInfoGridTitle =
                       block.title === 'Thông tin chung' &&
                       (!block.boundFieldIds || block.boundFieldIds.length === 0);
-                    const titleFmt = isLegacyDefaultInfoGridTitle
-                      ? 'NONE'
-                      : (block.titleFormat || 'NONE');
+                    const effectiveBlock = isLegacyDefaultInfoGridTitle
+                      ? { ...block, titleFormat: 'NONE' as const }
+                      : block;
                     return (
                       <div style={{ marginBottom: '8px' }}>
-                        {titleFmt !== 'NONE' && (
-                          titleFmt === 'H1' ? (
-                            <h2 style={{ margin: '0 0 6px 0', fontSize: 'var(--pw-font-h1)', fontWeight: 'var(--pw-weight-heavy)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
-                              {renderFormattedText(block.title)}
-                            </h2>
-                          ) : titleFmt === 'H2' ? (
-                            <div style={{ padding: '2px 0 2px 8px', background: 'transparent', borderLeft: '3px solid #000', fontWeight: 'var(--pw-weight-heavy)', fontSize: 'var(--pw-font-h2)', marginBottom: '6px' }}>
-                              {renderFormattedText(block.title)}
-                            </div>
-                          ) : (
-                            <div style={{ fontSize: 'var(--pw-font-body)', fontWeight: 'var(--pw-weight-heavy)', marginBottom: '4px' }}>
-                              {renderFormattedText(block.title)}
-                            </div>
-                          )
-                        )}
+                        <PrintSectionHeader block={effectiveBlock} marginBottom="6px" />
                         <div style={{
                           display: 'grid',
                           gridTemplateColumns: getInfoGridTemplateColumns(block as any),
@@ -433,28 +269,13 @@ export const PrintReport: React.FC<PrintReportProps> = ({
 
                   {/* 4. TABLE Block */}
                   {block.type === 'TABLE' && (() => {
-                    const titleFmt = block.titleFormat || 'H2';
                     const borderStyle = block.borderStyle || 'grid';
                     const tableBorder = borderStyle === 'grid' ? '1px solid #000' : 'none';
                     const cellBorder = borderStyle === 'grid' ? '1px solid #000' : borderStyle === 'horizontal_only' ? '1px solid #cbd5e1' : 'none';
 
                     return (
                       <div style={{ marginBottom: '8px' }}>
-                        {titleFmt !== 'NONE' && (
-                          titleFmt === 'H1' ? (
-                            <h2 style={{ margin: '0 0 6px 0', fontSize: 'var(--pw-font-h1)', fontWeight: 'var(--pw-weight-heavy)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
-                              {renderFormattedText(block.title)}
-                            </h2>
-                          ) : titleFmt === 'H2' ? (
-                            <div style={{ padding: '2px 0 2px 8px', background: 'transparent', borderLeft: '3px solid #000', fontWeight: 'var(--pw-weight-heavy)', fontSize: 'var(--pw-font-h2)', marginBottom: '6px' }}>
-                              {renderFormattedText(block.title)}
-                            </div>
-                          ) : (
-                            <div style={{ fontSize: 'var(--pw-font-body)', fontWeight: 'var(--pw-weight-heavy)', marginBottom: '4px' }}>
-                              {renderFormattedText(block.title)}
-                            </div>
-                          )
-                        )}
+                        <PrintSectionHeader block={block} marginBottom="6px" />
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--pw-font-body)', border: tableBorder }}>
                           {!block.hideHeader && (
                             <thead>
@@ -533,17 +354,7 @@ export const PrintReport: React.FC<PrintReportProps> = ({
       </table>
 
       {/* ISO Print Footer */}
-      <div className="print-footer">
-        <div>{template.reportId || ''}</div>
-        <div>
-          {formatFormVersion(
-            template.version || 'v1.0',
-            template.status,
-            template.effectiveDate,
-            template.updatedAt
-          )}
-        </div>
-      </div>
+      <PrintPageFooter template={template as any} leftLabel={template.reportId || ''} />
     </div>,
     document.body
   );
