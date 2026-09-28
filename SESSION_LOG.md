@@ -39,6 +39,29 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-28 — Report Builder: Khôi phục độ trung thực 1:1 của `tab Form` (`FormReferenceCanvas`) so với `Form Builder`
+
+**Scope:** 3 files (`src/components/report/FormReferenceCanvas.tsx`, `DESIGN_REPORT_BUILDER.md`, `SESSION_LOG.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | ~6.9 min |
+| Thời gian lập plan (Request → Proceed) | ~2.5 min |
+| Thời gian thực thi (Proceed → Push) | ~4.4 min |
+| Số file nguồn chỉnh sửa | 1 (`FormReferenceCanvas.tsx`) |
+| Tổng lượt edit source | 8 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 1 (`tsc -b && vite build` 9.72s pass) |
+| Lần build cuối thành công? | Có (100% pass ngay lần đầu) |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- **Loại bỏ hoàn toàn cơ chế merge ngược `matchedReportBlock` sang `form.layoutBlocks` trong `FormReferenceCanvas.tsx`:** Chỉ dùng `matchedReportBlock` để xác định trạng thái `isBlockActive` khi chọn block, giữ nguyên 100% `block.fields`, `block.title`, `block.titleFormat` (`H1`, `H2`, `NONE`), và `block.showDate` của Form gốc.
+- **Hiển thị nguyên bản giao diện thiết kế Form (`[Gõ placeholder...]`, tùy chọn Checkbox/Dropdown):** Ngừng ghi đè dữ liệu `sampleSubmission` lên các ô nhập liệu trên `tab Form` và dọn sạch các import thừa (`extractSubmissionValue`, `isLikertSelected`, `isOptionSelected`, `formatOptionDisplay`) tuân thủ Rule 4.2 (`Dead-Code Pruning`).
+
+---
+
 ### 2026-09-27 — Report Builder: Radar & Bar Chart Components (`INFO_GRID` Blocks, Option B+D Hybrid Summary Drop-Slot & Two-Way Weight Sync)
 
 **Scope:** 10 files (`src/types.ts`, `src/utils/reportChartUtils.ts`, `src/components/report/RadarChartBlock.tsx`, `src/components/report/BarChartBlock.tsx`, `src/components/report/RadarChartInspector.tsx`, `src/components/report/BarChartInspector.tsx`, `src/components/ReportBuilder.tsx`, `src/components/FormReport.tsx`, `src/components/print/PrintReport.tsx`, `DESIGN_REPORT_BUILDER.md`)
