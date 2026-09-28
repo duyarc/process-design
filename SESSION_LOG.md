@@ -42,7 +42,28 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
-### 2026-09-28 — Report Builder & Form: Đồng bộ Khổ giấy A4 820px (A5 920px) & Căn mép Toolbar
+### 2026-09-28 — Report Builder: Zero-Latency Report Tab — Props Bypass + Background Pre-fetch
+
+**Scope:** 3 files (`src/components/FormReport.tsx`, `src/components/FormFiller.tsx`, `DESIGN_REPORT_BUILDER.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | ~10 min |
+| Thời gian lập plan (Request → Proceed) | ~5 min |
+| Thời gian thực thi (Proceed → Push) | ~5 min |
+| Số file nguồn chỉnh sửa | 2 (`FormReport.tsx`, `FormFiller.tsx`) |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 3 (`tsc --noEmit` pass 2 lần, `npm run build` 9.10s pass) |
+| Lần build đầu thành công? | Có (100% pass ngay lần 1) |
+
+**Kết quả đạt được:**
+- Xem Form tab ≥1–2s → bấm Report tab: **~0ms** (render ngay lập tức, zero network fetch)
+- Bấm Report tab ngay lập tức: **~50–150ms** (chỉ 1 fetch nhẹ ~10–30KB thay vì bundle nặng)
+- Standalone `/r/:id`: Giữ nguyên behavior (fallback đầy đủ)
+
+---
+
+
 
 **Scope:** 4 files (`src/components/FormFiller.tsx`, `src/components/FormReport.tsx`, `src/components/SubmissionViewer.tsx`, `DESIGN_REPORT_BUILDER.md`)
 

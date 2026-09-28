@@ -36,6 +36,11 @@ interface FormReportProps {
   token?: string;
   triggerPrint?: boolean;
   onPrintHandled?: () => void;
+  // ── Bypass props (khi nhúng trong FormFiller) ──
+  // Khi đủ cả 3, không cần bất kỳ network fetch nào
+  initialSubmission?: Submission;
+  initialFormTemplate?: FormTemplateISO;
+  initialReportTemplate?: ReportTemplateISO;
 }
 
 export const FormReport: React.FC<FormReportProps> = ({
@@ -45,7 +50,10 @@ export const FormReport: React.FC<FormReportProps> = ({
   isEmbedded = false,
   token,
   triggerPrint,
-  onPrintHandled
+  onPrintHandled,
+  initialSubmission: bypassSubmission,
+  initialFormTemplate: bypassFormTemplate,
+  initialReportTemplate: bypassReportTemplate,
 }) => {
   const { currentUser } = useAuth();
   const [submission, setSubmission] = useState<Submission | null>(null);
@@ -76,10 +84,39 @@ export const FormReport: React.FC<FormReportProps> = ({
     const fetchData = async () => {
       try {
         setLoading(true);
+
+        // ── Nhánh A: Zero-fetch — đủ cả 3 bypass props từ FormFiller ──
+        if (bypassSubmission && bypassFormTemplate && bypassReportTemplate) {
+          const normForm = normalizeForm(bypassFormTemplate);
+          setSubmission(bypassSubmission);
+          setFormTemplate(normForm);
+          setReportTemplate(bypassReportTemplate);
+          const computed = computeRecordReport(bypassSubmission, normForm, bypassReportTemplate);
+          setComputedData(computed);
+          return; // Không fetch gì cả — render ngay lập tức
+        }
+
+        // ── Nhánh B: 1 fetch nhẹ — có submission + formTemplate, chỉ thiếu reportTemplate ──
+        if (bypassSubmission && bypassFormTemplate) {
+          const normForm = normalizeForm(bypassFormTemplate);
+          setSubmission(bypassSubmission);
+          setFormTemplate(normForm);
+          const formId = bypassFormTemplate.formId;
+          const repRes = await fetch(`/api/reports/by-form/${encodeURIComponent(formId)}`);
+          if (repRes.ok) {
+            const repData: ReportTemplateISO = await repRes.json();
+            setReportTemplate(repData);
+            const computed = computeRecordReport(bypassSubmission, normForm, repData);
+            setComputedData(computed);
+          }
+          return;
+        }
+
+        // ── Nhánh C: Full fetch fallback — standalone /r/:id hoặc không có bypass props ──
         const jwtToken = currentUser ? localStorage.getItem('jwt_token') : null;
 
         if (jwtToken && !token) {
-          // ── Fast path: authenticated bundle (2 RTT instead of 3) ──
+          // Authenticated bundle (2 RTT)
           const bundleRes = await fetch(
             `/api/reports/view-auth/${encodeURIComponent(submissionId)}`,
             { headers: { Authorization: `Bearer ${jwtToken}` } }
@@ -95,7 +132,7 @@ export const FormReport: React.FC<FormReportProps> = ({
             setComputedData(computed);
           }
         } else {
-          // ── Public/token path ──
+          // Public/token path
           const subUrl = token
             ? `/api/submissions/view/${encodeURIComponent(submissionId)}?token=${encodeURIComponent(token)}`
             : `/api/submissions/${encodeURIComponent(submissionId)}`;
@@ -127,7 +164,7 @@ export const FormReport: React.FC<FormReportProps> = ({
       }
     };
     fetchData();
-  }, [submissionId, currentUser]);
+  }, [submissionId, currentUser, bypassSubmission, bypassFormTemplate, bypassReportTemplate]);
 
   if (loading) {
     const skeletonRow = (w: string) => (

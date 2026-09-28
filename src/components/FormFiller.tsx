@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, Component } from 'react';
-import type { Process, FormTemplateISO, SubmissionFieldSnapshot, Submission, BlockVisibilityCondition } from '../types';
+import type { Process, FormTemplateISO, ReportTemplateISO, SubmissionFieldSnapshot, Submission, BlockVisibilityCondition } from '../types';
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
@@ -321,6 +321,7 @@ function FormFillerInner({
   const [submissionTab, setSubmissionTab] = useState<'form' | 'report'>(initialSubmissionTab || 'form');
   const [copiedShareLink, setCopiedShareLink] = useState(false);
   const [triggerReportPrint, setTriggerReportPrint] = useState(false);
+  const [prefetchedReportTemplate, setPrefetchedReportTemplate] = useState<ReportTemplateISO | null>(null);
 
   const handleCancelEdit = () => {
     if (initialSubmission && process && rawFormTemplate) {
@@ -417,6 +418,18 @@ function FormFillerInner({
       refreshLocalSubmissions(rawFormTemplate.formId);
     }
   }, [isPublicGuestMode, rawFormTemplate?.formId]);
+
+  // ── Background pre-fetch: report template (non-blocking) ──
+  // Chạy khi FormFiller có đủ submission + formId, để khi user bấm tab Report
+  // FormReport nhận đủ 3 bypass props → render tức thì (0ms, không cần fetch)
+  useEffect(() => {
+    if (!rawFormTemplate?.formId || !initialSubmission) return;
+    const formId = rawFormTemplate.formId;
+    fetch(`/api/reports/by-form/${encodeURIComponent(formId)}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setPrefetchedReportTemplate(data as ReportTemplateISO); })
+      .catch(() => {}); // Silent fail — FormReport tự fetch nếu cần
+  }, [rawFormTemplate?.formId, initialSubmission?.id]);
 
   const isPublic = useMemo(() => {
     const params = new URLSearchParams(window.location.search);
@@ -3516,6 +3529,9 @@ function FormFillerInner({
           triggerPrint={triggerReportPrint}
           onPrintHandled={() => setTriggerReportPrint(false)}
           onOpenBuilder={onOpenReportBuilder}
+          initialSubmission={initialSubmission}
+          initialFormTemplate={rawFormTemplate || undefined}
+          initialReportTemplate={prefetchedReportTemplate || undefined}
         />
       ) : (
       <fieldset disabled={effectiveReadOnly} style={{ border: 'none', padding: 0, margin: 0, minWidth: 0 }}>
