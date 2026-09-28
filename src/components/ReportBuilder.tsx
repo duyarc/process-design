@@ -2816,6 +2816,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                               const isBoundToActive = activeBlock?.boundFieldIds?.includes(field.id);
                               const usageCount = getFieldUsageCount(field.id);
                               const badgeStyle = getFieldBadgeStyle(field.type);
+                              const TypeIcon = getFieldTypeOption(field.type).icon;
                               const isSelected = selectedFieldId === field.id;
                               return (
                                 <div
@@ -2837,7 +2838,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                     setRightTab('properties');
                                   }}
                                   style={{
-                                    padding: '0.32rem 0.45rem',
+                                    padding: '0.3rem 0.45rem',
                                     borderRadius: '4px',
                                     border: isSelected
                                       ? '1.5px solid var(--primary)'
@@ -2854,15 +2855,17 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                     alignItems: 'center',
                                     justifyContent: 'space-between',
                                     fontSize: '0.73rem',
-                                    gap: '0.35rem',
+                                    gap: '6px',
                                     transition: 'all 0.1s',
                                     boxShadow: isSelected ? '0 1px 3px rgba(13, 148, 136, 0.15)' : 'none'
                                   }}
-                                  title={`Kéo thả vào bảng/lưới hoặc click xem chi tiết (${field.id})`}
+                                  title={`${field.checkItem || field.id} (${badgeStyle.label}) — Kéo thả vào bảng/lưới hoặc click xem chi tiết`}
                                 >
-                                  <span style={{ color: '#94a3b8', fontSize: '0.85rem', cursor: 'grab', userSelect: 'none', lineHeight: 1, flexShrink: 0 }}>
-                                    ⠿
-                                  </span>
+                                  <TypeIcon
+                                    size={13}
+                                    color={badgeStyle.color}
+                                    style={{ flexShrink: 0 }}
+                                  />
                                   <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, minWidth: 0 }}>
                                     <div style={{ fontWeight: isSelected ? 600 : 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                       {field.checkItem || field.id}
@@ -2872,12 +2875,12 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                     <span
                                       style={{
                                         fontSize: '0.62rem',
-                                        padding: '1px 5px',
-                                        borderRadius: '10px',
+                                        padding: '0px 4px',
+                                        borderRadius: '4px',
                                         background: '#e0f2fe',
                                         color: '#0369a1',
                                         fontWeight: 700,
-                                        border: '1px solid #bae6fd',
+                                        fontVariantNumeric: 'tabular-nums',
                                         flexShrink: 0
                                       }}
                                       title={`Đã gán vào ${usageCount} vị trí trong báo cáo`}
@@ -2885,18 +2888,6 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                       x{usageCount}
                                     </span>
                                   )}
-                                  <span style={{
-                                    fontSize: '0.58rem',
-                                    padding: '0.08rem 0.28rem',
-                                    borderRadius: '3px',
-                                    background: badgeStyle.bg,
-                                    color: badgeStyle.color,
-                                    textTransform: 'uppercase',
-                                    fontWeight: 700,
-                                    flexShrink: 0
-                                  }}>
-                                    {badgeStyle.label}
-                                  </span>
                                 </div>
                               );
                             })}

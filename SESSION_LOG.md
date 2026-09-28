@@ -40,25 +40,26 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
-### 2026-09-28 — Report Builder: Tối giản Cây `FIELDS` Sidebar Trái (`Option A`) & Gán Nhóm Trường bằng Kéo-Thả (`ReportBuilder`)
+### 2026-09-28 — Report Builder: Tối giản Cây `FIELDS` Sidebar Trái (`Option A` Cấp Nhóm + `Option B` Cấp Trường) & Gán Nhóm bằng Kéo-Thả (`ReportBuilder`)
 
 **Scope:** 3 files (`src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`, `SESSION_LOG.md`)
 
 | Chỉ số | Giá trị |
 |---|---|
-| Thời gian tổng (Request → Push) | ~9.5 min |
+| Thời gian tổng (Request → Push) | ~7.0 min |
 | Thời gian lập plan (Request → Proceed) | ~4.5 min |
-| Thời gian thực thi (Proceed → Push) | ~5.0 min |
+| Thời gian thực thi (Proceed → Push) | ~2.5 min |
 | Số file nguồn chỉnh sửa | 1 (`ReportBuilder.tsx`) |
-| Tổng lượt edit source | 6 |
+| Tổng lượt edit source | 1 |
 | Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 1 (`tsc --noEmit` + `npm run build` 12.54s pass) |
+| Số lần build | 1 (`tsc --noEmit` + `npm run build` 13.58s pass) |
 | Lần build cuối thành công? | Có (100% pass ngay lần đầu) |
 | Số lỗi mới phát sinh | 0 |
 | Số lỗi cũ lặp lại | 0 |
 
 **Điểm nổi bật:**
-- **Tối giản 1 dòng (`Option A`) giải phóng `68px`–`98px` chiều ngang cho tiêu đề trong cây `FIELDS`:** Loại bỏ icon `<Layers />` và nút `[+ Gán cả H1]` (`82px`) ở cấp `H1`; loại bỏ icon `<Folder />` / `<FolderOpen />` (cùng import dư thừa trong `lucide-react`) và nút `[+ Cả H2]` (`60px`) ở cấp `H2`; loại bỏ badge chữ `[TABLE]` trùng lặp (`45px`) và nút `[+ Bảng]` (`52px`) ở cấp `Element`; thay thế dấu ngoặc đơn `(count)` bằng số đếm `tabular-nums` gọn sát lề phải.
+- **Tối giản cấp Nhóm (`Option A` — giải phóng `68px`–`98px` chiều ngang):** Loại bỏ icon `<Layers />` và nút `[+ Gán cả H1]` (`82px`) ở cấp `H1`; loại bỏ icon `<Folder />` / `<FolderOpen />` (cùng import dư thừa trong `lucide-react`) và nút `[+ Cả H2]` (`60px`) ở cấp `H2`; loại bỏ badge chữ `[TABLE]` trùng lặp (`45px`) và nút `[+ Bảng]` (`52px`) ở cấp `Element`; thay thế dấu ngoặc đơn `(count)` bằng số đếm `tabular-nums` gọn sát lề phải.
+- **Tối giản cấp Trường đơn lẻ (`Option B` — giải phóng `65px`–`85px` chiều ngang):** Thay thế chấm kéo `⠿` ở đầu dòng và nhãn chữ kiểu dữ liệu rộng ở cuối dòng (`[CHECKBOX]` `64px`, `[DROPDOWN]` `66px`, `[TEXT]` `38px`) bằng icon kiểu dữ liệu màu ngữ nghĩa `13px` (`<TypeIcon />` từ `getFieldTypeOption` + `badgeStyle.color`) ở đầu dòng kết hợp badge tần suất `x{usageCount}` (`tabular-nums`) gọn sát lề phải.
 - **Bảo toàn 100% tính năng gán cả nhóm trường bằng Kéo-Thả (`application/x-report-group-fields`):** Tích hợp payload `application/x-report-group-fields` (`fieldIds`) kèm trạng thái `setIsDraggingField(true)` trên cả 3 cấp `H1`, `H2`, `Element`, cho phép kéo-thả trực tiếp bất kỳ mục/bảng nào vào khối `INFO_GRID` hoặc `TABLE` trên Canvas (hoặc vào dropzone của Right Inspector) để gán hàng loạt toàn bộ trường thông qua `addMultipleFieldsToBlock`.
 
 ---
