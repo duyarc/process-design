@@ -1,4 +1,4 @@
-import type { FormFieldISO, TitleFormatISO, LayoutBlockISO, RadioOption, ProcessStep, LinkedWorkStepInfo, Submission } from '../types';
+import type { FormFieldISO, TitleFormatISO, LayoutBlockISO, RadioOption, ProcessStep, LinkedWorkStepInfo, Submission, TableColumnConfig } from '../types';
 
 /**
  * Automatically determines whether a checkbox or radio field should render using
@@ -1040,4 +1040,62 @@ export function isOptionSelected(
   const parts = cleanVal.split(',').map(v => v.trim().toLowerCase());
   return parts.includes(cleanOpt.toLowerCase());
 }
+
+/**
+ * Derive CHECKLIST_TABLE visible columns — shared across PrintBlankForm, PrintFilledForm, and PrintScoring.
+ */
+export function getChecklistColumns(block: LayoutBlockISO): TableColumnConfig[] {
+  let cols: TableColumnConfig[];
+  if (block.tableColumns && block.tableColumns.length > 0) {
+    cols = block.tableColumns;
+  } else if (block.columnLabels) {
+    cols = [
+      { id: 'col_stt',      label: block.columnLabels.stt      || 'STT',                          width: '40px',  type: 'static_text', locked: true },
+      { id: 'col_item',     label: block.columnLabels.item     || 'Chi tiết kiểm tra',            width: 'auto',  type: 'static_text', locked: true },
+      { id: 'col_target',   label: block.columnLabels.target   || 'Đạt / Không Đạt',             width: '130px', type: 'radio',        align: 'center',
+        options: [{ label: 'Đ', value: 'PASS', isPass: true }, { label: 'KĐ', value: 'FAIL', isPass: false }] },
+      { id: 'col_reaction', label: block.columnLabels.reaction || 'Mô tả cụ thể nếu Không đạt', width: '220px', type: 'text' }
+    ];
+  } else {
+    cols = [
+      { id: 'col_stt',      label: 'STT',                          width: '5%',   type: 'static_text', locked: true },
+      { id: 'col_item',     label: 'Tiêu chí',                     width: '35%',  type: 'static_text', locked: true },
+      { id: 'col_unit',     label: 'Đơn vị',                       width: '10%',  type: 'static_text', locked: true },
+      { id: 'col_spec',     label: 'Tiêu chuẩn',                   width: '20%',  type: 'static_text', locked: true },
+      { id: 'col_target',   label: 'Kết quả',                      width: '15%',  type: 'radio',        align: 'center', locked: true,
+        options: [{ label: 'Đ', value: 'PASS', isPass: true }, { label: 'KĐ', value: 'FAIL', isPass: false }] },
+      { id: 'col_reaction', label: 'Ghi chú',                      width: '15%',  type: 'text' }
+    ];
+  }
+
+  if (block.hideSTT) {
+    cols = cols.map(c => c.id === 'col_stt' ? { ...c, hidden: true } : c);
+  }
+
+  return cols.filter(c => !c.hidden);
+}
+
+/**
+ * Group TABLE rows into tbody chunks separated by isGroupHeader rows — shared across PrintBlankForm, PrintFilledForm, and PrintScoring.
+ */
+export function groupTableRowsForPrint(rawRows: any[]): { groupHeaderRow?: any; rows: { row: any; rIdx: number }[] }[] {
+  const groups: { groupHeaderRow?: any; rows: { row: any; rIdx: number }[] }[] = [];
+  let curGroup: { groupHeaderRow?: any; rows: { row: any; rIdx: number }[] } = { rows: [] };
+
+  (rawRows || []).forEach((row, rIdx) => {
+    if (row.isGroupHeader) {
+      if (curGroup.groupHeaderRow || curGroup.rows.length > 0) {
+        groups.push(curGroup);
+      }
+      curGroup = { groupHeaderRow: row, rows: [] };
+    } else {
+      curGroup.rows.push({ row, rIdx });
+    }
+  });
+  if (curGroup.groupHeaderRow || curGroup.rows.length > 0) {
+    groups.push(curGroup);
+  }
+  return groups;
+}
+
 

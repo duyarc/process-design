@@ -40,6 +40,34 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-28 — Report Builder: Tinh gọn Bản In Chấm điểm (`PrintScoring`), Kế thừa Layout Minimal của `PrintBlankForm` & Tách Module In Dùng chung (`printShared`, `formUtils`)
+
+**Scope:** 7 files (`src/utils/formUtils.ts`, `src/components/print/printShared.tsx`, `src/components/print/PrintBlankForm.tsx`, `src/components/print/PrintFilledForm.tsx`, `src/components/print/PrintScoring.tsx`, `src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`, `SESSION_LOG.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | ~11.5 min |
+| Thời gian lập plan (Request → Proceed) | ~2.5 min |
+| Thời gian thực thi (Proceed → Push) | ~9.0 min |
+| Số file nguồn chỉnh sửa | 6 (`formUtils.ts`, `printShared.tsx`, `PrintBlankForm.tsx`, `PrintFilledForm.tsx`, `PrintScoring.tsx`, `ReportBuilder.tsx`) |
+| Tổng lượt edit source | 12 |
+| Lượt edit sửa lỗi (rework) | 2 (bổ sung import types `TableColumnConfig`) |
+| Số lần build | 2 (`tsc --noEmit` + `npm run build` 19.24s pass) |
+| Lần build cuối thành công? | Có |
+| Số lỗi mới phát sinh | 0 |
+| Số lỗi cũ lặp lại | 0 |
+
+**Điểm nổi bật:**
+- **Tái cấu trúc Module In Dùng chung (`printShared.tsx` & `formUtils.ts` — Rule 4.1):** Trích xuất pure helpers `getChecklistColumns` và `groupTableRowsForPrint` sang `src/utils/formUtils.ts`, tạo module dùng chung `src/components/print/printShared.tsx` (`usePrintLogo`, `PrintDocumentStyles`, `PrintTitleBlock`, `PrintSectionHeader`, `PrintPageFooter`) tái sử dụng đồng bộ trên cả 3 component in (`PrintBlankForm`, `PrintFilledForm`, `PrintScoring`).
+- **Giao diện In Đặc tả Siêu Tinh gọn (`PrintScoring.tsx` — đồng bộ 100% với `PrintBlankForm`):**
+  - Xóa bỏ toàn bộ khung banner rườm rà và hộp khung viền chú giải công thức đầu trang.
+  - Khối `INFO_GRID` không còn khung viền xám bao ngoài, không vạch chia ô, không lặp lại thanh tiêu đề `"Thông tin chung"`, giữ nguyên dòng chấm `...... 5đ` và ô chọn `☐` / `○`.
+  - Khối `TABLE` bảo toàn 100% kiểu đường viền gốc (`borderless` 3 cột Likert scale `○ 5đ` / `○ 3đ` / `○ 1đ`, cột Sao `☆ ☆ ☆ ☆ ☆`, cột Checkbox `☐ Option (+1đ)`).
+  - Toàn bộ trọng số được thể hiện bằng nhãn monospace thanh mảnh `[X% / Parent]` neo gọn ở góc trên bên phải của từng khối/ô.
+- **Triệt tiêu Mã Chết (`PrintFormScoringSpec.tsx` — Rule 4.2):** Xóa bỏ hoàn toàn file cũ `PrintFormScoringSpec.tsx`, chuyển đổi toàn bộ call-sites trong `ReportBuilder.tsx` sang `PrintScoring.tsx`.
+
+---
+
 ### 2026-09-28 — Report Builder: Chuẩn hóa Ký hiệu Trọng số Đa ngôn ngữ (`Option D: / & ⊞`), Gắn Trọng số Góc Trên-Phải & Tạm lược bỏ `isPass` trên Bản In `tab Form` (`reportScoring`, `PrintFormScoringSpec`)
 
 **Scope:** 4 files (`src/utils/reportScoring.ts`, `src/components/print/PrintFormScoringSpec.tsx`, `DESIGN_REPORT_BUILDER.md`, `SESSION_LOG.md`)
@@ -305,32 +333,6 @@ Entry mới nhất ở trên cùng. Tối đa 10 entries.
 - **Loại bỏ Vạch Phân Trang Ảo:** Gỡ bỏ hoàn toàn đường kẻ phân trang ảo (`--- RANH GIỚI HẾT TRANG X (A4/A5) ---`) khỏi canvas tờ giấy theo yêu cầu của người dùng, chấm dứt việc vạch nét đứt cắt ngang qua bảng và nội dung văn bản gây khó khăn khi thao tác.
 - **Triệt tiêu Mã chết (Dead-code Pruning):** Xóa sạch `paperCardRef`, `paperScrollHeight` và hook `ResizeObserver` đo chiều cao tờ giấy khỏi `ReportBuilder.tsx` theo chuẩn Rule 4.2 / Rule 13.7, đảm bảo 0 cảnh báo `TS6133`.
 - **Bảo toàn Cải tiến Cốt lõi:** Vẫn duy trì trọn vẹn khoảng đệm đáy thoáng đãng (`padding: '1.25rem 1rem 5rem'`, `marginBottom: '2.5rem'`, spacer đáy `4rem`) và ISO Paper Footer ở cuối tờ giấy.
-
----
-
-### 2026-09-25 — Report Builder: Decoupled Form Scoring, Blank Slate Report, Bottom Clearance & Virtual Page Breaks (ReportBuilder, reportCompute, reportScoring, types.ts)
-
-**Scope:** 5 files (`src/types.ts`, `src/utils/reportCompute.ts`, `src/utils/reportScoring.ts`, `src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian tổng (Request → Push) | ~18 min |
-| Thời gian lập plan (Request → Proceed) | ~8 min |
-| Thời gian thực thi (Proceed → Push) | ~10 min |
-| Số file nguồn chỉnh sửa | 4 (`types.ts`, `reportCompute.ts`, `reportScoring.ts`, `ReportBuilder.tsx`) |
-| Tổng lượt edit source | 7 |
-| Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 3 (`2 tsc` pass + `1 vite build` 16.29s pass) |
-| Lần build cuối thành công? | Có (100% pass ngay lần đầu) |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Điểm nổi bật:**
-- **Tách biệt Chấm điểm Form & Layout Báo cáo (Decoupling Form Scoring from Report Layout):** Bổ sung `ruleOverrides` vào cấp template `ReportTemplateISO`, cập nhật `computeReportData` ưu tiên gộp `template.ruleOverrides` trước block overrides. Nhờ đó, Tab Form cho phép chấm điểm và cấu hình trọng số cho bất kỳ trường nào mà không bao giờ tự động tạo mới hay làm biến đổi `layoutBlocks` của trang Report.
-- **Trang Report Blank Slate Không Bị Ô Nhiễm (Clean Slate Canvas):** Loại bỏ hoàn toàn cơ chế tự clone `INFO_GRID` và tự inject các khối `SECTION_LABEL` / `TABLE` khi chọn trường hoặc chuyển tab. Tab Report khởi đầu hoàn toàn sạch sẽ, chỉ chứa các khối do người dùng chủ động xây dựng.
-- **Triệt tiêu Hoàn toàn Lỗi Cụt Cuối Trang (Bottom Clearance):** Nâng padding đáy của container cuộn ngoài lên `5rem` (`padding: '1.25rem 1rem 5rem'`), gán `marginBottom: '2.5rem'` cho `.paper-card`, và bổ sung spacer đáy `4rem` (`<div style={{ height: '4rem', flexShrink: 0, width: '100%' }} />`), đảm bảo trên mọi trình duyệt flex-column không bao giờ bị dính sát mép dưới viewport.
-- **Vạch Phân Trang Ảo (Virtual Page Breaks):** Tích hợp đường ranh giới trang in nét đứt (`--- RANH GIỚI HẾT TRANG X (A4/A5) ---`) mỗi 1050px (A4) hoặc 650px (A5) dựa trên `ResizeObserver` theo dõi chiều cao thực tế của tờ giấy.
-- **ISO Paper Footer cho Tab Report:** Bổ sung footer chuẩn ISO (`Mã BC: template.reportId` bên trái, `Phiên bản: formatFormVersion(...)` bên phải, `marginTop: 'auto'`, đường kẻ viền `#334155`) khớp 100% với chuẩn tờ giấy của FormBuilder và FormReferenceCanvas.
 
 ---
 

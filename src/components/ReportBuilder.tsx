@@ -35,7 +35,7 @@ import { formatFormVersion } from '../types';
 import { SmartNumberInput } from './common/SmartNumberInput';
 import ConfirmModal from './common/ConfirmModal';
 import PrintReport from './print/PrintReport';
-import PrintFormScoringSpec from './print/PrintFormScoringSpec';
+import PrintScoring from './print/PrintScoring';
 import { useAuth } from '../context/AuthContext';
 import {
   FileText,
@@ -6062,7 +6062,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
       {/* ── Print Preview Portal ── */}
       {showPrintPreview && (
         activeCanvasTab === 'form' ? (
-          <PrintFormScoringSpec
+          <PrintScoring
             template={template}
             autoExportPdf={autoExportPdf}
             formTemplate={selectedForm || {

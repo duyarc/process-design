@@ -1,43 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { Star } from 'lucide-react';
-import type { Submission, SubmissionFieldSnapshot, FormTemplateISO, LayoutBlockISO, TableColumnConfig } from '../../types';
+import type { Submission, SubmissionFieldSnapshot, FormTemplateISO, TableColumnConfig } from '../../types';
 import { formatFormVersion, getColStyleWidth } from '../../types';
-import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock, getInfoGridTemplateColumns, isOtherValue, extractOtherText, formatOptionDisplay, getEffectiveCellOptions } from '../../utils/formUtils';
+import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock, getInfoGridTemplateColumns, isOtherValue, extractOtherText, formatOptionDisplay, getEffectiveCellOptions, getChecklistColumns } from '../../utils/formUtils';
 import { renderFormattedText } from '../../utils/textFormatter';
-
-// ─── Helpers (mirrored from PrintBlankForm) ───────────────────────────────────
-
-/** Derive CHECKLIST_TABLE visible columns — falls back to columnLabels for backward compat */
-function getChecklistColumns(block: LayoutBlockISO): TableColumnConfig[] {
-  let cols: TableColumnConfig[];
-  if (block.tableColumns && block.tableColumns.length > 0) {
-    cols = block.tableColumns;
-  } else if (block.columnLabels) {
-    cols = [
-      { id: 'col_stt',      label: block.columnLabels.stt      || 'STT',                          width: '40px',  type: 'static_text', locked: true },
-      { id: 'col_item',     label: block.columnLabels.item     || 'Chi tiết kiểm tra',            width: 'auto',  type: 'static_text', locked: true },
-      { id: 'col_target',   label: block.columnLabels.target   || 'Đạt / Không Đạt',             width: '130px', type: 'radio',       align: 'center',
-        options: [{ label: 'Đ', value: 'PASS', isPass: true }, { label: 'KĐ', value: 'FAIL', isPass: false }] },
-      { id: 'col_reaction', label: block.columnLabels.reaction || 'Mô tả cụ thể nếu Không đạt', width: '220px', type: 'text' }
-    ];
-  } else {
-    cols = [
-      { id: 'col_stt',      label: 'STT',            width: '5%',   type: 'static_text', locked: true },
-      { id: 'col_item',     label: 'Tiêu chí',       width: '35%',  type: 'static_text', locked: true },
-      { id: 'col_unit',     label: 'Đơn vị',         width: '10%',  type: 'static_text', locked: true },
-      { id: 'col_spec',     label: 'Tiêu chuẩn',     width: '20%',  type: 'static_text', locked: true },
-      { id: 'col_target',   label: 'Kết quả',        width: '15%',  type: 'radio',       align: 'center', locked: true,
-        options: [{ label: 'Đ', value: 'PASS', isPass: true }, { label: 'KĐ', value: 'FAIL', isPass: false }] },
-      { id: 'col_reaction', label: 'Ghi chú',        width: '15%',  type: 'text' }
-    ];
-  }
-  if (block.hideSTT) {
-    cols = cols.map(c => c.id === 'col_stt' ? { ...c, hidden: true } : c);
-  }
-  return cols.filter(c => !c.hidden);
-}
-
+import { PrintDocumentStyles, PrintSectionHeader } from './printShared';
 
 // ─── Filled-mode Helpers ─────────────────────────────────────────────────────
 
@@ -297,39 +265,7 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
       padding: '20px', overflowY: 'auto'
     }}>
       {/* Dynamic CSS — same @page rules as PrintBlankForm */}
-      <style>{`
-        @media print {
-          *, *::before, *::after {
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
-          #root { display: none !important; }
-          .print-container {
-            position: static !important; width: 100% !important;
-            height: auto !important; overflow: visible !important;
-            padding: 0 !important; margin: 0 !important;
-            box-sizing: border-box !important;
-          }
-          @page { size: ${isA5 ? 'A5 landscape' : 'A4 portrait'}; margin: ${isA5 ? '8mm 10mm 10mm 10mm' : '12mm 15mm 15mm 15mm'}; }
-          ${isA5 ? `.print-doc { gap: 0.4rem !important; } .print-block-avoid { margin-bottom: 0.35rem !important; }` : ''}
-          body { background: #ffffff !important; color: #000000 !important; padding: 0 !important; margin: 0 !important; }
-          .no-print { display: none !important; }
-          .print-block-avoid { page-break-inside: avoid; break-inside: avoid; }
-          thead { display: table-header-group; }
-          tr { page-break-inside: avoid; break-inside: avoid; }
-          .print-table {
-            table-layout: fixed !important;
-            width: 100% !important;
-          }
-          .print-table tfoot td { background: transparent !important; }
-          .print-footer {
-            position: fixed; bottom: 0; left: 0; right: 0; height: 20px;
-            display: flex !important; align-items: center; justify-content: space-between;
-            font-size: 0.75rem; font-family: inherit; color: #475569;
-          }
-          .print-footer-spacer { height: 20px; display: block; }
-        }
-      `}</style>
+      <PrintDocumentStyles isA5={isA5} />
 
       {/* Preview bar — screen only */}
       <div className="no-print" style={{
@@ -376,30 +312,9 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                 >
 
                   {/* ── SECTION_LABEL ── */}
-                  {block.type === 'SECTION_LABEL' && (() => {
-                    const titleFmt = getEffectiveTitleFormat(block);
-                    if (titleFmt === 'NONE') return null;
-                    if (titleFmt === 'H1') return (
-                      <div style={{ padding: '0', marginBottom: 'var(--pw-title-gap)', pageBreakInside: 'avoid', breakInside: 'avoid', pageBreakAfter: 'avoid', breakAfter: 'avoid' }}>
-                        <h2 style={{ margin: '0 0 4px 0', fontSize: '1.1rem', fontWeight: 'var(--pw-weight-heavy)', color: '#000000', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
-                          {renderFormattedText(block.title)}
-                        </h2>
-                        {block.description && <p style={{ margin: '4px 0 0 0', fontSize: '0.82rem', color: '#333333', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{renderFormattedText(block.description)}</p>}
-                      </div>
-                    );
-                    if (titleFmt === 'H2') return (
-                      <div style={{ padding: '2px 0 2px 8px', background: 'transparent', borderLeft: '3px solid #0d9488', marginBottom: 'var(--pw-title-gap)', pageBreakInside: 'avoid', breakInside: 'avoid', pageBreakAfter: 'avoid', breakAfter: 'avoid' }}>
-                        <h3 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 'var(--pw-weight-heavy)', color: '#000000' }}>{renderFormattedText(block.title)}</h3>
-                        {block.description && <p style={{ margin: '4px 0 0 0', fontSize: '0.82rem', color: '#475569', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{renderFormattedText(block.description)}</p>}
-                      </div>
-                    );
-                    return (
-                      <div style={{ padding: '2px 0', marginBottom: 'var(--pw-title-gap)', pageBreakAfter: 'avoid', breakAfter: 'avoid' }}>
-                        <div style={{ fontSize: '0.85rem', fontWeight: 'var(--pw-weight-medium)', color: '#000000' }}>{renderFormattedText(block.title)}</div>
-                        {block.description && <p style={{ margin: '2px 0 0 0', fontSize: '0.82rem', color: '#333333', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{renderFormattedText(block.description)}</p>}
-                      </div>
-                    );
-                  })()}
+                  {block.type === 'SECTION_LABEL' && (
+                    <PrintSectionHeader block={block} showDescription />
+                  )}
 
                   {/* ── TITLE ── (static layout — no fill data) */}
                   {block.type === 'TITLE' && (
@@ -994,9 +909,9 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                       }}
                                     >
                                       {col.type === 'likert_scale' ? (
-                                        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${(col.scaleOptions || []).length || 3}, 1fr)`, gap: '4px', textAlign: 'center', width: '100%' }}>
-                                          {(col.scaleOptions || ['Easy to Answer', 'Could Answer', 'Difficult to Answer']).map((opt, sIdx) => (
-                                            <div key={sIdx} style={{ fontSize: '0.82rem', fontWeight: 'var(--pw-weight-heavy)', color: '#000000', padding: '2px 4px', wordBreak: 'break-word', textAlign: 'center' }}>
+                                          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${(col.scaleOptions || []).length || 3}, 1fr)`, gap: '4px', textAlign: 'center', width: '100%' }}>
+                                            {(col.scaleOptions || ['Easy to Answer', 'Could Answer', 'Difficult to Answer']).map((opt: string, sIdx: number) => (
+                                              <div key={sIdx} style={{ fontSize: '0.82rem', fontWeight: 'var(--pw-weight-heavy)', color: '#000000', padding: '2px 4px', wordBreak: 'break-word', textAlign: 'center' }}>
                                               {opt}
                                             </div>
                                           ))}
@@ -1100,7 +1015,7 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                           return (
                                             <td key={col.id} style={{ border: cellBorder, borderBottom: cellBorderBottom, padding: '4px 6px', fontSize: '0.82rem', verticalAlign: 'middle', minHeight: `${minCellHeight}px`, textAlign: 'center', width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
                                               <div style={{ display: 'grid', gridTemplateColumns: `repeat(${scaleOptions.length}, 1fr)`, gap: '4px', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
-                                                {scaleOptions.map((opt, sIdx) => {
+                                                {scaleOptions.map((opt: string, sIdx: number) => {
                                                   const isSelected = isLikertSelected(cellVal, opt, sIdx);
                                                   return (
                                                     <div key={sIdx} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
