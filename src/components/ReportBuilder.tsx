@@ -14,7 +14,7 @@ import type {
 } from '../types';
 import { computeRecordReport, evaluateFieldSpec } from '../utils/reportCompute';
 import { extractAllFormFields, extractTableFields, groupFieldsByHierarchy, type FieldHierarchyGroup } from '../utils/tableFieldExtractor';
-import { getInfoGridTemplateColumns, snap2ColWidth, snap3ColWidths, formatOptionDisplay, reorderArray } from '../utils/formUtils';
+import { getInfoGridTemplateColumns, snap2ColWidth, snap3ColWidths, formatOptionDisplay, reorderArray, insertAfterActive } from '../utils/formUtils';
 import { handleFormatKeyDown } from '../utils/textFormatter';
 import { FieldScoringInspector } from './report/FieldScoringInspector';
 import { FormReferenceCanvas } from './report/FormReferenceCanvas';
@@ -990,7 +990,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
 
     setTemplate(prev => ({
       ...prev,
-      layoutBlocks: [...prev.layoutBlocks, newBlock]
+      layoutBlocks: insertAfterActive(prev.layoutBlocks, newBlock, activeBlockId)
     }));
     setActiveBlockId(newId);
   };
@@ -1697,7 +1697,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
         };
         setTemplate(prev => ({
           ...prev,
-          layoutBlocks: [...prev.layoutBlocks, newBlock]
+          layoutBlocks: insertAfterActive(prev.layoutBlocks, newBlock, activeBlockId)
         }));
         setActiveBlockId(newBlock.id);
       }
@@ -1731,7 +1731,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
       };
       setTemplate(prev => ({
         ...prev,
-        layoutBlocks: [...prev.layoutBlocks, newBlock]
+        layoutBlocks: insertAfterActive(prev.layoutBlocks, newBlock, activeBlockId)
       }));
       setActiveBlockId(newBlock.id);
     }
@@ -1771,7 +1771,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
       };
       setTemplate(prev => ({
         ...prev,
-        layoutBlocks: [...prev.layoutBlocks, newBlock]
+        layoutBlocks: insertAfterActive(prev.layoutBlocks, newBlock, activeBlockId)
       }));
       setActiveBlockId(newBlock.id);
     }
@@ -1986,15 +1986,14 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
         chartItems: [newChart]
       };
       setTemplate(prev => {
-        const blocks = [...prev.layoutBlocks];
-        if (targetInsertIndex !== undefined && targetInsertIndex >= 0 && targetInsertIndex <= blocks.length) {
+        if (targetInsertIndex !== undefined && targetInsertIndex >= 0 && targetInsertIndex <= prev.layoutBlocks.length) {
+          const blocks = [...prev.layoutBlocks];
           blocks.splice(targetInsertIndex, 0, newGridBlock);
-        } else {
-          blocks.push(newGridBlock);
+          return { ...prev, layoutBlocks: blocks };
         }
         return {
           ...prev,
-          layoutBlocks: blocks
+          layoutBlocks: insertAfterActive(prev.layoutBlocks, newGridBlock, activeBlockId)
         };
       });
       setActiveBlockId(newGridId);

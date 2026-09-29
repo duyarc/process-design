@@ -711,6 +711,26 @@ export function reorderArray<T>(
 }
 
 /**
+ * Chèn một phần tử vào mảng ngay sau phần tử đang active (nếu có),
+ * hoặc thêm vào cuối mảng nếu không có activeId.
+ */
+export function insertAfterActive<T extends { id: string }>(
+  list: T[],
+  newItem: T,
+  activeId?: string | null
+): T[] {
+  if (activeId) {
+    const activeIdx = list.findIndex(item => item.id === activeId);
+    if (activeIdx !== -1) {
+      const next = [...list];
+      next.splice(activeIdx + 1, 0, newItem);
+      return next;
+    }
+  }
+  return [...list, newItem];
+}
+
+/**
  * Lấy danh sách lựa chọn thực tế của một ô trong bảng TABLE:
  * Ưu tiên custom cell options trong cellOptionsMap (hỗ trợ cả key phẳng "rowId_colId" và key lồng nhau map[rowId][colId]),
  * nếu không có sẽ dùng columnOptions mặc định của cột.

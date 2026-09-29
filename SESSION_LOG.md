@@ -42,6 +42,27 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-29 — Report Builder: Insert Layout Block Immediately After Active Block
+
+**Scope:** 3 files (`src/utils/formUtils.ts`, `src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | ~6 min |
+| Thời gian lập plan (Request → Proceed) | ~2.5 min |
+| Thời gian thực thi (Proceed → Push) | ~3.5 min |
+| Số file nguồn chỉnh sửa | 2 (`formUtils.ts`, `ReportBuilder.tsx`) |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 2 (`tsc --noEmit` 0 lỗi, `npm run build` 8.46s pass) |
+| Lần build đầu thành công? | Có (100% pass ngay lần 1) |
+
+**Kết quả đạt được:**
+- Trích xuất pure utility `insertAfterActive` trong `src/utils/formUtils.ts` tái sử dụng toàn hệ thống.
+- Khi thêm một khối layout block mới trong Report Builder, nếu có khối đang active thì khối mới được chèn ngay sau khối đó (`activeIdx + 1`) và tự động active khối mới. Nếu không có khối nào active, khối mới mặc định nằm ở cuối.
+- Áp dụng đồng bộ cho Toolbar buttons, thêm khối biểu đồ từ Left Sidebar, và các section sinh tự động.
+
+---
+
 ### 2026-09-29 — Report Builder: Full Chart Drag-to-Reorder, Cross-Block Move & DropZone Chart Insertion
 
 **Scope:** 2 files (`src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`)
