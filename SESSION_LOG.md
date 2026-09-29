@@ -42,6 +42,26 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-29 — Report Builder: Unified Chart Semantic Color Specification & Synchronization
+
+**Scope:** 5 files (`src/components/report/BarChartBlock.tsx`, `src/components/report/RadarChartBlock.tsx`, `src/components/report/BarChartInspector.tsx`, `src/components/report/RadarChartInspector.tsx`, `DESIGN_REPORT_BUILDER.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa | 4 (`BarChartBlock.tsx`, `RadarChartBlock.tsx`, `BarChartInspector.tsx`, `RadarChartInspector.tsx`) |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 4 (`tsc --noEmit` 0 lỗi sau mỗi file, `npm run build` 20.01s pass 100%) |
+| Lần build đầu thành công? | Có (100% pass ngay lần 1) |
+
+**Kết quả đạt được:**
+- Đồng bộ 100% màu sắc điểm tổng hợp của `BarChartBlock` (điểm tổng, thanh progress bar tổng, viền trái hộp nhận xét, badge số thứ tự) và `RadarChartBlock` (điểm tổng, badge số thứ tự) theo hàm chuẩn `getScoreColorHex(activeOverallScore)` (`>= 3.5` `#0d9488`, `2.0–3.4` `#d97706`, `< 2.0` `#ef4444`).
+- Đồng bộ màu điểm tổng tự động (`combinedScore`) trong `BarChartInspector` và `RadarChartInspector`.
+- Bổ sung mục **3.1 Quy chuẩn Mã màu Ngữ nghĩa theo Thang điểm (Single Source of Truth)** vào `DESIGN_REPORT_BUILDER.md` để tra cứu và cập nhật nhanh tại 1 hàm duy nhất (`reportChartUtils.ts`).
+
+**Lỗi gặp:** 0 lỗi.
+
+---
+
 ### 2026-09-29 — Architecture: Clean URLs & Complete Removal of Access Token
 
 **Scope:** 6 files (`server.cjs`, `src/App.tsx`, `src/components/SubmissionViewer.tsx`, `src/components/FormReport.tsx`, `src/components/FormFiller.tsx`, `DESIGN_FORM_OPERATIONS.md`)

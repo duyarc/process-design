@@ -2,6 +2,7 @@ import React from 'react';
 import type { ReportChartItemConfig } from '../../types';
 import {
   buildRadarPolygonPoints,
+  getScoreColorHex,
   resolveChartSummaryState,
   sanitizeDemoChartConfig,
   wrapSvgAxisLabel
@@ -25,6 +26,7 @@ export const RadarChartBlock: React.FC<RadarChartBlockProps> = ({
     activeOverallScore,
     isHeaderVisible
   } = resolveChartSummaryState(chart);
+  const overallColorHex = getScoreColorHex(activeOverallScore);
 
   const viewBoxWidth = 640;
   const viewBoxHeight = 360;
@@ -64,7 +66,7 @@ export const RadarChartBlock: React.FC<RadarChartBlockProps> = ({
                   width: '22px',
                   height: '22px',
                   borderRadius: '50%',
-                  background: 'var(--primary)',
+                  background: overallColorHex,
                   color: '#ffffff',
                   fontSize: '0.76rem',
                   fontWeight: 800,
@@ -95,7 +97,7 @@ export const RadarChartBlock: React.FC<RadarChartBlockProps> = ({
             style={{
               fontSize: '1.05rem',
               fontWeight: 800,
-              color: 'var(--primary)',
+              color: overallColorHex,
               flexShrink: 0
             }}
           >

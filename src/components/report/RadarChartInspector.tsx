@@ -285,7 +285,7 @@ export const RadarChartInspector: React.FC<RadarChartInspectorProps> = ({
               padding: '0.15rem 0',
               borderRadius: '4px',
               background: boundField ? '#f0fdfa' : '#fffbeb',
-              color: boundField ? getScoreColorHex(boundField.score) : '#d97706',
+              color: getScoreColorHex(boundField ? boundField.score : combinedScore),
               border: boundField ? '1px solid #ccfbf1' : '1px solid #fef3c7'
             }}
             title={

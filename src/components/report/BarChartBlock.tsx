@@ -27,6 +27,7 @@ export const BarChartBlock: React.FC<BarChartBlockProps> = ({
   } = resolveChartSummaryState(chart);
 
   const overallPercent = Math.min(100, Math.max(0, (activeOverallScore / 5) * 100));
+  const overallColorHex = getScoreColorHex(activeOverallScore);
   const activeRange = resolveScoreRangeComment(activeOverallScore, chart.commentRanges);
 
   return (
@@ -61,7 +62,7 @@ export const BarChartBlock: React.FC<BarChartBlockProps> = ({
                   width: '22px',
                   height: '22px',
                   borderRadius: '50%',
-                  background: 'var(--primary)',
+                  background: overallColorHex,
                   color: '#ffffff',
                   fontSize: '0.76rem',
                   fontWeight: 800,
@@ -92,7 +93,7 @@ export const BarChartBlock: React.FC<BarChartBlockProps> = ({
             style={{
               fontSize: '1.05rem',
               fontWeight: 800,
-              color: 'var(--primary)',
+              color: overallColorHex,
               flexShrink: 0
             }}
           >
@@ -117,7 +118,7 @@ export const BarChartBlock: React.FC<BarChartBlockProps> = ({
             style={{
               width: `${overallPercent}%`,
               height: '100%',
-              background: 'var(--primary)',
+              background: overallColorHex,
               borderRadius: '99px',
               transition: 'width 0.25s ease'
             }}
@@ -130,7 +131,7 @@ export const BarChartBlock: React.FC<BarChartBlockProps> = ({
         <div
           style={{
             background: '#f8fafc',
-            borderLeft: '3px solid var(--primary)',
+            borderLeft: `3px solid ${overallColorHex}`,
             borderRadius: '0 6px 6px 0',
             padding: '0.55rem 0.75rem',
             fontSize: '0.77rem',

@@ -8,8 +8,8 @@
 |---|---|
 | **Module Name** | Report Builder |
 | **Status** | Implemented & Verified |
-| **Document Version** | 5.15 |
-| **Verified At Commit** | (2026-09-29) — Chart drag-to-reorder MIME guard fix verified: field cell and empty slot onDragOver/onDrop now skip `x-report-chart-item-reorder` events |
+| **Document Version** | 5.16 |
+| **Verified At Commit** | (2026-09-29) — Chart Semantic Color Specification (`getScoreColorHex` Single Source of Truth in `reportChartUtils.ts`) & full synchronization across `BarChartBlock`, `RadarChartBlock`, and Inspectors verified |
 
 ### Quick File Index
 
@@ -90,10 +90,45 @@ The module operates on a linear 4-stage processing and rendering pipeline:
 
 ---
 
+## 3.1 Quy chuẩn Mã màu Ngữ nghĩa theo Thang điểm (Chart Semantic Color Specification — Single Source of Truth)
+
+Mọi thành phần biểu đồ trong hệ thống (Bar Chart, Radar Chart, Inspector Panel, và bản in PDF) **BẮT BUỘC** dùng chung hàm thuần túy duy nhất tại [`src/utils/reportChartUtils.ts`](src/utils/reportChartUtils.ts):
+- `function getScoreColorHex(score: number): string`
+- `function getScoreSemanticColor(score: number): 'green' | 'amber' | 'red'`
+
+> **Quy tắc bảo trì (Quick Update Guide):** Khi cần thay đổi ngưỡng điểm phân loại hoặc đổi bảng mã màu (palette), **CHỈ CẦN SỬA DUY NHẤT** hàm `getScoreColorHex` trong [`src/utils/reportChartUtils.ts`](src/utils/reportChartUtils.ts). Tuyệt đối cấm hardcode mã màu hoặc `var(--primary)` trực tiếp tại các component hiển thị điểm.
+
+### Bảng Ngưỡng Điểm & Mã Màu Chuẩn (Thang 5.0)
+
+| Ngưỡng điểm (`score`) | Phân loại Ngữ nghĩa | Mã màu Hex | Tên biến / Màu sắc |
+|---|---|---|---|
+| **`score >= 3.5`** (`3.5` – `5.0`) | **Tốt / Đạt chuẩn** (`green`) | `#0d9488` | Teal / Emerald Green |
+| **`2.0 <= score < 3.5`** (`2.0` – `3.4`) | **Trung bình / Cảnh báo** (`amber`) | `#d97706` | Amber / Orange |
+| **`score < 2.0`** (`0.0` – `1.9`) | **Yếu / Rủi ro / Chưa đạt** (`red`) | `#ef4444` | Red / Danger |
+
+### Danh sách Thành phần Giao diện Đồng bộ (`overallColorHex` & `colorHex`)
+
+1. **`BarChartBlock.tsx`** (Dùng chung cho `ReportBuilder`, `FormReport`, `PrintReport`):
+   - Badge vòng tròn số thứ tự (`displayNum`): `background: getScoreColorHex(activeOverallScore)`
+   - Con số điểm tổng hợp góc phải (`activeOverallScore / 5`): `color: getScoreColorHex(activeOverallScore)`
+   - Thanh Progress Bar tổng hợp (`overallPercent`): `background: getScoreColorHex(activeOverallScore)`
+   - Viền trái khung Nhận xét (`commentText`): `borderLeft: 3px solid ${getScoreColorHex(activeOverallScore)}`
+   - Điểm & Thanh Progress Bar của từng tiêu chí con (`chart.components`): `getScoreColorHex(item.score)`
+2. **`RadarChartBlock.tsx`** (Dùng chung cho `ReportBuilder`, `FormReport`, `PrintReport`):
+   - Badge vòng tròn số thứ tự (`displayNum`): `background: getScoreColorHex(activeOverallScore)`
+   - Con số điểm tổng hợp góc phải (`activeOverallScore / 5`): `color: getScoreColorHex(activeOverallScore)`
+   - Điểm trên từng đỉnh trục mạng nhện (`lbl.scoreColor`): `getScoreColorHex(comp.score)`
+3. **`BarChartInspector.tsx` & `RadarChartInspector.tsx`**:
+   - Badge điểm tổng hợp (cả khi gán `boundField` lẫn khi tính tự động `combinedScore`): `getScoreColorHex(boundField ? boundField.score : combinedScore)`
+   - Điểm từng dòng thành phần con: `getScoreColorHex(item.score)`
+
+---
+
 ## 4. Change Log
 
 | Date | Change |
 |---|---|
+| 2026-09-29 | **Unified Chart Semantic Color Specification (`reportChartUtils`, `BarChartBlock`, `RadarChartBlock`, `BarChartInspector`, `RadarChartInspector`):** (1) Eliminated hardcoded `var(--primary)` (`#0d9488`) on overall chart summary elements in `BarChartBlock.tsx` (overall score text, overall progress bar fill, commentary box `borderLeft`, and `displayNum` badge) and `RadarChartBlock.tsx` (overall score text and `displayNum` badge), synchronizing 100% of chart visuals to `getScoreColorHex(activeOverallScore)` (`>= 3.5` `#0d9488`, `2.0–3.4` `#d97706`, `< 2.0` `#ef4444`). (2) Updated `BarChartInspector.tsx` and `RadarChartInspector.tsx` summary score badge to use `getScoreColorHex(boundField ? boundField.score : combinedScore)` instead of hardcoded `#d97706`. (3) Documented Section 3.1 in `DESIGN_REPORT_BUILDER.md` as the Single Source of Truth for chart score colors. |
 | 2026-09-29 | **Cross-Block `INFO_GRID` Field Drag-and-Drop Fix & `ruleOverrides` Migration (`ReportBuilder`):** Fixed 4 root causes preventing fields from being dragged across `INFO_GRID` blocks: (1) Added dedicated `application/x-report-reorder` branch with `dropEffect = 'move'` in block container `onDragOver` so `effectAllowed = 'move'` from canvas cells no longer conflicts with `dropEffect = 'copy'` when hovering over block backgrounds. (2) Added `onDragOver` and `onDrop` handlers directly to `INFO_GRID` empty slots (`+ Thả vào đây`) supporting cross-block move (`moveFieldBetweenBlocks`), same-block move-to-end (`reorderFieldInBlock`), group field assignment (`addMultipleFieldsToBlock`), and single field assignment (`addFieldToBlock`). (3) Set `setIsDraggingField(true)` on `INFO_GRID` cell `onDragStart` (and cleared on `onDragEnd`) so populated target `INFO_GRID` blocks dynamically reveal their `+ Thả vào đây` slot during canvas field drags. (4) Updated `moveFieldBetweenBlocks` to atomically migrate `ruleOverrides[fieldId]` from the source block to the target block. |
 | 2026-09-29 | **Option 3 Stacked Label Layout, Badge Tags (Cách C) & DATA PRUNING Controls (`types`, `printShared`, `ReportBuilder`):** (1) Extended `ReportBlockConfig` in `src/types.ts` with `hideUncheckedOptions?: boolean` and `hideEmptyFields?: boolean`. (2) Refactored `renderReportField` in `src/components/print/printShared.tsx` into **Option 3 Stacked Layout** (top uppercase label `0.72rem`, bottom bold value `0.85rem` with dotted baseline) across text, select, date/time, and general fields; replaced traditional checkbox/radio `[✓]` glyphs with **Cách C Badge Tags** (rounded pill tags with checkmark glyph `✓` when selected); added data pruning support so `hideEmptyFields` suppresses unpopulated fields (returning `null`) and `hideUncheckedOptions` filters out unchecked tags. Pruned unused imports `getAutoCheckboxLayoutMode` and `hasLongOptions`. (3) Synchronized Canvas cell preview in `ReportBuilder.tsx` to match Option 3 and Badge Tags WYSIWYG. (4) Added `DATA PRUNING` control group with 2 clean `ToggleSwitch` controls (`Ẩn lựa chọn chưa tick`, `Ẩn trường khi không có dữ liệu`) directly into the Right Inspector for `INFO_GRID` without altering any existing inspector controls. |
 | 2026-09-29 | **Insert Layout Block Immediately After Active Block (`formUtils`, `ReportBuilder`):** (1) Extracted pure utility function `insertAfterActive<T extends { id: string }>(list: T[], newItem: T, activeId?: string \| null): T[]` into `src/utils/formUtils.ts` (Rule 4.1). (2) Updated `handleAddBlock` in `ReportBuilder.tsx` so that when a layout block is currently active/selected, any newly added block (`TITLE`, `INFO_GRID`, `TABLE`, `SIGN`, `SECTION_LABEL`) is inserted immediately at `activeIdx + 1` instead of defaulting to the end of the sheet, matching `FormBuilder` parity. (3) Applied `insertAfterActive` across `handleInsertChartIntoInfoGrid` (when auto-generating a new grid block) and section linking handlers (`handleSelectH1Section`, `handleSelectH2Subgroup`, `handleSelectElementGroup`). |
@@ -109,7 +144,6 @@ The module operates on a linear 4-stage processing and rendering pipeline:
 | 2026-09-28 | **Standardized `PrintReport.tsx` with Shared Print Architecture (`printShared`, `PrintReport`):** Refactored `PrintReport.tsx` to consume shared primitives from `src/components/print/printShared.tsx` alongside `PrintBlankForm`, `PrintFilledForm`, and `PrintScoring`. Replaced 30-line manual base64 logo fetch with `usePrintLogo`, replaced 53-line duplicate inline `@media print` style block with `<PrintDocumentStyles isA5={isA5} />`, unified TITLE banner with `<PrintTitleBlock />`, streamlined H1/H2 headers across `SECTION_LABEL`, `INFO_GRID`, and `TABLE` using `<PrintSectionHeader />`, and replaced manual footer with `<PrintPageFooter />`. Expanded `PrintTitleBlock` and `PrintSectionHeader` type contracts in `printShared.tsx` to natively support `ReportBlockConfig`. |
 | 2026-09-28 | **Embedded FormReport Mode & Token-Based Public Viewing (`FormReport`, `server.cjs`):** Added `isEmbedded` prop to `FormReport.tsx` allowing borderless seamless rendering inside `FormFiller.tsx` submission view toolbar without duplicate fixed headers. Added `GET /api/reports/view/:submissionId` endpoint in `server.cjs` returning combined submission, form template, and report template for guest access via `/r/:submissionId?token=...`. |
 | 2026-09-28 | **Minimalist `PrintScoring.tsx` (Matching `PrintBlankForm`), Shared Print Utilities (`printShared.tsx` & `formUtils.ts`) & Pruned `PrintFormScoringSpec` (`reportScoring`, `printShared`, `PrintBlankForm`, `PrintFilledForm`, `PrintScoring`, `ReportBuilder`):** (1) Extracted shared print logic into pure helpers `getChecklistColumns` and `groupTableRowsForPrint` in `src/utils/formUtils.ts` (Rule 4.1) and shared print components `usePrintLogo`, `PrintDocumentStyles`, `PrintTitleBlock`, `PrintSectionHeader`, and `PrintPageFooter` in `src/components/print/printShared.tsx` reused across `PrintBlankForm.tsx`, `PrintFilledForm.tsx`, and `PrintScoring.tsx`. (2) Redesigned the `tab Form` Scoring Blueprint printout into minimalist component `src/components/print/PrintScoring.tsx`: eliminated redundant top banners, eliminated top legend formula box, eliminated artificial `INFO_GRID` outer borders/header bars, preserved `PrintBlankForm`'s borderless `INFO_GRID` layout (with dotted lines `... 5đ` and inline `☐` options), preserved `TABLE` border styles (`borderless` 3-column Likert scale `○ 5đ` / `○ 3đ` / `○ 1đ`, rating `☆ ☆ ☆ ☆ ☆`, and checkbox options `☐ Option (+1đ)`), with clean monospace weight badges `[X% / Parent]` pinned to the top-right corner. (3) Pruned dead component `PrintFormScoringSpec.tsx` (Rule 4.2 Dead-Code Pruning) and updated `ReportBuilder.tsx` to render `<PrintScoring />`. |
-| 2026-09-28 | **Universal Option D Weight Notation (`/` + `⊞`), Top-Right Corner Weight Badges & `isPass` Omission in `tab Form` Printout (`reportScoring`, `PrintFormScoringSpec`):** (1) Updated `WeightBadgeSpec` and `FieldBlueprintSpec` in `src/utils/reportScoring.ts` and `renderWeightBadge` in `src/components/print/PrintFormScoringSpec.tsx` to use language-neutral Option D notation: replaced `"of"` with `"/"` and `"Bảng"` with `"⊞"` (`[35% / Form]`, `[50% / H1]`, `[100% / H2]`, `[17% / ⊞]`). (2) Pinned all weight badges to the **top-right corner** (`display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between'`) of their respective containers across `H1`, `H2`, `INFO_GRID` block headers, `INFO_GRID` field cells, `TABLE` block headers, and `TABLE` cells. (3) Temporarily omitted `isPass` pass/fail differentiation (`◉` vs `○`, emerald vs muted slate) and `ruleSummary` pass thresholds from `renderInlineFieldAnswerKey` and the top legend strip, rendering all choice/scale items uniformly with their scores (`• {label} · {scoreText}` and `[{label}: {scoreText}]`). |
 
 
 
