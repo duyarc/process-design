@@ -3973,36 +3973,54 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                         ✕
                                       </button>
                                     )}
-                                    {fieldOptions && (field?.type === 'checkbox' || field?.type === 'radio') ? (
-                                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 10px', paddingTop: '2px' }}>
-                                        {fieldOptions.map((opt, oIdx) => {
-                                          const isChecked = val && val !== '—' && val.split(',').map(s => s.trim().toLowerCase()).some(s => s === (opt.value || '').toLowerCase() || s === (opt.label || '').toLowerCase());
-                                          return (
-                                            <span key={opt.value || oIdx} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: isChecked ? 'var(--primary)' : '#334155', fontWeight: isChecked ? 700 : 400 }}>
-                                              <span style={{
-                                                display: 'inline-block',
-                                                width: '11px',
-                                                height: '11px',
-                                                border: `1.5px solid ${isChecked ? 'var(--primary)' : '#64748b'}`,
-                                                borderRadius: field.type === 'radio' ? '50%' : '2px',
-                                                background: isChecked ? 'var(--primary)' : '#ffffff',
-                                                flexShrink: 0
-                                              }} />
-                                              <span>{opt.label}</span>
-                                            </span>
-                                          );
-                                        })}
-                                      </div>
-                                    ) : (
+                                    {fieldOptions && (field?.type === 'checkbox' || field?.type === 'radio') ? (() => {
+                                      const isCheckedFn = (opt: any) =>
+                                        val && val !== '—' && val.split(',').map((s: string) => s.trim().toLowerCase()).some((s: string) => s === (opt.value || '').toLowerCase() || s === (opt.label || '').toLowerCase());
+                                      const visibleOptions = block.hideUncheckedOptions
+                                        ? fieldOptions.filter(opt => isCheckedFn(opt))
+                                        : fieldOptions;
+                                      const displayOpts = visibleOptions.length > 0 ? visibleOptions : (block.hideUncheckedOptions ? [] : fieldOptions);
+                                      return (
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', paddingTop: '2px' }}>
+                                          {displayOpts.length === 0 ? (
+                                            <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontStyle: 'italic' }}>—</span>
+                                          ) : (
+                                            displayOpts.map((opt, oIdx) => {
+                                              const isChecked = isCheckedFn(opt);
+                                              return (
+                                                <span
+                                                  key={opt.value || oIdx}
+                                                  style={{
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    gap: '4px',
+                                                    padding: '2px 7px',
+                                                    borderRadius: '4px',
+                                                    fontSize: '0.72rem',
+                                                    lineHeight: 1.3,
+                                                    background: isChecked ? '#e0f2fe' : '#f8fafc',
+                                                    border: isChecked ? '1px solid #38bdf8' : '1px solid #e2e8f0',
+                                                    color: isChecked ? '#0369a1' : '#64748b',
+                                                    fontWeight: isChecked ? 600 : 400
+                                                  }}
+                                                >
+                                                  {isChecked && <span style={{ fontWeight: 700 }}>✓</span>}
+                                                  <span>{opt.label}</span>
+                                                </span>
+                                              );
+                                            })
+                                          )}
+                                        </div>
+                                      );
+                                    })() : (
                                       <div style={{
                                         fontSize: '0.82rem',
                                         color: val && val !== '—' ? '#0f172a' : '#64748b',
                                         fontWeight: val && val !== '—' ? 600 : 400,
                                         fontStyle: val && val !== '—' ? 'normal' : 'italic',
-                                        padding: '3px 6px',
-                                        background: '#f8fafc',
-                                        border: '1px dashed #cbd5e1',
-                                        borderRadius: '4px'
+                                        padding: '2px 4px',
+                                        borderBottom: '1px dotted #cbd5e1',
+                                        minHeight: '18px'
                                       }}>
                                         {val && val !== '—' ? (field?.type === 'select' ? formatOptionDisplay(val, fieldOptions || undefined) : val) : (field?.placeholder || (field?.type === 'select' ? `-- Chọn (${fieldOptions?.length || 0} mục) --` : '[Chưa có dữ liệu]'))}
                                       </div>
@@ -5639,6 +5657,33 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                           }}
                         />
                       )}
+                    </div>
+                  )}
+
+                  {/* DATA PRUNING Controls for INFO_GRID */}
+                  {activeBlock.type === 'INFO_GRID' && (
+                    <div style={{ borderTop: '1px solid var(--neutral-border)', paddingTop: '0.6rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase' }}>DATA PRUNING</label>
+                      <ToggleSwitch
+                        label="Ẩn lựa chọn chưa tick"
+                        checked={!!activeBlock.hideUncheckedOptions}
+                        onChange={(val) => {
+                          setTemplate(prev => ({
+                            ...prev,
+                            layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, hideUncheckedOptions: val } : b)
+                          }));
+                        }}
+                      />
+                      <ToggleSwitch
+                        label="Ẩn trường khi không có dữ liệu"
+                        checked={!!activeBlock.hideEmptyFields}
+                        onChange={(val) => {
+                          setTemplate(prev => ({
+                            ...prev,
+                            layoutBlocks: prev.layoutBlocks.map(b => b.id === activeBlock.id ? { ...b, hideEmptyFields: val } : b)
+                          }));
+                        }}
+                      />
                     </div>
                   )}
 

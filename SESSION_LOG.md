@@ -42,6 +42,30 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-29 — Report Builder: Option 3 Stacked Label Layout, Badge Tags (Cách C) & DATA PRUNING Controls
+
+**Scope:** 4 files (`src/types.ts`, `src/components/print/printShared.tsx`, `src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | ~8 min |
+| Thời gian lập plan (Request → Proceed) | ~2.5 min |
+| Thời gian thực thi (Proceed → Push) | ~5.5 min |
+| Số file nguồn chỉnh sửa | 3 (`types.ts`, `printShared.tsx`, `ReportBuilder.tsx`) |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 3 (`tsc --noEmit` 0 lỗi, `npm run build` 9.63s pass) |
+| Lần build đầu thành công? | Có (100% pass ngay lần 1) |
+
+**Kết quả đạt được:**
+- Bổ sung `hideUncheckedOptions?: boolean` và `hideEmptyFields?: boolean` vào `ReportBlockConfig` trong `src/types.ts`.
+- Tái cấu trúc hàm `renderReportField` trong `src/components/print/printShared.tsx` sang Option 3 Stacked Label (nhãn ở trên nhỏ gọn `0.72rem`, giá trị ở dưới in đậm `0.85rem` kèm dotted underline) và Checkbox/Radio Cách C (thẻ Badge Tags bo tròn kèm icon `✓`).
+- Hỗ trợ Data Pruning: khi bật `hideEmptyFields`, các trường rỗng trả về `null` để khối `INFO_GRID` tự co; khi bật `hideUncheckedOptions`, chỉ hiển thị các tag đã chọn.
+- Dọn dẹp dead-code: lược bỏ unused imports `getAutoCheckboxLayoutMode` và `hasLongOptions` trong `printShared.tsx` (Rule 13.7).
+- Cập nhật Canvas cell preview trong `ReportBuilder.tsx` đồng bộ Option 3 & Badge Tags.
+- Bổ sung cụm `DATA PRUNING` (2 công tắc ToggleSwitch) vào Tab `Properties` (Right Inspector) của `INFO_GRID`, bảo toàn 100% các thành phần hiện hữu.
+
+---
+
 ### 2026-09-29 — Report Builder: Insert Layout Block Immediately After Active Block
 
 **Scope:** 3 files (`src/utils/formUtils.ts`, `src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`)

@@ -478,6 +478,8 @@ export interface ReportBlockConfig {
   isWeightManual?: boolean;             // True when weight was explicitly set/locked by user
   isKnockout?: boolean;                 // Knockout condition at H2 / H1 level
   hiddenInReport?: boolean;             // True if auto-created in Form tab for scoring/weight properties only
+  hideUncheckedOptions?: boolean;       // For INFO_GRID: prune unchecked options (render only selected tags)
+  hideEmptyFields?: boolean;            // For INFO_GRID: prune fields with empty or blank values
 }
 
 export interface ReportRevisionEntry {
