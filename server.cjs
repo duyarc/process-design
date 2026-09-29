@@ -2467,33 +2467,30 @@ function generateAccessToken() {
   return crypto.randomBytes(16).toString('hex');
 }
 
-// POST /api/submissions/batch-lookup - Public: verify ownership and get fresh status by token
+// POST /api/submissions/batch-lookup - Public: get fresh status by submission IDs
 app.post('/api/submissions/batch-lookup', async (req, res) => {
   try {
     if (!dbPool) {
       return res.status(503).json({ error: 'Database connection not available.' });
     }
-    const { entries } = req.body; // [{ id, token }, ...]
+    const { entries } = req.body; // string[] or [{ id, ... }]
     if (!Array.isArray(entries) || entries.length === 0) {
       return res.json([]);
     }
 
-    const validEntries = entries.filter(e => e && typeof e.id === 'string' && typeof e.token === 'string' && e.id.trim() && e.token.trim());
-    if (validEntries.length === 0) {
+    const validIds = entries
+      .map(e => (typeof e === 'string' ? e : e?.id))
+      .filter(id => typeof id === 'string' && id.trim());
+    if (validIds.length === 0) {
       return res.json([]);
     }
-
-    const conditions = validEntries.map((_, i) =>
-      `(id = $${i * 2 + 1} AND access_token = $${i * 2 + 2})`
-    ).join(' OR ');
-    const params = validEntries.flatMap(e => [e.id.trim(), e.token.trim()]);
 
     const result = await dbPool.query(`
       SELECT id, status, submitted_at, (supervisor_signoff IS NOT NULL) AS signed_off
       FROM submissions
-      WHERE ${conditions}
+      WHERE id = ANY($1)
       ORDER BY submitted_at DESC
-    `, params);
+    `, [validIds]);
 
     res.json(result.rows.map(r => ({
       id: r.id,
@@ -2551,21 +2548,16 @@ app.get('/api/submissions/view/:id', async (req, res) => {
       return res.status(503).json({ error: 'Database connection not available.' });
     }
     const { id } = req.params;
-    const token = req.query.token;
-    if (!token) {
-      return res.status(403).json({ error: 'Access token is required.' });
-    }
-
     const result = await dbPool.query(
       `SELECT id, process_id, form_id, form_version, operator_id,
               status, submitted_at, form_data, media_urls, supervisor_signoff
        FROM submissions
-       WHERE id = $1 AND access_token = $2`,
-      [id, token]
+       WHERE id = $1`,
+      [id]
     );
 
     if (result.rows.length === 0) {
-      return res.status(403).json({ error: 'Invalid token or submission not found.' });
+      return res.status(404).json({ error: 'Submission not found.' });
     }
 
     const row = result.rows[0];
@@ -2580,8 +2572,7 @@ app.get('/api/submissions/view/:id', async (req, res) => {
       formData: typeof row.form_data === 'string' ? JSON.parse(row.form_data) : row.form_data,
       mediaUrls: typeof row.media_urls === 'string' ? JSON.parse(row.media_urls) : (row.media_urls || []),
       supervisorSignoff: typeof row.supervisor_signoff === 'string' ? JSON.parse(row.supervisor_signoff) : row.supervisor_signoff,
-      canEdit: row.supervisor_signoff === null,
-      accessToken: token
+      canEdit: row.supervisor_signoff === null
     });
   } catch (err) {
     console.error('view submission error:', err);
@@ -2589,18 +2580,16 @@ app.get('/api/submissions/view/:id', async (req, res) => {
   }
 });
 
-// GET /api/reports/view/:submissionId - Public: view report data bundle with token
+// GET /api/reports/view/:submissionId - Public: view report data bundle
 app.get('/api/reports/view/:submissionId', async (req, res) => {
   try {
     if (!dbPool) return res.status(503).json({ error: 'Database not available' });
     const { submissionId } = req.params;
-    const token = req.query.token;
-    if (!token) return res.status(403).json({ error: 'Access token required' });
     const subRes = await dbPool.query(
-      `SELECT * FROM submissions WHERE id = $1 AND access_token = $2`,
-      [submissionId, token]
+      `SELECT * FROM submissions WHERE id = $1`,
+      [submissionId]
     );
-    if (subRes.rows.length === 0) return res.status(403).json({ error: 'Invalid token or submission not found' });
+    if (subRes.rows.length === 0) return res.status(404).json({ error: 'Submission not found' });
     const subRow = subRes.rows[0];
     const formRes = await dbPool.query(
       `SELECT * FROM forms WHERE form_id = $1 OR form_name = $1 ORDER BY updated_at DESC LIMIT 1`,
@@ -2791,18 +2780,14 @@ app.put('/api/submissions/:id', async (req, res) => {
       }
     }
 
-    // If not authenticated admin, guest must have valid access_token and submission must NOT be signed off
+    // If not authenticated admin, check if submission is already signed off (locked)
     if (!isAdminRequest) {
-      const tokenToCheck = accessToken || req.query.token;
-      if (!tokenToCheck) {
-        return res.status(403).json({ error: 'Access token required to amend submission.' });
-      }
       const check = await dbPool.query(
-        `SELECT supervisor_signoff FROM submissions WHERE id = $1 AND access_token = $2`,
-        [id, tokenToCheck]
+        `SELECT supervisor_signoff FROM submissions WHERE id = $1`,
+        [id]
       );
       if (check.rows.length === 0) {
-        return res.status(403).json({ error: 'Invalid access token or submission not found.' });
+        return res.status(404).json({ error: 'Submission not found.' });
       }
       if (check.rows[0].supervisor_signoff !== null) {
         return res.status(409).json({ error: 'Submission has already been signed off and cannot be edited.' });

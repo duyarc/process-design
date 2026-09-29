@@ -313,13 +313,12 @@ function FormFillerInner({
   }, [localToast]);
 
   const [printCurrentSubmission, setPrintCurrentSubmission] = useState<Submission | null>(null);
-  const [submitResult, setSubmitResult] = useState<{ id: string; token: string } | null>(null);
-  const [localSubmissions, setLocalSubmissions] = useState<Array<{ id: string; token: string; status: string; submittedAt: string; signedOff: boolean }>>([]);
+  const [submitResult, setSubmitResult] = useState<{ id: string } | null>(null);
+  const [localSubmissions, setLocalSubmissions] = useState<Array<{ id: string; token?: string; status: string; submittedAt: string; signedOff: boolean }>>([]);
 
   const { currentUser } = useAuth();
   const canAdminEdit = currentUser?.role_id === 'admin' || currentUser?.role_id === 'supervisor';
-  const effectiveEditToken = editToken || initialSubmission?.accessToken || (initialSubmission as any)?.access_token;
-  const canAmend = canAdminEdit || Boolean(effectiveEditToken && (canEditSubmission ?? true) && !initialSubmission?.supervisorSignoff);
+  const canAmend = canAdminEdit || Boolean((canEditSubmission ?? true) && !initialSubmission?.supervisorSignoff);
   const [isEditModeActive, setIsEditModeActive] = useState<boolean>(Boolean(initialEditMode && canAmend));
   const effectiveReadOnly = Boolean(readOnly && !isEditModeActive);
   const [submissionTab, setSubmissionTab] = useState<'form' | 'report'>(initialSubmissionTab || 'form');
@@ -419,14 +418,12 @@ function FormFillerInner({
   const currentShareUrl = (() => {
     if (!initialSubmission) return '';
     const origin = window.location.origin;
-    const token = effectiveEditToken || initialSubmission.accessToken || (initialSubmission as any)?.access_token || '';
     const rawTitle = rawFormTemplate?.formTitle || formName || initialSubmission.formId;
     const slug = rawTitle ? rawTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : initialSubmission.formId;
-    const tokenParam = token ? `?token=${encodeURIComponent(token)}` : '';
     if (submissionTab === 'report') {
-      return `${origin}/f/${slug}/r/${initialSubmission.id}${tokenParam}`;
+      return `${origin}/f/${slug}/r/${initialSubmission.id}`;
     }
-    return `${origin}/f/${slug}/s/${initialSubmission.id}${tokenParam}`;
+    return `${origin}/f/${slug}/s/${initialSubmission.id}`;
   })();
 
   const handleCopyCurrentLink = () => {
@@ -834,8 +831,8 @@ function FormFillerInner({
   if (submitResult) {
     const rawTitle = rawFormTemplate?.formTitle || formName;
     const slug = rawTitle ? rawTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : encodeURIComponent(formName);
-    const viewUrl = `${window.location.origin}/f/${slug}/s/${submitResult.id}?token=${submitResult.token}`;
-    const reportUrl = `${window.location.origin}/f/${slug}/r/${submitResult.id}?token=${submitResult.token}`;
+    const viewUrl = `${window.location.origin}/f/${slug}/s/${submitResult.id}`;
+    const reportUrl = `${window.location.origin}/f/${slug}/r/${submitResult.id}`;
     return (
       <div style={{ maxWidth: '640px', margin: '3rem auto', padding: '0 1rem' }}>
         <div className="paper-card" style={{ padding: '2.5rem 2rem', textAlign: 'center' }}>
@@ -1366,7 +1363,7 @@ function FormFillerInner({
 
         if (!isEditOperation) {
           // Unified Smart Success Screen for ALL users (Guest + Admin)
-          setSubmitResult({ id: finalId, token: returnedAccessToken || '' });
+          setSubmitResult({ id: finalId });
         } else {
           const successMsg = `Đã cập nhật phiếu thành công! (Mã: ${finalId})`;
           setLocalToast({ message: successMsg, id: finalId, type: 'success' });
@@ -3203,7 +3200,7 @@ function FormFillerInner({
                 </div>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                   <a
-                    href={`/f/${encodeURIComponent(formName)}/s/${item.id}?token=${item.token}`}
+                    href={`/f/${encodeURIComponent(formName)}/s/${item.id}`}
                     className="btn btn-secondary btn-sm"
                     style={{ fontSize: '0.75rem', padding: '0.2rem 0.6rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                   >
@@ -3211,7 +3208,7 @@ function FormFillerInner({
                   </a>
                   {!item.signedOff && (
                     <a
-                      href={`/f/${encodeURIComponent(formName)}/s/${item.id}?token=${item.token}&mode=edit`}
+                      href={`/f/${encodeURIComponent(formName)}/s/${item.id}?mode=edit`}
                       className="btn btn-primary btn-sm"
                       style={{ fontSize: '0.75rem', padding: '0.2rem 0.6rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                     >
@@ -3542,7 +3539,6 @@ function FormFillerInner({
         <FormReport
           submissionId={initialSubmission.id}
           isEmbedded={true}
-          token={effectiveEditToken}
           triggerPrint={triggerReportPrint}
           onPrintHandled={() => setTriggerReportPrint(false)}
           onOpenBuilder={onOpenReportBuilder}

@@ -6,7 +6,7 @@ import { CheckCircle2 } from 'lucide-react';
 export interface SubmissionViewerProps {
   formName: string;
   submissionId: string;
-  token: string;
+  token?: string;
   initialEditMode?: boolean;
   initialTab?: 'form' | 'report';
   onBack?: () => void;
@@ -29,7 +29,7 @@ export const SubmissionViewer: React.FC<SubmissionViewerProps> = ({
   const fetchSubmission = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`/api/submissions/view/${encodeURIComponent(submissionId)}?token=${encodeURIComponent(token)}`);
+      const res = await fetch(`/api/submissions/view/${encodeURIComponent(submissionId)}`);
       if (res.status === 403 || res.status === 404) {
         // Access denied or not found -> redirect to fill form
         window.location.replace(`/f/${encodeURIComponent(formName)}`);
@@ -55,7 +55,7 @@ export const SubmissionViewer: React.FC<SubmissionViewerProps> = ({
   useEffect(() => {
     fetchSubmission();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [submissionId, token]);
+  }, [submissionId]);
 
   useEffect(() => {
     if (toastMessage) {

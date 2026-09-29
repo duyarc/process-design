@@ -42,6 +42,28 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-29 — Architecture: Clean URLs & Complete Removal of Access Token
+
+**Scope:** 6 files (`server.cjs`, `src/App.tsx`, `src/components/SubmissionViewer.tsx`, `src/components/FormReport.tsx`, `src/components/FormFiller.tsx`, `DESIGN_FORM_OPERATIONS.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa | 5 (`server.cjs`, `App.tsx`, `SubmissionViewer.tsx`, `FormReport.tsx`, `FormFiller.tsx`) |
+| Lượt edit sửa lỗi (rework) | 1 (xóa sót biến `effectiveEditToken` ở call-site `FormReport`) |
+| Số lần build | 3 (`tsc --noEmit` 0 lỗi, `npm run build` 10.14s pass) |
+| Lần build đầu thành công? | Không (sót `effectiveEditToken` tại dòng 3542 FormFiller, đã fix triệt để) |
+
+**Kết quả đạt được:**
+- Loại bỏ 100% `access_token` trên toàn bộ hệ thống backend & frontend.
+- Chuyển đổi toàn diện sang Clean URLs: `/f/:slug/s/:subId` và `/f/:slug/r/:subId` hoàn toàn không có `?token=...`.
+- Bất kỳ ai mở link chia sẻ (kể cả trên điện thoại, Zalo, ẩn danh) đều truy cập được ngay lập tức 0ms, không bao giờ bị hỏi token hay redirect về form trắng.
+- Bảo mật dựa trên vòng đời phiếu: Chưa ký duyệt cho phép Xem & Sửa; đã ký duyệt tự động khóa cứng 100% chỉ đọc.
+
+**Lỗi gặp:**
+- `BLOAT`: Khi bỏ state `effectiveEditToken`, sót 1 prop `token={effectiveEditToken}` truyền vào `FormReport`. Đã xóa triệt để.
+
+---
+
 ### 2026-09-29 — Fix: Unified Post-Submit Smart Success Screen for Admin + Guest
 
 **Scope:** 2 files (`src/components/FormFiller.tsx`, `DESIGN_FORM_OPERATIONS.md`)

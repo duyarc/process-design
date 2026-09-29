@@ -45,7 +45,6 @@ const MainApp: React.FC = () => {
 
   // Public submission viewer state
   const [viewerSubmissionId, setViewerSubmissionId] = useState<string | null>(null);
-  const [viewerToken, setViewerToken] = useState<string | null>(null);
   const [viewerEditMode, setViewerEditMode] = useState<boolean>(false);
   const [viewerInitialTab, setViewerInitialTab] = useState<'form' | 'report'>('form');
 
@@ -82,39 +81,15 @@ const MainApp: React.FC = () => {
       const recordType = shortRecordMatch[1];
       const subId = decodeURIComponent(shortRecordMatch[2]);
       const urlParams = new URLSearchParams(window.location.search);
-      const token = urlParams.get('token');
       const mode = urlParams.get('mode');
 
-      let resolvedToken = token;
-      if (!resolvedToken) {
-        try {
-          const rawHist = localStorage.getItem('submission_history');
-          if (rawHist) {
-            const histObj = JSON.parse(rawHist);
-            for (const list of Object.values(histObj)) {
-              if (Array.isArray(list)) {
-                const match = list.find((item: any) => item.id === subId);
-                if (match?.token) {
-                  resolvedToken = match.token;
-                  break;
-                }
-              }
-            }
-          }
-        } catch (_) {}
-      }
-
-      const jwtToken = localStorage.getItem('jwt_token');
-      if (resolvedToken || jwtToken) {
-        setViewerSubmissionId(subId);
-        setViewerToken(resolvedToken || '');
-        setViewerEditMode(mode === 'edit');
-        setViewerInitialTab(recordType === 'r' ? 'report' : 'form');
-        setSelectedFormName('submission');
-        setPage('submission-viewer');
-        setShortLinkLoading(false);
-        return;
-      }
+      setViewerSubmissionId(subId);
+      setViewerEditMode(mode === 'edit');
+      setViewerInitialTab(recordType === 'r' ? 'report' : 'form');
+      setSelectedFormName('submission');
+      setPage('submission-viewer');
+      setShortLinkLoading(false);
+      return;
     }
 
     if (pathname.startsWith('/f/')) {
@@ -124,36 +99,9 @@ const MainApp: React.FC = () => {
         const recordType = recordMatch[2];
         const subId = decodeURIComponent(recordMatch[3]);
         const urlParams = new URLSearchParams(window.location.search);
-        const token = urlParams.get('token');
         const mode = urlParams.get('mode');
 
-        let resolvedToken = token;
-        if (!resolvedToken) {
-          try {
-            const rawHist = localStorage.getItem('submission_history');
-            if (rawHist) {
-              const histObj = JSON.parse(rawHist);
-              for (const list of Object.values(histObj)) {
-                if (Array.isArray(list)) {
-                  const match = list.find((item: any) => item.id === subId);
-                  if (match?.token) {
-                    resolvedToken = match.token;
-                    break;
-                  }
-                }
-              }
-            }
-          } catch (_) {}
-        }
-
-        const jwtToken = localStorage.getItem('jwt_token');
-        if (!resolvedToken && !jwtToken) {
-          window.location.replace(`/f/${encodeURIComponent(formName)}`);
-          return;
-        }
-
         setViewerSubmissionId(subId);
-        setViewerToken(resolvedToken || '');
         setViewerEditMode(mode === 'edit');
         setViewerInitialTab(recordType === 'r' ? 'report' : 'form');
         setSelectedFormName(formName);
@@ -291,13 +239,12 @@ const MainApp: React.FC = () => {
         </div>
       );
     }
-    if (page === 'submission-viewer' && viewerSubmissionId && viewerToken && selectedFormName) {
+    if (page === 'submission-viewer' && viewerSubmissionId && selectedFormName) {
       return (
         <div className="app-container" style={{ minHeight: '100vh', background: 'var(--neutral-bg)', padding: '2rem 1rem' }}>
           <SubmissionViewer
             formName={selectedFormName}
             submissionId={viewerSubmissionId}
-            token={viewerToken}
             initialEditMode={viewerEditMode}
             initialTab={viewerInitialTab}
             onBack={() => { window.location.href = `/f/${encodeURIComponent(selectedFormName)}`; }}
@@ -522,17 +469,15 @@ const MainApp: React.FC = () => {
             onBack={() => setPage('form-manager')}
           />
         )}
-        {page === 'submission-viewer' && viewerSubmissionId && viewerToken && selectedFormName && (
+        {page === 'submission-viewer' && viewerSubmissionId && selectedFormName && (
           <SubmissionViewer
             formName={selectedFormName}
             submissionId={viewerSubmissionId}
-            token={viewerToken}
             initialEditMode={viewerEditMode}
             initialTab={viewerInitialTab}
             onBack={() => {
               setPage('dashboard');
               setViewerSubmissionId(null);
-              setViewerToken(null);
             }}
           />
         )}

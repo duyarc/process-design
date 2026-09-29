@@ -132,10 +132,8 @@ export const FormReport: React.FC<FormReportProps> = ({
             setComputedData(computed);
           }
         } else {
-          // Public/token path
-          const subUrl = token
-            ? `/api/submissions/view/${encodeURIComponent(submissionId)}?token=${encodeURIComponent(token)}`
-            : `/api/submissions/${encodeURIComponent(submissionId)}`;
+          // Public path
+          const subUrl = `/api/submissions/view/${encodeURIComponent(submissionId)}`;
           const subRes = await fetch(subUrl);
           if (!subRes.ok) throw new Error(`Không tìm thấy bản nộp ID ${submissionId}`);
           const subData: any = await subRes.json();
