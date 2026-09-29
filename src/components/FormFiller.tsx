@@ -327,6 +327,12 @@ function FormFillerInner({
   const [triggerReportPrint, setTriggerReportPrint] = useState(false);
   const [prefetchedReportTemplate, setPrefetchedReportTemplate] = useState<ReportTemplateISO | null>(null);
 
+  useEffect(() => {
+    if (initialSubmissionTab) {
+      setSubmissionTab(initialSubmissionTab);
+    }
+  }, [initialSubmissionTab]);
+
   const handleCancelEdit = () => {
     if (initialSubmission && process && rawFormTemplate) {
       const restoredValues: { [fieldId: string]: string } = {};
@@ -395,12 +401,25 @@ function FormFillerInner({
   };
 
   // Smart Public Link State
-  const rawFormTemplate = (process?.workflowFormsData?.[formName] || null) as FormTemplateISO | null;
+  const rawFormTemplate = useMemo(() => {
+    if (!process?.workflowFormsData) return null;
+    if (process.workflowFormsData[formName]) return process.workflowFormsData[formName] as FormTemplateISO;
+    // Fallback: match by slugified title or formId
+    for (const [key, tpl] of Object.entries(process.workflowFormsData)) {
+      const candidate = tpl as FormTemplateISO;
+      const cTitle = candidate.formTitle || key;
+      const cSlug = cTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      if (cSlug === formName || candidate.formId === formName || key === formName) {
+        return candidate;
+      }
+    }
+    return null;
+  }, [process?.workflowFormsData, formName]);
 
   const currentShareUrl = (() => {
     if (!initialSubmission) return '';
     const origin = window.location.origin;
-    const token = effectiveEditToken || '';
+    const token = effectiveEditToken || initialSubmission.accessToken || (initialSubmission as any)?.access_token || '';
     const rawTitle = rawFormTemplate?.formTitle || formName || initialSubmission.formId;
     const slug = rawTitle ? rawTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : initialSubmission.formId;
     const tokenParam = token ? `?token=${encodeURIComponent(token)}` : '';
@@ -810,10 +829,13 @@ function FormFillerInner({
     );
   }
 
-  const formTemplate = process.workflowFormsData[formName] as FormTemplateISO;
+  const formTemplate = (process.workflowFormsData[formName] || rawFormTemplate) as FormTemplateISO;
 
   if (submitResult) {
-    const viewUrl = `${window.location.origin}/f/${encodeURIComponent(formName)}/s/${submitResult.id}?token=${submitResult.token}`;
+    const rawTitle = rawFormTemplate?.formTitle || formName;
+    const slug = rawTitle ? rawTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : encodeURIComponent(formName);
+    const viewUrl = `${window.location.origin}/f/${slug}/s/${submitResult.id}?token=${submitResult.token}`;
+    const reportUrl = `${window.location.origin}/f/${slug}/r/${submitResult.id}?token=${submitResult.token}`;
     return (
       <div style={{ maxWidth: '640px', margin: '3rem auto', padding: '0 1rem' }}>
         <div className="paper-card" style={{ padding: '2.5rem 2rem', textAlign: 'center' }}>
@@ -878,9 +900,26 @@ function FormFillerInner({
           </p>
 
           <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <a
+              href={reportUrl}
+              className="btn btn-primary"
+              style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.45rem 1.1rem' }}
+            >
+              <BarChart2 size={15} />
+              <span>Xem Báo cáo Đánh giá</span>
+            </a>
+            <a
+              href={viewUrl}
+              className="btn btn-secondary"
+              style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.45rem 1.1rem' }}
+            >
+              <FileText size={15} />
+              <span>Xem phiếu vừa nộp</span>
+            </a>
             <button
               type="button"
-              className="btn btn-primary"
+              className="btn btn-secondary"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.45rem 1.1rem' }}
               onClick={() => {
                 setSubmitResult(null);
                 if (formTemplate?.formId) {
@@ -888,15 +927,8 @@ function FormFillerInner({
                 }
               }}
             >
-              + Điền phiếu mới
+              <span>+ Điền phiếu mới</span>
             </button>
-            <a
-              href={viewUrl}
-              className="btn btn-secondary"
-              style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
-            >
-              Xem phiếu vừa nộp
-            </a>
           </div>
         </div>
       </div>

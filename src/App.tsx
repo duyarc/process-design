@@ -84,9 +84,30 @@ const MainApp: React.FC = () => {
       const urlParams = new URLSearchParams(window.location.search);
       const token = urlParams.get('token');
       const mode = urlParams.get('mode');
-      if (token) {
+
+      let resolvedToken = token;
+      if (!resolvedToken) {
+        try {
+          const rawHist = localStorage.getItem('submission_history');
+          if (rawHist) {
+            const histObj = JSON.parse(rawHist);
+            for (const list of Object.values(histObj)) {
+              if (Array.isArray(list)) {
+                const match = list.find((item: any) => item.id === subId);
+                if (match?.token) {
+                  resolvedToken = match.token;
+                  break;
+                }
+              }
+            }
+          }
+        } catch (_) {}
+      }
+
+      const jwtToken = localStorage.getItem('jwt_token');
+      if (resolvedToken || jwtToken) {
         setViewerSubmissionId(subId);
-        setViewerToken(token);
+        setViewerToken(resolvedToken || '');
         setViewerEditMode(mode === 'edit');
         setViewerInitialTab(recordType === 'r' ? 'report' : 'form');
         setSelectedFormName('submission');
@@ -106,13 +127,33 @@ const MainApp: React.FC = () => {
         const token = urlParams.get('token');
         const mode = urlParams.get('mode');
 
-        if (!token) {
+        let resolvedToken = token;
+        if (!resolvedToken) {
+          try {
+            const rawHist = localStorage.getItem('submission_history');
+            if (rawHist) {
+              const histObj = JSON.parse(rawHist);
+              for (const list of Object.values(histObj)) {
+                if (Array.isArray(list)) {
+                  const match = list.find((item: any) => item.id === subId);
+                  if (match?.token) {
+                    resolvedToken = match.token;
+                    break;
+                  }
+                }
+              }
+            }
+          } catch (_) {}
+        }
+
+        const jwtToken = localStorage.getItem('jwt_token');
+        if (!resolvedToken && !jwtToken) {
           window.location.replace(`/f/${encodeURIComponent(formName)}`);
           return;
         }
 
         setViewerSubmissionId(subId);
-        setViewerToken(token);
+        setViewerToken(resolvedToken || '');
         setViewerEditMode(mode === 'edit');
         setViewerInitialTab(recordType === 'r' ? 'report' : 'form');
         setSelectedFormName(formName);

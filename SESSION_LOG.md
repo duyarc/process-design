@@ -42,6 +42,30 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-29 — Form Operations: Smart Success Screen & Seamless Direct /r/ Report Routing
+
+**Scope:** 4 files (`src/components/FormFiller.tsx`, `src/App.tsx`, `DESIGN_FORM_OPERATIONS.md`, `SESSION_LOG.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | ~7 min |
+| Thời gian lập plan (Request → Proceed) | ~2 min |
+| Thời gian thực thi (Proceed → Push) | ~5 min |
+| Số file nguồn chỉnh sửa | 2 (`FormFiller.tsx`, `App.tsx`) |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 3 (`tsc --noEmit` 0 lỗi, `npm run build` 8.15s pass) |
+| Lần build đầu thành công? | Có (100% pass ngay lần 1) |
+
+**Kết quả đạt được:**
+- Nâng cấp màn hình nộp thành công (`submitResult`): bổ sung nút Primary `[ 📊 Xem Báo cáo Đánh giá ]` dẫn thẳng vào trang Report, nút Secondary `[ 📋 Xem phiếu vừa nộp ]`, và `[ + Điền phiếu mới ]`, giữ màn hình tối giản không bị rườm rà.
+- Đồng bộ `initialSubmissionTab`: thêm `useEffect` trong `FormFiller.tsx` tự động kích hoạt `submissionTab = 'report'` khi truy cập link có tiền tố `/r/`.
+- Nâng cấp `rawFormTemplate` tra cứu thông minh (slug / formId / formTitle) để dữ liệu báo cáo luôn tải mượt mà.
+- Sửa triệt để routing trong `App.tsx` cho `/f/:formName/[sr]/:subId` và `/([sr])/:subId`: giải quyết token dự phòng (từ URL, `localStorage.submission_history`, hoặc `jwt_token`), loại bỏ lỗi redirect nhầm về form trống khi mở link báo cáo.
+
+**Lỗi gặp:** 0 lỗi.
+
+---
+
 ### 2026-09-29 — Form Operations: Action-Driven Toolbar (Contextual View Switcher & 1-Click Share Button)
 
 **Scope:** 2 files (`src/components/FormFiller.tsx`, `DESIGN_FORM_OPERATIONS.md`)
@@ -272,25 +296,3 @@ Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
 ---
 
-### 2026-09-28 — Report Builder: Tối ưu hiệu năng tải Báo cáo — Parallel Fetch + Skeleton UI
-
-**Scope:** 3 files (`src/components/FormReport.tsx`, `server.cjs`, `DESIGN_REPORT_BUILDER.md`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian tổng (Request → Push) | ~7 min |
-| Thời gian lập plan (Request → Proceed) | ~4 min |
-| Thời gian thực thi (Proceed → Push) | ~3 min |
-| Số file nguồn chỉnh sửa | 2 (`FormReport.tsx`, `server.cjs`) |
-| Lượt edit sửa lỗi (rework) | 1 (xóa dòng trắng thừa sau patch) |
-| Số lần build | 2 (`tsc --noEmit` pass, `npm run build` 18.55s pass) |
-| Lần build đầu thành công? | Có (100% pass) |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Kết quả kiến trúc:**
-- **Authenticated path:** 3 RTT → **2 RTT** (fetch submission → `Promise.all([form, report])`), thông qua endpoint mới `GET /api/reports/view-auth/:submissionId` (JWT Bearer auth, parallel DB query).
-- **Public/token path:** 3 RTT → **2 RTT** (tận dụng `Promise.all` ngay tại client).
-- **UX:** Skeleton paper-card shimmer thay text trắng → progressive disclosure ngay lập tức.
-
----
