@@ -3850,6 +3850,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                       setDragOverBlockId(null);
                                     }}
                                     onDragOver={(e) => {
+                                      if (e.dataTransfer.types.includes('application/x-report-chart-item-reorder')) return;
                                       e.preventDefault();
                                       e.stopPropagation();
                                       e.dataTransfer.dropEffect = e.dataTransfer.types.includes('application/x-report-reorder') ? 'move' : 'copy';
@@ -4189,6 +4190,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                   <div
                                     key={`empty_slot_${slotIdx}`}
                                     onDragOver={(e) => {
+                                      if (e.dataTransfer.types.includes('application/x-report-chart-item-reorder')) return;
                                       e.preventDefault();
                                       e.stopPropagation();
                                       e.dataTransfer.dropEffect = e.dataTransfer.types.includes('application/x-report-reorder') ? 'move' : 'copy';
@@ -4196,6 +4198,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                       if (dragOverIndex !== null) setDragOverIndex(null);
                                     }}
                                     onDrop={(e) => {
+                                      if (e.dataTransfer.types.includes('application/x-report-chart-item-reorder')) return;
                                       e.preventDefault();
                                       e.stopPropagation();
                                       setDragOverBlockId(null);

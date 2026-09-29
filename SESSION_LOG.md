@@ -42,6 +42,28 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-29 — Report Builder: Fix Chart Drag-to-Reorder in INFO_GRID (2+ Charts)
+
+**Scope:** 1 file (`src/components/ReportBuilder.tsx`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | ~4 min |
+| Thời gian lập plan (Request → Proceed) | ~2 min |
+| Thời gian thực thi (Proceed → Push) | ~2 min |
+| Số file nguồn chỉnh sửa | 1 (`ReportBuilder.tsx`) |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 2 (`tsc --noEmit` 0 lỗi, `npm run build` 7.90s pass) |
+| Lần build đầu thành công? | Có (100% pass ngay lần 1) |
+
+**Kết quả đạt được:**
+- Thêm MIME guard `e.dataTransfer.types.includes('application/x-report-chart-item-reorder')` early-return vào 3 handler: field cell `onDragOver`, empty slot `onDragOver`, empty slot `onDrop`.
+- Root cause: field cell và empty slot gọi `preventDefault+stopPropagation` bất điều kiện → chặn chart drag events bubbling lên chart wrapper handlers → cursor hiện `no-drop` khi drag chart qua vùng field/empty slot.
+
+**Lỗi gặp:** 0 lỗi.
+
+---
+
 ### 2026-09-29 — Report Builder: Fix Cross-Block `INFO_GRID` Field Drag-and-Drop & `ruleOverrides` Migration
 
 **Scope:** 2 files (`src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`)
@@ -276,68 +298,6 @@ Entry mới nhất ở trên cùng. Tối đa 10 entries.
   - Áp dụng `<PrintTitleBlock />`, `<PrintSectionHeader />`, bảng ISO Table (STT, Spec, Kết quả thực tế, Đánh giá ĐẠT/K.ĐẠT), và cụm chữ ký chuẩn ISO.
 
 ---
-
-### 2026-09-28 — Report Builder: Chuẩn hóa Render Engine & Kiểu In ấn Khối INFO_GRID cho `PrintReport.tsx`
-
-**Scope:** 3 files (`src/components/print/PrintReport.tsx`, `src/utils/formUtils.ts`, `DESIGN_REPORT_BUILDER.md`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian tổng (Request → Push) | ~13 min |
-| Thời gian lập plan (Request → Proceed) | ~4.7 min |
-| Thời gian thực thi (Proceed → Push) | ~8.2 min |
-| Số file nguồn chỉnh sửa | 2 (`formUtils.ts`, `PrintReport.tsx`) |
-| Lượt edit sửa lỗi (rework) | 1 (khôi phục `operatorText`/`supervisorText` bị ghi đè khi chèn `renderReportField`) |
-| Số lần build | 3 (`tsc --noEmit` pass, `npm run build` 8.53s pass) |
-| Lần build cuối thành công? | Có (100% pass) |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Điểm nổi bật:**
-- **Khắc phục Triệt để Lộ ID & Cờ Logic Thô:**
-  - `field.type === 'select'`: Tự động gọi `formatOptionDisplay(val, field.options)` để ánh xạ mã `OPT_...` thành nhãn tiếng Việt (*Cá*).
-  - `field.type === 'checkbox' | 'radio'`: Render ô kiểm trực quan `[✓]` và `[ ]` (hoặc `(✓)` cho radio) kèm nhãn tiếng Việt, không còn in chuỗi thô `PASS,FAIL`. Hỗ trợ cả `OPTION_C` và `OPTION_A`.
-  - Cơ chế so khớp kép `isOptionSelected(val, opt.value) || isOptionSelected(val, opt.label)` đảm bảo tương thích mọi kiểu lưu trữ.
-- **Tái cấu trúc Bố cục In ấn Trang nhã:**
-  - Loại bỏ hoàn toàn `justify-content: space-between` kéo dãn nhãn và giá trị về 2 mép giấy.
-  - Sử dụng khoảng cách tự nhiên (`gap: 8px`) và gạch chân chấm mờ chân chữ, đồng bộ 100% phong cách với `PrintFilledForm` và `PrintScoring`.
-  - Hỗ trợ đầy đủ `colSpan` và `rowSpan` trong CSS Grid.
-
----
-
-### 2026-09-28 — Report Builder: Chuẩn hóa `PrintReport.tsx` Tái sử dụng Tài nguyên In Dùng chung (`printShared.tsx`)
-
-**Scope:** 4 files (`src/components/print/PrintReport.tsx`, `src/components/print/printShared.tsx`, `DESIGN_REPORT_BUILDER.md`, `AGENTS.md`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian tổng (Request → Push) | ~8 min |
-| Thời gian lập plan (Request → Proceed) | ~2 min |
-| Thời gian thực thi (Proceed → Push) | ~6 min |
-| Số file nguồn chỉnh sửa | 2 (`PrintReport.tsx`, `printShared.tsx`) |
-| Tổng lượt edit source | 5 |
-| Lượt edit sửa lỗi (rework) | 1 (`ReportBlockConfig` type union in `printShared.tsx`) |
-| Số lần build | 3 (`tsc --noEmit` pass, `tsc -b` pass, `vite build` 9.09s pass) |
-| Lần build cuối thành công? | Có (100% pass) |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Điểm nổi bật:**
-- **Triệt tiêu Trùng lặp & Chuẩn hóa In ấn Toàn diện:** Đồng bộ `PrintReport.tsx` theo chuẩn kiến trúc của `PrintBlankForm`, `PrintFilledForm` và `PrintScoring`.
-- **Áp dụng `printShared.tsx` Primitives:**
-  - Thay thế 30 dòng tự quản lý state & fetch logo Cloudflare R2 bằng hook `usePrintLogo(titleBlock?.logo)`.
-  - Thay thế 53 dòng CSS inline `@media print` bằng component chuẩn `<PrintDocumentStyles isA5={isA5} />`.
-  - Thay thế khối render `TITLE` thủ công (66 dòng) bằng `<PrintTitleBlock />`, hỗ trợ hiển thị ngày nộp bản ghi linh hoạt.
-  - Tái sử dụng `<PrintSectionHeader />` cho tiêu đề `SECTION_LABEL`, `INFO_GRID` và `TABLE`, giải quyết triệt để các đoạn switch-case rườm rà.
-  - Thay thế chân trang tĩnh bằng `<PrintPageFooter />` chuẩn ISO.
-- **Mở rộng Type Contract `printShared.tsx`:** Cho phép `PrintTitleBlock` và `PrintSectionHeader` nhận cả `LayoutBlockISO` và `ReportBlockConfig`, loại bỏ ép kiểu cưỡng bức.
-- **Kỷ luật Module Ownership (`AGENTS.md`):** Đăng ký chính thức các component của phân hệ Report Builder (`ReportBuilder.tsx`, `FormReport.tsx`, `PrintReport.tsx`, `PrintScoring.tsx`) thay thế cho `*(Components TBD)*`.
-
----
-
-
-
-
 
 
 
