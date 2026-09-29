@@ -42,6 +42,27 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-29 — Report Builder: Canvas Drag-to-Reorder Layout Blocks & Cross-Block Field Dragging
+
+**Scope:** 2 files (`src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | ~15 min |
+| Thời gian lập plan (Request → Proceed) | ~8 min |
+| Thời gian thực thi (Proceed → Push) | ~7 min |
+| Số file nguồn chỉnh sửa | 1 (`ReportBuilder.tsx`) |
+| Lượt edit sửa lỗi (rework) | 1 (khắc phục indentation 42-spaces qua python script chuẩn) |
+| Số lần build | 3 (`tsc --noEmit` 0 lỗi 2 lần, `npm run build` 18.77s pass) |
+| Lần build đầu thành công? | Có (100% pass ngay lần 1) |
+
+**Kết quả đạt được:**
+- Kéo thả handle GripVertical trên canvas tab Report để đổi thứ tự các khối với dynamic drop zones và indicator lines sáng nổi bật (`var(--primary)`).
+- Kéo thả field giữa các khối khác nhau (`moveFieldBetweenBlocks`): trường được chuyển nguyên tử từ khối nguồn sang khối đích tại vị trí chỉ định.
+- Hỗ trợ drop vào ô cụ thể lẫn drop vào container khối chung.
+
+---
+
 ### 2026-09-28 — Report Builder: Zero-Latency Report Tab — Props Bypass + Background Pre-fetch
 
 **Scope:** 3 files (`src/components/FormReport.tsx`, `src/components/FormFiller.tsx`, `DESIGN_REPORT_BUILDER.md`)

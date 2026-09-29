@@ -69,7 +69,8 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   ChevronsUpDown,
-  ChevronsDownUp
+  ChevronsDownUp,
+  GripVertical
 } from 'lucide-react';
 
 interface ToggleSwitchProps {
@@ -714,6 +715,8 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
     blockId: string;
     index: number;
   } | null>(null);
+  const [blockDragFromIndex, setBlockDragFromIndex] = useState<number | null>(null);
+  const [blockDragOverIndex, setBlockDragOverIndex] = useState<number | null>(null);
 
   const getFieldUsageCount = (fieldId: string): number => {
     return template.layoutBlocks.reduce((acc, b) => acc + ((b.boundFieldIds || []).includes(fieldId) ? 1 : 0), 0);
@@ -991,6 +994,69 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
     blocks[index] = blocks[targetIdx];
     blocks[targetIdx] = temp;
     setTemplate(prev => ({ ...prev, layoutBlocks: blocks }));
+  };
+
+  const handleBlockReorderDrop = (fromIndex: number, targetIndex: number) => {
+    if (fromIndex === targetIndex) return;
+    const blocks = [...template.layoutBlocks];
+    if (fromIndex < 0 || fromIndex >= blocks.length) return;
+    const [moved] = blocks.splice(fromIndex, 1);
+    const adjustedTarget = targetIndex > fromIndex ? targetIndex - 1 : targetIndex;
+    const safeTarget = Math.max(0, Math.min(blocks.length, adjustedTarget));
+    blocks.splice(safeTarget, 0, moved);
+    setTemplate(prev => ({ ...prev, layoutBlocks: blocks }));
+    setBlockDragFromIndex(null);
+    setBlockDragOverIndex(null);
+  };
+
+  const renderBlockDropZone = (targetIndex: number) => {
+    if (blockDragFromIndex === null) return null;
+    const isOver = blockDragOverIndex === targetIndex;
+    return (
+      <div
+        key={`dropzone_${targetIndex}`}
+        onDragOver={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          e.dataTransfer.dropEffect = 'move';
+          if (blockDragOverIndex !== targetIndex) setBlockDragOverIndex(targetIndex);
+        }}
+        onDragLeave={() => {
+          if (blockDragOverIndex === targetIndex) setBlockDragOverIndex(null);
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const blockReorderRaw = e.dataTransfer.getData('application/x-report-block-reorder');
+          if (blockReorderRaw) {
+            try {
+              const bData = JSON.parse(blockReorderRaw);
+              handleBlockReorderDrop(bData.fromIndex, targetIndex);
+            } catch {}
+          }
+        }}
+        style={{
+          height: isOver ? '16px' : '8px',
+          margin: '-4px 0',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          transition: 'all 0.15s ease',
+          zIndex: 10,
+          position: 'relative'
+        }}
+      >
+        <div
+          style={{
+            width: '100%',
+            height: isOver ? '3px' : '2px',
+            background: isOver ? 'var(--primary)' : 'rgba(13, 148, 136, 0.25)',
+            borderRadius: '2px',
+            boxShadow: isOver ? '0 0 6px rgba(13, 148, 136, 0.4)' : 'none'
+          }}
+        />
+      </div>
+    );
   };
 
   const handleDeleteBlock = (blockId: string) => {
@@ -1353,6 +1419,37 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
         b.id === blockId ? { ...b, boundFieldIds: (b.boundFieldIds || []).filter(id => id !== fieldId) } : b
       )
     }));
+  };
+
+  const moveFieldBetweenBlocks = (fromBlockId: string, toBlockId: string, fieldId: string, targetIndex?: number) => {
+    if (fromBlockId === toBlockId) return;
+    setTemplate(prev => {
+      const blocks = prev.layoutBlocks.map(b => {
+        if (b.id === fromBlockId) {
+          return {
+            ...b,
+            boundFieldIds: (b.boundFieldIds || []).filter(id => id !== fieldId)
+          };
+        }
+        if (b.id === toBlockId) {
+          const current = (b.boundFieldIds || []).filter(id => id !== fieldId);
+          if (targetIndex === undefined || targetIndex < 0 || targetIndex >= current.length) {
+            return {
+              ...b,
+              boundFieldIds: [...current, fieldId]
+            };
+          }
+          const next = [...current];
+          next.splice(targetIndex, 0, fieldId);
+          return {
+            ...b,
+            boundFieldIds: next
+          };
+        }
+        return b;
+      });
+      return { ...prev, layoutBlocks: blocks };
+    });
   };
 
   const reorderFieldInBlock = (blockId: string, fromIndex: number, toIndex: number) => {
@@ -3229,8 +3326,10 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                 const isDragOverThis = dragOverBlockId === block.id;
 
                 return (
-                  <div
-                    key={block.id}
+                  <React.Fragment key={block.id}>
+                    {idx === 0 && renderBlockDropZone(0)}
+                    <div
+                      key={block.id}
                     onClick={(e) => {
                       e.stopPropagation();
                       setActiveBlockId(block.id);
@@ -3239,6 +3338,14 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                       setRightTab('properties');
                     }}
                     onDragOver={(e) => {
+                      if (e.dataTransfer.types.includes('application/x-report-block-reorder')) {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = 'move';
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        const targetIdx = e.clientY < (rect.top + rect.height / 2) ? idx : idx + 1;
+                        if (blockDragOverIndex !== targetIdx) setBlockDragOverIndex(targetIdx);
+                        return;
+                      }
                       if (isDroppable) {
                         e.preventDefault();
                         e.dataTransfer.dropEffect = 'copy';
@@ -3254,6 +3361,17 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                       }
                     }}
                     onDrop={(e) => {
+                      const blockReorderRaw = e.dataTransfer.getData('application/x-report-block-reorder');
+                      if (blockReorderRaw) {
+                        e.preventDefault();
+                        try {
+                          const bData = JSON.parse(blockReorderRaw);
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          const targetIdx = e.clientY < (rect.top + rect.height / 2) ? idx : idx + 1;
+                          handleBlockReorderDrop(bData.fromIndex, targetIdx);
+                        } catch {}
+                        return;
+                      }
                       if (isDroppable) {
                         e.preventDefault();
                         setDragOverBlockId(null);
@@ -3265,6 +3383,15 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                         }
                         const reorderRaw = e.dataTransfer.getData('application/x-report-reorder');
                         if (reorderRaw) {
+                          try {
+                            const rData = JSON.parse(reorderRaw);
+                            if (rData.blockId !== block.id) {
+                              moveFieldBetweenBlocks(rData.blockId, block.id, rData.fieldId);
+                              setActiveBlockId(block.id);
+                            }
+                          } catch (err) {
+                            console.error(err);
+                          }
                           setReorderDrag(null);
                           setDragOverIndex(null);
                           return;
@@ -3303,9 +3430,49 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                         : isActive
                         ? 'rgba(16, 163, 163, 0.02)'
                         : '#ffffff',
-                      transition: 'all 0.15s ease'
+                      transition: 'all 0.15s ease',
+                      opacity: blockDragFromIndex === idx ? 0.35 : 1
                     }}
                   >
+                    {/* Block Drag Handle (Canvas Drag-to-Reorder) */}
+                    {activeCanvasTab === 'report' && (
+                      <div
+                        draggable={true}
+                        onDragStart={(e) => {
+                          e.stopPropagation();
+                          e.dataTransfer.setData('application/x-report-block-reorder', JSON.stringify({ blockId: block.id, fromIndex: idx }));
+                          e.dataTransfer.effectAllowed = 'move';
+                          setBlockDragFromIndex(idx);
+                        }}
+                        onDragEnd={() => {
+                          setBlockDragFromIndex(null);
+                          setBlockDragOverIndex(null);
+                        }}
+                        style={{
+                          position: 'absolute',
+                          top: '-10px',
+                          left: '10px',
+                          background: '#ffffff',
+                          border: '1px solid var(--neutral-border)',
+                          borderRadius: '4px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '2px',
+                          padding: '1px 5px',
+                          cursor: 'grab',
+                          color: '#64748b',
+                          fontSize: '0.65rem',
+                          fontWeight: 600,
+                          zIndex: 5,
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.06)'
+                        }}
+                        title="Kéo thả để sắp xếp lại vị trí khối"
+                      >
+                        <GripVertical size={11} />
+                        <span>#{idx + 1}</span>
+                      </div>
+                    )}
+
                     {/* Floating Block Type Label Badge (Step 1 Layout Block Shell) */}
                     <div
                       style={{
@@ -3328,6 +3495,23 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                     {/* Block Toolbar */}
                     {isActive && (
                       <div style={{ position: 'absolute', right: '4px', top: '-14px', background: '#ffffff', border: '1px solid var(--neutral-border)', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '2px', padding: '2px', zIndex: 5, boxShadow: '0 2px 4px rgba(0,0,0,0.08)' }}>
+                        <div
+                          draggable={true}
+                          onDragStart={(e) => {
+                            e.stopPropagation();
+                            e.dataTransfer.setData('application/x-report-block-reorder', JSON.stringify({ blockId: block.id, fromIndex: idx }));
+                            e.dataTransfer.effectAllowed = 'move';
+                            setBlockDragFromIndex(idx);
+                          }}
+                          onDragEnd={() => {
+                            setBlockDragFromIndex(null);
+                            setBlockDragOverIndex(null);
+                          }}
+                          style={{ cursor: 'grab', padding: '2px 4px', color: '#64748b', display: 'flex', alignItems: 'center' }}
+                          title="Kéo thả để di chuyển khối"
+                        >
+                          <GripVertical size={12} />
+                        </div>
                         <button onClick={(e) => { e.stopPropagation(); handleMoveBlock(idx, 'up'); }} disabled={idx === 0} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: '2px 4px', color: '#64748b' }}>
                           <ArrowUp size={12} />
                         </button>
@@ -3524,7 +3708,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                           if (data.blockId === block.id) {
                                             reorderFieldInBlock(block.id, data.fromIndex, fIdx);
                                           } else {
-                                            addFieldToBlock(block.id, data.fieldId, fIdx);
+                                            moveFieldBetweenBlocks(data.blockId, block.id, data.fieldId, fIdx);
                                           }
                                         } catch (err) {
                                           console.error(err);
@@ -3885,7 +4069,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                             if (data.blockId === block.id) {
                                               reorderFieldInBlock(block.id, data.fromIndex, rIdx);
                                             } else {
-                                              addFieldToBlock(block.id, data.fieldId, rIdx);
+                                              moveFieldBetweenBlocks(data.blockId, block.id, data.fieldId, rIdx);
                                             }
                                           } catch (err) {
                                             console.error(err);
@@ -4024,7 +4208,9 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                         </div>
                       </div>
                     )}
-                  </div>
+                    </div>
+                    {renderBlockDropZone(idx + 1)}
+                  </React.Fragment>
                 );
               })
             )}
@@ -5279,7 +5465,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                       if (data.blockId === activeBlock.id) {
                                         reorderFieldInBlock(activeBlock.id, data.fromIndex, fIdx);
                                       } else {
-                                        addFieldToBlock(activeBlock.id, data.fieldId, fIdx);
+                                        moveFieldBetweenBlocks(data.blockId, activeBlock.id, data.fieldId, fIdx);
                                       }
                                     } catch (err) {
                                       console.error(err);
@@ -5378,6 +5564,18 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                         }}
                         onDrop={(e) => {
                           e.preventDefault();
+                          const reorderRaw = e.dataTransfer.getData('application/x-report-reorder');
+                          if (reorderRaw) {
+                            try {
+                              const rData = JSON.parse(reorderRaw);
+                              if (rData.blockId !== activeBlock.id) {
+                                moveFieldBetweenBlocks(rData.blockId, activeBlock.id, rData.fieldId);
+                              }
+                            } catch {}
+                            setReorderDrag(null);
+                            setDragOverIndex(null);
+                            return;
+                          }
                           const groupFieldsRaw = e.dataTransfer.getData('application/x-report-group-fields');
                           if (groupFieldsRaw) {
                             try {
