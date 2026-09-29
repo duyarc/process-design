@@ -929,6 +929,20 @@ function FormFillerInner({
             >
               <span>+ Điền phiếu mới</span>
             </button>
+            {!isPublicGuestMode && onBack && (
+              <button
+                type="button"
+                className="btn btn-secondary"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.45rem 1.1rem' }}
+                onClick={() => {
+                  setSubmitResult(null);
+                  onBack();
+                }}
+              >
+                <ArrowLeft size={15} />
+                <span>Về Quản lý</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -1350,17 +1364,18 @@ function FormFillerInner({
         setSignInputs({});
         setSignOpen({});
 
-        if (returnedAccessToken && isPublicGuestMode && !isEditOperation) {
-          setSubmitResult({ id: finalId, token: returnedAccessToken });
+        if (!isEditOperation) {
+          // Unified Smart Success Screen for ALL users (Guest + Admin)
+          setSubmitResult({ id: finalId, token: returnedAccessToken || '' });
         } else {
-          const successMsg = isEditOperation ? `Đã cập nhật phiếu thành công! (Mã: ${finalId})` : `Đã gửi phiếu thành công! (Mã: ${finalId})`;
+          const successMsg = `Đã cập nhật phiếu thành công! (Mã: ${finalId})`;
           setLocalToast({ message: successMsg, id: finalId, type: 'success' });
 
           if (onSubmitSuccessWithToken && returnedAccessToken) {
             onSubmitSuccessWithToken(finalId, returnedAccessToken);
           } else if (onSubmitSuccess) {
             onSubmitSuccess(finalId);
-          } else if (onBack && !isPublicGuestMode) {
+          } else if (onBack) {
             onBack();
           }
         }

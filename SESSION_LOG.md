@@ -42,6 +42,27 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-29 — Fix: Unified Post-Submit Smart Success Screen for Admin + Guest
+
+**Scope:** 2 files (`src/components/FormFiller.tsx`, `DESIGN_FORM_OPERATIONS.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa | 1 (`FormFiller.tsx`) |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 2 (`tsc --noEmit` 0 lỗi, `npm run build` 8.47s pass) |
+| Lần build đầu thành công? | Có (100% pass ngay lần 1) |
+
+**Kết quả đạt được:**
+- Sửa lỗi: Admin nộp form xong bị chuyển đột ngột sang `FormManager` rồi treo loading.
+- Root cause: Guard `isPublicGuestMode` tại `FormFiller.tsx` dòng 1353 chặn Admin không cho thấy `submitResult` screen.
+- Fix: Thay guard thành `!isEditOperation` để mọi user (Admin + Guest) đều thấy Smart Success Screen.
+- Thêm nút `[ ⬅ Về Quản lý ]` chỉ hiển thị cho user nội bộ có `onBack`.
+
+**Lỗi gặp:** 0 lỗi.
+
+---
+
 ### 2026-09-29 — Form Operations: Smart Success Screen & Seamless Direct /r/ Report Routing
 
 **Scope:** 4 files (`src/components/FormFiller.tsx`, `src/App.tsx`, `DESIGN_FORM_OPERATIONS.md`, `SESSION_LOG.md`)
