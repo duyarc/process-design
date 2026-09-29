@@ -42,6 +42,28 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-29 — Report Builder: Fix Cross-Block `INFO_GRID` Field Drag-and-Drop & `ruleOverrides` Migration
+
+**Scope:** 2 files (`src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | ~8 min |
+| Thời gian lập plan (Request → Proceed) | ~4 min |
+| Thời gian thực thi (Proceed → Push) | ~4 min |
+| Số file nguồn chỉnh sửa | 1 (`ReportBuilder.tsx`) |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 1 (`tsc --noEmit && npm run build` 7.92s pass) |
+| Lần build đầu thành công? | Có (100% pass ngay lần 1) |
+
+**Kết quả đạt được:**
+- Bổ sung nhánh `application/x-report-reorder` với `dropEffect = 'move'` trong `onDragOver` của block container để đồng bộ với `effectAllowed = 'move'` của ô `INFO_GRID` (giữ nguyên `dropEffect = 'copy'` cho thao tác kéo từ Left Sidebar).
+- Bổ sung `onDragOver` và `onDrop` trực tiếp trên các ô trống `+ Thả vào đây` của `INFO_GRID`, hỗ trợ đầy đủ di chuyển trường liên khối (`moveFieldBetweenBlocks`), chuyển xuống cuối cùng khối (`reorderFieldInBlock`), gán nhóm trường (`addMultipleFieldsToBlock`), và gán trường đơn lẻ (`addFieldToBlock`).
+- Bật `setIsDraggingField(true)` tại `onDragStart` của ô `INFO_GRID` (và reset tại `onDragEnd`) để các khối `INFO_GRID` đích đã đầy tự động hiển thị thêm 1 ô nhận `+ Thả vào đây` khi đang kéo trường trên Canvas.
+- Nâng cấp `moveFieldBetweenBlocks` tự động di chuyển cấu hình `ruleOverrides[fieldId]` (nhãn tùy chỉnh, ẩn nhãn, quy tắc chấm điểm) từ khối nguồn sang khối đích.
+
+---
+
 ### 2026-09-29 — Report Builder: Option 3 Stacked Label Layout, Badge Tags (Cách C) & DATA PRUNING Controls
 
 **Scope:** 4 files (`src/types.ts`, `src/components/print/printShared.tsx`, `src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`)
@@ -310,280 +332,6 @@ Entry mới nhất ở trên cùng. Tối đa 10 entries.
   - Thay thế chân trang tĩnh bằng `<PrintPageFooter />` chuẩn ISO.
 - **Mở rộng Type Contract `printShared.tsx`:** Cho phép `PrintTitleBlock` và `PrintSectionHeader` nhận cả `LayoutBlockISO` và `ReportBlockConfig`, loại bỏ ép kiểu cưỡng bức.
 - **Kỷ luật Module Ownership (`AGENTS.md`):** Đăng ký chính thức các component của phân hệ Report Builder (`ReportBuilder.tsx`, `FormReport.tsx`, `PrintReport.tsx`, `PrintScoring.tsx`) thay thế cho `*(Components TBD)*`.
-
----
-
-### 2026-09-28 — Form Operations & Report Builder: Tinh gọn Thanh Công cụ Xem Bản nộp (`FormFiller`), Bổ sung Segmented Pill Tab `[ Form | Report ]`, Tích hợp Hộp Chia sẻ Link Động và Embedded FormReport
-
-**Scope:** 8 files (`server.cjs`, `src/App.tsx`, `src/components/Dashboard.tsx`, `src/components/FormFiller.tsx`, `src/components/FormManager.tsx`, `src/components/FormReport.tsx`, `src/components/SubmissionManager.tsx`, `src/components/SubmissionViewer.tsx`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian tổng (Request → Push) | ~45 min |
-| Thời gian lập plan (Request → Proceed) | ~11 min |
-| Thời gian thực thi (Proceed → Push) | ~34 min |
-| Số file nguồn chỉnh sửa | 8 |
-| Tổng lượt edit source | 16 |
-| Lượt edit sửa lỗi (rework) | 2 (`FormFiller.tsx` hoisting & `FormManager.tsx` call-site pruning) |
-| Số lần build | 3 (`tsc --noEmit` pass, `tsc -b` pass, `vite build` 8.10s pass) |
-| Lần build cuối thành công? | Có (100% pass) |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Điểm nổi bật:**
-- **Tinh gọn Thanh Công cụ Submission View Toolbar (`FormFiller.tsx`):** Loại bỏ hoàn toàn các thành phần dư thừa gây chật chội (`[ ABNORMALITY ]` badge, tên người nộp `• NGUYỄN VĂ...`, nút `[📋 Sao chép]`, rút gọn chữ `Quay lại` thành `[←] ID`, chữ `In bản khai` thành `[🖨 In]`). Giữ nguyên Pill Button Focus Mode (`Focus mode [ ●]`) trên tab Form.
-- **Segmented Pill Tab `[ Form | Report ]`:** Tái hiện chuẩn mực giao diện từ `ReportBuilder.tsx` (nền `#f0fdfa`, viền `#99f6e4`, nút trắng active nổi bật kèm chữ teal đậm).
-- **Hộp Chia sẻ Link Trực quan (Zero-Modal Sharing):** Triệt tiêu modal popup chia sẻ rườm rà. Tích hợp trực tiếp hộp input kèm nút `Sao chép` trên toolbar: khi ở tab Form, tự động sinh và sao chép link Form Submission (`/f/:slug/s/:subId?token=...`); khi ở tab Report, tự động sinh và sao chép link Report (`/f/:slug/r/:subId?token=...`).
-- **Nút Thao tác Thống nhất `[✏️ Chỉnh sửa]`:** Hiển thị đồng nhất trên cả 2 tab: ở tab Form chuyển sang chế độ inline edit bản nộp; ở tab Report điều hướng trực tiếp sang Report Builder để tinh chỉnh mẫu báo cáo.
-- **Embedded Report Canvas (`FormReport.tsx`):** Bổ sung chế độ `isEmbedded`, loại bỏ fixed outer header 56px và padding ngoài, render trực tiếp nội dung canvas báo cáo lồng trong view bản nộp.
-- **Đồng bộ Định tuyến & Quyền Guest Token (`server.cjs`, `App.tsx`, `SubmissionViewer.tsx`):** Hỗ trợ đầy đủ routing `/f/:slug/[sr]/:subId` và `/[sr]/:subId`, bổ sung endpoint `GET /api/reports/view/:submissionId` trả về trọn bộ submission + formTemplate + reportTemplate cho khách xem bằng token không cần đăng nhập.
-
----
-
-### 2026-09-28 — Report Builder: Tinh gọn Bản In Chấm điểm (`PrintScoring`), Kế thừa Layout Minimal của `PrintBlankForm` & Tách Module In Dùng chung (`printShared`, `formUtils`)
-
-**Scope:** 7 files (`src/utils/formUtils.ts`, `src/components/print/printShared.tsx`, `src/components/print/PrintBlankForm.tsx`, `src/components/print/PrintFilledForm.tsx`, `src/components/print/PrintScoring.tsx`, `src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`, `SESSION_LOG.md`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian tổng (Request → Push) | ~11.5 min |
-| Thời gian lập plan (Request → Proceed) | ~2.5 min |
-| Thời gian thực thi (Proceed → Push) | ~9.0 min |
-| Số file nguồn chỉnh sửa | 6 (`formUtils.ts`, `printShared.tsx`, `PrintBlankForm.tsx`, `PrintFilledForm.tsx`, `PrintScoring.tsx`, `ReportBuilder.tsx`) |
-| Tổng lượt edit source | 12 |
-| Lượt edit sửa lỗi (rework) | 2 (bổ sung import types `TableColumnConfig`) |
-| Số lần build | 2 (`tsc --noEmit` + `npm run build` 19.24s pass) |
-| Lần build cuối thành công? | Có |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Điểm nổi bật:**
-- **Tái cấu trúc Module In Dùng chung (`printShared.tsx` & `formUtils.ts` — Rule 4.1):** Trích xuất pure helpers `getChecklistColumns` và `groupTableRowsForPrint` sang `src/utils/formUtils.ts`, tạo module dùng chung `src/components/print/printShared.tsx` (`usePrintLogo`, `PrintDocumentStyles`, `PrintTitleBlock`, `PrintSectionHeader`, `PrintPageFooter`) tái sử dụng đồng bộ trên cả 3 component in (`PrintBlankForm`, `PrintFilledForm`, `PrintScoring`).
-- **Giao diện In Đặc tả Siêu Tinh gọn (`PrintScoring.tsx` — đồng bộ 100% với `PrintBlankForm`):**
-  - Xóa bỏ toàn bộ khung banner rườm rà và hộp khung viền chú giải công thức đầu trang.
-  - Khối `INFO_GRID` không còn khung viền xám bao ngoài, không vạch chia ô, không lặp lại thanh tiêu đề `"Thông tin chung"`, giữ nguyên dòng chấm `...... 5đ` và ô chọn `☐` / `○`.
-  - Khối `TABLE` bảo toàn 100% kiểu đường viền gốc (`borderless` 3 cột Likert scale `○ 5đ` / `○ 3đ` / `○ 1đ`, cột Sao `☆ ☆ ☆ ☆ ☆`, cột Checkbox `☐ Option (+1đ)`).
-  - Toàn bộ trọng số được thể hiện bằng nhãn monospace thanh mảnh `[X% / Parent]` neo gọn ở góc trên bên phải của từng khối/ô.
-- **Triệt tiêu Mã Chết (`PrintFormScoringSpec.tsx` — Rule 4.2):** Xóa bỏ hoàn toàn file cũ `PrintFormScoringSpec.tsx`, chuyển đổi toàn bộ call-sites trong `ReportBuilder.tsx` sang `PrintScoring.tsx`.
-
----
-
-### 2026-09-28 — Report Builder: Chuẩn hóa Ký hiệu Trọng số Đa ngôn ngữ (`Option D: / & ⊞`), Gắn Trọng số Góc Trên-Phải & Tạm lược bỏ `isPass` trên Bản In `tab Form` (`reportScoring`, `PrintFormScoringSpec`)
-
-**Scope:** 4 files (`src/utils/reportScoring.ts`, `src/components/print/PrintFormScoringSpec.tsx`, `DESIGN_REPORT_BUILDER.md`, `SESSION_LOG.md`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian tổng (Request → Push) | ~6.5 min |
-| Thời gian lập plan (Request → Proceed) | ~2.5 min |
-| Thời gian thực thi (Proceed → Push) | ~4.0 min |
-| Số file nguồn chỉnh sửa | 2 (`reportScoring.ts`, `PrintFormScoringSpec.tsx`) |
-| Tổng lượt edit source | 8 |
-| Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 2 (`tsc --noEmit` + `npm run build` 9.22s pass) |
-| Lần build cuối thành công? | Có (100% pass ngay lần đầu) |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Điểm nổi bật:**
-- **Chuẩn hóa Ký hiệu Trọng số Đa ngôn ngữ (`Option D` — `/` & `⊞`):** Thay thế giới từ tiếng Anh `"of"` bằng ký hiệu toán học `"/"` và thay thế chữ tiếng Việt `"Bảng"` bằng ký hiệu bảng quốc tế `"⊞"` trong `WeightBadgeSpec` (`src/utils/reportScoring.ts`) và `renderWeightBadge` (`src/components/print/PrintFormScoringSpec.tsx`), tạo thành bộ ký hiệu `[35% / Form]`, `[50% / H1]`, `[100% / H2]`, `[17% / ⊞]` dùng chung tự nhiên cho cả tiếng Việt lẫn tiếng Anh.
-- **Định vị Trọng số tại Góc Trên-Phải của Mọi Khối Giao diện:** Chuyển toàn bộ huy hiệu trọng số của `H1`, `H2`, header khối `INFO_GRID`, từng ô trường `INFO_GRID`, header khối `TABLE` và từng ô dữ liệu `TABLE` về góc trên bên phải (`display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between'`), tạo trục thị giác đồng nhất để rà soát nhanh tổng `100%`.
-- **Tạm lược bỏ `isPass` để Giữ Bản In Tinh gọn:** Lược bỏ phân biệt màu sắc/biểu tượng `◉` vs `○` (`isPass`) và dòng `ruleSummary` ngưỡng Đạt trong `renderInlineFieldAnswerKey` cũng như trên thanh chú giải đầu trang; hiển thị đồng nhất mọi phương án lựa chọn/thang đo kèm điểm số (`• {label} · {scoreText}`, `[{label}: {scoreText}]`).
-
----
-
-### 2026-09-28 — Report Builder: Bản In Đặc tả Công thức, Trọng số & Quy luật Chấm điểm từ `tab Form` (`Biến thể 2A` + `Option 1 [X% of Parent]`) (`reportScoring`, `PrintFormScoringSpec`, `ReportBuilder`)
-
-**Scope:** 5 files (`src/utils/reportScoring.ts`, `src/components/print/PrintFormScoringSpec.tsx`, `src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`, `SESSION_LOG.md`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian tổng (Request → Push) | ~9.5 min |
-| Thời gian lập plan (Request → Proceed) | ~2.0 min |
-| Thời gian thực thi (Proceed → Push) | ~7.5 min |
-| Số file nguồn chỉnh sửa | 3 (`reportScoring.ts`, `PrintFormScoringSpec.tsx`, `ReportBuilder.tsx`) |
-| Tổng lượt edit source | 7 |
-| Lượt edit sửa lỗi (rework) | 3 (đồng bộ tên trường `ReportFieldRuleOverride` & `TableRowConfig`) |
-| Số lần build | 3 (`tsc --noEmit` + `npm run build` 13.60s pass) |
-| Lần build cuối thành công? | Có |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Điểm nổi bật:**
-- **Pure Utility `buildFormScoringBlueprintMap` (`src/utils/reportScoring.ts` — Rule 4.1):** Tính toán toàn bộ trọng số 4 tầng kèm nhãn tham chiếu cấp cha động (`[35% of Form]`, `[50% of H1]`, `[100% of H2]`, `[40%• of Bảng]` — tự động thích ứng khi biểu mẫu khuyết `H1` hoặc khuyết `H2`) và chuẩn hóa dữ liệu đáp án `InlineAnswerKeySpec` cho mọi kiểu trường (`radio`, `select`, `likert_scale`, `rating`, `checkbox`, `number`, `text`).
-- **Component In Đặc tả Độc lập `PrintFormScoringSpec.tsx` (`src/components/print/PrintFormScoringSpec.tsx` — Rule 4.3 Monolith Guard):** Kết xuất trực tiếp trên nền bố cục Biểu mẫu gốc (`Biến thể 2A: Inline Answer-Key`) kèm thanh công thức 2 dòng, ký hiệu `◉ Đậm · Điểm` (ĐẠT) / `○ Mờ · Điểm` (TRƯỢT), huy hiệu `[KO]`, hỗ trợ cả `Ctrl+P` và xuất file PDF vector (`exportFillablePdfFromDOM`).
-- **Điều hướng In ấn Thông minh theo Ngữ cảnh Tab (`ReportBuilder.tsx`):** Khi đang ở `tab Form` bấm `Print` / `PDF` sẽ mở `<PrintFormScoringSpec />`; khi đang ở `tab Report` bấm `Print` / `PDF` sẽ mở `<PrintReport />`.
-
----
-
-### 2026-09-28 — Report Builder: Tối giản Cây `FIELDS` Sidebar Trái (`Option A` Cấp Nhóm + `Option B` Cấp Trường) & Gán Nhóm bằng Kéo-Thả (`ReportBuilder`)
-
-**Scope:** 3 files (`src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`, `SESSION_LOG.md`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian tổng (Request → Push) | ~7.0 min |
-| Thời gian lập plan (Request → Proceed) | ~4.5 min |
-| Thời gian thực thi (Proceed → Push) | ~2.5 min |
-| Số file nguồn chỉnh sửa | 1 (`ReportBuilder.tsx`) |
-| Tổng lượt edit source | 1 |
-| Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 1 (`tsc --noEmit` + `npm run build` 13.58s pass) |
-| Lần build cuối thành công? | Có (100% pass ngay lần đầu) |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Điểm nổi bật:**
-- **Tối giản cấp Nhóm (`Option A` — giải phóng `68px`–`98px` chiều ngang):** Loại bỏ icon `<Layers />` và nút `[+ Gán cả H1]` (`82px`) ở cấp `H1`; loại bỏ icon `<Folder />` / `<FolderOpen />` (cùng import dư thừa trong `lucide-react`) và nút `[+ Cả H2]` (`60px`) ở cấp `H2`; loại bỏ badge chữ `[TABLE]` trùng lặp (`45px`) và nút `[+ Bảng]` (`52px`) ở cấp `Element`; thay thế dấu ngoặc đơn `(count)` bằng số đếm `tabular-nums` gọn sát lề phải.
-- **Tối giản cấp Trường đơn lẻ (`Option B` — giải phóng `65px`–`85px` chiều ngang):** Thay thế chấm kéo `⠿` ở đầu dòng và nhãn chữ kiểu dữ liệu rộng ở cuối dòng (`[CHECKBOX]` `64px`, `[DROPDOWN]` `66px`, `[TEXT]` `38px`) bằng icon kiểu dữ liệu màu ngữ nghĩa `13px` (`<TypeIcon />` từ `getFieldTypeOption` + `badgeStyle.color`) ở đầu dòng kết hợp badge tần suất `x{usageCount}` (`tabular-nums`) gọn sát lề phải.
-- **Bảo toàn 100% tính năng gán cả nhóm trường bằng Kéo-Thả (`application/x-report-group-fields`):** Tích hợp payload `application/x-report-group-fields` (`fieldIds`) kèm trạng thái `setIsDraggingField(true)` trên cả 3 cấp `H1`, `H2`, `Element`, cho phép kéo-thả trực tiếp bất kỳ mục/bảng nào vào khối `INFO_GRID` hoặc `TABLE` trên Canvas (hoặc vào dropzone của Right Inspector) để gán hàng loạt toàn bộ trường thông qua `addMultipleFieldsToBlock`.
-
----
-
-### 2026-09-28 — Report Builder: Khắc phục Hiển thị Đa cột (`Columns = 2, 3`) của `INFO_GRID` trên Canvas & Đồng bộ Bố cục với `FormBuilder` (`ReportBuilder`, `RadarChartBlock`, `BarChartBlock`, `FormReport`)
-
-**Scope:** 6 files (`src/components/ReportBuilder.tsx`, `src/components/report/RadarChartBlock.tsx`, `src/components/report/BarChartBlock.tsx`, `src/components/FormReport.tsx`, `DESIGN_REPORT_BUILDER.md`, `SESSION_LOG.md`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian tổng (Request → Push) | ~11.0 min |
-| Thời gian lập plan (Request → Proceed) | ~6.5 min |
-| Thời gian thực thi (Proceed → Push) | ~4.5 min |
-| Số file nguồn chỉnh sửa | 4 (`ReportBuilder.tsx`, `RadarChartBlock.tsx`, `BarChartBlock.tsx`, `FormReport.tsx`) |
-| Tổng lượt edit source | 6 |
-| Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 2 (`tsc --noEmit` + `npm run build` 17.17s pass) |
-| Lần build cuối thành công? | Có (100% pass ngay lần đầu) |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Điểm nổi bật:**
-- **Đồng bộ Grid Container của `INFO_GRID` với `FormBuilder` (`getInfoGridTemplateColumns`):** Loại bỏ nhánh ternary `items === 0` từng bỏ qua CSS Grid và chỉ vẽ 1 thẻ `<div>` 1 cột. Giờ đây `INFO_GRID` luôn khởi tạo `<div style={{ display: 'grid', gridTemplateColumns: getInfoGridTemplateColumns(block) }}>` ở mọi trạng thái và đồng bộ `getInfoGridTemplateColumns` sang cả `FormReport.tsx`.
-- **Hiển thị trực quan các ô Slot `+ Thả vào đây` theo đúng số cột `block.columns`:** Khi `Columns = 2` (hoặc `3`), Canvas hiển thị ngay 2 (hoặc 3) ô `+ Thả vào đây` nằm cạnh nhau theo đúng tỷ lệ `columnWidths` (`50% | 50%`, `30% | 70%`, ...); khi mới thả 1 phần tử vào cột 1, cột 2 bên phải vẫn hiển thị ô `+ Thả vào đây`.
-- **Gỡ `gridColumn: '1 / -1'` trên `RadarChartBlock` & `BarChartBlock`:** Cho phép đặt 2 biểu đồ nằm cạnh nhau trong `INFO_GRID` 2 cột hoặc kết hợp trường thông tin ở cột trái và biểu đồ ở cột phải.
-
----
-
-### 2026-09-28 — Report Builder: Cơ chế Trọng số Tự động Cân bằng 4 Tầng (`Zero-Sum Auto-Balance`), Khóa Thủ công (`isWeightManual`), Nút Reset `↺` & Đôn Cấp Khuyết (`Skip-Level Promotion`) (`reportScoring`, `reportCompute`, `FieldScoringInspector`, `ReportBuilder`, `types`)
-
-**Scope:** 7 files (`src/types.ts`, `src/utils/reportScoring.ts`, `src/utils/reportCompute.ts`, `src/components/report/FieldScoringInspector.tsx`, `src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`, `SESSION_LOG.md`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian tổng (Request → Push) | ~26.5 min |
-| Thời gian lập plan (Request → Proceed) | ~16.8 min |
-| Thời gian thực thi (Proceed → Push) | ~9.7 min |
-| Số file nguồn chỉnh sửa | 5 (`types.ts`, `reportScoring.ts`, `reportCompute.ts`, `FieldScoringInspector.tsx`, `ReportBuilder.tsx`) |
-| Tổng lượt edit source | 20 |
-| Lượt edit sửa lỗi (rework) | 0 (`tsc --noEmit` pass 100% ở mọi bước) |
-| Số lần build | 6 (`tsc --noEmit` x5 + `npm run build` 8.37s pass) |
-| Lần build cuối thành công? | Có (100% pass ngay lần đầu) |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Điểm nổi bật:**
-- **Tự động cân bằng trọng số thông minh 4 tầng (`resolveSmartGroupWeights` & `distributeIntegerTotal`):** Toàn bộ 4 cấp (`Form -> H1 -> H2 -> Table -> Field`) mặc định chia đều `100%` cho các phần tử `AUTO` (`!isWeightManual`). Khi người dùng chỉnh sửa tay bất kỳ phần tử nào (kể cả nhập `0%`), phần tử đó tự động gắn cờ `isWeightManual: true` (khóa cứng, không bao giờ bị ghi đè), và phần dư `Math.max(0, 100 - sum(manualWeights))` tự động chia đều cho các phần tử `AUTO` còn lại trong cùng nhóm.
-- **Tự động Đôn Cấp khi khuyết tầng (`Skip-Level / Tier Promotion` trong `resolveFormTopLevelGroups` & `summarizeH1ChildGroups`):** Xử lý trọn vẹn biểu mẫu khuyết `H1` (`Form -> H2` với tổng `H2 = 100%`), khuyết cả `H1` & `H2` (`Form -> Bảng` với tổng `Bảng = 100%`), hoặc `H1` khuyết `H2` (`H1 -> Bảng`). Thẻ kéo ở đầu cây `FIELDS` tự động đổi nhãn (`[N H1]` / `[K H2]` / `[M Bảng]`).
-- **Nhận diện trực quan không nở dòng (`Zero Layout Shift`) & Nút `↺` 1-Click Reset:** Ô `<SmartNumberInput>` đã chỉnh tay (`isWeightManual === true`) đổi viền Teal đậm và nền `#f0fdfa` trên đúng kích thước `32px x 22px`; tiêu đề cột `Weight` và thẻ `Weight (%)` đơn lẻ hiển thị nút `↺` (`RotateCcw`) cho phép khôi phục về chia đều tự động chỉ với 1 cú click.
-
----
-
-### 2026-09-28 — Report Builder: Sửa lỗi cắt chữ trục Radar Chart (`wrapSvgAxisLabel`) & Gỡ Title hardcode `"Thông tin chung"` của `INFO_GRID` (`reportChartUtils`, `RadarChartBlock`, `ReportBuilder`, `PrintReport`)
-
-**Scope:** 6 files (`src/utils/reportChartUtils.ts`, `src/components/report/RadarChartBlock.tsx`, `src/components/ReportBuilder.tsx`, `src/components/print/PrintReport.tsx`, `DESIGN_REPORT_BUILDER.md`, `SESSION_LOG.md`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian tổng (Request → Push) | ~9.0 min |
-| Thời gian lập plan (Request → Proceed) | ~2.5 min |
-| Thời gian thực thi (Proceed → Push) | ~6.5 min |
-| Số file nguồn chỉnh sửa | 4 (`reportChartUtils.ts`, `RadarChartBlock.tsx`, `ReportBuilder.tsx`, `PrintReport.tsx`) |
-| Tổng lượt edit source | 7 |
-| Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 3 (`tsc --noEmit` x2 + `npm run build` 11.53s pass) |
-| Lần build cuối thành công? | Có (100% pass ngay lần đầu) |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Điểm nổi bật:**
-- **Ngắt dòng cân đối nhãn trục Radar Chart (`wrapSvgAxisLabel`):** Tự động tách các nhãn trục dài thành 2 dòng `<tspan>` tại khoảng trắng gần điểm giữa nhất (kết hợp mở rộng `viewBoxWidth = 640` và `overflow: 'visible'`), triệt tiêu hoàn toàn hiện tượng cắt chữ ở mép trái/phải của khung SVG.
-- **Khởi tạo `INFO_GRID` sạch 100% (`title = ''`, `titleFormat = 'NONE'`):** Gỡ bỏ tiêu đề hardcode `"Thông tin chung"` trong `handleAddBlock` và tự động ẩn tiêu đề mặc định cũ trên các khối `INFO_GRID` trống/chỉ chứa biểu đồ.
-
----
-
-### 2026-09-28 — Report Builder: Vẽ Biểu đồ từ Toàn bộ `H1` (Cách A), Kéo thả `H1` Đơn lẻ & Cơ chế Accordion Toàn Sidebar (`ReportBuilder`, `RadarChartInspector`, `BarChartInspector`, `FormReferenceCanvas`)
-
-**Scope:** 6 files (`src/components/ReportBuilder.tsx`, `src/components/report/RadarChartInspector.tsx`, `src/components/report/BarChartInspector.tsx`, `src/components/report/FormReferenceCanvas.tsx`, `DESIGN_REPORT_BUILDER.md`, `SESSION_LOG.md`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian tổng (Request → Push) | ~8.5 min |
-| Thời gian lập plan (Request → Proceed) | ~4.5 min |
-| Thời gian thực thi (Proceed → Push) | ~4.0 min |
-| Số file nguồn chỉnh sửa | 3 (`RadarChartInspector.tsx`, `BarChartInspector.tsx`, `ReportBuilder.tsx`) |
-| Tổng lượt edit source | 8 |
-| Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 2 (`tsc --noEmit` + `npm run build` 13.25s pass) |
-| Lần build cuối thành công? | Có (100% pass ngay lần đầu) |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Điểm nổi bật:**
-- **Phân tách ngữ nghĩa 2 vùng thả (`Summary Row` vs `THÀNH PHẦN`) & Thẻ gốc Cách A (`{selectedForm.formTitle} [N H1]`):** Thả thẻ gốc biểu mẫu vào `Summary Row` sẽ tự động nạp toàn bộ các khối `H1` vào biểu đồ; thả một khối `H1` hoặc `H2` vào vùng `+ Kéo trường hoặc nhóm vào đây` sẽ thêm chính khối đó làm 1 trục đơn lẻ mà không bung cấp con.
-- **Accordion 2 tầng trên toàn bộ Left Sidebar:** Tự động thu gọn `FIELDS` khi mở `CHARTS` (và ngược lại), đồng thời áp dụng Accordion đa cấp (`H1` ↔ `H2` ↔ `Element`) bên trong cây `FIELDS` giúp người dùng tập trung tối đa vào nhánh đang thao tác.
-- **Khôi phục `sampleSubmission` trên `tab Form` & Khởi tạo trống `handleAddBlock`:** Giữ nguyên bố cục 1:1 với Form Builder đồng thời hiển thị dữ liệu bản nộp trên `FormReferenceCanvas.tsx` và dọn sạch pre-populate cứng khi thêm `INFO_GRID` / `TABLE`.
-
----
-
-### 2026-09-27 — Report Builder: Radar & Bar Chart Components (`INFO_GRID` Blocks, Option B+D Hybrid Summary Drop-Slot & Two-Way Weight Sync)
-
-**Scope:** 10 files (`src/types.ts`, `src/utils/reportChartUtils.ts`, `src/components/report/RadarChartBlock.tsx`, `src/components/report/BarChartBlock.tsx`, `src/components/report/RadarChartInspector.tsx`, `src/components/report/BarChartInspector.tsx`, `src/components/ReportBuilder.tsx`, `src/components/FormReport.tsx`, `src/components/print/PrintReport.tsx`, `DESIGN_REPORT_BUILDER.md`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian tổng (Request → Push) | 15.3 min |
-| Thời gian lập plan (Request → Proceed) | 8.7 min |
-| Thời gian thực thi (Proceed → Push) | 6.6 min |
-| Số file nguồn chỉnh sửa | 9 |
-| Tổng lượt edit source | 12 |
-| Lượt edit sửa lỗi (rework) | 2 (đồng bộ tên prop `chart` / `onUpdateChart` khi nối sub-components vào `ReportBuilder.tsx`) |
-| Số lần build | 2 (`tsc -b && vite build` 10.11s pass) |
-| Lần build cuối thành công? | Có (100% pass) |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Điểm nổi bật:**
-- **Tách Sub-components & Pure Utilities (Rule 4.1 & Rule 4.3):** Tách hoàn toàn logic tính toán biểu đồ vào `src/utils/reportChartUtils.ts` và tách 4 sub-components độc lập (`RadarChartBlock.tsx`, `BarChartBlock.tsx`, `RadarChartInspector.tsx`, `BarChartInspector.tsx`) giúp `ReportBuilder.tsx` gọn sạch, không phình to monolith.
-- **Option B + D Hybrid Summary Drop-Slot:** Hàng tổng hợp duy nhất ngay dưới tiêu đề `RADAR CHART` / `BAR CHART` hỗ trợ vừa gõ tiêu đề thủ công (điểm tổng tự tính từ `THÀNH PHẦN (x)`), vừa kéo thả Field đơn lẻ hoặc Nhóm (`H1` / `H2` / `Element Table`) để liên kết điểm tổng + tự động điền toàn bộ thành phần con vào `THÀNH PHẦN (x)`.
-- **Căn thẳng hàng dọc tuyệt đối (`38px | 48px | 18px`) & Đồng bộ Trọng số 2 Chiều:** Điểm tổng/thành phần (`38px`), Trọng số `%` (`48px`), và nút xóa/gỡ (`18px`) thẳng trục dọc 100%; chỉnh sửa `%` trong giao diện biểu đồ tự động đồng bộ hai chiều với thuộc tính `weight` của Field/Block nguồn.
-- **Khắc phục triệt để lỗi cắt đáy trang `.paper-card` (`1050px` Clipping Bug):** Bổ sung `height: 'auto', flexShrink: 0, overflow: 'visible'` vào container `.paper-card` trong `ReportBuilder.tsx` và `FormReport.tsx`, ngăn Flexbox ép co trang giấy về `minHeight: 1050px` và ngăn `overflow: hidden` cắt mất phần dưới của khối `INFO_GRID`.
-- **Khôi phục chọn `SECTION_LABEL` (H1/H2) và `TABLE` trong `tab Form` (`hiddenInReport`):** Bổ sung cờ `hiddenInReport?: boolean` trên `ReportBlockConfig`, cho phép click chọn bất kỳ Section H1, H2 hoặc Table nào trong `tab Form` để xem bảng điểm tổng hợp và chỉnh `weight`/`isKnockout` ở cột Properties mà không làm tự sinh khối thừa bên trang `tab Report`.
-
----
-
-### 2026-09-25 — Report Builder: Pure Native Drag & Drop Field Reordering on Canvas & Inspector (ReportBuilder)
-
-**Scope:** 3 files (`src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`, `SESSION_LOG.md`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian tổng (Request → Push) | ~7 min |
-| Thời gian lập plan (Request → Proceed) | ~2.5 min |
-| Thời gian thực thi (Proceed → Push) | ~4.5 min |
-| Số file nguồn chỉnh sửa | 1 (`ReportBuilder.tsx`) |
-| Tổng lượt edit source | 7 |
-| Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 3 (`1 tsc -b` pass + `1 npm run build` 11.92s pass) |
-| Lần build cuối thành công? | Có (100% pass ngay lần đầu) |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Điểm nổi bật:**
-- **Native HTML5 Drag and Drop Reordering:** Hỗ trợ kéo thả trực quan để sắp xếp lại thứ tự trường ở cả Canvas (ô lưới `INFO_GRID`, hàng `TABLE`) và Right Inspector (danh sách `FIELDS`).
-- **Đồng bộ hai chiều thời gian thực (Two-way Reactive Sync):** Việc sắp xếp lại vị trí trên Canvas tự động phản ánh tức thì sang danh sách Inspector và ngược lại thông qua mảng `boundFieldIds` và utility `reorderArray`.
-- **Tối giản hóa giao diện & Triệt tiêu Clutter (Lesson 11):** Bỏ hoàn toàn các dòng hướng dẫn phụ trợ rườm rà ("Kéo để xếp lại", hint boxes). Trải nghiệm dựa hoàn toàn vào visual affordances trực quan: biểu tượng grip `⠿`, con trỏ `cursor: grab`, độ mờ ghost `0.35`, và vạch định vị primary teal `borderTop: 2.5px solid var(--primary)` khi rê qua vị trí đích.
-- **Triệt tiêu Mã Chết (Dead-Code Pruning — Rule 4.2 / Rule 13.7):** Xóa sạch các nút bước đơn `↑` / `↓` ở Inspector và thay thế hoàn toàn hàm cũ `moveFieldInBlock` bằng `reorderFieldInBlock` sử dụng pure utility `reorderArray` từ `src/utils/formUtils.ts`.
-- **Bảo vệ thao tác người dùng (Drag Safety):** Chặn kích hoạt drag khi click/select trên thẻ `<input>` trong card trường để không cản trở việc chỉnh sửa văn bản.
 
 ---
 

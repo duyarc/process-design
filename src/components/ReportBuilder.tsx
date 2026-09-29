@@ -1481,26 +1481,35 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
   const moveFieldBetweenBlocks = (fromBlockId: string, toBlockId: string, fieldId: string, targetIndex?: number) => {
     if (fromBlockId === toBlockId) return;
     setTemplate(prev => {
+      const sourceBlock = prev.layoutBlocks.find(bl => bl.id === fromBlockId);
+      const movedOverride = sourceBlock?.ruleOverrides?.[fieldId];
       const blocks = prev.layoutBlocks.map(b => {
         if (b.id === fromBlockId) {
+          const nextOverrides = { ...(b.ruleOverrides || {}) };
+          delete nextOverrides[fieldId];
           return {
             ...b,
-            boundFieldIds: (b.boundFieldIds || []).filter(id => id !== fieldId)
+            boundFieldIds: (b.boundFieldIds || []).filter(id => id !== fieldId),
+            ruleOverrides: nextOverrides
           };
         }
         if (b.id === toBlockId) {
           const current = (b.boundFieldIds || []).filter(id => id !== fieldId);
+          const existingOverrides = b.ruleOverrides || {};
+          const newOverrides = movedOverride ? { ...existingOverrides, [fieldId]: movedOverride } : existingOverrides;
           if (targetIndex === undefined || targetIndex < 0 || targetIndex >= current.length) {
             return {
               ...b,
-              boundFieldIds: [...current, fieldId]
+              boundFieldIds: [...current, fieldId],
+              ruleOverrides: newOverrides
             };
           }
           const next = [...current];
           next.splice(targetIndex, 0, fieldId);
           return {
             ...b,
-            boundFieldIds: next
+            boundFieldIds: next,
+            ruleOverrides: newOverrides
           };
         }
         return b;
@@ -3473,6 +3482,14 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                         }
                         return;
                       }
+                      if (e.dataTransfer.types.includes('application/x-report-reorder')) {
+                        if (isDroppable) {
+                          e.preventDefault();
+                          e.dataTransfer.dropEffect = 'move';
+                          if (dragOverBlockId !== block.id) setDragOverBlockId(block.id);
+                        }
+                        return;
+                      }
                       if (isDroppable) {
                         e.preventDefault();
                         e.dataTransfer.dropEffect = 'copy';
@@ -3824,15 +3841,18 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                       e.dataTransfer.setData('application/x-report-reorder', JSON.stringify({ fieldId: fid, blockId: block.id, fromIndex: fIdx }));
                                       e.dataTransfer.effectAllowed = 'move';
                                       setReorderDrag({ blockId: block.id, fromIndex: fIdx, fieldId: fid });
+                                      setIsDraggingField(true);
                                     }}
                                     onDragEnd={() => {
                                       setReorderDrag(null);
                                       setDragOverIndex(null);
+                                      setIsDraggingField(false);
+                                      setDragOverBlockId(null);
                                     }}
                                     onDragOver={(e) => {
                                       e.preventDefault();
                                       e.stopPropagation();
-                                      e.dataTransfer.dropEffect = 'move';
+                                      e.dataTransfer.dropEffect = e.dataTransfer.types.includes('application/x-report-reorder') ? 'move' : 'copy';
                                       if (dragOverIndex?.blockId !== block.id || dragOverIndex?.index !== fIdx) {
                                         setDragOverIndex({ blockId: block.id, index: fIdx });
                                       }
@@ -4168,6 +4188,52 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                 return Array.from({ length: emptySlotCount }).map((_, slotIdx) => (
                                   <div
                                     key={`empty_slot_${slotIdx}`}
+                                    onDragOver={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      e.dataTransfer.dropEffect = e.dataTransfer.types.includes('application/x-report-reorder') ? 'move' : 'copy';
+                                      if (dragOverBlockId !== block.id) setDragOverBlockId(block.id);
+                                      if (dragOverIndex !== null) setDragOverIndex(null);
+                                    }}
+                                    onDrop={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      setDragOverBlockId(null);
+                                      setIsDraggingField(false);
+                                      const reorderRaw = e.dataTransfer.getData('application/x-report-reorder');
+                                      if (reorderRaw) {
+                                        try {
+                                          const data = JSON.parse(reorderRaw);
+                                          if (data.blockId !== block.id) {
+                                            moveFieldBetweenBlocks(data.blockId, block.id, data.fieldId);
+                                            setActiveBlockId(block.id);
+                                          } else if (block.boundFieldIds && block.boundFieldIds.length > 1) {
+                                            reorderFieldInBlock(block.id, data.fromIndex, block.boundFieldIds.length - 1);
+                                          }
+                                        } catch (err) {
+                                          console.error(err);
+                                        }
+                                      } else {
+                                        const groupFieldsRaw = e.dataTransfer.getData('application/x-report-group-fields');
+                                        if (groupFieldsRaw) {
+                                          try {
+                                            const fids = JSON.parse(groupFieldsRaw);
+                                            if (Array.isArray(fids) && fids.length > 0) {
+                                              addMultipleFieldsToBlock(block.id, fids);
+                                              setActiveBlockId(block.id);
+                                            }
+                                          } catch {}
+                                        } else {
+                                          const fieldId = e.dataTransfer.getData('text/plain');
+                                          if (fieldId) {
+                                            addFieldToBlock(block.id, fieldId);
+                                            setActiveBlockId(block.id);
+                                          }
+                                        }
+                                      }
+                                      setReorderDrag(null);
+                                      setDragOverIndex(null);
+                                    }}
                                     style={{
                                       padding: totalItems === 0 ? '1.1rem 0.75rem' : '6px 8px',
                                       border: isDragOverThis ? '2px dashed var(--primary)' : '1.5px dashed #94a3b8',
