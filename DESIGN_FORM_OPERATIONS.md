@@ -8,7 +8,7 @@
 |---|---|
 | **Module Name** | Form Operations |
 | **Status** | Active Development |
-| **Verified At Commit** | (2026-09-28) — Streamlined Submission View toolbar, segmented [Form | Report] pill tab, dynamic inline share box, embedded FormReport |
+| **Verified At Commit** | (2026-09-29) — Redesigned FormFiller toolbar: contextual View Switcher ([Xem báo cáo] / [Xem phiếu gốc]) and 1-Click Share button; removed segmented pill tab from left header |
 
 ### Quick File Index
 
@@ -439,7 +439,6 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 
 | Date | Commit | Change |
 |---|---|---|
-| 2026-09-09 | `CURRENT` | **Minimalist Executive Toolbar & Single Edit Button in Form View:** Unified submission viewing across internal and public access into a single executive header in `FormFiller.tsx`. In view mode, exactly one edit button is rendered (in the header), while the footer action strip is completely suppressed. In edit mode, fields unlock and minimalist footer appears with Cancel and Save actions. `SubmissionViewer.tsx` delegates directly to `FormFiller` to eliminate duplicate outer headers. |
 | 2026-09-09 | `CURRENT` | **Near Full-Screen Submission View Coordination:** Added `onViewingChange` prop in `SubmissionManager.tsx` and lifecycle coordination to suppress outer dashboard quote card and tabs when viewing/copying a submission record, achieving visual parity with fill-form. |
 | 2026-09-09 | `CURRENT` | **SubmissionManager Toast Feedback & Connection Error Recovery:** Replaced all 5 blocking `window.alert()` calls in `SubmissionManager.tsx` with floating toast notifications (`setToast`) and auto-dismiss timer. Added inline server connection error banner with retry button for serverless resilience. |
 | 2026-09-09 | `CURRENT` | **Form Viewer Header Single-Line Parity & FormManager View Coordination:** Redesigned `FormFiller.tsx` submission view header from boxy white card to transparent, single-row toolbar matching Form Filler exactly (left: Back, ID, QMS status, compact submitter; right: Focus mode, Print, Copy, Edit/Save). Added `onViewingChange` in `FormManager.tsx` to coordinate app-header suppression. |
@@ -455,6 +454,7 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 | 2026-09-17 | `CURRENT` | **Dropdown & Custom "Other" Option Resolution in Print:** (1) Standardized `formatOptionDisplay` in `formUtils.ts` to normalize custom other label with consistent colon separation and handle option value/label lookup. (2) Added dedicated select rendering branch and defense-in-depth fallback in `INFO_GRID` of `PrintFilledForm.tsx`, eliminating raw `__other__:<text>` technical prefix leakage. (3) Unified select decoding across `CHECKLIST_TABLE` and `TABLE`, and eliminated duplicate colons in radio/checkbox otherText labels. |
 | 2026-09-17 | `CURRENT` | **Automated Form Duplication Utilities:** Added `generateNextFormId` (smart numeric suffix detection, auto-increment, and collision check) and `duplicateFormTemplate` (deep clone of layout blocks, UUID regeneration for blocks/fields/rows, cell map re-indexing, title update, and DRAFT v0.1 reset) in `formUtils.ts`. |
 | 2026-09-28 | `CURRENT` | **Streamlined Submission View Toolbar & Dynamic Form/Report Segmented Tab UI:** (1) Streamlined submission viewing toolbar in `FormFiller.tsx`: removed visual clutter (`[ ABNORMALITY ]` badge, submitter name, `[📋 Sao chép]` button, simplified Back and Print labels). (2) Added segmented pill tab `[ Form | Report ]` matching `ReportBuilder.tsx` aesthetics, preserving the Focus mode toggle on the Form tab. (3) Replaced sharing popup/modal with an inline link sharing box: on the Form tab, displays and copies the Form Submission link (`/f/:slug/s/:subId?token=...`); on the Report tab, displays and copies the Report link (`/f/:slug/r/:subId?token=...`). (4) Standardized edit button to `[✏️ Chỉnh sửa]` across both tabs. (5) Embedded `FormReport.tsx` inside `FormFiller.tsx` in `isEmbedded` mode. (6) Updated `App.tsx` and `SubmissionViewer.tsx` to route both `/s/:id` and `/r/:id` paths with token support. |
+| 2026-09-29 | `CURRENT` | **Action-Driven Submission Toolbar: Contextual View Switcher & 1-Click Share Button (`FormFiller`):** (1) Removed segmented pill tab `[ Form \| Report ]` from left header, keeping only clean identity label `Phiếu <id>`. (2) Added contextual View Switcher action button on the right toolbar: displays `[ 📊 Xem báo cáo ]` when viewing Form (switching to Report) and `[ 📋 Xem phiếu gốc ]` when viewing Report (switching to Form). (3) Replaced bulky 210px inline link input box with a minimalist `[ ↗ Chia sẻ ]` button (`Share2` icon) featuring 1-click clipboard copy of the context-aware URL with an instant 2-second visual feedback state `[ ✓ Đã chép! ]` (`Check` icon, `#dcfce7` green pill). Saves ~180px horizontal space, eliminating toolbar overflow. |
 
 
 

@@ -82,7 +82,11 @@ import {
   Printer,
   Star,
   Copy,
-  Save
+  Save,
+  Share2,
+  BarChart2,
+  FileText,
+  Check
 } from 'lucide-react';
 
 const parseSubtableValue = (val: string): Record<string, string>[] => {
@@ -3196,59 +3200,9 @@ function FormFillerInner({
                 <Pencil size={13} /> Sửa phiếu <code style={{ fontFamily: 'monospace' }}>{initialSubmission.id}</code>
               </span>
             ) : (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'nowrap' }}>
-                <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
-                  Phiếu <code style={{ fontFamily: 'monospace', color: 'var(--primary)' }}>{initialSubmission.id}</code>
-                </span>
-
-                {/* Segmented Tab [ Form | Report ] */}
-                <div style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  background: '#f0fdfa',
-                  padding: '2px',
-                  borderRadius: '6px',
-                  border: '1px solid #99f6e4',
-                  marginLeft: '0.2rem'
-                }}>
-                  <button
-                    type="button"
-                    onClick={() => setSubmissionTab('form')}
-                    style={{
-                      padding: '2px 10px',
-                      fontSize: '0.75rem',
-                      fontWeight: submissionTab === 'form' ? 700 : 500,
-                      color: submissionTab === 'form' ? 'var(--primary)' : '#64748b',
-                      background: submissionTab === 'form' ? '#ffffff' : 'transparent',
-                      border: 'none',
-                      borderRadius: '4px',
-                      boxShadow: submissionTab === 'form' ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s'
-                    }}
-                  >
-                    Form
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSubmissionTab('report')}
-                    style={{
-                      padding: '2px 10px',
-                      fontSize: '0.75rem',
-                      fontWeight: submissionTab === 'report' ? 700 : 500,
-                      color: submissionTab === 'report' ? 'var(--primary)' : '#64748b',
-                      background: submissionTab === 'report' ? '#ffffff' : 'transparent',
-                      border: 'none',
-                      borderRadius: '4px',
-                      boxShadow: submissionTab === 'report' ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s'
-                    }}
-                  >
-                    Report
-                  </button>
-                </div>
-              </div>
+              <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
+                Phiếu <code style={{ fontFamily: 'monospace', color: 'var(--primary)' }}>{initialSubmission.id}</code>
+              </span>
             )}
           </div>
 
@@ -3299,55 +3253,71 @@ function FormFillerInner({
               </div>
             )}
 
-            {/* Direct Inline Link & Copy Box */}
+            {/* Contextual View Switcher: Xem báo cáo / Xem phiếu gốc */}
+            {!isEditModeActive && (
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => setSubmissionTab(submissionTab === 'form' ? 'report' : 'form')}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.3rem',
+                  fontSize: '0.78rem',
+                  padding: '0.25rem 0.65rem',
+                  whiteSpace: 'nowrap',
+                  color: 'var(--primary)',
+                  borderColor: '#99f6e4',
+                  background: submissionTab === 'form' ? '#f0fdfa' : '#ffffff'
+                }}
+                title={submissionTab === 'form' ? 'Xem báo cáo đánh giá KPI & biểu đồ' : 'Quay lại xem biểu mẫu ban đầu'}
+              >
+                {submissionTab === 'form' ? (
+                  <>
+                    <BarChart2 size={13} style={{ color: 'var(--primary)' }} />
+                    <span>Xem báo cáo</span>
+                  </>
+                ) : (
+                  <>
+                    <FileText size={13} style={{ color: 'var(--primary)' }} />
+                    <span>Xem phiếu gốc</span>
+                  </>
+                )}
+              </button>
+            )}
+
+            {/* 1-Click Share Button */}
             {!isEditModeActive && currentShareUrl && (
-              <div style={{
-                display: 'flex',
-                alignItems: 'stretch',
-                borderRadius: '6px',
-                border: '1px solid var(--neutral-border)',
-                background: '#ffffff',
-                overflow: 'hidden',
-                height: '28px'
-              }}>
-                <input
-                  type="text"
-                  readOnly
-                  value={currentShareUrl}
-                  style={{
-                    width: '210px',
-                    padding: '0 0.45rem',
-                    fontSize: '0.72rem',
-                    border: 'none',
-                    background: 'transparent',
-                    color: '#0f766e',
-                    outline: 'none',
-                    fontFamily: 'monospace'
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={handleCopyCurrentLink}
-                  style={{
-                    padding: '0 0.55rem',
-                    fontSize: '0.72rem',
-                    fontWeight: 600,
-                    border: 'none',
-                    borderLeft: '1px solid var(--neutral-border)',
-                    background: copiedShareLink ? '#dcfce7' : '#f8fafc',
-                    color: copiedShareLink ? '#15803d' : 'var(--text-primary)',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.25rem',
-                    transition: 'all 0.15s ease'
-                  }}
-                  title="Sao chép liên kết vào clipboard"
-                >
-                  <Copy size={12} />
-                  <span>{copiedShareLink ? 'Đã chép!' : 'Copy'}</span>
-                </button>
-              </div>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={handleCopyCurrentLink}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.25rem',
+                  fontSize: '0.78rem',
+                  padding: '0.25rem 0.65rem',
+                  whiteSpace: 'nowrap',
+                  background: copiedShareLink ? '#dcfce7' : undefined,
+                  color: copiedShareLink ? '#15803d' : undefined,
+                  borderColor: copiedShareLink ? '#86efac' : undefined,
+                  transition: 'all 0.15s ease'
+                }}
+                title={submissionTab === 'report' ? 'Sao chép link xem Báo cáo' : 'Sao chép link xem Phiếu'}
+              >
+                {copiedShareLink ? (
+                  <>
+                    <Check size={13} />
+                    <span>Đã chép!</span>
+                  </>
+                ) : (
+                  <>
+                    <Share2 size={13} />
+                    <span>Chia sẻ</span>
+                  </>
+                )}
+              </button>
             )}
 
             {isEditModeActive ? (

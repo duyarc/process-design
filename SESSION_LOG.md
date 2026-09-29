@@ -42,6 +42,29 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-29 — Form Operations: Action-Driven Toolbar (Contextual View Switcher & 1-Click Share Button)
+
+**Scope:** 2 files (`src/components/FormFiller.tsx`, `DESIGN_FORM_OPERATIONS.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | ~8 min |
+| Thời gian lập plan (Request → Proceed) | ~2 min |
+| Thời gian thực thi (Proceed → Push) | ~6 min |
+| Số file nguồn chỉnh sửa | 1 (`FormFiller.tsx`) |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 2 (`tsc --noEmit` 0 lỗi, `npm run build` 7.94s pass) |
+| Lần build đầu thành công? | Có (100% pass ngay lần 1) |
+
+**Kết quả đạt được:**
+- Loại bỏ cụm pill tab `[ Form | Report ]` ở góc trái header, trả lại sự thông thoáng định danh cho nhãn `Phiếu <id>`.
+- Bổ sung nút chuyển đổi góc nhìn ngữ cảnh (`[ 📊 Xem báo cáo ]` khi ở Form / `[ 📋 Xem phiếu gốc ]` khi ở Report) trên thanh công cụ bên phải.
+- Thay thế ô input link 210px cồng kềnh bằng nút `[ ↗ Chia sẻ ]` 1-click gọn gàng (`Share2` icon) với phản hồi tức thì `[ ✓ Đã chép! ]` trong 2 giây. Tiết kiệm ~180px chiều ngang màn hình.
+
+**Lỗi gặp:** 0 lỗi.
+
+---
+
 ### 2026-09-29 — Report Builder: Fix Chart Drag-to-Reorder in INFO_GRID (2+ Charts)
 
 **Scope:** 1 file (`src/components/ReportBuilder.tsx`)
@@ -271,35 +294,3 @@ Entry mới nhất ở trên cùng. Tối đa 10 entries.
 - **UX:** Skeleton paper-card shimmer thay text trắng → progressive disclosure ngay lập tức.
 
 ---
-
-### 2026-09-28 — Report Builder: Tái cấu trúc `FormReport.tsx` theo chuẩn `PrintReport` & Xóa bỏ Khối Hardcoded
-
-**Scope:** 4 files (`src/components/FormReport.tsx`, `src/components/print/printShared.tsx`, `src/components/print/PrintReport.tsx`, `DESIGN_REPORT_BUILDER.md`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Thời gian tổng (Request → Push) | 17.5 min |
-| Thời gian lập plan (Request → Proceed) | 12.6 min |
-| Thời gian thực thi (Proceed → Push) | 4.9 min |
-| Số file nguồn chỉnh sửa | 3 (`FormReport.tsx`, `printShared.tsx`, `PrintReport.tsx`) |
-| Lượt edit sửa lỗi (rework) | 2 (bổ sung `)}` đóng TITLE block, sửa kiểu `onImgSettled` tùy chọn) |
-| Số lần build | 3 (`tsc --noEmit` pass, `npm run build` 13.78s pass) |
-| Lần build cuối thành công? | Có (100% pass) |
-| Số lỗi mới phát sinh | 0 |
-| Số lỗi cũ lặp lại | 0 |
-
-**Điểm nổi bật:**
-- **Triệt tiêu Khối Cứng (Hardcoded) không thuộc Builder:**
-  - Xóa bỏ hoàn toàn 4 thẻ KPI Scorecard tóm tắt (`totalEvaluated`, `passCount`, `failCount`, `overallStatus`) ở đầu báo cáo — vốn không hề tồn tại trong Report Builder template.
-  - Loại bỏ toàn bộ viền hộp đen nhân tạo `border: 1px solid #000` bao quanh các khối `TITLE`, `INFO_GRID`, và `SIGN`.
-- **Đồng bộ WYSIWYG 100% giữa View Screen (`FormReport`) và Print/PDF (`PrintReport`):**
-  - Trích xuất `renderReportField` thành pure shared component trong `src/components/print/printShared.tsx` (Rule 4.1), dùng chung giữa `PrintReport` và `FormReport`.
-  - Hiển thị chuẩn hóa các trường dữ liệu: ô kiểm glyph `[✓]`, lựa chọn radio, giải mã nhãn tiếng Việt cho dropdown select, text/number có gạch chân baseline chấm mờ, và biểu đồ Radar/Bar lồng trong ô.
-  - Áp dụng `<PrintTitleBlock />`, `<PrintSectionHeader />`, bảng ISO Table (STT, Spec, Kết quả thực tế, Đánh giá ĐẠT/K.ĐẠT), và cụm chữ ký chuẩn ISO.
-
----
-
-
-
-
-
