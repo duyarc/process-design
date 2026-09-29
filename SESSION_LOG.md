@@ -42,6 +42,29 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-29 — Report Builder: Full Chart Drag-to-Reorder, Cross-Block Move & DropZone Chart Insertion
+
+**Scope:** 2 files (`src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Thời gian tổng (Request → Push) | ~7 min |
+| Thời gian lập plan (Request → Proceed) | ~3 min |
+| Thời gian thực thi (Proceed → Push) | ~4 min |
+| Số file nguồn chỉnh sửa | 1 (`ReportBuilder.tsx`) |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 2 (`tsc --noEmit` 0 lỗi, `npm run build` 10.36s pass) |
+| Lần build đầu thành công? | Có (100% pass ngay lần 1) |
+
+**Kết quả đạt được:**
+- Kéo thả các mục biểu đồ (`Radar`, `Bar`) trong khối `INFO_GRID` để hoán đổi vị trí (`reorderChartInBlock`).
+- Kéo thả biểu đồ sang khối `INFO_GRID` khác (`moveChartBetweenBlocks`).
+- Tách biểu đồ thành khối riêng khi thả vào Drop Zone giữa 2 khối.
+- Kéo thả biểu đồ từ Left Sidebar thả vào Drop Zone giữa 2 khối để tạo khối biểu đồ mới tại đúng vị trí mong muốn.
+- Badge khối đổi thành `BIỂU ĐỒ` trực quan khi khối chứa biểu đồ.
+
+---
+
 ### 2026-09-29 — Report Builder: Canvas Drag-to-Reorder Layout Blocks & Cross-Block Field Dragging
 
 **Scope:** 2 files (`src/components/ReportBuilder.tsx`, `DESIGN_REPORT_BUILDER.md`)

@@ -717,6 +717,15 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
   } | null>(null);
   const [blockDragFromIndex, setBlockDragFromIndex] = useState<number | null>(null);
   const [blockDragOverIndex, setBlockDragOverIndex] = useState<number | null>(null);
+  const [reorderChartDrag, setReorderChartDrag] = useState<{
+    blockId: string;
+    fromIndex: number;
+    chartId: string;
+  } | null>(null);
+  const [dragOverChartIndex, setDragOverChartIndex] = useState<{
+    blockId: string;
+    index: number;
+  } | null>(null);
 
   const getFieldUsageCount = (fieldId: string): number => {
     return template.layoutBlocks.reduce((acc, b) => acc + ((b.boundFieldIds || []).includes(fieldId) ? 1 : 0), 0);
@@ -1010,8 +1019,10 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
   };
 
   const renderBlockDropZone = (targetIndex: number) => {
-    if (blockDragFromIndex === null) return null;
-    const isOver = blockDragOverIndex === targetIndex;
+    if (blockDragFromIndex === null && reorderChartDrag === null) return null;
+    const isOver = blockDragFromIndex !== null
+      ? blockDragOverIndex === targetIndex
+      : dragOverChartIndex?.index === targetIndex;
     return (
       <div
         key={`dropzone_${targetIndex}`}
@@ -1019,10 +1030,15 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
           e.preventDefault();
           e.stopPropagation();
           e.dataTransfer.dropEffect = 'move';
-          if (blockDragOverIndex !== targetIndex) setBlockDragOverIndex(targetIndex);
+          if (blockDragFromIndex !== null) {
+            if (blockDragOverIndex !== targetIndex) setBlockDragOverIndex(targetIndex);
+          } else if (reorderChartDrag !== null) {
+            if (dragOverChartIndex?.index !== targetIndex) setDragOverChartIndex({ blockId: '__canvas__', index: targetIndex });
+          }
         }}
         onDragLeave={() => {
           if (blockDragOverIndex === targetIndex) setBlockDragOverIndex(null);
+          if (dragOverChartIndex?.index === targetIndex) setDragOverChartIndex(null);
         }}
         onDrop={(e) => {
           e.preventDefault();
@@ -1033,6 +1049,47 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
               const bData = JSON.parse(blockReorderRaw);
               handleBlockReorderDrop(bData.fromIndex, targetIndex);
             } catch {}
+            return;
+          }
+          const chartTypeRaw = e.dataTransfer.getData('application/x-report-chart-type');
+          if (chartTypeRaw === 'RADAR' || chartTypeRaw === 'BAR') {
+            handleInsertChartIntoInfoGrid(chartTypeRaw, undefined, targetIndex);
+            return;
+          }
+          const chartItemReorderRaw = e.dataTransfer.getData('application/x-report-chart-item-reorder');
+          if (chartItemReorderRaw) {
+            try {
+              const cData = JSON.parse(chartItemReorderRaw);
+              const sourceBlock = template.layoutBlocks.find(b => b.id === cData.blockId);
+              const movingChart = sourceBlock?.chartItems?.find(c => c.id === cData.chartId);
+              if (movingChart) {
+                const newGridId = `rep_block_grid_${Date.now()}`;
+                const newGridBlock: ReportBlockConfig = {
+                  id: newGridId,
+                  type: 'INFO_GRID',
+                  title: '',
+                  titleFormat: 'NONE',
+                  columns: 1,
+                  boundFieldIds: [],
+                  chartItems: [movingChart]
+                };
+                setTemplate(prev => {
+                  const updated = prev.layoutBlocks.map(b =>
+                    b.id === cData.blockId
+                      ? { ...b, chartItems: (b.chartItems || []).filter(c => c.id !== cData.chartId) }
+                      : b
+                  );
+                  const safeTarget = Math.max(0, Math.min(updated.length, targetIndex));
+                  updated.splice(safeTarget, 0, newGridBlock);
+                  return { ...prev, layoutBlocks: updated };
+                });
+                setActiveBlockId(newGridId);
+                setActiveChartSelection({ blockId: newGridId, chartId: movingChart.id });
+              }
+            } catch {}
+            setReorderChartDrag(null);
+            setDragOverChartIndex(null);
+            return;
           }
         }}
         style={{
@@ -1466,6 +1523,61 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
     }));
   };
 
+  const reorderChartInBlock = (blockId: string, fromIndex: number, toIndex: number) => {
+    if (fromIndex === toIndex) return;
+    setTemplate(prev => ({
+      ...prev,
+      layoutBlocks: prev.layoutBlocks.map(b => {
+        if (b.id !== blockId || !b.chartItems) return b;
+        return {
+          ...b,
+          chartItems: reorderArray(b.chartItems, fromIndex, toIndex)
+        };
+      })
+    }));
+  };
+
+  const moveChartBetweenBlocks = (fromBlockId: string, toBlockId: string, chartId: string, targetIndex?: number) => {
+    if (fromBlockId === toBlockId) return;
+    setTemplate(prev => {
+      let movedChart: ReportChartItemConfig | null = null;
+      prev.layoutBlocks.forEach(b => {
+        if (b.id === fromBlockId && b.chartItems) {
+          const found = b.chartItems.find(c => c.id === chartId);
+          if (found) movedChart = found;
+        }
+      });
+      if (!movedChart) return prev;
+      const targetChart = movedChart;
+
+      const blocks = prev.layoutBlocks.map(b => {
+        if (b.id === fromBlockId) {
+          return {
+            ...b,
+            chartItems: (b.chartItems || []).filter(c => c.id !== chartId)
+          };
+        }
+        if (b.id === toBlockId) {
+          const current = (b.chartItems || []).filter(c => c.id !== chartId);
+          if (targetIndex === undefined || targetIndex < 0 || targetIndex >= current.length) {
+            return {
+              ...b,
+              chartItems: [...current, targetChart]
+            };
+          }
+          const next = [...current];
+          next.splice(targetIndex, 0, targetChart);
+          return {
+            ...b,
+            chartItems: next
+          };
+        }
+        return b;
+      });
+      return { ...prev, layoutBlocks: blocks };
+    });
+  };
+
   const updateRuleOverride = (fieldId: string, updates: any) => {
     setTemplate(prev => {
       // 1. Tra cứu khối gốc trong Form để xác định chính xác loại khối và tập trường
@@ -1843,7 +1955,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
   );
   const hierarchyGroups = React.useMemo(() => groupFieldsByHierarchy(filteredFormFields), [filteredFormFields]);
 
-  const handleInsertChartIntoInfoGrid = (chartType: 'RADAR' | 'BAR', targetBlockId?: string) => {
+  const handleInsertChartIntoInfoGrid = (chartType: 'RADAR' | 'BAR', targetBlockId?: string, targetInsertIndex?: number) => {
     if (isLocked || activeCanvasTab === 'form') return;
     const newChart = chartType === 'RADAR' ? createDefaultRadarChartConfig() : createDefaultBarChartConfig();
     const resolvedBlockId = targetBlockId || (
@@ -1873,10 +1985,18 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
         boundFieldIds: [],
         chartItems: [newChart]
       };
-      setTemplate(prev => ({
-        ...prev,
-        layoutBlocks: [...prev.layoutBlocks, newGridBlock]
-      }));
+      setTemplate(prev => {
+        const blocks = [...prev.layoutBlocks];
+        if (targetInsertIndex !== undefined && targetInsertIndex >= 0 && targetInsertIndex <= blocks.length) {
+          blocks.splice(targetInsertIndex, 0, newGridBlock);
+        } else {
+          blocks.push(newGridBlock);
+        }
+        return {
+          ...prev,
+          layoutBlocks: blocks
+        };
+      });
       setActiveBlockId(newGridId);
       setSelectedFieldId(null);
       setActiveChartSelection({ blockId: newGridId, chartId: newChart.id });
@@ -3346,6 +3466,14 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                         if (blockDragOverIndex !== targetIdx) setBlockDragOverIndex(targetIdx);
                         return;
                       }
+                      if (e.dataTransfer.types.includes('application/x-report-chart-item-reorder')) {
+                        if (block.type === 'INFO_GRID') {
+                          e.preventDefault();
+                          e.dataTransfer.dropEffect = 'move';
+                          if (dragOverBlockId !== block.id) setDragOverBlockId(block.id);
+                        }
+                        return;
+                      }
                       if (isDroppable) {
                         e.preventDefault();
                         e.dataTransfer.dropEffect = 'copy';
@@ -3394,6 +3522,22 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                           }
                           setReorderDrag(null);
                           setDragOverIndex(null);
+                          return;
+                        }
+                        const chartItemReorderRaw = e.dataTransfer.getData('application/x-report-chart-item-reorder');
+                        if (chartItemReorderRaw) {
+                          try {
+                            const cData = JSON.parse(chartItemReorderRaw);
+                            if (cData.blockId !== block.id && block.type === 'INFO_GRID') {
+                              moveChartBetweenBlocks(cData.blockId, block.id, cData.chartId);
+                              setActiveBlockId(block.id);
+                              setActiveChartSelection({ blockId: block.id, chartId: cData.chartId });
+                            }
+                          } catch (err) {
+                            console.error(err);
+                          }
+                          setReorderChartDrag(null);
+                          setDragOverChartIndex(null);
                           return;
                         }
                         const groupFieldsRaw = e.dataTransfer.getData('application/x-report-group-fields');
@@ -3489,7 +3633,7 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                         zIndex: 5
                       }}
                     >
-                      {block.type}
+                      {block.type === 'INFO_GRID' ? (block.chartItems && block.chartItems.length > 0 && (!block.boundFieldIds || block.boundFieldIds.length === 0) ? 'BIỂU ĐỒ' : block.chartItems && block.chartItems.length > 0 ? 'LƯỚI & BIỂU ĐỒ' : 'INFO_GRID') : block.type}
                     </div>
 
                     {/* Block Toolbar */}
@@ -3867,34 +4011,129 @@ export const ReportBuilder: React.FC<ReportBuilderProps> = ({
                                   </div>
                                 );
                               })}
-                              {(block.chartItems || []).map(chart => {
+                              {(block.chartItems || []).map((chart, cIdx) => {
                                 const isChartSelected = activeChartSelection?.blockId === block.id && activeChartSelection?.chartId === chart.id;
-                                return chart.chartType === 'RADAR' ? (
-                                  <RadarChartBlock
+                                const isThisChartDragging = reorderChartDrag?.blockId === block.id && reorderChartDrag?.fromIndex === cIdx;
+                                const isThisChartDragOver = dragOverChartIndex?.blockId === block.id && dragOverChartIndex?.index === cIdx;
+
+                                return (
+                                  <div
                                     key={chart.id}
-                                    chart={chart}
-                                    isSelected={isChartSelected}
-                                    onSelect={(e: React.MouseEvent) => {
+                                    draggable={true}
+                                    onDragStart={(e) => {
                                       e.stopPropagation();
-                                      setActiveChartSelection({ blockId: block.id, chartId: chart.id });
-                                      setActiveBlockId(block.id);
-                                      setSelectedFieldId(null);
-                                      setRightTab('properties');
+                                      e.dataTransfer.setData('application/x-report-chart-item-reorder', JSON.stringify({ chartId: chart.id, blockId: block.id, fromIndex: cIdx }));
+                                      e.dataTransfer.effectAllowed = 'move';
+                                      setReorderChartDrag({ blockId: block.id, fromIndex: cIdx, chartId: chart.id });
                                     }}
-                                  />
-                                ) : (
-                                  <BarChartBlock
-                                    key={chart.id}
-                                    chart={chart}
-                                    isSelected={isChartSelected}
-                                    onSelect={(e: React.MouseEvent) => {
-                                      e.stopPropagation();
-                                      setActiveChartSelection({ blockId: block.id, chartId: chart.id });
-                                      setActiveBlockId(block.id);
-                                      setSelectedFieldId(null);
-                                      setRightTab('properties');
+                                    onDragEnd={() => {
+                                      setReorderChartDrag(null);
+                                      setDragOverChartIndex(null);
                                     }}
-                                  />
+                                    onDragOver={(e) => {
+                                      if (e.dataTransfer.types.includes('application/x-report-chart-item-reorder')) {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        e.dataTransfer.dropEffect = 'move';
+                                        if (dragOverChartIndex?.blockId !== block.id || dragOverChartIndex?.index !== cIdx) {
+                                          setDragOverChartIndex({ blockId: block.id, index: cIdx });
+                                        }
+                                      }
+                                    }}
+                                    onDragLeave={(e) => {
+                                      if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+                                      if (dragOverChartIndex?.index === cIdx) setDragOverChartIndex(null);
+                                    }}
+                                    onDrop={(e) => {
+                                      const chartReorderRaw = e.dataTransfer.getData('application/x-report-chart-item-reorder');
+                                      if (chartReorderRaw) {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        try {
+                                          const data = JSON.parse(chartReorderRaw);
+                                          if (data.blockId === block.id) {
+                                            reorderChartInBlock(block.id, data.fromIndex, cIdx);
+                                          } else {
+                                            moveChartBetweenBlocks(data.blockId, block.id, data.chartId, cIdx);
+                                          }
+                                        } catch (err) {
+                                          console.error(err);
+                                        }
+                                        setReorderChartDrag(null);
+                                        setDragOverChartIndex(null);
+                                        setActiveBlockId(block.id);
+                                        setActiveChartSelection({ blockId: block.id, chartId: chart.id });
+                                      }
+                                    }}
+                                    style={{
+                                      position: 'relative',
+                                      border: isThisChartDragOver
+                                        ? '2px solid var(--primary)'
+                                        : isChartSelected
+                                        ? '2px solid var(--primary)'
+                                        : '1px dashed #cbd5e1',
+                                      borderRadius: '6px',
+                                      padding: '4px',
+                                      background: isThisChartDragOver
+                                        ? '#ccfbf1'
+                                        : isChartSelected
+                                        ? 'rgba(13, 148, 136, 0.03)'
+                                        : '#ffffff',
+                                      opacity: isThisChartDragging ? 0.35 : 1,
+                                      transition: 'all 0.15s ease'
+                                    }}
+                                  >
+                                    {/* Chart Drag Handle */}
+                                    <div
+                                      style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        padding: '2px 4px',
+                                        marginBottom: '2px',
+                                        borderBottom: '1px solid #f1f5f9',
+                                        fontSize: '0.68rem',
+                                        color: '#64748b',
+                                        fontWeight: 600,
+                                        cursor: 'grab'
+                                      }}
+                                      title="Kéo thả để sắp xếp lại biểu đồ"
+                                    >
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                        <GripVertical size={11} />
+                                        <span>{chart.chartType === 'RADAR' ? '🕸 Radar' : '📊 Bar'} #{cIdx + 1}</span>
+                                      </div>
+                                      {isChartSelected && (
+                                        <span style={{ fontSize: '0.62rem', color: 'var(--primary)', fontWeight: 700 }}>ĐANG CHỌN</span>
+                                      )}
+                                    </div>
+
+                                    {chart.chartType === 'RADAR' ? (
+                                      <RadarChartBlock
+                                        chart={chart}
+                                        isSelected={isChartSelected}
+                                        onSelect={(e: React.MouseEvent) => {
+                                          e.stopPropagation();
+                                          setActiveChartSelection({ blockId: block.id, chartId: chart.id });
+                                          setActiveBlockId(block.id);
+                                          setSelectedFieldId(null);
+                                          setRightTab('properties');
+                                        }}
+                                      />
+                                    ) : (
+                                      <BarChartBlock
+                                        chart={chart}
+                                        isSelected={isChartSelected}
+                                        onSelect={(e: React.MouseEvent) => {
+                                          e.stopPropagation();
+                                          setActiveChartSelection({ blockId: block.id, chartId: chart.id });
+                                          setActiveBlockId(block.id);
+                                          setSelectedFieldId(null);
+                                          setRightTab('properties');
+                                        }}
+                                      />
+                                    )}
+                                  </div>
                                 );
                               })}
                               {/* Column-Aware Empty & Drag-Drop Slots */}
