@@ -40,6 +40,24 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 ## Nhật ký Phiên
 
+### 2026-09-30 — Tab Forms Column Refinement & Last Updated Sorting
+
+**Scope:** 1 source file (`src/components/Dashboard.tsx`) + 1 design doc (`DESIGN_PLATFORM_SHELL.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa | 1 |
+| Lượt edit sửa lỗi (rework) | 0 (sửa chính xác 100% không phát sinh lỗi) |
+| Số lần build | 2 (`npx tsc --noEmit` pass 100%, `npm run build` pass 8.56s) |
+| Lần build đầu thành công? | Có |
+
+**Kết quả đạt được:**
+- **Lược bỏ cột Work Step & Dead-code Pruning:** Loại bỏ hoàn toàn cột Work Step chiếm dụng không gian và dọn dẹp toàn bộ dữ liệu thừa (`workStepTitle`, `procSteps`, `stepIdx`) tuân thủ Rule 4.2.
+- **Làm sạch cột Version:** Bỏ chuỗi ngày tháng `(DD/MM/YYYY)` trong option `<select>` và badge phiên bản đơn, loại bỏ hoàn toàn hiện tượng tràn/vỡ dòng phiên bản.
+- **Thêm cột Last Updated:** Căn giữa, hiển thị icon `<Calendar size={11} />` kèm ngày định dạng `vi-VN` theo phiên bản biểu mẫu đang được chọn.
+- **Sắp xếp theo Last Updated (Mới nhất lên trên cùng):** Tự động sắp xếp các form trong từng nhóm quy trình theo thời điểm cập nhật gần nhất, đồng thời sắp xếp các nhóm quy trình (kể cả Standalone Forms) theo timestamp của biểu mẫu mới nhất để nhóm và biểu mẫu vừa sửa luôn xuất hiện ở đầu trang.
+- **Tái cân bằng tỷ lệ độ rộng (100%):** `Form ID (15%)` | `Form Title (37%)` | `Version (12%)` | `Status (10%)` | `Last Updated (14%)` | `Actions (12%)`.
+
 ### 2026-09-30 — Process-Centric Accordion List View in Tab Forms (Option 1)
 
 **Scope:** 1 source file (`src/components/Dashboard.tsx`) + 1 design doc (`DESIGN_PLATFORM_SHELL.md`)

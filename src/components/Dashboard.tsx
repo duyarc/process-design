@@ -373,7 +373,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
       processId: string;
       processTitle: string;
       status?: string;
-      forms: Array<{ form: any; workStepTitle: string }>;
+      latestFormTimestamp: number;
+      forms: Array<{ form: any }>;
     }> = [];
 
     activeProcs.forEach(proc => {
@@ -381,30 +382,24 @@ export const Dashboard: React.FC<DashboardProps> = ({
         return;
       }
 
-      const procSteps = proc.steps ? (typeof proc.steps === 'string' ? JSON.parse(proc.steps) : proc.steps) : [];
-      const matchedForms: Array<{ form: any; workStepTitle: string }> = [];
+      const matchedForms: Array<{ form: any }> = [];
 
       filteredFormsList.forEach(form => {
         const isLinked = form.linkedProcesses.some((lp: any) => lp.id === proc.id);
         if (!isLinked) return;
-
-        const stepIdx = procSteps.findIndex((s: any) => 
-          (s.formNames && s.formNames.includes(form.formId)) || s.formName === form.formId
-        );
-        let workStepTitle = 'General Workflow';
-        if (stepIdx >= 0) {
-          const s = procSteps[stepIdx];
-          workStepTitle = s.title || s.name || `Step ${stepIdx + 1}`;
-        }
-
-        matchedForms.push({ form, workStepTitle });
+        matchedForms.push({ form });
       });
 
       if (matchedForms.length > 0) {
+        // Sort forms within group descending by latest update timestamp
+        matchedForms.sort((a, b) => getFormTimestamp(b.form) - getFormTimestamp(a.form));
+        const latestTs = getFormTimestamp(matchedForms[0].form);
+
         groupsList.push({
           processId: proc.id,
           processTitle: proc.title,
           status: proc.status || 'Active',
+          latestFormTimestamp: latestTs,
           forms: matchedForms
         });
       }
@@ -413,14 +408,24 @@ export const Dashboard: React.FC<DashboardProps> = ({
     if (formProcessFilter === 'ALL' || formProcessFilter === 'unlinked') {
       const unlinkedForms = filteredFormsList.filter(form => form.linkedProcesses.length === 0);
       if (unlinkedForms.length > 0) {
+        const sortedUnlinked = [...unlinkedForms].sort((a, b) => getFormTimestamp(b) - getFormTimestamp(a));
+        const latestTs = getFormTimestamp(sortedUnlinked[0]);
         groupsList.push({
           processId: 'unlinked',
           processTitle: 'Standalone Forms (Biểu mẫu độc lập)',
           status: undefined,
-          forms: unlinkedForms.map(form => ({ form, workStepTitle: '—' }))
+          latestFormTimestamp: latestTs,
+          forms: sortedUnlinked.map(form => ({ form }))
         });
       }
     }
+
+    // Sort process groups descending so the group with the most recently modified form stays on top
+    groupsList.sort((a, b) => {
+      const diff = b.latestFormTimestamp - a.latestFormTimestamp;
+      if (diff !== 0) return diff;
+      return a.processTitle.localeCompare(b.processTitle);
+    });
 
     return groupsList;
   }, [groups, selectedProcessVersions, formProcessFilter, filteredFormsList]);
@@ -1331,21 +1336,24 @@ export const Dashboard: React.FC<DashboardProps> = ({
                           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                             <thead>
                               <tr style={{ borderBottom: '1px solid var(--neutral-border)', background: '#fafbfc', color: 'var(--text-secondary)', fontSize: '0.78rem' }}>
-                                <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '14%' }}>Form ID</th>
-                                <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '32%' }}>Form Title</th>
-                                <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '22%' }}>Work Step</th>
-                                <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '10%' }}>Version</th>
+                                <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '15%' }}>Form ID</th>
+                                <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '37%' }}>Form Title</th>
+                                <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '12%' }}>Version</th>
                                 <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '10%' }}>Status</th>
+                                <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '14%' }}>Last Updated</th>
                                 <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '12%' }}>Actions</th>
                               </tr>
                             </thead>
                             <tbody>
-                              {group.forms.map(({ form, workStepTitle }) => {
+                              {group.forms.map(({ form }) => {
                         const status = form.status || 'DRAFT';
                         const colors = status === 'ACTIVE' 
                           ? { bg: '#f0fdf4', text: '#15803d', border: '#bbf7d0' } 
                           : { bg: '#fffbeb', text: '#b45309', border: '#fde68a' };
                         const displayStatus = status;
+
+                        const rawDate = form.rawRecord?.updated_at || form.rawRecord?.updatedAt || form.rawRecord?.created_at;
+                        const formattedDate = rawDate ? new Date(rawDate).toLocaleDateString('vi-VN') : '—';
 
                         return (
                           <tr 
@@ -1362,25 +1370,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
                             </td>
                             <td style={{ padding: '0.65rem 0.75rem', verticalAlign: 'middle', fontWeight: 600, color: 'var(--text-primary)' }}>
                               {form.formTitle}
-                            </td>
-                            <td style={{ padding: '0.65rem 0.75rem', verticalAlign: 'middle', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                              {workStepTitle === '—' ? (
-                                <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>—</span>
-                              ) : (
-                                <span style={{ 
-                                  display: 'inline-flex', 
-                                  alignItems: 'center', 
-                                  padding: '0.15rem 0.45rem', 
-                                  fontSize: '0.75rem', 
-                                  borderRadius: '4px', 
-                                  background: '#f8fafc', 
-                                  color: 'var(--text-primary)', 
-                                  border: '1px solid #e2e8f0',
-                                  fontWeight: 500
-                                }}>
-                                  {workStepTitle}
-                                </span>
-                              )}
                             </td>
                             <td style={{ padding: '0.6rem 0.75rem', textAlign: 'center', verticalAlign: 'middle' }}>
                               {formsGroupedById[form.formId] && (
@@ -1422,35 +1411,27 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                     >
                                       {formsGroupedById[form.formId]
                                         .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
-                                        .map((vOpt: any) => {
-                                          let displayOptVersion = vOpt.version;
-                                          try {
-                                            const updateDate = new Date(vOpt.updated_at).toLocaleDateString('vi-VN');
-                                            displayOptVersion = `${vOpt.version} (${updateDate})`;
-                                          } catch (_) {}
-                                          return (
-                                            <option key={vOpt.id || vOpt.version} value={vOpt.version}>
-                                              {displayOptVersion}
-                                            </option>
-                                          );
-                                        })
+                                        .map((vOpt: any) => (
+                                          <option key={vOpt.id || vOpt.version} value={vOpt.version}>
+                                            {vOpt.version}
+                                          </option>
+                                        ))
                                       }
                                     </select>
-                                  ) : (() => {
-                                    const singleForm = formsGroupedById[form.formId][0];
-                                    let displaySingleVersion = singleForm.version;
-                                    try {
-                                      const updateDate = new Date(singleForm.updated_at).toLocaleDateString('vi-VN');
-                                      displaySingleVersion = `${singleForm.version} (${updateDate})`;
-                                    } catch (_) {}
-                                    return <span style={{ color: 'var(--text-primary)' }}>{displaySingleVersion}</span>;
-                                  })()}
+                                  ) : (
+                                    <span style={{ color: 'var(--text-primary)' }}>{formsGroupedById[form.formId][0].version}</span>
+                                  )}
                                 </div>
                               )}
                             </td>
                             <td style={{ padding: '0.6rem 0.75rem', textAlign: 'center', verticalAlign: 'middle' }}>
                               <span className="badge" style={{ backgroundColor: colors.bg, color: colors.text, border: `1px solid ${colors.border}`, textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 700, padding: '0.1rem 0.4rem', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', margin: 0 }}>
                                 {displayStatus}
+                              </span>
+                            </td>
+                            <td style={{ padding: '0.6rem 0.75rem', textAlign: 'center', verticalAlign: 'middle', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                                <Calendar size={11} /> {formattedDate}
                               </span>
                             </td>
                             <td style={{ padding: '0.55rem 0.75rem', textAlign: 'center', verticalAlign: 'middle', width: '120px' }} onClick={e => e.stopPropagation()}>
