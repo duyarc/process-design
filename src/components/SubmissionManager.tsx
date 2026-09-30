@@ -29,19 +29,34 @@ interface SubmissionManagerProps {
   initialFormFilter?: string | null;
   isEmbedded?: boolean;
   layoutMode?: 'grid' | 'list';
+  cachedProcesses?: Process[];
   onOpenReport?: (submissionId: string) => void;
   onOpenReportBuilder?: (formId: string) => void;
   onViewingChange?: (isViewing: boolean) => void;
   onOpenFormFiller?: (processId: string, formName: string) => void;
 }
 
-export default function SubmissionManager({ onBack, initialFormFilter, isEmbedded = false, onOpenReport, onOpenReportBuilder, onViewingChange, onOpenFormFiller }: SubmissionManagerProps) {
+export default function SubmissionManager({ onBack, initialFormFilter, isEmbedded = false, cachedProcesses, onOpenReport, onOpenReportBuilder, onViewingChange, onOpenFormFiller }: SubmissionManagerProps) {
   const { currentUser } = useAuth();
   
-  // Data States
-  const [submissions, setSubmissions] = useState<Submission[]>([]);
-  const [processes, setProcesses] = useState<Process[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Data States — SWR: init from cache for instant render, revalidate in background
+  const [submissions, setSubmissions] = useState<Submission[]>(() => {
+    try {
+      const cached = sessionStorage.getItem('swr_submissions');
+      return cached ? JSON.parse(cached) : [];
+    } catch { return []; }
+  });
+  const [processes] = useState<Process[]>(() => {
+    if (cachedProcesses && cachedProcesses.length > 0) return cachedProcesses;
+    try {
+      const cached = sessionStorage.getItem('swr_processes');
+      return cached ? JSON.parse(cached) : [];
+    } catch { return []; }
+  });
+  const [loading, setLoading] = useState(() => {
+    try { return !sessionStorage.getItem('swr_submissions'); }
+    catch { return true; }
+  });
   
   // Selected Detail View
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
@@ -105,30 +120,21 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
     return () => clearTimeout(timer);
   }, [toast]);
 
-  // 1. Fetch data from backend
-  const fetchData = async () => {
+  // 1. Fetch data from backend (light endpoint — no form_data blob)
+  const fetchData = async (isBackground = false) => {
     try {
-      setLoading(true);
+      if (!isBackground) {
+        setLoading(true);
+      }
       setFetchError(null);
       
-      // Fetch submissions & processes in parallel — processes ready before first render
-      const [subRes, procRes] = await Promise.all([
-        fetch('/api/submissions'),
-        fetch('/api/processes')
-      ]);
+      const subRes = await fetch('/api/submissions');
       if (!subRes.ok) throw new Error('Failed to fetch submissions');
+      const subData: any[] = await subRes.json();
       
-      const [subData, procData]: [any[], Process[]] = await Promise.all([
-        subRes.json(),
-        procRes.ok ? procRes.json() : Promise.resolve([])
-      ]);
-      
-      // Parse JSON columns and normalize snake_case properties from DB
+      // Parse/normalize — light response: no formData, mediaUrls, accessToken
       const parsedSubs: Submission[] = subData.map((sub: any) => {
-        const formDataRaw = sub.formData || sub.form_data;
-        const mediaUrlsRaw = sub.mediaUrls || sub.media_urls;
         const signoffRaw = sub.supervisorSignoff || sub.supervisor_signoff;
-
         return {
           id: sub.id,
           processId: sub.processId || sub.process_id,
@@ -137,25 +143,45 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
           operatorId: sub.operatorId || sub.operator_id || 'N/A',
           status: sub.status,
           submittedAt: sub.submittedAt || sub.submitted_at,
-          formData: typeof formDataRaw === 'string' ? JSON.parse(formDataRaw) : (formDataRaw || []),
-          mediaUrls: typeof mediaUrlsRaw === 'string' ? JSON.parse(mediaUrlsRaw) : (mediaUrlsRaw || []),
+          formData: [],
+          mediaUrls: [],
           supervisorSignoff: typeof signoffRaw === 'string' ? JSON.parse(signoffRaw) : signoffRaw
         };
       });
       setSubmissions(parsedSubs);
-      setProcesses(procData);
+      try { sessionStorage.setItem('swr_submissions', JSON.stringify(parsedSubs)); } catch (e) { /* quota */ }
     } catch (err: any) {
       console.error(err);
       setFetchError(err?.message || 'Error fetching submission logs');
-      setToast({ message: 'Không thể tải nhật ký phiếu. Đang thử kết nối lại...', type: 'error' });
+      if (!isBackground) {
+        setToast({ message: 'Không thể tải nhật ký phiếu. Đang thử kết nối lại...', type: 'error' });
+      }
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchData();
+    const hasCache = !!sessionStorage.getItem('swr_submissions');
+    fetchData(hasCache);
   }, []);
+
+  // Lazy-fetch full submission (with formData) for detail/print/copy
+  const fetchFullSubmission = async (sub: Submission): Promise<Submission> => {
+    try {
+      const res = await fetch(`/api/submissions/${encodeURIComponent(sub.id)}`);
+      if (!res.ok) throw new Error('Failed to fetch submission detail');
+      const full = await res.json();
+      return {
+        ...sub,
+        formData: full.formData || [],
+        mediaUrls: full.mediaUrls || [],
+        accessToken: full.accessToken || full.access_token
+      };
+    } catch {
+      return sub; // fallback to light object
+    }
+  };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -166,6 +192,16 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  // Lazy-fetch formData when detail panel is opened (light list has formData=[])
+  useEffect(() => {
+    if (!selectedSubmission || selectedSubmission.formData.length > 0) return;
+    let cancelled = false;
+    fetchFullSubmission(selectedSubmission).then(full => {
+      if (!cancelled) setSelectedSubmission(full);
+    });
+    return () => { cancelled = true; };
+  }, [selectedSubmission?.id]);
 
   // Date format helper: DD/MM/YYYY only (no time)
   const formatDateOnly = (dateString?: string) => {
@@ -182,29 +218,38 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
     }
   };
 
-  // Find linked Process object dynamically
+  // O4: Pre-build formId→Process lookup map (parse workflowFormsData once)
+  const processLookupMap = useMemo(() => {
+    const map = new Map<string, Process>();
+    const idMap = new Map<string, Process>();
+    for (const proc of processes) {
+      if (proc.id === 'unlinked') continue;
+      idMap.set(proc.id, proc);
+      let wfd = proc.workflowFormsData;
+      if (typeof wfd === 'string') {
+        try { wfd = JSON.parse(wfd); } catch { continue; }
+      }
+      if (!wfd) continue;
+      for (const [fName, fDataRaw] of Object.entries(wfd)) {
+        const fData = fDataRaw as { formId?: string; formTitle?: string };
+        map.set(fName.toLowerCase(), proc);
+        if (fData.formId) map.set(fData.formId.toLowerCase(), proc);
+        if (fData.formTitle) map.set(fData.formTitle.toLowerCase(), proc);
+      }
+    }
+    // Also index by process ID for fallback
+    for (const [id, proc] of idMap) map.set(`__pid__${id}`, proc);
+    return map;
+  }, [processes]);
+
+  // Find linked Process object — O(1) via lookup map
   const getLinkedProcess = (procId: string, formId?: string): Process | null => {
     if (formId) {
-      const target = formId.toLowerCase();
-      const linkedProc = processes.find(proc => {
-        if (proc.id === 'unlinked') return false;
-        let wfd = proc.workflowFormsData;
-        if (typeof wfd === 'string') {
-          try { wfd = JSON.parse(wfd); } catch { return false; }
-        }
-        if (!wfd) return false;
-        return Object.entries(wfd).some(([fName, fDataRaw]) => {
-          const fData = fDataRaw as { formId?: string; formTitle?: string };
-          return fName.toLowerCase() === target || 
-                 (fData.formId && fData.formId.toLowerCase() === target) ||
-                 (fData.formTitle && fData.formTitle.toLowerCase() === target);
-        });
-      });
-      if (linkedProc) return linkedProc;
+      const found = processLookupMap.get(formId.toLowerCase());
+      if (found) return found;
     }
     if (procId && procId !== 'unlinked') {
-      const p = processes.find(proc => proc.id === procId);
-      if (p) return p;
+      return processLookupMap.get(`__pid__${procId}`) || null;
     }
     return null;
   };
@@ -488,7 +533,7 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
           <button 
             type="button" 
             className="btn btn-secondary" 
-            onClick={fetchData}
+            onClick={() => fetchData()}
             style={{ fontSize: '0.85rem' }}
           >
             Refresh Logs
@@ -562,7 +607,7 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
             <button 
               type="button" 
               className="btn btn-secondary btn-sm"
-              onClick={fetchData}
+              onClick={() => fetchData()}
               style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
             >
               Thử lại
@@ -868,9 +913,10 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
 
                                           <button
                                             type="button"
-                                            onClick={() => {
-                                              setPrintSubmission(sub);
+                                            onClick={async () => {
                                               setActiveActionMenuId(null);
+                                              const full = await fetchFullSubmission(sub);
+                                              setPrintSubmission(full);
                                             }}
                                             style={{
                                               padding: '0.5rem 0.75rem',
@@ -1017,7 +1063,12 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
                   type="button"
                   className="btn btn-secondary btn-sm"
                   title="In biểu mẫu (Print)"
-                  onClick={() => setPrintSubmission(selectedSubmission)}
+                  onClick={async () => {
+                    if (selectedSubmission) {
+                      const full = selectedSubmission.formData.length > 0 ? selectedSubmission : await fetchFullSubmission(selectedSubmission);
+                      setPrintSubmission(full);
+                    }
+                  }}
                   style={{ padding: '0.25rem', height: '26px', width: '26px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                 >
                   <Printer size={13} />

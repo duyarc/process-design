@@ -2386,10 +2386,7 @@ app.get('/api/submissions', async (req, res) => {
         s.operator_id,
         s.status,
         s.submitted_at,
-        s.form_data,
-        s.media_urls,
-        s.supervisor_signoff,
-        s.access_token
+        s.supervisor_signoff
       FROM submissions s
       LEFT JOIN LATERAL (
         SELECT process_id FROM process_forms 
@@ -2415,10 +2412,7 @@ app.get('/api/submissions', async (req, res) => {
       operatorId: row.operator_id,
       status: row.status,
       submittedAt: row.submitted_at,
-      formData: typeof row.form_data === 'string' ? JSON.parse(row.form_data) : row.form_data,
-      mediaUrls: typeof row.media_urls === 'string' ? JSON.parse(row.media_urls) : (row.media_urls || []),
-      supervisorSignoff: typeof row.supervisor_signoff === 'string' ? JSON.parse(row.supervisor_signoff) : row.supervisor_signoff,
-      accessToken: row.access_token
+      supervisorSignoff: typeof row.supervisor_signoff === 'string' ? JSON.parse(row.supervisor_signoff) : row.supervisor_signoff
     }));
     res.json(mappedRows);
   } catch (err) {

@@ -40,6 +40,27 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 ## Nhật ký Phiên
 
+### 2026-09-30 — Submissions Tab Performance Optimization (O1+O2+O3+O4)
+
+**Scope:** 3 source files (`server.cjs`, `SubmissionManager.tsx`, `Dashboard.tsx`) + 2 design docs
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa | 3 |
+| Lượt edit sửa lỗi (rework) | 2 (TS6133 `setProcesses`, TS2322 `onClick={fetchData}`) |
+| Số lần build | 2 (`npm run build` fail → fix → pass 10.33s) |
+| Lần build đầu thành công? | Không — 2 lỗi TS do dead code + signature mismatch |
+
+**Kết quả đạt được:**
+- **O1 — Light endpoint:** Loại bỏ `form_data`, `media_urls`, `access_token` khỏi `GET /api/submissions` SELECT. Payload giảm ~90%. Thêm `fetchFullSubmission` lazy-fetch cho detail/print/copy.
+- **O2 — Tái sử dụng processes:** Thêm `cachedProcesses` prop, Dashboard truyền SWR-cached `processes` xuống SubmissionManager, loại bỏ redundant `/api/processes` call.
+- **O3 — SWR cache submissions:** Khởi tạo state từ `sessionStorage('swr_submissions')`, background revalidation khi cache đã có.
+- **O4 — processLookupMap:** `useMemo` pre-parse `workflowFormsData` thành `Map<formId, Process>`, giảm O(N×M) → O(1) per lookup.
+
+**Lỗi gặp phải:**
+- `TS6133`: `setProcesses` thành dead code sau khi loại bỏ `setProcesses(procData)` trong `fetchData` → fix: đổi thành `const [processes]` (Rule 13.10).
+- `TS2322`: `fetchData(isBackground?: boolean)` không khớp `MouseEventHandler` khi dùng trực tiếp làm `onClick={fetchData}` → fix: wrap arrow function `onClick={() => fetchData()}`.
+
 ### 2026-09-30 — Tab Forms Actions Streamlining (Option 1)
 
 **Scope:** 1 source file (`src/components/Dashboard.tsx`) + 1 design doc (`DESIGN_PLATFORM_SHELL.md`)

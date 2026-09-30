@@ -9,7 +9,7 @@
 | **Module Name** | Backend & Persistence |
 | **Status** | Active Development |
 | **Document Version** | 1.2 |
-| **Verified At Commit** | (2026-09-30) — Syntax fix for missing closing braces in POST & PUT submissions, node -c validation; default status = 'SUBMITTED' |
+| **Verified At Commit** | (2026-09-30) — Performance: GET /api/submissions returns metadata-only (removed form_data, media_urls, access_token from SELECT) |
 
 ### Quick File Index
 

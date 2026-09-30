@@ -777,6 +777,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         <SubmissionManager 
           isEmbedded={true} 
           initialFormFilter={initialFormFilter} 
+          cachedProcesses={processes}
           onBack={onClearFormFilter} 
           onOpenReport={onOpenFormReport}
           onOpenReportBuilder={onOpenReportBuilder}
