@@ -7,7 +7,6 @@ import {
   AlertTriangle, 
   Clock, 
   Printer, 
-  Search, 
   Eye,
   CheckCircle2,
   XCircle,
@@ -23,6 +22,7 @@ import {
 import PrintFilledForm from './print/PrintFilledForm';
 import ConfirmModal from './common/ConfirmModal';
 import FormFiller from './FormFiller';
+import DashboardToolbar from './common/DashboardToolbar';
 
 interface SubmissionManagerProps {
   onBack?: () => void;
@@ -544,51 +544,44 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         
         {/* Filters & Actions Toolbar */}
-        <div className="paper-card" style={{ padding: '0.75rem 1rem', display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', gap: '1rem', flex: 1, minWidth: '320px', flexWrap: 'wrap', alignItems: 'center' }}>
-            {/* Search Input */}
-            <div style={{ position: 'relative', flex: 1, minWidth: '220px' }}>
-              <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-              <input 
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Tìm theo mã phiếu, người lập, biểu mẫu..."
-                style={{ padding: '0.45rem 0.6rem 0.45rem 2.25rem', fontSize: '0.85rem', border: '1px solid var(--neutral-border)', borderRadius: '6px', width: '100%', outline: 'none', background: '#fff' }}
-              />
-            </div>
-            
-            {/* Process Filter */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Quy trình:</span>
-              <select 
-                value={processFilter}
-                onChange={(e) => setProcessFilter(e.target.value)}
-                style={{ padding: '0.4rem 0.6rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '6px', background: '#fff', maxWidth: '200px' }}
-              >
-                <option value="ALL">Tất cả quy trình</option>
-                {processes.filter(p => p.id !== 'unlinked').map(p => (
-                  <option key={p.id} value={p.id}>{p.title}</option>
-                ))}
-                <option value="unlinked">Biểu mẫu tự do</option>
-              </select>
-            </div>
+        <DashboardToolbar
+          searchQuery={searchTerm}
+          onSearchChange={setSearchTerm}
+          placeholder="Search submissions by ID, operator, or form..."
+          filters={
+            <>
+              {/* Process Filter */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Process:</span>
+                <select 
+                  value={processFilter}
+                  onChange={(e) => setProcessFilter(e.target.value)}
+                  style={{ padding: '0.4rem 0.6rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '6px', background: '#fff', maxWidth: '200px' }}
+                >
+                  <option value="ALL">All Processes</option>
+                  {processes.filter(p => p.id !== 'unlinked').map(p => (
+                    <option key={p.id} value={p.id}>{p.title}</option>
+                  ))}
+                  <option value="unlinked">Standalone Forms</option>
+                </select>
+              </div>
 
-            {/* Status Filter */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Trạng thái:</span>
-              <select 
-                value={signoffFilter}
-                onChange={(e) => setSignoffFilter(e.target.value as any)}
-                style={{ padding: '0.4rem 0.6rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '6px', background: '#fff' }}
-              >
-                <option value="ALL">Tất cả trạng thái</option>
-                <option value="PENDING">Chờ duyệt</option>
-                <option value="VERIFIED">Đã xác nhận</option>
-              </select>
-            </div>
-          </div>
-        </div>
+              {/* Status Filter */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Status:</span>
+                <select 
+                  value={signoffFilter}
+                  onChange={(e) => setSignoffFilter(e.target.value as any)}
+                  style={{ padding: '0.4rem 0.6rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '6px', background: '#fff' }}
+                >
+                  <option value="ALL">All Status</option>
+                  <option value="PENDING">Pending Review</option>
+                  <option value="VERIFIED">Verified</option>
+                </select>
+              </div>
+            </>
+          }
+        />
 
         {/* Submissions Grouped by Form Template */}
         {loading ? (

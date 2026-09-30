@@ -40,6 +40,23 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 ## Nhật ký Phiên
 
+### 2026-09-30 — Search Bar Cleanup & DashboardToolbar Unification across 4 Tabs
+
+**Scope:** 3 source files (`src/components/common/DashboardToolbar.tsx` [NEW], `Dashboard.tsx`, `SubmissionManager.tsx`) + 2 design docs
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa | 3 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 1 (`npx tsc --noEmit` pass 100%, `npm run build` pass 9.10s) |
+| Lần build đầu thành công? | Có |
+
+**Kết quả đạt được:**
+- **Shared Component `DashboardToolbar`:** Tạo mới component thanh công cụ tìm kiếm và lọc dữ liệu dùng chung tại `src/components/common/DashboardToolbar.tsx`, tích hợp sẵn nút `(✕)` quick-clear, icon search và slots `filters` / `actions`.
+- **100% English Standardization:** Chuẩn hóa toàn bộ placeholder, nhãn bộ lọc và dropdown options sang tiếng Anh (`Search processes...`, `Search forms...`, `Search submissions...`, `Search report templates...`, `Process:`, `Status:`, `All Processes`, `Standalone Forms`, `All Status`, `Pending Review`, `Verified`).
+- **Tab Forms Process Filter:** Bổ sung state `formProcessFilter` và dropdown `Process: [ All Processes ▾ ]` cho Tab Forms, hỗ trợ lọc nhanh biểu mẫu theo quy trình hoặc biểu mẫu tự do.
+- **Dead-Code Pruning:** Xóa sạch import `Search` không dùng tại `Dashboard.tsx` và `SubmissionManager.tsx` (Rule 13.7 & 13.10), đảm bảo `TS6133` = 0.
+
 ### 2026-09-30 — Submissions Tab Performance Optimization (O1+O2+O3+O4)
 
 **Scope:** 3 source files (`server.cjs`, `SubmissionManager.tsx`, `Dashboard.tsx`) + 2 design docs

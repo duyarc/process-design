@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import type { Process, ReportTemplateISO } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { Plus, Search, FileText, Eye, Calendar, Printer, History, PenTool, Edit2, GitBranch, ChevronDown, ChevronUp, Grid, List, SlidersHorizontal, Copy, Check, MoreHorizontal } from 'lucide-react';
+import { Plus, FileText, Eye, Calendar, Printer, History, PenTool, Edit2, GitBranch, ChevronDown, ChevronUp, Grid, List, SlidersHorizontal, Copy, Check, MoreHorizontal } from 'lucide-react';
 import SubmissionManager from './SubmissionManager';
 import { BPMNGuide } from './BPMNGuide';
 import PrintBlankForm from './print/PrintBlankForm';
+import DashboardToolbar from './common/DashboardToolbar';
 import { generateNextFormId, duplicateFormTemplate, linkDuplicatedFormToSteps } from '../utils/formUtils';
 
 interface DashboardProps {
@@ -68,6 +69,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [selectedFormVersions, setSelectedFormVersions] = useState<Record<string, string>>({});
   const [printTemplateData, setPrintTemplateData] = useState<any | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [formProcessFilter, setFormProcessFilter] = useState<string>('ALL');
   const [loading, setLoading] = useState(() => {
     try {
       return !sessionStorage.getItem('swr_processes');
@@ -325,9 +327,22 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   const q = searchQuery.toLowerCase();
   const filteredFormsList = formsList.filter(form => {
-    return form.formTitle.toLowerCase().includes(q) || 
-           form.formId.toLowerCase().includes(q) || 
-           form.linkedProcesses.some((lp: any) => lp.title.toLowerCase().includes(q));
+    // 1. Process filter
+    if (formProcessFilter !== 'ALL') {
+      if (formProcessFilter === 'unlinked') {
+        if (form.linkedProcesses.length > 0) return false;
+      } else {
+        if (!form.linkedProcesses.some((lp: any) => lp.id === formProcessFilter)) return false;
+      }
+    }
+    // 2. Search query text
+    if (q) {
+      const match = form.formTitle.toLowerCase().includes(q) || 
+                    form.formId.toLowerCase().includes(q) || 
+                    form.linkedProcesses.some((lp: any) => lp.title.toLowerCase().includes(q));
+      if (!match) return false;
+    }
+    return true;
   });
   const activeFamilies = filteredFamilies.filter(f => {
     const selectedId = selectedProcessVersions[f.parentId];
@@ -645,28 +660,28 @@ export const Dashboard: React.FC<DashboardProps> = ({
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button
             className={`btn btn-sm ${viewMode === 'processes' ? 'btn-primary' : 'btn-secondary'}`}
-            onClick={() => { onViewModeChange && onViewModeChange('processes'); setSearchQuery(''); onClearFormFilter && onClearFormFilter(); }}
+            onClick={() => { onViewModeChange && onViewModeChange('processes'); setSearchQuery(''); setFormProcessFilter('ALL'); onClearFormFilter && onClearFormFilter(); }}
             style={{ borderRadius: '20px', padding: '0.35rem 1.25rem' }}
           >
             Processes
           </button>
           <button
             className={`btn btn-sm ${viewMode === 'forms' ? 'btn-primary' : 'btn-secondary'}`}
-            onClick={() => { onViewModeChange && onViewModeChange('forms'); setSearchQuery(''); onClearFormFilter && onClearFormFilter(); }}
+            onClick={() => { onViewModeChange && onViewModeChange('forms'); setSearchQuery(''); setFormProcessFilter('ALL'); onClearFormFilter && onClearFormFilter(); }}
             style={{ borderRadius: '20px', padding: '0.35rem 1.25rem' }}
           >
             Forms
           </button>
           <button
             className={`btn btn-sm ${viewMode === 'submissions' ? 'btn-primary' : 'btn-secondary'}`}
-            onClick={() => { onViewModeChange && onViewModeChange('submissions'); setSearchQuery(''); }}
+            onClick={() => { onViewModeChange && onViewModeChange('submissions'); setSearchQuery(''); setFormProcessFilter('ALL'); }}
             style={{ borderRadius: '20px', padding: '0.35rem 1.25rem' }}
           >
             Submissions
           </button>
           <button
             className={`btn btn-sm ${viewMode === 'reports' ? 'btn-primary' : 'btn-secondary'}`}
-            onClick={() => { onViewModeChange && onViewModeChange('reports'); setSearchQuery(''); }}
+            onClick={() => { onViewModeChange && onViewModeChange('reports'); setSearchQuery(''); setFormProcessFilter('ALL'); }}
             style={{ borderRadius: '20px', padding: '0.35rem 1.25rem' }}
           >
             Reports
@@ -725,42 +740,54 @@ export const Dashboard: React.FC<DashboardProps> = ({
       )}
 
       {viewMode !== 'submissions' && viewMode !== 'guide' && (
-        <div className="paper-card" style={{ padding: '0.75rem 1rem', display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '2rem' }}>
-          <div style={{ position: 'relative', flex: 1 }}>
-            <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-            <input
-              type="text"
-              placeholder={
-                viewMode === 'processes' ? "Search processes by title, description or checks..." :
-                viewMode === 'forms' ? "Search forms by name, form ID, or linked process..." :
-                "Search report templates by ID, title, or linked form..."
-              }
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ padding: '0.45rem 0.6rem 0.45rem 2.25rem', fontSize: '0.85rem', border: '1px solid var(--neutral-border)', borderRadius: '6px', width: '100%', outline: 'none', background: '#fff' }}
-            />
-          </div>
-          {hasPermission('design_document') && viewMode === 'processes' && (
-            <button 
-              className="btn btn-primary" 
-              onClick={() => onEditProcess(null)}
-              style={{ flexShrink: 0, margin: 0 }}
-            >
-              <Plus size={18} />
-              New Process
-            </button>
-          )}
-          {hasPermission('design_document') && viewMode === 'reports' && onOpenReportBuilder && (
-            <button 
-              className="btn btn-primary" 
-              onClick={() => onOpenReportBuilder()}
-              style={{ flexShrink: 0, margin: 0 }}
-            >
-              <Plus size={18} />
-              New Report Template
-            </button>
-          )}
-        </div>
+        <DashboardToolbar
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          placeholder={
+            viewMode === 'processes' ? "Search processes by title, description or checks..." :
+            viewMode === 'forms' ? "Search forms by name, ID, or process..." :
+            "Search report templates by ID, title, or form..."
+          }
+          filters={
+            viewMode === 'forms' ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Process:</span>
+                <select
+                  value={formProcessFilter}
+                  onChange={(e) => setFormProcessFilter(e.target.value)}
+                  style={{ padding: '0.4rem 0.6rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '6px', background: '#fff', maxWidth: '200px' }}
+                >
+                  <option value="ALL">All Processes</option>
+                  {processes.filter(p => p.id !== 'unlinked').map(p => (
+                    <option key={p.id} value={p.id}>{p.title}</option>
+                  ))}
+                  <option value="unlinked">Standalone Forms</option>
+                </select>
+              </div>
+            ) : undefined
+          }
+          actions={
+            hasPermission('design_document') && viewMode === 'processes' ? (
+              <button 
+                className="btn btn-primary" 
+                onClick={() => onEditProcess(null)}
+                style={{ margin: 0 }}
+              >
+                <Plus size={18} />
+                New Process
+              </button>
+            ) : hasPermission('design_document') && viewMode === 'reports' && onOpenReportBuilder ? (
+              <button 
+                className="btn btn-primary" 
+                onClick={() => onOpenReportBuilder()}
+                style={{ margin: 0 }}
+              >
+                <Plus size={18} />
+                New Report Template
+              </button>
+            ) : undefined
+          }
+        />
       )}
 
       {error && (

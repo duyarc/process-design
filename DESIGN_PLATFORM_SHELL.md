@@ -9,7 +9,7 @@
 | **Module Name** | Platform Shell |
 | **Status** | Active Development |
 | **Document Version** | 1.1 |
-| **Verified At Commit** | (2026-09-30) — Dashboard Tab Forms Actions Streamlining: Option 1 implemented (Direct 28x28px buttons: Fill Form, Edit Template / Audit, and Context Dropdown [•••] with In biểu mẫu trắng, PDF export, Duplicate, Report config) verified against source |
+| **Verified At Commit** | (2026-09-30) — Search Bar Cleanup & Unification: DashboardToolbar shared component, 100% English placeholders & actions across all 4 tabs, added Process filter dropdown to Tab Forms |
 
 ### Quick File Index
 
@@ -17,6 +17,7 @@
 |---|---|
 | [`src/App.tsx`](src/App.tsx) | Main orchestrator, routing, layout shell |
 | [`src/components/Dashboard.tsx`](src/components/Dashboard.tsx) | Landing page containing hub views (Processes, Forms, Submissions, Guide) |
+| [`src/components/common/DashboardToolbar.tsx`](src/components/common/DashboardToolbar.tsx) | Shared toolbar with search input, quick-clear button, filters slot, and actions slot |
 | [`src/components/LoginPage.tsx`](src/components/LoginPage.tsx) | Authentication UI (Credentials & Google OAuth) |
 | [`src/components/UserManagement.tsx`](src/components/UserManagement.tsx) | User administration and Role matrix view |
 | [`src/context/AuthContext.tsx`](src/context/AuthContext.tsx) | Auth logic, JWT storage, RBAC definitions |
@@ -208,7 +209,6 @@ lives in `git log`; run `git show <commit>` for the full diff of any entry below
 
 | Date | Commit | Change |
 |---|---|---|
-| 2026-07-24 | 9a6bb9aa | **Fill Form Navigation Fix in Forms Tab:** Connected missing `onOpenFormFiller` prop from `App.tsx` into `<Dashboard />` component and updated `handleFillAction` & `processSelectDialog` in `Dashboard.tsx` to route to online form filler screen (`FormFiller`) when clicking Fill Form (`PenTool`) button, resolving route collision with View Submissions (`History`) button. |
 | 2026-07-28 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Sort Process Families by Last Update Descending:** Added `getFamilyTimestamp` sorting helper in `Dashboard.tsx` to sort process families descending by most recent `lastUpdated` timestamp across all versions, placing recently modified processes at the top of the Dashboard. |
 | 2026-07-28 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Sort Forms List by Last Update Descending in Forms Tab:** Added `getFormTimestamp` sorting logic in `Dashboard.tsx` to sort `formsList` descending by latest `updated_at` timestamp (with tie-breaker by `formTitle` A-Z), placing recently updated form templates at the top of the Forms tab. |
 | 2026-07-09 | `1385a38` | Fix ProcessReader back-navigation by explicitly calling `setPage('dashboard')` — a consequence of state-based routing with no formal router (see Section 7). |
@@ -224,3 +224,4 @@ lives in `git log`; run `git show <commit>` for the full diff of any entry below
 | 2026-09-28 | `CURRENT` | **Direct Report View Routing & SubmissionManager Report Action:** (1) Updated `App.tsx` regex matching and URL resolution to recognize `/f/:formSlug/r/:subId` and `/r/:subId` routes alongside `/s/:subId`, passing `initialTab` (`form` or `report`) to `SubmissionViewer`. (2) Connected `onOpenReportBuilder` callback through `Dashboard.tsx` into `SubmissionManager.tsx` and `FormFiller.tsx`. |
 | 2026-09-30 | `CURRENT` | **Dashboard Submissions Tab Integration:** (1) Suppressed top-right List/Grid toggle buttons when `viewMode === 'submissions'`, establishing 100% list mode for the audit trail. (2) Connected `onOpenFormFiller` prop directly into `<SubmissionManager />` to support 1-click new record creation from form accordion headers. |
 | 2026-09-30 | `CURRENT` | **Tab Forms Actions Streamlining (Option 1):** (1) Streamlined Actions column in Tab Forms List view into 2 direct 28x28px square icon buttons (`[ ✍️ ]` Fill Form, `[ ✏️ ]` Edit Template or `[ 🕒 ]` View Submissions) and 1 context dropdown button (`[ ••• ]`). (2) Dropdown menu houses secondary actions: View Submissions, In biểu mẫu trắng (Print Blank Form), Export PDF, Duplicate Form, and Report Template Builder. (3) Eliminated hover-to-reveal delay (`⋯`), reduced column width from 270px to 120px (12%), expanding Form Title to 32% and Linked Process to 25%. (4) Extracted reusable `handlePrintBlankForm` pure utility reducing duplicate template construction. |
+| 2026-09-30 | `CURRENT` | **Search Bar Cleanup & Unification (`DashboardToolbar`):** (1) Extracted shared `DashboardToolbar` component with standardized 38px height, rounded-6px border, fixed search icon, and 1-click `(✕)` quick-clear button. (2) Standardized 100% English placeholders and action buttons across Processes, Forms, Submissions, Reports. (3) Added `formProcessFilter` state and `Process: [ All Processes ▾ ]` dropdown in Tab Forms to quickly filter forms by linked process or standalone status. (4) Pruned unused `Search` icon imports across `Dashboard.tsx` and `SubmissionManager.tsx`. |
