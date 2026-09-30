@@ -51,6 +51,7 @@ Mỗi interface dùng chung có **đúng một** tài liệu chủ:
 - **4.1 Tách biệt Logic Thuần túy (Pure Utility Extraction — Rule 13.8):** Mọi logic tính toán, mảng (sort, filter, reorder), format, hoặc chuẩn hóa schema KHÔNG phụ thuộc React state/JSX BẮT BUỘC phải tách thành pure function trong module utility (`src/utils/formUtils.ts`, `src/utils/bpmnXmlGenerator.ts`), có types đầy đủ. Component monolith chỉ đảm nhận hiển thị và event delegation.
 - **4.2 Triệt tiêu Mã chết (Dead-Code Pruning — Rule 13.7):** Khi nâng cấp hoặc thay thế tính năng, BẮT BUỘC rà soát toàn bộ call-sites và xóa sạch hàm cũ, state cũ, props, hoặc biến không dùng (`TS6133`) trong cùng 1 commit. Cấm để lại orphaned code.
 - **4.3 Kiểm soát Phình to Monolith (Monolith Guard — Rule 13.9):** Với các file monolith lớn (>3.000 dòng, đặc biệt `FormBuilder.tsx`), khi thêm phân hệ khép kín mới (modal lớn, inspector panel độc lập) có khối lượng dự kiến >150 dòng JSX, BẮT BUỘC tách sub-component riêng (`src/components/form/`). Không tự ý refactor diện rộng ngoài phạm vi task để đảm bảo zero regression.
+- **4.4 Triệt tiêu Biến Destructure (Destructuring Prune — Rule 13.10):** Khi xóa một thuộc tính hoặc biến không còn sử dụng, BẮT BUỘC xóa ngay tên biến đó tại vị trí destructuring (`const { varA, varB } = ...`) và tại hàm trả về (`return { varA }`) trong cùng 1 lần patch để tránh kích hoạt lỗi `TS6133: declared but its value is never read` (do cờ `noUnusedLocals: true`) làm đứt gãy `npm run build`.
 
 ### 5. Quy tắc An toàn khi Sửa mã (Safe Patching Invariants)
 - **5.1 Đọc trước khi viết replacement (Rule 12.1):** Luôn `view_file` đúng vùng cần sửa và copy chính xác whitespace/indentation. CẤM viết `TargetContent` từ trí nhớ.
@@ -99,12 +100,11 @@ flowchart TD
 
 ### 7. Quy trình Native Git Push Chuẩn (Atomic Single Commit)
 - **Ràng buộc bất biến:** Toàn bộ Code + Tài liệu thiết kế + `SESSION_LOG.md` PHẢI được gộp vào **ĐÚNG 1 COMMIT DUY NHẤT**. Tuyệt đối CẤM tạo commit thứ hai sau khi push để triệt tiêu việc kích hoạt deploy dư thừa trên Vercel / CI.
+- **Vệ sinh tiến trình nền & Lock (Process Hygiene — Bắt buộc):** Trên Windows, các tiến trình `git.exe` chạy ngầm có thể giữ file lock khiến `git status` hoặc `git commit` bị treo vĩnh viễn. Bắt buộc dọn dẹp bằng `Stop-Process` trước khi chạy lệnh git.
 - **Lệnh thực thi duy nhất trong PowerShell** (`WaitMsBeforeAsync: 25000` ms):
   ```powershell
-  git commit -a -m "<message>"; git push origin main; git log -n 1 --oneline
+  Stop-Process -Name git -Force -ErrorAction SilentlyContinue; Remove-Item -Path .git\index.lock -Force -ErrorAction SilentlyContinue; git add -A; git commit -m "<message>"; git push origin main; git log -n 1 --oneline
   ```
-- *Nếu có file mới chưa tracked:* `git add <files cụ thể>; git commit -m "..."; git push origin main; git log -n 1 --oneline`.
-- *Tự dọn lock (nếu có sự cố):* `Remove-Item -Path .git\index.lock -Force -ErrorAction SilentlyContinue`.
 
 ---
 
