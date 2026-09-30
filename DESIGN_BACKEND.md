@@ -8,8 +8,8 @@
 |---|---|
 | **Module Name** | Backend & Persistence |
 | **Status** | Active Development |
-| **Document Version** | 1.1 |
-| **Verified At Commit** | (2026-09-28) — GET /api/submissions/:id with token, GET /api/reports/view/:submissionId, and accessToken in GET /api/submissions/view/:id |
+| **Document Version** | 1.2 |
+| **Verified At Commit** | (2026-09-30) — Syntax fix for missing closing braces in POST & PUT submissions, node -c validation; default status = 'SUBMITTED' |
 
 ### Quick File Index
 
@@ -307,3 +307,4 @@ Architectural changes only — schema, endpoints, invariants. UI polish lives in
 | 2026-09-10 | `CURRENT` | **Submissions Amendment Auth & Access Token Exposure:** (1) Added `s.access_token` to `GET /api/submissions` SELECT and response mapping. (2) Enhanced `PUT /api/submissions/:id` JWT check with `{ ignoreExpiration: true }` and fallback secret to support supervisor/admin session longevity. (3) Extended JWT lifetime from `7d` to `90d` on login/registration. |
 | 2026-09-10 | `CURRENT` | **Form Revision History Draft Exclusion & Deduplication:** Updated `GET /api/forms/*formId/history` in `server.cjs` to strictly ignore `status === 'DRAFT'` database rows and deduplicate revision entries by clean version number, returning only authentic published active/retired revisions. |
 | 2026-09-28 | `CURRENT` | **Single Submission Retrieval & Public Report View Endpoints:** Added `GET /api/submissions/:id` (retrieving single submission with `accessToken`, auto-generating token if null) and `GET /api/reports/view/:submissionId` (public token-based endpoint returning `{ submission, formTemplate, reportTemplate }`), and updated `GET /api/submissions/view/:id` to include `accessToken`. |
+| 2026-09-30 | `CURRENT` | **Syntax Restoration & Default Status:** (1) Restored missing closing braces on `if (!dbPool)` guard inside `POST /api/submissions` and `PUT /api/submissions/:id`, eliminating Vercel serverless `SyntaxError: Unexpected token 'catch'` crash. (2) Submissions endpoints now default `status = 'SUBMITTED'` if omitted. |

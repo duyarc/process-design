@@ -2741,6 +2741,7 @@ app.post('/api/submissions', async (req, res) => {
   try {
     if (!dbPool) {
       return res.status(503).json({ error: 'Database connection not available.' });
+    }
     let { id, processId, formId, formVersion, operatorId, status, formData, mediaUrls } = req.body;
     status = status || 'SUBMITTED';
     if (!processId || !formId || !operatorId || !formData) {
@@ -2793,6 +2794,7 @@ app.put('/api/submissions/:id', async (req, res) => {
   try {
     if (!dbPool) {
       return res.status(503).json({ error: 'Database connection not available.' });
+    }
     const { id } = req.params;
     let { processId, formId, formVersion, operatorId, status, formData, mediaUrls, accessToken } = req.body;
     status = status || 'SUBMITTED';

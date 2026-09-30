@@ -42,6 +42,22 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-30 — Hotfix: server.cjs Syntax Error Restoration & node -c Validation
+
+**Scope:** 1 file (`server.cjs`) + 1 design doc (`DESIGN_BACKEND.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa | 1 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 1 (`node -c server.cjs` pass, `npm run build` pass 7.99s) |
+| Lần build đầu thành công? | Có |
+
+**Kết quả đạt được:**
+- **Nguyên nhân sự cố:** Lỗi `SyntaxError: Unexpected token 'catch'` do thiếu dấu đóng ngoặc `}` của khối `if (!dbPool)` tại `POST /api/submissions` và `PUT /api/submissions/:id`. Vì `tsc -b` chỉ quét thư mục `src/`, lỗi cú pháp trong `server.cjs` không bị phát hiện ở bước build client, dẫn đến Vercel Serverless Function bị crash (`FUNCTION_INVOCATION_FAILED`).
+- **Khắc phục:** Đã bổ sung đầy đủ cặp ngoặc `{}` cho cả hai route, kiểm tra cú pháp thành công với `node -c server.cjs`.
+- **Phòng ngừa:** Khi sửa bất kỳ tệp `.cjs` / `.js` nào của backend, bắt buộc chạy `node -c <file>` trước khi build và commit.
+
 ### 2026-09-30 — Option 1 Cleanup: Complete Removal of Legacy QMS Status
 
 **Scope:** 7 files (`src/types.ts`, `server.cjs`, `src/components/SubmissionManager.tsx`, `src/components/FormManager.tsx`, `src/components/FormFiller.tsx`, `src/components/ProcessReader.tsx`, `src/components/print/PrintFilledForm.tsx`) + 1 design doc (`DESIGN_FORM_OPERATIONS.md`) + `.gitignore`
