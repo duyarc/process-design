@@ -9,7 +9,7 @@
 | **Module Name** | Platform Shell |
 | **Status** | Active Development |
 | **Document Version** | 1.1 |
-| **Verified At Commit** | (2026-09-30) — Search Bar Cleanup & Unification: DashboardToolbar shared component, 100% English placeholders & actions across all 4 tabs, added Process filter dropdown to Tab Forms |
+| **Verified At Commit** | (2026-09-30) — Visual Frame Alignment & Toolbar Hoisting: 360px fixed-width search inputs across all 4 tabs, hoisted Submissions toolbar to Dashboard root, unified 1.25rem spacing rhythm |
 
 ### Quick File Index
 
@@ -209,7 +209,6 @@ lives in `git log`; run `git show <commit>` for the full diff of any entry below
 
 | Date | Commit | Change |
 |---|---|---|
-| 2026-07-28 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Sort Process Families by Last Update Descending:** Added `getFamilyTimestamp` sorting helper in `Dashboard.tsx` to sort process families descending by most recent `lastUpdated` timestamp across all versions, placing recently modified processes at the top of the Dashboard. |
 | 2026-07-28 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Sort Forms List by Last Update Descending in Forms Tab:** Added `getFormTimestamp` sorting logic in `Dashboard.tsx` to sort `formsList` descending by latest `updated_at` timestamp (with tie-breaker by `formTitle` A-Z), placing recently updated form templates at the top of the Forms tab. |
 | 2026-07-09 | `1385a38` | Fix ProcessReader back-navigation by explicitly calling `setPage('dashboard')` — a consequence of state-based routing with no formal router (see Section 7). |
 | 2026-08-27 | `CURRENT` | **Clean Path Routing for Form Fill (`/f/:identifier`):** Added direct route resolution in `App.tsx` matching `/f/:identifier`, calling `/api/forms/resolve/:identifier` to render `FormFiller` directly without lengthy query strings. |
@@ -225,3 +224,4 @@ lives in `git log`; run `git show <commit>` for the full diff of any entry below
 | 2026-09-30 | `CURRENT` | **Dashboard Submissions Tab Integration:** (1) Suppressed top-right List/Grid toggle buttons when `viewMode === 'submissions'`, establishing 100% list mode for the audit trail. (2) Connected `onOpenFormFiller` prop directly into `<SubmissionManager />` to support 1-click new record creation from form accordion headers. |
 | 2026-09-30 | `CURRENT` | **Tab Forms Actions Streamlining (Option 1):** (1) Streamlined Actions column in Tab Forms List view into 2 direct 28x28px square icon buttons (`[ ✍️ ]` Fill Form, `[ ✏️ ]` Edit Template or `[ 🕒 ]` View Submissions) and 1 context dropdown button (`[ ••• ]`). (2) Dropdown menu houses secondary actions: View Submissions, In biểu mẫu trắng (Print Blank Form), Export PDF, Duplicate Form, and Report Template Builder. (3) Eliminated hover-to-reveal delay (`⋯`), reduced column width from 270px to 120px (12%), expanding Form Title to 32% and Linked Process to 25%. (4) Extracted reusable `handlePrintBlankForm` pure utility reducing duplicate template construction. |
 | 2026-09-30 | `CURRENT` | **Search Bar Cleanup & Unification (`DashboardToolbar`):** (1) Extracted shared `DashboardToolbar` component with standardized 38px height, rounded-6px border, fixed search icon, and 1-click `(✕)` quick-clear button. (2) Standardized 100% English placeholders and action buttons across Processes, Forms, Submissions, Reports. (3) Added `formProcessFilter` state and `Process: [ All Processes ▾ ]` dropdown in Tab Forms to quickly filter forms by linked process or standalone status. (4) Pruned unused `Search` icon imports across `Dashboard.tsx` and `SubmissionManager.tsx`. |
+| 2026-09-30 | `CURRENT` | **Visual Frame Alignment & Toolbar Hoisting (Direction 1):** (1) Fixed search input width to exactly 360px on `DashboardToolbar`, eliminating width jumping when switching tabs. (2) Hoisted Submissions toolbar to `Dashboard.tsx` root level, rendering on the exact same DOM tier as Processes/Forms/Reports. (3) Standardized vertical spacing rhythm to 1.25rem (20px) from toolbar to content and 1.25rem padding on List table cards across all tabs. |

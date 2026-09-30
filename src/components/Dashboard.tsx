@@ -70,6 +70,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [printTemplateData, setPrintTemplateData] = useState<any | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [formProcessFilter, setFormProcessFilter] = useState<string>('ALL');
+  const [submissionSearchTerm, setSubmissionSearchTerm] = useState(initialFormFilter || '');
+  const [submissionProcessFilter, setSubmissionProcessFilter] = useState<string>('ALL');
+  const [submissionSignoffFilter, setSubmissionSignoffFilter] = useState<'ALL' | 'PENDING' | 'VERIFIED'>('ALL');
+
+  useEffect(() => {
+    if (initialFormFilter) {
+      setSubmissionSearchTerm(initialFormFilter);
+    }
+  }, [initialFormFilter]);
+
   const [loading, setLoading] = useState(() => {
     try {
       return !sessionStorage.getItem('swr_processes');
@@ -502,7 +512,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   const renderProcessListTable = (familiesList: typeof filteredFamilies, isRetired = false) => {
     return (
-      <div className={`paper-card ${isRetired ? '' : 'accent-teal'}`} style={{ padding: '1.5rem', background: isRetired ? '#fafafa' : '#ffffff', border: isRetired ? '1px dashed var(--neutral-border)' : 'none', boxShadow: isRetired ? 'none' : undefined }}>
+      <div className={`paper-card ${isRetired ? '' : 'accent-teal'}`} style={{ padding: '1.25rem', background: isRetired ? '#fafafa' : '#ffffff', border: isRetired ? '1px dashed var(--neutral-border)' : 'none', boxShadow: isRetired ? 'none' : undefined }}>
 
         <div style={{ overflowX: 'auto', border: '1px solid var(--neutral-border)', borderRadius: '6px' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
@@ -739,13 +749,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
       </div>
       )}
 
-      {viewMode !== 'submissions' && viewMode !== 'guide' && (
+      {viewMode !== 'guide' && (
         <DashboardToolbar
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
+          searchQuery={viewMode === 'submissions' ? submissionSearchTerm : searchQuery}
+          onSearchChange={viewMode === 'submissions' ? setSubmissionSearchTerm : setSearchQuery}
           placeholder={
             viewMode === 'processes' ? "Search processes by title, description or checks..." :
             viewMode === 'forms' ? "Search forms by name, ID, or process..." :
+            viewMode === 'submissions' ? "Search submissions by ID, operator, or form..." :
             "Search report templates by ID, title, or form..."
           }
           filters={
@@ -764,6 +775,35 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   <option value="unlinked">Standalone Forms</option>
                 </select>
               </div>
+            ) : viewMode === 'submissions' ? (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Process:</span>
+                  <select 
+                    value={submissionProcessFilter}
+                    onChange={(e) => setSubmissionProcessFilter(e.target.value)}
+                    style={{ padding: '0.4rem 0.6rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '6px', background: '#fff', maxWidth: '200px' }}
+                  >
+                    <option value="ALL">All Processes</option>
+                    {processes.filter(p => p.id !== 'unlinked').map(p => (
+                      <option key={p.id} value={p.id}>{p.title}</option>
+                    ))}
+                    <option value="unlinked">Standalone Forms</option>
+                  </select>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Status:</span>
+                  <select 
+                    value={submissionSignoffFilter}
+                    onChange={(e) => setSubmissionSignoffFilter(e.target.value as any)}
+                    style={{ padding: '0.4rem 0.6rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '6px', background: '#fff' }}
+                  >
+                    <option value="ALL">All Status</option>
+                    <option value="PENDING">Pending Review</option>
+                    <option value="VERIFIED">Verified</option>
+                  </select>
+                </div>
+              </>
             ) : undefined
           }
           actions={
@@ -803,8 +843,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
       ) : viewMode === 'submissions' ? (
         <SubmissionManager 
           isEmbedded={true} 
+          hideToolbar={true}
           initialFormFilter={initialFormFilter} 
           cachedProcesses={processes}
+          externalSearchTerm={submissionSearchTerm}
+          externalProcessFilter={submissionProcessFilter}
+          externalSignoffFilter={submissionSignoffFilter}
           onBack={onClearFormFilter} 
           onOpenReport={onOpenFormReport}
           onOpenReportBuilder={onOpenReportBuilder}
@@ -847,7 +891,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           }
 
           return (
-            <div className="paper-card accent-teal" style={{ padding: '1.5rem' }}>
+            <div className="paper-card accent-teal" style={{ padding: '1.25rem' }}>
               <div style={{ overflowX: 'auto', border: '1px solid var(--neutral-border)', borderRadius: '6px' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                   <thead>
@@ -1100,7 +1144,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         return (
           <>
             {layoutMode === 'list' ? (
-              <div className="paper-card accent-teal" style={{ padding: '1.5rem' }}>
+              <div className="paper-card accent-teal" style={{ padding: '1.25rem' }}>
                 <div style={{ overflowX: 'auto', border: '1px solid var(--neutral-border)', borderRadius: '6px' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                     <thead>

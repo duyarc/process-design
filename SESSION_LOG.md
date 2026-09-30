@@ -40,6 +40,22 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 ## Nhật ký Phiên
 
+### 2026-09-30 — Visual Frame Alignment & Toolbar Hoisting across 4 Tabs (Direction 1)
+
+**Scope:** 3 source files (`src/components/common/DashboardToolbar.tsx`, `SubmissionManager.tsx`, `Dashboard.tsx`) + 2 design docs
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa | 3 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 1 (`npx tsc --noEmit` pass 100%, `npm run build` pass 11.18s) |
+| Lần build đầu thành công? | Có |
+
+**Kết quả đạt được:**
+- **Khóa kích thước Search Input 360px:** Đổi ô tìm kiếm sang `width: 360px, maxWidth: 100%, flexShrink: 0`, đảm bảo kích thước cố định 100% khi chuyển qua lại giữa 4 tab.
+- **Hoisting Toolbar của Submissions:** Đưa `DashboardToolbar` từ bên trong `SubmissionManager` lên root của `Dashboard.tsx`, đồng cấp DOM với Processes/Forms/Reports, loại bỏ phân mảnh tầng thẻ lồng.
+- **Chuẩn hóa nhịp khoảng cách (1.25rem Rhythm):** Quy chuẩn khoảng cách từ thanh Toolbar xuống bảng/danh sách là 1.25rem (20px) và padding viền thẻ bảng là 1.25rem trên cả 4 tab.
+
 ### 2026-09-30 — Search Bar Cleanup & DashboardToolbar Unification across 4 Tabs
 
 **Scope:** 3 source files (`src/components/common/DashboardToolbar.tsx` [NEW], `Dashboard.tsx`, `SubmissionManager.tsx`) + 2 design docs

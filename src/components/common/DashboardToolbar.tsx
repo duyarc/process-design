@@ -26,12 +26,12 @@ export default function DashboardToolbar({
         flexWrap: 'wrap', 
         alignItems: 'center', 
         justifyContent: 'space-between',
-        marginBottom: '1.5rem' 
+        marginBottom: '1.25rem' 
       }}
     >
       <div style={{ display: 'flex', gap: '0.75rem', flex: 1, minWidth: '280px', flexWrap: 'wrap', alignItems: 'center' }}>
-        {/* Search Input Box */}
-        <div style={{ position: 'relative', flex: 1, minWidth: '220px' }}>
+        {/* Search Input Box — Fixed 360px width across all 4 tabs */}
+        <div style={{ position: 'relative', width: '360px', maxWidth: '100%', flexShrink: 0 }}>
           <Search 
             size={16} 
             style={{ 
@@ -95,7 +95,7 @@ export default function DashboardToolbar({
 
       {/* Actions slot */}
       {actions && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0, marginLeft: 'auto' }}>
           {actions}
         </div>
       )}

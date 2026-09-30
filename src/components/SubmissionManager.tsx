@@ -30,13 +30,30 @@ interface SubmissionManagerProps {
   isEmbedded?: boolean;
   layoutMode?: 'grid' | 'list';
   cachedProcesses?: Process[];
+  hideToolbar?: boolean;
+  externalSearchTerm?: string;
+  externalProcessFilter?: string;
+  externalSignoffFilter?: 'ALL' | 'PENDING' | 'VERIFIED';
   onOpenReport?: (submissionId: string) => void;
   onOpenReportBuilder?: (formId: string) => void;
   onViewingChange?: (isViewing: boolean) => void;
   onOpenFormFiller?: (processId: string, formName: string) => void;
 }
 
-export default function SubmissionManager({ onBack, initialFormFilter, isEmbedded = false, cachedProcesses, onOpenReport, onOpenReportBuilder, onViewingChange, onOpenFormFiller }: SubmissionManagerProps) {
+export default function SubmissionManager({ 
+  onBack, 
+  initialFormFilter, 
+  isEmbedded = false, 
+  cachedProcesses, 
+  hideToolbar = false,
+  externalSearchTerm,
+  externalProcessFilter,
+  externalSignoffFilter,
+  onOpenReport, 
+  onOpenReportBuilder, 
+  onViewingChange, 
+  onOpenFormFiller 
+}: SubmissionManagerProps) {
   const { currentUser } = useAuth();
   
   // Data States — SWR: init from cache for instant render, revalidate in background
@@ -100,10 +117,17 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
   const [verificationNotes, setVerificationNotes] = useState('');
   const [signingOff, setSigningOff] = useState(false);
   
-  // Filter States
-  const [searchTerm, setSearchTerm] = useState(initialFormFilter || '');
-  const [signoffFilter, setSignoffFilter] = useState<'ALL' | 'PENDING' | 'VERIFIED'>('ALL');
-  const [processFilter, setProcessFilter] = useState<string>('ALL');
+  // Filter States — prioritize external props when hoisted, fallback to internal states
+  const [internalSearchTerm, setInternalSearchTerm] = useState(initialFormFilter || '');
+  const [internalSignoffFilter, setInternalSignoffFilter] = useState<'ALL' | 'PENDING' | 'VERIFIED'>('ALL');
+  const [internalProcessFilter, setInternalProcessFilter] = useState<string>('ALL');
+
+  const searchTerm = externalSearchTerm !== undefined ? externalSearchTerm : internalSearchTerm;
+  const setSearchTerm = setInternalSearchTerm;
+  const signoffFilter = externalSignoffFilter !== undefined ? externalSignoffFilter : internalSignoffFilter;
+  const setSignoffFilter = setInternalSignoffFilter;
+  const processFilter = externalProcessFilter !== undefined ? externalProcessFilter : internalProcessFilter;
+  const setProcessFilter = setInternalProcessFilter;
 
   // Deletion States
   const [submissionToDelete, setSubmissionToDelete] = useState<Submission | null>(null);
@@ -541,47 +565,49 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
         </div>
       )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
         
-        {/* Filters & Actions Toolbar */}
-        <DashboardToolbar
-          searchQuery={searchTerm}
-          onSearchChange={setSearchTerm}
-          placeholder="Search submissions by ID, operator, or form..."
-          filters={
-            <>
-              {/* Process Filter */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Process:</span>
-                <select 
-                  value={processFilter}
-                  onChange={(e) => setProcessFilter(e.target.value)}
-                  style={{ padding: '0.4rem 0.6rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '6px', background: '#fff', maxWidth: '200px' }}
-                >
-                  <option value="ALL">All Processes</option>
-                  {processes.filter(p => p.id !== 'unlinked').map(p => (
-                    <option key={p.id} value={p.id}>{p.title}</option>
-                  ))}
-                  <option value="unlinked">Standalone Forms</option>
-                </select>
-              </div>
+        {/* Filters & Actions Toolbar (rendered only if not hoisted by parent Dashboard frame) */}
+        {!hideToolbar && (
+          <DashboardToolbar
+            searchQuery={searchTerm}
+            onSearchChange={setSearchTerm}
+            placeholder="Search submissions by ID, operator, or form..."
+            filters={
+              <>
+                {/* Process Filter */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Process:</span>
+                  <select 
+                    value={processFilter}
+                    onChange={(e) => setProcessFilter(e.target.value)}
+                    style={{ padding: '0.4rem 0.6rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '6px', background: '#fff', maxWidth: '200px' }}
+                  >
+                    <option value="ALL">All Processes</option>
+                    {processes.filter(p => p.id !== 'unlinked').map(p => (
+                      <option key={p.id} value={p.id}>{p.title}</option>
+                    ))}
+                    <option value="unlinked">Standalone Forms</option>
+                  </select>
+                </div>
 
-              {/* Status Filter */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Status:</span>
-                <select 
-                  value={signoffFilter}
-                  onChange={(e) => setSignoffFilter(e.target.value as any)}
-                  style={{ padding: '0.4rem 0.6rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '6px', background: '#fff' }}
-                >
-                  <option value="ALL">All Status</option>
-                  <option value="PENDING">Pending Review</option>
-                  <option value="VERIFIED">Verified</option>
-                </select>
-              </div>
-            </>
-          }
-        />
+                {/* Status Filter */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Status:</span>
+                  <select 
+                    value={signoffFilter}
+                    onChange={(e) => setSignoffFilter(e.target.value as any)}
+                    style={{ padding: '0.4rem 0.6rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '6px', background: '#fff' }}
+                  >
+                    <option value="ALL">All Status</option>
+                    <option value="PENDING">Pending Review</option>
+                    <option value="VERIFIED">Verified</option>
+                  </select>
+                </div>
+              </>
+            }
+          />
+        )}
 
         {/* Submissions Grouped by Form Template */}
         {loading ? (
