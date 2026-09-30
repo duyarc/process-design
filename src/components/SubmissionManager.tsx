@@ -18,9 +18,7 @@ import {
   ChevronDown,
   ChevronRight,
   MoreHorizontal,
-  PenTool,
-  RefreshCw,
-  ChevronsUpDown
+  PenTool
 } from 'lucide-react';
 import PrintFilledForm from './print/PrintFilledForm';
 import ConfirmModal from './common/ConfirmModal';
@@ -234,13 +232,11 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
     }
   };
 
-  // Toggle all groups (expand/collapse)
-  const toggleAllGroups = (collapse: boolean) => {
-    const updated: Record<string, boolean> = {};
-    formGroups.forEach(g => {
-      updated[g.formKey] = collapse;
-    });
-    setCollapsedGroups(updated);
+  // Format version to avoid double 'v' (e.g. vv0.2 -> v0.2)
+  const formatVersion = (v?: string) => {
+    if (!v) return '';
+    const clean = v.replace(/^[vV]+/, '').trim();
+    return clean ? `v${clean}` : '';
   };
 
   // 2. Filter logic
@@ -547,40 +543,6 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
               </select>
             </div>
           </div>
-
-          {/* Quick Actions: Expand/Collapse All & Refresh */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginRight: '0.25rem' }}>
-              {filteredSubmissions.length} phiếu / {formGroups.length} nhóm
-            </span>
-
-            {formGroups.length > 0 && (
-              <button
-                type="button"
-                className="btn btn-secondary btn-sm"
-                onClick={() => {
-                  const anyCollapsed = formGroups.some(g => collapsedGroups[g.formKey]);
-                  toggleAllGroups(!anyCollapsed);
-                }}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', padding: '0.35rem 0.65rem' }}
-                title="Đóng / Mở tất cả các nhóm"
-              >
-                <ChevronsUpDown size={13} />
-                <span>{formGroups.some(g => collapsedGroups[g.formKey]) ? 'Mở tất cả' : 'Thu gọn'}</span>
-              </button>
-            )}
-
-            <button
-              type="button"
-              className="btn btn-secondary btn-sm"
-              onClick={fetchData}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', padding: '0.35rem 0.65rem' }}
-              title="Tải lại danh sách phiếu"
-            >
-              <RefreshCw size={13} />
-              <span>Làm mới</span>
-            </button>
-          </div>
         </div>
 
         {/* Submissions Grouped by Form Template */}
@@ -656,7 +618,7 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
                         </span>
                         {group.formVersion && (
                           <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', background: '#e2e8f0', padding: '0.1rem 0.35rem', borderRadius: '4px', fontWeight: 600 }}>
-                            v{group.formVersion}
+                            {formatVersion(group.formVersion)}
                           </span>
                         )}
                       </div>
@@ -675,21 +637,6 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
                         }}>
                           {group.processTitle}
                         </span>
-                      </div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginLeft: '0.25rem' }}>
-                        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', background: '#ffffff', border: '1px solid var(--neutral-border)', padding: '0.12rem 0.45rem', borderRadius: '12px' }}>
-                          {group.submissions.length} phiếu
-                        </span>
-                        {group.pendingCount > 0 ? (
-                          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#d97706', background: '#fffbeb', border: '1px solid #fde68a', padding: '0.12rem 0.45rem', borderRadius: '12px' }}>
-                            {group.pendingCount} chờ duyệt
-                          </span>
-                        ) : (
-                          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#059669', background: '#ecfdf5', border: '1px solid #a7f3d0', padding: '0.12rem 0.45rem', borderRadius: '12px' }}>
-                            ✓ Đã duyệt xong
-                          </span>
-                        )}
                       </div>
                     </div>
 
@@ -723,11 +670,11 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                         <thead>
                           <tr style={{ borderBottom: '1px solid var(--neutral-border)', background: '#fafbfc', color: 'var(--text-secondary)', fontSize: '0.78rem' }}>
-                            <th style={{ padding: '0.55rem 1rem', textAlign: 'left', fontWeight: 600, width: '20%' }}>MÃ PHIẾU</th>
-                            <th style={{ padding: '0.55rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '18%' }}>NGÀY</th>
-                            <th style={{ padding: '0.55rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '24%' }}>NGƯỜI LẬP</th>
-                            <th style={{ padding: '0.55rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '18%' }}>TRẠNG THÁI</th>
-                            <th style={{ padding: '0.55rem 1rem', textAlign: 'right', fontWeight: 600, width: '20%' }}>THAO TÁC</th>
+                            <th style={{ width: '18%', padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600 }}>Record ID</th>
+                            <th style={{ width: '18%', padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600 }}>Date</th>
+                            <th style={{ width: '26%', padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600 }}>Operator</th>
+                            <th style={{ width: '18%', padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600 }}>Status</th>
+                            <th style={{ width: '20%', padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600 }}>Actions</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -770,30 +717,13 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
 
                                 {/* Cột 3: Người lập */}
                                 <td style={{ padding: '0.65rem 0.75rem', verticalAlign: 'middle' }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                    <div style={{
-                                      width: '24px',
-                                      height: '24px',
-                                      borderRadius: '50%',
-                                      background: '#e0f2fe',
-                                      color: '#0369a1',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center',
-                                      fontSize: '0.68rem',
-                                      fontWeight: 700,
-                                      flexShrink: 0
-                                    }}>
-                                      {sub.operatorId ? sub.operatorId.slice(0, 2).toUpperCase() : 'OP'}
-                                    </div>
-                                    <span style={{ fontWeight: 600, fontSize: '0.82rem', color: 'var(--text-primary)' }}>
-                                      {sub.operatorId}
-                                    </span>
-                                  </div>
+                                  <span style={{ fontWeight: 600, fontSize: '0.82rem', color: 'var(--text-primary)' }}>
+                                    {sub.operatorId}
+                                  </span>
                                 </td>
 
                                 {/* Cột 4: Trạng thái */}
-                                <td style={{ padding: '0.65rem 0.75rem', verticalAlign: 'middle' }}>
+                                <td style={{ padding: '0.65rem 0.75rem', textAlign: 'center', verticalAlign: 'middle' }}>
                                   {sub.supervisorSignoff ? (
                                     <span style={{
                                       display: 'inline-flex',
@@ -830,31 +760,17 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
                                 </td>
 
                                 {/* Cột 5: Thao tác */}
-                                <td style={{ padding: '0.65rem 1rem', textAlign: 'right', verticalAlign: 'middle' }} onClick={e => e.stopPropagation()}>
-                                  <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'flex-end', alignItems: 'center' }}>
-                                    {!sub.supervisorSignoff ? (
-                                      <button
-                                        type="button"
-                                        className="btn btn-primary btn-sm"
-                                        title="Xem chi tiết & Ký duyệt (Sign-off)"
-                                        onClick={() => setSelectedSubmission(sub)}
-                                        style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem', height: '28px', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
-                                      >
-                                        <UserCheck size={13} />
-                                        <span>Ký duyệt</span>
-                                      </button>
-                                    ) : (
-                                      <button
-                                        type="button"
-                                        className="btn btn-secondary btn-sm"
-                                        title="Xem chi tiết phiếu (View details)"
-                                        onClick={() => setSelectedSubmission(sub)}
-                                        style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem', height: '28px', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
-                                      >
-                                        <Eye size={13} />
-                                        <span>Xem</span>
-                                      </button>
-                                    )}
+                                <td style={{ padding: '0.55rem 0.75rem', textAlign: 'center', verticalAlign: 'middle' }} onClick={e => e.stopPropagation()}>
+                                  <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'center', alignItems: 'center' }}>
+                                    <button
+                                      type="button"
+                                      className="btn btn-secondary btn-sm"
+                                      title={sub.supervisorSignoff ? "Xem chi tiết phiếu" : "Xem chi tiết & Ký duyệt"}
+                                      onClick={() => setSelectedSubmission(sub)}
+                                      style={{ padding: 0, width: '28px', height: '28px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px' }}
+                                    >
+                                      <Eye size={13} style={{ color: !sub.supervisorSignoff ? 'var(--primary)' : undefined }} />
+                                    </button>
 
                                     {onOpenReport && (
                                       <button
@@ -862,10 +778,9 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
                                         className="btn btn-secondary btn-sm"
                                         title="Xem Báo cáo Đánh giá (Record Report)"
                                         onClick={() => onOpenReport(sub.id)}
-                                        style={{ padding: '0.25rem 0.55rem', fontSize: '0.75rem', height: '28px', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                                        style={{ padding: 0, width: '28px', height: '28px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px' }}
                                       >
                                         <FileText size={13} />
-                                        <span>Báo cáo</span>
                                       </button>
                                     )}
 
@@ -876,7 +791,7 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
                                         className="btn btn-secondary btn-sm"
                                         title="Thao tác khác"
                                         onClick={() => setActiveActionMenuId(prev => prev === sub.id ? null : sub.id)}
-                                        style={{ padding: '0.25rem', height: '28px', width: '28px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                                        style={{ padding: 0, width: '28px', height: '28px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px' }}
                                       >
                                         <MoreHorizontal size={14} />
                                       </button>

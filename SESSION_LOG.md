@@ -40,6 +40,24 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 ## Nhật ký Phiên
 
+### 2026-09-30 — Submissions Tab Visual Streamlining & Actions Alignment
+
+**Scope:** 1 source file (`src/components/SubmissionManager.tsx`) + 1 design doc (`DESIGN_FORM_OPERATIONS.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa | 1 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 1 (`npx tsc --noEmit` pass, `npm run build` pass 10.68s) |
+| Lần build đầu thành công? | Có |
+
+**Kết quả đạt được:**
+- **Sửa lỗi Double "v":** Tạo hàm `formatVersion` bóc tách tiền tố `v`/`V` trước khi định dạng `v{clean}`, đảm bảo version luôn hiển thị đúng chuẩn `v0.2`.
+- **Dọn dẹp Toolbar góc phải & Dead-Code Pruning:** Loại bỏ cụm text đếm và các nút Thu gọn / Làm mới; xóa sạch các imports và khai báo không dùng (`toggleAllGroups`, `ChevronsUpDown`, `RefreshCw`) tuân thủ nghiêm ngặt `TS6133`.
+- **Loại bỏ Avatar tròn Operator & Badges đếm Group:** Xóa vòng tròn ký tự viết tắt (`NG`, `TR`, `AD`) tại cột Operator; loại bỏ các badge pill đếm số phiếu/chờ duyệt trên header nhóm biểu mẫu.
+- **Đồng nhất Table Header:** Chuẩn hóa tiêu đề cột theo Title Case đồng nhất Tab Forms: `Record ID`, `Date`, `Operator`, `Status`, `Actions`.
+- **Làm gọn Cột Thao tác (Actions):** Chuyển sang cụm icon button vuông 28x28px, canh giữa theo phong cách Tab Forms & Processes: `[ 👁 ]` (Xem chi tiết / Ký duyệt), `[ 📊 ]` (Xem Báo cáo Đánh giá), `[ ••• ]` (Menu thao tác khác).
+
 ### 2026-09-30 — Submissions Tab Redesign: Group by Form, Filter by Process, 100% List View
 
 **Scope:** 2 files (`src/components/SubmissionManager.tsx`, `src/components/Dashboard.tsx`) + 2 design docs (`DESIGN_FORM_OPERATIONS.md`, `DESIGN_PLATFORM_SHELL.md`)
