@@ -612,16 +612,16 @@ export default function SubmissionManager({
         {/* Submissions Grouped by Form Template */}
         {loading ? (
           <div className="paper-card" style={{ padding: '3rem 1rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-            <p style={{ margin: 0 }}>Đang tải nhật ký phiếu kiểm tra...</p>
+            <p style={{ margin: 0 }}>Loading submissions log...</p>
           </div>
         ) : fetchError && submissions.length === 0 ? (
           <div className="paper-card" style={{ textAlign: 'center', padding: '2.5rem 1rem' }}>
             <AlertTriangle size={32} style={{ color: 'var(--danger)', margin: '0 auto 0.75rem', display: 'block' }} />
             <p style={{ color: 'var(--text-primary)', fontWeight: 600, marginBottom: '0.25rem' }}>
-              Không thể kết nối đến máy chủ để tải dữ liệu
+              Unable to connect to server to load data
             </p>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '1rem' }}>
-              Vui lòng kiểm tra đường truyền hoặc bấm thử lại.
+              Please check your connection or click retry.
             </p>
             <button 
               type="button" 
@@ -629,14 +629,14 @@ export default function SubmissionManager({
               onClick={() => fetchData()}
               style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
             >
-              Thử lại
+              Retry
             </button>
           </div>
         ) : formGroups.length === 0 ? (
           <div className="paper-card" style={{ padding: '3rem 1rem', textAlign: 'center', color: 'var(--text-muted)' }}>
             <FileText size={36} style={{ color: 'var(--text-muted)', margin: '0 auto 0.5rem', display: 'block', opacity: 0.5 }} />
-            <p style={{ margin: '0 0 0.5rem 0', fontWeight: 600, color: 'var(--text-primary)' }}>Không có bản ghi nào khớp với điều kiện lọc</p>
-            <p style={{ margin: 0, fontSize: '0.85rem' }}>Thử đổi từ khóa tìm kiếm hoặc chọn "Tất cả quy trình".</p>
+            <p style={{ margin: '0 0 0.5rem 0', fontWeight: 600, color: 'var(--text-primary)' }}>No submissions match your search criteria</p>
+            <p style={{ margin: 0, fontSize: '0.85rem' }}>Try clearing the search filter or selecting "All Processes".</p>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -646,7 +646,7 @@ export default function SubmissionManager({
               return (
                 <div 
                   key={group.formKey} 
-                  className="paper-card"
+                  className="paper-card accent-teal"
                   style={{ padding: 0, overflow: 'visible', borderRadius: '8px', border: '1px solid var(--neutral-border)' }}
                 >
                   {/* Group Accordion Header */}
@@ -690,7 +690,7 @@ export default function SubmissionManager({
                       <span style={{ color: '#cbd5e1' }}>•</span>
 
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                        <span>Quy trình:</span>
+                        <span>Process:</span>
                         <span style={{ 
                           fontWeight: 600, 
                           color: group.processId === 'unlinked' ? 'var(--text-muted)' : 'var(--primary)',
@@ -720,10 +720,10 @@ export default function SubmissionManager({
                           borderColor: '#bae6fd',
                           color: '#0284c7'
                         }}
-                        title="Điền phiếu mới cho biểu mẫu này"
+                        title="Fill new submission for this form"
                       >
                         <PenTool size={13} />
-                        <span>Điền phiếu mới</span>
+                        <span>+ Fill Form</span>
                       </button>
                     </div>
                   </div>
@@ -802,7 +802,7 @@ export default function SubmissionManager({
                                       border: '1px solid #a7f3d0'
                                     }}>
                                       <CheckCircle2 size={12} />
-                                      <span>Đã xác nhận</span>
+                                      <span>Verified</span>
                                     </span>
                                   ) : (
                                     <span style={{
@@ -818,7 +818,7 @@ export default function SubmissionManager({
                                       border: '1px solid #fde68a'
                                     }}>
                                       <Clock size={12} />
-                                      <span>Chờ duyệt</span>
+                                      <span>Pending Review</span>
                                     </span>
                                   )}
                                 </td>

@@ -666,7 +666,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
       {/* View Switcher Tabs */}
       {!(isViewingSubmission && viewMode === 'submissions') && (
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--neutral-border)', paddingBottom: '0.75rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--neutral-border)', paddingBottom: '0.75rem', minHeight: '48px', boxSizing: 'border-box' }}>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button
             className={`btn btn-sm ${viewMode === 'processes' ? 'btn-primary' : 'btn-secondary'}`}
@@ -698,53 +698,57 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </button>
         </div>
 
-        {viewMode !== 'guide' && viewMode !== 'submissions' && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', background: '#f1f5f9', padding: '2px', borderRadius: '6px', border: '1px solid var(--neutral-border)' }}>
-            <button
-              type="button"
-              onClick={() => handleLayoutModeChange('list')}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '28px',
-                height: '28px',
-                borderRadius: '4px',
-                border: 'none',
-                background: layoutMode === 'list' ? '#ffffff' : 'transparent',
-                color: layoutMode === 'list' ? 'var(--primary)' : 'var(--text-secondary)',
-                boxShadow: layoutMode === 'list' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
-                cursor: 'pointer',
-                outline: 'none',
-                transition: 'all 0.15s ease'
-              }}
-              title="List View"
-            >
-              <List size={15} />
-            </button>
-            <button
-              type="button"
-              onClick={() => handleLayoutModeChange('grid')}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '28px',
-                height: '28px',
-                borderRadius: '4px',
-                border: 'none',
-                background: layoutMode === 'grid' ? '#ffffff' : 'transparent',
-                color: layoutMode === 'grid' ? 'var(--primary)' : 'var(--text-secondary)',
-                boxShadow: layoutMode === 'grid' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
-                cursor: 'pointer',
-                outline: 'none',
-                transition: 'all 0.15s ease'
-              }}
-              title="Grid View"
-            >
-              <Grid size={15} />
-            </button>
-          </div>
+        {viewMode !== 'guide' && (
+          viewMode !== 'submissions' ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', background: '#f1f5f9', padding: '2px', borderRadius: '6px', border: '1px solid var(--neutral-border)', height: '34px', boxSizing: 'border-box' }}>
+              <button
+                type="button"
+                onClick={() => handleLayoutModeChange('list')}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '4px',
+                  border: 'none',
+                  background: layoutMode === 'list' ? '#ffffff' : 'transparent',
+                  color: layoutMode === 'list' ? 'var(--primary)' : 'var(--text-secondary)',
+                  boxShadow: layoutMode === 'list' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
+                  cursor: 'pointer',
+                  outline: 'none',
+                  transition: 'all 0.15s ease'
+                }}
+                title="List View"
+              >
+                <List size={15} />
+              </button>
+              <button
+                type="button"
+                onClick={() => handleLayoutModeChange('grid')}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '4px',
+                  border: 'none',
+                  background: layoutMode === 'grid' ? '#ffffff' : 'transparent',
+                  color: layoutMode === 'grid' ? 'var(--primary)' : 'var(--text-secondary)',
+                  boxShadow: layoutMode === 'grid' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none',
+                  cursor: 'pointer',
+                  outline: 'none',
+                  transition: 'all 0.15s ease'
+                }}
+                title="Grid View"
+              >
+                <Grid size={15} />
+              </button>
+            </div>
+          ) : (
+            <div style={{ height: '34px', width: '64px' }} />
+          )
         )}
       </div>
       )}
@@ -754,10 +758,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
           searchQuery={viewMode === 'submissions' ? submissionSearchTerm : searchQuery}
           onSearchChange={viewMode === 'submissions' ? setSubmissionSearchTerm : setSearchQuery}
           placeholder={
-            viewMode === 'processes' ? "Search processes by title, description or checks..." :
-            viewMode === 'forms' ? "Search forms by name, ID, or process..." :
-            viewMode === 'submissions' ? "Search submissions by ID, operator, or form..." :
-            "Search report templates by ID, title, or form..."
+            viewMode === 'processes' ? "Search processes..." :
+            viewMode === 'forms' ? "Search forms..." :
+            viewMode === 'submissions' ? "Search submissions..." :
+            "Search reports..."
           }
           filters={
             viewMode === 'forms' ? (
@@ -766,7 +770,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 <select
                   value={formProcessFilter}
                   onChange={(e) => setFormProcessFilter(e.target.value)}
-                  style={{ padding: '0.4rem 0.6rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '6px', background: '#fff', maxWidth: '200px' }}
+                  style={{ height: '36px', padding: '0 0.6rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '6px', background: '#fff', maxWidth: '200px', boxSizing: 'border-box', outline: 'none' }}
                 >
                   <option value="ALL">All Processes</option>
                   {processes.filter(p => p.id !== 'unlinked').map(p => (
@@ -782,7 +786,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   <select 
                     value={submissionProcessFilter}
                     onChange={(e) => setSubmissionProcessFilter(e.target.value)}
-                    style={{ padding: '0.4rem 0.6rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '6px', background: '#fff', maxWidth: '200px' }}
+                    style={{ height: '36px', padding: '0 0.6rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '6px', background: '#fff', maxWidth: '200px', boxSizing: 'border-box', outline: 'none' }}
                   >
                     <option value="ALL">All Processes</option>
                     {processes.filter(p => p.id !== 'unlinked').map(p => (
@@ -796,7 +800,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   <select 
                     value={submissionSignoffFilter}
                     onChange={(e) => setSubmissionSignoffFilter(e.target.value as any)}
-                    style={{ padding: '0.4rem 0.6rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '6px', background: '#fff' }}
+                    style={{ height: '36px', padding: '0 0.6rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '6px', background: '#fff', boxSizing: 'border-box', outline: 'none' }}
                   >
                     <option value="ALL">All Status</option>
                     <option value="PENDING">Pending Review</option>
@@ -811,18 +815,18 @@ export const Dashboard: React.FC<DashboardProps> = ({
               <button 
                 className="btn btn-primary" 
                 onClick={() => onEditProcess(null)}
-                style={{ margin: 0 }}
+                style={{ margin: 0, height: '36px', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
               >
-                <Plus size={18} />
+                <Plus size={16} />
                 New Process
               </button>
             ) : hasPermission('design_document') && viewMode === 'reports' && onOpenReportBuilder ? (
               <button 
                 className="btn btn-primary" 
                 onClick={() => onOpenReportBuilder()}
-                style={{ margin: 0 }}
+                style={{ margin: 0, height: '36px', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
               >
-                <Plus size={18} />
+                <Plus size={16} />
                 New Report Template
               </button>
             ) : undefined
@@ -875,15 +879,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
             return (
               <div className="paper-card" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
                 <FileText size={48} style={{ color: 'var(--text-secondary)', marginBottom: '1rem', opacity: 0.5 }} />
-                <h3>Chưa có Mẫu Báo cáo nào (No Report Templates)</h3>
+                <h3>No Report Templates Found</h3>
                 <p style={{ maxWidth: '480px', margin: '0 auto 1.5rem auto', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
                   {searchQuery
-                    ? 'Không tìm thấy mẫu báo cáo phù hợp với từ khóa tìm kiếm.'
-                    : 'Chưa có mẫu Report Template nào được tạo. Nhấp nút bên dưới để thiết kế mẫu báo cáo đầu tiên.'}
+                    ? 'No report templates match your search query. Try clearing the filter or checking your spelling.'
+                    : 'There are currently no report templates created. Click below to design your first report template.'}
                 </p>
                 {onOpenReportBuilder && (
                   <button className="btn btn-primary" onClick={() => onOpenReportBuilder()}>
-                    <Plus size={16} /> Tạo Mẫu Báo cáo Mới
+                    <Plus size={16} /> New Report Template
                   </button>
                 )}
               </div>
@@ -896,12 +900,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                   <thead>
                     <tr style={{ borderBottom: '2px solid var(--neutral-border)', background: '#f8fafc', color: 'var(--text-secondary)' }}>
-                      <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '18%' }}>Mã Báo Cáo (ID)</th>
-                      <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '32%' }}>Tên Báo Cáo</th>
-                      <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '20%' }}>Biểu Mẫu Nguồn</th>
-                      <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '12%' }}>Phiên Bản</th>
-                      <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '10%' }}>Trạng Thái</th>
-                      <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '8%' }}>Thao Tác</th>
+                      <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '18%' }}>Report ID</th>
+                      <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '32%' }}>Report Title</th>
+                      <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '20%' }}>Source Form</th>
+                      <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '12%' }}>Version</th>
+                      <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '10%' }}>Status</th>
+                      <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '8%' }}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>

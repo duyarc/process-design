@@ -8,7 +8,7 @@
 |---|---|
 | **Module Name** | Form Operations |
 | **Status** | Active Development |
-| **Verified At Commit** | (2026-09-30) — Visual Frame Alignment & Toolbar Hoisting: Added hideToolbar and external filter props to SubmissionManager, hoisting toolbar to Dashboard root tier |
+| **Verified At Commit** | (2026-09-30) — Zero-Shift Layout Frame & Visual Parity: added accent-teal to form group accordion cards in SubmissionManager, harmonized badges to Verified / Pending Review and + Fill Form button |
 
 ### Quick File Index
 
@@ -458,5 +458,6 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 | 2026-09-30 | `CURRENT` | **Performance: Light List Endpoint & SWR Caching (`SubmissionManager`, `server.cjs`, `Dashboard`):** (1) Removed `form_data`, `media_urls`, `access_token` from `GET /api/submissions` SELECT query — payload reduced ~90% (metadata-only response). (2) Added `fetchFullSubmission` lazy-fetch helper: fetches full submission via `GET /api/submissions/:id` on-demand for detail panel, print, and copy actions. (3) SWR cache pattern: `submissions` state initializes from `sessionStorage('swr_submissions')`, `loading` defaults `false` when cache exists, background revalidation on mount. (4) Eliminated redundant `/api/processes` call: added `cachedProcesses` prop to `SubmissionManagerProps`, Dashboard passes its SWR-cached `processes` down; `processes` state initializes from prop → sessionStorage fallback. (5) O(1) `processLookupMap` via `useMemo`: pre-parses all `workflowFormsData` once into `Map<formId, Process>`, replacing O(N×M) `getLinkedProcess` inner loop with O(1) `Map.get`. |
 | 2026-09-30 | `CURRENT` | **Search Bar Cleanup & DashboardToolbar Unification (`SubmissionManager`):** (1) Replaced custom paper-card search bar with shared `DashboardToolbar`. (2) Standardized placeholder to 100% English: `"Search submissions by ID, operator, or form..."`. (3) Standardized filter labels and dropdown options to English: `Process:` (`All Processes`, `Standalone Forms`) and `Status:` (`All Status`, `Pending Review`, `Verified`). (4) Pruned unused `Search` icon import (`TS6133`). |
 | 2026-09-30 | `CURRENT` | **Visual Frame Alignment & Toolbar Hoisting (Direction 1):** (1) Added `hideToolbar`, `externalSearchTerm`, `externalProcessFilter`, and `externalSignoffFilter` props to `SubmissionManager`. (2) Supported hoisted parent toolbar from `Dashboard.tsx`, eliminating redundant nested card and unifying vertical spacing rhythm to 1.25rem (20px). |
+| 2026-09-30 | `CURRENT` | **Visual Parity & English UI Harmonization (`SubmissionManager`):** (1) Added `accent-teal` class to form group accordion cards in `SubmissionManager.tsx`, aligning the top teal gradient line across Processes, Forms, Submissions, and Reports. (2) Harmonized status badges to 100% English: `Verified` and `Pending Review`. (3) Harmonized accordion header buttons and labels to `+ Fill Form` and `Process:`. (4) Translated loading and empty state feedback strings to English. |
 
 

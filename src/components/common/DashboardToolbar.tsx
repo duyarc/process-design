@@ -20,7 +20,9 @@ export default function DashboardToolbar({
     <div 
       className="paper-card" 
       style={{ 
-        padding: '0.65rem 1rem', 
+        padding: '0.625rem 1rem', 
+        minHeight: '56px',
+        boxSizing: 'border-box',
         display: 'flex', 
         gap: '0.75rem', 
         flexWrap: 'wrap', 
@@ -49,11 +51,13 @@ export default function DashboardToolbar({
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             style={{ 
-              padding: '0.45rem 2rem 0.45rem 2.25rem', 
+              height: '36px',
+              padding: '0 2rem 0 2.25rem', 
               fontSize: '0.85rem', 
               border: '1px solid var(--neutral-border)', 
               borderRadius: '6px', 
               width: '100%', 
+              boxSizing: 'border-box',
               outline: 'none', 
               background: '#fff',
               transition: 'border-color 0.15s ease'

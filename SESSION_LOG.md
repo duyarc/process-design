@@ -40,6 +40,25 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 ## Nhật ký Phiên
 
+### 2026-09-30 — Zero-Shift Layout Frame & Visual Parity across 4 Tabs
+
+**Scope:** 4 source files (`src/index.css`, `src/components/common/DashboardToolbar.tsx`, `Dashboard.tsx`, `SubmissionManager.tsx`) + 2 design docs
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa | 4 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 1 (`npx tsc --noEmit` pass 100%, `npm run build` pass 8.48s) |
+| Lần build đầu thành công? | Có |
+
+**Kết quả đạt được:**
+- **Triệt tiêu hiện tượng giật ngang (Horizontal Shift):** Bổ sung `scrollbar-gutter: stable` và `overflow-y: scroll` cho `html` trong `index.css`, giữ chỗ cố định cho scrollbar dọc của trình duyệt Windows (17px), ngăn toàn bộ container 1600px giật sang bên 8.5px khi chuyển tab.
+- **Khóa chiều cao Toolbar 56px (Zero Vertical Shift):** Khóa `minHeight: '56px'` và `boxSizing: 'border-box'` trên `DashboardToolbar`, đồng bộ chiều cao 36px cho tất cả các điều khiển con (`input`, `select`, `button`), giúp toolbar giữ nguyên kích thước dù có hoặc không có nút thao tác.
+- **Cố định hàng Tab Switcher 48px:** Thêm `minHeight: '48px'` và render spacer 34px trên tab Submissions, loại bỏ hiện tượng hụt 3px khi ẩn switcher List/Grid.
+- **Rút gọn Placeholder Search:** Rút ngắn text gợi ý (`Search processes...`, `Search forms...`, `Search submissions...`, `Search reports...`) không bao giờ bị cắt cụt trong ô 360px.
+- **Visual Parity cho Submissions:** Bổ sung `accent-teal` (vạch xanh ngọc 3px) cho các thẻ nhóm biểu mẫu trong Submissions, đồng bộ phong cách với 3 tab còn lại.
+- **Chuẩn hóa 100% tiếng Anh:** Chuyển đổi toàn bộ tiêu đề cột bảng Reports (`Report ID`, `Report Title`, `Source Form`, `Version`, `Status`, `Actions`), nhãn trạng thái Submissions (`Verified`, `Pending Review`), nhãn nhóm (`Process:`) và nút hành động (`+ Fill Form`).
+
 ### 2026-09-30 — Visual Frame Alignment & Toolbar Hoisting across 4 Tabs (Direction 1)
 
 **Scope:** 3 source files (`src/components/common/DashboardToolbar.tsx`, `SubmissionManager.tsx`, `Dashboard.tsx`) + 2 design docs
