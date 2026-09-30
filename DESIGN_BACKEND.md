@@ -9,7 +9,7 @@
 | **Module Name** | Backend & Persistence |
 | **Status** | Active Development |
 | **Document Version** | 1.2 |
-| **Verified At Commit** | (2026-09-30) — Performance: GET /api/submissions returns metadata-only (removed form_data, media_urls, access_token from SELECT) |
+| **Verified At Commit** | (2026-09-30) — Performance: Added GET /api/processes/:id for single-process querying, reducing FormFiller load payload from whole-table scan to single row |
 
 ### Quick File Index
 
@@ -292,8 +292,6 @@ Architectural changes only — schema, endpoints, invariants. UI polish lives in
 
 | Date | Commit | Change |
 |---|---|---|
-| 2026-07-09 | `11902a5` | **Schema change:** dropped the `online_url` column from `process_forms` along with the online form link feature. |
-| 2026-07-27 | `9a555cb` | **New endpoints:** `POST /api/auth/check-email` and `POST /api/auth/register` for email-first progressive disclosure login; `/api/auth/login` now matches either email or username. |
 | 2026-08-03 | `CURRENT` | **Submissions update route:** Added `PUT /api/submissions/:id` to support overwriting submission records by admin. |
 | 2026-08-03 | `CURRENT` | **Submissions delete route:** Added `DELETE /api/submissions/:id` to support hard-deletion of submission records by admin. |
 | 2026-08-11 | `a12b0c9` | **Cron ping route & config:** Added `/api/cron-ping` endpoint and configured daily Vercel Cron Job in `vercel.json` to query the DB and prevent automatic pausing of Supabase free tier. |
@@ -308,3 +306,4 @@ Architectural changes only — schema, endpoints, invariants. UI polish lives in
 | 2026-09-10 | `CURRENT` | **Form Revision History Draft Exclusion & Deduplication:** Updated `GET /api/forms/*formId/history` in `server.cjs` to strictly ignore `status === 'DRAFT'` database rows and deduplicate revision entries by clean version number, returning only authentic published active/retired revisions. |
 | 2026-09-28 | `CURRENT` | **Single Submission Retrieval & Public Report View Endpoints:** Added `GET /api/submissions/:id` (retrieving single submission with `accessToken`, auto-generating token if null) and `GET /api/reports/view/:submissionId` (public token-based endpoint returning `{ submission, formTemplate, reportTemplate }`), and updated `GET /api/submissions/view/:id` to include `accessToken`. |
 | 2026-09-30 | `CURRENT` | **Syntax Restoration & Default Status:** (1) Restored missing closing braces on `if (!dbPool)` guard inside `POST /api/submissions` and `PUT /api/submissions/:id`, eliminating Vercel serverless `SyntaxError: Unexpected token 'catch'` crash. (2) Submissions endpoints now default `status = 'SUBMITTED'` if omitted. |
+| 2026-09-30 | `CURRENT` | **Single Process Lookup Endpoint (`GET /api/processes/:id`):** Added dedicated single-process retrieval endpoint querying `processes` and `process_forms` by ID (`WHERE id = $1`). Eliminates over-fetching entire database during FormFiller initialization. |

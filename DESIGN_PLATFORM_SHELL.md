@@ -9,7 +9,7 @@
 | **Module Name** | Platform Shell |
 | **Status** | Active Development |
 | **Document Version** | 1.1 |
-| **Verified At Commit** | (2026-09-30) — Tab Forms List View column refinement: removed Work Step, cleaned date from Version, added Last Updated column, and sorted process groups & forms by Last Updated descending |
+| **Verified At Commit** | (2026-09-30) — Preloaded Form Template prop pipeline in App.tsx & Dashboard.tsx for FormFiller 0ms Instant Paint |
 
 ### Quick File Index
 
@@ -209,7 +209,6 @@ lives in `git log`; run `git show <commit>` for the full diff of any entry below
 
 | Date | Commit | Change |
 |---|---|---|
-| 2026-09-03 | `CURRENT` | **Dashboard Stale-While-Revalidate (SWR) Instant Paint:** Implemented sessionStorage-backed SWR caching in `Dashboard.tsx` for `processes`, `allForms`, and `reportTemplates`. Eliminates the 3.7s–5.3s "Loading processes database..." spinner on every browser refresh by initializing state synchronously from cache and revalidating silently in the background. |
 | 2026-09-09 | `CURRENT` | **Submission Review & Amendment Routing (`/f/:formName/s/:id`):** Added deep route matching in `App.tsx` for `/f/:formName/s/:submissionId?token=TOKEN` with `SubmissionViewer` integration for both guest and authenticated states. |
 | 2026-09-09 | `CURRENT` | **Near Full-Screen Submission View Coordination:** Added `isViewingSubmission` state in `Dashboard.tsx` coordinating with `SubmissionManager`. When viewing or copying a submission record, the quote card and view switcher tabs are suppressed, rendering `FormFiller` in near full-screen mode with visual parity to fill-form. |
 | 2026-09-09 | `CURRENT` | **Screen Estate Optimization — Global App Header Suppression:** Configured `isFormCanvasActive` in `App.tsx` coordinating with `Dashboard.tsx` and `FormManager.tsx` (`onViewingSubmissionChange` / `onViewingChange`). Completely hides the "Process Design" `<header className="app-header">` when users are filling or viewing form records, maximizing vertical document view space by ~65px while preserving full back-navigation. |
@@ -224,3 +223,4 @@ lives in `git log`; run `git show <commit>` for the full diff of any entry below
 | 2026-09-30 | `CURRENT` | **Zero-Shift Layout Frame across 4 Tabs:** (1) Added `scrollbar-gutter: stable` and `overflow-y: scroll` to `html` in `index.css`. (2) Standardized `DashboardToolbar` with fixed `minHeight: '56px'` and child controls `height: '36px'`. (3) Stabilized view switcher tab container with `minHeight: '48px'`. |
 | 2026-09-30 | `CURRENT` | **Process-Centric Accordion List View in Tab Forms (Option 1):** (1) Converted Tab Forms list view into Process-Centric Accordion Cards mirroring Tab Submissions 1:1. (2) Group header bar displays process icon, title, process ID tag, forms count badge, status, and `[ View Process ]` CTA. (3) Added dedicated group for Standalone Forms. |
 | 2026-09-30 | `CURRENT` | **Tab Forms List View Column Refinement & Last Updated Sorting:** (1) Removed Work Step column and pruned unused `workStepTitle` metadata. (2) Removed date string from Version column dropdown and single-version badge for clean typography. (3) Added dedicated `Last Updated` column with calendar icon displaying formatted date of selected version. (4) Rebalanced table column widths: Form ID (15%), Form Title (37%), Version (12%), Status (10%), Last Updated (14%), Actions (12%). (5) Sorted forms within each process group descending by Last Updated and sorted process groups descending so the group with the most recently modified form stays on top. |
+| 2026-09-30 | `CURRENT` | **Preloaded Form Template Prop Pipeline (`App`, `Dashboard`):** (1) Updated `DashboardProps['onOpenFormFiller']` to accept optional `preloadedTpl?: FormTemplateISO` and forwarded `form.rawRecord` from `handleFillAction` and process select dialog. (2) Added `preloadedFormTemplate` state in `App.tsx` and forwarded `preloadedFormTemplate={preloadedFormTemplate || undefined}` to `<FormFiller />`, eliminating network latency and enabling 0ms instant paint when opening forms from Dashboard. |

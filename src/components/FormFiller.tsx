@@ -274,6 +274,72 @@ interface FormFillerProps {
 }
 
 
+const buildVirtualProcess = (
+  formRecord: any,
+  formKey: string,
+  targetProcessId: string,
+  foundProc: Process | null
+): Process => {
+  const layoutBlocks = typeof formRecord.layout_blocks === 'string'
+    ? JSON.parse(formRecord.layout_blocks)
+    : (formRecord.layout_blocks || formRecord.layoutBlocks || []);
+
+  const procTitle = foundProc ? foundProc.title : 'Biểu mẫu tự do';
+  const parentProcId = foundProc ? foundProc.id : (targetProcessId || 'unlinked');
+
+  const formEntry: any = {
+    formId: formRecord.form_id || formRecord.formId || formKey,
+    formTitle: formRecord.form_title || formRecord.formTitle || formRecord.form_name || formRecord.formName || formKey,
+    version: formRecord.version || 'v0.1',
+    status: formRecord.status || 'DRAFT',
+    pageSize: formRecord.page_size || formRecord.pageSize || 'A4',
+    isPublic: formRecord.is_public ?? formRecord.isPublic ?? false,
+    defaultFocusMode: formRecord.default_focus_mode ?? formRecord.defaultFocusMode ?? false,
+    layoutBlocks
+  };
+
+  if (foundProc) {
+    return {
+      ...foundProc,
+      workflowFormsData: {
+        ...(foundProc.workflowFormsData || {}),
+        [formKey]: {
+          ...(foundProc.workflowFormsData?.[formKey] || {}),
+          ...formEntry
+        },
+        ...(formRecord.form_name && formRecord.form_name !== formKey ? {
+          [formRecord.form_name]: {
+            ...formEntry,
+            formTitle: formRecord.form_title || formRecord.form_name
+          }
+        } : {})
+      }
+    };
+  }
+
+  return {
+    id: parentProcId,
+    title: procTitle,
+    description: 'Biểu mẫu chưa liên kết quy trình',
+    version: 'V1.0',
+    status: 'Active',
+    steps: [],
+    parentProcessId: parentProcId,
+    roles: [],
+    formFields: [],
+    lastUpdated: formRecord.updated_at || formRecord.updatedAt || new Date().toISOString(),
+    workflowFormsData: {
+      [formKey]: formEntry,
+      ...(formRecord.form_name && formRecord.form_name !== formKey ? {
+        [formRecord.form_name]: {
+          ...formEntry,
+          formTitle: formRecord.form_title || formRecord.form_name
+        }
+      } : {})
+    }
+  };
+};
+
 function FormFillerInner({ 
   processId, 
   formName, 
@@ -292,8 +358,41 @@ function FormFillerInner({
   initialSubmissionTab,
   onOpenReportBuilder
 }: FormFillerProps) {
-  const [process, setProcess] = useState<Process | null>(null);
-  const [loading, setLoading] = useState(true);
+  // ── Synchronous SWR Cache-First Instant Paint ──
+  const initialCache = useMemo(() => {
+    if (preloadedFormTemplate) {
+      const vProc = buildVirtualProcess(preloadedFormTemplate, formName, processId, null);
+      return { process: vProc, loading: false };
+    }
+
+    try {
+      const cachedFormsRaw = sessionStorage.getItem('swr_forms');
+      if (cachedFormsRaw) {
+        const cachedForms: any[] = JSON.parse(cachedFormsRaw);
+        const formRecord = cachedForms.find((f: any) =>
+          f.form_id === formName || f.form_name === formName || f.formId === formName ||
+          f.form_title === formName || f.formTitle === formName
+        );
+        if (formRecord) {
+          let foundProc: Process | null = null;
+          if (processId && processId !== 'unlinked') {
+            const cachedProcsRaw = sessionStorage.getItem('swr_processes');
+            if (cachedProcsRaw) {
+              const cachedProcs: Process[] = JSON.parse(cachedProcsRaw);
+              foundProc = cachedProcs.find(p => p.id === processId) || null;
+            }
+          }
+          const vProc = buildVirtualProcess(formRecord, formName, processId, foundProc);
+          return { process: vProc, loading: false };
+        }
+      }
+    } catch (_) {}
+
+    return { process: null, loading: true };
+  }, [formName, processId, preloadedFormTemplate]);
+
+  const [process, setProcess] = useState<Process | null>(() => initialCache.process);
+  const [loading, setLoading] = useState<boolean>(() => initialCache.loading);
   
   // Form Filler UI states
   const [formValues, setFormValues] = useState<{ [fieldId: string]: string }>({});
@@ -665,155 +764,52 @@ function FormFillerInner({
   };
 
   // Fetch process details
-  const fetchProcess = async () => {
+  const fetchProcess = async (isBackgroundRevalidate = false) => {
     try {
-      setLoading(true);
+      if (!isBackgroundRevalidate) {
+        setLoading(true);
+      }
 
-      // ── Fast path: use preloaded form template from bundled server response ──
-      // Eliminates 2-3 RTT waterfall (404 form lookup + fetch all processes)
-      if (preloadedFormTemplate) {
-        const tpl = preloadedFormTemplate as any;
-        const layoutBlocks = tpl.layoutBlocks || tpl.layout_blocks || [];
-        const parsedBlocks = typeof layoutBlocks === 'string' ? JSON.parse(layoutBlocks) : layoutBlocks;
-        const formEntry: any = {
-          formId: tpl.formId || tpl.form_id || formName,
-          formTitle: tpl.formTitle || tpl.form_title || tpl.formName || tpl.form_name || formName,
-          version: tpl.version || 'v0.1',
-          status: tpl.status || 'ACTIVE',
-          pageSize: tpl.pageSize || tpl.page_size || 'A4',
-          isPublic: tpl.isPublic ?? tpl.is_public ?? false,
-          defaultFocusMode: tpl.defaultFocusMode ?? tpl.default_focus_mode ?? false,
-          layoutBlocks: parsedBlocks
-        };
-        const virtualProc: Process = {
-          id: processId || 'unlinked',
-          title: formEntry.formTitle,
-          description: 'Biểu mẫu tự do',
-          version: 'V1.0',
-          status: 'Active',
-          steps: [],
-          parentProcessId: processId || 'unlinked',
-          roles: [],
-          formFields: [],
-          lastUpdated: new Date().toISOString(),
-          workflowFormsData: { [formName]: formEntry } as any
-        };
-        setProcess(virtualProc);
+      // Fast path: if preloadedFormTemplate was passed, we're already initialized
+      if (preloadedFormTemplate && process) {
         setLoading(false);
         return;
       }
 
-      // 1. Try to fetch the full form layout directly from /api/forms/:formName
-      let formRecord: any = null;
-      try {
-        const formRes = await fetch(`/api/forms/${encodeURIComponent(formName)}`);
-        if (formRes.ok) {
-          formRecord = await formRes.json();
-        }
-      } catch (_) {}
+      // Parallel fetch: fetch form layout + single process details concurrently
+      const formPromise = fetch(`/api/forms/${encodeURIComponent(formName)}`)
+        .then(r => r.ok ? r.json() : null)
+        .catch(() => null);
 
-      // 2. Fetch process details if linked to a process
-      let foundProc: Process | null = null;
-      if (processId && processId !== 'unlinked') {
-        try {
-          const procRes = await fetch('/api/processes');
-          if (procRes.ok) {
-            const procList: Process[] = await procRes.json();
-            foundProc = procList.find(p => p.id === processId) || null;
-          }
-        } catch (_) {}
-      }
+      const procPromise = (processId && processId !== 'unlinked')
+        ? fetch(`/api/processes/${encodeURIComponent(processId)}`)
+            .then(r => r.ok ? r.json() : null)
+            .catch(() => null)
+        : Promise.resolve(null);
+
+      const [formRecord, foundProc] = await Promise.all([formPromise, procPromise]);
 
       if (formRecord) {
-        const layoutBlocks = typeof formRecord.layout_blocks === 'string'
-          ? JSON.parse(formRecord.layout_blocks)
-          : (formRecord.layout_blocks || []);
-
-        const procTitle = foundProc ? foundProc.title : 'Biểu mẫu tự do';
-        const parentProcId = foundProc ? foundProc.id : (processId || 'unlinked');
-
-        const virtualProc: Process = foundProc ? {
-          ...foundProc,
-          workflowFormsData: {
-            ...(foundProc.workflowFormsData || {}),
-            [formName]: {
-              ...(foundProc.workflowFormsData?.[formName] || {}),
-              formId: formRecord.form_id || formName,
-              formTitle: formRecord.form_title || formRecord.form_name || formName,
-              version: formRecord.version || 'v0.1',
-              status: formRecord.status || 'DRAFT',
-              pageSize: formRecord.page_size || formRecord.pageSize || 'A4',
-              isPublic: formRecord.is_public ?? formRecord.isPublic ?? false,
-              defaultFocusMode: formRecord.default_focus_mode ?? formRecord.defaultFocusMode ?? false,
-              layoutBlocks
-            },
-            ...(formRecord.form_name && formRecord.form_name !== formName ? {
-              [formRecord.form_name]: {
-                formId: formRecord.form_id || formRecord.form_name,
-                formTitle: formRecord.form_title || formRecord.form_name,
-                version: formRecord.version || 'v0.1',
-                status: formRecord.status || 'DRAFT',
-                pageSize: formRecord.page_size || formRecord.pageSize || 'A4',
-                isPublic: formRecord.is_public ?? formRecord.isPublic ?? false,
-                defaultFocusMode: formRecord.default_focus_mode ?? formRecord.defaultFocusMode ?? false,
-                layoutBlocks
-              }
-            } : {})
-          }
-        } : {
-          id: parentProcId,
-          title: procTitle,
-          description: 'Biểu mẫu chưa liên kết quy trình',
-          version: 'V1.0',
-          status: 'Active',
-          steps: [],
-          parentProcessId: parentProcId,
-          roles: [],
-          formFields: [],
-          lastUpdated: formRecord.updated_at || new Date().toISOString(),
-          workflowFormsData: {
-            [formName]: {
-              formId: formRecord.form_id || formName,
-              formTitle: formRecord.form_title || formRecord.form_name || formName,
-              version: formRecord.version || 'v0.1',
-              status: formRecord.status || 'DRAFT',
-              pageSize: formRecord.page_size || formRecord.pageSize || 'A4',
-              isPublic: formRecord.is_public ?? formRecord.isPublic ?? false,
-              defaultFocusMode: formRecord.default_focus_mode ?? formRecord.defaultFocusMode ?? false,
-              layoutBlocks
-            },
-            ...(formRecord.form_name && formRecord.form_name !== formName ? {
-              [formRecord.form_name]: {
-                formId: formRecord.form_id || formRecord.form_name,
-                formTitle: formRecord.form_title || formRecord.form_name,
-                version: formRecord.version || 'v0.1',
-                status: formRecord.status || 'DRAFT',
-                pageSize: formRecord.page_size || formRecord.pageSize || 'A4',
-                isPublic: formRecord.is_public ?? formRecord.isPublic ?? false,
-                defaultFocusMode: formRecord.default_focus_mode ?? formRecord.defaultFocusMode ?? false,
-                layoutBlocks
-              }
-            } : {})
-          }
-        };
-
+        const virtualProc = buildVirtualProcess(formRecord, formName, processId, foundProc);
         setProcess(virtualProc);
       } else if (foundProc) {
         setProcess(foundProc);
-      } else {
+      } else if (!process) {
         throw new Error(`Could not load form "${formName}"`);
       }
     } catch (err) {
       console.error(err);
-      alert('Error loading form details.');
+      if (!process) {
+        alert('Error loading form details.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchProcess();
-  }, [processId]);
+    fetchProcess(Boolean(initialCache.process));
+  }, [processId, formName]);
 
   // Copy share link helper
   const handleCopyShareLink = () => {

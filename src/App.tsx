@@ -42,6 +42,7 @@ const MainApp: React.FC = () => {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [reportBuilderState, setReportBuilderState] = useState<{ isOpen: boolean; formId?: string; reportId?: string }>({ isOpen: false });
   const [formReportState, setFormReportState] = useState<{ isOpen: boolean; submissionId?: string }>({ isOpen: false });
+  const [preloadedFormTemplate, setPreloadedFormTemplate] = useState<any | null>(null);
 
   // Public submission viewer state
   const [viewerSubmissionId, setViewerSubmissionId] = useState<string | null>(null);
@@ -161,10 +162,11 @@ const MainApp: React.FC = () => {
     setPage('form-manager');
   };
 
-  const handleOpenFormFiller = (procId: string, formName: string) => {
+  const handleOpenFormFiller = (procId: string, formName: string, preloadedTpl?: any) => {
     setPrevPage(page);
     setSelectedProcessId(procId);
     setSelectedFormName(formName);
+    setPreloadedFormTemplate(preloadedTpl || null);
     setPage('fill-form');
   };
 
@@ -462,6 +464,7 @@ const MainApp: React.FC = () => {
             processId={selectedProcessId!}
             formName={selectedFormName!}
             isShortLinkFlow={Boolean(resolvedShortForm)}
+            preloadedFormTemplate={preloadedFormTemplate || undefined}
             onSubmitSuccess={(subId) => {
               setToastMessage(`Đã gửi phiếu thành công! (Mã: ${subId})`);
               setPage('form-manager');

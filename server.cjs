@@ -1482,6 +1482,50 @@ app.get('/api/processes', async (req, res) => {
   }
 });
 
+// GET /api/processes/:id - Fetch a single process by ID with its workflow forms metadata
+app.get('/api/processes/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (dbPool) {
+      const [result, formsRes] = await Promise.all([
+        dbPool.query('SELECT * FROM processes WHERE id = $1', [id]),
+        dbPool.query('SELECT * FROM process_forms WHERE process_id = $1', [id])
+      ]);
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: `Process ${id} not found` });
+      }
+
+      const proc = result.rows[0];
+      const dbFormsData = proc.workflowFormsData || {};
+      const mergedFormsData = { ...dbFormsData };
+
+      for (const formRow of formsRes.rows) {
+        mergedFormsData[formRow.form_name] = {
+          ...(mergedFormsData[formRow.form_name] || {}),
+          formId: formRow.form_id || undefined,
+          formVersion: formRow.form_version || 'v0.1'
+        };
+      }
+
+      res.json({
+        ...proc,
+        workflowFormsData: mergedFormsData
+      });
+    } else {
+      const processes = await readProcessesFromCSV();
+      const proc = processes.find(p => p.id === id);
+      if (!proc) {
+        return res.status(404).json({ error: `Process ${id} not found` });
+      }
+      res.json(proc);
+    }
+  } catch (err) {
+    console.error('Error fetching process by id:', err);
+    res.status(500).json({ error: 'Failed to fetch process' });
+  }
+});
+
 // POST /api/processes - Save/Update a process
 app.post('/api/processes', async (req, res) => {
   try {

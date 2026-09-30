@@ -15,7 +15,7 @@ interface DashboardProps {
   onViewFormSubmissions?: (formName: string) => void;
   onPrintForm?: (processId: string, formName: string) => void;
   onOpenFormManager?: (processId: string, formName: string) => void;
-  onOpenFormFiller?: (processId: string, formName: string) => void;
+  onOpenFormFiller?: (processId: string, formName: string, preloadedFormTemplate?: any) => void;
   onOpenReportBuilder?: (formId?: string, reportId?: string) => void;
   onOpenFormReport?: (submissionId: string) => void;
   viewMode?: 'processes' | 'forms' | 'submissions' | 'reports' | 'guide';
@@ -1047,7 +1047,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             setProcessSelectDialog({ form, action: 'fill' });
           } else if (form.linkedProcesses.length === 1) {
             if (onOpenFormFiller) {
-              onOpenFormFiller(form.linkedProcesses[0].id, form.formName);
+              onOpenFormFiller(form.linkedProcesses[0].id, form.formName, form.rawRecord);
             } else if (onOpenFormManager) {
               onOpenFormManager(form.linkedProcesses[0].id, form.formName);
             } else {
@@ -1055,7 +1055,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             }
           } else {
             if (onOpenFormFiller) {
-              onOpenFormFiller('unlinked', form.formName);
+              onOpenFormFiller('unlinked', form.formName, form.rawRecord);
             } else if (onOpenFormManager) {
               onOpenFormManager('unlinked', form.formName);
             } else {
@@ -1949,7 +1949,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                           setProcessSelectDialog(null);
                           if (action === 'fill') {
                             if (onOpenFormFiller) {
-                              onOpenFormFiller(lp.id, form.formName);
+                              onOpenFormFiller(lp.id, form.formName, form.rawRecord);
                             } else if (onOpenFormManager) {
                               onOpenFormManager(lp.id, form.formName);
                             } else {
