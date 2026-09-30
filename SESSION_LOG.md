@@ -40,6 +40,23 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 ## Nhật ký Phiên
 
+### 2026-09-30 — Process-Centric Accordion List View in Tab Forms (Option 1)
+
+**Scope:** 1 source file (`src/components/Dashboard.tsx`) + 1 design doc (`DESIGN_PLATFORM_SHELL.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa | 1 |
+| Lượt edit sửa lỗi (rework) | 1 (sửa dấu đóng ngoặc `);` tại map callback và khôi phục biến state `duplicatingFormId` / `toast`) |
+| Số lần build | 2 (`npx tsc --noEmit` pass 100%, `npm run build` pass 9.00s) |
+| Lần build đầu thành công? | Không (sửa dứt điểm ngay lần 2) |
+
+**Kết quả đạt được:**
+- **Chuyển đổi Tab Forms sang Process-Centric Accordion:** Thay thế bảng phẳng đơn nhất cũ bằng hệ thống thẻ Accordion (`.paper-card.accent-teal`) phân nhóm biểu mẫu theo từng Quy trình đang hoạt động (kèm nhóm riêng cho Biểu mẫu tự do), đạt tính đồng bộ hình học và styling 100% với Tab Submissions.
+- **Tích hợp Bước công đoạn (Work Step):** Tự động bóc tách và hiển thị thông tin bước công đoạn liên kết (`Step N: Title`) trong bảng con, giúp định vị trực quan vị trí kiểm soát của form trong luồng SOP chuẩn ISO.
+- **Header Bar Quy chuẩn:** Tích hợp `Chevron` đóng/mở, icon quy trình (`GitBranch`), tên quy trình (bold), tag mã quy trình, badge số lượng form, badge trạng thái, và nút CTA `[ 👁 View Process ]` tại mép phải.
+- **Bảo toàn 100% tính năng:** Điền form (`Fill`), Sửa thiết kế (`Edit`), Xem lịch sử nộp (`Audit`), In trắng (`Print`), Xuất PDF, Nhân bản form (`Duplicate`), và Cấu hình báo cáo (`Report`).
+
 ### 2026-09-30 — Zero-Shift Layout Frame & Visual Parity across 4 Tabs
 
 **Scope:** 4 source files (`src/index.css`, `src/components/common/DashboardToolbar.tsx`, `Dashboard.tsx`, `SubmissionManager.tsx`) + 2 design docs

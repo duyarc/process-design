@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import type { Process, ReportTemplateISO } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { Plus, FileText, Eye, Calendar, Printer, History, PenTool, Edit2, GitBranch, ChevronDown, ChevronUp, Grid, List, SlidersHorizontal, Copy, Check, MoreHorizontal } from 'lucide-react';
+import { Plus, FileText, Eye, Calendar, Printer, History, PenTool, Edit2, GitBranch, ChevronDown, ChevronUp, ChevronRight, Grid, List, SlidersHorizontal, Copy, Check, MoreHorizontal } from 'lucide-react';
 import SubmissionManager from './SubmissionManager';
 import { BPMNGuide } from './BPMNGuide';
 import PrintBlankForm from './print/PrintBlankForm';
@@ -99,6 +99,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [duplicatingFormId, setDuplicatingFormId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [activeFormMenuId, setActiveFormMenuId] = useState<string | null>(null);
+  const [collapsedProcessGroups, setCollapsedProcessGroups] = useState<Record<string, boolean>>({});
+
+  const toggleProcessGroup = (processId: string) => {
+    setCollapsedProcessGroups(prev => ({
+      ...prev,
+      [processId]: !prev[processId]
+    }));
+  };
 
   // Auto-close form actions menu when clicking outside
   useEffect(() => {
@@ -354,6 +362,69 @@ export const Dashboard: React.FC<DashboardProps> = ({
     }
     return true;
   });
+
+  const processFormGroups = useMemo(() => {
+    const activeProcs = Object.entries(groups).map(([parentId, allVersions]) => {
+      const selectedId = selectedProcessVersions[parentId];
+      return selectedId ? allVersions.find(v => v.id === selectedId) || getRepresentative(allVersions) : getRepresentative(allVersions);
+    }).filter(p => (p.status || 'Active') !== 'Retired');
+
+    const groupsList: Array<{
+      processId: string;
+      processTitle: string;
+      status?: string;
+      forms: Array<{ form: any; workStepTitle: string }>;
+    }> = [];
+
+    activeProcs.forEach(proc => {
+      if (formProcessFilter !== 'ALL' && formProcessFilter !== proc.id) {
+        return;
+      }
+
+      const procSteps = proc.steps ? (typeof proc.steps === 'string' ? JSON.parse(proc.steps) : proc.steps) : [];
+      const matchedForms: Array<{ form: any; workStepTitle: string }> = [];
+
+      filteredFormsList.forEach(form => {
+        const isLinked = form.linkedProcesses.some((lp: any) => lp.id === proc.id);
+        if (!isLinked) return;
+
+        const stepIdx = procSteps.findIndex((s: any) => 
+          (s.formNames && s.formNames.includes(form.formId)) || s.formName === form.formId
+        );
+        let workStepTitle = 'General Workflow';
+        if (stepIdx >= 0) {
+          const s = procSteps[stepIdx];
+          workStepTitle = s.title || s.name || `Step ${stepIdx + 1}`;
+        }
+
+        matchedForms.push({ form, workStepTitle });
+      });
+
+      if (matchedForms.length > 0) {
+        groupsList.push({
+          processId: proc.id,
+          processTitle: proc.title,
+          status: proc.status || 'Active',
+          forms: matchedForms
+        });
+      }
+    });
+
+    if (formProcessFilter === 'ALL' || formProcessFilter === 'unlinked') {
+      const unlinkedForms = filteredFormsList.filter(form => form.linkedProcesses.length === 0);
+      if (unlinkedForms.length > 0) {
+        groupsList.push({
+          processId: 'unlinked',
+          processTitle: 'Standalone Forms (Biểu mẫu độc lập)',
+          status: undefined,
+          forms: unlinkedForms.map(form => ({ form, workStepTitle: '—' }))
+        });
+      }
+    }
+
+    return groupsList;
+  }, [groups, selectedProcessVersions, formProcessFilter, filteredFormsList]);
+
   const activeFamilies = filteredFamilies.filter(f => {
     const selectedId = selectedProcessVersions[f.parentId];
     const currentRep = selectedId ? f.allVersions.find(v => v.id === selectedId) || f.representative : f.representative;
@@ -1148,21 +1219,128 @@ export const Dashboard: React.FC<DashboardProps> = ({
         return (
           <>
             {layoutMode === 'list' ? (
-              <div className="paper-card accent-teal" style={{ padding: '1.25rem' }}>
-                <div style={{ overflowX: 'auto', border: '1px solid var(--neutral-border)', borderRadius: '6px' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-                    <thead>
-                      <tr style={{ borderBottom: '2px solid var(--neutral-border)', background: '#f8fafc', color: 'var(--text-secondary)' }}>
-                        <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '10%' }}>Form ID</th>
-                        <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '32%' }}>Form Title</th>
-                        <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '25%' }}>Linked Process</th>
-                        <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '12%' }}>Version</th>
-                        <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '9%' }}>Status</th>
-                        <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '12%' }}>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredFormsList.map((form) => {
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {processFormGroups.map((group) => {
+                  const isCollapsed = Boolean(collapsedProcessGroups[group.processId]);
+                  const procStatus = group.status || 'Active';
+                  const procColors = statusColors[procStatus] || { bg: '#e5e7eb', text: '#4b5563', border: '#cbd5e1' };
+
+                  return (
+                    <div 
+                      key={group.processId}
+                      className="paper-card accent-teal"
+                      style={{ padding: 0, overflow: 'visible', borderRadius: '8px', border: '1px solid var(--neutral-border)' }}
+                    >
+                      {/* Group Accordion Header */}
+                      <div 
+                        onClick={() => toggleProcessGroup(group.processId)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '0.75rem 1rem',
+                          background: '#f8fafc',
+                          borderBottom: isCollapsed ? 'none' : '1px solid var(--neutral-border)',
+                          cursor: 'pointer',
+                          userSelect: 'none',
+                          borderTopLeftRadius: '8px',
+                          borderTopRightRadius: '8px',
+                          borderBottomLeftRadius: isCollapsed ? '8px' : '0',
+                          borderBottomRightRadius: isCollapsed ? '8px' : '0',
+                          transition: 'background 0.15s ease'
+                        }}
+                        onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; }}
+                        onMouseLeave={e => { e.currentTarget.style.background = '#f8fafc'; }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+                          <div style={{ color: 'var(--text-secondary)', display: 'flex', alignItems: 'center' }}>
+                            {isCollapsed ? <ChevronRight size={18} /> : <ChevronDown size={18} />}
+                          </div>
+                          
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            {group.processId === 'unlinked' ? (
+                              <FileText size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                            ) : (
+                              <GitBranch size={16} style={{ color: 'var(--primary)', flexShrink: 0 }} />
+                            )}
+                            <span style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-primary)' }}>
+                              {group.processTitle}
+                            </span>
+                            {group.processId !== 'unlinked' && (
+                              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', background: '#f1f5f9', padding: '0.1rem 0.4rem', borderRadius: '4px', border: '1px solid #e2e8f0', fontFamily: 'monospace', fontWeight: 700 }}>
+                                {group.processId}
+                              </span>
+                            )}
+                          </div>
+
+                          <span style={{ color: '#cbd5e1' }}>•</span>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                            <span>Forms:</span>
+                            <span style={{ 
+                              fontWeight: 600, 
+                              color: group.processId === 'unlinked' ? 'var(--text-muted)' : 'var(--primary)',
+                              background: group.processId === 'unlinked' ? '#f1f5f9' : '#f0fdf4',
+                              padding: '0.12rem 0.45rem',
+                              borderRadius: '4px',
+                              border: `1px solid ${group.processId === 'unlinked' ? '#e2e8f0' : '#bbf7d0'}`
+                            }}>
+                              {group.forms.length} {group.forms.length === 1 ? 'form' : 'forms'}
+                            </span>
+                          </div>
+
+                          {group.status && (
+                            <>
+                              <span style={{ color: '#cbd5e1' }}>•</span>
+                              <span className="badge" style={{ backgroundColor: procColors.bg, color: procColors.text, border: `1px solid ${procColors.border}`, textTransform: 'uppercase', fontSize: '0.65rem', fontWeight: 700, padding: '0.1rem 0.4rem', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', margin: 0 }}>
+                                {group.status}
+                              </span>
+                            </>
+                          )}
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }} onClick={e => e.stopPropagation()}>
+                          {group.processId !== 'unlinked' && (
+                            <button
+                              type="button"
+                              className="btn btn-secondary btn-sm"
+                              onClick={() => onSelectProcess(group.processId)}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.3rem',
+                                fontSize: '0.78rem',
+                                padding: '0.3rem 0.65rem',
+                                background: '#ffffff',
+                                fontWeight: 600,
+                                borderColor: '#bae6fd',
+                                color: '#0284c7'
+                              }}
+                              title="View process flowchart & details"
+                            >
+                              <Eye size={13} />
+                              <span>View Process</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Group Forms Table */}
+                      {!isCollapsed && (
+                        <div style={{ overflowX: 'auto' }}>
+                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                            <thead>
+                              <tr style={{ borderBottom: '1px solid var(--neutral-border)', background: '#fafbfc', color: 'var(--text-secondary)', fontSize: '0.78rem' }}>
+                                <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '14%' }}>Form ID</th>
+                                <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '32%' }}>Form Title</th>
+                                <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '22%' }}>Work Step</th>
+                                <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '10%' }}>Version</th>
+                                <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '10%' }}>Status</th>
+                                <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '12%' }}>Actions</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {group.forms.map(({ form, workStepTitle }) => {
                         const status = form.status || 'DRAFT';
                         const colors = status === 'ACTIVE' 
                           ? { bg: '#f0fdf4', text: '#15803d', border: '#bbf7d0' } 
@@ -1171,42 +1349,37 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
                         return (
                           <tr 
-                            key={form.formName} 
+                            key={`${group.processId}_${form.formName}`} 
                             className="dashboard-form-row"
-                            style={{ borderBottom: '1px solid var(--neutral-border)' }}
+                            style={{ borderBottom: '1px solid var(--neutral-border)', transition: 'background 0.15s' }}
+                            onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
+                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                           >
-                            <td style={{ padding: '0.6rem 0.75rem', verticalAlign: 'middle' }}>
-                              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', background: '#f1f5f9', padding: '0.1rem 0.4rem', borderRadius: '4px', border: '1px solid #e2e8f0', fontFamily: 'monospace' }}>
+                            <td style={{ padding: '0.65rem 0.75rem', verticalAlign: 'middle' }}>
+                              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', background: '#f1f5f9', padding: '0.15rem 0.45rem', borderRadius: '4px', border: '1px solid #e2e8f0', fontFamily: 'monospace' }}>
                                 {form.formId}
                               </span>
                             </td>
-                            <td style={{ padding: '0.6rem 0.75rem', verticalAlign: 'middle', fontWeight: 600, color: 'var(--text-primary)' }}>
+                            <td style={{ padding: '0.65rem 0.75rem', verticalAlign: 'middle', fontWeight: 600, color: 'var(--text-primary)' }}>
                               {form.formTitle}
                             </td>
-                            <td style={{ padding: '0.6rem 0.75rem', verticalAlign: 'middle', fontSize: '0.8rem' }}>
-                              {form.linkedProcesses.length > 0 ? (
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
-                                  {form.linkedProcesses.map((lp: any) => (
-                                    <span 
-                                      key={lp.id} 
-                                      style={{ 
-                                        display: 'inline-flex', 
-                                        alignItems: 'center', 
-                                        padding: '0.15rem 0.4rem', 
-                                        fontSize: '0.72rem', 
-                                        borderRadius: '4px', 
-                                        background: '#f1f5f9', 
-                                        color: 'var(--text-primary)', 
-                                        border: '1px solid #e2e8f0',
-                                        fontWeight: 500
-                                      }}
-                                    >
-                                      {lp.title}
-                                    </span>
-                                  ))}
-                                </div>
+                            <td style={{ padding: '0.65rem 0.75rem', verticalAlign: 'middle', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                              {workStepTitle === '—' ? (
+                                <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>—</span>
                               ) : (
-                                <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>Biểu mẫu tự do (Không liên kết)</span>
+                                <span style={{ 
+                                  display: 'inline-flex', 
+                                  alignItems: 'center', 
+                                  padding: '0.15rem 0.45rem', 
+                                  fontSize: '0.75rem', 
+                                  borderRadius: '4px', 
+                                  background: '#f8fafc', 
+                                  color: 'var(--text-primary)', 
+                                  border: '1px solid #e2e8f0',
+                                  fontWeight: 500
+                                }}>
+                                  {workStepTitle}
+                                </span>
                               )}
                             </td>
                             <td style={{ padding: '0.6rem 0.75rem', textAlign: 'center', verticalAlign: 'middle' }}>
@@ -1322,13 +1495,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                     type="button"
                                     className="btn btn-secondary btn-sm"
                                     title="Thao tác khác"
-                                    onClick={() => setActiveFormMenuId(prev => prev === form.formName ? null : form.formName)}
+                                    onClick={() => setActiveFormMenuId(prev => prev === `${group.processId}_${form.formName}` ? null : `${group.processId}_${form.formName}`)}
                                     style={{ padding: 0, width: '28px', height: '28px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px' }}
                                   >
                                     <MoreHorizontal size={14} />
                                   </button>
 
-                                  {activeFormMenuId === form.formName && (
+                                  {activeFormMenuId === `${group.processId}_${form.formName}` && (
                                     <div
                                       style={{
                                         position: 'absolute',
@@ -1498,8 +1671,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     </tbody>
                   </table>
                 </div>
-              </div>
-            ) : (
+              )}
+            </div>
+          );
+        })}
+      </div>
+    ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(420px, 1fr))', gap: '1rem' }}>
                 {filteredFormsList.map((form) => {
                   const status = form.status || 'DRAFT';
