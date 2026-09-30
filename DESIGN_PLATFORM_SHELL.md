@@ -9,7 +9,7 @@
 | **Module Name** | Platform Shell |
 | **Status** | Active Development |
 | **Document Version** | 1.1 |
-| **Verified At Commit** | (2026-09-30) — Dashboard Submissions Tab List Mode Enforced (top-right toggle hidden in submissions tab) & onOpenFormFiller connection verified against source |
+| **Verified At Commit** | (2026-09-30) — Dashboard Tab Forms Actions Streamlining: Option 1 implemented (Direct 28x28px buttons: Fill Form, Edit Template / Audit, and Context Dropdown [•••] with In biểu mẫu trắng, PDF export, Duplicate, Report config) verified against source |
 
 ### Quick File Index
 
@@ -208,7 +208,6 @@ lives in `git log`; run `git show <commit>` for the full diff of any entry below
 
 | Date | Commit | Change |
 |---|---|---|
-| 2026-07-27 | `9a555cb` | **Auth flow change:** Email-First progressive disclosure across `LoginPage.tsx`, `AuthContext.tsx`, `server.cjs`. Adds `POST /api/auth/check-email` and `POST /api/auth/register` (self-service); login query now matches on either email or username. |
 | 2026-07-24 | 9a6bb9aa | **Fill Form Navigation Fix in Forms Tab:** Connected missing `onOpenFormFiller` prop from `App.tsx` into `<Dashboard />` component and updated `handleFillAction` & `processSelectDialog` in `Dashboard.tsx` to route to online form filler screen (`FormFiller`) when clicking Fill Form (`PenTool`) button, resolving route collision with View Submissions (`History`) button. |
 | 2026-07-28 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Sort Process Families by Last Update Descending:** Added `getFamilyTimestamp` sorting helper in `Dashboard.tsx` to sort process families descending by most recent `lastUpdated` timestamp across all versions, placing recently modified processes at the top of the Dashboard. |
 | 2026-07-28 | [9a6bb9aa](conversation://9a6bb9aa-9ff4-4e14-a3f4-84e603e6ae73) | **Sort Forms List by Last Update Descending in Forms Tab:** Added `getFormTimestamp` sorting logic in `Dashboard.tsx` to sort `formsList` descending by latest `updated_at` timestamp (with tie-breaker by `formTitle` A-Z), placing recently updated form templates at the top of the Forms tab. |
@@ -224,3 +223,4 @@ lives in `git log`; run `git show <commit>` for the full diff of any entry below
 | 2026-09-18 | `CURRENT` | **Fix Duplicated Form Process Re-linking:** (1) In `Dashboard.tsx`, fixed process persistence by replacing non-existent `PUT /api/processes/:id` (404) with `POST /api/processes` and added error handling. (2) Replaced `getRepresentative` lookup with direct process matching to prevent multi-version step divergence. (3) Extracted pure utility `linkDuplicatedFormToSteps` in `formUtils.ts` (Rule 13.8). (4) Added backend defensive alias `PUT /api/processes/:id` in `server.cjs`. |
 | 2026-09-28 | `CURRENT` | **Direct Report View Routing & SubmissionManager Report Action:** (1) Updated `App.tsx` regex matching and URL resolution to recognize `/f/:formSlug/r/:subId` and `/r/:subId` routes alongside `/s/:subId`, passing `initialTab` (`form` or `report`) to `SubmissionViewer`. (2) Connected `onOpenReportBuilder` callback through `Dashboard.tsx` into `SubmissionManager.tsx` and `FormFiller.tsx`. |
 | 2026-09-30 | `CURRENT` | **Dashboard Submissions Tab Integration:** (1) Suppressed top-right List/Grid toggle buttons when `viewMode === 'submissions'`, establishing 100% list mode for the audit trail. (2) Connected `onOpenFormFiller` prop directly into `<SubmissionManager />` to support 1-click new record creation from form accordion headers. |
+| 2026-09-30 | `CURRENT` | **Tab Forms Actions Streamlining (Option 1):** (1) Streamlined Actions column in Tab Forms List view into 2 direct 28x28px square icon buttons (`[ ✍️ ]` Fill Form, `[ ✏️ ]` Edit Template or `[ 🕒 ]` View Submissions) and 1 context dropdown button (`[ ••• ]`). (2) Dropdown menu houses secondary actions: View Submissions, In biểu mẫu trắng (Print Blank Form), Export PDF, Duplicate Form, and Report Template Builder. (3) Eliminated hover-to-reveal delay (`⋯`), reduced column width from 270px to 120px (12%), expanding Form Title to 32% and Linked Process to 25%. (4) Extracted reusable `handlePrintBlankForm` pure utility reducing duplicate template construction. |

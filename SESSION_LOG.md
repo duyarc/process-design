@@ -40,6 +40,23 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 ## Nhật ký Phiên
 
+### 2026-09-30 — Tab Forms Actions Streamlining (Option 1)
+
+**Scope:** 1 source file (`src/components/Dashboard.tsx`) + 1 design doc (`DESIGN_PLATFORM_SHELL.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa | 1 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 1 (`npx tsc --noEmit` pass, `npm run build` pass 10.84s) |
+| Lần build đầu thành công? | Có |
+
+**Kết quả đạt được:**
+- **Thực thi Option 1 cho cột Actions:** Thu gọn 7 nút dàn trải thành 2 nút icon chính 28x28px (`[ ✍️ ]` Điền biểu mẫu, `[ ✏️ ]` Chỉnh sửa thiết kế hoặc `[ 🕒 ]` Xem lịch sử nộp) cùng 1 nút mở rộng `[ ••• ]`.
+- **Cấu trúc Menu Dropdown:** Tích hợp đầy đủ các tác vụ phụ: Xem lịch sử nộp, In biểu mẫu trắng (chuẩn hóa nhãn text), Xuất file PDF, Nhân bản biểu mẫu, Cấu hình Mẫu Báo cáo; kèm cơ chế tự động đóng khi click ra ngoài.
+- **Tối ưu Bố cục & Trải nghiệm:** Bỏ cơ chế hover `⋯` giúp thao tác tức thì 1 click; giảm chiều rộng cột Actions từ 270px xuống 120px (12%), tăng độ rộng hiển thị cho Form Title (32%) và Linked Process (25%).
+- **Trích xuất Pure Logic:** Gom cụm logic dựng phôi trắng in/PDF vào helper `handlePrintBlankForm` dùng chung, triệt tiêu code lặp.
+
 ### 2026-09-30 — Submissions Tab Visual Streamlining & Actions Alignment
 
 **Scope:** 1 source file (`src/components/SubmissionManager.tsx`) + 1 design doc (`DESIGN_FORM_OPERATIONS.md`)

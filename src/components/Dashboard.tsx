@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { Process, ReportTemplateISO } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { Plus, Search, FileText, Eye, Calendar, Printer, History, PenTool, Edit2, GitBranch, ChevronDown, ChevronUp, Grid, List, SlidersHorizontal, Copy, Check } from 'lucide-react';
+import { Plus, Search, FileText, Eye, Calendar, Printer, History, PenTool, Edit2, GitBranch, ChevronDown, ChevronUp, Grid, List, SlidersHorizontal, Copy, Check, MoreHorizontal } from 'lucide-react';
 import SubmissionManager from './SubmissionManager';
 import { BPMNGuide } from './BPMNGuide';
 import PrintBlankForm from './print/PrintBlankForm';
@@ -86,6 +86,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [isViewingSubmission, setIsViewingSubmission] = useState(false);
   const [duplicatingFormId, setDuplicatingFormId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [activeFormMenuId, setActiveFormMenuId] = useState<string | null>(null);
+
+  // Auto-close form actions menu when clicking outside
+  useEffect(() => {
+    if (!activeFormMenuId) return;
+    const handleOutsideClick = () => setActiveFormMenuId(null);
+    window.addEventListener('click', handleOutsideClick);
+    return () => window.removeEventListener('click', handleOutsideClick);
+  }, [activeFormMenuId]);
 
   useEffect(() => {
     if (!toast) return;
@@ -919,6 +928,23 @@ export const Dashboard: React.FC<DashboardProps> = ({
           }
         };
 
+        const handlePrintBlankForm = (form: any, autoExportPdf = false) => {
+          const raw = form.rawRecord || {};
+          const fullTemplate = {
+            ...raw,
+            formId: form.formId || form.formName || raw.form_id,
+            formTitle: form.formTitle || raw.form_title || raw.form_name,
+            layoutBlocks: typeof raw.layout_blocks === 'string' ? JSON.parse(raw.layout_blocks) : (raw.layout_blocks || []),
+            revisionHistory: typeof raw.revision_history === 'string' ? JSON.parse(raw.revision_history) : (raw.revision_history || []),
+            version: form.version || raw.version,
+            status: form.status || raw.status,
+            effectiveDate: raw.effective_date || raw.effectiveDate || raw.created_at,
+            updatedAt: raw.updated_at || raw.updatedAt || raw.created_at,
+            ...(autoExportPdf ? { autoExportPdf: true } : {})
+          };
+          setPrintTemplateData(fullTemplate);
+        };
+
         const handleDuplicateFormDirect = async (form: any) => {
           if (duplicatingFormId) return;
           try {
@@ -1052,11 +1078,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     <thead>
                       <tr style={{ borderBottom: '2px solid var(--neutral-border)', background: '#f8fafc', color: 'var(--text-secondary)' }}>
                         <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '10%' }}>Form ID</th>
-                        <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '28%' }}>Form Title</th>
-                        <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '24%' }}>Linked Process</th>
-                        <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '13%' }}>Version</th>
-                        <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '8%' }}>Status</th>
-                        <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '17%' }}>Actions</th>
+                        <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '32%' }}>Form Title</th>
+                        <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '25%' }}>Linked Process</th>
+                        <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '12%' }}>Version</th>
+                        <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '9%' }}>Status</th>
+                        <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '12%' }}>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1178,119 +1204,214 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                 {displayStatus}
                               </span>
                             </td>
-                            <td style={{ padding: '0.6rem 0.75rem', textAlign: 'center', verticalAlign: 'middle', width: '270px' }}>
-                              <div className="dashboard-form-actions-wrapper">
-                                <span className="dashboard-form-actions-idle">⋯</span>
-                                <div className="dashboard-form-actions-reveal">
-                                  {/* Nhóm 1: Vận hành (Điền + Lịch sử) */}
-                                  <div className="dashboard-btn-cluster" title="Vận hành (Điền biểu mẫu & Xem lịch sử)">
-                                    <button 
-                                      className="btn-cluster-item"
-                                      style={{ borderRight: '1px solid #cbd5e1' }}
-                                      title="Điền biểu mẫu (Fill Form)"
-                                      onClick={() => handleFillAction(form)}
-                                    >
-                                      <PenTool size={12} style={{ color: 'var(--primary)' }} />
-                                    </button>
-                                    <button 
-                                      className="btn-cluster-item"
-                                      title="Xem lịch sử nộp (View Submissions)"
-                                      onClick={() => handleAuditAction(form)}
-                                    >
-                                      <History size={12} />
-                                    </button>
-                                  </div>
+                            <td style={{ padding: '0.55rem 0.75rem', textAlign: 'center', verticalAlign: 'middle', width: '120px' }} onClick={e => e.stopPropagation()}>
+                              <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'center', alignItems: 'center' }}>
+                                {/* Nút 1: Điền biểu mẫu */}
+                                <button
+                                  type="button"
+                                  className="btn btn-secondary btn-sm"
+                                  title="Điền biểu mẫu (Fill Form)"
+                                  onClick={() => handleFillAction(form)}
+                                  style={{ padding: 0, width: '28px', height: '28px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px' }}
+                                >
+                                  <PenTool size={13} style={{ color: 'var(--primary)' }} />
+                                </button>
 
-                                  <div className="dashboard-actions-divider" />
+                                {/* Nút 2: Chỉnh sửa thiết kế (hoặc Xem lịch sử nộp nếu không có quyền sửa) */}
+                                {hasPermission('design_document') ? (
+                                  <button
+                                    type="button"
+                                    className="btn btn-secondary btn-sm"
+                                    title="Chỉnh sửa thiết kế (Edit Template)"
+                                    onClick={() => onEditProcess(form.linkedProcesses[0]?.id || null, 'form', form.formName)}
+                                    style={{ padding: 0, width: '28px', height: '28px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px' }}
+                                  >
+                                    <Edit2 size={13} />
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    className="btn btn-secondary btn-sm"
+                                    title="Xem lịch sử nộp (View Submissions)"
+                                    onClick={() => handleAuditAction(form)}
+                                    style={{ padding: 0, width: '28px', height: '28px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px' }}
+                                  >
+                                    <History size={13} />
+                                  </button>
+                                )}
 
-                                  {/* Nhóm 2: In ấn & Xuất file */}
-                                  <div className="dashboard-btn-cluster" title="In ấn & Xuất bản">
-                                    <button 
-                                      className="btn-cluster-item"
-                                      style={{ borderRight: '1px solid #cbd5e1' }}
-                                      title="In biểu mẫu trắng (Print Blank Form)"
-                                      onClick={() => {
-                                        const raw = form.rawRecord || {};
-                                        const fullTemplate = {
-                                          ...raw,
-                                          formId: form.formId || form.formName || raw.form_id,
-                                          formTitle: form.formTitle || raw.form_title || raw.form_name,
-                                          layoutBlocks: typeof raw.layout_blocks === 'string' ? JSON.parse(raw.layout_blocks) : (raw.layout_blocks || []),
-                                          revisionHistory: typeof raw.revision_history === 'string' ? JSON.parse(raw.revision_history) : (raw.revision_history || []),
-                                          version: form.version || raw.version,
-                                          status: form.status || raw.status,
-                                          effectiveDate: raw.effective_date || raw.effectiveDate || raw.created_at,
-                                          updatedAt: raw.updated_at || raw.updatedAt || raw.created_at
-                                        };
-                                        setPrintTemplateData(fullTemplate);
+                                {/* Nút 3: Menu thao tác khác */}
+                                <div style={{ position: 'relative' }}>
+                                  <button
+                                    type="button"
+                                    className="btn btn-secondary btn-sm"
+                                    title="Thao tác khác"
+                                    onClick={() => setActiveFormMenuId(prev => prev === form.formName ? null : form.formName)}
+                                    style={{ padding: 0, width: '28px', height: '28px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: '6px' }}
+                                  >
+                                    <MoreHorizontal size={14} />
+                                  </button>
+
+                                  {activeFormMenuId === form.formName && (
+                                    <div
+                                      style={{
+                                        position: 'absolute',
+                                        right: 0,
+                                        top: '100%',
+                                        marginTop: '4px',
+                                        background: '#ffffff',
+                                        borderRadius: '6px',
+                                        boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+                                        border: '1px solid var(--neutral-border)',
+                                        zIndex: 100,
+                                        minWidth: '190px',
+                                        overflow: 'hidden',
+                                        display: 'flex',
+                                        flexDirection: 'column'
                                       }}
                                     >
-                                      <Printer size={12} />
-                                    </button>
-                                    <button 
-                                      className="btn-cluster-item"
-                                      title="Xuất file PDF (Export PDF)"
-                                      onClick={() => {
-                                        const raw = form.rawRecord || {};
-                                        const fullTemplate = {
-                                          ...raw,
-                                          formId: form.formId || form.formName || raw.form_id,
-                                          formTitle: form.formTitle || raw.form_title || raw.form_name,
-                                          layoutBlocks: typeof raw.layout_blocks === 'string' ? JSON.parse(raw.layout_blocks) : (raw.layout_blocks || []),
-                                          revisionHistory: typeof raw.revision_history === 'string' ? JSON.parse(raw.revision_history) : (raw.revision_history || []),
-                                          version: form.version || raw.version,
-                                          status: form.status || raw.status,
-                                          effectiveDate: raw.effective_date || raw.effectiveDate || raw.created_at,
-                                          updatedAt: raw.updated_at || raw.updatedAt || raw.created_at,
-                                          autoExportPdf: true
-                                        };
-                                        setPrintTemplateData(fullTemplate);
-                                      }}
-                                    >
-                                      <FileText size={12} />
-                                    </button>
-                                  </div>
-
-                                  {/* Nhóm 3: Thiết kế & Cấu hình (Admin/Supervisor) */}
-                                  {hasPermission('design_document') && (
-                                    <>
-                                      <div className="dashboard-actions-divider" />
-                                      <div className="dashboard-btn-cluster" title="Thiết kế & Cấu hình">
-                                        <button 
-                                          className="btn-cluster-item"
-                                          style={{ borderRight: '1px solid #cbd5e1' }}
-                                          title="Chỉnh sửa thiết kế (Edit Template)"
-                                          onClick={() => onEditProcess(form.linkedProcesses[0]?.id || null, 'form', form.formName)}
+                                      {hasPermission('design_document') && (
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            handleAuditAction(form);
+                                            setActiveFormMenuId(null);
+                                          }}
+                                          style={{
+                                            padding: '0.5rem 0.75rem',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '0.5rem',
+                                            fontSize: '0.78rem',
+                                            border: 'none',
+                                            background: 'transparent',
+                                            cursor: 'pointer',
+                                            color: 'var(--text-primary)',
+                                            textAlign: 'left',
+                                            width: '100%'
+                                          }}
+                                          onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; }}
+                                          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
                                         >
-                                          <Edit2 size={12} />
+                                          <History size={13} />
+                                          <span>Xem lịch sử nộp</span>
                                         </button>
-                                        <button 
-                                          className="btn-cluster-item"
-                                          style={{ borderRight: onOpenReportBuilder ? '1px solid #cbd5e1' : 'none' }}
-                                          title="Nhân bản biểu mẫu (Duplicate)"
+                                      )}
+
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          handlePrintBlankForm(form);
+                                          setActiveFormMenuId(null);
+                                        }}
+                                        style={{
+                                          padding: '0.5rem 0.75rem',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: '0.5rem',
+                                          fontSize: '0.78rem',
+                                          border: 'none',
+                                          background: 'transparent',
+                                          cursor: 'pointer',
+                                          color: 'var(--text-primary)',
+                                          textAlign: 'left',
+                                          width: '100%'
+                                        }}
+                                        onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; }}
+                                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                                      >
+                                        <Printer size={13} />
+                                        <span>In biểu mẫu trắng</span>
+                                      </button>
+
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          handlePrintBlankForm(form, true);
+                                          setActiveFormMenuId(null);
+                                        }}
+                                        style={{
+                                          padding: '0.5rem 0.75rem',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: '0.5rem',
+                                          fontSize: '0.78rem',
+                                          border: 'none',
+                                          background: 'transparent',
+                                          cursor: 'pointer',
+                                          color: 'var(--text-primary)',
+                                          textAlign: 'left',
+                                          width: '100%'
+                                        }}
+                                        onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; }}
+                                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                                      >
+                                        <FileText size={13} />
+                                        <span>Xuất file PDF</span>
+                                      </button>
+
+                                      {hasPermission('design_document') && (
+                                        <button
+                                          type="button"
                                           disabled={duplicatingFormId === form.formId}
-                                          onClick={() => handleDuplicateFormDirect(form)}
+                                          onClick={() => {
+                                            handleDuplicateFormDirect(form);
+                                            setActiveFormMenuId(null);
+                                          }}
+                                          style={{
+                                            padding: '0.5rem 0.75rem',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '0.5rem',
+                                            fontSize: '0.78rem',
+                                            border: 'none',
+                                            background: 'transparent',
+                                            cursor: 'pointer',
+                                            color: 'var(--text-primary)',
+                                            textAlign: 'left',
+                                            width: '100%'
+                                          }}
+                                          onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; }}
+                                          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
                                         >
                                           {duplicatingFormId === form.formId ? (
-                                            <div className="spinner-border spinner-border-sm" style={{ width: '11px', height: '11px', borderWidth: '1.5px' }} />
+                                            <div className="spinner-border spinner-border-sm" style={{ width: '13px', height: '13px', borderWidth: '1.5px' }} />
                                           ) : (
-                                            <Copy size={12} />
+                                            <Copy size={13} />
                                           )}
+                                          <span>Nhân bản biểu mẫu</span>
                                         </button>
-                                        {onOpenReportBuilder && (
-                                          <button 
-                                            className="btn-cluster-item"
-                                            title="Cấu hình Mẫu Báo cáo (Report Template)"
-                                            onClick={() => {
-                                              const linkedRep = reportTemplates.find(r => r.linkedFormId === form.formId);
-                                              onOpenReportBuilder(form.formId, linkedRep?.reportId);
-                                            }}
-                                          >
-                                            <SlidersHorizontal size={12} />
-                                          </button>
-                                        )}
-                                      </div>
-                                    </>
+                                      )}
+
+                                      {hasPermission('design_document') && onOpenReportBuilder && (
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            const linkedRep = reportTemplates.find(r => r.linkedFormId === form.formId);
+                                            onOpenReportBuilder(form.formId, linkedRep?.reportId);
+                                            setActiveFormMenuId(null);
+                                          }}
+                                          style={{
+                                            padding: '0.5rem 0.75rem',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '0.5rem',
+                                            fontSize: '0.78rem',
+                                            border: 'none',
+                                            background: 'transparent',
+                                            cursor: 'pointer',
+                                            color: 'var(--text-primary)',
+                                            textAlign: 'left',
+                                            width: '100%'
+                                          }}
+                                          onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; }}
+                                          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                                        >
+                                          <SlidersHorizontal size={13} />
+                                          <span>Cấu hình Mẫu Báo cáo</span>
+                                        </button>
+                                      )}
+                                    </div>
                                   )}
                                 </div>
                               </div>
