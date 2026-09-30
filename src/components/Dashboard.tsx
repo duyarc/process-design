@@ -664,7 +664,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </button>
         </div>
 
-        {viewMode !== 'guide' && (
+        {viewMode !== 'guide' && viewMode !== 'submissions' && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', background: '#f1f5f9', padding: '2px', borderRadius: '6px', border: '1px solid var(--neutral-border)' }}>
             <button
               type="button"
@@ -769,9 +769,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
           isEmbedded={true} 
           initialFormFilter={initialFormFilter} 
           onBack={onClearFormFilter} 
-          layoutMode={layoutMode}
           onOpenReport={onOpenFormReport}
           onOpenReportBuilder={onOpenReportBuilder}
+          onOpenFormFiller={onOpenFormFiller}
           onViewingChange={(isViewing) => {
             setIsViewingSubmission(isViewing);
             onViewingSubmissionChange?.(isViewing);

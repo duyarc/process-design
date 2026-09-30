@@ -40,7 +40,22 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 ## Nhật ký Phiên
 
-Entry mới nhất ở trên cùng. Tối đa 10 entries.
+### 2026-09-30 — Submissions Tab Redesign: Group by Form, Filter by Process, 100% List View
+
+**Scope:** 2 files (`src/components/SubmissionManager.tsx`, `src/components/Dashboard.tsx`) + 2 design docs (`DESIGN_FORM_OPERATIONS.md`, `DESIGN_PLATFORM_SHELL.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa | 2 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 1 (`npx tsc --noEmit` pass, `npm run build` pass 8.50s) |
+| Lần build đầu thành công? | Có |
+
+**Kết quả đạt được:**
+- **Chuyển đổi 100% List View:** Loại bỏ hoàn toàn chế độ Grid card; ẩn toggle List/Grid ở `Dashboard.tsx` khi người dùng ở tab Submissions.
+- **Gom nhóm theo Biểu mẫu (Group by Form Accordion):** Thay thế cột `BIỂU MẪU & QUY TRÌNH` cũ bằng các khối accordion card theo từng Biểu mẫu; header hiển thị tên form, version, tag quy trình liên kết, badge đếm số phiếu/chờ duyệt, và nút nhanh `[ ✍️ Điền phiếu mới ]`.
+- **Thanh công cụ Toolbar nâng cao:** Bổ sung dropdown lọc theo Quy trình (`processFilter`), dropdown lọc Trạng thái xác nhận, nút Mở rộng/Thu gọn tất cả nhóm và Làm mới.
+- **Bảng dữ liệu 5 cột tinh gọn:** `MÃ PHIẾU` (chip monospace), `NGÀY` (DD/MM/YYYY không hiển thị giờ), `NGƯỜI LẬP` (avatar + tên), `TRẠNG THÁI` (badge mềm), `THAO TÁC` (Ký duyệt/Xem, Báo cáo, menu 3 chấm tiện ích).
 
 ### 2026-09-30 — Hotfix: server.cjs Syntax Error Restoration & node -c Validation
 

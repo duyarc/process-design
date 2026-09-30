@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import type { Submission, Process } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { 
@@ -14,7 +14,13 @@ import {
   UserCheck,
   Trash2,
   FileText,
-  Copy
+  Copy,
+  ChevronDown,
+  ChevronRight,
+  MoreHorizontal,
+  PenTool,
+  RefreshCw,
+  ChevronsUpDown
 } from 'lucide-react';
 import PrintFilledForm from './print/PrintFilledForm';
 import ConfirmModal from './common/ConfirmModal';
@@ -28,9 +34,10 @@ interface SubmissionManagerProps {
   onOpenReport?: (submissionId: string) => void;
   onOpenReportBuilder?: (formId: string) => void;
   onViewingChange?: (isViewing: boolean) => void;
+  onOpenFormFiller?: (processId: string, formName: string) => void;
 }
 
-export default function SubmissionManager({ onBack, initialFormFilter, isEmbedded = false, layoutMode = 'list', onOpenReport, onOpenReportBuilder, onViewingChange }: SubmissionManagerProps) {
+export default function SubmissionManager({ onBack, initialFormFilter, isEmbedded = false, onOpenReport, onOpenReportBuilder, onViewingChange, onOpenFormFiller }: SubmissionManagerProps) {
   const { currentUser } = useAuth();
   
   // Data States
@@ -50,13 +57,30 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
   // Copy / Clone Submission State
   const [copyingSubmission, setCopyingSubmission] = useState<Submission | null>(null);
 
+  // Direct Fill Form State (from group header)
+  const [fillingForm, setFillingForm] = useState<{ processId: string; formName: string } | null>(null);
+
+  // Group Accordion Collapse State (formKey -> boolean)
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+
+  // Active Context Menu for row actions
+  const [activeActionMenuId, setActiveActionMenuId] = useState<string | null>(null);
+
+  // Auto-close action menu when clicking outside
+  useEffect(() => {
+    if (!activeActionMenuId) return;
+    const handleOutsideClick = () => setActiveActionMenuId(null);
+    window.addEventListener('click', handleOutsideClick);
+    return () => window.removeEventListener('click', handleOutsideClick);
+  }, [activeActionMenuId]);
+
   // Notify parent container (e.g. Dashboard) when full-screen form view is active
   useEffect(() => {
-    onViewingChange?.(Boolean(viewingSubmission || copyingSubmission || printSubmission));
+    onViewingChange?.(Boolean(viewingSubmission || copyingSubmission || printSubmission || fillingForm));
     return () => {
       onViewingChange?.(false);
     };
-  }, [viewingSubmission, copyingSubmission, printSubmission, onViewingChange]);
+  }, [viewingSubmission, copyingSubmission, printSubmission, fillingForm, onViewingChange]);
   
   // Supervisor verification states
   const [supervisorName, setSupervisorName] = useState(currentUser?.role_id === 'admin' || currentUser?.role_id === 'supervisor' ? currentUser.full_name : '');
@@ -66,6 +90,7 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
   // Filter States
   const [searchTerm, setSearchTerm] = useState(initialFormFilter || '');
   const [signoffFilter, setSignoffFilter] = useState<'ALL' | 'PENDING' | 'VERIFIED'>('ALL');
+  const [processFilter, setProcessFilter] = useState<string>('ALL');
 
   // Deletion States
   const [submissionToDelete, setSubmissionToDelete] = useState<Submission | null>(null);
@@ -144,14 +169,27 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Map process ID to display title using Form-Centric Dynamic Resolution (current form mapping prioritized)
-  const getProcessTitle = (procId: string, formId?: string) => {
-    // 1. ƯU TIÊN SỐ 1: Tra cứu quy trình HIỆN TẠI đang chứa formId này (bất kể procId cũ là gì)
+  // Date format helper: DD/MM/YYYY only (no time)
+  const formatDateOnly = (dateString?: string) => {
+    if (!dateString) return 'N/A';
+    try {
+      const d = new Date(dateString);
+      if (isNaN(d.getTime())) return dateString;
+      const day = String(d.getDate()).padStart(2, '0');
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const year = d.getFullYear();
+      return `${day}/${month}/${year}`;
+    } catch {
+      return dateString;
+    }
+  };
+
+  // Find linked Process object dynamically
+  const getLinkedProcess = (procId: string, formId?: string): Process | null => {
     if (formId) {
       const target = formId.toLowerCase();
       const linkedProc = processes.find(proc => {
-        if (proc.id === 'unlinked') return false; // skip the system placeholder process
-        // Defensive: workflowFormsData may arrive stringified
+        if (proc.id === 'unlinked') return false;
         let wfd = proc.workflowFormsData;
         if (typeof wfd === 'string') {
           try { wfd = JSON.parse(wfd); } catch { return false; }
@@ -159,42 +197,142 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
         if (!wfd) return false;
         return Object.entries(wfd).some(([fName, fDataRaw]) => {
           const fData = fDataRaw as { formId?: string; formTitle?: string };
-          // Match by form_name key, fData.formId, or fData.formTitle
           return fName.toLowerCase() === target || 
                  (fData.formId && fData.formId.toLowerCase() === target) ||
                  (fData.formTitle && fData.formTitle.toLowerCase() === target);
         });
       });
-      if (linkedProc) return linkedProc.title;
+      if (linkedProc) return linkedProc;
     }
-
-    // 2. Fallback: Nếu form hiện tại không gắn vào quy trình nào, kiểm tra procId lịch sử
     if (procId && procId !== 'unlinked') {
       const p = processes.find(proc => proc.id === procId);
-      if (p) return p.title;
+      if (p) return p;
     }
+    return null;
+  };
 
-    // 3. Mặc định là Biểu mẫu tự do
-    return 'Biểu mẫu tự do';
+  // Map process ID to display title
+  const getProcessTitle = (procId: string, formId?: string) => {
+    const p = getLinkedProcess(procId, formId);
+    return p ? p.title : 'Biểu mẫu tự do';
+  };
+
+  // Toggle group accordion
+  const toggleGroup = (formKey: string) => {
+    setCollapsedGroups(prev => ({
+      ...prev,
+      [formKey]: !prev[formKey]
+    }));
+  };
+
+  // Open FormFiller to create a new submission record for this form
+  const handleFillNewRecord = (group: { processId: string; formId: string }) => {
+    if (onOpenFormFiller) {
+      onOpenFormFiller(group.processId, group.formId);
+    } else {
+      setFillingForm({ processId: group.processId, formName: group.formId });
+    }
+  };
+
+  // Toggle all groups (expand/collapse)
+  const toggleAllGroups = (collapse: boolean) => {
+    const updated: Record<string, boolean> = {};
+    formGroups.forEach(g => {
+      updated[g.formKey] = collapse;
+    });
+    setCollapsedGroups(updated);
   };
 
   // 2. Filter logic
-  const filteredSubmissions = submissions.filter(sub => {
-    const procTitle = getProcessTitle(sub.processId, sub.formId).toLowerCase();
-    const opId = sub.operatorId.toLowerCase();
-    const subId = sub.id.toLowerCase();
-    const fId = (sub.formId || '').toLowerCase();
-    const matchSearch = procTitle.includes(searchTerm.toLowerCase()) || 
-                        opId.includes(searchTerm.toLowerCase()) || 
-                        subId.includes(searchTerm.toLowerCase()) ||
-                        fId.includes(searchTerm.toLowerCase());
-    
-    const matchSignoff = signoffFilter === 'ALL' || 
-      (signoffFilter === 'PENDING' && !sub.supervisorSignoff) || 
-      (signoffFilter === 'VERIFIED' && !!sub.supervisorSignoff);
+  const filteredSubmissions = useMemo(() => {
+    return submissions.filter(sub => {
+      const linkedProc = getLinkedProcess(sub.processId, sub.formId);
+      const procId = linkedProc ? linkedProc.id : 'unlinked';
+      const procTitle = linkedProc ? linkedProc.title : 'Biểu mẫu tự do';
 
-    return matchSearch && matchSignoff;
-  });
+      // 1. Process filter
+      if (processFilter !== 'ALL') {
+        if (processFilter === 'unlinked') {
+          if (procId !== 'unlinked') return false;
+        } else {
+          if (procId !== processFilter) return false;
+        }
+      }
+
+      // 2. Signoff filter
+      if (signoffFilter === 'PENDING' && sub.supervisorSignoff) return false;
+      if (signoffFilter === 'VERIFIED' && !sub.supervisorSignoff) return false;
+
+      // 3. Search text
+      if (searchTerm.trim()) {
+        const term = searchTerm.toLowerCase();
+        const opId = (sub.operatorId || '').toLowerCase();
+        const subId = (sub.id || '').toLowerCase();
+        const fId = (sub.formId || '').toLowerCase();
+        const pTitle = procTitle.toLowerCase();
+        const match = subId.includes(term) || opId.includes(term) || fId.includes(term) || pTitle.includes(term);
+        if (!match) return false;
+      }
+
+      return true;
+    });
+  }, [submissions, processes, processFilter, signoffFilter, searchTerm]);
+
+  // Form Group Model
+  interface FormGroup {
+    formKey: string;
+    formId: string;
+    formTitle: string;
+    formVersion: string;
+    processId: string;
+    processTitle: string;
+    submissions: Submission[];
+    pendingCount: number;
+    verifiedCount: number;
+  }
+
+  // 3. Group filtered submissions by Form Template
+  const formGroups = useMemo<FormGroup[]>(() => {
+    const map = new Map<string, FormGroup>();
+
+    for (const sub of filteredSubmissions) {
+      const key = sub.formId || 'unknown_form';
+      let group = map.get(key);
+      if (!group) {
+        const linkedProc = getLinkedProcess(sub.processId, sub.formId);
+        group = {
+          formKey: key,
+          formId: sub.formId || 'Unknown',
+          formTitle: sub.formId || 'Biểu mẫu tự do',
+          formVersion: sub.formVersion || '1.0',
+          processId: linkedProc ? linkedProc.id : (sub.processId || 'unlinked'),
+          processTitle: linkedProc ? linkedProc.title : 'Biểu mẫu tự do',
+          submissions: [],
+          pendingCount: 0,
+          verifiedCount: 0
+        };
+        map.set(key, group);
+      }
+      group.submissions.push(sub);
+      if (sub.supervisorSignoff) {
+        group.verifiedCount++;
+      } else {
+        group.pendingCount++;
+      }
+    }
+
+    // Sort submissions inside each group (newest first)
+    for (const grp of map.values()) {
+      grp.submissions.sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
+    }
+
+    // Sort groups by newest submission date
+    return Array.from(map.values()).sort((a, b) => {
+      const aTime = a.submissions[0] ? new Date(a.submissions[0].submittedAt).getTime() : 0;
+      const bTime = b.submissions[0] ? new Date(b.submissions[0].submittedAt).getTime() : 0;
+      return bTime - aTime;
+    });
+  }, [filteredSubmissions, processes]);
 
   // 3. Supervisor sign-off handler
   const handleSignOffSubmit = async (subId: string) => {
@@ -294,6 +432,21 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
     );
   }
 
+  // Direct Fill Form mode render bypass
+  if (fillingForm) {
+    return (
+      <FormFiller
+        processId={fillingForm.processId}
+        formName={fillingForm.formName}
+        onOpenReportBuilder={onOpenReportBuilder}
+        onBack={() => {
+          setFillingForm(null);
+          fetchData();
+        }}
+      />
+    );
+  }
+
   // 4. Print Record render bypass
   if (printSubmission) {
     return (
@@ -349,270 +502,524 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         
-        {/* Filters Bar */}
-        <div className="paper-card" style={{ padding: '0.75rem 1rem', display: 'flex', gap: '1.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
-          <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
-            <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-            <input 
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by Process, Operator, ID..."
-              style={{ padding: '0.45rem 0.6rem 0.45rem 2.25rem', fontSize: '0.85rem', border: '1px solid var(--neutral-border)', borderRadius: '6px', width: '100%', outline: 'none' }}
-            />
+        {/* Filters & Actions Toolbar */}
+        <div className="paper-card" style={{ padding: '0.75rem 1rem', display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', gap: '1rem', flex: 1, minWidth: '320px', flexWrap: 'wrap', alignItems: 'center' }}>
+            {/* Search Input */}
+            <div style={{ position: 'relative', flex: 1, minWidth: '220px' }}>
+              <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+              <input 
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Tìm theo mã phiếu, người lập, biểu mẫu..."
+                style={{ padding: '0.45rem 0.6rem 0.45rem 2.25rem', fontSize: '0.85rem', border: '1px solid var(--neutral-border)', borderRadius: '6px', width: '100%', outline: 'none', background: '#fff' }}
+              />
+            </div>
+            
+            {/* Process Filter */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Quy trình:</span>
+              <select 
+                value={processFilter}
+                onChange={(e) => setProcessFilter(e.target.value)}
+                style={{ padding: '0.4rem 0.6rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '6px', background: '#fff', maxWidth: '200px' }}
+              >
+                <option value="ALL">Tất cả quy trình</option>
+                {processes.filter(p => p.id !== 'unlinked').map(p => (
+                  <option key={p.id} value={p.id}>{p.title}</option>
+                ))}
+                <option value="unlinked">Biểu mẫu tự do</option>
+              </select>
+            </div>
+
+            {/* Status Filter */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Trạng thái:</span>
+              <select 
+                value={signoffFilter}
+                onChange={(e) => setSignoffFilter(e.target.value as any)}
+                style={{ padding: '0.4rem 0.6rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '6px', background: '#fff' }}
+              >
+                <option value="ALL">Tất cả trạng thái</option>
+                <option value="PENDING">Chờ duyệt</option>
+                <option value="VERIFIED">Đã xác nhận</option>
+              </select>
+            </div>
           </div>
-          
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Verification:</span>
-            <select 
-              value={signoffFilter}
-              onChange={(e) => setSignoffFilter(e.target.value as any)}
-              style={{ padding: '0.4rem 0.6rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '6px', background: '#fff' }}
+
+          {/* Quick Actions: Expand/Collapse All & Refresh */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginRight: '0.25rem' }}>
+              {filteredSubmissions.length} phiếu / {formGroups.length} nhóm
+            </span>
+
+            {formGroups.length > 0 && (
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => {
+                  const anyCollapsed = formGroups.some(g => collapsedGroups[g.formKey]);
+                  toggleAllGroups(!anyCollapsed);
+                }}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', padding: '0.35rem 0.65rem' }}
+                title="Đóng / Mở tất cả các nhóm"
+              >
+                <ChevronsUpDown size={13} />
+                <span>{formGroups.some(g => collapsedGroups[g.formKey]) ? 'Mở tất cả' : 'Thu gọn'}</span>
+              </button>
+            )}
+
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={fetchData}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', padding: '0.35rem 0.65rem' }}
+              title="Tải lại danh sách phiếu"
             >
-              <option value="ALL">All Reviews</option>
-              <option value="PENDING">Pending Approval</option>
-              <option value="VERIFIED">Verified</option>
-            </select>
+              <RefreshCw size={13} />
+              <span>Làm mới</span>
+            </button>
           </div>
         </div>
 
-        {/* Table/Grid Container */}
-        {layoutMode === 'grid' && !loading && filteredSubmissions.length > 0 ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
-            {filteredSubmissions.map((sub) => {
-              const isSelected = selectedSubmission?.id === sub.id;
+        {/* Submissions Grouped by Form Template */}
+        {loading ? (
+          <div className="paper-card" style={{ padding: '3rem 1rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+            <p style={{ margin: 0 }}>Đang tải nhật ký phiếu kiểm tra...</p>
+          </div>
+        ) : fetchError && submissions.length === 0 ? (
+          <div className="paper-card" style={{ textAlign: 'center', padding: '2.5rem 1rem' }}>
+            <AlertTriangle size={32} style={{ color: 'var(--danger)', margin: '0 auto 0.75rem', display: 'block' }} />
+            <p style={{ color: 'var(--text-primary)', fontWeight: 600, marginBottom: '0.25rem' }}>
+              Không thể kết nối đến máy chủ để tải dữ liệu
+            </p>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '1rem' }}>
+              Vui lòng kiểm tra đường truyền hoặc bấm thử lại.
+            </p>
+            <button 
+              type="button" 
+              className="btn btn-secondary btn-sm"
+              onClick={fetchData}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+            >
+              Thử lại
+            </button>
+          </div>
+        ) : formGroups.length === 0 ? (
+          <div className="paper-card" style={{ padding: '3rem 1rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+            <FileText size={36} style={{ color: 'var(--text-muted)', margin: '0 auto 0.5rem', display: 'block', opacity: 0.5 }} />
+            <p style={{ margin: '0 0 0.5rem 0', fontWeight: 600, color: 'var(--text-primary)' }}>Không có bản ghi nào khớp với điều kiện lọc</p>
+            <p style={{ margin: 0, fontSize: '0.85rem' }}>Thử đổi từ khóa tìm kiếm hoặc chọn "Tất cả quy trình".</p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {formGroups.map((group) => {
+              const isCollapsed = Boolean(collapsedGroups[group.formKey]);
 
               return (
-                <div
-                  key={sub.id}
-                  onClick={() => setSelectedSubmission(sub)}
-                  className="hover-card-bg"
-                  style={{
-                    background: isSelected ? '#eff6ff' : '#ffffff',
-                    border: isSelected ? '1px solid var(--primary)' : '1px solid var(--neutral-border)',
-                    borderRadius: '8px',
-                    padding: '1rem',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    cursor: 'pointer',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-                    transition: 'all 0.15s ease'
-                  }}
+                <div 
+                  key={group.formKey} 
+                  className="paper-card"
+                  style={{ padding: 0, overflow: 'visible', borderRadius: '8px', border: '1px solid var(--neutral-border)' }}
                 >
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                      <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', background: '#f1f5f9', padding: '0.1rem 0.35rem', borderRadius: '4px', border: '1px solid #e2e8f0', fontFamily: 'monospace' }}>
-                        {sub.id}
-                      </span>
-                    </div>
-
-                    <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                      {getProcessTitle(sub.processId)}
-                    </h4>
-                    {sub.formId && (
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
-                        Template: {sub.formId}
+                  {/* Group Accordion Header */}
+                  <div 
+                    onClick={() => toggleGroup(group.formKey)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '0.75rem 1rem',
+                      background: '#f8fafc',
+                      borderBottom: isCollapsed ? 'none' : '1px solid var(--neutral-border)',
+                      cursor: 'pointer',
+                      userSelect: 'none',
+                      borderTopLeftRadius: '8px',
+                      borderTopRightRadius: '8px',
+                      borderBottomLeftRadius: isCollapsed ? '8px' : '0',
+                      borderBottomRightRadius: isCollapsed ? '8px' : '0',
+                      transition: 'background 0.15s ease'
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.background = '#f1f5f9'; }}
+                    onMouseLeave={e => { e.currentTarget.style.background = '#f8fafc'; }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+                      <div style={{ color: 'var(--text-secondary)', display: 'flex', alignItems: 'center' }}>
+                        {isCollapsed ? <ChevronRight size={18} /> : <ChevronDown size={18} />}
                       </div>
-                    )}
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.78rem', color: 'var(--text-secondary)', borderTop: '1px solid var(--neutral-border)', paddingTop: '0.5rem', marginBottom: '0.75rem' }}>
-                      <div><strong>Operator:</strong> {sub.operatorId}</div>
-                      <div><strong>Submitted:</strong> {new Date(sub.submittedAt).toLocaleDateString()} {new Date(sub.submittedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                      {sub.supervisorSignoff ? (
-                        <span style={{ color: '#10b981', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.2rem', fontSize: '0.75rem' }}>
-                          <CheckCircle2 size={12} />
-                          <span>Verified</span>
+                      
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <FileText size={16} style={{ color: 'var(--primary)', flexShrink: 0 }} />
+                        <span style={{ fontWeight: 700, fontSize: '0.92rem', color: 'var(--text-primary)' }}>
+                          {group.formTitle}
                         </span>
-                      ) : (
-                        <span style={{ color: '#f59e0b', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '0.2rem', fontSize: '0.75rem' }}>
-                          <Clock size={12} />
-                          <span>Pending</span>
+                        {group.formVersion && (
+                          <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', background: '#e2e8f0', padding: '0.1rem 0.35rem', borderRadius: '4px', fontWeight: 600 }}>
+                            v{group.formVersion}
+                          </span>
+                        )}
+                      </div>
+
+                      <span style={{ color: '#cbd5e1' }}>•</span>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                        <span>Quy trình:</span>
+                        <span style={{ 
+                          fontWeight: 600, 
+                          color: group.processId === 'unlinked' ? 'var(--text-muted)' : 'var(--primary)',
+                          background: group.processId === 'unlinked' ? '#f1f5f9' : '#f0fdf4',
+                          padding: '0.12rem 0.45rem',
+                          borderRadius: '4px',
+                          border: `1px solid ${group.processId === 'unlinked' ? '#e2e8f0' : '#bbf7d0'}`
+                        }}>
+                          {group.processTitle}
                         </span>
-                      )}
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginLeft: '0.25rem' }}>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', background: '#ffffff', border: '1px solid var(--neutral-border)', padding: '0.12rem 0.45rem', borderRadius: '12px' }}>
+                          {group.submissions.length} phiếu
+                        </span>
+                        {group.pendingCount > 0 ? (
+                          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#d97706', background: '#fffbeb', border: '1px solid #fde68a', padding: '0.12rem 0.45rem', borderRadius: '12px' }}>
+                            {group.pendingCount} chờ duyệt
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#059669', background: '#ecfdf5', border: '1px solid #a7f3d0', padding: '0.12rem 0.45rem', borderRadius: '12px' }}>
+                            ✓ Đã duyệt xong
+                          </span>
+                        )}
+                      </div>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '0.35rem' }} onClick={(e) => e.stopPropagation()}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }} onClick={e => e.stopPropagation()}>
                       <button
                         type="button"
                         className="btn btn-secondary btn-sm"
-                        title="View Details"
-                        onClick={() => setSelectedSubmission(sub)}
-                        style={{ padding: '0.25rem', height: '26px', width: '26px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: 0 }}
+                        onClick={() => handleFillNewRecord(group)}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.3rem',
+                          fontSize: '0.78rem',
+                          padding: '0.3rem 0.65rem',
+                          background: '#ffffff',
+                          fontWeight: 600,
+                          borderColor: '#bae6fd',
+                          color: '#0284c7'
+                        }}
+                        title="Điền phiếu mới cho biểu mẫu này"
                       >
-                        <Eye size={13} />
+                        <PenTool size={13} />
+                        <span>Điền phiếu mới</span>
                       </button>
-                      {onOpenReport && (
-                        <button
-                          type="button"
-                          className="btn btn-secondary btn-sm"
-                          title="Xem Báo cáo Đánh giá (Record Report)"
-                          onClick={() => onOpenReport(sub.id)}
-                          style={{ padding: '0.25rem', height: '26px', width: '26px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: 0 }}
-                        >
-                          <FileText size={13} />
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        className="btn btn-secondary btn-sm"
-                        title="Print A4 Record"
-                        onClick={() => setPrintSubmission(sub)}
-                        style={{ padding: '0.25rem', height: '26px', width: '26px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: 0 }}
-                      >
-                        <Printer size={13} />
-                      </button>
-                      {currentUser?.role_id === 'admin' && (
-                        <button
-                          type="button"
-                          className="btn btn-secondary btn-sm"
-                          title="Delete Record (Admin)"
-                          onClick={() => setSubmissionToDelete(sub)}
-                          style={{ padding: '0.25rem', height: '26px', width: '26px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: 0 }}
-                        >
-                          <Trash2 size={13} style={{ color: '#ef4444' }} />
-                        </button>
-                      )}
                     </div>
                   </div>
+
+                  {/* Group Submissions Table */}
+                  {!isCollapsed && (
+                    <div style={{ overflowX: 'auto' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+                        <thead>
+                          <tr style={{ borderBottom: '1px solid var(--neutral-border)', background: '#fafbfc', color: 'var(--text-secondary)', fontSize: '0.78rem' }}>
+                            <th style={{ padding: '0.55rem 1rem', textAlign: 'left', fontWeight: 600, width: '20%' }}>MÃ PHIẾU</th>
+                            <th style={{ padding: '0.55rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '18%' }}>NGÀY</th>
+                            <th style={{ padding: '0.55rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '24%' }}>NGƯỜI LẬP</th>
+                            <th style={{ padding: '0.55rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '18%' }}>TRẠNG THÁI</th>
+                            <th style={{ padding: '0.55rem 1rem', textAlign: 'right', fontWeight: 600, width: '20%' }}>THAO TÁC</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {group.submissions.map((sub) => {
+                            const isSelected = selectedSubmission?.id === sub.id;
+
+                            return (
+                              <tr 
+                                key={sub.id} 
+                                style={{ 
+                                  borderBottom: '1px solid var(--neutral-border)',
+                                  background: isSelected ? '#eff6ff' : 'transparent',
+                                  transition: 'background 0.15s',
+                                  cursor: 'pointer'
+                                }}
+                                onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = '#f8fafc'; }}
+                                onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent'; }}
+                                onClick={() => setSelectedSubmission(sub)}
+                              >
+                                {/* Cột 1: Mã phiếu */}
+                                <td style={{ padding: '0.65rem 1rem', verticalAlign: 'middle' }}>
+                                  <span style={{ 
+                                    fontWeight: 600, 
+                                    fontFamily: 'monospace', 
+                                    fontSize: '0.82rem',
+                                    color: 'var(--text-primary)',
+                                    background: '#f1f5f9',
+                                    padding: '0.2rem 0.5rem',
+                                    borderRadius: '4px',
+                                    border: '1px solid #e2e8f0'
+                                  }}>
+                                    #{sub.id}
+                                  </span>
+                                </td>
+
+                                {/* Cột 2: Ngày */}
+                                <td style={{ padding: '0.65rem 0.75rem', color: 'var(--text-secondary)', verticalAlign: 'middle', fontSize: '0.82rem', fontWeight: 500 }}>
+                                  {formatDateOnly(sub.submittedAt)}
+                                </td>
+
+                                {/* Cột 3: Người lập */}
+                                <td style={{ padding: '0.65rem 0.75rem', verticalAlign: 'middle' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <div style={{
+                                      width: '24px',
+                                      height: '24px',
+                                      borderRadius: '50%',
+                                      background: '#e0f2fe',
+                                      color: '#0369a1',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      fontSize: '0.68rem',
+                                      fontWeight: 700,
+                                      flexShrink: 0
+                                    }}>
+                                      {sub.operatorId ? sub.operatorId.slice(0, 2).toUpperCase() : 'OP'}
+                                    </div>
+                                    <span style={{ fontWeight: 600, fontSize: '0.82rem', color: 'var(--text-primary)' }}>
+                                      {sub.operatorId}
+                                    </span>
+                                  </div>
+                                </td>
+
+                                {/* Cột 4: Trạng thái */}
+                                <td style={{ padding: '0.65rem 0.75rem', verticalAlign: 'middle' }}>
+                                  {sub.supervisorSignoff ? (
+                                    <span style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '0.25rem',
+                                      padding: '0.2rem 0.55rem',
+                                      borderRadius: '12px',
+                                      fontSize: '0.75rem',
+                                      fontWeight: 600,
+                                      background: '#ecfdf5',
+                                      color: '#059669',
+                                      border: '1px solid #a7f3d0'
+                                    }}>
+                                      <CheckCircle2 size={12} />
+                                      <span>Đã xác nhận</span>
+                                    </span>
+                                  ) : (
+                                    <span style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '0.25rem',
+                                      padding: '0.2rem 0.55rem',
+                                      borderRadius: '12px',
+                                      fontSize: '0.75rem',
+                                      fontWeight: 600,
+                                      background: '#fffbeb',
+                                      color: '#d97706',
+                                      border: '1px solid #fde68a'
+                                    }}>
+                                      <Clock size={12} />
+                                      <span>Chờ duyệt</span>
+                                    </span>
+                                  )}
+                                </td>
+
+                                {/* Cột 5: Thao tác */}
+                                <td style={{ padding: '0.65rem 1rem', textAlign: 'right', verticalAlign: 'middle' }} onClick={e => e.stopPropagation()}>
+                                  <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'flex-end', alignItems: 'center' }}>
+                                    {!sub.supervisorSignoff ? (
+                                      <button
+                                        type="button"
+                                        className="btn btn-primary btn-sm"
+                                        title="Xem chi tiết & Ký duyệt (Sign-off)"
+                                        onClick={() => setSelectedSubmission(sub)}
+                                        style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem', height: '28px', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                                      >
+                                        <UserCheck size={13} />
+                                        <span>Ký duyệt</span>
+                                      </button>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        className="btn btn-secondary btn-sm"
+                                        title="Xem chi tiết phiếu (View details)"
+                                        onClick={() => setSelectedSubmission(sub)}
+                                        style={{ padding: '0.25rem 0.6rem', fontSize: '0.75rem', height: '28px', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                                      >
+                                        <Eye size={13} />
+                                        <span>Xem</span>
+                                      </button>
+                                    )}
+
+                                    {onOpenReport && (
+                                      <button
+                                        type="button"
+                                        className="btn btn-secondary btn-sm"
+                                        title="Xem Báo cáo Đánh giá (Record Report)"
+                                        onClick={() => onOpenReport(sub.id)}
+                                        style={{ padding: '0.25rem 0.55rem', fontSize: '0.75rem', height: '28px', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                                      >
+                                        <FileText size={13} />
+                                        <span>Báo cáo</span>
+                                      </button>
+                                    )}
+
+                                    {/* Action Dropdown Menu */}
+                                    <div style={{ position: 'relative' }}>
+                                      <button
+                                        type="button"
+                                        className="btn btn-secondary btn-sm"
+                                        title="Thao tác khác"
+                                        onClick={() => setActiveActionMenuId(prev => prev === sub.id ? null : sub.id)}
+                                        style={{ padding: '0.25rem', height: '28px', width: '28px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                                      >
+                                        <MoreHorizontal size={14} />
+                                      </button>
+
+                                      {activeActionMenuId === sub.id && (
+                                        <div 
+                                          style={{
+                                            position: 'absolute',
+                                            right: 0,
+                                            top: '100%',
+                                            marginTop: '4px',
+                                            background: '#ffffff',
+                                            borderRadius: '6px',
+                                            boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+                                            border: '1px solid var(--neutral-border)',
+                                            zIndex: 100,
+                                            minWidth: '180px',
+                                            overflow: 'hidden',
+                                            display: 'flex',
+                                            flexDirection: 'column'
+                                          }}
+                                        >
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              setViewingSubmission(sub);
+                                              setActiveActionMenuId(null);
+                                            }}
+                                            style={{
+                                              padding: '0.5rem 0.75rem',
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              gap: '0.5rem',
+                                              fontSize: '0.78rem',
+                                              border: 'none',
+                                              background: 'transparent',
+                                              cursor: 'pointer',
+                                              color: 'var(--text-primary)',
+                                              textAlign: 'left',
+                                              width: '100%'
+                                            }}
+                                            onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; }}
+                                            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                                          >
+                                            <Eye size={13} style={{ color: 'var(--primary)' }} />
+                                            <span>Xem toàn văn Web</span>
+                                          </button>
+
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              setCopyingSubmission(sub);
+                                              setActiveActionMenuId(null);
+                                            }}
+                                            style={{
+                                              padding: '0.5rem 0.75rem',
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              gap: '0.5rem',
+                                              fontSize: '0.78rem',
+                                              border: 'none',
+                                              background: 'transparent',
+                                              cursor: 'pointer',
+                                              color: 'var(--text-primary)',
+                                              textAlign: 'left',
+                                              width: '100%'
+                                            }}
+                                            onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; }}
+                                            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                                          >
+                                            <Copy size={13} />
+                                            <span>Sao chép tạo phiếu</span>
+                                          </button>
+
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              setPrintSubmission(sub);
+                                              setActiveActionMenuId(null);
+                                            }}
+                                            style={{
+                                              padding: '0.5rem 0.75rem',
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              gap: '0.5rem',
+                                              fontSize: '0.78rem',
+                                              border: 'none',
+                                              background: 'transparent',
+                                              cursor: 'pointer',
+                                              color: 'var(--text-primary)',
+                                              textAlign: 'left',
+                                              width: '100%'
+                                            }}
+                                            onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; }}
+                                            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                                          >
+                                            <Printer size={13} />
+                                            <span>In biểu mẫu A4</span>
+                                          </button>
+
+                                          {currentUser?.role_id === 'admin' && (
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                setSubmissionToDelete(sub);
+                                                setActiveActionMenuId(null);
+                                              }}
+                                              style={{
+                                                padding: '0.5rem 0.75rem',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '0.5rem',
+                                                fontSize: '0.78rem',
+                                                border: 'none',
+                                                borderTop: '1px solid var(--neutral-border)',
+                                                background: 'transparent',
+                                                cursor: 'pointer',
+                                                color: '#ef4444',
+                                                textAlign: 'left',
+                                                width: '100%'
+                                              }}
+                                              onMouseEnter={e => { e.currentTarget.style.background = '#fef2f2'; }}
+                                              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                                            >
+                                              <Trash2 size={13} />
+                                              <span>Xóa bản ghi (Admin)</span>
+                                            </button>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
               );
             })}
-          </div>
-        ) : (
-          <div className="paper-card" style={{ padding: '0.5rem 0', overflowX: 'auto' }}>
-            {loading ? (
-              <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem 0' }}>Loading audit trails...</p>
-            ) : fetchError && submissions.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '2.5rem 1rem' }}>
-                <AlertTriangle size={32} style={{ color: 'var(--danger)', margin: '0 auto 0.75rem', display: 'block' }} />
-                <p style={{ color: 'var(--text-primary)', fontWeight: 600, marginBottom: '0.25rem' }}>
-                  Không thể kết nối đến máy chủ để tải dữ liệu
-                </p>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '1rem' }}>
-                  Vui lòng kiểm tra đường truyền hoặc bấm thử lại.
-                </p>
-                <button 
-                  type="button" 
-                  className="btn btn-secondary btn-sm"
-                  onClick={fetchData}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
-                >
-                  Thử lại
-                </button>
-              </div>
-            ) : filteredSubmissions.length === 0 ? (
-              <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem 0', fontStyle: 'italic' }}>No submissions matching filters.</p>
-            ) : (
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-                <thead>
-                  <tr style={{ borderBottom: '2px solid var(--neutral-border)', background: '#f8fafc', color: 'var(--text-secondary)' }}>
-                    <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '14%' }}>Record ID</th>
-                    <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '36%' }}>Process Name</th>
-                    <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '14%' }}>Operator</th>
-                    <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '16%' }}>Date/Time</th>
-                    <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '12%' }}>Verification</th>
-                    <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '8%' }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredSubmissions.map((sub) => {
-                    const isSelected = selectedSubmission?.id === sub.id;
-
-                    return (
-                      <tr 
-                        key={sub.id} 
-                        style={{ 
-                          borderBottom: '1px solid var(--neutral-border)',
-                          background: isSelected ? '#eff6ff' : 'transparent',
-                          transition: 'background 0.15s',
-                          cursor: 'pointer'
-                        }}
-                        onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = '#f8fafc'; }}
-                        onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent'; }}
-                        onClick={() => setSelectedSubmission(sub)}
-                      >
-                        <td style={{ padding: '0.6rem 0.75rem', fontWeight: 500, fontFamily: 'monospace', verticalAlign: 'middle' }}>{sub.id}</td>
-                        <td style={{ padding: '0.6rem 0.75rem', fontWeight: 600, verticalAlign: 'middle' }}>
-                          <div>{getProcessTitle(sub.processId, sub.formId)}</div>
-                          {sub.formId && (
-                            <div style={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--text-secondary)', marginTop: '2px' }}>
-                              Template: {sub.formId}
-                            </div>
-                          )}
-                        </td>
-                        <td style={{ padding: '0.6rem 0.75rem', textAlign: 'center', verticalAlign: 'middle' }}>{sub.operatorId}</td>
-                        <td style={{ padding: '0.6rem 0.75rem', textAlign: 'center', color: 'var(--text-secondary)', verticalAlign: 'middle' }}>
-                          {new Date(sub.submittedAt).toLocaleDateString()} {new Date(sub.submittedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </td>
-                        <td style={{ padding: '0.6rem 0.75rem', textAlign: 'center', verticalAlign: 'middle' }}>
-                          {sub.supervisorSignoff ? (
-                            <span style={{ color: '#10b981', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.2rem', fontSize: '0.78rem' }}>
-                              <CheckCircle2 size={13} />
-                              <span>Verified</span>
-                            </span>
-                          ) : (
-                            <span style={{ color: '#f59e0b', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.2rem', fontSize: '0.78rem' }}>
-                              <Clock size={13} />
-                              <span>Pending</span>
-                            </span>
-                          )}
-                        </td>
-                        <td style={{ padding: '0.6rem 0.75rem', textAlign: 'center', verticalAlign: 'middle' }} onClick={e => e.stopPropagation()}>
-                          <div style={{ display: 'flex', gap: '0.35rem', justifyContent: 'center' }}>
-                            <button
-                              type="button"
-                              className="btn btn-secondary btn-sm"
-                              title="Xem toàn văn Form Online (Full Web View)"
-                              onClick={() => setViewingSubmission(sub)}
-                              style={{ padding: '0.25rem', height: '26px', width: '26px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: 0, color: 'var(--primary)' }}
-                            >
-                              <Eye size={13} />
-                            </button>
-                            {onOpenReport && (
-                              <button
-                                type="button"
-                                className="btn btn-secondary btn-sm"
-                                title="Xem Báo cáo Đánh giá (Record Report)"
-                                onClick={() => onOpenReport(sub.id)}
-                                style={{ padding: '0.25rem', height: '26px', width: '26px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: 0 }}
-                              >
-                                <FileText size={13} />
-                              </button>
-                            )}
-                            <button
-                              type="button"
-                              className="btn btn-secondary btn-sm"
-                              title="Print A4 Record"
-                              onClick={() => setPrintSubmission(sub)}
-                              style={{ padding: '0.25rem', height: '26px', width: '26px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: 0 }}
-                            >
-                              <Printer size={13} />
-                            </button>
-                            {currentUser?.role_id === 'admin' && (
-                              <button
-                                type="button"
-                                className="btn btn-secondary btn-sm"
-                                title="Xóa bản ghi lỗi (Admin)"
-                                onClick={() => setSubmissionToDelete(sub)}
-                                style={{ padding: '0.25rem', height: '26px', width: '26px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: 0, color: '#ef4444' }}
-                              >
-                                <Trash2 size={13} />
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
           </div>
         )}
       </div>

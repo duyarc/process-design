@@ -9,7 +9,7 @@
 | **Module Name** | Platform Shell |
 | **Status** | Active Development |
 | **Document Version** | 1.1 |
-| **Verified At Commit** | (2026-09-28) — Direct Report View Routing (/r/:id, /f/:slug/r/:id) and Report Builder navigation in Dashboard/SubmissionManager verified against source |
+| **Verified At Commit** | (2026-09-30) — Dashboard Submissions Tab List Mode Enforced (top-right toggle hidden in submissions tab) & onOpenFormFiller connection verified against source |
 
 ### Quick File Index
 
@@ -223,3 +223,4 @@ lives in `git log`; run `git show <commit>` for the full diff of any entry below
 | 2026-09-17 | `CURRENT` | **Actions Area Tinh Gọn & Hover-to-Reveal trong Tab Forms:** Tái cấu trúc 7 nút thao tác thành 3 khối nghiệp vụ chuẩn (Vận hành: Fill/Audit; In ấn: Print/PDF; Thiết kế: Edit/Copy/Report) với vách ngăn dọc tinh tế. Tích hợp cơ chế Hover-to-Reveal bằng CSS thuần (`.dashboard-form-row:hover`), ẩn các nút khi idle và chỉ hiển thị trên dòng được hover, triệt tiêu rối mắt và bảo đảm Zero Layout Shift. |
 | 2026-09-18 | `CURRENT` | **Fix Duplicated Form Process Re-linking:** (1) In `Dashboard.tsx`, fixed process persistence by replacing non-existent `PUT /api/processes/:id` (404) with `POST /api/processes` and added error handling. (2) Replaced `getRepresentative` lookup with direct process matching to prevent multi-version step divergence. (3) Extracted pure utility `linkDuplicatedFormToSteps` in `formUtils.ts` (Rule 13.8). (4) Added backend defensive alias `PUT /api/processes/:id` in `server.cjs`. |
 | 2026-09-28 | `CURRENT` | **Direct Report View Routing & SubmissionManager Report Action:** (1) Updated `App.tsx` regex matching and URL resolution to recognize `/f/:formSlug/r/:subId` and `/r/:subId` routes alongside `/s/:subId`, passing `initialTab` (`form` or `report`) to `SubmissionViewer`. (2) Connected `onOpenReportBuilder` callback through `Dashboard.tsx` into `SubmissionManager.tsx` and `FormFiller.tsx`. |
+| 2026-09-30 | `CURRENT` | **Dashboard Submissions Tab Integration:** (1) Suppressed top-right List/Grid toggle buttons when `viewMode === 'submissions'`, establishing 100% list mode for the audit trail. (2) Connected `onOpenFormFiller` prop directly into `<SubmissionManager />` to support 1-click new record creation from form accordion headers. |
