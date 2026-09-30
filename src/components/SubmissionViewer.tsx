@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import type { Submission } from '../types';
+import type { Submission, FormTemplateISO } from '../types';
 import FormFiller from './FormFiller';
 import { CheckCircle2 } from 'lucide-react';
 
@@ -22,6 +22,7 @@ export const SubmissionViewer: React.FC<SubmissionViewerProps> = ({
 }) => {
   const [loading, setLoading] = useState(true);
   const [submission, setSubmission] = useState<Submission | null>(null);
+  const [bundledFormTemplate, setBundledFormTemplate] = useState<FormTemplateISO | null>(null);
   const [canEdit, setCanEdit] = useState(false);
   const [isEditing, setIsEditing] = useState(initialEditMode);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -40,6 +41,10 @@ export const SubmissionViewer: React.FC<SubmissionViewerProps> = ({
       }
       const data = await res.json();
       setSubmission(data);
+      // Extract bundled form template from response (server now JOINs forms table)
+      if (data.formTemplate) {
+        setBundledFormTemplate(data.formTemplate as FormTemplateISO);
+      }
       setCanEdit(Boolean(data.canEdit));
       if (!data.canEdit && isEditing) {
         setIsEditing(false);
@@ -79,6 +84,9 @@ export const SubmissionViewer: React.FC<SubmissionViewerProps> = ({
   }
 
   const effectiveProcessId = submission.processId || 'unlinked';
+  // Use form_id from submission when formName is the hardcoded placeholder 'submission'
+  const effectiveFormName = (formName === 'submission' && submission.formId)
+    ? submission.formId : formName;
 
   return (
     <div style={{ width: '100%', margin: '0 auto' }}>
@@ -107,7 +115,7 @@ export const SubmissionViewer: React.FC<SubmissionViewerProps> = ({
       {/* FormFiller handles the unified executive toolbar & minimalist form canvas */}
       <FormFiller
         processId={effectiveProcessId}
-        formName={formName}
+        formName={effectiveFormName}
         initialSubmission={submission}
         editSubmissionId={submission.id}
         editToken={token}
@@ -116,7 +124,8 @@ export const SubmissionViewer: React.FC<SubmissionViewerProps> = ({
         initialSubmissionTab={initialTab}
         readOnly={true}
         isPublicGuestMode={true}
-        onBack={onBack || (() => { window.location.href = `/f/${encodeURIComponent(formName)}`; })}
+        preloadedFormTemplate={bundledFormTemplate || undefined}
+        onBack={onBack || (() => { window.location.href = `/f/${encodeURIComponent(effectiveFormName)}`; })}
         onSubmitSuccess={async () => {
           setToastMessage('Đã cập nhật dữ liệu phiếu thành công!');
           await fetchSubmission();

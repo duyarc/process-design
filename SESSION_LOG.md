@@ -42,6 +42,29 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-30 — Performance: Bundled Form Template Response & Data Path Optimization
+
+**Scope:** 4 files (`server.cjs`, `src/components/SubmissionViewer.tsx`, `src/components/FormFiller.tsx`, `src/components/FormReport.tsx`) + 1 design doc (`DESIGN_FORM_OPERATIONS.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa | 4 |
+| Lượt edit sửa lỗi (rework) | 1 (TS2551 `layout_blocks` → `layoutBlocks` type mismatch) |
+| Số lần build | 3 (`tsc --noEmit` 2× pass, `npm run build` 1× fail → fix → 1× pass) |
+| Lần build đầu thành công? | Không (type error TS2551: `layout_blocks` doesn't exist on `FormTemplateISO`) |
+
+**Kết quả đạt được:**
+- **Bug fix:** `GET /api/reports/view/:submissionId` crash `ReferenceError: token` — removed dead `accessToken` field
+- **Bug fix:** Short links `/s/:id` hardcode `formName='submission'` → `SubmissionViewer` now derives `effectiveFormName` from `submission.formId`
+- **Server optimization:** `GET /submissions/view/:id` now JOINs `forms` table → bundles `formTemplate` in response → eliminates 2 sequential client RTTs
+- **Server optimization:** Public report endpoint queries parallelized via `Promise.all`
+- **Cache:** `Cache-Control: public, max-age=3600` for locked submissions
+- **Client optimization:** `FormFiller.fetchProcess` fast-path with `preloadedFormTemplate` — skips all network calls
+- **Client optimization:** `FormReport` memoized `extractAllFormFields` + `Map<string, FormFieldISO>` O(1) lookups
+
+**Lỗi phát sinh:**
+- `CTX`: Used snake_case `layout_blocks` on typed `FormTemplateISO` (expects `layoutBlocks`) → TS2551. Fix: cast to `any` before accessing mixed-case properties.
+
 ### 2026-09-29 — Report Builder: Unified Chart Semantic Color Specification & Synchronization
 
 **Scope:** 5 files (`src/components/report/BarChartBlock.tsx`, `src/components/report/RadarChartBlock.tsx`, `src/components/report/BarChartInspector.tsx`, `src/components/report/RadarChartInspector.tsx`, `DESIGN_REPORT_BUILDER.md`)

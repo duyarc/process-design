@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import type {
   Submission,
@@ -289,7 +289,15 @@ export const FormReport: React.FC<FormReportProps> = ({
   }
 
   // ─── Active Report Presentation View ───
-  const allFormFields: FormFieldISO[] = extractAllFormFields(formTemplate?.layoutBlocks || []);
+  const allFormFields: FormFieldISO[] = useMemo(
+    () => extractAllFormFields(formTemplate?.layoutBlocks || []),
+    [formTemplate?.layoutBlocks]
+  );
+  const fieldMap = useMemo(() => {
+    const m = new Map<string, FormFieldISO>();
+    allFormFields.forEach(f => m.set(f.id, f));
+    return m;
+  }, [allFormFields]);
 
   const getFieldValue = (fid: string): string => {
     if (!submission?.formData) return '—';
@@ -411,7 +419,7 @@ export const FormReport: React.FC<FormReportProps> = ({
                     )}
                     <tbody>
                       {(block.boundFieldIds || []).map((fid, rIdx) => {
-                        const field = allFormFields.find(f => f.id === fid);
+                        const field = fieldMap.get(fid);
                         const evalRes = computedData?.evaluations?.[fid];
                         const override = block.ruleOverrides?.[fid];
                         const min = override?.customMinSpec !== undefined ? override.customMinSpec : field?.minSpec;

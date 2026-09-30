@@ -2541,7 +2541,7 @@ app.get('/api/submissions/:id', async (req, res) => {
   }
 });
 
-// GET /api/submissions/view/:id - Public: view submission with access token
+// GET /api/submissions/view/:id - Public: view submission (bundled with form template)
 app.get('/api/submissions/view/:id', async (req, res) => {
   try {
     if (!dbPool) {
@@ -2549,19 +2549,45 @@ app.get('/api/submissions/view/:id', async (req, res) => {
     }
     const { id } = req.params;
     const result = await dbPool.query(
-      `SELECT id, process_id, form_id, form_version, operator_id,
-              status, submitted_at, form_data, media_urls, supervisor_signoff
-       FROM submissions
-       WHERE id = $1`,
+      `SELECT s.id, s.process_id, s.form_id, s.form_version, s.operator_id,
+              s.status, s.submitted_at, s.form_data, s.media_urls, s.supervisor_signoff,
+              f.form_name, f.form_title, f.layout_blocks, f.page_size, f.is_public,
+              f.default_focus_mode, f.version AS form_current_version
+       FROM submissions s
+       LEFT JOIN forms f ON (f.form_id = s.form_id OR f.form_name = s.form_id)
+         AND f.version = s.form_version
+       WHERE s.id = $1`,
       [id]
     );
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Submission not found.' });
+      // Retry without version match (form may have been updated)
+      const fallback = await dbPool.query(
+        `SELECT s.id, s.process_id, s.form_id, s.form_version, s.operator_id,
+                s.status, s.submitted_at, s.form_data, s.media_urls, s.supervisor_signoff,
+                f.form_name, f.form_title, f.layout_blocks, f.page_size, f.is_public,
+                f.default_focus_mode, f.version AS form_current_version
+         FROM submissions s
+         LEFT JOIN forms f ON (f.form_id = s.form_id OR f.form_name = s.form_id)
+         WHERE s.id = $1
+         ORDER BY f.updated_at DESC NULLS LAST
+         LIMIT 1`,
+        [id]
+      );
+      if (fallback.rows.length === 0) {
+        return res.status(404).json({ error: 'Submission not found.' });
+      }
+      result.rows = fallback.rows;
     }
 
     const row = result.rows[0];
-    res.json({
+
+    // Cache locked submissions (data won't change after signoff)
+    if (row.supervisor_signoff !== null) {
+      res.set('Cache-Control', 'public, max-age=3600');
+    }
+
+    const response = {
       id: row.id,
       processId: row.process_id,
       formId: row.form_id,
@@ -2573,7 +2599,23 @@ app.get('/api/submissions/view/:id', async (req, res) => {
       mediaUrls: typeof row.media_urls === 'string' ? JSON.parse(row.media_urls) : (row.media_urls || []),
       supervisorSignoff: typeof row.supervisor_signoff === 'string' ? JSON.parse(row.supervisor_signoff) : row.supervisor_signoff,
       canEdit: row.supervisor_signoff === null
-    });
+    };
+
+    // Bundle form template if available (eliminates client-side fetch waterfall)
+    if (row.layout_blocks) {
+      response.formTemplate = {
+        form_id: row.form_id,
+        form_name: row.form_name,
+        form_title: row.form_title,
+        version: row.form_current_version || row.form_version,
+        layout_blocks: typeof row.layout_blocks === 'string' ? JSON.parse(row.layout_blocks) : row.layout_blocks,
+        page_size: row.page_size || 'A4',
+        is_public: row.is_public ?? false,
+        default_focus_mode: row.default_focus_mode ?? false
+      };
+    }
+
+    res.json(response);
   } catch (err) {
     console.error('view submission error:', err);
     res.status(500).json({ error: 'Failed to fetch submission record.' });
@@ -2591,14 +2633,16 @@ app.get('/api/reports/view/:submissionId', async (req, res) => {
     );
     if (subRes.rows.length === 0) return res.status(404).json({ error: 'Submission not found' });
     const subRow = subRes.rows[0];
-    const formRes = await dbPool.query(
-      `SELECT * FROM forms WHERE form_id = $1 OR form_name = $1 ORDER BY updated_at DESC LIMIT 1`,
-      [subRow.form_id]
-    );
-    const repRes = await dbPool.query(
-      `SELECT * FROM report_templates WHERE linked_form_id = $1 ORDER BY (CASE WHEN status = 'ACTIVE' THEN 1 WHEN status = 'DRAFT' THEN 2 ELSE 3 END), updated_at DESC LIMIT 1`,
-      [subRow.form_id]
-    );
+    const [formRes, repRes] = await Promise.all([
+      dbPool.query(
+        `SELECT * FROM forms WHERE form_id = $1 OR form_name = $1 ORDER BY updated_at DESC LIMIT 1`,
+        [subRow.form_id]
+      ),
+      dbPool.query(
+        `SELECT * FROM report_templates WHERE linked_form_id = $1 ORDER BY (CASE WHEN status = 'ACTIVE' THEN 1 WHEN status = 'DRAFT' THEN 2 ELSE 3 END), updated_at DESC LIMIT 1`,
+        [subRow.form_id]
+      )
+    ]);
     res.json({
       submission: {
         id: subRow.id,
@@ -2610,8 +2654,7 @@ app.get('/api/reports/view/:submissionId', async (req, res) => {
         submittedAt: subRow.submitted_at,
         formData: typeof subRow.form_data === 'string' ? JSON.parse(subRow.form_data) : subRow.form_data,
         mediaUrls: typeof subRow.media_urls === 'string' ? JSON.parse(subRow.media_urls) : (subRow.media_urls || []),
-        supervisorSignoff: typeof subRow.supervisor_signoff === 'string' ? JSON.parse(subRow.supervisor_signoff) : subRow.supervisor_signoff,
-        accessToken: token
+        supervisorSignoff: typeof subRow.supervisor_signoff === 'string' ? JSON.parse(subRow.supervisor_signoff) : subRow.supervisor_signoff
       },
       formTemplate: formRes.rows.length > 0 ? formRes.rows[0] : null,
       reportTemplate: repRes.rows.length > 0 ? formatReportRow(repRes.rows[0]) : null

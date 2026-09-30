@@ -268,6 +268,7 @@ interface FormFillerProps {
   isPublicGuestMode?: boolean;
   readOnly?: boolean;
   isShortLinkFlow?: boolean;
+  preloadedFormTemplate?: FormTemplateISO;
   initialSubmissionTab?: 'form' | 'report';
   onOpenReportBuilder?: (formId: string) => void;
 }
@@ -287,6 +288,7 @@ function FormFillerInner({
   isPublicGuestMode,
   readOnly,
   isShortLinkFlow,
+  preloadedFormTemplate,
   initialSubmissionTab,
   onOpenReportBuilder
 }: FormFillerProps) {
@@ -666,6 +668,40 @@ function FormFillerInner({
   const fetchProcess = async () => {
     try {
       setLoading(true);
+
+      // ── Fast path: use preloaded form template from bundled server response ──
+      // Eliminates 2-3 RTT waterfall (404 form lookup + fetch all processes)
+      if (preloadedFormTemplate) {
+        const tpl = preloadedFormTemplate as any;
+        const layoutBlocks = tpl.layoutBlocks || tpl.layout_blocks || [];
+        const parsedBlocks = typeof layoutBlocks === 'string' ? JSON.parse(layoutBlocks) : layoutBlocks;
+        const formEntry: any = {
+          formId: tpl.formId || tpl.form_id || formName,
+          formTitle: tpl.formTitle || tpl.form_title || tpl.formName || tpl.form_name || formName,
+          version: tpl.version || 'v0.1',
+          status: tpl.status || 'ACTIVE',
+          pageSize: tpl.pageSize || tpl.page_size || 'A4',
+          isPublic: tpl.isPublic ?? tpl.is_public ?? false,
+          defaultFocusMode: tpl.defaultFocusMode ?? tpl.default_focus_mode ?? false,
+          layoutBlocks: parsedBlocks
+        };
+        const virtualProc: Process = {
+          id: processId || 'unlinked',
+          title: formEntry.formTitle,
+          description: 'Biểu mẫu tự do',
+          version: 'V1.0',
+          status: 'Active',
+          steps: [],
+          parentProcessId: processId || 'unlinked',
+          roles: [],
+          formFields: [],
+          lastUpdated: new Date().toISOString(),
+          workflowFormsData: { [formName]: formEntry } as any
+        };
+        setProcess(virtualProc);
+        setLoading(false);
+        return;
+      }
 
       // 1. Try to fetch the full form layout directly from /api/forms/:formName
       let formRecord: any = null;
