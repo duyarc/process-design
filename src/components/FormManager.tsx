@@ -50,7 +50,6 @@ export default function FormManager({ processId, formName, onOpenFormFiller, onB
   
   // Filter States
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'ALL' | 'PASS' | 'ABNORMALITY'>('ALL');
   const [signoffFilter, setSignoffFilter] = useState<'ALL' | 'PENDING' | 'VERIFIED'>('ALL');
   
   // Read-only Full Form View State
@@ -158,15 +157,11 @@ export default function FormManager({ processId, formName, onOpenFormFiller, onB
     const matchSearch = (sub.operatorId || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                         sub.id.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchStatus = statusFilter === 'ALL' || 
-      (statusFilter === 'PASS' && sub.status === 'PASS') ||
-      (statusFilter === 'ABNORMALITY' && (sub.status === 'FAIL' || sub.status === 'ABNORMALITY'));
-      
     const matchSignoff = signoffFilter === 'ALL' || 
       (signoffFilter === 'PENDING' && !sub.supervisorSignoff) || 
       (signoffFilter === 'VERIFIED' && !!sub.supervisorSignoff);
 
-    return matchSearch && matchStatus && matchSignoff;
+    return matchSearch && matchSignoff;
   });
 
 
@@ -357,19 +352,6 @@ export default function FormManager({ processId, formName, onOpenFormFiller, onB
         </div>
 
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-          <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Status:</span>
-          <select 
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as any)}
-            style={{ padding: '0.4rem 0.75rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '6px', cursor: 'pointer' }}
-          >
-            <option value="ALL">All Results</option>
-            <option value="PASS">Pass Only</option>
-            <option value="ABNORMALITY">Abnormality Only</option>
-          </select>
-        </div>
-
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
           <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Signoff:</span>
           <select 
             value={signoffFilter}
@@ -406,14 +388,12 @@ export default function FormManager({ processId, formName, onOpenFormFiller, onB
                     <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600 }}>ID</th>
                     <th style={{ padding: '0.6rem', textAlign: 'left', fontWeight: 600 }}>Operator</th>
                     <th style={{ padding: '0.6rem', textAlign: 'left', fontWeight: 600 }}>Submitted At</th>
-                    <th style={{ padding: '0.6rem', textAlign: 'center', fontWeight: 600 }}>Status</th>
                     <th style={{ padding: '0.6rem', textAlign: 'center', fontWeight: 600 }}>Sign-off</th>
                     <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600 }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {formSubmissions.map((sub) => {
-                    const hasFail = sub.status === 'FAIL' || sub.status === 'ABNORMALITY';
                     const isSelected = selectedSubmission?.id === sub.id;
                     return (
                       <tr 
@@ -432,14 +412,6 @@ export default function FormManager({ processId, formName, onOpenFormFiller, onB
                         <td style={{ padding: '0.6rem' }}>{sub.operatorId}</td>
                         <td style={{ padding: '0.6rem', color: 'var(--text-muted)' }}>
                           {new Date(sub.submittedAt).toLocaleString()}
-                        </td>
-                        <td style={{ padding: '0.6rem', textAlign: 'center' }}>
-                          <span 
-                            className={`badge ${hasFail ? 'badge-danger' : 'badge-success'}`}
-                            style={{ fontSize: '0.7rem', padding: '0.15rem 0.4rem' }}
-                          >
-                            {sub.status}
-                          </span>
                         </td>
                         <td style={{ padding: '0.6rem', textAlign: 'center' }}>
                           {sub.supervisorSignoff ? (

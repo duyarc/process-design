@@ -265,7 +265,7 @@ export interface Submission {
   formVersion: string;
   operatorId: string;
   submittedAt: string;
-  status: 'PASS' | 'FAIL' | 'ABNORMALITY';
+  status: 'SUBMITTED' | 'PASS' | 'FAIL' | 'ABNORMALITY';
   formData: SubmissionFieldSnapshot[];
   mediaUrls?: string[];
   supervisorSignoff?: {

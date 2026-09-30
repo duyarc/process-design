@@ -65,7 +65,6 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
   
   // Filter States
   const [searchTerm, setSearchTerm] = useState(initialFormFilter || '');
-  const [statusFilter, setStatusFilter] = useState<'ALL' | 'PASS' | 'ABNORMALITY'>('ALL');
   const [signoffFilter, setSignoffFilter] = useState<'ALL' | 'PENDING' | 'VERIFIED'>('ALL');
 
   // Deletion States
@@ -190,13 +189,11 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
                         subId.includes(searchTerm.toLowerCase()) ||
                         fId.includes(searchTerm.toLowerCase());
     
-    const matchStatus = statusFilter === 'ALL' || sub.status === statusFilter;
-    
     const matchSignoff = signoffFilter === 'ALL' || 
       (signoffFilter === 'PENDING' && !sub.supervisorSignoff) || 
       (signoffFilter === 'VERIFIED' && !!sub.supervisorSignoff);
 
-    return matchSearch && matchStatus && matchSignoff;
+    return matchSearch && matchSignoff;
   });
 
   // 3. Supervisor sign-off handler
@@ -366,19 +363,6 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
           </div>
           
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Status:</span>
-            <select 
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as any)}
-              style={{ padding: '0.4rem 0.6rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '6px', background: '#fff' }}
-            >
-              <option value="ALL">All Checks</option>
-              <option value="PASS">Pass Only</option>
-              <option value="ABNORMALITY">Abnormalities Only</option>
-            </select>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
             <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Verification:</span>
             <select 
               value={signoffFilter}
@@ -396,7 +380,6 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
         {layoutMode === 'grid' && !loading && filteredSubmissions.length > 0 ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1rem' }}>
             {filteredSubmissions.map((sub) => {
-              const hasFail = sub.status === 'FAIL' || sub.status === 'ABNORMALITY';
               const isSelected = selectedSubmission?.id === sub.id;
 
               return (
@@ -421,9 +404,6 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                       <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', background: '#f1f5f9', padding: '0.1rem 0.35rem', borderRadius: '4px', border: '1px solid #e2e8f0', fontFamily: 'monospace' }}>
                         {sub.id}
-                      </span>
-                      <span className={`badge ${hasFail ? 'badge-danger' : 'badge-success'}`} style={{ fontSize: '0.65rem', padding: '0.1rem 0.35rem', textTransform: 'uppercase' }}>
-                        {sub.status}
                       </span>
                     </div>
 
@@ -532,18 +512,16 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                 <thead>
                   <tr style={{ borderBottom: '2px solid var(--neutral-border)', background: '#f8fafc', color: 'var(--text-secondary)' }}>
-                    <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '12%' }}>Record ID</th>
-                    <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '38%' }}>Process Name</th>
-                    <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '12%' }}>Operator</th>
-                    <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '18%' }}>Date/Time</th>
-                    <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '10%' }}>QMS Status</th>
-                    <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '10%' }}>Verification</th>
+                    <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '14%' }}>Record ID</th>
+                    <th style={{ padding: '0.6rem 0.75rem', textAlign: 'left', fontWeight: 600, width: '36%' }}>Process Name</th>
+                    <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '14%' }}>Operator</th>
+                    <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '16%' }}>Date/Time</th>
+                    <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '12%' }}>Verification</th>
                     <th style={{ padding: '0.6rem 0.75rem', textAlign: 'center', fontWeight: 600, width: '8%' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredSubmissions.map((sub) => {
-                    const hasFail = sub.status === 'FAIL' || sub.status === 'ABNORMALITY';
                     const isSelected = selectedSubmission?.id === sub.id;
 
                     return (
@@ -571,14 +549,6 @@ export default function SubmissionManager({ onBack, initialFormFilter, isEmbedde
                         <td style={{ padding: '0.6rem 0.75rem', textAlign: 'center', verticalAlign: 'middle' }}>{sub.operatorId}</td>
                         <td style={{ padding: '0.6rem 0.75rem', textAlign: 'center', color: 'var(--text-secondary)', verticalAlign: 'middle' }}>
                           {new Date(sub.submittedAt).toLocaleDateString()} {new Date(sub.submittedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </td>
-                        <td style={{ padding: '0.6rem 0.75rem', textAlign: 'center', verticalAlign: 'middle' }}>
-                          <span 
-                            className={`badge ${hasFail ? 'badge-danger' : 'badge-success'}`}
-                            style={{ fontSize: '0.7rem', padding: '0.15rem 0.4rem' }}
-                          >
-                            {sub.status}
-                          </span>
                         </td>
                         <td style={{ padding: '0.6rem 0.75rem', textAlign: 'center', verticalAlign: 'middle' }}>
                           {sub.supervisorSignoff ? (

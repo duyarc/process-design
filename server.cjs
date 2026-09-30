@@ -2741,9 +2741,9 @@ app.post('/api/submissions', async (req, res) => {
   try {
     if (!dbPool) {
       return res.status(503).json({ error: 'Database connection not available.' });
-    }
     let { id, processId, formId, formVersion, operatorId, status, formData, mediaUrls } = req.body;
-    if (!processId || !formId || !operatorId || !status || !formData) {
+    status = status || 'SUBMITTED';
+    if (!processId || !formId || !operatorId || !formData) {
       return res.status(400).json({ error: 'Missing required submission fields.' });
     }
 
@@ -2793,10 +2793,10 @@ app.put('/api/submissions/:id', async (req, res) => {
   try {
     if (!dbPool) {
       return res.status(503).json({ error: 'Database connection not available.' });
-    }
     const { id } = req.params;
-    const { processId, formId, formVersion, operatorId, status, formData, mediaUrls, accessToken } = req.body;
-    if (!processId || !formId || !operatorId || !status || !formData) {
+    let { processId, formId, formVersion, operatorId, status, formData, mediaUrls, accessToken } = req.body;
+    status = status || 'SUBMITTED';
+    if (!processId || !formId || !operatorId || !formData) {
       return res.status(400).json({ error: 'Missing required submission fields.' });
     }
 

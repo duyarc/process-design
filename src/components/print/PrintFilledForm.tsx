@@ -277,10 +277,7 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
           <h2 style={{ margin: '2px 0 0', fontSize: '1.15rem' }}>{template.formTitle}</h2>
           <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>
             Operator: <strong>{submission.operatorId}</strong>&nbsp;|&nbsp;
-            Submitted: <strong>{submittedDateStr}</strong>&nbsp;|&nbsp;
-            Status: <strong style={{ color: submission.status === 'PASS' ? '#10b981' : '#ef4444' }}>
-              {submission.status}
-            </strong>
+            Submitted: <strong>{submittedDateStr}</strong>
           </p>
         </div>
         <div style={{ display: 'flex', gap: '0.5rem' }}>

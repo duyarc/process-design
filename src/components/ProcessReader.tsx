@@ -164,7 +164,6 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
     }
 
     try {
-      let isOverallPass = true;
       const snapshots: SubmissionFieldSnapshot[] = allFields.map((field: any) => {
         const val = formValues[field.id];
         let fieldStatus: 'PASS' | 'FAIL' = 'PASS';
@@ -187,7 +186,6 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
           }
           if (isNaN(numVal) || numVal < minVal || numVal > maxVal) {
             fieldStatus = 'FAIL';
-            isOverallPass = false;
           }
         } else if (field.type === 'radio' || field.type === 'checkbox' || field.type === 'select') {
           targetRange = field.options ? field.options.filter((o: any) => o.isPass).map((o: any) => o.label).join(' / ') : (field.targetRange || 'Checked & Ok');
@@ -195,7 +193,6 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
             const selectedVals = val ? val.split(',').filter(Boolean) : [];
             if (selectedVals.length === 0) {
               fieldStatus = 'FAIL';
-              isOverallPass = false;
             } else {
               const hasFail = selectedVals.some(v => {
                 const opt = field.options?.find((o: any) => o.value === v);
@@ -203,14 +200,12 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
               });
               if (hasFail) {
                 fieldStatus = 'FAIL';
-                isOverallPass = false;
               }
             }
           } else {
             const selectedOpt = field.options?.find((o: any) => o.value === val);
             if (!selectedOpt?.isPass) {
               fieldStatus = 'FAIL';
-              isOverallPass = false;
             }
           }
         } else {
@@ -305,7 +300,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
         formId: formTemplate.formId,
         formVersion: formTemplate.version,
         operatorId,
-        status: isOverallPass ? 'PASS' : 'ABNORMALITY',
+        status: 'SUBMITTED',
         formData: snapshots,
         mediaUrls: allMediaKeys
       };

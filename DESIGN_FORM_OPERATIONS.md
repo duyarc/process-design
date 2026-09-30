@@ -8,7 +8,7 @@
 |---|---|
 | **Module Name** | Form Operations |
 | **Status** | Active Development |
-| **Verified At Commit** | (2026-09-30) — Performance optimization: `SubmissionViewer` bundles `formTemplate` from server response, `preloadedFormTemplate` fast-path in `FormFiller.fetchProcess`, `useMemo` + `fieldMap` in `FormReport` |
+| **Verified At Commit** | (2026-09-30) — Complete removal and pruning of legacy `QMS Status` across `SubmissionManager`, `FormManager`, `FormFiller`, `ProcessReader`, and `PrintFilledForm`; single lifecycle source of truth `Verification` (`Pending` / `Verified`) |
 
 ### Quick File Index
 
@@ -135,7 +135,7 @@ interface Submission {
   formVersion: string;                 // Version of the form at fill time (e.g. "v1.2 (2026-07-01)")
   operatorId: string;                  // Free-text operator sign-off name
   submittedAt: string;                 // ISO timestamp
-  status: 'PASS' | 'FAIL' | 'ABNORMALITY';
+  status: 'SUBMITTED' | 'PASS' | 'FAIL' | 'ABNORMALITY'; // 'SUBMITTED' is canonical; others retained for historical compatibility
   formData: SubmissionFieldSnapshot[]; // One snapshot per field filled
   mediaUrls?: string[];                // Cloudflare R2 object keys for photo evidence
   supervisorSignoff?: {
@@ -160,12 +160,13 @@ interface SubmissionFieldSnapshot {
 }
 ```
 
-### Submission Status Logic
+### Submission Status & Verification Lifecycle
 
-| Status | Condition |
-|---|---|
-| `PASS` | All fields pass their spec checks |
-| `ABNORMALITY` | At least one field fails (`isOverallPass = false`). Note: stored as `ABNORMALITY` not `FAIL`. `FAIL` is a legacy/unused value in the `Submission.status` field (it is used only in `SubmissionFieldSnapshot.status`) |
+* **Pruned Legacy QMS Status:** The legacy binary evaluation (`isOverallPass ? 'PASS' : 'ABNORMALITY'`) was pruned on 2026-09-30. Forms are now submitted with canonical status `'SUBMITTED'`.
+* **Single Lifecycle Source of Truth (`Verification`):** Management portals (`SubmissionManager`, `FormManager`) track submission lifecycle purely through `supervisorSignoff`:
+  - `Pending Approval` (amber clock): `supervisorSignoff === null`
+  - `Verified` (emerald checkmark): `supervisorSignoff !== null`
+* **Formal Quality Evaluation:** Comprehensive compliance, scoring (0–5.0), knockout rules, and semantic thresholds are handled strictly by **Report Builder** (`DESIGN_REPORT_BUILDER.md`).
 
 ### Field Value Key Formats (for TABLE and MATRIX blocks)
 
@@ -423,7 +424,7 @@ Fields with options (`checkbox`, `radio`, `select`) support an expandable "Khác
 |---|---|---|
 | **`GET /api/submissions` loads ALL records** | Poor scalability as submission volume grows | Both `FormManager` and `SubmissionManager` fetch the entire submissions table and filter client-side. No pagination or server-side filter by `formId`. |
 | **`GET /api/processes` loaded to resolve template** | Extra network round-trip | FormFiller and FormManager load the full process list just to find `workflowFormsData[formName]`. The form template should be fetched directly from `GET /api/forms/:formId` instead |
-| **`status: 'FAIL'` is a dead value on `Submission`** | Confusion between `Submission.status` and `SubmissionFieldSnapshot.status` | `Submission.status` is stored as `ABNORMALITY` when any field fails; `FAIL` is used only on individual field snapshots. The type definition includes `FAIL` on both but it is never written to `Submission.status` |
+| **`status: 'ABNORMALITY' / 'FAIL'` pruned** | Legacy technical debt resolved | Pruned binary `QMS Status` on 2026-09-30. Forms now submit with `SUBMITTED`. Management tables rely purely on `Verification` (`supervisorSignoff`). |
 | **`window.alert()` legacy debt** | Blocking dialogs disrupt UX | Progressively replaced: `SubmissionManager` completely converted to non-blocking floating toasts. Remaining alerts in `FormFiller` / `FormManager` to follow. |
 | **Photo evidence keys not tracked by submission ID** | Storage management is difficult | Photos are uploaded to R2 using the `processId` and `formName` as path prefix — not scoped to the submission ID. Orphaned photos cannot easily be detected or cleaned up |
 | **Operator ID is free-text, not authenticated** | Attributability is not verified | The `operatorId` field accepts any string. There is no tie to the authenticated `currentUser` — an operator can enter any name |
@@ -439,8 +440,6 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 
 | Date | Commit | Change |
 |---|---|---|
-| 2026-09-09 | `CURRENT` | **SubmissionManager Toast Feedback & Connection Error Recovery:** Replaced all 5 blocking `window.alert()` calls in `SubmissionManager.tsx` with floating toast notifications (`setToast`) and auto-dismiss timer. Added inline server connection error banner with retry button for serverless resilience. |
-| 2026-09-09 | `CURRENT` | **Form Viewer Header Single-Line Parity & FormManager View Coordination:** Redesigned `FormFiller.tsx` submission view header from boxy white card to transparent, single-row toolbar matching Form Filler exactly (left: Back, ID, QMS status, compact submitter; right: Focus mode, Print, Copy, Edit/Save). Added `onViewingChange` in `FormManager.tsx` to coordinate app-header suppression. |
 | 2026-09-10 | `CURRENT` | **Dynamic Table Rows Persistence, Reconstruction & Blank Filtering:** Updated `FormFiller.tsx` to collect dynamic rows from `tableRowsMap` during submit/update, automatically dropping completely blank dynamic rows to prevent ghost trailing rows. Added `reconstructTableRows` to restore dynamic rows from `formData` snapshots upon loading and on edit cancellation, and hidden delete icons when read-only with explicit `+ Thêm dòng` buttons. |
 | 2026-09-14 | `CURRENT` | **FormFiller UI Streamlining — Pruning Manual Add Row Buttons in Favor of Pure Auto-Append:** Removed manual `+ Thêm dòng` buttons from both table footer and group headers in `FormFiller.tsx`. The interface now relies entirely on seamless `handleTableCellChangeWithAutoAppend` to dynamically generate new rows as users reach the end of data tables, while keeping fixed survey and Likert scale tables entirely clean and uncluttered. Trailing empty rows continue to be cleanly pruned upon submission. |
 | 2026-09-14 | `CURRENT` | **Unified Print Selection Indicators & Exact Print Color Enforcement:** Standardized print rendering in `PrintFilledForm.tsx` under Option 1 (Semantics-Preserving Circle with Checkmark `(✓)` for Radio & Likert Scale, Square with Checkmark `[✓]` for Checkbox). Enforced text-based `#000000` black checkmarks on `#ffffff` white background to eliminate browser background graphics stripping. Added `print-color-adjust: exact !important` in global print CSS and added `isLikertSelected` helper with whitespace/case normalization. |
@@ -455,5 +454,6 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 | 2026-09-29 | `CURRENT` | **Unified Post-Submit Screen for All Users (`FormFiller`):** Removed `isPublicGuestMode` guard on `setSubmitResult` so authenticated users (Admin/Supervisor) see the same Smart Success Screen as guests after new submission. Added `[ ⬅ Về Quản lý ]` navigation button (visible only for authenticated users with `onBack`). Prevents `App.tsx` `onSubmitSuccess` from force-redirecting to `FormManager` (which hung on "Loading form details..." for unlinked forms). |
 | 2026-09-29 | `CURRENT` | **Architectural Transition to Clean URLs & Complete Removal of Access Token:** (1) Dropped `access_token` requirement from all view and update endpoints (`GET /api/submissions/view/:id`, `GET /api/reports/view/:id`, `PUT /api/submissions/:id`, `POST /api/submissions/batch-lookup`). (2) Streamlined routing in `App.tsx`: eliminated 3-layer token fallback logic; direct match `/s/:id`, `/r/:id`, `/f/:formName/[sr]/:subId` opens `SubmissionViewer` instantly without redirects. (3) Clean share URLs in `FormFiller.tsx`: links copied from toolbar (`[ ↗ Chia sẻ ]`) or success screen (`submitResult`) are completely token-free (`/f/:slug/s/:id` and `/f/:slug/r/:id`). (4) Enforced pure lifecycle-based security: any recipient with link can view and amend submission if `supervisorSignoff` is null; once signed off, record is permanently frozen (100% read-only). |
 | 2026-09-30 | `CURRENT` | **Performance: Bundled Form Template Response & Data Path Optimization:** (1) Server `GET /submissions/view/:id` now JOINs `forms` table, returning `formTemplate` alongside submission data in a single response — eliminates 2 sequential RTTs (404 form lookup + fetch-all-processes) for public viewers. (2) `SubmissionViewer` extracts bundled `formTemplate` and passes `preloadedFormTemplate` to `FormFiller`, which uses a fast-path to build `virtualProcess` without network calls. (3) Fixed `effectiveFormName` derivation: when `formName='submission'` (hardcoded from short links `/s/:id`), falls back to `submission.formId`. (4) Fixed `ReferenceError: token` crash in `GET /reports/view/:submissionId` by removing dead `accessToken` field. (5) Parallelized Q2+Q3 in public report endpoint via `Promise.all`. (6) Added `Cache-Control: public, max-age=3600` for locked submissions. (7) `FormReport`: memoized `extractAllFormFields` via `useMemo`, built `fieldMap: Map<string, FormFieldISO>` for O(1) lookups replacing O(N) `.find()` in table render loop. |
+| 2026-09-30 | `CURRENT` | **Option 1 Cleanup: Complete Removal of Legacy QMS Status (`SubmissionManager`, `FormManager`, `FormFiller`):** (1) Removed `QMS Status` table column and `Status` dropdown filter from `SubmissionManager.tsx`; rebalanced table columns (`Record ID` 14%, `Process Name` 36%, `Operator` 14%, `Date/Time` 16%, `Verification` 12%, `Actions` 8%). (2) Removed `Status` table column and dropdown filter from `FormManager.tsx`. (3) Pruned dead `isOverallPass` logic and binary `ABNORMALITY` tagging from `FormFiller.tsx` and `ProcessReader.tsx`; submissions now submit with canonical status `'SUBMITTED'`. (4) Removed status badge from `FormFiller` local history drawer, displaying clean `🔒 Đã ký duyệt` or `🕒 Chờ duyệt`. (5) Removed `Status: PASS / ABNORMALITY` from `PrintFilledForm.tsx` preview header. (6) Server endpoints default `status = 'SUBMITTED'` if omitted. Management views now rely purely on single lifecycle indicator `Verification` (`Pending` / `Verified`). |
 
 

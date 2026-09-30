@@ -42,6 +42,29 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 Entry mới nhất ở trên cùng. Tối đa 10 entries.
 
+### 2026-09-30 — Option 1 Cleanup: Complete Removal of Legacy QMS Status
+
+**Scope:** 7 files (`src/types.ts`, `server.cjs`, `src/components/SubmissionManager.tsx`, `src/components/FormManager.tsx`, `src/components/FormFiller.tsx`, `src/components/ProcessReader.tsx`, `src/components/print/PrintFilledForm.tsx`) + 1 design doc (`DESIGN_FORM_OPERATIONS.md`) + `.gitignore`
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa | 7 |
+| Lượt edit sửa lỗi (rework) | 2 (phục hồi thẻ h2 bị lẹm trong `PrintFilledForm.tsx`, dọn `isOverallPass` TS6133) |
+| Số lần build | 3 (`tsc --noEmit` pass sau mỗi file, `npm run build` 1× fail TS6133 → prune → 1× pass 8.46s) |
+| Lần build đầu thành công? | Không (TS6133 unused `isOverallPass` do `noUnusedLocals: true`) |
+
+**Kết quả đạt được:**
+- **Triệt tiêu QMS Status:** Gỡ bỏ hoàn toàn cột `QMS Status` và dropdown bộ lọc `statusFilter` (`ALL`, `PASS`, `ABNORMALITY`) trên `SubmissionManager.tsx`.
+- **Cân đối bố cục bảng:** Tái phân bổ lại tỷ lệ độ rộng 6 cột còn lại trên `SubmissionManager` (`Record ID` 14%, `Process Name` 36%, `Operator` 14%, `Date/Time` 16%, `Verification` 12%, `Actions` 8%).
+- **Dọn dẹp FormManager:** Xóa cột `Status` và bộ lọc trạng thái, giao diện bảng danh sách tinh gọn.
+- **Loại bỏ tính toán giả mạo:** Bỏ toàn bộ việc gán `isOverallPass` và dán nhãn `ABNORMALITY` tại `FormFiller.tsx` và `ProcessReader.tsx`. Toàn bộ phiếu mới nộp chuẩn hóa `status: 'SUBMITTED'`.
+- **Dọn dẹp Header in ấn:** Xóa dòng chữ `Status: ABNORMALITY / PASS` trên thanh preview in `PrintFilledForm.tsx`.
+- **An toàn CSDL:** Server endpoint `POST /api/submissions` và `PUT /api/submissions/:id` tự động fallback `status = 'SUBMITTED'`, tương thích ngược 100% với dữ liệu cũ trong PostgreSQL mà không cần chạy migration.
+- **Trạng thái vòng đời duy nhất:** Chuyển dịch hoàn toàn sang chỉ số phê duyệt `Verification` (`Pending Approval` / `Verified`) là SSoT duy nhất về vòng đời bản nộp.
+
+**Lỗi phát sinh:**
+- `BLOAT`: Sót biến `isOverallPass` trong chữ ký destructure hàm `buildSubmissionSnapshots` sau khi bỏ gán `status` $\rightarrow$ `tsc -b` báo TS6133. Khắc phục: rà soát toàn bộ call-site và prune sạch biến trung gian theo Rule 13.7.
+
 ### 2026-09-30 — Performance: Bundled Form Template Response & Data Path Optimization
 
 **Scope:** 4 files (`server.cjs`, `src/components/SubmissionViewer.tsx`, `src/components/FormFiller.tsx`, `src/components/FormReport.tsx`) + 1 design doc (`DESIGN_FORM_OPERATIONS.md`)

@@ -1051,7 +1051,6 @@ function FormFillerInner({
   // Helper: Collect snapshots from UI state
   const buildSubmissionSnapshots = (_forPrint: boolean = false) => {
     const allFields = formTemplate?.layoutBlocks?.flatMap((b: any) => b.fields || []) || [];
-    let isOverallPass = true;
     const snapshots: SubmissionFieldSnapshot[] = [];
 
     allFields.forEach((field: any) => {
@@ -1079,7 +1078,6 @@ function FormFillerInner({
         }
         if (isNaN(numVal) || numVal < minVal || numVal > maxVal) {
           fieldStatus = 'FAIL';
-          isOverallPass = false;
         }
       } else if (field.type === 'radio' || field.type === 'checkbox' || field.type === 'select') {
         targetRange = field.options ? field.options.filter((o: any) => o.isPass).map((o: any) => o.label).join(' / ') : (field.targetRange || 'Checked & Ok');
@@ -1092,14 +1090,12 @@ function FormFillerInner({
             });
             if (hasFail) {
               fieldStatus = 'FAIL';
-              isOverallPass = false;
             }
           }
         } else {
           const selectedOpt = field.options?.find((o: any) => o.value === val || o.label === val || (isOtherValue(val) && (o.isOther || o.value === '__other__')));
           if (selectedOpt && selectedOpt.isPass === false) {
             fieldStatus = 'FAIL';
-            isOverallPass = false;
           }
         }
       } else {
@@ -1254,7 +1250,7 @@ function FormFillerInner({
       });
     }
 
-    return { snapshots, isOverallPass };
+    return { snapshots };
   };
 
   // Submit filled form
@@ -1293,7 +1289,7 @@ function FormFillerInner({
     const targetSubId = editSubmissionId || (isEditModeActive ? initialSubmission?.id : undefined);
 
     try {
-      const { snapshots, isOverallPass } = buildSubmissionSnapshots(false);
+      const { snapshots } = buildSubmissionSnapshots(false);
 
       const allMediaKeys: string[] = [];
       Object.values(uploadedPhotos).forEach(keys => {
@@ -1309,7 +1305,7 @@ function FormFillerInner({
         formId: formTemplate.formId,
         formVersion: formTemplate.version,
         operatorId: effectiveOperatorId,
-        status: isOverallPass ? 'PASS' : 'ABNORMALITY',
+        status: 'SUBMITTED',
         formData: snapshots,
         mediaUrls: isEditOperation ? (initialSubmission?.mediaUrls || []) : allMediaKeys
       };
@@ -1378,7 +1374,7 @@ function FormFillerInner({
        
       if (isEditModeActive && initialSubmission) {
         initialSubmission.formData = snapshots;
-        initialSubmission.status = isOverallPass ? 'PASS' : 'ABNORMALITY';
+        initialSubmission.status = 'SUBMITTED';
         initialSubmission.operatorId = effectiveOperatorId;
         initialSubmission.submittedAt = new Date().toISOString();
         setIsEditModeActive(false);
@@ -3225,12 +3221,13 @@ function FormFillerInner({
                   <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
                     {new Date(item.submittedAt).toLocaleDateString('vi-VN')} {new Date(item.submittedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
                   </span>
-                  <span className={`badge ${item.status === 'PASS' ? 'badge-success' : 'badge-danger'}`} style={{ fontSize: '0.65rem', padding: '0.15rem 0.4rem' }}>
-                    {item.status}
-                  </span>
-                  {item.signedOff && (
-                    <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+                  {item.signedOff ? (
+                    <span style={{ fontSize: '0.7rem', color: '#10b981', display: 'inline-flex', alignItems: 'center', gap: '2px', fontWeight: 600 }}>
                       🔒 Đã ký duyệt
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: '0.7rem', color: '#f59e0b', display: 'inline-flex', alignItems: 'center', gap: '2px', fontWeight: 600 }}>
+                      🕒 Chờ duyệt
                     </span>
                   )}
                 </div>
@@ -3527,7 +3524,7 @@ function FormFillerInner({
                   ? signValues[mandatorySignField.id]!.name
                   : operatorId;
 
-                const { snapshots, isOverallPass } = buildSubmissionSnapshots(true);
+                const { snapshots } = buildSubmissionSnapshots(true);
                 const allMediaKeys: string[] = [];
                 Object.values(uploadedPhotos).forEach(keys => {
                   allMediaKeys.push(...keys);
@@ -3540,7 +3537,7 @@ function FormFillerInner({
                   formVersion: formTemplate.version,
                   operatorId: effectiveOperatorId || 'DRAFT',
                   submittedAt: new Date().toISOString(),
-                  status: isOverallPass ? 'PASS' : 'ABNORMALITY',
+                  status: 'SUBMITTED',
                   formData: snapshots,
                   mediaUrls: allMediaKeys
                 };
