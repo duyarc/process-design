@@ -12,7 +12,6 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 | # | Nhóm | Lỗi | Biện pháp phòng ngừa | Lần gặp |
 |---|---|---|---|---|
-| 7 | `TOOL` | Chạy inline Node trên PowerShell chứa `$1` bị PowerShell ngậm biến `$1` thành chuỗi rỗng → SQL syntax error | Lưu code ra file `.cjs` tạm hoặc escape `\$1` trong chuỗi lệnh PowerShell | 1 |
 | 8 | `SCOPE` | Biểu mẫu chứa text động trong `tableData` (pre-filled cells) hoặc `tableRows` (`groupTitle`) ngoài `tableColumns` | Luôn duyệt toàn diện cả `tableRows` (`groupTitle`), `tableData` (text cells), field `placeholder`, `reactionProtocol` khi bóc tách chuỗi | 1 |
 | 9 | `LOGIC` | Hiểu nhầm "search" là truy xuất bộ nhớ nội bộ (internal reasoning) của LLM thay vì tra cứu không gian bên ngoài | Định nghĩa rõ: "Search" bắt buộc là tìm kiếm không gian bên ngoài (External Web Search) với các nguồn quy chuẩn xác thực, không dựa vào lập luận nội bộ của LLM | 1 |
 | 10 | `SCOPE` | Hardcode danh sách quy chuẩn cố định (IMO, BRCGS, ISO 22000, APICS) làm thiên lệch vào dữ liệu mẫu | Khái quát hóa thành quy trình: "Search web theo ngữ cảnh form" (Context-Driven Web Search) dựa trên domain suy diễn động | 1 |
@@ -32,10 +31,27 @@ phiên thực thi để không lặp lại lỗi cũ.
 | 24 | `ENV` | Tiến trình `git.exe` nền trên Windows bị treo giữ file lock `.git\index.lock` khiến git status/commit ngưng trệ | Luôn chạy `Stop-Process -Name git -Force; Remove-Item .git\index.lock -Force` trước lệnh git | 1 |
 | 25 | `BLOAT` | Bỏ logic gán status nhưng sót tên biến `isOverallPass` tại chữ ký destructuring `const { snapshots, isOverallPass }` và hàm trả về → TS6133 | Áp dụng Rule 13.10 Destructuring Prune: Xóa ngay tên biến tại destructure và hàm sinh trong cùng lần patch | 1 |
 | 26 | `LOGIC` | Dùng trường câu hỏi dài (>45 ký tự) trong `INFO_GRID` bị áp `whiteSpace: 'nowrap'` trên `PrintBlankForm` khiến bảng in phình rộng >1.200px và co chữ xuống 55%; nhúng bảng nhiều cột vào `subtable` làm giảm cỡ chữ xuống `0.75rem` | Với bảng dữ liệu nhiều cột, ưu tiên dùng khối `TABLE` (`borderStyle: 'grid'`) cấp cao nhất; trong `INFO_GRID`, tự động ngắt dòng (`isLongTextLabel`) khi `cleanLabel.length > 45` hoặc có `\n` | 1 |
+| 27 | `LOGIC` | Container bảng dùng `overflowX: 'auto'` tự động kích hoạt `overflowY: 'auto'` theo chuẩn W3C CSS khiến dropdown menu (`position: absolute; top: 100%`) bị cắt cụt (cut off) ở đáy bảng và sinh thanh cuộn dọc không mong muốn khi bảng có ít hàng | Đặt `overflow: 'visible'` trên wrapper bảng nếu các hàng có dropdown menu tuyệt đối; bổ sung dynamic `zIndex: isGroupActive ? 30 : 1` trên card cha để menu hiển thị đè lên các card tiếp theo | 1 |
 
 ---
 
 ## Nhật ký Phiên
+
+### 2026-10-13 — Triệt tiêu Lỗi Cắt cụt Dropdown Menu trên Tab Forms & Submissions
+
+**Scope:** 2 source files (`Dashboard.tsx`, `SubmissionManager.tsx`) + 2 design docs (`DESIGN_PLATFORM_SHELL.md`, `DESIGN_FORM_OPERATIONS.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa | 2 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 3 (`npx tsc --noEmit` pass 100%, `npm run build` pass 14.92s) |
+| Lần build đầu thành công? | Có |
+
+**Kết quả đạt được:**
+- **Giải quyết triệt để CSS Overflow Trap:** Chuyển đổi thuộc tính vùng chứa bảng con từ `overflowX: 'auto'` sang `overflow: 'visible'` trên cả 2 phân hệ `Dashboard.tsx` (Tab Forms) và `SubmissionManager.tsx` (Tab Submissions). Loại bỏ quy tắc CSS tự động tính `overflow-y: auto` làm phát sinh thanh cuộn dọc không mong muốn và cắt cụt menu thao tác (`...`) khi danh sách chỉ có 1–2 bản ghi.
+- **Nâng cấp Thứ tự Lớp (Dynamic Stacking Elevation):** Bổ sung thuộc tính `zIndex: isGroupActive ? 30 : 1` (kèm `position: 'relative'`) trên thẻ `.paper-card` bao bọc, bảo đảm dropdown menu khi mở tràn xuống dưới sẽ nổi hoàn toàn lên trên các thẻ quy trình / biểu mẫu kế tiếp mà không bị che khuất.
+- **Bảo toàn 100% Chức năng & Không phát sinh Rework:** Giữ nguyên các chức năng xem lịch sử nộp, in phôi trắng, xuất PDF, nhân bản biểu mẫu, cấu hình báo cáo, và cơ chế đóng tự động khi click ra ngoài.
 
 ### 2026-10-13 — Chuẩn hóa Kiểu chữ, Lề trang & Bố cục `3S-FA02` theo Hệ thống (Phương án 3 Hybrid)
 
@@ -194,38 +210,3 @@ phiên thực thi để không lặp lại lỗi cũ.
 **Lỗi gặp phải:**
 - `TS6133`: `setProcesses` thành dead code sau khi loại bỏ `setProcesses(procData)` trong `fetchData` → fix: đổi thành `const [processes]` (Rule 13.10).
 - `TS2322`: `fetchData(isBackground?: boolean)` không khớp `MouseEventHandler` khi dùng trực tiếp làm `onClick={fetchData}` → fix: wrap arrow function `onClick={() => fetchData()}`.
-
-### 2026-09-30 — Tab Forms Actions Streamlining (Option 1)
-
-**Scope:** 1 source file (`src/components/Dashboard.tsx`) + 1 design doc (`DESIGN_PLATFORM_SHELL.md`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Số file nguồn chỉnh sửa | 1 |
-| Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 1 (`npx tsc --noEmit` pass, `npm run build` pass 10.84s) |
-| Lần build đầu thành công? | Có |
-
-**Kết quả đạt được:**
-- **Thực thi Option 1 cho cột Actions:** Thu gọn 7 nút dàn trải thành 2 nút icon chính 28x28px (`[ ✍️ ]` Điền biểu mẫu, `[ ✏️ ]` Chỉnh sửa thiết kế hoặc `[ 🕒 ]` Xem lịch sử nộp) cùng 1 nút mở rộng `[ ••• ]`.
-- **Cấu trúc Menu Dropdown:** Tích hợp đầy đủ các tác vụ phụ: Xem lịch sử nộp, In biểu mẫu trắng (chuẩn hóa nhãn text), Xuất file PDF, Nhân bản biểu mẫu, Cấu hình Mẫu Báo cáo; kèm cơ chế tự động đóng khi click ra ngoài.
-- **Tối ưu Bố cục & Trải nghiệm:** Bỏ cơ chế hover `⋯` giúp thao tác tức thì 1 click; giảm chiều rộng cột Actions từ 270px xuống 120px (12%), tăng độ rộng hiển thị cho Form Title (32%) và Linked Process (25%).
-- **Trích xuất Pure Logic:** Gom cụm logic dựng phôi trắng in/PDF vào helper `handlePrintBlankForm` dùng chung, triệt tiêu code lặp.
-
-### 2026-09-30 — Submissions Tab Visual Streamlining & Actions Alignment
-
-**Scope:** 1 source file (`src/components/SubmissionManager.tsx`) + 1 design doc (`DESIGN_FORM_OPERATIONS.md`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Số file nguồn chỉnh sửa | 1 |
-| Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 1 (`npx tsc --noEmit` pass, `npm run build` pass 10.68s) |
-| Lần build đầu thành công? | Có |
-
-**Kết quả đạt được:**
-- **Sửa lỗi Double "v":** Tạo hàm `formatVersion` bóc tách tiền tố `v`/`V` trước khi định dạng `v{clean}`, đảm bảo version luôn hiển thị đúng chuẩn `v0.2`.
-- **Dọn dẹp Toolbar góc phải & Dead-Code Pruning:** Loại bỏ cụm text đếm và các nút Thu gọn / Làm mới; xóa sạch các imports và khai báo không dùng (`toggleAllGroups`, `ChevronsUpDown`, `RefreshCw`) tuân thủ nghiêm ngặt `TS6133`.
-- **Loại bỏ Avatar tròn Operator & Badges đếm Group:** Xóa vòng tròn ký tự viết tắt (`NG`, `TR`, `AD`) tại cột Operator; loại bỏ các badge pill đếm số phiếu/chờ duyệt trên header nhóm biểu mẫu.
-- **Đồng nhất Table Header:** Chuẩn hóa tiêu đề cột theo Title Case đồng nhất Tab Forms: `Record ID`, `Date`, `Operator`, `Status`, `Actions`.
-- **Làm gọn Cột Thao tác (Actions):** Chuyển sang cụm icon button vuông 28x28px, canh giữa theo phong cách Tab Forms & Processes: `[ 👁 ]` (Xem chi tiết / Ký duyệt), `[ 📊 ]` (Xem Báo cáo Đánh giá), `[ ••• ]` (Menu thao tác khác).

@@ -643,11 +643,20 @@ export default function SubmissionManager({
             {formGroups.map((group) => {
               const isCollapsed = Boolean(collapsedGroups[group.formKey]);
 
+              const isGroupActive = Boolean(activeActionMenuId && group.submissions.some(s => s.id === activeActionMenuId));
+
               return (
                 <div 
                   key={group.formKey} 
                   className="paper-card accent-teal"
-                  style={{ padding: 0, overflow: 'visible', borderRadius: '8px', border: '1px solid var(--neutral-border)' }}
+                  style={{
+                    padding: 0,
+                    overflow: 'visible',
+                    borderRadius: '8px',
+                    border: '1px solid var(--neutral-border)',
+                    position: 'relative',
+                    zIndex: isGroupActive ? 30 : 1
+                  }}
                 >
                   {/* Group Accordion Header */}
                   <div 
@@ -730,7 +739,7 @@ export default function SubmissionManager({
 
                   {/* Group Submissions Table */}
                   {!isCollapsed && (
-                    <div style={{ overflowX: 'auto' }}>
+                    <div style={{ overflow: 'visible' }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                         <thead>
                           <tr style={{ borderBottom: '1px solid var(--neutral-border)', background: '#fafbfc', color: 'var(--text-secondary)', fontSize: '0.78rem' }}>

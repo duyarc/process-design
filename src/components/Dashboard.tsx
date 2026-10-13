@@ -1229,12 +1229,20 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   const isCollapsed = Boolean(collapsedProcessGroups[group.processId]);
                   const procStatus = group.status || 'Active';
                   const procColors = statusColors[procStatus] || { bg: '#e5e7eb', text: '#4b5563', border: '#cbd5e1' };
+                  const isGroupActive = Boolean(activeFormMenuId && group.forms.some(f => activeFormMenuId === `${group.processId}_${f.form.formName}`));
 
                   return (
                     <div 
                       key={group.processId}
                       className="paper-card accent-teal"
-                      style={{ padding: 0, overflow: 'visible', borderRadius: '8px', border: '1px solid var(--neutral-border)' }}
+                      style={{
+                        padding: 0,
+                        overflow: 'visible',
+                        borderRadius: '8px',
+                        border: '1px solid var(--neutral-border)',
+                        position: 'relative',
+                        zIndex: isGroupActive ? 30 : 1
+                      }}
                     >
                       {/* Group Accordion Header */}
                       <div 
@@ -1332,7 +1340,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
                       {/* Group Forms Table */}
                       {!isCollapsed && (
-                        <div style={{ overflowX: 'auto' }}>
+                        <div style={{ overflow: 'visible' }}>
                           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                             <thead>
                               <tr style={{ borderBottom: '1px solid var(--neutral-border)', background: '#fafbfc', color: 'var(--text-secondary)', fontSize: '0.78rem' }}>

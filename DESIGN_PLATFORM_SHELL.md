@@ -9,7 +9,7 @@
 | **Module Name** | Platform Shell |
 | **Status** | Active Development |
 | **Document Version** | 1.1 |
-| **Verified At Commit** | (2026-09-30) — Preloaded Form Template prop pipeline in App.tsx & Dashboard.tsx for FormFiller 0ms Instant Paint |
+| **Verified At Commit** | (2026-10-13) — Accordion table overflow: visible & dynamic card zIndex elevation verified in Dashboard.tsx |
 
 ### Quick File Index
 
@@ -209,7 +209,6 @@ lives in `git log`; run `git show <commit>` for the full diff of any entry below
 
 | Date | Commit | Change |
 |---|---|---|
-| 2026-09-09 | `CURRENT` | **Submission Review & Amendment Routing (`/f/:formName/s/:id`):** Added deep route matching in `App.tsx` for `/f/:formName/s/:submissionId?token=TOKEN` with `SubmissionViewer` integration for both guest and authenticated states. |
 | 2026-09-09 | `CURRENT` | **Near Full-Screen Submission View Coordination:** Added `isViewingSubmission` state in `Dashboard.tsx` coordinating with `SubmissionManager`. When viewing or copying a submission record, the quote card and view switcher tabs are suppressed, rendering `FormFiller` in near full-screen mode with visual parity to fill-form. |
 | 2026-09-09 | `CURRENT` | **Screen Estate Optimization — Global App Header Suppression:** Configured `isFormCanvasActive` in `App.tsx` coordinating with `Dashboard.tsx` and `FormManager.tsx` (`onViewingSubmissionChange` / `onViewingChange`). Completely hides the "Process Design" `<header className="app-header">` when users are filling or viewing form records, maximizing vertical document view space by ~65px while preserving full back-navigation. |
 | 2026-09-17 | `CURRENT` | **1-Click Fast Form Duplication in Dashboard Forms Tab:** Added duplicate action in both List and Grid views under `design_document` permission. Generates new Form ID, preserves exact form title, links new form directly to matching process work step (`step.formNames`) and metadata (`workflowFormsData`), and displays non-blocking toast feedback without popup dialogs. |
@@ -224,3 +223,4 @@ lives in `git log`; run `git show <commit>` for the full diff of any entry below
 | 2026-09-30 | `CURRENT` | **Process-Centric Accordion List View in Tab Forms (Option 1):** (1) Converted Tab Forms list view into Process-Centric Accordion Cards mirroring Tab Submissions 1:1. (2) Group header bar displays process icon, title, process ID tag, forms count badge, status, and `[ View Process ]` CTA. (3) Added dedicated group for Standalone Forms. |
 | 2026-09-30 | `CURRENT` | **Tab Forms List View Column Refinement & Last Updated Sorting:** (1) Removed Work Step column and pruned unused `workStepTitle` metadata. (2) Removed date string from Version column dropdown and single-version badge for clean typography. (3) Added dedicated `Last Updated` column with calendar icon displaying formatted date of selected version. (4) Rebalanced table column widths: Form ID (15%), Form Title (37%), Version (12%), Status (10%), Last Updated (14%), Actions (12%). (5) Sorted forms within each process group descending by Last Updated and sorted process groups descending so the group with the most recently modified form stays on top. |
 | 2026-09-30 | `CURRENT` | **Preloaded Form Template Prop Pipeline (`App`, `Dashboard`):** (1) Updated `DashboardProps['onOpenFormFiller']` to accept optional `preloadedTpl?: FormTemplateISO` and forwarded `form.rawRecord` from `handleFillAction` and process select dialog. (2) Added `preloadedFormTemplate` state in `App.tsx` and forwarded `preloadedFormTemplate={preloadedFormTemplate || undefined}` to `<FormFiller />`, eliminating network latency and enabling 0ms instant paint when opening forms from Dashboard. |
+| 2026-10-13 | `CURRENT` | **Fix Dropdown Menu Cutoff in Tab Forms (`Dashboard`):** (1) Changed group forms table wrapper from `overflowX: 'auto'` to `overflow: 'visible'`, resolving the CSS overflow trap where `overflow-x: auto` computed `overflow-y: auto` and clipped contextual dropdown menus. (2) Added dynamic card stacking elevation (`zIndex: isGroupActive ? 30 : 1`) on `.paper-card` ensuring dropdown menus float cleanly above subsequent sibling cards without occlusion. |
