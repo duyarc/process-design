@@ -45,11 +45,19 @@ const layoutBlocks = [
   // I. THÔNG TIN CHUNG
   // =========================================================================
   {
+    id: 'b_sec1_label',
+    type: 'SECTION_LABEL',
+    title: 'I. THÔNG TIN CHUNG',
+    sectionFormat: 'H1',
+    titleFormat: 'H1',
+    columns: 1,
+    fields: []
+  },
+  {
     id: 'b_sec1_grid_2col',
     type: 'INFO_GRID',
     title: 'I. THÔNG TIN CHUNG',
-    titleFormat: 'H1',
-    sectionFormat: 'H1',
+    titleFormat: 'NONE',
     columns: 2,
     fields: [
       {
@@ -83,25 +91,35 @@ const layoutBlocks = [
     ]
   },
   {
-    id: 'b_sec1_grid_1col',
+    id: 'b_sec1_table_dai_dien',
+    type: 'TABLE',
+    title: 'Đại diện doanh nghiệp làm việc',
+    titleFormat: 'H2',
+    borderStyle: 'grid',
+    columns: 1,
+    hideSTT: true,
+    hideHeader: false,
+    fields: [],
+    tableColumns: [
+      { id: 'col_ho_ten', label: 'HỌ VÀ TÊN', type: 'text', width: '40%', align: 'left' },
+      { id: 'col_chuc_danh', label: 'CHỨC DANH', type: 'text', width: '30%', align: 'left' },
+      { id: 'col_sdt', label: 'SỐ ĐIỆN THOẠI', type: 'text', width: '30%', align: 'left' }
+    ],
+    tableRows: [
+      { id: 'row_dd_1', lineCount: 1 },
+      { id: 'row_dd_2', lineCount: 1 },
+      { id: 'row_dd_3', lineCount: 1 },
+      { id: 'row_dd_4', lineCount: 1 }
+    ],
+    tableData: {}
+  },
+  {
+    id: 'b_sec1_grid_nganh_hang',
     type: 'INFO_GRID',
-    title: 'I. THÔNG TIN CHUNG',
+    title: 'Ngành hàng chính',
     titleFormat: 'NONE',
     columns: 1,
     fields: [
-      {
-        id: 'f_s1_dai_dien_dn',
-        type: 'subtable',
-        checkItem: 'Đại diện doanh nghiệp làm việc',
-        locationCode: 'I. THÔNG TIN CHUNG',
-        reactionProtocol: '',
-        subtableDefaultRows: 4,
-        subtableColumns: [
-          { id: 'stcol_ho_ten', label: 'HỌ VÀ TÊN', type: 'text', width: '40%', align: 'left' },
-          { id: 'stcol_chuc_danh', label: 'CHỨC DANH', type: 'text', width: '30%', align: 'left' },
-          { id: 'stcol_sdt', label: 'SỐ ĐIỆN THOẠI', type: 'text', width: '30%', align: 'left' }
-        ]
-      },
       {
         id: 'f_s1_nganh_hang_chinh',
         type: 'checkbox',
@@ -124,20 +142,39 @@ const layoutBlocks = [
           { label: 'Lúa mì', value: 'OPT_LUA_MI', isPass: true },
           { label: 'Khác (ghi rõ):', value: '__other__', isOther: true, isPass: true }
         ]
-      },
-      {
-        id: 'f_s1_san_pham_chinh',
-        type: 'subtable',
-        checkItem: 'Sản phẩm / nhóm sản phẩm chính',
-        locationCode: 'I. THÔNG TIN CHUNG',
-        reactionProtocol: '',
-        subtableDefaultRows: 4,
-        subtableColumns: [
-          { id: 'stcol_nganh_hang', label: 'NGÀNH HÀNG', type: 'text', width: '35%', align: 'left' },
-          { id: 'stcol_nhom_sp', label: 'NHÓM SẢN PHẨM', type: 'text', width: '40%', align: 'left' },
-          { id: 'stcol_ty_trong', label: 'TỶ TRỌNG (%)', type: 'number', width: '25%', align: 'center' }
-        ]
-      },
+      }
+    ]
+  },
+  {
+    id: 'b_sec1_table_san_pham',
+    type: 'TABLE',
+    title: 'Sản phẩm / nhóm sản phẩm chính',
+    titleFormat: 'H2',
+    borderStyle: 'grid',
+    columns: 1,
+    hideSTT: true,
+    hideHeader: false,
+    fields: [],
+    tableColumns: [
+      { id: 'col_nganh_hang', label: 'NGÀNH HÀNG', type: 'text', width: '35%', align: 'left' },
+      { id: 'col_nhom_sp', label: 'NHÓM SẢN PHẨM', type: 'text', width: '40%', align: 'left' },
+      { id: 'col_ty_trong', label: 'TỶ TRỌNG (%)', type: 'number', width: '25%', align: 'center' }
+    ],
+    tableRows: [
+      { id: 'row_sp_1', lineCount: 1 },
+      { id: 'row_sp_2', lineCount: 1 },
+      { id: 'row_sp_3', lineCount: 1 },
+      { id: 'row_sp_4', lineCount: 1 }
+    ],
+    tableData: {}
+  },
+  {
+    id: 'b_sec1_grid_bao_bi',
+    type: 'INFO_GRID',
+    title: 'Bao bì có thể đóng gói',
+    titleFormat: 'NONE',
+    columns: 1,
+    fields: [
       {
         id: 'f_s1_bao_bi',
         type: 'checkbox',
@@ -158,11 +195,19 @@ const layoutBlocks = [
   // II. CÔNG SUẤT
   // =========================================================================
   {
-    id: 'b_sec2_cong_suat',
+    id: 'b_sec2_label',
+    type: 'SECTION_LABEL',
+    title: 'II. CÔNG SUẤT',
+    sectionFormat: 'H1',
+    titleFormat: 'H1',
+    columns: 1,
+    fields: []
+  },
+  {
+    id: 'b_sec2_cong_suat_a',
     type: 'INFO_GRID',
     title: 'II. CÔNG SUẤT',
-    titleFormat: 'H1',
-    sectionFormat: 'H1',
+    titleFormat: 'NONE',
     columns: 1,
     fields: [
       {
@@ -216,21 +261,41 @@ const layoutBlocks = [
         checkItem: 'Nhà máy được đưa vào vận hành từ năm nào?',
         locationCode: 'II. CÔNG SUẤT',
         reactionProtocol: ''
-      },
-      {
-        id: 'f_s2_ds_thiet_bi',
-        type: 'subtable',
-        checkItem: 'Danh sách thiết bị chính',
-        locationCode: 'II. CÔNG SUẤT',
-        reactionProtocol: '',
-        subtableDefaultRows: 5,
-        subtableColumns: [
-          { id: 'stcol_ten_tb', label: 'TÊN THIẾT BỊ', type: 'text', width: '34%', align: 'left' },
-          { id: 'stcol_nam_lap_dat', label: 'NĂM LẮP ĐẶT', type: 'text', width: '20%', align: 'center' },
-          { id: 'stcol_nam_thay_the', label: 'NĂM DỰ ĐỊNH THAY THẾ', type: 'text', width: '26%', align: 'center' },
-          { id: 'stcol_cong_suat', label: 'CÔNG SUẤT', type: 'text', width: '20%', align: 'center' }
-        ]
-      },
+      }
+    ]
+  },
+  {
+    id: 'b_sec2_table_thiet_bi',
+    type: 'TABLE',
+    title: 'Danh sách thiết bị chính',
+    titleFormat: 'H2',
+    borderStyle: 'grid',
+    columns: 1,
+    hideSTT: true,
+    hideHeader: false,
+    fields: [],
+    tableColumns: [
+      { id: 'col_ten_tb', label: 'TÊN THIẾT BỊ', type: 'text', width: '34%', align: 'left' },
+      { id: 'col_nam_lap_dat', label: 'NĂM LẮP ĐẶT', type: 'text', width: '20%', align: 'center' },
+      { id: 'col_nam_thay_the', label: 'NĂM DỰ ĐỊNH THAY THẾ', type: 'text', width: '26%', align: 'center' },
+      { id: 'col_cong_suat', label: 'CÔNG SUẤT', type: 'text', width: '20%', align: 'center' }
+    ],
+    tableRows: [
+      { id: 'row_tb_1', lineCount: 1 },
+      { id: 'row_tb_2', lineCount: 1 },
+      { id: 'row_tb_3', lineCount: 1 },
+      { id: 'row_tb_4', lineCount: 1 },
+      { id: 'row_tb_5', lineCount: 1 }
+    ],
+    tableData: {}
+  },
+  {
+    id: 'b_sec2_cong_suat_b',
+    type: 'INFO_GRID',
+    title: 'II. CÔNG SUẤT',
+    titleFormat: 'NONE',
+    columns: 1,
+    fields: [
       {
         id: 'f_s2_ke_hoach_bao_tri',
         type: 'radio',
@@ -341,11 +406,19 @@ const layoutBlocks = [
   // III. NĂNG LỰC QUẢN LÝ CHẤT LƯỢNG
   // =========================================================================
   {
-    id: 'b_sec3_qlcl',
+    id: 'b_sec3_label',
+    type: 'SECTION_LABEL',
+    title: 'III. NĂNG LỰC QUẢN LÝ CHẤT LƯỢNG',
+    sectionFormat: 'H1',
+    titleFormat: 'H1',
+    columns: 1,
+    fields: []
+  },
+  {
+    id: 'b_sec3_qlcl_a',
     type: 'INFO_GRID',
     title: 'III. NĂNG LỰC QUẢN LÝ CHẤT LƯỢNG',
-    titleFormat: 'H1',
-    sectionFormat: 'H1',
+    titleFormat: 'NONE',
     columns: 1,
     fields: [
       {
@@ -379,20 +452,39 @@ const layoutBlocks = [
         checkItem: 'Trong năm qua, số lượng đơn hàng có phát sinh khiếu nại là bao nhiêu cont? (để trống nếu không thống kê) (cont/tháng)',
         locationCode: 'III. NĂNG LỰC QUẢN LÝ CHẤT LƯỢNG',
         reactionProtocol: ''
-      },
-      {
-        id: 'f_s3_ds_chung_nhan_attp',
-        type: 'subtable',
-        checkItem: 'Doanh nghiệp đang có Chứng nhận Hệ thống Quản lý ATTP đang còn hiệu lực?',
-        locationCode: 'III. NĂNG LỰC QUẢN LÝ CHẤT LƯỢNG',
-        reactionProtocol: '',
-        subtableDefaultRows: 4,
-        subtableColumns: [
-          { id: 'stcol_ten_cn', label: 'TÊN CHỨNG NHẬN', type: 'text', width: '40%', align: 'left' },
-          { id: 'stcol_ngay_het_han', label: 'NGÀY HẾT HẠN', type: 'date', width: '30%', align: 'center' },
-          { id: 'stcol_so_nam_duy_tri', label: 'SỐ NĂM DUY TRÌ LIÊN TỤC', type: 'number', width: '30%', align: 'center' }
-        ]
-      },
+      }
+    ]
+  },
+  {
+    id: 'b_sec3_table_chung_nhan_attp',
+    type: 'TABLE',
+    title: 'Doanh nghiệp đang có Chứng nhận Hệ thống Quản lý ATTP đang còn hiệu lực?',
+    titleFormat: 'H2',
+    borderStyle: 'grid',
+    columns: 1,
+    hideSTT: true,
+    hideHeader: false,
+    fields: [],
+    tableColumns: [
+      { id: 'col_ten_cn', label: 'TÊN CHỨNG NHẬN', type: 'text', width: '40%', align: 'left' },
+      { id: 'col_ngay_het_han', label: 'NGÀY HẾT HẠN', type: 'date', width: '30%', align: 'center' },
+      { id: 'col_so_nam_duy_tri', label: 'SỐ NĂM DUY TRÌ LIÊN TỤC', type: 'number', width: '30%', align: 'center' }
+    ],
+    tableRows: [
+      { id: 'row_cn_1', lineCount: 1 },
+      { id: 'row_cn_2', lineCount: 1 },
+      { id: 'row_cn_3', lineCount: 1 },
+      { id: 'row_cn_4', lineCount: 1 }
+    ],
+    tableData: {}
+  },
+  {
+    id: 'b_sec3_qlcl_b',
+    type: 'INFO_GRID',
+    title: 'III. NĂNG LỰC QUẢN LÝ CHẤT LƯỢNG',
+    titleFormat: 'NONE',
+    columns: 1,
+    fields: [
       {
         id: 'f_s3_muc_chung_nhan_cao_nhat',
         type: 'radio',
@@ -532,11 +624,19 @@ const layoutBlocks = [
   // IV. NĂNG LỰC GIAO HÀNG
   // =========================================================================
   {
+    id: 'b_sec4_label',
+    type: 'SECTION_LABEL',
+    title: 'IV. NĂNG LỰC GIAO HÀNG',
+    sectionFormat: 'H1',
+    titleFormat: 'H1',
+    columns: 1,
+    fields: []
+  },
+  {
     id: 'b_sec4_giao_hang',
     type: 'INFO_GRID',
     title: 'IV. NĂNG LỰC GIAO HÀNG',
-    titleFormat: 'H1',
-    sectionFormat: 'H1',
+    titleFormat: 'NONE',
     columns: 1,
     fields: [
       {
@@ -624,11 +724,19 @@ const layoutBlocks = [
   // V. NĂNG LỰC QUẢN LÝ & TỔ CHỨC
   // =========================================================================
   {
+    id: 'b_sec5_label',
+    type: 'SECTION_LABEL',
+    title: 'V. NĂNG LỰC QUẢN LÝ & TỔ CHỨC',
+    sectionFormat: 'H1',
+    titleFormat: 'H1',
+    columns: 1,
+    fields: []
+  },
+  {
     id: 'b_sec5_quan_ly_to_chuc',
     type: 'INFO_GRID',
     title: 'V. NĂNG LỰC QUẢN LÝ & TỔ CHỨC',
-    titleFormat: 'H1',
-    sectionFormat: 'H1',
+    titleFormat: 'NONE',
     columns: 1,
     fields: [
       {
@@ -670,11 +778,19 @@ const layoutBlocks = [
     ]
   },
   {
+    id: 'b_sec5_retention_label',
+    type: 'SECTION_LABEL',
+    title: 'KEY STAFF RETENTION RATE',
+    sectionFormat: 'H2',
+    titleFormat: 'H2',
+    columns: 1,
+    fields: []
+  },
+  {
     id: 'b_sec5_retention_rate',
     type: 'INFO_GRID',
     title: 'KEY STAFF RETENTION RATE',
-    titleFormat: 'H2',
-    sectionFormat: 'H2',
+    titleFormat: 'NONE',
     columns: 1,
     fields: [
       {
@@ -721,11 +837,19 @@ const layoutBlocks = [
   // VI. TUÂN THỦ QUY ĐỊNH & PHÁP LÝ
   // =========================================================================
   {
+    id: 'b_sec6_label',
+    type: 'SECTION_LABEL',
+    title: 'VI. TUÂN THỦ QUY ĐỊNH & PHÁP LÝ',
+    sectionFormat: 'H1',
+    titleFormat: 'H1',
+    columns: 1,
+    fields: []
+  },
+  {
     id: 'b_sec6_phap_ly',
     type: 'INFO_GRID',
     title: 'VI. TUÂN THỦ QUY ĐỊNH & PHÁP LÝ',
-    titleFormat: 'H1',
-    sectionFormat: 'H1',
+    titleFormat: 'NONE',
     columns: 1,
     fields: [
       {
@@ -843,11 +967,19 @@ const layoutBlocks = [
   // VII. NĂNG LỰC ỨNG DỤNG CÔNG NGHỆ
   // =========================================================================
   {
+    id: 'b_sec7_label',
+    type: 'SECTION_LABEL',
+    title: 'VII. NĂNG LỰC ỨNG DỤNG CÔNG NGHỆ',
+    sectionFormat: 'H1',
+    titleFormat: 'H1',
+    columns: 1,
+    fields: []
+  },
+  {
     id: 'b_sec7_cong_nghe',
     type: 'INFO_GRID',
     title: 'VII. NĂNG LỰC ỨNG DỤNG CÔNG NGHỆ',
-    titleFormat: 'H1',
-    sectionFormat: 'H1',
+    titleFormat: 'NONE',
     columns: 1,
     fields: [
       {
@@ -931,11 +1063,19 @@ const layoutBlocks = [
   // VIII. HÌNH ẢNH MINH CHỨNG
   // =========================================================================
   {
+    id: 'b_sec8_label',
+    type: 'SECTION_LABEL',
+    title: 'VIII. HÌNH ẢNH MINH CHỨNG',
+    sectionFormat: 'H1',
+    titleFormat: 'H1',
+    columns: 1,
+    fields: []
+  },
+  {
     id: 'b_sec8_minh_chung',
     type: 'INFO_GRID',
     title: 'VIII. HÌNH ẢNH MINH CHỨNG',
-    titleFormat: 'H1',
-    sectionFormat: 'H1',
+    titleFormat: 'NONE',
     columns: 2,
     fields: [
       {

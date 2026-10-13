@@ -1618,7 +1618,7 @@ function FormFillerInner({
                           gap: '0.35rem',
                         }}
                       >
-                        <label style={{ fontSize: '0.78rem', fontWeight: 400, color: 'var(--text-secondary)' }}>
+                        <label style={{ fontSize: '0.82rem', fontWeight: 500, color: 'var(--text-primary)', whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.4 }}>
                           {renderFormattedText(sanitizeLabel(field.checkItem))}
                         </label>
                         {field.type === 'date' ? (
@@ -1690,7 +1690,7 @@ function FormFillerInner({
                                 const otherText = isOtherOpt ? extractOtherText(currentValues.find((v: string) => isOtherValue(v))) : '';
                                 return (
                                   <div key={opt.value} style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                                    <label style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', fontSize: '0.8rem', cursor: effectiveReadOnly ? 'default' : 'pointer', margin: 0 }}>
+                                    <label style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', fontSize: '0.82rem', cursor: effectiveReadOnly ? 'default' : 'pointer', margin: 0 }}>
                                       <input 
                                         type="checkbox" 
                                         checked={isChecked}

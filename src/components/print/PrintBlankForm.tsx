@@ -352,7 +352,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                 fontSize: '0.82rem'
                               }}>
                                 {cleanLabel && (
-                                  <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', lineHeight: 1.4, whiteSpace: block.columns === 1 ? 'nowrap' : 'normal' }}>
+                                  <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', lineHeight: 1.4, whiteSpace: (block.columns === 1 && cleanLabel.length <= 45) ? 'nowrap' : 'normal' }}>
                                     {renderFormattedText(cleanLabel)}
                                   </span>
                                 )}
@@ -457,9 +457,10 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                             );
                           }
 
+                          const isLongTextLabel = f.type !== 'time' && (cleanLabel.length > 45 || cleanLabel.includes('\n'));
                           return (
-                            <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'center', minHeight: 'var(--pw-line-h)', gap: '8px', fontSize: '0.82rem' }}>
-                              {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap', lineHeight: 1.4 }}>{renderFormattedText(cleanLabel)}</span>}
+                            <div key={f.id} style={{ ...gridItemStyle, display: 'flex', flexDirection: isLongTextLabel ? 'column' : 'row', alignItems: isLongTextLabel ? 'stretch' : 'center', minHeight: 'var(--pw-line-h)', gap: isLongTextLabel ? '4px' : '8px', fontSize: '0.82rem' }}>
+                              {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: isLongTextLabel ? 'pre-wrap' : 'nowrap', wordBreak: isLongTextLabel ? 'break-word' : undefined, lineHeight: 1.4 }}>{renderFormattedText(cleanLabel)}</span>}
                               {f.type === 'time' ? (
                                 f.timeMode === 'dual' ? (
                                   <div style={{ fontSize: '0.8rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '4px', flex: 1 }}>
@@ -516,7 +517,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                   </div>
                                 )
                               ) : (
-                                <div data-acroform-field="true" data-field-id={f.id} data-field-type={f.type} data-field-name={cleanLabel} style={{ flex: 1, borderBottom: '1px dotted #cbd5e1', height: '16px' }} />
+                                <div data-acroform-field="true" data-field-id={f.id} data-field-type={f.type} data-field-name={cleanLabel} style={{ flex: isLongTextLabel ? undefined : 1, width: isLongTextLabel ? '100%' : undefined, borderBottom: '1px dotted #cbd5e1', height: '16px' }} />
                               )}
                             </div>
                           );

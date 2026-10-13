@@ -441,30 +441,34 @@ export default function PrintScoring({
 
                               // Default single-line field (text, number, date, time)
                               const singleScore = getSingleScoreText(fSpec);
+                              const isLongTextLabel = cleanLabel.length > 45 || cleanLabel.includes('\n');
                               return (
                                 <div
                                   key={f.id}
                                   style={{
                                     ...gridItemStyle,
                                     display: 'flex',
-                                    alignItems: 'center',
+                                    flexDirection: isLongTextLabel ? 'column' : 'row',
+                                    alignItems: isLongTextLabel ? 'stretch' : 'center',
                                     minHeight: 'var(--pw-line-h)',
-                                    gap: '6px',
+                                    gap: isLongTextLabel ? '4px' : '6px',
                                     fontSize: '0.82rem'
                                   }}
                                 >
                                   {cleanLabel && (
-                                    <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap', lineHeight: 1.4 }}>
+                                    <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: isLongTextLabel ? 'pre-wrap' : 'nowrap', wordBreak: isLongTextLabel ? 'break-word' : undefined, lineHeight: 1.4 }}>
                                       {renderFormattedText(cleanLabel)}
                                     </span>
                                   )}
-                                  <div style={{ flex: 1, borderBottom: '1px dotted #cbd5e1', height: '14px' }} />
-                                  {singleScore && (
-                                    <span style={{ fontSize: '0.74rem', color: '#0f766e', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                                      {singleScore}
-                                    </span>
-                                  )}
-                                  {renderWeightBadge(fSpec)}
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: isLongTextLabel ? undefined : 1, width: isLongTextLabel ? '100%' : undefined }}>
+                                    <div style={{ flex: 1, borderBottom: '1px dotted #cbd5e1', height: '14px' }} />
+                                    {singleScore && (
+                                      <span style={{ fontSize: '0.74rem', color: '#0f766e', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                                        {singleScore}
+                                      </span>
+                                    )}
+                                    {renderWeightBadge(fSpec)}
+                                  </div>
                                 </div>
                               );
                             })}

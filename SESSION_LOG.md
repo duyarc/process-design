@@ -12,10 +12,6 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 | # | Nhóm | Lỗi | Biện pháp phòng ngừa | Lần gặp |
 |---|---|---|---|---|
-| 3 | `CTX` | Patch chunk quá dài (>100 dòng) trong file monolith lớn dễ bị fuzzy match lệch vị trí hoặc bỏ sót biến | Chia nhỏ patch thành các chunk tập trung (< 40-50 dòng) với context độc nhất. Đã tiến hóa thành quy tắc bắt buộc: Xem Mục 12.6 | 1 |
-| 4 | `BLOAT` | Để sót dead code (hàm cũ, props cũ như `handleMoveColumn`) khi thay thế giải pháp mới | Tuân thủ Mục 13.7 Dead-Code Pruning: rà soát toàn bộ call-site và xóa sạch code cũ trong cùng commit | 1 |
-| 5 | `BLOAT` | Xóa logic con dùng tham số callback mảng (`fArr` trong `.map((f, fIdx, fArr) => ...)`) nhưng bỏ sót trong chữ ký hàm → TS6133 unused declaration | Khi xóa tính năng hoặc dọn dead code, rà soát luôn tham số của closure bao quanh để lược bỏ biến không còn đọc | 1 |
-| 6 | `CTX` | Khi patch code trong khối JS trước `return`, chèn comment JSX `{/* */}` gây syntax error; hoặc patch thẻ con thiếu mốc neo độc nhất | Luôn phân biệt ngữ cảnh JS thuần vs JSX khi viết comment (`//` vs `{/* */}`); dùng thẻ cha làm mốc neo khi patch thẻ con | 1 |
 | 7 | `TOOL` | Chạy inline Node trên PowerShell chứa `$1` bị PowerShell ngậm biến `$1` thành chuỗi rỗng → SQL syntax error | Lưu code ra file `.cjs` tạm hoặc escape `\$1` trong chuỗi lệnh PowerShell | 1 |
 | 8 | `SCOPE` | Biểu mẫu chứa text động trong `tableData` (pre-filled cells) hoặc `tableRows` (`groupTitle`) ngoài `tableColumns` | Luôn duyệt toàn diện cả `tableRows` (`groupTitle`), `tableData` (text cells), field `placeholder`, `reactionProtocol` khi bóc tách chuỗi | 1 |
 | 9 | `LOGIC` | Hiểu nhầm "search" là truy xuất bộ nhớ nội bộ (internal reasoning) của LLM thay vì tra cứu không gian bên ngoài | Định nghĩa rõ: "Search" bắt buộc là tìm kiếm không gian bên ngoài (External Web Search) với các nguồn quy chuẩn xác thực, không dựa vào lập luận nội bộ của LLM | 1 |
@@ -35,10 +31,27 @@ phiên thực thi để không lặp lại lỗi cũ.
 | 23 | `TOOL` | Thêm `field?.label` vào fallback chain nhưng `FormFieldISO` không có property `label` → TS2339 build fail | Luôn tra cứu interface type (`FormFieldISO`) trước khi dùng optional chain trên typed object. `checkItem` là nhãn duy nhất trong `FormFieldISO` | 1 |
 | 24 | `ENV` | Tiến trình `git.exe` nền trên Windows bị treo giữ file lock `.git\index.lock` khiến git status/commit ngưng trệ | Luôn chạy `Stop-Process -Name git -Force; Remove-Item .git\index.lock -Force` trước lệnh git | 1 |
 | 25 | `BLOAT` | Bỏ logic gán status nhưng sót tên biến `isOverallPass` tại chữ ký destructuring `const { snapshots, isOverallPass }` và hàm trả về → TS6133 | Áp dụng Rule 13.10 Destructuring Prune: Xóa ngay tên biến tại destructure và hàm sinh trong cùng lần patch | 1 |
+| 26 | `LOGIC` | Dùng trường câu hỏi dài (>45 ký tự) trong `INFO_GRID` bị áp `whiteSpace: 'nowrap'` trên `PrintBlankForm` khiến bảng in phình rộng >1.200px và co chữ xuống 55%; nhúng bảng nhiều cột vào `subtable` làm giảm cỡ chữ xuống `0.75rem` | Với bảng dữ liệu nhiều cột, ưu tiên dùng khối `TABLE` (`borderStyle: 'grid'`) cấp cao nhất; trong `INFO_GRID`, tự động ngắt dòng (`isLongTextLabel`) khi `cleanLabel.length > 45` hoặc có `\n` | 1 |
 
 ---
 
 ## Nhật ký Phiên
+
+### 2026-10-13 — Chuẩn hóa Kiểu chữ, Lề trang & Bố cục `3S-FA02` theo Hệ thống (Phương án 3 Hybrid)
+
+**Scope:** 4 source files (`PrintBlankForm.tsx`, `PrintFilledForm.tsx`, `PrintScoring.tsx`, `FormFiller.tsx`) + 1 seed script (`scripts/seedFactoryAssessmentForm.cjs`) + 3 design docs (`DESIGN_FORM_DESIGNER.md`, `DESIGN_FORM_OPERATIONS.md`, `DESIGN_REPORT_BUILDER.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa | 5 (`PrintBlankForm`, `PrintFilledForm`, `PrintScoring`, `FormFiller`, `seedFactoryAssessmentForm.cjs`) |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 2 (`npx tsc --noEmit` pass 100%, `npm run build` pass 10.64s) |
+| Lần build đầu thành công? | Có |
+
+**Kết quả đạt được:**
+- **Sửa tận gốc lỗi ép co trang in A4 (`PrintBlankForm`, `PrintFilledForm`, `PrintScoring`):** Thêm cơ chế `isLongTextLabel` (`cleanLabel.length > 45 || cleanLabel.includes('\n')`) cho các trường `text`/`number` một dòng trong `INFO_GRID` để tự động ngắt dòng nhãn (`whiteSpace: 'pre-wrap'`, `wordBreak: 'break-word'`) và xếp dòng kẻ chấm trả lời xuống dưới (`width: '100%'`), đồng thời cho phép nhãn `OPTION_A` `checkbox`/`radio` dài hơn 45 ký tự tự xuống dòng. Loại bỏ hoàn toàn hiện tượng `.print-outer-table` phình ra 1.250px làm trình duyệt thu nhỏ tỷ lệ in xuống 55%.
+- **Chuẩn hóa Typography trên màn hình điền biểu mẫu (`FormFiller`):** Nâng cấp nhãn câu hỏi trong `INFO_GRID` từ `0.78rem` (`fontWeight: 400`, `var(--text-secondary)`) lên chuẩn hệ thống `0.82rem` (`fontWeight: 500`, `var(--text-primary)`, `whiteSpace: 'pre-wrap'`) và nhãn tùy chọn `checkbox` lên `0.82rem`.
+- **Nâng cấp Cấu trúc Biểu mẫu `3S-FA02` (`seedFactoryAssessmentForm.cjs`):** Chuyển đổi 4 bảng danh sách nhiều cột (`Đại diện doanh nghiệp làm việc`, `Sản phẩm / nhóm sản phẩm chính`, `Danh sách thiết bị chính`, `Doanh nghiệp đang có Chứng nhận Hệ thống Quản lý ATTP đang còn hiệu lực?`) từ `subtable` sang các khối `TABLE` (`borderStyle: 'grid'`, `titleFormat: 'H2'`) cấp cao nhất; tách tiêu đề 8 phần chính và tiểu mục thành các khối `SECTION_LABEL` (`H1`/`H2`). Đồng bộ thành công 28 blocks và 79 fields vào PostgreSQL.
 
 ### 2026-10-13 — Factory Assessment Form (`3S-FA02` - Biểu mẫu đánh giá nhà máy): Complete 8-Section Schema Seed & Sync
 
