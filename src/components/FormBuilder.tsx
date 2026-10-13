@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import type { FormFieldISO, FormRevisionEntry, FormTemplateISO, LayoutBlockISO, RadioOption, MatrixConfigISO, TableColumnConfig, TableRowConfig, ColumnSummaryRowConfig, TitleFormatISO, SubtableColumn, BlockVisibilityCondition, LinkedWorkStepInfo } from '../types';
 import { formatFormVersion, getColStyleWidth } from '../types';
 import { sanitizeLabel, getEffectiveTitleFormat, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, isSeamlessTableBlock, getInfoGridTemplateColumns, snap2ColWidth, snap3ColWidths, INFO_GRID_2COL_PRESETS, generateSmartFieldSlug, getCheckboxGridTemplate, reorderOptionsArray, reorderArray, getEffectiveCellOptions as getEffectiveCellOptionsUtil } from '../utils/formUtils';
-import { applyTextFormat, handleFormatKeyDown } from '../utils/textFormatter';
+import { applyTextFormat, handleFormatKeyDown, insertTextAtCursor } from '../utils/textFormatter';
 import { 
   Plus, 
   Trash2, 
@@ -1044,6 +1044,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
   const [draggedGridField, setDraggedGridField] = useState<{ blockId: string; fieldId: string; index: number } | null>(null);
   const [dragOverGridField, setDragOverGridField] = useState<{ blockId: string; fieldId: string; index: number } | null>(null);
   const inspectorLabelRef = useRef<HTMLTextAreaElement>(null);
+  const inspectorGuidanceRef = useRef<HTMLTextAreaElement>(null);
   const sectionDescRef = useRef<HTMLTextAreaElement>(null);
   const inspectorGroupTitleRef = useRef<HTMLTextAreaElement>(null);
   const [effectiveDate, setEffectiveDate] = useState(() => (initialData as any)?.effectiveDate || (initialData as any)?.effective_date || new Date().toISOString().split('T')[0]);
@@ -6535,6 +6536,69 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                       onChange={(newType) => handleChangeFieldType(activeBlockId!, activeFieldId!, newType)}
                     />
                   </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', marginTop: '0.4rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.78rem' }}>HƯỚNG DẪN</label>
+                    <div style={{ display: 'flex', gap: '2px' }}>
+                      <button
+                        type="button"
+                        title="In đậm (**text**)"
+                        disabled={isLocked}
+                        onClick={() => applyTextFormat(inspectorGuidanceRef.current, 'bold', activeField.guidance || '', (val) => handleUpdateField(activeBlockId!, activeFieldId!, { guidance: val }))}
+                        style={{ width: '22px', height: '22px', border: '1px solid #cbd5e1', borderRadius: '3px', background: '#ffffff', fontWeight: 700, fontSize: '0.75rem', cursor: isLocked ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      >
+                        B
+                      </button>
+                      <button
+                        type="button"
+                        title="In nghiêng (*text*)"
+                        disabled={isLocked}
+                        onClick={() => applyTextFormat(inspectorGuidanceRef.current, 'italic', activeField.guidance || '', (val) => handleUpdateField(activeBlockId!, activeFieldId!, { guidance: val }))}
+                        style={{ width: '22px', height: '22px', border: '1px solid #cbd5e1', borderRadius: '3px', background: '#ffffff', fontStyle: 'italic', fontSize: '0.75rem', cursor: isLocked ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      >
+                        I
+                      </button>
+                      <button
+                        type="button"
+                        title="Gạch chân (<u>text</u>)"
+                        disabled={isLocked}
+                        onClick={() => applyTextFormat(inspectorGuidanceRef.current, 'underline', activeField.guidance || '', (val) => handleUpdateField(activeBlockId!, activeFieldId!, { guidance: val }))}
+                        style={{ width: '22px', height: '22px', border: '1px solid #cbd5e1', borderRadius: '3px', background: '#ffffff', textDecoration: 'underline', fontSize: '0.75rem', cursor: isLocked ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      >
+                        U
+                      </button>
+                      <button
+                        type="button"
+                        title="Chèn gạch đầu dòng (• )"
+                        disabled={isLocked}
+                        onClick={() => insertTextAtCursor(inspectorGuidanceRef.current, '• ', activeField.guidance || '', (val) => handleUpdateField(activeBlockId!, activeFieldId!, { guidance: val }))}
+                        style={{ width: '22px', height: '22px', border: '1px solid #cbd5e1', borderRadius: '3px', background: '#ffffff', fontSize: '0.85rem', cursor: isLocked ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      >
+                        •
+                      </button>
+                      <button
+                        type="button"
+                        title="Chèn gợi ý (💡 )"
+                        disabled={isLocked}
+                        onClick={() => insertTextAtCursor(inspectorGuidanceRef.current, '💡 ', activeField.guidance || '', (val) => handleUpdateField(activeBlockId!, activeFieldId!, { guidance: val }))}
+                        style={{ width: '22px', height: '22px', border: '1px solid #cbd5e1', borderRadius: '3px', background: '#ffffff', fontSize: '0.75rem', cursor: isLocked ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      >
+                        💡
+                      </button>
+                    </div>
+                  </div>
+                  <textarea
+                    ref={inspectorGuidanceRef}
+                    rows={4}
+                    disabled={isLocked}
+                    placeholder="Nhập hướng dẫn điền, tiêu chí đánh giá, minh chứng..."
+                    value={activeField.guidance || ''}
+                    onKeyDown={(e) => handleFormatKeyDown(e, activeField.guidance || '', (val) => handleUpdateField(activeBlockId!, activeFieldId!, { guidance: val }))}
+                    onChange={(e) => handleUpdateField(activeBlockId!, activeFieldId!, { guidance: e.target.value })}
+                    style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', resize: 'vertical', fontSize: '0.78rem', fontFamily: 'inherit', lineHeight: 1.4 }}
+                  />
                 </div>
 
                 {(activeField.type === 'likert_scale' || (activeField.type as any) === 'rating') && (

@@ -129,6 +129,7 @@ export interface FormFieldISO {
   subtableStaticData?: Record<number, Record<string, string>>;
   rowSpan?: number; // Row span in INFO_GRID (e.g. 1, 2, 3, 4)
   colSpan?: number; // Column span in INFO_GRID (e.g. 1, 2, 3, or -1 for full width)
+  guidance?: string; // Hướng dẫn chi tiết / Tiêu chí đánh giá / Minh chứng cần kiểm tra
 }
 
 export interface FormRevisionEntry {
@@ -183,6 +184,7 @@ export interface TableRowConfig {
   lineCount?: number; // Number of handwriting lines in this row. Default = 1. Range: 1–5.
   isGroupHeader?: boolean; // If true: full-width group header row spanning all columns
   groupTitle?: string; // Title for the group header row (e.g. 'I. Bao bì và đóng gói')
+  guidance?: string; // Hướng dẫn chi tiết cho dòng kiểm tra
 }
 
 export type TitleFormatISO = 'H1' | 'H2' | 'BODY' | 'NONE';

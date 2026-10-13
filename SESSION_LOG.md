@@ -12,7 +12,6 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 | # | Nhóm | Lỗi | Biện pháp phòng ngừa | Lần gặp |
 |---|---|---|---|---|
-| 8 | `SCOPE` | Biểu mẫu chứa text động trong `tableData` (pre-filled cells) hoặc `tableRows` (`groupTitle`) ngoài `tableColumns` | Luôn duyệt toàn diện cả `tableRows` (`groupTitle`), `tableData` (text cells), field `placeholder`, `reactionProtocol` khi bóc tách chuỗi | 1 |
 | 9 | `LOGIC` | Hiểu nhầm "search" là truy xuất bộ nhớ nội bộ (internal reasoning) của LLM thay vì tra cứu không gian bên ngoài | Định nghĩa rõ: "Search" bắt buộc là tìm kiếm không gian bên ngoài (External Web Search) với các nguồn quy chuẩn xác thực, không dựa vào lập luận nội bộ của LLM | 1 |
 | 10 | `SCOPE` | Hardcode danh sách quy chuẩn cố định (IMO, BRCGS, ISO 22000, APICS) làm thiên lệch vào dữ liệu mẫu | Khái quát hóa thành quy trình: "Search web theo ngữ cảnh form" (Context-Driven Web Search) dựa trên domain suy diễn động | 1 |
 | 11 | `BLOAT` | Thêm text badges (Selected, Đã chọn, Active, hints) trùng lặp với visual indicator (màu sắc, border, icon) → UI bị rối | Áp dụng UI Streamlining Audit: Khi visual cues đã rõ ràng, triệt tiêu toàn bộ text badges phụ trợ để giữ UI tối giản | 1 |
@@ -32,10 +31,31 @@ phiên thực thi để không lặp lại lỗi cũ.
 | 25 | `BLOAT` | Bỏ logic gán status nhưng sót tên biến `isOverallPass` tại chữ ký destructuring `const { snapshots, isOverallPass }` và hàm trả về → TS6133 | Áp dụng Rule 13.10 Destructuring Prune: Xóa ngay tên biến tại destructure và hàm sinh trong cùng lần patch | 1 |
 | 26 | `LOGIC` | Dùng trường câu hỏi dài (>45 ký tự) trong `INFO_GRID` bị áp `whiteSpace: 'nowrap'` trên `PrintBlankForm` khiến bảng in phình rộng >1.200px và co chữ xuống 55%; nhúng bảng nhiều cột vào `subtable` làm giảm cỡ chữ xuống `0.75rem` | Với bảng dữ liệu nhiều cột, ưu tiên dùng khối `TABLE` (`borderStyle: 'grid'`) cấp cao nhất; trong `INFO_GRID`, tự động ngắt dòng (`isLongTextLabel`) khi `cleanLabel.length > 45` hoặc có `\n` | 1 |
 | 27 | `LOGIC` | Container bảng dùng `overflowX: 'auto'` tự động kích hoạt `overflowY: 'auto'` theo chuẩn W3C CSS khiến dropdown menu (`position: absolute; top: 100%`) bị cắt cụt (cut off) ở đáy bảng và sinh thanh cuộn dọc không mong muốn khi bảng có ít hàng | Đặt `overflow: 'visible'` trên wrapper bảng nếu các hàng có dropdown menu tuyệt đối; bổ sung dynamic `zIndex: isGroupActive ? 30 : 1` trên card cha để menu hiển thị đè lên các card tiếp theo | 1 |
+| 28 | `SCOPE` | Khi thêm tính năng in kèm hướng dẫn biểu mẫu trắng, nếu tạo component in mới sẽ trùng lặp title block, logo, @page CSS và phân trang | Kế thừa trực tiếp component in hiện hữu (`PrintBlankForm`) thông qua cờ prop `includeGuidance?: boolean` để giữ 100% nhất quán định dạng và zero duplication | 1 |
 
 ---
 
 ## Nhật ký Phiên
+
+### 2026-10-13 — Chức năng Hướng dẫn Điền Câu hỏi (Question Guidance) & In Kèm Hướng dẫn
+
+**Scope:** 6 source files (`types.ts`, `textFormatter.tsx`, `FormBuilder.tsx`, `PrintBlankForm.tsx`, `FormFiller.tsx`, `Dashboard.tsx`) + 1 seed script (`scripts/seedFactoryAssessmentForm.cjs`) + 3 design docs (`DESIGN_FORM_DESIGNER.md`, `DESIGN_FORM_OPERATIONS.md`, `DESIGN_PLATFORM_SHELL.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa | 6 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 2 (`npx tsc --noEmit` pass 100%, `npm run build` pass 15.56s) |
+| Lần build đầu thành công? | Có |
+
+**Kết quả đạt được:**
+- **Soạn thảo Hướng dẫn Điền (`FormBuilder`):** Bổ sung thuộc tính `guidance?: string` trong `FormFieldISO` và `TableRowConfig`. Hiển thị phần soạn thảo `HƯỚNG DẪN` cùng dòng với toolbar định dạng inline `[ B ] [ I ] [ U ] [ • ] [ 💡 ]`. Trích xuất pure helper `insertTextAtCursor` hỗ trợ chèn ký hiệu bullet và emoji tự động duy trì con trỏ/focus.
+- **Accordion Tương tác trong Form Filler (`FormFiller`):** Nhấp vào tiêu đề câu hỏi hoặc nút `[ 💡 Hướng dẫn ▾/▴ ]` mở rộng/thu gọn khối hướng dẫn markdown phong phú (theo Phương án 1: không hardcode tiêu đề tĩnh, dải viền xanh ngọc `#0d9488`, nền `var(--neutral-bg)`). Quản lý trạng thái thông qua `expandedGuidanceMap`.
+- **Nâng cấp Menu In Đa Tùy chọn (`FormFiller` & `Dashboard`):**
+  - Tại `FormFiller`: Nâng cấp nút in trên thanh công cụ thành dropdown menu `[ 🖨️ In ▾ ]` cho phép lựa chọn `In bản khai` hoặc `In bảng câu hỏi kèm hướng dẫn`. Tự động đóng menu khi nhấp chuột ra ngoài.
+  - Tại `Dashboard` (Tab Forms): Thêm tùy chọn `In bảng câu hỏi kèm hướng dẫn` vào menu `[ ••• ]` với icon `BookOpen`.
+  - Tái sử dụng trọn vẹn `PrintBlankForm`: Tích hợp helper `PrintFieldGuidanceBox` hiển thị icon `💡` và nội dung hướng dẫn trên các khối `INFO_GRID`, `CHECKLIST_TABLE`, và `TABLE` khi cờ `includeGuidance={true}` được bật, bảo toàn 100% khung tiêu đề động, lề in A4 và chân trang phân trang.
+- **Dữ liệu Mẫu Khảo sát Nhà máy (`3S-FA02`):** Cập nhật script `seedFactoryAssessmentForm.cjs` bổ sung tiêu chí đánh giá, phương pháp thu thập bằng chứng cho các câu hỏi thẩm định thực tế và đồng bộ dữ liệu vào PostgreSQL.
 
 ### 2026-10-13 — Triệt tiêu Lỗi Cắt cụt Dropdown Menu trên Tab Forms & Submissions
 
@@ -190,23 +210,3 @@ phiên thực thi để không lặp lại lỗi cũ.
 - **Tab Forms Process Filter:** Bổ sung state `formProcessFilter` và dropdown `Process: [ All Processes ▾ ]` cho Tab Forms, hỗ trợ lọc nhanh biểu mẫu theo quy trình hoặc biểu mẫu tự do.
 - **Dead-Code Pruning:** Xóa sạch import `Search` không dùng tại `Dashboard.tsx` và `SubmissionManager.tsx` (Rule 13.7 & 13.10), đảm bảo `TS6133` = 0.
 
-### 2026-09-30 — Submissions Tab Performance Optimization (O1+O2+O3+O4)
-
-**Scope:** 3 source files (`server.cjs`, `SubmissionManager.tsx`, `Dashboard.tsx`) + 2 design docs
-
-| Chỉ số | Giá trị |
-|---|---|
-| Số file nguồn chỉnh sửa | 3 |
-| Lượt edit sửa lỗi (rework) | 2 (TS6133 `setProcesses`, TS2322 `onClick={fetchData}`) |
-| Số lần build | 2 (`npm run build` fail → fix → pass 10.33s) |
-| Lần build đầu thành công? | Không — 2 lỗi TS do dead code + signature mismatch |
-
-**Kết quả đạt được:**
-- **O1 — Light endpoint:** Loại bỏ `form_data`, `media_urls`, `access_token` khỏi `GET /api/submissions` SELECT. Payload giảm ~90%. Thêm `fetchFullSubmission` lazy-fetch cho detail/print/copy.
-- **O2 — Tái sử dụng processes:** Thêm `cachedProcesses` prop, Dashboard truyền SWR-cached `processes` xuống SubmissionManager, loại bỏ redundant `/api/processes` call.
-- **O3 — SWR cache submissions:** Khởi tạo state từ `sessionStorage('swr_submissions')`, background revalidation khi cache đã có.
-- **O4 — processLookupMap:** `useMemo` pre-parse `workflowFormsData` thành `Map<formId, Process>`, giảm O(N×M) → O(1) per lookup.
-
-**Lỗi gặp phải:**
-- `TS6133`: `setProcesses` thành dead code sau khi loại bỏ `setProcesses(procData)` trong `fetchData` → fix: đổi thành `const [processes]` (Rule 13.10).
-- `TS2322`: `fetchData(isBackground?: boolean)` không khớp `MouseEventHandler` khi dùng trực tiếp làm `onClick={fetchData}` → fix: wrap arrow function `onClick={() => fetchData()}`.

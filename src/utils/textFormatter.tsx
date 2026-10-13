@@ -172,3 +172,27 @@ export function stripMarkdownTokens(text?: string | null): string {
     .replace(/_(.*?)_/g, '$1');
 }
 
+/**
+ * Inserts text at the current cursor position of an input/textarea and restores focus.
+ */
+export function insertTextAtCursor(
+  inputEl: HTMLTextAreaElement | HTMLInputElement | null,
+  textToInsert: string,
+  currentValue: string,
+  onChange: (newVal: string) => void
+): void {
+  if (!inputEl) {
+    onChange(currentValue + textToInsert);
+    return;
+  }
+  const start = inputEl.selectionStart ?? currentValue.length;
+  const end = inputEl.selectionEnd ?? currentValue.length;
+  const newValue = currentValue.substring(0, start) + textToInsert + currentValue.substring(end);
+  onChange(newValue);
+  setTimeout(() => {
+    inputEl.focus();
+    const newPos = start + textToInsert.length;
+    inputEl.setSelectionRange(newPos, newPos);
+  }, 0);
+}
+

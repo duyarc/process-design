@@ -8,7 +8,7 @@
 |---|---|
 | **Module Name** | Form Operations |
 | **Status** | Active Development |
-| **Verified At Commit** | (2026-10-13) — Submissions table wrapper overflow: visible & dynamic card zIndex elevation verified in SubmissionManager.tsx |
+| **Verified At Commit** | (2026-10-13) — Question Guidance accordion in FormFiller and print dropdown menu verified against source |
 
 ### Quick File Index
 
@@ -454,5 +454,6 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 | 2026-09-30 | `CURRENT` | **FormFiller SWR Instant Paint & Single Process Endpoint:** (1) Implemented synchronous SWR instant paint in `FormFiller.tsx`: initializes `process` and `loading = false` synchronously via `initialCache` from `preloadedFormTemplate` or `sessionStorage` (`swr_forms`, `swr_processes`), eliminating the blank "Loading digital template form..." screen for all in-app navigation (0ms render). (2) Added `GET /api/processes/:id` in `server.cjs` returning single process + process_forms, replacing multi-megabyte full-table database scan (`SELECT * FROM processes`). (3) Parallelized `fetchProcess` network calls via `Promise.all([fetchForm, fetchProcessSingle])`, dropping cold load latency from ~3.5s to ~300ms. (4) Extracted pure utility `buildVirtualProcess` and pruned ~90 lines of duplicated code. |
 | 2026-10-13 | `CURRENT` | **INFO_GRID Label Typography & Long Text Wrapping (`FormFiller`, `PrintFilledForm`):** (1) In `FormFiller.tsx`, upgraded `INFO_GRID` field label typography from `0.78rem` muted text to `0.82rem` (`fontWeight: 500`, `var(--text-primary)`, `whiteSpace: 'pre-wrap'`, `wordBreak: 'break-word'`) for survey readability. (2) In `PrintFilledForm.tsx`, added `isLongTextLabel` wrapping for single-line text/number fields (`length > 45` or multiline) stacking answer lines vertically with `100%` width, and wrapped `OPTION_A` checkbox/radio options when length exceeds 45 characters. |
 | 2026-10-13 | `CURRENT` | **Fix Dropdown Menu Cutoff in Tab Submissions (`SubmissionManager`):** (1) Changed group submissions table wrapper from `overflowX: 'auto'` to `overflow: 'visible'`, resolving CSS overflow trap where contextual dropdowns were vertically clipped. (2) Added dynamic card stacking elevation (`zIndex: isGroupActive ? 30 : 1`) on `.paper-card`. |
+| 2026-10-13 | `CURRENT` | **Question Guidance Accordion & Dual Print Dropdown Menu (`FormFiller`, `PrintBlankForm`):** (1) Integrated interactive question guidance in `FormFiller.tsx`: question labels are clickable and accompanied by `[ 💡 Hướng dẫn ▾/▴ ]` toggles, expanding markdown guidance with teal accent border (`#0d9488`). State managed via `expandedGuidanceMap`. (2) Upgraded FormFiller toolbar print button to dropdown `[ 🖨️ In ▾ ]` supporting both filled submission printing and blank questionnaire printing with guidance (`includeGuidance={true}`). (3) Reusable `PrintFieldGuidanceBox` in `PrintBlankForm.tsx` conditionally prints guidance across INFO_GRID, CHECKLIST_TABLE, and TABLE blocks. |
 
 

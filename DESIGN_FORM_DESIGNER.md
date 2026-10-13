@@ -9,7 +9,7 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-10-13) — INFO_GRID long label wrapping and top-level TABLE block layout verified against PrintBlankForm source |
+| **Verified At Commit** | (2026-10-13) — Question Guidance in FormBuilder inspector & PrintBlankForm includeGuidance verified against source |
 
 > **⚠️ Architectural note:** FormBuilder has no awareness of which process it belongs to. The `formName` prop is always identical to `formId`. See Section 6.1 and the Technical Debt table.
 
@@ -505,5 +505,6 @@ full diff of any entry below.
 | 2026-09-22 | **Form Publish Alert Upgrade to ConfirmModal Success Dialog:** (1) In `ConfirmModal.tsx`, added `variant="success"` with emerald theme (`CheckCircle`, `#059669`, `var(--primary)`) and `hideCancel` prop to cleanly support single-action notification/alert dialogs while maintaining Design System compliance (Rule 3). (2) In `FormBuilder.tsx`, replaced browser-native blocking `alert(...)` upon successful form publishing with `publishedVersionModal` state triggering `<ConfirmModal>` with variant `success`, single `OK` action button, and concise version notice without redundant ISO compliance disclaimer. |
 | 2026-09-23 | **Blank Space Click-to-Deselect & Form Properties Inspector:** Added background click event delegation on Center Canvas scroll container (`#f1f5f9`) and Paper sheet margins (`.paper-card`) in `FormBuilder.tsx` to reset `activeBlockId` and `activeFieldId` to null, seamlessly switching the Right Inspector to Form Properties with standardized uppercase header. |
 | 2026-10-13 | **INFO_GRID Long Label Wrapping & Top-Level TABLE Architecture:** (1) In `PrintBlankForm.tsx`, `PrintFilledForm.tsx`, and `PrintScoring.tsx`, added `isLongTextLabel` wrapping for single-line text/number fields (`length > 45` or multiline) stacking answer lines vertically (`width: 100%`) with `pre-wrap` break, preventing table width blowout. Handled `OPTION_A` checkbox/radio label wrapping when `length > 45`. (2) In `FormFiller.tsx`, standardized `INFO_GRID` field label font size to `0.82rem` (`fontWeight: 500`, `pre-wrap`). (3) Migrated `3S-FA02` multi-column subtables to top-level `TABLE` blocks (`borderStyle: 'grid'`) with section headers (`SECTION_LABEL`). |
+| 2026-10-13 | **Question Guidance Authoring & Print Blank Questionnaire with Guidance:** (1) Added `guidance?: string` to `FormFieldISO` and `TableRowConfig` in `src/types.ts`. (2) In `src/utils/textFormatter.tsx`, added `insertTextAtCursor` helper for bullet `• ` and `💡 ` emoji. (3) In `FormBuilder.tsx`, added `HƯỚNG DẪN` inspector section with inline toolbar buttons `[ B ] [ I ] [ U ] [ • ] [ 💡 ]`. (4) In `PrintBlankForm.tsx`, added `includeGuidance` prop and `PrintFieldGuidanceBox` rendering under `INFO_GRID` items and `TABLE` rows. |
 
 

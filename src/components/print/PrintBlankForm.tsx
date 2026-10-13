@@ -14,10 +14,36 @@ interface PrintBlankFormProps {
   onClose: () => void;
   exportMode?: boolean;
   autoExportPdf?: boolean;
+  includeGuidance?: boolean;
 }
 
+function PrintFieldGuidanceBox({ guidance }: { guidance: string }) {
+  if (!guidance || !guidance.trim()) return null;
+  return (
+    <div style={{
+      marginTop: '4px',
+      marginBottom: '4px',
+      padding: '4px 8px',
+      background: '#f8fafc',
+      borderLeft: '2.5px solid #0d9488',
+      borderRadius: '2px',
+      fontSize: '0.72rem',
+      color: '#334155',
+      lineHeight: 1.45,
+      pageBreakInside: 'avoid',
+      breakInside: 'avoid'
+    }}>
+      <div style={{ display: 'flex', gap: '4px', alignItems: 'flex-start' }}>
+        <span style={{ color: '#0d9488', flexShrink: 0, marginTop: '1px' }}>💡</span>
+        <div style={{ flex: 1, whiteSpace: 'pre-wrap' }}>
+          {renderFormattedText(guidance)}
+        </div>
+      </div>
+    </div>
+  );
+}
 
-export default function PrintBlankForm({ template, onClose, exportMode = false, autoExportPdf = false }: PrintBlankFormProps) {
+export default function PrintBlankForm({ template, onClose, exportMode = false, autoExportPdf = false, includeGuidance = false }: PrintBlankFormProps) {
   const [isExportingPdf, setIsExportingPdf] = React.useState<boolean>(false);
   const printContainerRef = React.useRef<HTMLDivElement>(null);
 
@@ -207,8 +233,9 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
 
                           if (f.type === 'label') {
                             return (
-                              <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'center', fontSize: '0.82rem', whiteSpace: 'pre-wrap', wordBreak: 'break-word', pageBreakInside: 'avoid', lineHeight: 1.5 }}>
+                              <div key={f.id} style={{ ...gridItemStyle, display: 'flex', flexDirection: 'column', fontSize: '0.82rem', whiteSpace: 'pre-wrap', wordBreak: 'break-word', pageBreakInside: 'avoid', lineHeight: 1.5 }}>
                                 <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a' }}>{renderFormattedText(cleanLabel)}</span>
+                                {includeGuidance && f.guidance && <PrintFieldGuidanceBox guidance={f.guidance} />}
                               </div>
                             );
                           }
@@ -220,6 +247,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                               return (
                                 <div key={f.id} style={{ ...gridItemStyle, display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.82rem', pageBreakInside: 'avoid' }}>
                                   {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a' }}>{renderFormattedText(cleanLabel)}</span>}
+                                  {includeGuidance && f.guidance && <PrintFieldGuidanceBox guidance={f.guidance} />}
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minHeight: '22px' }}>
                                     {Array.from({ length: scale }).map((_, idx) => (
                                       <span
@@ -253,6 +281,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                             return (
                               <div key={f.id} style={{ ...gridItemStyle, display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.82rem', pageBreakInside: 'avoid' }}>
                                 {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a' }}>{renderFormattedText(cleanLabel)}</span>}
+                                {includeGuidance && f.guidance && <PrintFieldGuidanceBox guidance={f.guidance} />}
                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', minHeight: '22px', paddingTop: '2px' }}>
                                   {scales.map((opt: string, idx: number) => (
                                     <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', flex: 1, textAlign: 'center' }}>
@@ -284,6 +313,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                             return (
                               <div key={f.id} style={{ ...gridItemStyle, display: 'flex', flexDirection: 'column', width: '100%', pageBreakInside: 'avoid' }}>
                                 {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', fontSize: '0.82rem', marginBottom: '4px' }}>{renderFormattedText(cleanLabel)}</span>}
+                                {includeGuidance && f.guidance && <PrintFieldGuidanceBox guidance={f.guidance} />}
                                 <div style={{ flex: 1, width: '100%', border: '1.5px dashed #000000', borderRadius: '3px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60px', padding: '6px', boxSizing: 'border-box', background: '#fafafa' }}>
                                   <span style={{ fontSize: '0.78rem', color: '#000000', fontStyle: 'italic', textAlign: 'center' }}>
                                     {f.placeholder ?? ''}
@@ -305,6 +335,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                   {cleanLabel && (
                                     <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a' }}>{renderFormattedText(cleanLabel)}</span>
                                   )}
+                                  {includeGuidance && f.guidance && <PrintFieldGuidanceBox guidance={f.guidance} />}
                                   <div style={{
                                     display: 'flex',
                                     flexDirection: isLongOpt ? 'column' : 'row',
@@ -342,44 +373,46 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                             }
 
                             return (
-                              <div key={f.id} style={{
-                                ...gridItemStyle,
-                                display: 'grid',
-                                gridTemplateColumns: block.columns === 1 ? 'auto 1fr' : '35% 65%',
-                                gap: '8px 20px',
-                                alignItems: 'center',
-                                minHeight: 'var(--pw-line-h)',
-                                fontSize: '0.82rem'
-                              }}>
-                                {cleanLabel && (
-                                  <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', lineHeight: 1.4, whiteSpace: (block.columns === 1 && cleanLabel.length <= 45) ? 'nowrap' : 'normal' }}>
-                                    {renderFormattedText(cleanLabel)}
-                                  </span>
-                                )}
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 20px', alignItems: 'center', maxWidth: '100%' }}>
-                                  {options.map((opt: any) => (
-                                    <span key={opt.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.8rem', whiteSpace: 'normal', wordBreak: 'break-word', maxWidth: '100%' }}>
-                                      <span
-                                        className="acro-option-icon"
-                                        data-acroform-field="true"
-                                        data-field-id={f.id}
-                                        data-field-type={f.type}
-                                        data-field-name={cleanLabel}
-                                        data-field-radiogroup={f.id}
-                                        data-field-radiovalue={opt.value}
-                                        style={{
-                                          borderRadius: f.type === 'radio' ? '50%' : '2px'
-                                        }}
-                                      />
-                                      <span style={{ lineHeight: '1.3', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                          <span>{opt.label}</span>
-                                          {(opt.isOther || opt.value === '__other__') && (
-                                            <span style={{ borderBottom: '1px dotted #000000', width: '80px', display: 'inline-block', height: '10px' }} />
-                                          )}
-                                        </span>
+                              <div key={f.id} style={{ ...gridItemStyle, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                <div style={{
+                                  display: 'grid',
+                                  gridTemplateColumns: block.columns === 1 ? 'auto 1fr' : '35% 65%',
+                                  gap: '8px 20px',
+                                  alignItems: 'center',
+                                  minHeight: 'var(--pw-line-h)',
+                                  fontSize: '0.82rem'
+                                }}>
+                                  {cleanLabel && (
+                                    <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', lineHeight: 1.4, whiteSpace: (block.columns === 1 && cleanLabel.length <= 45) ? 'nowrap' : 'normal' }}>
+                                      {renderFormattedText(cleanLabel)}
                                     </span>
-                                  ))}
+                                  )}
+                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 20px', alignItems: 'center', maxWidth: '100%' }}>
+                                    {options.map((opt: any) => (
+                                      <span key={opt.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '0.8rem', whiteSpace: 'normal', wordBreak: 'break-word', maxWidth: '100%' }}>
+                                        <span
+                                          className="acro-option-icon"
+                                          data-acroform-field="true"
+                                          data-field-id={f.id}
+                                          data-field-type={f.type}
+                                          data-field-name={cleanLabel}
+                                          data-field-radiogroup={f.id}
+                                          data-field-radiovalue={opt.value}
+                                          style={{
+                                            borderRadius: f.type === 'radio' ? '50%' : '2px'
+                                          }}
+                                        />
+                                        <span style={{ lineHeight: '1.3', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                            <span>{opt.label}</span>
+                                            {(opt.isOther || opt.value === '__other__') && (
+                                              <span style={{ borderBottom: '1px dotted #000000', width: '80px', display: 'inline-block', height: '10px' }} />
+                                            )}
+                                          </span>
+                                      </span>
+                                    ))}
+                                  </div>
                                 </div>
+                                {includeGuidance && f.guidance && <PrintFieldGuidanceBox guidance={f.guidance} />}
                               </div>
                             );
                           }
@@ -389,6 +422,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                             return (
                               <div key={f.id} className="subtable-print-container print-field-full" style={{ ...gridItemStyle, fontSize: '0.82rem', width: '100%', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                                 {cleanLabel && <div style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', marginBottom: '6px', pageBreakAfter: 'avoid', breakAfter: 'avoid' }}>{renderFormattedText(cleanLabel)}</div>}
+                                {includeGuidance && f.guidance && <PrintFieldGuidanceBox guidance={f.guidance} />}
                                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                                   <thead>
                                     <tr>
@@ -426,41 +460,45 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
 
                           if (f.type === 'date') {
                             return (
-                              <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'center', minHeight: 'var(--pw-line-h)', gap: '8px', fontSize: '0.82rem' }}>
-                                {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap', lineHeight: 1.4 }}>{renderFormattedText(cleanLabel)}</span>}
-                                <div style={{ fontSize: '0.82rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '4px', flex: 1 }}>
-                                  <span
-                                    data-acroform-field="true"
-                                    data-field-id={`${f.id}_dd`}
-                                    data-field-type="date_part"
-                                    data-field-name={`${cleanLabel} (Ngày)`}
-                                    style={{ borderBottom: '1px dotted #cbd5e1', width: '24px', display: 'inline-block', height: '16px' }}
-                                  />
-                                  <span style={{ color: '#000000', fontWeight: 'var(--pw-weight-regular)' }}>/</span>
-                                  <span
-                                    data-acroform-field="true"
-                                    data-field-id={`${f.id}_mm`}
-                                    data-field-type="date_part"
-                                    data-field-name={`${cleanLabel} (Tháng)`}
-                                    style={{ borderBottom: '1px dotted #cbd5e1', width: '24px', display: 'inline-block', height: '16px' }}
-                                  />
-                                  <span style={{ color: '#000000', fontWeight: 'var(--pw-weight-regular)' }}>/</span>
-                                  <span
-                                    data-acroform-field="true"
-                                    data-field-id={`${f.id}_yyyy`}
-                                    data-field-type="date_part"
-                                    data-field-name={`${cleanLabel} (Năm)`}
-                                    style={{ borderBottom: '1px dotted #cbd5e1', width: '40px', display: 'inline-block', height: '16px' }}
-                                  />
+                              <div key={f.id} style={{ ...gridItemStyle, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', minHeight: 'var(--pw-line-h)', gap: '8px', fontSize: '0.82rem' }}>
+                                  {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap', lineHeight: 1.4 }}>{renderFormattedText(cleanLabel)}</span>}
+                                  <div style={{ fontSize: '0.82rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '4px', flex: 1 }}>
+                                    <span
+                                      data-acroform-field="true"
+                                      data-field-id={`${f.id}_dd`}
+                                      data-field-type="date_part"
+                                      data-field-name={`${cleanLabel} (Ngày)`}
+                                      style={{ borderBottom: '1px dotted #cbd5e1', width: '24px', display: 'inline-block', height: '16px' }}
+                                    />
+                                    <span style={{ color: '#000000', fontWeight: 'var(--pw-weight-regular)' }}>/</span>
+                                    <span
+                                      data-acroform-field="true"
+                                      data-field-id={`${f.id}_mm`}
+                                      data-field-type="date_part"
+                                      data-field-name={`${cleanLabel} (Tháng)`}
+                                      style={{ borderBottom: '1px dotted #cbd5e1', width: '24px', display: 'inline-block', height: '16px' }}
+                                    />
+                                    <span style={{ color: '#000000', fontWeight: 'var(--pw-weight-regular)' }}>/</span>
+                                    <span
+                                      data-acroform-field="true"
+                                      data-field-id={`${f.id}_yyyy`}
+                                      data-field-type="date_part"
+                                      data-field-name={`${cleanLabel} (Năm)`}
+                                      style={{ borderBottom: '1px dotted #cbd5e1', width: '40px', display: 'inline-block', height: '16px' }}
+                                    />
+                                  </div>
                                 </div>
+                                {includeGuidance && f.guidance && <PrintFieldGuidanceBox guidance={f.guidance} />}
                               </div>
                             );
                           }
 
                           const isLongTextLabel = f.type !== 'time' && (cleanLabel.length > 45 || cleanLabel.includes('\n'));
                           return (
-                            <div key={f.id} style={{ ...gridItemStyle, display: 'flex', flexDirection: isLongTextLabel ? 'column' : 'row', alignItems: isLongTextLabel ? 'stretch' : 'center', minHeight: 'var(--pw-line-h)', gap: isLongTextLabel ? '4px' : '8px', fontSize: '0.82rem' }}>
-                              {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: isLongTextLabel ? 'pre-wrap' : 'nowrap', wordBreak: isLongTextLabel ? 'break-word' : undefined, lineHeight: 1.4 }}>{renderFormattedText(cleanLabel)}</span>}
+                            <div key={f.id} style={{ ...gridItemStyle, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                              <div style={{ display: 'flex', flexDirection: isLongTextLabel ? 'column' : 'row', alignItems: isLongTextLabel ? 'stretch' : 'center', minHeight: 'var(--pw-line-h)', gap: isLongTextLabel ? '4px' : '8px', fontSize: '0.82rem' }}>
+                                {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: isLongTextLabel ? 'pre-wrap' : 'nowrap', wordBreak: isLongTextLabel ? 'break-word' : undefined, lineHeight: 1.4 }}>{renderFormattedText(cleanLabel)}</span>}
                               {f.type === 'time' ? (
                                 f.timeMode === 'dual' ? (
                                   <div style={{ fontSize: '0.8rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '4px', flex: 1 }}>
@@ -519,6 +557,8 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                               ) : (
                                 <div data-acroform-field="true" data-field-id={f.id} data-field-type={f.type} data-field-name={cleanLabel} style={{ flex: isLongTextLabel ? undefined : 1, width: isLongTextLabel ? '100%' : undefined, borderBottom: '1px dotted #cbd5e1', height: '16px' }} />
                               )}
+                              </div>
+                              {includeGuidance && f.guidance && <PrintFieldGuidanceBox guidance={f.guidance} />}
                             </div>
                           );
                         })}
@@ -615,6 +655,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                               return (
                                 <td key={col.id} style={commonStyle}>
                                   <span style={{ fontWeight: 'var(--pw-weight-regular)', display: 'block' }}>{displayTitle}</span>
+                                  {includeGuidance && field.guidance && <PrintFieldGuidanceBox guidance={field.guidance} />}
                                 </td>
                               );
                             }
@@ -904,6 +945,9 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                     <span style={{ fontWeight: 'var(--pw-weight-regular)', display: 'block', textAlign: cellAlign, whiteSpace: 'pre-wrap', wordBreak: 'break-word', color: '#000000', fontSize: '0.82rem', lineHeight: 1.4 }}>
                                       {renderFormattedText(staticVal)}
                                     </span>
+                                    {includeGuidance && row.guidance && (col.id === 'col_item' || col.id === 'item' || col.id === 'name' || col.id === 'content' || col.id === block.tableColumns?.[1]?.id) && (
+                                      <PrintFieldGuidanceBox guidance={row.guidance} />
+                                    )}
                                   </td>
                                 );
                               }

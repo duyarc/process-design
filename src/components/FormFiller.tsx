@@ -68,6 +68,7 @@ import {
 import { renderFormattedText, stripMarkdownTokens } from '../utils/textFormatter';
 import { useAuth } from '../context/AuthContext';
 import PrintFilledForm from './print/PrintFilledForm';
+import PrintBlankForm from './print/PrintBlankForm';
 import FormReport from './FormReport';
 import { 
   ArrowLeft, 
@@ -86,7 +87,10 @@ import {
   Share2,
   BarChart2,
   FileText,
-  Check
+  Check,
+  ChevronDown,
+  ChevronUp,
+  BookOpen
 } from 'lucide-react';
 
 const parseSubtableValue = (val: string): Record<string, string>[] => {
@@ -414,6 +418,12 @@ function FormFillerInner({
   }, [localToast]);
 
   const [printCurrentSubmission, setPrintCurrentSubmission] = useState<Submission | null>(null);
+  const [printWithGuidanceTemplate, setPrintWithGuidanceTemplate] = useState<FormTemplateISO | null>(null);
+  const [isPrintMenuOpen, setIsPrintMenuOpen] = useState(false);
+  const [expandedGuidanceMap, setExpandedGuidanceMap] = useState<Record<string, boolean>>({});
+  const toggleGuidance = (fieldId: string) => {
+    setExpandedGuidanceMap(prev => ({ ...prev, [fieldId]: !prev[fieldId] }));
+  };
   const [submitResult, setSubmitResult] = useState<{ id: string } | null>(null);
   const [localSubmissions, setLocalSubmissions] = useState<Array<{ id: string; token?: string; status: string; submittedAt: string; signedOff: boolean }>>([]);
 
@@ -1425,6 +1435,17 @@ function FormFillerInner({
     );
   }
 
+  // Print blank questionnaire with guidance overlay
+  if (printWithGuidanceTemplate) {
+    return (
+      <PrintBlankForm
+        template={printWithGuidanceTemplate}
+        includeGuidance={true}
+        onClose={() => setPrintWithGuidanceTemplate(null)}
+      />
+    );
+  }
+
   const renderBlock = (block: any, index: number, currentList?: any[], hideH1Title?: boolean) => {
     const list = currentList || formTemplate?.layoutBlocks || [];
     if (block.type === 'PAGE_BREAK') return null;
@@ -1606,6 +1627,7 @@ function FormFillerInner({
                       );
                     }
 
+                    const isExpanded = !!expandedGuidanceMap[field.id];
                     return (
                       <div 
                         key={field.id} 
@@ -1618,9 +1640,75 @@ function FormFillerInner({
                           gap: '0.35rem',
                         }}
                       >
-                        <label style={{ fontSize: '0.82rem', fontWeight: 500, color: 'var(--text-primary)', whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.4 }}>
-                          {renderFormattedText(sanitizeLabel(field.checkItem))}
-                        </label>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          <label 
+                            onClick={() => field.guidance && toggleGuidance(field.id)}
+                            style={{ 
+                              fontSize: '0.82rem', 
+                              fontWeight: 500, 
+                              color: 'var(--text-primary)', 
+                              whiteSpace: 'pre-wrap', 
+                              wordBreak: 'break-word', 
+                              lineHeight: 1.4,
+                              margin: 0,
+                              flex: 1,
+                              cursor: field.guidance ? 'pointer' : 'default'
+                            }}
+                          >
+                            {renderFormattedText(sanitizeLabel(field.checkItem))}
+                          </label>
+                          {field.guidance && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleGuidance(field.id);
+                              }}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '3px',
+                                background: isExpanded ? '#f0fdfa' : '#f8fafc',
+                                border: `1px solid ${isExpanded ? '#0d9488' : 'var(--neutral-border)'}`,
+                                borderRadius: '4px',
+                                padding: '1px 6px',
+                                fontSize: '0.72rem',
+                                color: isExpanded ? '#0f766e' : 'var(--text-secondary)',
+                                cursor: 'pointer',
+                                verticalAlign: 'middle',
+                                fontWeight: 500,
+                                transition: 'all 0.15s ease',
+                                flexShrink: 0
+                              }}
+                              title={isExpanded ? "Thu gọn hướng dẫn" : "Xem hướng dẫn điền câu hỏi"}
+                            >
+                              <span>💡</span>
+                              <span>Hướng dẫn</span>
+                              {isExpanded ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+                            </button>
+                          )}
+                        </div>
+                        {isExpanded && field.guidance && (
+                          <div style={{
+                            marginTop: '2px',
+                            marginBottom: '4px',
+                            padding: '6px 10px',
+                            background: '#f8fafc',
+                            borderLeft: '3px solid #0d9488',
+                            borderRadius: '3px',
+                            fontSize: '0.78rem',
+                            color: 'var(--text-primary)',
+                            lineHeight: 1.5,
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
+                          }}>
+                            <div style={{ display: 'flex', gap: '6px', alignItems: 'flex-start' }}>
+                              <span style={{ color: '#0d9488', flexShrink: 0, marginTop: '2px', fontSize: '0.82rem' }}>💡</span>
+                              <div style={{ flex: 1, whiteSpace: 'pre-wrap' }}>
+                                {renderFormattedText(field.guidance)}
+                              </div>
+                            </div>
+                          </div>
+                        )}
                         {field.type === 'date' ? (
                           <input
                             type="date"
@@ -3406,23 +3494,61 @@ function FormFillerInner({
               </button>
             ) : (
               <>
-                {/* In button */}
-                <button 
-                  type="button"
-                  className="btn btn-secondary btn-sm" 
-                  onClick={() => {
-                    if (submissionTab === 'report') {
-                      setTriggerReportPrint(true);
-                    } else if (initialSubmission && rawFormTemplate) {
-                      setPrintCurrentSubmission(initialSubmission);
-                    }
-                  }}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.78rem', padding: '0.25rem 0.55rem', whiteSpace: 'nowrap' }}
-                  title={submissionTab === 'report' ? 'In Báo cáo đánh giá' : 'In bản khai'}
-                >
-                  <Printer size={13} style={{ color: '#0d9488' }} />
-                  <span>In</span>
-                </button>
+                {/* In button dropdown */}
+                <div style={{ position: 'relative' }}>
+                  <button 
+                    type="button"
+                    className="btn btn-secondary btn-sm" 
+                    onClick={() => {
+                      if (submissionTab === 'report') {
+                        setTriggerReportPrint(true);
+                      } else {
+                        setIsPrintMenuOpen(!isPrintMenuOpen);
+                      }
+                    }}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.78rem', padding: '0.25rem 0.55rem', whiteSpace: 'nowrap' }}
+                    title={submissionTab === 'report' ? 'In Báo cáo đánh giá' : 'Tùy chọn in ấn'}
+                  >
+                    <Printer size={13} style={{ color: '#0d9488' }} />
+                    <span>In</span>
+                    {submissionTab === 'form' && <ChevronDown size={11} />}
+                  </button>
+                  {isPrintMenuOpen && submissionTab === 'form' && (
+                    <>
+                      <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => setIsPrintMenuOpen(false)} />
+                      <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: '4px', background: '#ffffff', borderRadius: '6px', boxShadow: '0 4px 16px rgba(0,0,0,0.15)', border: '1px solid var(--neutral-border)', zIndex: 100, minWidth: '220px', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsPrintMenuOpen(false);
+                            if (initialSubmission && (rawFormTemplate || formTemplate)) {
+                              setPrintCurrentSubmission(initialSubmission);
+                            }
+                          }}
+                          style={{ padding: '0.5rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.78rem', border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-primary)', textAlign: 'left', width: '100%' }}
+                          onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                        >
+                          <Printer size={13} style={{ color: '#0d9488' }} />
+                          <span>In bản khai</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsPrintMenuOpen(false);
+                            setPrintWithGuidanceTemplate(rawFormTemplate || formTemplate);
+                          }}
+                          style={{ padding: '0.5rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.78rem', border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-primary)', textAlign: 'left', width: '100%' }}
+                          onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                        >
+                          <BookOpen size={13} style={{ color: '#0d9488' }} />
+                          <span>In bảng câu hỏi kèm hướng dẫn</span>
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
 
                 {/* Chỉnh sửa button */}
                 {submissionTab === 'form' ? (
@@ -3510,41 +3636,76 @@ function FormFillerInner({
               </div>
             )}
 
-            {/* In bản khai */}
-            <button 
-              className="btn btn-secondary btn-sm" 
-              onClick={() => {
-                const signBlocks = formTemplate?.layoutBlocks?.filter((b: any) => b.type === 'SIGN' && b.fields.length > 0) || [];
-                const mandatorySignField = signBlocks[0]?.fields[0];
-                const effectiveOperatorId = mandatorySignField && signValues[mandatorySignField.id]
-                  ? signValues[mandatorySignField.id]!.name
-                  : operatorId;
+            {/* In dropdown */}
+            <div style={{ position: 'relative' }}>
+              <button 
+                type="button"
+                className="btn btn-secondary btn-sm" 
+                onClick={() => setIsPrintMenuOpen(!isPrintMenuOpen)}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.35rem 0.75rem' }}
+                title="Tùy chọn in ấn"
+              >
+                <Printer size={13} style={{ color: '#0d9488' }} />
+                <span>In</span>
+                <ChevronDown size={11} />
+              </button>
+              {isPrintMenuOpen && (
+                <>
+                  <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => setIsPrintMenuOpen(false)} />
+                  <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: '4px', background: '#ffffff', borderRadius: '6px', boxShadow: '0 4px 16px rgba(0,0,0,0.15)', border: '1px solid var(--neutral-border)', zIndex: 100, minWidth: '220px', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsPrintMenuOpen(false);
+                        const signBlocks = formTemplate?.layoutBlocks?.filter((b: any) => b.type === 'SIGN' && b.fields.length > 0) || [];
+                        const mandatorySignField = signBlocks[0]?.fields[0];
+                        const effectiveOperatorId = mandatorySignField && signValues[mandatorySignField.id]
+                          ? signValues[mandatorySignField.id]!.name
+                          : operatorId;
 
-                const { snapshots } = buildSubmissionSnapshots(true);
-                const allMediaKeys: string[] = [];
-                Object.values(uploadedPhotos).forEach(keys => {
-                  allMediaKeys.push(...keys);
-                });
+                        const { snapshots } = buildSubmissionSnapshots(true);
+                        const allMediaKeys: string[] = [];
+                        Object.values(uploadedPhotos).forEach(keys => {
+                          allMediaKeys.push(...keys);
+                        });
 
-                const draftSub: Submission = {
-                  id: editSubmissionId || `draft_${Date.now()}`,
-                  processId: processId,
-                  formId: formTemplate.formId,
-                  formVersion: formTemplate.version,
-                  operatorId: effectiveOperatorId || 'DRAFT',
-                  submittedAt: new Date().toISOString(),
-                  status: 'SUBMITTED',
-                  formData: snapshots,
-                  mediaUrls: allMediaKeys
-                };
-                setPrintCurrentSubmission(draftSub);
-              }}
-              style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', padding: '0.35rem 0.75rem' }}
-              title="In bản khai hiện tại cùng dữ liệu đang nhập"
-            >
-              <Printer size={13} style={{ color: '#0d9488' }} />
-              <span>In bản khai</span>
-            </button>
+                        const draftSub: Submission = {
+                          id: editSubmissionId || `draft_${Date.now()}`,
+                          processId: processId,
+                          formId: formTemplate.formId,
+                          formVersion: formTemplate.version,
+                          operatorId: effectiveOperatorId || 'DRAFT',
+                          submittedAt: new Date().toISOString(),
+                          status: 'SUBMITTED',
+                          formData: snapshots,
+                          mediaUrls: allMediaKeys
+                        };
+                        setPrintCurrentSubmission(draftSub);
+                      }}
+                      style={{ padding: '0.5rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.78rem', border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-primary)', textAlign: 'left', width: '100%' }}
+                      onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                    >
+                      <Printer size={13} style={{ color: '#0d9488' }} />
+                      <span>In bản khai</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsPrintMenuOpen(false);
+                        setPrintWithGuidanceTemplate(rawFormTemplate || formTemplate);
+                      }}
+                      style={{ padding: '0.5rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.78rem', border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-primary)', textAlign: 'left', width: '100%' }}
+                      onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                    >
+                      <BookOpen size={13} style={{ color: '#0d9488' }} />
+                      <span>In bảng câu hỏi kèm hướng dẫn</span>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
 
             {/* Single Copy Link Button */}
             {!isPublicGuestMode && !effectiveReadOnly && (

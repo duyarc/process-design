@@ -216,7 +216,8 @@ const layoutBlocks = [
         unit: 'cont/tháng',
         checkItem: 'Trong năm vừa qua, sản lượng trung bình hàng tháng tính theo container là bao nhiêu? (cont/tháng)',
         locationCode: 'II. CÔNG SUẤT',
-        reactionProtocol: ''
+        reactionProtocol: '',
+        guidance: '**Tiêu chí đánh giá:**\n• Căn cứ vào số liệu xuất kho thực tế trong 12 tháng gần nhất.\n• Quy đổi chuẩn 1 container = 20-25 tấn tùy quy cách đóng gói.\n• Đánh giá viên đối chiếu với báo cáo xuất kho và tờ khai hải quan (nếu có xuất khẩu).'
       },
       {
         id: 'f_s2_san_luong_tan',
@@ -248,6 +249,7 @@ const layoutBlocks = [
         checkItem: 'Số liệu sản lượng, công suất được lấy từ đâu?',
         locationCode: 'II. CÔNG SUẤT',
         reactionProtocol: '',
+        guidance: '**Minh chứng kiểm tra:**\n• Yêu cầu xem trực tiếp sổ sách ghi chép vận hành xưởng hoặc phần mềm ERP/MES.\n• Đánh giá viên chụp ảnh màn hình hệ thống xuất báo cáo hoặc trang nhật ký sản xuất gần nhất.',
         options: [
           { label: 'Ước tính: dựa trên kinh nghiệm / trí nhớ', value: 'OPT_UOC_TINH', isPass: false },
           { label: 'Thủ công: số ghi chép hoặc file Excel rời', value: 'OPT_THU_CONG', isPass: true },
@@ -302,6 +304,7 @@ const layoutBlocks = [
         checkItem: 'Có lịch/ kế hoạch bảo trì máy móc thiết bị, nhà xưởng hoặc Hồ sơ/ biên bản bảo trì máy móc thiết bị?',
         locationCode: 'II. CÔNG SUẤT',
         reactionProtocol: '',
+        guidance: '**Hồ sơ cần kiểm tra:**\n• Kế hoạch bảo trì định kỳ năm (đã được Giám đốc nhà máy phê duyệt).\n• Danh mục thiết bị thuộc diện bảo trì phòng ngừa (PM).\n• Nhật ký/biên bản nghiệm thu bảo trì thực tế của 3 tháng gần nhất.',
         options: maintenanceDocOptions()
       },
       {
@@ -427,6 +430,7 @@ const layoutBlocks = [
         checkItem: 'Anh/chị vui lòng mô tả quy trình tiếp nhận và xử lý khiếu nại của khách hàng từ lúc bắt đầu cho đến lúc kết thúc',
         locationCode: 'III. NĂNG LỰC QUẢN LÝ CHẤT LƯỢNG',
         reactionProtocol: '',
+        guidance: '**Tiêu chuẩn xem xét:**\n• **Bước 1:** Tiếp nhận thông tin & lập phiếu khiếu nại (trong vòng 24h).\n• **Bước 2:** Bộ phận QA/QC cô lập lô hàng, lấy mẫu phân tích nguyên nhân gốc (5 Whys / 8D).\n• **Bước 3:** Đề xuất hành động khắc phục phòng ngừa (CAPA) và gửi văn bản phản hồi khách hàng.\n• Đánh giá viên yêu cầu xem tối thiểu 01 hồ sơ khiếu nại thực tế đã được giải quyết.',
         options: [
           { label: 'Quy trình mơ hồ hoặc không có quy trình', value: 'OPT_MO_HO', isPass: false },
           { label: 'Mô tả được các bước logic (Tiếp nhận > Phân loại > Xử lý > Phản hồi), có thời hạn (SLA) cho từng bước', value: 'OPT_BUOC_LOGIC', isPass: true },
@@ -491,6 +495,7 @@ const layoutBlocks = [
         checkItem: 'Mức chứng nhận cao nhất',
         locationCode: 'III. NĂNG LỰC QUẢN LÝ CHẤT LƯỢNG',
         reactionProtocol: '',
+        guidance: '**Yêu cầu kiểm tra:**\n• Xem bản gốc hoặc bản sao công chứng chứng chỉ.\n• Kiểm tra hiệu lực chứng chỉ trên cổng tra cứu của tổ chức chứng nhận (SGS, TUV, Bureau Veritas...).\n• Báo cáo đánh giá giám sát định kỳ gần nhất không có lỗi không phù hợp nặng (Major NC).',
         options: [
           { label: 'Không', value: 'OPT_KHONG', isPass: false },
           { label: 'HACCP/ ISO 22000', value: 'OPT_HACCP_ISO', isPass: true },

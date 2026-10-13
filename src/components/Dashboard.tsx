@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import type { Process, ReportTemplateISO } from '../types';
 import { useAuth } from '../context/AuthContext';
-import { Plus, FileText, Eye, Calendar, Printer, History, PenTool, Edit2, GitBranch, ChevronDown, ChevronUp, ChevronRight, Grid, List, SlidersHorizontal, Copy, Check, MoreHorizontal } from 'lucide-react';
+import { Plus, FileText, Eye, Calendar, Printer, History, PenTool, Edit2, GitBranch, ChevronDown, ChevronUp, ChevronRight, Grid, List, SlidersHorizontal, Copy, Check, MoreHorizontal, BookOpen } from 'lucide-react';
 import SubmissionManager from './SubmissionManager';
 import { BPMNGuide } from './BPMNGuide';
 import PrintBlankForm from './print/PrintBlankForm';
@@ -68,6 +68,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   });
   const [selectedFormVersions, setSelectedFormVersions] = useState<Record<string, string>>({});
   const [printTemplateData, setPrintTemplateData] = useState<any | null>(null);
+  const [printBlankWithGuidance, setPrintBlankWithGuidance] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [formProcessFilter, setFormProcessFilter] = useState<string>('ALL');
   const [submissionSearchTerm, setSubmissionSearchTerm] = useState(initialFormFilter || '');
@@ -1080,7 +1081,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           }
         };
 
-        const handlePrintBlankForm = (form: any, autoExportPdf = false) => {
+        const handlePrintBlankForm = (form: any, autoExportPdf = false, includeGuidance = false) => {
           const raw = form.rawRecord || {};
           const fullTemplate = {
             ...raw,
@@ -1094,6 +1095,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             updatedAt: raw.updated_at || raw.updatedAt || raw.created_at,
             ...(autoExportPdf ? { autoExportPdf: true } : {})
           };
+          setPrintBlankWithGuidance(includeGuidance);
           setPrintTemplateData(fullTemplate);
         };
 
@@ -1560,6 +1562,32 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                       >
                                         <Printer size={13} />
                                         <span>In biểu mẫu trắng</span>
+                                      </button>
+
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          handlePrintBlankForm(form, false, true);
+                                          setActiveFormMenuId(null);
+                                        }}
+                                        style={{
+                                          padding: '0.5rem 0.75rem',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: '0.5rem',
+                                          fontSize: '0.78rem',
+                                          border: 'none',
+                                          background: 'transparent',
+                                          cursor: 'pointer',
+                                          color: 'var(--text-primary)',
+                                          textAlign: 'left',
+                                          width: '100%'
+                                        }}
+                                        onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; }}
+                                        onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                                      >
+                                        <BookOpen size={13} />
+                                        <span>In bảng câu hỏi kèm hướng dẫn</span>
                                       </button>
 
                                       <button
@@ -2093,7 +2121,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
           template={printTemplateData}
           autoExportPdf={!!printTemplateData.autoExportPdf}
           exportMode={!!printTemplateData.autoExportPdf}
-          onClose={() => setPrintTemplateData(null)}
+          includeGuidance={printBlankWithGuidance}
+          onClose={() => {
+            setPrintTemplateData(null);
+            setPrintBlankWithGuidance(false);
+          }}
         />
       )}
       {toast && (
