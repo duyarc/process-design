@@ -40,6 +40,22 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 ## Nhật ký Phiên
 
+### 2026-10-13 — Factory Assessment Form (`3S-FA02` - Biểu mẫu đánh giá nhà máy): Complete 8-Section Schema Seed & Sync
+
+**Scope:** 1 script file (`scripts/seedFactoryAssessmentForm.cjs` [NEW]) + PostgreSQL DB (`forms` & `processes`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa | 1 (`scripts/seedFactoryAssessmentForm.cjs`) |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 1 (`npx tsc --noEmit` pass 100%, `npm run build` pass 11.07s) |
+| Lần build đầu thành công? | Có |
+
+**Kết quả đạt được:**
+- **Phân tích & Bóc tách 100% PDF 6 trang ("BIỂU MẪU ĐÁNH GIÁ NHÀ MÁY"):** Thiết kế và khởi tạo đầy đủ 12 khối (`layoutBlocks`) gồm 83 trường dữ liệu (`FormFieldISO`) trải dài qua 8 phần chính (`I. THÔNG TIN CHUNG`, `II. CÔNG SUẤT`, `III. NĂNG LỰC QUẢN LÝ CHẤT LƯỢNG`, `IV. NĂNG LỰC GIAO HÀNG`, `V. NĂNG LỰC QUẢN LÝ & TỔ CHỨC` + `KEY STAFF RETENTION RATE`, `VI. TUÂN THỦ QUY ĐỊNH & PHÁP LÝ`, `VII. NĂNG LỰC ỨNG DỤNG CÔNG NGHỆ`, `VIII. HÌNH ẢNH MINH CHỨNG`) và khối chữ ký xác nhận (`SIGN`).
+- **Chuẩn hóa Cấu trúc Trường cho ReportBuilder & FormFiller:** Tách riêng từng chỉ số sản lượng/công suất thành các trường `number` độc lập kèm `unit` (`cont/tháng`, `tấn/tháng`, `%`, `giờ`, `ngày`, `năm`, `người`, `lần`, `m3/ngày`), dựng 4 bảng danh sách động (`subtable`) và hiệu chỉnh các lỗi chính tả từ bản PDF gốc.
+- **Đồng bộ CSDL (`forms` & `processes`):** Cập nhật trực tiếp vào biểu mẫu `3S-FA02` (`v0.1`, `DRAFT`) và đồng bộ `workflowFormsData['3S-FA02']` trong quy trình `3S-FA` (*"Quy trình đánh giá nhà máy"*).
+
 ### 2026-09-30 — FormFiller Loading Performance: SWR Instant Paint (0ms) & Single Process Endpoint
 
 **Scope:** 4 source files (`server.cjs`, `src/App.tsx`, `src/components/Dashboard.tsx`, `src/components/FormFiller.tsx`) + 3 design docs (`DESIGN_BACKEND.md`, `DESIGN_FORM_OPERATIONS.md`, `DESIGN_PLATFORM_SHELL.md`)
@@ -200,20 +216,3 @@ phiên thực thi để không lặp lại lỗi cũ.
 - **Loại bỏ Avatar tròn Operator & Badges đếm Group:** Xóa vòng tròn ký tự viết tắt (`NG`, `TR`, `AD`) tại cột Operator; loại bỏ các badge pill đếm số phiếu/chờ duyệt trên header nhóm biểu mẫu.
 - **Đồng nhất Table Header:** Chuẩn hóa tiêu đề cột theo Title Case đồng nhất Tab Forms: `Record ID`, `Date`, `Operator`, `Status`, `Actions`.
 - **Làm gọn Cột Thao tác (Actions):** Chuyển sang cụm icon button vuông 28x28px, canh giữa theo phong cách Tab Forms & Processes: `[ 👁 ]` (Xem chi tiết / Ký duyệt), `[ 📊 ]` (Xem Báo cáo Đánh giá), `[ ••• ]` (Menu thao tác khác).
-
-### 2026-09-30 — Submissions Tab Redesign: Group by Form, Filter by Process, 100% List View
-
-**Scope:** 2 files (`src/components/SubmissionManager.tsx`, `src/components/Dashboard.tsx`) + 2 design docs (`DESIGN_FORM_OPERATIONS.md`, `DESIGN_PLATFORM_SHELL.md`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Số file nguồn chỉnh sửa | 2 |
-| Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 1 (`npx tsc --noEmit` pass, `npm run build` pass 8.50s) |
-| Lần build đầu thành công? | Có |
-
-**Kết quả đạt được:**
-- **Chuyển đổi 100% List View:** Loại bỏ hoàn toàn chế độ Grid card; ẩn toggle List/Grid ở `Dashboard.tsx` khi người dùng ở tab Submissions.
-- **Gom nhóm theo Biểu mẫu (Group by Form Accordion):** Thay thế cột `BIỂU MẪU & QUY TRÌNH` cũ bằng các khối accordion card theo từng Biểu mẫu; header hiển thị tên form, version, tag quy trình liên kết, badge đếm số phiếu/chờ duyệt, và nút nhanh `[ ✍️ Điền phiếu mới ]`.
-- **Thanh công cụ Toolbar nâng cao:** Bổ sung dropdown lọc theo Quy trình (`processFilter`), dropdown lọc Trạng thái xác nhận, nút Mở rộng/Thu gọn tất cả nhóm và Làm mới.
-- **Bảng dữ liệu 5 cột tinh gọn:** `MÃ PHIẾU` (chip monospace), `NGÀY` (DD/MM/YYYY không hiển thị giờ), `NGƯỜI LẬP` (avatar + tên), `TRẠNG THÁI` (badge mềm), `THAO TÁC` (Ký duyệt/Xem, Báo cáo, menu 3 chấm tiện ích).
