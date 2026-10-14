@@ -5,6 +5,7 @@
  */
 
 const { saveForm, loadForm, getPool } = require('./formTranslator/dbAdapter.cjs');
+const { GUIDANCE_MAP } = require('./guidanceData.cjs');
 
 const yesNoOptions = () => [
   { label: 'Có', value: 'YES', isPass: true },
@@ -1147,6 +1148,17 @@ const layoutBlocks = [
 ];
 
 async function main() {
+  // Apply standardized guidance to all matching fields
+  for (const block of layoutBlocks) {
+    if (block.fields && Array.isArray(block.fields)) {
+      for (const field of block.fields) {
+        if (GUIDANCE_MAP[field.id]) {
+          field.guidance = GUIDANCE_MAP[field.id];
+        }
+      }
+    }
+  }
+
   const formTemplate = {
     formId: '3S-FA02',
     formName: '3S-FA02',

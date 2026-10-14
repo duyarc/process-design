@@ -37,6 +37,22 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 ## Nhật ký Phiên
 
+### 2026-10-14 — Chuẩn hóa Hướng dẫn Nghiệp vụ & Đồng bộ Database cho Biểu mẫu Đánh giá Nhà máy (3S-FA02)
+
+**Scope:** 2 script files (`scripts/guidanceData.cjs` [NEW], `scripts/seedFactoryAssessmentForm.cjs`) + PostgreSQL Database (`forms`, `processes`).
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số trường được nạp hướng dẫn | 17 trường chỉ số nghiệp vụ trọng yếu |
+| Số file nguồn frontend (`src/`) sửa đổi | 0 (Zero source change - tuân thủ kiến trúc động) |
+| Số lần build | 1 (`npx tsc --noEmit` 0 lỗi, `npm run build` pass 13.69s) |
+| Lần build đầu thành công? | Có |
+
+**Kết quả đạt được:**
+- **Chuẩn hóa Sổ tay Nghiệp vụ (`guidelines_factory_assessment.md`):** Xây dựng bộ quy tắc 3 đầu dòng không đánh số (Định nghĩa & Cách tính, Tài liệu đối chứng, Kiểm tra tính hợp lý / Đánh giá độ ổn định) cho toàn bộ 14 nhóm chỉ số số liệu của Biểu mẫu 3S-FA02 (Sản lượng cont, tấn, công suất thiết kế, cam kết, bảo trì CM/PM, dừng máy, tập trung NCC, khiếu nại, giao trễ, độ biến thiên lead-time, tỷ lệ giữ chân nhân sự chủ chốt, công suất nước thải).
+- **Tập trung hóa Từ điển Guidance (`scripts/guidanceData.cjs`):** Tạo module từ điển `GUIDANCE_MAP` lưu trữ các chuỗi markdown hướng dẫn, tích hợp trực tiếp vào seed script để tự động áp dụng cho template biểu mẫu `3S-FA02`.
+- **Đồng bộ Cơ sở Dữ liệu PostgreSQL:** Nạp thành công toàn bộ 17 chuỗi hướng dẫn vào bảng `forms` (3S-FA02 v0.1) và đồng bộ trường `workflowFormsData['3S-FA02']` trong bảng `processes` (quy trình `3S-FA`), kích hoạt hiển thị hướng dẫn tức thì trên cả `FormBuilder` (in-canvas editor) và `FormFiller` (accordion tooltip).
+
 ### 2026-10-14 — Trình Soạn thảo Hướng dẫn Điền Câu hỏi Trên Canvas (FormBuilder)
 
 **Scope:** 2 source files (`src/components/form/InCanvasGuidanceEditor.tsx` [NEW], `src/components/FormBuilder.tsx`) + 1 design doc (`DESIGN_FORM_DESIGNER.md`)
