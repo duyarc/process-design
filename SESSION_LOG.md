@@ -37,6 +37,22 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 ## Nhật ký Phiên
 
+### 2026-10-14 — Khắc phục Lặp Tiêu đề H2 trong Chế độ Focus Mode (FormFiller)
+
+**Scope:** 1 source file (`src/components/FormFiller.tsx`) + 1 design doc (`DESIGN_FORM_OPERATIONS.md`).
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa | 1 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 1 (`npx tsc --noEmit` pass 100%, `npm run build` pass 16.93s) |
+| Lần build đầu thành công? | Có |
+
+**Kết quả đạt được:**
+- **Mở rộng Cơ chế Ẩn Tiêu đề Phân cấp (`FormFiller.tsx`):** Bổ sung tham số `hideH2Title?: boolean` cho hàm `renderBlock` và kết hợp vào điều kiện ẩn tiêu đề `!(hideH2Title && blockTitleFmt === 'H2')`, tương tự cơ chế `hideH1Title` đã có.
+- **Triệt tiêu Lặp Tiêu đề H2 trong Focus Mode:** Truyền `hideH2Title = true` khi render các block con bên trong phân đoạn Accordion H2 (`subSec.blocks.map`), loại bỏ hoàn toàn tiêu đề H2 lặp lại lần 2 bên trên bảng dữ liệu (như khối "Đại diện doanh nghiệp" trên biểu mẫu 3S-FA02).
+- **Bảo toàn Chế độ Xem Liên tục & In ấn:** Giữ nguyên 100% hiển thị tiêu đề H2 trên chế độ xem liên tục (Continuous View Mode) và in ấn (PrintFilledForm & PrintBlankForm).
+
 ### 2026-10-14 — Chuẩn Hóa URL Slug Tiếng Việt Cho Biểu Mẫu (Frontend & Backend Aligned, Không Tương Thích Ngược)
 
 **Scope:** 4 source files (`src/utils/formUtils.ts`, `server.cjs`, `src/components/FormBuilder.tsx`, `src/components/FormFiller.tsx`) + 3 design docs (`DESIGN_FORM_OPERATIONS.md`, `DESIGN_FORM_DESIGNER.md`, `DESIGN_BACKEND.md`).
@@ -189,58 +205,5 @@ phiên thực thi để không lặp lại lỗi cũ.
 - **Parallel Network Waterfall (`Promise.all`):** Với trường hợp mở link trực tiếp (cold start), chạy song song `fetchForm` và `fetchProcessSingle`, rút ngắn thời gian chờ từ ~3.5s xuống ~300ms.
 - **Dead-Code Pruning & Pure Utility Extraction:** Tách helper `buildVirtualProcess` độc lập, loại bỏ hơn 90 dòng code tạo block/process trùng lặp.
 
-### 2026-09-30 — Tab Forms Column Refinement & Last Updated Sorting
-
-**Scope:** 1 source file (`src/components/Dashboard.tsx`) + 1 design doc (`DESIGN_PLATFORM_SHELL.md`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Số file nguồn chỉnh sửa | 1 |
-| Lượt edit sửa lỗi (rework) | 0 (sửa chính xác 100% không phát sinh lỗi) |
-| Số lần build | 2 (`npx tsc --noEmit` pass 100%, `npm run build` pass 8.56s) |
-| Lần build đầu thành công? | Có |
-
-**Kết quả đạt được:**
-- **Lược bỏ cột Work Step & Dead-code Pruning:** Loại bỏ hoàn toàn cột Work Step chiếm dụng không gian và dọn dẹp toàn bộ dữ liệu thừa (`workStepTitle`, `procSteps`, `stepIdx`) tuân thủ Rule 4.2.
-- **Làm sạch cột Version:** Bỏ chuỗi ngày tháng `(DD/MM/YYYY)` trong option `<select>` và badge phiên bản đơn, loại bỏ hoàn toàn hiện tượng tràn/vỡ dòng phiên bản.
-- **Thêm cột Last Updated:** Căn giữa, hiển thị icon `<Calendar size={11} />` kèm ngày định dạng `vi-VN` theo phiên bản biểu mẫu đang được chọn.
-- **Sắp xếp theo Last Updated (Mới nhất lên trên cùng):** Tự động sắp xếp các form trong từng nhóm quy trình theo thời điểm cập nhật gần nhất, đồng thời sắp xếp các nhóm quy trình (kể cả Standalone Forms) theo timestamp của biểu mẫu mới nhất để nhóm và biểu mẫu vừa sửa luôn xuất hiện ở đầu trang.
-- **Tái cân bằng tỷ lệ độ rộng (100%):** `Form ID (15%)` | `Form Title (37%)` | `Version (12%)` | `Status (10%)` | `Last Updated (14%)` | `Actions (12%)`.
-
-### 2026-09-30 — Process-Centric Accordion List View in Tab Forms (Option 1)
-
-**Scope:** 1 source file (`src/components/Dashboard.tsx`) + 1 design doc (`DESIGN_PLATFORM_SHELL.md`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Số file nguồn chỉnh sửa | 1 |
-| Lượt edit sửa lỗi (rework) | 1 (sửa dấu đóng ngoặc `);` tại map callback và khôi phục biến state `duplicatingFormId` / `toast`) |
-| Số lần build | 2 (`npx tsc --noEmit` pass 100%, `npm run build` pass 9.00s) |
-| Lần build đầu thành công? | Không (sửa dứt điểm ngay lần 2) |
-
-**Kết quả đạt được:**
-- **Chuyển đổi Tab Forms sang Process-Centric Accordion:** Thay thế bảng phẳng đơn nhất cũ bằng hệ thống thẻ Accordion (`.paper-card.accent-teal`) phân nhóm biểu mẫu theo từng Quy trình đang hoạt động (kèm nhóm riêng cho Biểu mẫu tự do), đạt tính đồng bộ hình học và styling 100% với Tab Submissions.
-- **Tích hợp Bước công đoạn (Work Step):** Tự động bóc tách và hiển thị thông tin bước công đoạn liên kết (`Step N: Title`) trong bảng con, giúp định vị trực quan vị trí kiểm soát của form trong luồng SOP chuẩn ISO.
-- **Header Bar Quy chuẩn:** Tích hợp `Chevron` đóng/mở, icon quy trình (`GitBranch`), tên quy trình (bold), tag mã quy trình, badge số lượng form, badge trạng thái, và nút CTA `[ 👁 View Process ]` tại mép phải.
-- **Bảo toàn 100% tính năng:** Điền form (`Fill`), Sửa thiết kế (`Edit`), Xem lịch sử nộp (`Audit`), In trắng (`Print`), Xuất PDF, Nhân bản form (`Duplicate`), và Cấu hình báo cáo (`Report`).
-
-### 2026-09-30 — Zero-Shift Layout Frame & Visual Parity across 4 Tabs
-
-**Scope:** 4 source files (`src/index.css`, `src/components/common/DashboardToolbar.tsx`, `Dashboard.tsx`, `SubmissionManager.tsx`) + 2 design docs
-
-| Chỉ số | Giá trị |
-|---|---|
-| Số file nguồn chỉnh sửa | 4 |
-| Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 1 (`npx tsc --noEmit` pass 100%, `npm run build` pass 8.48s) |
-| Lần build đầu thành công? | Có |
-
-**Kết quả đạt được:**
-- **Triệt tiêu hiện tượng giật ngang (Horizontal Shift):** Bổ sung `scrollbar-gutter: stable` và `overflow-y: scroll` cho `html` trong `index.css`, giữ chỗ cố định cho scrollbar dọc của trình duyệt Windows (17px), ngăn toàn bộ container 1600px giật sang bên 8.5px khi chuyển tab.
-- **Khóa chiều cao Toolbar 56px (Zero Vertical Shift):** Khóa `minHeight: '56px'` và `boxSizing: 'border-box'` trên `DashboardToolbar`, đồng bộ chiều cao 36px cho tất cả các điều khiển con (`input`, `select`, `button`), giúp toolbar giữ nguyên kích thước dù có hoặc không có nút thao tác.
-- **Cố định hàng Tab Switcher 48px:** Thêm `minHeight: '48px'` và render spacer 34px trên tab Submissions, loại bỏ hiện tượng hụt 3px khi ẩn switcher List/Grid.
-- **Rút gọn Placeholder Search:** Rút ngắn text gợi ý (`Search processes...`, `Search forms...`, `Search submissions...`, `Search reports...`) không bao giờ bị cắt cụt trong ô 360px.
-- **Visual Parity cho Submissions:** Bổ sung `accent-teal` (vạch xanh ngọc 3px) cho các thẻ nhóm biểu mẫu trong Submissions, đồng bộ phong cách với 3 tab còn lại.
-- **Chuẩn hóa 100% tiếng Anh:** Chuyển đổi toàn bộ tiêu đề cột bảng Reports (`Report ID`, `Report Title`, `Source Form`, `Version`, `Status`, `Actions`), nhãn trạng thái Submissions (`Verified`, `Pending Review`), nhãn nhóm (`Process:`) và nút hành động (`+ Fill Form`).
 
 

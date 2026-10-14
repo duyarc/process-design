@@ -1449,7 +1449,7 @@ function FormFillerInner({
     );
   }
 
-  const renderBlock = (block: any, index: number, currentList?: any[], hideH1Title?: boolean) => {
+  const renderBlock = (block: any, index: number, currentList?: any[], hideH1Title?: boolean, hideH2Title?: boolean) => {
     const list = currentList || formTemplate?.layoutBlocks || [];
     if (block.type === 'PAGE_BREAK') return null;
     if ((!block.fields || block.fields.length === 0) && block.type !== 'TITLE' && block.type !== 'SECTION_LABEL' && block.type !== 'TABLE') return null;
@@ -1549,7 +1549,7 @@ function FormFillerInner({
               flexDirection: 'column',
               gap: '6px'
             }}>
-              {blockTitleFmt !== 'NONE' && block.type !== 'TITLE' && !(hideH1Title && blockTitleFmt === 'H1') && (
+              {blockTitleFmt !== 'NONE' && block.type !== 'TITLE' && !(hideH1Title && blockTitleFmt === 'H1') && !(hideH2Title && blockTitleFmt === 'H2') && (
                 blockTitleFmt === 'H1' ? (
                   <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: 'var(--text-primary)' }}>
                     {renderFormattedText(block.title)}
@@ -3983,7 +3983,7 @@ function FormFillerInner({
                                             if (block.type === 'SECTION_LABEL' && getEffectiveTitleFormat(block) === 'H2') {
                                               return null;
                                             }
-                                            return renderBlock(block, bIdx, subSec.blocks);
+                                            return renderBlock(block, bIdx, subSec.blocks, false, true);
                                           })}
                                         </div>
                                       )}
