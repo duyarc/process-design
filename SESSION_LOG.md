@@ -12,7 +12,6 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 | # | Nhóm | Lỗi | Biện pháp phòng ngừa | Lần gặp |
 |---|---|---|---|---|
-| 9 | `LOGIC` | Hiểu nhầm "search" là truy xuất bộ nhớ nội bộ (internal reasoning) của LLM thay vì tra cứu không gian bên ngoài | Định nghĩa rõ: "Search" bắt buộc là tìm kiếm không gian bên ngoài (External Web Search) với các nguồn quy chuẩn xác thực, không dựa vào lập luận nội bộ của LLM | 1 |
 | 10 | `SCOPE` | Hardcode danh sách quy chuẩn cố định (IMO, BRCGS, ISO 22000, APICS) làm thiên lệch vào dữ liệu mẫu | Khái quát hóa thành quy trình: "Search web theo ngữ cảnh form" (Context-Driven Web Search) dựa trên domain suy diễn động | 1 |
 | 11 | `BLOAT` | Thêm text badges (Selected, Đã chọn, Active, hints) trùng lặp với visual indicator (màu sắc, border, icon) → UI bị rối | Áp dụng UI Streamlining Audit: Khi visual cues đã rõ ràng, triệt tiêu toàn bộ text badges phụ trợ để giữ UI tối giản | 1 |
 | 12 | `LOGIC` | Truyền `row.id` đơn lẻ khi click canvas thay vì composite ID (`${blockId}_${rowId}_${colId}`) khiến registry lookup trả về `undefined` | Luôn dùng composite ID resolver helper (`getTableFieldId`, `getTableRowPrimaryFieldId`) khớp quy ước định danh của extractor | 1 |
@@ -32,10 +31,27 @@ phiên thực thi để không lặp lại lỗi cũ.
 | 26 | `LOGIC` | Dùng trường câu hỏi dài (>45 ký tự) trong `INFO_GRID` bị áp `whiteSpace: 'nowrap'` trên `PrintBlankForm` khiến bảng in phình rộng >1.200px và co chữ xuống 55%; nhúng bảng nhiều cột vào `subtable` làm giảm cỡ chữ xuống `0.75rem` | Với bảng dữ liệu nhiều cột, ưu tiên dùng khối `TABLE` (`borderStyle: 'grid'`) cấp cao nhất; trong `INFO_GRID`, tự động ngắt dòng (`isLongTextLabel`) khi `cleanLabel.length > 45` hoặc có `\n` | 1 |
 | 27 | `LOGIC` | Container bảng dùng `overflowX: 'auto'` tự động kích hoạt `overflowY: 'auto'` theo chuẩn W3C CSS khiến dropdown menu (`position: absolute; top: 100%`) bị cắt cụt (cut off) ở đáy bảng và sinh thanh cuộn dọc không mong muốn khi bảng có ít hàng | Đặt `overflow: 'visible'` trên wrapper bảng nếu các hàng có dropdown menu tuyệt đối; bổ sung dynamic `zIndex: isGroupActive ? 30 : 1` trên card cha để menu hiển thị đè lên các card tiếp theo | 1 |
 | 28 | `SCOPE` | Khi thêm tính năng in kèm hướng dẫn biểu mẫu trắng, nếu tạo component in mới sẽ trùng lặp title block, logo, @page CSS và phân trang | Kế thừa trực tiếp component in hiện hữu (`PrintBlankForm`) thông qua cờ prop `includeGuidance?: boolean` để giữ 100% nhất quán định dạng và zero duplication | 1 |
+| 29 | `LOGIC` | Gộp chung `field.type === 'radio'` với `select` trong render nhánh form khiến radio biến thành dropdown `<select>` và chữ dài bị ép 1 dòng; dùng `maxWidth: '180px'` cứng nhắc trên canvas khiến nhãn radio dài bị cắt cụt | Luôn tách riêng component render radio button group với radio circle native; với nhãn nhiều dòng trên canvas, dùng CSS Grid auto-growing `<textarea>` thay vì `<input>` cố định chiều rộng | 1 |
 
 ---
 
 ## Nhật ký Phiên
+
+### 2026-10-14 — Chuẩn hóa Bố cục Thích ứng & Khắc phục Lỗi Cắt chữ Radio Button trong Info Grid (FormBuilder & FormFiller)
+
+**Scope:** 3 source files (`src/utils/formUtils.ts`, `src/components/FormFiller.tsx`, `src/components/FormBuilder.tsx`) + 2 design docs (`DESIGN_FORM_OPERATIONS.md`, `DESIGN_FORM_DESIGNER.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa | 3 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 3 (`npx tsc --noEmit` pass 100%, `npm run build` pass 24.77s) |
+| Lần build đầu thành công? | Có |
+
+**Kết quả đạt được:**
+- **Chuẩn hóa Bố cục Thích ứng (Adaptive Hybrid Layout theo NN/g & Material Design):** Tinh chỉnh hàm pure helper `hasLongOptions` trong `formUtils.ts`. Tự động chuyển sang bố cục xếp dọc (1 lựa chọn / 1 dòng) khi có $\ge 3$ lựa chọn hoặc bất kỳ nhãn nào $> 25$ ký tự, hoặc khối Info Grid chia $\ge 2$ cột; chỉ giữ hàng ngang khi có đúng 2 lựa chọn nhị phân ngắn (như "Đạt / Không đạt", "Có / Không").
+- **Khắc phục Lỗi Cắt Chữ trên FormBuilder Canvas (`FormBuilder.tsx`):** Loại bỏ giới hạn cứng `maxWidth: '180px'` trên thẻ input lựa chọn. Khi ở dạng xếp dọc, áp dụng cơ chế CSS Grid auto-growing `<textarea>` overlay (`width: 100%`, `display: flex`, `alignItems: flex-start`), cho phép câu chữ dài hàng trăm ký tự xuống dòng 2-3 dòng trọn vẹn, không bị che khuất mép phải, đồng thời bảo toàn tính năng kéo thả đổi thứ tự và sửa nhãn trực tiếp.
+- **Tách riêng Radio Button Group trong FormFiller (`FormFiller.tsx`):** Tách biệt rạch ròi `field.type === 'radio'` ra khỏi `field.type === 'select'`. Render Radio Button Group thực thụ với các nút tròn radio native, nhãn dạng `<label>` hỗ trợ `whiteSpace: 'pre-wrap'`, `wordBreak: 'break-word'`, click chọn mượt mà và hỗ trợ đầy đủ ô nhập tự do khi chọn mục "Khác".
 
 ### 2026-10-13 — Chức năng Hướng dẫn Điền Câu hỏi (Question Guidance) & In Kèm Hướng dẫn
 

@@ -1821,7 +1821,64 @@ function FormFillerInner({
                               })}
                             </div>
                           );
-                        })() : (field.type === 'radio' || field.type === 'select') ? (() => {
+                        })() : field.type === 'radio' ? (() => {
+                          const isOptionC = getAutoCheckboxLayoutMode(field, block.columns) === 'OPTION_C';
+                          const isLongOpt = hasLongOptions(field);
+                          const isStacked = isOptionC && isLongOpt;
+                          return (
+                            <div style={{
+                              display: 'flex',
+                              flexDirection: isStacked ? 'column' : 'row',
+                              flexWrap: isStacked ? 'nowrap' : 'wrap',
+                              gap: isStacked ? '8px' : '6px 20px',
+                              alignItems: isStacked ? 'flex-start' : 'center',
+                              padding: '4px 0',
+                              paddingLeft: isOptionC ? '1rem' : '0',
+                              width: '100%'
+                            }}>
+                              {(field.options ?? [{ label: 'Đạt', value: 'PASS', isPass: true }, { label: 'Không Đạt', value: 'FAIL', isPass: false }]).map((opt: any) => {
+                                const isOtherOpt = opt.isOther || opt.value === '__other__';
+                                const isChecked = isOtherOpt ? isOtherValue(value) : value === opt.value;
+                                const otherText = isOtherOpt ? extractOtherText(value) : '';
+                                return (
+                                  <div key={opt.value} style={{ display: 'flex', flexDirection: 'column', gap: '3px', width: isStacked ? '100%' : 'auto', maxWidth: '100%' }}>
+                                    <label style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', fontSize: '0.82rem', cursor: effectiveReadOnly ? 'default' : 'pointer', margin: 0, width: '100%' }}>
+                                      <input 
+                                        type="radio" 
+                                        name={`${block.id}_${field.id}`}
+                                        value={opt.value}
+                                        checked={isChecked}
+                                        disabled={effectiveReadOnly}
+                                        style={{ marginTop: '2px', flexShrink: 0, accentColor: 'var(--primary)' }}
+                                        onChange={() => {
+                                          const entryValue = isOtherOpt ? encodeOtherValue(otherText) : opt.value;
+                                          setFormValues(prev => ({ ...prev, [field.id]: entryValue }));
+                                        }} 
+                                      />
+                                      <span style={{ lineHeight: '1.45', color: 'var(--text-primary)', wordBreak: 'break-word', whiteSpace: 'pre-wrap', flex: 1 }}>{opt.label}</span>
+                                    </label>
+                                    {isOtherOpt && isChecked && (
+                                      <div style={{ paddingLeft: '1.25rem', marginTop: '2px' }}>
+                                        <input
+                                          type="text"
+                                          disabled={effectiveReadOnly}
+                                          value={otherText}
+                                          placeholder="Vui lòng ghi rõ..."
+                                          onChange={(e) => {
+                                            const newText = e.target.value;
+                                            setFormValues(prev => ({ ...prev, [field.id]: encodeOtherValue(newText) }));
+                                          }}
+                                          style={{ width: '100%', maxWidth: '280px', padding: '0.25rem 0.45rem', fontSize: '0.78rem', borderRadius: '4px', border: '1px solid var(--primary)', outline: 'none', background: '#ffffff' }}
+                                          autoFocus
+                                        />
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          );
+                        })() : field.type === 'select' ? (() => {
                           const isOtherSelected = isOtherValue(value);
                           const selectVal = isOtherSelected ? '__other__' : value;
                           const otherText = isOtherSelected ? extractOtherText(value) : '';

@@ -8,7 +8,7 @@
 |---|---|
 | **Module Name** | Form Operations |
 | **Status** | Active Development |
-| **Verified At Commit** | (2026-10-13) — Question Guidance accordion in FormFiller and print dropdown menu verified against source |
+| **Verified At Commit** | (2026-10-14) — INFO_GRID Radio Button Group & adaptive layout in FormFiller verified against source |
 
 ### Quick File Index
 
@@ -455,5 +455,6 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 | 2026-10-13 | `CURRENT` | **INFO_GRID Label Typography & Long Text Wrapping (`FormFiller`, `PrintFilledForm`):** (1) In `FormFiller.tsx`, upgraded `INFO_GRID` field label typography from `0.78rem` muted text to `0.82rem` (`fontWeight: 500`, `var(--text-primary)`, `whiteSpace: 'pre-wrap'`, `wordBreak: 'break-word'`) for survey readability. (2) In `PrintFilledForm.tsx`, added `isLongTextLabel` wrapping for single-line text/number fields (`length > 45` or multiline) stacking answer lines vertically with `100%` width, and wrapped `OPTION_A` checkbox/radio options when length exceeds 45 characters. |
 | 2026-10-13 | `CURRENT` | **Fix Dropdown Menu Cutoff in Tab Submissions (`SubmissionManager`):** (1) Changed group submissions table wrapper from `overflowX: 'auto'` to `overflow: 'visible'`, resolving CSS overflow trap where contextual dropdowns were vertically clipped. (2) Added dynamic card stacking elevation (`zIndex: isGroupActive ? 30 : 1`) on `.paper-card`. |
 | 2026-10-13 | `CURRENT` | **Question Guidance Accordion & Dual Print Dropdown Menu (`FormFiller`, `PrintBlankForm`):** (1) Integrated interactive question guidance in `FormFiller.tsx`: question labels are clickable and accompanied by `[ 💡 Hướng dẫn ▾/▴ ]` toggles, expanding markdown guidance with teal accent border (`#0d9488`). State managed via `expandedGuidanceMap`. (2) Upgraded FormFiller toolbar print button to dropdown `[ 🖨️ In ▾ ]` supporting both filled submission printing and blank questionnaire printing with guidance (`includeGuidance={true}`). (3) Reusable `PrintFieldGuidanceBox` in `PrintBlankForm.tsx` conditionally prints guidance across INFO_GRID, CHECKLIST_TABLE, and TABLE blocks. |
+| 2026-10-14 | `CURRENT` | **INFO_GRID Radio Button Group & Adaptive Layout (`FormFiller`, `formUtils`):** (1) In `FormFiller.tsx`, separated `field.type === 'radio'` out from dropdown `<select>` in `INFO_GRID` blocks, rendering proper Radio Button Group with native radio circles, accessible `<label>` wrappers, clean vertical spacing (`gap: 8px`), full text wrapping (`wordBreak: 'break-word'`, `whiteSpace: 'pre-wrap'`), and support for custom "Khác" input. (2) In `formUtils.ts`, aligned `hasLongOptions` with NN/g, Material Design 3, and GOV.UK UX standards: auto-stacks vertically for $\ge 3$ options or any label $> 25$ chars, while preserving compact inline row for 2 short binary options. |
 
 

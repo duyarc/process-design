@@ -46,12 +46,14 @@ export function getAutoCheckboxLayoutMode(field: FormFieldISO, blockColumns: num
 /**
  * Checks whether options within a field are long or dense, requiring vertical stacking (column).
  * If false, options can be displayed horizontally inline with flex-direction: row.
+ * Aligned with NN/g, Material Design 3, and GOV.UK UX guidelines:
+ * - Vertical stack if any option > 25 chars, or >= 3 options with labels > 12 chars, or > 4 options total.
  */
 export function hasLongOptions(field: FormFieldISO): boolean {
   const options = field.options || [];
-  if (options.some(opt => (opt.label || '').length > 30)) return true;
-  if (options.length >= 4 && options.some(opt => (opt.label || '').length > 15)) return true;
-  if (options.length > 5) return true;
+  if (options.some(opt => (opt.label || '').length > 25)) return true;
+  if (options.length >= 3 && options.some(opt => (opt.label || '').length > 12)) return true;
+  if (options.length > 4) return true;
   return false;
 }
 

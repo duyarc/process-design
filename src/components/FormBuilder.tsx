@@ -3915,16 +3915,18 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                       const layoutMode = getAutoCheckboxLayoutMode(f, block.columns);
                                       const isOptionC = layoutMode === 'OPTION_C';
                                       const isLongOpt = hasLongOptions(f);
+                                      const isStacked = isOptionC && isLongOpt;
                                       return (
                                         <div style={{
                                           display: 'flex',
-                                          flexDirection: isOptionC && isLongOpt ? 'column' : 'row',
-                                          flexWrap: isOptionC && isLongOpt ? 'nowrap' : 'wrap',
-                                          gap: isOptionC && isLongOpt ? '5px' : '6px 18px',
-                                          alignItems: isOptionC && isLongOpt ? 'flex-start' : 'center',
+                                          flexDirection: isStacked ? 'column' : 'row',
+                                          flexWrap: isStacked ? 'nowrap' : 'wrap',
+                                          gap: isStacked ? '6px' : '6px 18px',
+                                          alignItems: isStacked ? 'flex-start' : 'center',
                                           marginTop: '4px',
                                           paddingTop: '2px',
                                           paddingLeft: isOptionC ? '1rem' : '0',
+                                          width: '100%',
                                           maxWidth: '100%'
                                         }}>
                                           {options.map((opt: any, optIdx: number) => {
@@ -3968,11 +3970,12 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                   setDragOverOption(null);
                                                 }}
                                                 style={{
-                                                  display: 'inline-flex',
-                                                  alignItems: 'center',
+                                                  display: isStacked ? 'flex' : 'inline-flex',
+                                                  alignItems: isStacked ? 'flex-start' : 'center',
                                                   gap: '4px',
                                                   fontSize: '0.78rem',
                                                   color: '#334155',
+                                                  width: isStacked ? '100%' : 'auto',
                                                   maxWidth: '100%',
                                                   opacity: isDragging ? 0.4 : 1,
                                                   borderBottom: isDragOver && draggedOption && draggedOption.index < optIdx ? '2px solid var(--primary)' : undefined,
@@ -3983,7 +3986,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                               >
                                                 {canDrag && (
                                                   <span
-                                                    style={{ cursor: 'grab', display: 'inline-flex', alignItems: 'center', color: '#94a3b8', marginRight: '-2px' }}
+                                                    style={{ cursor: 'grab', display: 'inline-flex', alignItems: 'center', color: '#94a3b8', marginRight: '-2px', marginTop: isStacked ? '3px' : '0', flexShrink: 0 }}
                                                     title="Kéo để đổi thứ tự"
                                                   >
                                                     <GripVertical size={11} />
@@ -3997,75 +4000,140 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                   borderRadius: f.type === 'radio' ? '50%' : '2px',
                                                   background: '#ffffff',
                                                   flexShrink: 0,
-                                                  marginTop: isOptionC && isLongOpt ? '2px' : '0'
+                                                  marginTop: isStacked ? '3px' : '0'
                                                 }} />
-                                                <input
-                                                  type="text"
-                                                  disabled={isLocked}
-                                                  draggable={false}
-                                                  onMouseDown={(e) => e.stopPropagation()}
-                                                  value={opt.label}
-                                                  onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setActiveBlockId(block.id);
-                                                    setActiveFieldId(f.id);
-                                                  }}
-                                                  onChange={(e) => {
-                                                  const newOptions = [...options];
-                                                  newOptions[optIdx] = { ...newOptions[optIdx], label: e.target.value };
-                                                  handleUpdateField(block.id, f.id, { options: newOptions });
-                                                }}
-                                                style={{
-                                                  fontSize: '0.78rem',
-                                                  color: '#334155',
-                                                  border: '1px solid transparent',
-                                                  borderRadius: '3px',
-                                                  background: 'transparent',
-                                                  outline: 'none',
-                                                  cursor: isLocked ? 'default' : 'text',
-                                                  padding: '1px 3px',
-                                                  maxWidth: '180px',
-                                                  transition: 'all 0.15s ease'
-                                                }}
-                                                onFocus={(e) => {
-                                                  e.currentTarget.style.borderColor = 'var(--primary)';
-                                                  e.currentTarget.style.background = '#ffffff';
-                                                }}
-                                                onBlur={(e) => {
-                                                  e.currentTarget.style.borderColor = 'transparent';
-                                                  e.currentTarget.style.background = 'transparent';
-                                                }}
-                                                placeholder="Nhãn..."
-                                              />
-                                              {(opt.isOther || opt.value === '__other__') && (
-                                                <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontStyle: 'italic', borderBottom: '1px dashed #cbd5e1', paddingBottom: '1px', userSelect: 'none', marginLeft: '4px' }}>
-                                                  (Ô nhập tự do)
-                                                </span>
-                                              )}
-                                              {isFieldSelected && !isLocked && options.length > 1 && (
-                                                <button
-                                                  type="button"
-                                                  onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    const newOptions = options.filter((_: any, i: number) => i !== optIdx);
-                                                    handleUpdateField(block.id, f.id, { options: newOptions });
-                                                  }}
-                                                  style={{
-                                                    background: 'none',
-                                                    border: 'none',
-                                                    color: '#ef4444',
-                                                    cursor: 'pointer',
-                                                    padding: '0 2px',
-                                                    fontSize: '10px',
-                                                    lineHeight: 1,
-                                                    opacity: 0.6
-                                                  }}
-                                                  title="Xóa lựa chọn này"
-                                                >
-                                                  ✕
-                                                </button>
-                                              )}
-                                            </span>
+                                                {isStacked ? (
+                                                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', flex: 1, minWidth: 0 }}>
+                                                    <span style={{
+                                                      gridArea: '1 / 1 / 2 / 2',
+                                                      visibility: 'hidden',
+                                                      whiteSpace: 'pre-wrap',
+                                                      wordBreak: 'break-word',
+                                                      fontSize: '0.78rem',
+                                                      lineHeight: 1.4,
+                                                      fontFamily: 'inherit',
+                                                      padding: '1px 3px',
+                                                      minHeight: '20px'
+                                                    }}>
+                                                      {(opt.label || '') + ' '}
+                                                    </span>
+                                                    <textarea
+                                                      disabled={isLocked}
+                                                      draggable={false}
+                                                      rows={1}
+                                                      value={opt.label}
+                                                      placeholder="Nhãn..."
+                                                      onMouseDown={(e) => e.stopPropagation()}
+                                                      onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setActiveBlockId(block.id);
+                                                        setActiveFieldId(f.id);
+                                                      }}
+                                                      onChange={(e) => {
+                                                        const newOptions = [...options];
+                                                        newOptions[optIdx] = { ...newOptions[optIdx], label: e.target.value };
+                                                        handleUpdateField(block.id, f.id, { options: newOptions });
+                                                      }}
+                                                      style={{
+                                                        gridArea: '1 / 1 / 2 / 2',
+                                                        width: '100%',
+                                                        height: '100%',
+                                                        resize: 'none',
+                                                        overflow: 'hidden',
+                                                        fontSize: '0.78rem',
+                                                        lineHeight: 1.4,
+                                                        fontFamily: 'inherit',
+                                                        color: '#334155',
+                                                        border: '1px solid transparent',
+                                                        borderRadius: '3px',
+                                                        background: 'transparent',
+                                                        outline: 'none',
+                                                        cursor: isLocked ? 'default' : 'text',
+                                                        padding: '1px 3px',
+                                                        transition: 'all 0.15s ease'
+                                                      }}
+                                                      onFocus={(e) => {
+                                                        e.currentTarget.style.borderColor = 'var(--primary)';
+                                                        e.currentTarget.style.background = '#ffffff';
+                                                      }}
+                                                      onBlur={(e) => {
+                                                        e.currentTarget.style.borderColor = 'transparent';
+                                                        e.currentTarget.style.background = 'transparent';
+                                                      }}
+                                                    />
+                                                  </div>
+                                                ) : (
+                                                  <input
+                                                    type="text"
+                                                    disabled={isLocked}
+                                                    draggable={false}
+                                                    onMouseDown={(e) => e.stopPropagation()}
+                                                    value={opt.label}
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      setActiveBlockId(block.id);
+                                                      setActiveFieldId(f.id);
+                                                    }}
+                                                    onChange={(e) => {
+                                                      const newOptions = [...options];
+                                                      newOptions[optIdx] = { ...newOptions[optIdx], label: e.target.value };
+                                                      handleUpdateField(block.id, f.id, { options: newOptions });
+                                                    }}
+                                                    style={{
+                                                      fontSize: '0.78rem',
+                                                      color: '#334155',
+                                                      border: '1px solid transparent',
+                                                      borderRadius: '3px',
+                                                      background: 'transparent',
+                                                      outline: 'none',
+                                                      cursor: isLocked ? 'default' : 'text',
+                                                      padding: '1px 3px',
+                                                      minWidth: '40px',
+                                                      maxWidth: '100%',
+                                                      transition: 'all 0.15s ease'
+                                                    }}
+                                                    onFocus={(e) => {
+                                                      e.currentTarget.style.borderColor = 'var(--primary)';
+                                                      e.currentTarget.style.background = '#ffffff';
+                                                    }}
+                                                    onBlur={(e) => {
+                                                      e.currentTarget.style.borderColor = 'transparent';
+                                                      e.currentTarget.style.background = 'transparent';
+                                                    }}
+                                                    placeholder="Nhãn..."
+                                                  />
+                                                )}
+                                                {(opt.isOther || opt.value === '__other__') && (
+                                                  <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontStyle: 'italic', borderBottom: '1px dashed #cbd5e1', paddingBottom: '1px', userSelect: 'none', marginLeft: '4px', marginTop: isStacked ? '3px' : '0', flexShrink: 0 }}>
+                                                    (Ô nhập tự do)
+                                                  </span>
+                                                )}
+                                                {isFieldSelected && !isLocked && options.length > 1 && (
+                                                  <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      const newOptions = options.filter((_: any, i: number) => i !== optIdx);
+                                                      handleUpdateField(block.id, f.id, { options: newOptions });
+                                                    }}
+                                                    style={{
+                                                      background: 'none',
+                                                      border: 'none',
+                                                      color: '#ef4444',
+                                                      cursor: 'pointer',
+                                                      padding: '0 2px',
+                                                      fontSize: '10px',
+                                                      lineHeight: 1,
+                                                      opacity: 0.6,
+                                                      marginTop: isStacked ? '3px' : '0',
+                                                      flexShrink: 0
+                                                    }}
+                                                    title="Xóa lựa chọn này"
+                                                  >
+                                                    ✕
+                                                  </button>
+                                                )}
+                                              </span>
                                             );
                                           })}
                                           {isFieldSelected && !isLocked && (() => {
