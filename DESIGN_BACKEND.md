@@ -9,7 +9,7 @@
 | **Module Name** | Backend & Persistence |
 | **Status** | Active Development |
 | **Document Version** | 1.2 |
-| **Verified At Commit** | (2026-09-30) — Performance: Added GET /api/processes/:id for single-process querying, reducing FormFiller load payload from whole-table scan to single row |
+| **Verified At Commit** | (2026-10-14) — Vietnamese URL slug normalization (toSlug with 'đ/Đ' -> 'd') in server.cjs verified |
 
 ### Quick File Index
 
@@ -292,7 +292,6 @@ Architectural changes only — schema, endpoints, invariants. UI polish lives in
 
 | Date | Commit | Change |
 |---|---|---|
-| 2026-08-03 | `CURRENT` | **Submissions update route:** Added `PUT /api/submissions/:id` to support overwriting submission records by admin. |
 | 2026-08-03 | `CURRENT` | **Submissions delete route:** Added `DELETE /api/submissions/:id` to support hard-deletion of submission records by admin. |
 | 2026-08-11 | `a12b0c9` | **Cron ping route & config:** Added `/api/cron-ping` endpoint and configured daily Vercel Cron Job in `vercel.json` to query the DB and prevent automatic pausing of Supabase free tier. |
 | 2026-08-26 | `CURRENT` | **Daily Sequential Submission ID Generation:** Implemented `generateDailySequentialSubmissionId` in `server.cjs` and updated `POST /api/submissions` to automatically assign human-friendly daily sequential IDs (`YYMMDD-XX`, e.g. `260826-01`). |
@@ -307,3 +306,4 @@ Architectural changes only — schema, endpoints, invariants. UI polish lives in
 | 2026-09-28 | `CURRENT` | **Single Submission Retrieval & Public Report View Endpoints:** Added `GET /api/submissions/:id` (retrieving single submission with `accessToken`, auto-generating token if null) and `GET /api/reports/view/:submissionId` (public token-based endpoint returning `{ submission, formTemplate, reportTemplate }`), and updated `GET /api/submissions/view/:id` to include `accessToken`. |
 | 2026-09-30 | `CURRENT` | **Syntax Restoration & Default Status:** (1) Restored missing closing braces on `if (!dbPool)` guard inside `POST /api/submissions` and `PUT /api/submissions/:id`, eliminating Vercel serverless `SyntaxError: Unexpected token 'catch'` crash. (2) Submissions endpoints now default `status = 'SUBMITTED'` if omitted. |
 | 2026-09-30 | `CURRENT` | **Single Process Lookup Endpoint (`GET /api/processes/:id`):** Added dedicated single-process retrieval endpoint querying `processes` and `process_forms` by ID (`WHERE id = $1`). Eliminates over-fetching entire database during FormFiller initialization. |
+| 2026-10-14 | `CURRENT` | **Vietnamese Slug Normalization (`server.cjs`):** Enhanced `toSlug` helper in `server.cjs` to convert 'đ/Đ' to 'd' in addition to Unicode NFD diacritics stripping, aligning resolution with frontend `toFormSlug` for `/api/forms/resolve/*identifier`. |

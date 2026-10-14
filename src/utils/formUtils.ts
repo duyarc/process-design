@@ -328,6 +328,23 @@ export function generateSmartFieldSlug(label: string, existingIds: string[] = []
   return uniqueId;
 }
 
+/**
+ * Normalizes a form title or name into a clean, URL-safe slug.
+ * Converts Vietnamese diacritics and 'đ/Đ' to ASCII equivalents.
+ * Example: "Biểu mẫu đánh giá nhà máy" -> "bieu-mau-danh-gia-nha-may"
+ */
+export function toFormSlug(text?: string): string {
+  if (!text) return '';
+  return text
+    .toString()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[đĐ]/g, 'd')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
 // ============================================================================
 // SECTION GROUPING & PROGRESS TRACKING ENGINE (Focus Mode & Accordion)
 // ============================================================================

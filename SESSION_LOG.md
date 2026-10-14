@@ -37,6 +37,23 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 ## Nhật ký Phiên
 
+### 2026-10-14 — Chuẩn Hóa URL Slug Tiếng Việt Cho Biểu Mẫu (Frontend & Backend Aligned, Không Tương Thích Ngược)
+
+**Scope:** 4 source files (`src/utils/formUtils.ts`, `server.cjs`, `src/components/FormBuilder.tsx`, `src/components/FormFiller.tsx`) + 3 design docs (`DESIGN_FORM_OPERATIONS.md`, `DESIGN_FORM_DESIGNER.md`, `DESIGN_BACKEND.md`).
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa | 4 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 1 (`npx tsc --noEmit` pass 100%, `npm run build` pass 20.35s) |
+| Lần build đầu thành công? | Có |
+
+**Kết quả đạt được:**
+- **Trích xuất Pure Utility `toFormSlug` (`src/utils/formUtils.ts`):** Xây dựng hàm pure utility chuẩn hóa chuỗi tiếng Việt thành slug URL an toàn qua Unicode NFD, bóc tách dấu mũ/thanh, chuyển đổi ký tự `đ/Đ` thành `d`, chuyển ký tự đặc biệt thành `-` và xóa gạch thừa hai đầu (ví dụ: `"Biểu mẫu đánh giá nhà máy"` ➔ `bieu-mau-danh-gia-nha-may`).
+- **Đồng bộ hóa Backend (`server.cjs`):** Nâng cấp hàm `toSlug` xử lý `đ/Đ ➔ d`, giúp endpoint `GET /api/forms/resolve/*identifier` so khớp chính xác 100% giữa URL slug và tiêu đề form trong cơ sở dữ liệu (`toSlug(formRecord.form_title)`), triệt tiêu lỗi 404 khi truy cập biểu mẫu công khai.
+- **Thay thế Code Inline Frontend (`FormBuilder.tsx`, `FormFiller.tsx`):** Thay thế toàn bộ các đoạn mã regex sinh slug thô bằng lời gọi hàm tập trung `toFormSlug`, loại bỏ triệt để các đường link dị tật cắt chữ (như `bi-u-m-u-nh-gi-nh-m-y`).
+- **Tuân thủ Tuyệt đối Yêu cầu Không Tương Thích Ngược:** Không sinh thêm fallback code hay bloatware cho các URL unicode dị tật cũ vốn dĩ không hoạt động.
+
 ### 2026-10-14 — Chuẩn hóa Hướng dẫn Nghiệp vụ & Đồng bộ Database cho Biểu mẫu Đánh giá Nhà máy (3S-FA02)
 
 **Scope:** 2 script files (`scripts/guidanceData.cjs` [NEW], `scripts/seedFactoryAssessmentForm.cjs`) + PostgreSQL Database (`forms`, `processes`).

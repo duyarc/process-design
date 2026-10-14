@@ -748,8 +748,9 @@ const toSlug = (text) => {
   if (!text) return '';
   return text.toString().toLowerCase()
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[đĐ]/g, 'd')
     .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '');
+    .replace(/^-+|-+$/g, '');
 };
 
 // GET /api/forms/resolve/*identifier - Resolve a form by slug, form_id, or form_name across standalone forms and processes

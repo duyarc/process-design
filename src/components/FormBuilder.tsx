@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import type { FormFieldISO, FormRevisionEntry, FormTemplateISO, LayoutBlockISO, RadioOption, MatrixConfigISO, TableColumnConfig, TableRowConfig, ColumnSummaryRowConfig, TitleFormatISO, SubtableColumn, BlockVisibilityCondition, LinkedWorkStepInfo } from '../types';
 import { formatFormVersion, getColStyleWidth } from '../types';
-import { sanitizeLabel, getEffectiveTitleFormat, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, isSeamlessTableBlock, getInfoGridTemplateColumns, snap2ColWidth, snap3ColWidths, INFO_GRID_2COL_PRESETS, generateSmartFieldSlug, getCheckboxGridTemplate, reorderOptionsArray, reorderArray, getEffectiveCellOptions as getEffectiveCellOptionsUtil } from '../utils/formUtils';
+import { sanitizeLabel, getEffectiveTitleFormat, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, isSeamlessTableBlock, getInfoGridTemplateColumns, snap2ColWidth, snap3ColWidths, INFO_GRID_2COL_PRESETS, generateSmartFieldSlug, getCheckboxGridTemplate, reorderOptionsArray, reorderArray, getEffectiveCellOptions as getEffectiveCellOptionsUtil, toFormSlug } from '../utils/formUtils';
 import { applyTextFormat, handleFormatKeyDown, insertTextAtCursor } from '../utils/textFormatter';
 import { 
   Plus, 
@@ -9389,7 +9389,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                       value={(() => {
                         const baseUrl = window.location.origin;
                         if (isPublic) {
-                          const slug = formTitle ? formTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : formId;
+                          const slug = toFormSlug(formTitle) || formId;
                           return `${baseUrl}/f/${slug}`;
                         }
                         return `${baseUrl}/?form=${encodeURIComponent(formTitle || formId)}`;
@@ -9410,7 +9410,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                         const baseUrl = window.location.origin;
                         let link = '';
                         if (isPublic) {
-                          const slug = formTitle ? formTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : formId;
+                          const slug = toFormSlug(formTitle) || formId;
                           link = `${baseUrl}/f/${slug}`;
                         } else {
                           link = `${baseUrl}/?form=${encodeURIComponent(formTitle || formId)}`;

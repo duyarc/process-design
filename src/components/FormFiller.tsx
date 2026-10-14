@@ -63,7 +63,8 @@ import {
   isOtherValue,
   extractOtherText,
   encodeOtherValue,
-  getEffectiveCellOptions
+  getEffectiveCellOptions,
+  toFormSlug
 } from '../utils/formUtils';
 import { renderFormattedText, stripMarkdownTokens } from '../utils/textFormatter';
 import { useAuth } from '../context/AuthContext';
@@ -518,8 +519,8 @@ function FormFillerInner({
     for (const [key, tpl] of Object.entries(process.workflowFormsData)) {
       const candidate = tpl as FormTemplateISO;
       const cTitle = candidate.formTitle || key;
-      const cSlug = cTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-      if (cSlug === formName || candidate.formId === formName || key === formName) {
+      const cSlug = toFormSlug(cTitle);
+      if (cSlug === formName || toFormSlug(formName) === cSlug || candidate.formId === formName || key === formName) {
         return candidate;
       }
     }
@@ -530,7 +531,7 @@ function FormFillerInner({
     if (!initialSubmission) return '';
     const origin = window.location.origin;
     const rawTitle = rawFormTemplate?.formTitle || formName || initialSubmission.formId;
-    const slug = rawTitle ? rawTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : initialSubmission.formId;
+    const slug = toFormSlug(rawTitle) || initialSubmission.formId;
     if (submissionTab === 'report') {
       return `${origin}/f/${slug}/r/${initialSubmission.id}`;
     }
@@ -823,7 +824,9 @@ function FormFillerInner({
 
   // Copy share link helper
   const handleCopyShareLink = () => {
-    const cleanPublicUrl = `${window.location.origin}/f/${encodeURIComponent(formName)}`;
+    const rawTitle = rawFormTemplate?.formTitle || formName;
+    const slug = toFormSlug(rawTitle) || encodeURIComponent(formName);
+    const cleanPublicUrl = `${window.location.origin}/f/${slug}`;
     const internalUrl = `${window.location.origin}/?page=fill&processId=${encodeURIComponent(processId)}&formName=${encodeURIComponent(formName)}`;
     const shareUrl = isPublic ? cleanPublicUrl : internalUrl;
     navigator.clipboard.writeText(shareUrl)
@@ -872,7 +875,7 @@ function FormFillerInner({
 
   if (submitResult) {
     const rawTitle = rawFormTemplate?.formTitle || formName;
-    const slug = rawTitle ? rawTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : encodeURIComponent(formName);
+    const slug = toFormSlug(rawTitle) || encodeURIComponent(formName);
     const viewUrl = `${window.location.origin}/f/${slug}/s/${submitResult.id}`;
     const reportUrl = `${window.location.origin}/f/${slug}/r/${submitResult.id}`;
     return (
