@@ -37,6 +37,22 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 ## Nhật ký Phiên
 
+### 2026-10-14 — Tối giản Menu Tùy chọn In ấn (Biến thể 2 kèm Tag Trạng thái) (FormFiller)
+
+**Scope:** 1 source file (`src/components/FormFiller.tsx`) + 1 design doc (`DESIGN_FORM_OPERATIONS.md`).
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa | 1 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 1 (`npx tsc --noEmit` pass 100%, `npm run build` pass 21.92s) |
+| Lần build đầu thành công? | Có |
+
+**Kết quả đạt được:**
+- **Mở rộng Đầy đủ 3 Chế độ In Ấn (`FormFiller.tsx`):** Thay thế `printWithGuidanceTemplate` bằng `printBlankConfig: { template, includeGuidance }`, hỗ trợ cả 3 luồng in ấn độc lập: (1) In biểu mẫu trắng không hướng dẫn (phôi tiêu chuẩn), (2) In biểu mẫu trắng kèm hướng dẫn (phôi khảo sát chi tiết), và (3) In bản khai (phiếu đã có dữ liệu).
+- **Thiết kế Tinh gọn theo Biến thể 2 (Không Icon, Kèm Tag Trạng thái):** Mở rộng độ rộng menu lên `280px` triệt tiêu lỗi ngắt dòng mồ côi (*"dẫn"*), căn lề hai đầu phẳng thanh thoát, tag trạng thái phân định (`[ Trống ]`, `[ + Hướng dẫn ]`, `[ Có dữ liệu ]`), xoay mũi tên 180° khi mở menu.
+- **Dead-Code Pruning (Rule 4.2):** Xóa bỏ import icon `BookOpen` không còn sử dụng.
+
 ### 2026-10-14 — Khắc phục Lặp Tiêu đề H2 trong Chế độ Focus Mode (FormFiller)
 
 **Scope:** 1 source file (`src/components/FormFiller.tsx`) + 1 design doc (`DESIGN_FORM_OPERATIONS.md`).
@@ -187,23 +203,7 @@ phiên thực thi để không lặp lại lỗi cũ.
 - **Chuẩn hóa Cấu trúc Trường cho ReportBuilder & FormFiller:** Tách riêng từng chỉ số sản lượng/công suất thành các trường `number` độc lập kèm `unit` (`cont/tháng`, `tấn/tháng`, `%`, `giờ`, `ngày`, `năm`, `người`, `lần`, `m3/ngày`), dựng 4 bảng danh sách động (`subtable`) và hiệu chỉnh các lỗi chính tả từ bản PDF gốc.
 - **Đồng bộ CSDL (`forms` & `processes`):** Cập nhật trực tiếp vào biểu mẫu `3S-FA02` (`v0.1`, `DRAFT`) và đồng bộ `workflowFormsData['3S-FA02']` trong quy trình `3S-FA` (*"Quy trình đánh giá nhà máy"*).
 
-### 2026-09-30 — FormFiller Loading Performance: SWR Instant Paint (0ms) & Single Process Endpoint
 
-**Scope:** 4 source files (`server.cjs`, `src/App.tsx`, `src/components/Dashboard.tsx`, `src/components/FormFiller.tsx`) + 3 design docs (`DESIGN_BACKEND.md`, `DESIGN_FORM_OPERATIONS.md`, `DESIGN_PLATFORM_SHELL.md`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Số file nguồn chỉnh sửa | 4 |
-| Lượt edit sửa lỗi (rework) | 0 (sửa chính xác 100% không phát sinh lỗi) |
-| Số lần build | 2 (`npx tsc --noEmit` pass 100%, `npm run build` pass 13.30s) |
-| Lần build đầu thành công? | Có |
-
-**Kết quả đạt được:**
-- **SWR Instant Paint (0ms) cho FormFiller:** Khởi tạo `initialCache` đồng bộ qua `useMemo` đọc từ `preloadedFormTemplate` hoặc `sessionStorage` (`swr_forms`, `swr_processes`), khởi tạo `process` và `loading: false` ngay trong lần render đầu tiên, xóa bỏ hoàn toàn màn hình trắng "Loading digital template form...".
-- **Backend Single Process Endpoint (`GET /api/processes/:id`):** Truy vấn đơn lẻ `processes` và `process_forms` theo ID, loại bỏ triệt để truy vấn toàn bộ CSDL (`SELECT * FROM processes`), giảm dung lượng payload mạng từ nhiều MBs xuống vài KBs và thời gian phản hồi từ ~2s xuống ~35ms.
-- **Pipeline truyền phôi mẫu (`App.tsx` & `Dashboard.tsx`):** Chuyển trực tiếp `form.rawRecord` từ Dashboard qua App đến `<FormFiller preloadedFormTemplate={...} />`.
-- **Parallel Network Waterfall (`Promise.all`):** Với trường hợp mở link trực tiếp (cold start), chạy song song `fetchForm` và `fetchProcessSingle`, rút ngắn thời gian chờ từ ~3.5s xuống ~300ms.
-- **Dead-Code Pruning & Pure Utility Extraction:** Tách helper `buildVirtualProcess` độc lập, loại bỏ hơn 90 dòng code tạo block/process trùng lặp.
 
 
 

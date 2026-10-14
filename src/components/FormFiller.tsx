@@ -90,8 +90,7 @@ import {
   FileText,
   Check,
   ChevronDown,
-  ChevronUp,
-  BookOpen
+  ChevronUp
 } from 'lucide-react';
 
 const parseSubtableValue = (val: string): Record<string, string>[] => {
@@ -419,7 +418,7 @@ function FormFillerInner({
   }, [localToast]);
 
   const [printCurrentSubmission, setPrintCurrentSubmission] = useState<Submission | null>(null);
-  const [printWithGuidanceTemplate, setPrintWithGuidanceTemplate] = useState<FormTemplateISO | null>(null);
+  const [printBlankConfig, setPrintBlankConfig] = useState<{ template: FormTemplateISO; includeGuidance: boolean } | null>(null);
   const [isPrintMenuOpen, setIsPrintMenuOpen] = useState(false);
   const [expandedGuidanceMap, setExpandedGuidanceMap] = useState<Record<string, boolean>>({});
   const toggleGuidance = (fieldId: string) => {
@@ -1438,13 +1437,13 @@ function FormFillerInner({
     );
   }
 
-  // Print blank questionnaire with guidance overlay
-  if (printWithGuidanceTemplate) {
+  // Print blank questionnaire (with or without guidance overlay)
+  if (printBlankConfig) {
     return (
       <PrintBlankForm
-        template={printWithGuidanceTemplate}
-        includeGuidance={true}
-        onClose={() => setPrintWithGuidanceTemplate(null)}
+        template={printBlankConfig.template}
+        includeGuidance={printBlankConfig.includeGuidance}
+        onClose={() => setPrintBlankConfig(null)}
       />
     );
   }
@@ -3571,12 +3570,47 @@ function FormFillerInner({
                   >
                     <Printer size={13} style={{ color: '#0d9488' }} />
                     <span>In</span>
-                    {submissionTab === 'form' && <ChevronDown size={11} />}
+                    {submissionTab === 'form' && (
+                      <ChevronDown
+                        size={11}
+                        style={{
+                          transform: isPrintMenuOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                          transition: 'transform 0.2s ease'
+                        }}
+                      />
+                    )}
                   </button>
                   {isPrintMenuOpen && submissionTab === 'form' && (
                     <>
                       <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => setIsPrintMenuOpen(false)} />
-                      <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: '4px', background: '#ffffff', borderRadius: '6px', boxShadow: '0 4px 16px rgba(0,0,0,0.15)', border: '1px solid var(--neutral-border)', zIndex: 100, minWidth: '220px', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                      <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: '4px', background: '#ffffff', borderRadius: '8px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.05)', border: '1px solid var(--neutral-border)', zIndex: 100, minWidth: '280px', padding: '4px', display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsPrintMenuOpen(false);
+                            setPrintBlankConfig({ template: rawFormTemplate || formTemplate, includeGuidance: false });
+                          }}
+                          style={{ padding: '0.45rem 0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 500, border: 'none', background: 'transparent', borderRadius: '6px', cursor: 'pointer', color: 'var(--text-primary)', textAlign: 'left', width: '100%', transition: 'background-color 0.15s ease' }}
+                          onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                        >
+                          <span>In biểu mẫu trắng</span>
+                          <span style={{ fontSize: '0.68rem', color: '#64748b', background: '#f1f5f9', padding: '1px 6px', borderRadius: '4px', fontWeight: 500 }}>Trống</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsPrintMenuOpen(false);
+                            setPrintBlankConfig({ template: rawFormTemplate || formTemplate, includeGuidance: true });
+                          }}
+                          style={{ padding: '0.45rem 0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 500, border: 'none', background: 'transparent', borderRadius: '6px', cursor: 'pointer', color: 'var(--text-primary)', textAlign: 'left', width: '100%', transition: 'background-color 0.15s ease' }}
+                          onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                        >
+                          <span>In biểu mẫu trắng (kèm hướng dẫn)</span>
+                          <span style={{ fontSize: '0.68rem', color: '#0d9488', background: 'rgba(13, 148, 136, 0.08)', border: '1px solid rgba(13, 148, 136, 0.2)', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>+ Hướng dẫn</span>
+                        </button>
+                        <div style={{ height: '1px', background: 'rgba(0,0,0,0.06)', margin: '3px 0' }} />
                         <button
                           type="button"
                           onClick={() => {
@@ -3585,25 +3619,12 @@ function FormFillerInner({
                               setPrintCurrentSubmission(initialSubmission);
                             }
                           }}
-                          style={{ padding: '0.5rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.78rem', border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-primary)', textAlign: 'left', width: '100%' }}
+                          style={{ padding: '0.45rem 0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 500, border: 'none', background: 'transparent', borderRadius: '6px', cursor: 'pointer', color: 'var(--text-primary)', textAlign: 'left', width: '100%', transition: 'background-color 0.15s ease' }}
                           onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; }}
                           onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
                         >
-                          <Printer size={13} style={{ color: '#0d9488' }} />
                           <span>In bản khai</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsPrintMenuOpen(false);
-                            setPrintWithGuidanceTemplate(rawFormTemplate || formTemplate);
-                          }}
-                          style={{ padding: '0.5rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.78rem', border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-primary)', textAlign: 'left', width: '100%' }}
-                          onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; }}
-                          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
-                        >
-                          <BookOpen size={13} style={{ color: '#0d9488' }} />
-                          <span>In bảng câu hỏi kèm hướng dẫn</span>
+                          <span style={{ fontSize: '0.68rem', color: '#1d4ed8', background: 'rgba(29, 78, 216, 0.08)', border: '1px solid rgba(29, 78, 216, 0.2)', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>Có dữ liệu</span>
                         </button>
                       </div>
                     </>
@@ -3707,12 +3728,45 @@ function FormFillerInner({
               >
                 <Printer size={13} style={{ color: '#0d9488' }} />
                 <span>In</span>
-                <ChevronDown size={11} />
+                <ChevronDown
+                  size={11}
+                  style={{
+                    transform: isPrintMenuOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                    transition: 'transform 0.2s ease'
+                  }}
+                />
               </button>
               {isPrintMenuOpen && (
                 <>
                   <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => setIsPrintMenuOpen(false)} />
-                  <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: '4px', background: '#ffffff', borderRadius: '6px', boxShadow: '0 4px 16px rgba(0,0,0,0.15)', border: '1px solid var(--neutral-border)', zIndex: 100, minWidth: '220px', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: '4px', background: '#ffffff', borderRadius: '8px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.05)', border: '1px solid var(--neutral-border)', zIndex: 100, minWidth: '280px', padding: '4px', display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsPrintMenuOpen(false);
+                        setPrintBlankConfig({ template: rawFormTemplate || formTemplate, includeGuidance: false });
+                      }}
+                      style={{ padding: '0.45rem 0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 500, border: 'none', background: 'transparent', borderRadius: '6px', cursor: 'pointer', color: 'var(--text-primary)', textAlign: 'left', width: '100%', transition: 'background-color 0.15s ease' }}
+                      onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                    >
+                      <span>In biểu mẫu trắng</span>
+                      <span style={{ fontSize: '0.68rem', color: '#64748b', background: '#f1f5f9', padding: '1px 6px', borderRadius: '4px', fontWeight: 500 }}>Trống</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsPrintMenuOpen(false);
+                        setPrintBlankConfig({ template: rawFormTemplate || formTemplate, includeGuidance: true });
+                      }}
+                      style={{ padding: '0.45rem 0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 500, border: 'none', background: 'transparent', borderRadius: '6px', cursor: 'pointer', color: 'var(--text-primary)', textAlign: 'left', width: '100%', transition: 'background-color 0.15s ease' }}
+                      onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
+                    >
+                      <span>In biểu mẫu trắng (kèm hướng dẫn)</span>
+                      <span style={{ fontSize: '0.68rem', color: '#0d9488', background: 'rgba(13, 148, 136, 0.08)', border: '1px solid rgba(13, 148, 136, 0.2)', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>+ Hướng dẫn</span>
+                    </button>
+                    <div style={{ height: '1px', background: 'rgba(0,0,0,0.06)', margin: '3px 0' }} />
                     <button
                       type="button"
                       onClick={() => {
@@ -3742,25 +3796,12 @@ function FormFillerInner({
                         };
                         setPrintCurrentSubmission(draftSub);
                       }}
-                      style={{ padding: '0.5rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.78rem', border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-primary)', textAlign: 'left', width: '100%' }}
+                      style={{ padding: '0.45rem 0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 500, border: 'none', background: 'transparent', borderRadius: '6px', cursor: 'pointer', color: 'var(--text-primary)', textAlign: 'left', width: '100%', transition: 'background-color 0.15s ease' }}
                       onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; }}
                       onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
                     >
-                      <Printer size={13} style={{ color: '#0d9488' }} />
                       <span>In bản khai</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsPrintMenuOpen(false);
-                        setPrintWithGuidanceTemplate(rawFormTemplate || formTemplate);
-                      }}
-                      style={{ padding: '0.5rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.78rem', border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-primary)', textAlign: 'left', width: '100%' }}
-                      onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; }}
-                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
-                    >
-                      <BookOpen size={13} style={{ color: '#0d9488' }} />
-                      <span>In bảng câu hỏi kèm hướng dẫn</span>
+                      <span style={{ fontSize: '0.68rem', color: '#1d4ed8', background: 'rgba(29, 78, 216, 0.08)', border: '1px solid rgba(29, 78, 216, 0.2)', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>Có dữ liệu</span>
                     </button>
                   </div>
                 </>
