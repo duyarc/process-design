@@ -34,6 +34,7 @@ import {
   Table as TableIcon,
   CircleDot,
   ChevronDown,
+  ChevronUp,
   Check,
   SlidersHorizontal,
   Sparkles,
@@ -44,6 +45,7 @@ import {
 } from 'lucide-react';
 import PrintBlankForm from './print/PrintBlankForm';
 import ConfirmModal from './common/ConfirmModal';
+import InCanvasGuidanceEditor from './form/InCanvasGuidanceEditor';
 import { useAuth } from '../context/AuthContext';
 
 interface FormBuilderProps {
@@ -1047,6 +1049,15 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
   const inspectorGuidanceRef = useRef<HTMLTextAreaElement>(null);
   const sectionDescRef = useRef<HTMLTextAreaElement>(null);
   const inspectorGroupTitleRef = useRef<HTMLTextAreaElement>(null);
+  const [canvasExpandedGuidanceMap, setCanvasExpandedGuidanceMap] = useState<Record<string, boolean>>({});
+
+  const toggleCanvasGuidance = (fieldId: string) => {
+    setCanvasExpandedGuidanceMap(prev => ({
+      ...prev,
+      [fieldId]: !prev[fieldId]
+    }));
+  };
+
   const [effectiveDate, setEffectiveDate] = useState(() => (initialData as any)?.effectiveDate || (initialData as any)?.effective_date || new Date().toISOString().split('T')[0]);
 
   // Track saved state via Snapshot comparison
@@ -3696,6 +3707,71 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                         />
                                       </div>
                                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0, marginTop: '2px' }}>
+                                        {/* Guidance Toggle / Add Button */}
+                                        {f.guidance ? (
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setActiveBlockId(block.id);
+                                              setActiveFieldId(f.id);
+                                              toggleCanvasGuidance(f.id);
+                                            }}
+                                            style={{
+                                              display: 'inline-flex',
+                                              alignItems: 'center',
+                                              gap: '3px',
+                                              background: canvasExpandedGuidanceMap[f.id] ? '#f0fdfa' : '#f8fafc',
+                                              border: `1px solid ${canvasExpandedGuidanceMap[f.id] ? '#0d9488' : '#cbd5e1'}`,
+                                              borderRadius: '4px',
+                                              padding: '2px 6px',
+                                              fontSize: '0.72rem',
+                                              color: canvasExpandedGuidanceMap[f.id] ? '#0f766e' : '#475569',
+                                              cursor: 'pointer',
+                                              fontWeight: 500,
+                                              transition: 'all 0.15s ease',
+                                              flexShrink: 0
+                                            }}
+                                            title={canvasExpandedGuidanceMap[f.id] ? "Thu gọn hướng dẫn" : "Xem/sửa hướng dẫn điền câu hỏi"}
+                                          >
+                                            <span>💡</span>
+                                            <span>Hướng dẫn</span>
+                                            {canvasExpandedGuidanceMap[f.id] ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+                                          </button>
+                                        ) : (
+                                          (isFieldSelected || canvasExpandedGuidanceMap[f.id]) && (
+                                            <button
+                                              type="button"
+                                              disabled={isLocked}
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                setActiveBlockId(block.id);
+                                                setActiveFieldId(f.id);
+                                                toggleCanvasGuidance(f.id);
+                                              }}
+                                              style={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '2px',
+                                                background: 'transparent',
+                                                border: '1px dashed #0d9488',
+                                                borderRadius: '4px',
+                                                padding: '2px 5px',
+                                                fontSize: '0.7rem',
+                                                color: '#0d9488',
+                                                cursor: isLocked ? 'not-allowed' : 'pointer',
+                                                fontWeight: 500,
+                                                opacity: 0.85,
+                                                transition: 'all 0.15s ease',
+                                                flexShrink: 0
+                                              }}
+                                              title="Thêm hướng dẫn điền cho câu hỏi này"
+                                            >
+                                              <Plus size={10} />
+                                              <span>💡 Hướng dẫn</span>
+                                            </button>
+                                          )
+                                        )}
                                         <FieldTypeDropdown
                                           compact
                                           disabled={isLocked}
@@ -3708,6 +3784,16 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                         />
                                       </div>
                                     </div>
+
+                                    {/* In-Canvas Guidance Editor Accordion */}
+                                    {canvasExpandedGuidanceMap[f.id] && (
+                                      <InCanvasGuidanceEditor
+                                        guidance={f.guidance || ''}
+                                        isLocked={isLocked}
+                                        onUpdateGuidance={(val) => handleUpdateField(block.id, f.id, { guidance: val })}
+                                        onClose={() => toggleCanvasGuidance(f.id)}
+                                      />
+                                    )}
 
                                     {/* Photo editable tip box — rendered BELOW the header row */}
                                     {f.type === 'photo' && (
@@ -6608,7 +6694,29 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', marginTop: '0.4rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.78rem' }}>HƯỚNG DẪN</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.78rem' }}>HƯỚNG DẪN</label>
+                      <button
+                        type="button"
+                        onClick={() => activeFieldId && toggleCanvasGuidance(activeFieldId)}
+                        style={{
+                          border: 'none',
+                          background: 'none',
+                          color: (activeFieldId && canvasExpandedGuidanceMap[activeFieldId]) ? '#0d9488' : '#64748b',
+                          fontSize: '0.7rem',
+                          cursor: 'pointer',
+                          padding: '1px 4px',
+                          borderRadius: '3px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '2px',
+                          textDecoration: 'underline'
+                        }}
+                        title="Bật/Tắt xem hướng dẫn trực tiếp trên Canvas"
+                      >
+                        {(activeFieldId && canvasExpandedGuidanceMap[activeFieldId]) ? 'Đang mở trên Canvas ▴' : 'Mở trên Canvas ▾'}
+                      </button>
+                    </div>
                     <div style={{ display: 'flex', gap: '2px' }}>
                       <button
                         type="button"
@@ -6665,7 +6773,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                     value={activeField.guidance || ''}
                     onKeyDown={(e) => handleFormatKeyDown(e, activeField.guidance || '', (val) => handleUpdateField(activeBlockId!, activeFieldId!, { guidance: val }))}
                     onChange={(e) => handleUpdateField(activeBlockId!, activeFieldId!, { guidance: e.target.value })}
-                    style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', resize: 'vertical', fontSize: '0.78rem', fontFamily: 'inherit', lineHeight: 1.4 }}
+                    style={{ padding: '0.4rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', resize: 'vertical', minHeight: '80px', maxHeight: '260px', fontSize: '0.78rem', fontFamily: 'inherit', lineHeight: 1.45 }}
                   />
                 </div>
 

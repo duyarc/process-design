@@ -12,7 +12,6 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 | # | Nhóm | Lỗi | Biện pháp phòng ngừa | Lần gặp |
 |---|---|---|---|---|
-| 10 | `SCOPE` | Hardcode danh sách quy chuẩn cố định (IMO, BRCGS, ISO 22000, APICS) làm thiên lệch vào dữ liệu mẫu | Khái quát hóa thành quy trình: "Search web theo ngữ cảnh form" (Context-Driven Web Search) dựa trên domain suy diễn động | 1 |
 | 11 | `BLOAT` | Thêm text badges (Selected, Đã chọn, Active, hints) trùng lặp với visual indicator (màu sắc, border, icon) → UI bị rối | Áp dụng UI Streamlining Audit: Khi visual cues đã rõ ràng, triệt tiêu toàn bộ text badges phụ trợ để giữ UI tối giản | 1 |
 | 12 | `LOGIC` | Truyền `row.id` đơn lẻ khi click canvas thay vì composite ID (`${blockId}_${rowId}_${colId}`) khiến registry lookup trả về `undefined` | Luôn dùng composite ID resolver helper (`getTableFieldId`, `getTableRowPrimaryFieldId`) khớp quy ước định danh của extractor | 1 |
 | 13 | `LOGIC` | `updateRuleOverride` silent abort khi `layoutBlocks` rỗng hoặc chưa gán trường vào khối khiến controlled inputs (Score, Weight) không thể chỉnh sửa | Xây dựng Smart Target Block Resolution (5 tầng ưu tiên) kết hợp Auto-Initialization khối Table cho Section H2 | 1 |
@@ -32,10 +31,28 @@ phiên thực thi để không lặp lại lỗi cũ.
 | 27 | `LOGIC` | Container bảng dùng `overflowX: 'auto'` tự động kích hoạt `overflowY: 'auto'` theo chuẩn W3C CSS khiến dropdown menu (`position: absolute; top: 100%`) bị cắt cụt (cut off) ở đáy bảng và sinh thanh cuộn dọc không mong muốn khi bảng có ít hàng | Đặt `overflow: 'visible'` trên wrapper bảng nếu các hàng có dropdown menu tuyệt đối; bổ sung dynamic `zIndex: isGroupActive ? 30 : 1` trên card cha để menu hiển thị đè lên các card tiếp theo | 1 |
 | 28 | `SCOPE` | Khi thêm tính năng in kèm hướng dẫn biểu mẫu trắng, nếu tạo component in mới sẽ trùng lặp title block, logo, @page CSS và phân trang | Kế thừa trực tiếp component in hiện hữu (`PrintBlankForm`) thông qua cờ prop `includeGuidance?: boolean` để giữ 100% nhất quán định dạng và zero duplication | 1 |
 | 29 | `LOGIC` | Gộp chung `field.type === 'radio'` với `select` trong render nhánh form khiến radio biến thành dropdown `<select>` và chữ dài bị ép 1 dòng; dùng `maxWidth: '180px'` cứng nhắc trên canvas khiến nhãn radio dài bị cắt cụt | Luôn tách riêng component render radio button group với radio circle native; với nhãn nhiều dòng trên canvas, dùng CSS Grid auto-growing `<textarea>` thay vì `<input>` cố định chiều rộng | 1 |
+| 30 | `BLOAT` | Nhập liệu nội dung hướng dẫn dài trên sidebar hẹp sinh thanh cuộn dọc kép và bắt buộc cuộn trang | Tách sub-component In-Canvas Accordion Editor với CSS Grid auto-grow textarea, cho phép xem và sửa trực tiếp ngay tại vị trí câu hỏi trên Canvas (Rule 13.9) | 1 |
 
 ---
 
 ## Nhật ký Phiên
+
+### 2026-10-14 — Trình Soạn thảo Hướng dẫn Điền Câu hỏi Trên Canvas (FormBuilder)
+
+**Scope:** 2 source files (`src/components/form/InCanvasGuidanceEditor.tsx` [NEW], `src/components/FormBuilder.tsx`) + 1 design doc (`DESIGN_FORM_DESIGNER.md`)
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa | 2 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 2 (`npx tsc --noEmit` pass 100%, `npm run build` pass 17.26s) |
+| Lần build đầu thành công? | Có |
+
+**Kết quả đạt được:**
+- **Sub-component Độc lập (`InCanvasGuidanceEditor.tsx`):** Đóng gói toàn bộ logic và JSX của trình soạn thảo / xem trước hướng dẫn theo Rule 13.9 (Monolith Guard). Tích hợp thanh công cụ inline `[ B ] [ I ] [ U ] [ • ] [ 💡 ]`, nút chuyển đổi chế độ `[ 👁 Xem trước / ✍️ Soạn thảo ]` và nút thu gọn.
+- **CSS Grid Auto-Grow Textarea (Triệt tiêu 100% thanh cuộn):** Sử dụng kỹ thuật CSS Grid mirror span để khung textarea tự động dãn nở chiều cao theo nội dung, loại bỏ hoàn toàn thanh cuộn dọc bên trong ô nhập liệu (khắc phục triệt để lỗi bó hẹp chiều cao trên sidebar).
+- **Tích hợp Accordion Trên Canvas (`FormBuilder.tsx`):** Bổ sung nút `[ 💡 Hướng dẫn ▾/▴ ]` đối với câu hỏi đã có nội dung và `[ + 💡 Hướng dẫn ]` khi trường được chọn. Cho phép người thiết kế xem và sửa hướng dẫn trực tiếp ngay tại vị trí câu hỏi trên tờ A4 Canvas mà không cần di chuyển mắt hay cuộn trang sidebar.
+- **Đồng bộ 2 Chiều & Nâng cấp Inspector:** Thêm nút `[ Mở trên Canvas ▾/▴ ]` tại mục HƯỚNG DẪN trong Right Inspector và mở rộng `minHeight: 80px, maxHeight: 260px` cho textarea sidebar.
 
 ### 2026-10-14 — Chuẩn hóa Bố cục Thích ứng & Khắc phục Lỗi Cắt chữ Radio Button trong Info Grid (FormBuilder & FormFiller)
 
@@ -193,36 +210,4 @@ phiên thực thi để không lặp lại lỗi cũ.
 - **Visual Parity cho Submissions:** Bổ sung `accent-teal` (vạch xanh ngọc 3px) cho các thẻ nhóm biểu mẫu trong Submissions, đồng bộ phong cách với 3 tab còn lại.
 - **Chuẩn hóa 100% tiếng Anh:** Chuyển đổi toàn bộ tiêu đề cột bảng Reports (`Report ID`, `Report Title`, `Source Form`, `Version`, `Status`, `Actions`), nhãn trạng thái Submissions (`Verified`, `Pending Review`), nhãn nhóm (`Process:`) và nút hành động (`+ Fill Form`).
 
-### 2026-09-30 — Visual Frame Alignment & Toolbar Hoisting across 4 Tabs (Direction 1)
-
-**Scope:** 3 source files (`src/components/common/DashboardToolbar.tsx`, `SubmissionManager.tsx`, `Dashboard.tsx`) + 2 design docs
-
-| Chỉ số | Giá trị |
-|---|---|
-| Số file nguồn chỉnh sửa | 3 |
-| Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 1 (`npx tsc --noEmit` pass 100%, `npm run build` pass 11.18s) |
-| Lần build đầu thành công? | Có |
-
-**Kết quả đạt được:**
-- **Khóa kích thước Search Input 360px:** Đổi ô tìm kiếm sang `width: 360px, maxWidth: 100%, flexShrink: 0`, đảm bảo kích thước cố định 100% khi chuyển qua lại giữa 4 tab.
-- **Hoisting Toolbar của Submissions:** Đưa `DashboardToolbar` từ bên trong `SubmissionManager` lên root của `Dashboard.tsx`, đồng cấp DOM với Processes/Forms/Reports, loại bỏ phân mảnh tầng thẻ lồng.
-- **Chuẩn hóa nhịp khoảng cách (1.25rem Rhythm):** Quy chuẩn khoảng cách từ thanh Toolbar xuống bảng/danh sách là 1.25rem (20px) và padding viền thẻ bảng là 1.25rem trên cả 4 tab.
-
-### 2026-09-30 — Search Bar Cleanup & DashboardToolbar Unification across 4 Tabs
-
-**Scope:** 3 source files (`src/components/common/DashboardToolbar.tsx` [NEW], `Dashboard.tsx`, `SubmissionManager.tsx`) + 2 design docs
-
-| Chỉ số | Giá trị |
-|---|---|
-| Số file nguồn chỉnh sửa | 3 |
-| Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 1 (`npx tsc --noEmit` pass 100%, `npm run build` pass 9.10s) |
-| Lần build đầu thành công? | Có |
-
-**Kết quả đạt được:**
-- **Shared Component `DashboardToolbar`:** Tạo mới component thanh công cụ tìm kiếm và lọc dữ liệu dùng chung tại `src/components/common/DashboardToolbar.tsx`, tích hợp sẵn nút `(✕)` quick-clear, icon search và slots `filters` / `actions`.
-- **100% English Standardization:** Chuẩn hóa toàn bộ placeholder, nhãn bộ lọc và dropdown options sang tiếng Anh (`Search processes...`, `Search forms...`, `Search submissions...`, `Search report templates...`, `Process:`, `Status:`, `All Processes`, `Standalone Forms`, `All Status`, `Pending Review`, `Verified`).
-- **Tab Forms Process Filter:** Bổ sung state `formProcessFilter` và dropdown `Process: [ All Processes ▾ ]` cho Tab Forms, hỗ trợ lọc nhanh biểu mẫu theo quy trình hoặc biểu mẫu tự do.
-- **Dead-Code Pruning:** Xóa sạch import `Search` không dùng tại `Dashboard.tsx` và `SubmissionManager.tsx` (Rule 13.7 & 13.10), đảm bảo `TS6133` = 0.
 
