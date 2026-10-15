@@ -318,18 +318,17 @@ export default function PrintScoring({
                                     key={f.id}
                                     style={{
                                       ...gridItemStyle,
-                                      display: 'flex',
-                                      alignItems: 'center',
+                                      display: 'block',
                                       fontSize: '0.82rem',
-                                      whiteSpace: 'pre-wrap',
                                       wordBreak: 'break-word',
                                       pageBreakInside: 'avoid',
-                                      lineHeight: 1.5
+                                      lineHeight: 1.5,
+                                      width: '100%'
                                     }}
                                   >
-                                    <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a' }}>
-                                      {renderFormattedText(cleanLabel)}
-                                    </span>
+                                    <div style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', width: '100%' }}>
+                                      {renderFormattedText(f.checkItem)}
+                                    </div>
                                   </div>
                                 );
                               }

@@ -12,7 +12,6 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 | # | Nhóm | Lỗi | Biện pháp phòng ngừa | Lần gặp |
 |---|---|---|---|---|
-| 11 | `BLOAT` | Thêm text badges (Selected, Đã chọn, Active, hints) trùng lặp với visual indicator (màu sắc, border, icon) → UI bị rối | Áp dụng UI Streamlining Audit: Khi visual cues đã rõ ràng, triệt tiêu toàn bộ text badges phụ trợ để giữ UI tối giản | 1 |
 | 12 | `LOGIC` | Truyền `row.id` đơn lẻ khi click canvas thay vì composite ID (`${blockId}_${rowId}_${colId}`) khiến registry lookup trả về `undefined` | Luôn dùng composite ID resolver helper (`getTableFieldId`, `getTableRowPrimaryFieldId`) khớp quy ước định danh của extractor | 1 |
 | 13 | `LOGIC` | `updateRuleOverride` silent abort khi `layoutBlocks` rỗng hoặc chưa gán trường vào khối khiến controlled inputs (Score, Weight) không thể chỉnh sửa | Xây dựng Smart Target Block Resolution (5 tầng ưu tiên) kết hợp Auto-Initialization khối Table cho Section H2 | 1 |
 | 14 | `BLOAT` | Trích xuất utility tổng hợp điểm (`summarizeH1ChildGroups`) nhưng vẫn import hàm con (`computeH1CombinedScore`) vào component cha → TS6133 unused import | Khi bọc logic vào pure utility cấp cao hơn, xóa ngay các imports cấp thấp không còn được gọi trực tiếp trong component | 1 |
@@ -32,10 +31,28 @@ phiên thực thi để không lặp lại lỗi cũ.
 | 28 | `SCOPE` | Khi thêm tính năng in kèm hướng dẫn biểu mẫu trắng, nếu tạo component in mới sẽ trùng lặp title block, logo, @page CSS và phân trang | Kế thừa trực tiếp component in hiện hữu (`PrintBlankForm`) thông qua cờ prop `includeGuidance?: boolean` để giữ 100% nhất quán định dạng và zero duplication | 1 |
 | 29 | `LOGIC` | Gộp chung `field.type === 'radio'` với `select` trong render nhánh form khiến radio biến thành dropdown `<select>` và chữ dài bị ép 1 dòng; dùng `maxWidth: '180px'` cứng nhắc trên canvas khiến nhãn radio dài bị cắt cụt | Luôn tách riêng component render radio button group với radio circle native; với nhãn nhiều dòng trên canvas, dùng CSS Grid auto-growing `<textarea>` thay vì `<input>` cố định chiều rộng | 1 |
 | 30 | `BLOAT` | Nhập liệu nội dung hướng dẫn dài trên sidebar hẹp sinh thanh cuộn dọc kép và bắt buộc cuộn trang | Tách sub-component In-Canvas Accordion Editor với CSS Grid auto-grow textarea, cho phép xem và sửa trực tiếp ngay tại vị trí câu hỏi trên Canvas (Rule 13.9) | 1 |
+| 31 | `LOGIC` | Regex in nghiêng `\*(?:[^*]+)\*` nuốt dấu hoa thị đầu dòng bullet list (`* **Bold**`) thành in nghiêng lỗi | Áp dụng lookahead/lookbehind nghiêm ngặt `\*(?!\s)(?:[^*]+?)(?<!\s)\*` và xử lý phân cấp 2 tầng: tách dòng bullet (`* `, `- `, `+ `, `• `) trước, parse inline markdown sau | 1 |
 
 ---
 
 ## Nhật ký Phiên
+
+### 2026-10-15 — Nâng cấp Định dạng Markdown, Bullet List & Canvas WYSIWYG Linh động cho Trường Label
+
+**Scope:** 7 source files (`src/utils/textFormatter.tsx`, `src/components/form/InCanvasLabelField.tsx`, `src/components/FormBuilder.tsx`, `src/components/FormFiller.tsx`, `src/components/print/PrintBlankForm.tsx`, `src/components/print/PrintFilledForm.tsx`, `src/components/print/PrintScoring.tsx`) + 2 design docs (`DESIGN_FORM_DESIGNER.md`, `DESIGN_FORM_OPERATIONS.md`).
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa / tạo mới | 7 |
+| Lượt edit sửa lỗi (rework) | 2 (sửa type-only import & unused import sau `tsc -b`) |
+| Số lần build | 2 (`tsc -b && vite build` pass 100% 10.18s) |
+| Lần build đầu thành công? | Không (`tsc -b` bắt TS1484, TS6133, TS2367; sửa dứt điểm ngay) |
+
+**Kết quả đạt được:**
+- **Khắc phục lỗi parser Markdown (`src/utils/textFormatter.tsx`):** Thêm lookahead/lookbehind `\*(?!\s)(?:[^*]+?)(?<!\s)\*` triệt tiêu lỗi nuốt dấu hoa thị đầu dòng khi kết hợp bullet với in đậm (`* **Công suất**`). Bóc tách phân cấp 2 tầng (tầng dòng nhận diện `* `, `- `, `+ `, `• ` và thụt lề; tầng inline parse in đậm, in nghiêng, gạch chân). Mở rộng `applyTextFormat` hỗ trợ mode `'bullet'`.
+- **Sub-component `InCanvasLabelField` & Toolbar Co giãn Linh động (Rule 4.3):** Tách sub-component riêng biệt (~420 dòng) khỏi monolith `FormBuilder.tsx`. Toolbar gộp chung trên 1 hàng phẳng (`flex-wrap: wrap`), tự động xuống dòng mềm mại khi cột ô lưới hẹp (`gap: 6px`). Hỗ trợ 2 chế độ: Xem trước WYSIWYG và Soạn thảo với CSS Grid auto-grow textarea mirror.
+- **Mở rộng Right Inspector:** Thêm nút `•` (Bullet point) cạnh `B`, `I`, `U` và tăng `rows={6}` cho trường nhãn.
+- **Đồng bộ FormFiller & Print Out:** Bỏ `sanitizeLabel` (bảo toàn dấu `:` cuối câu dẫn), chuyển `display: 'block'` (loại bỏ lỗi căn giữa flexbox của đoạn văn nhiều dòng).
 
 ### 2026-10-14 — Tối giản Menu Tùy chọn In ấn (Biến thể 2 kèm Tag Trạng thái) (FormFiller)
 

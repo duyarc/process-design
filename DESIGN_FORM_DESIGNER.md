@@ -9,7 +9,7 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-10-14) — Vietnamese URL slug normalization (toFormSlug) in FormBuilder verified against source |
+| **Verified At Commit** | (2026-10-15) — InCanvasLabelField & responsive formatting verified against source |
 
 > **⚠️ Architectural note:** FormBuilder has no awareness of which process it belongs to. The `formName` prop is always identical to `formId`. See Section 6.1 and the Technical Debt table.
 
@@ -505,5 +505,6 @@ full diff of any entry below.
 | 2026-10-14 | **INFO_GRID Radio & Checkbox Auto-Growing Option Label & Adaptive Layout:** (1) In `FormBuilder.tsx`, eliminated hardcoded `maxWidth: '180px'` truncation on Canvas option labels. For vertically stacked options (`isOptionC && isLongOpt`), implemented CSS Grid auto-growing `<textarea>` overlay (`width: 100%`, `display: flex`, `alignItems: flex-start`), supporting multiline text wrapping (up to 160+ chars) with inline editing and drag reordering. (2) Set `minWidth: '40px'`, `maxWidth: '100%'` on horizontal inline option inputs. |
 | 2026-10-14 | **In-Canvas Question Guidance Accordion Editor (`FormBuilder`, `InCanvasGuidanceEditor`):** (1) Created isolated sub-component `src/components/form/InCanvasGuidanceEditor.tsx` (Rule 13.9) providing inline formatting toolbar `[ B ] [ I ] [ U ] [ • ] [ 💡 ]`, preview toggle `[ 👁 Xem trước / ✍️ Soạn thảo ]`, and close button. (2) Implemented CSS Grid Auto-Grow textarea mirror to automatically expand according to content length, eliminating 100% of internal vertical scrollbars. (3) Added in-canvas accordion toggle button `[ 💡 Hướng dẫn ▾/▴ ]` / `[ + 💡 Hướng dẫn ]` on `INFO_GRID` field cards in `FormBuilder.tsx`, managed via `canvasExpandedGuidanceMap`. (4) Upgraded Right Inspector with "Mở trên Canvas" link button and expanded textarea minHeight (80px) for bidirectional editing without vertical scrolling. |
 | 2026-10-14 | **Vietnamese URL Slug Normalization (`FormBuilder`):** Integrated `toFormSlug` from `src/utils/formUtils.ts` into `FormBuilder.tsx` Share Modal for public form links, converting diacritics via Unicode NFD and 'đ/Đ' to 'd' to generate valid, clean URLs matching the backend resolution service. |
+| 2026-10-15 | **In-Canvas Label WYSIWYG & Responsive Formatting Toolbar (`FormBuilder`, `InCanvasLabelField`):** (1) Created isolated sub-component `src/components/form/InCanvasLabelField.tsx` (Rule 4.3 Monolith Guard). (2) Responsive header toolbar: fits on 1 single row when wide, wraps (`flex-wrap: wrap`) gracefully when narrow (multi-column grids), providing `[ B ] [ I ] [ U ] [ • ]` formatting and `[ 👁 Xem trước / ✍️ Soạn thảo ]` toggle. (3) Mode A: WYSIWYG formatted text rendering (`renderFormattedText`). Mode B: CSS Grid auto-growing textarea mirror. (4) In Right Inspector, added `•` (Bullet point) button and expanded `rows={6}` for label editing. (5) In `PrintBlankForm.tsx`, preserved trailing punctuation for labels and ensured full width. |
 
 

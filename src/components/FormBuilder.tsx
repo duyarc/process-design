@@ -46,6 +46,7 @@ import {
 import PrintBlankForm from './print/PrintBlankForm';
 import ConfirmModal from './common/ConfirmModal';
 import InCanvasGuidanceEditor from './form/InCanvasGuidanceEditor';
+import InCanvasLabelField from './form/InCanvasLabelField';
 import { useAuth } from '../context/AuthContext';
 
 interface FormBuilderProps {
@@ -1050,6 +1051,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
   const sectionDescRef = useRef<HTMLTextAreaElement>(null);
   const inspectorGroupTitleRef = useRef<HTMLTextAreaElement>(null);
   const [canvasExpandedGuidanceMap, setCanvasExpandedGuidanceMap] = useState<Record<string, boolean>>({});
+  const [canvasLabelPreviewMap, setCanvasLabelPreviewMap] = useState<Record<string, boolean>>({});
 
   const toggleCanvasGuidance = (fieldId: string) => {
     setCanvasExpandedGuidanceMap(prev => ({
@@ -3607,7 +3609,50 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                       transition: 'all 0.1s ease',
                                     }}
                                   >
-                                    {/* Header row: drag handle (left) + editable label + type selector (right) */}
+                                    {f.type === 'label' ? (
+                                      <InCanvasLabelField
+                                        field={f}
+                                        blockId={block.id}
+                                        fieldIndex={fIdx}
+                                        isFieldSelected={isFieldSelected}
+                                        isLocked={isLocked}
+                                        canDrag={canDrag}
+                                        isPreview={canvasLabelPreviewMap[f.id] ?? !isFieldSelected}
+                                        onTogglePreview={() => {
+                                          setCanvasLabelPreviewMap(prev => ({
+                                            ...prev,
+                                            [f.id]: !(prev[f.id] ?? !isFieldSelected)
+                                          }));
+                                        }}
+                                        onSelectField={() => {
+                                          setActiveBlockId(block.id);
+                                          setActiveFieldId(f.id);
+                                        }}
+                                        onUpdateField={(val) => handleUpdateField(block.id, f.id, { checkItem: val })}
+                                        onStartDrag={(e) => {
+                                          e.stopPropagation();
+                                          setDraggedGridField({ blockId: block.id, fieldId: f.id, index: fIdx });
+                                          e.dataTransfer.effectAllowed = 'move';
+                                        }}
+                                        isGuidanceExpanded={!!canvasExpandedGuidanceMap[f.id]}
+                                        onToggleGuidance={() => toggleCanvasGuidance(f.id)}
+                                        onUpdateGuidance={(val) => handleUpdateField(block.id, f.id, { guidance: val })}
+                                        renderTypeDropdown={
+                                          <FieldTypeDropdown
+                                            compact
+                                            disabled={isLocked}
+                                            value={f.type}
+                                            onChange={(newType) => {
+                                              setActiveBlockId(block.id);
+                                              setActiveFieldId(f.id);
+                                              handleChangeFieldType(block.id, f.id, newType);
+                                            }}
+                                          />
+                                        }
+                                      />
+                                    ) : (
+                                      <>
+                                        {/* Header row: drag handle (left) + editable label + type selector (right) */}
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '6px', width: '100%' }}>
                                       {/* GripVertical Handle */}
                                       {!isLocked && canDrag && (
@@ -3654,7 +3699,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                             whiteSpace: 'pre-wrap',
                                             wordBreak: 'break-word',
                                             fontSize: '0.8rem',
-                                            fontWeight: f.type === 'label' ? 400 : 600,
+                                            fontWeight: 600,
                                             lineHeight: 1.4,
                                             fontFamily: 'inherit',
                                             padding: '2px 4px',
@@ -3679,7 +3724,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                             gridArea: '1 / 1 / 2 / 2',
                                             width: '100%',
                                             height: '100%',
-                                            fontWeight: f.type === 'label' ? 400 : 600,
+                                            fontWeight: 600,
                                             fontSize: '0.8rem',
                                             lineHeight: 1.4,
                                             fontFamily: 'inherit',
@@ -3794,6 +3839,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                         onClose={() => toggleCanvasGuidance(f.id)}
                                       />
                                     )}
+                                  </>
+                                )}
 
                                     {/* Photo editable tip box — rendered BELOW the header row */}
                                     {f.type === 'photo' && (
@@ -6653,11 +6700,20 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                       >
                         U
                       </button>
+                      <button
+                        type="button"
+                        title="Danh sách gạch đầu dòng (•)"
+                        disabled={isLocked}
+                        onClick={() => applyTextFormat(inspectorLabelRef.current, 'bullet', activeField.checkItem, (val) => handleUpdateField(activeBlockId!, activeFieldId!, { checkItem: val }))}
+                        style={{ width: '22px', height: '22px', border: '1px solid #cbd5e1', borderRadius: '3px', background: '#ffffff', fontSize: '0.85rem', cursor: isLocked ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      >
+                        •
+                      </button>
                     </div>
                   </div>
                   <textarea
                     ref={inspectorLabelRef}
-                    rows={activeField.type === 'label' ? 3 : 2}
+                    rows={activeField.type === 'label' ? 6 : 2}
                     disabled={isLocked}
                     value={activeField.checkItem}
                     onKeyDown={(e) => handleFormatKeyDown(e, activeField.checkItem, (val) => handleUpdateField(activeBlockId!, activeFieldId!, { checkItem: val }))}

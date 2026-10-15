@@ -1617,14 +1617,14 @@ function FormFillerInner({
                           style={{ 
                             gridRow: rSpan ? `span ${rSpan}` : undefined,
                             gridColumn: cSpan && cSpan > 1 ? `span ${cSpan}` : cSpan === -1 ? '1 / -1' : undefined,
-                            display: 'flex', 
-                            alignItems: 'center',
+                            display: 'block', 
                             padding: '0.45rem 0',
+                            width: '100%'
                           }}
                         >
-                          <span style={{ fontSize: '0.82rem', fontWeight: 400, color: 'var(--text-primary)', whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.5 }}>
-                            {renderFormattedText(sanitizeLabel(field.checkItem))}
-                          </span>
+                          <div style={{ fontSize: '0.82rem', fontWeight: 400, color: 'var(--text-primary)', wordBreak: 'break-word', lineHeight: 1.5, width: '100%' }}>
+                            {renderFormattedText(field.checkItem)}
+                          </div>
                         </div>
                       );
                     }

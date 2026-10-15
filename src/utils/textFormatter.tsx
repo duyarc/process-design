@@ -9,24 +9,87 @@ export function renderFormattedText(text?: string | null): React.ReactNode {
   if (typeof text !== 'string') return String(text);
 
   // Fast-path: return plain text if no format tokens exist
-  if (!text.includes('*') && !text.includes('_') && !text.includes('<u>') && !text.includes('~') && !text.includes('\n')) {
+  if (!text.includes('*') && !text.includes('_') && !text.includes('<u>') && !text.includes('~') && !text.includes('\n') && !text.includes('•') && !text.includes('-')) {
     return text;
   }
 
-  const lines = text.split('\n');
-  return lines.map((line, lineIdx) => (
-    <React.Fragment key={lineIdx}>
-      {lineIdx > 0 && <br />}
-      {parseInlineTokens(line)}
-    </React.Fragment>
-  ));
+  // Single-line fast-path without bullet list
+  if (!text.includes('\n')) {
+    const bulletMatch = text.match(/^(\s*)([*•\-+])\s+(.*)$/);
+    if (!bulletMatch) {
+      return <>{parseInlineTokens(text)}</>;
+    }
+  }
+
+  const rawLines = text.split('\n');
+  return (
+    <div className="formatted-text-content" style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+      {rawLines.map((line, idx) => {
+        // 1. Bullet list item: starts with optional spaces + (*, •, -, +) + space
+        const bulletMatch = line.match(/^(\s*)([*•\-+])\s+(.*)$/);
+        if (bulletMatch) {
+          const indentLevel = Math.floor(bulletMatch[1].length / 2);
+          return (
+            <div
+              key={idx}
+              style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '6px',
+                marginLeft: `${indentLevel * 14}px`,
+                marginTop: idx === 0 ? 0 : '3px',
+                marginBottom: '1px',
+                lineHeight: 1.5
+              }}
+            >
+              <span style={{ color: 'var(--primary, #0d9488)', flexShrink: 0, userSelect: 'none', fontWeight: 700 }}>•</span>
+              <div style={{ flex: 1, minWidth: 0 }}>{parseInlineTokens(bulletMatch[3])}</div>
+            </div>
+          );
+        }
+
+        // 2. Indented continuation line (2+ spaces)
+        const indentMatch = line.match(/^(\s{2,})(.*)$/);
+        if (indentMatch) {
+          const indentLevel = Math.max(1, Math.floor(indentMatch[1].length / 2));
+          return (
+            <div
+              key={idx}
+              style={{
+                marginLeft: `${indentLevel * 14 + 10}px`,
+                marginTop: '1px',
+                marginBottom: '2px',
+                lineHeight: 1.5
+              }}
+            >
+              {parseInlineTokens(indentMatch[2])}
+            </div>
+          );
+        }
+
+        // 3. Empty line
+        if (!line.trim()) {
+          return <div key={idx} style={{ height: '0.45rem' }} />;
+        }
+
+        // 4. Normal paragraph line
+        return (
+          <div key={idx} style={{ lineHeight: 1.5, marginTop: idx === 0 ? 0 : '2px', marginBottom: '2px' }}>
+            {parseInlineTokens(line)}
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 function parseInlineTokens(str: string): React.ReactNode[] {
   if (!str) return [];
 
   // Match bold (**...** or __...__), underline (<u>...</u> or ~...~), and italic (*...* or _..._)
-  const tokenRegex = /(\*\*(?:[^*]+|\*(?!\*))+\*\*|__(?:[^_]+|_(?!_))+__|<u>(?:(?!<\/u>).)*<\/u>|~[^~]+~|\*(?:[^*]+)\*|_(?:[^_]+)_)/g;
+  // Note: Italic opening delimiter must not be followed by whitespace: (?!\s)
+  // Bold pattern handles optional leading/trailing spaces inside: \*\*(?:[^*]|\*(?!\*))+?\*\*
+  const tokenRegex = /(\*\*(?:[^*]|\*(?!\*))+?\*\*|__(?:[^_]|_(?!_))+?__|<u>(?:(?!<\/u>).)*?<\/u>|~[^~]+?~|\*(?!\s)(?:[^*]+?)(?<!\s)\*|_(?!\s)(?:[^_]+?)(?<!\s)_)/g;
 
   const parts = str.split(tokenRegex);
   return parts.map((part, idx) => {
@@ -65,7 +128,7 @@ function parseInlineTokens(str: string): React.ReactNode[] {
  */
 export function applyTextFormat(
   inputEl: HTMLTextAreaElement | HTMLInputElement | null,
-  formatType: 'bold' | 'italic' | 'underline',
+  formatType: 'bold' | 'italic' | 'underline' | 'bullet',
   currentValue: string,
   onChange: (newVal: string) => void
 ): void {
@@ -73,6 +136,43 @@ export function applyTextFormat(
 
   const start = inputEl.selectionStart ?? 0;
   const end = inputEl.selectionEnd ?? 0;
+
+  if (formatType === 'bullet') {
+    const lineStart = currentValue.lastIndexOf('\n', start - 1) + 1;
+    let lineEnd = currentValue.indexOf('\n', end);
+    if (lineEnd === -1) lineEnd = currentValue.length;
+
+    const linesText = currentValue.substring(lineStart, lineEnd);
+    const lines = linesText.split('\n');
+    const hasContent = lines.some(l => l.trim().length > 0);
+    const allBulleted = hasContent && lines.every(l => !l.trim() || /^\s*(\*|-|\+|•)\s/.test(l));
+
+    let transformed: string[];
+    if (allBulleted) {
+      transformed = lines.map(l => l.replace(/^(\s*)(\*|-|\+|•)\s?/, '$1'));
+    } else {
+      transformed = lines.map(l => {
+        if (/^\s*(\*|-|\+|•)\s/.test(l)) return l;
+        return l.length > 0 ? `* ${l}` : '* ';
+      });
+      if (lines.length === 1 && lines[0] === '') {
+        transformed = ['* '];
+      }
+    }
+
+    const replacement = transformed.join('\n');
+    const newValue = currentValue.substring(0, lineStart) + replacement + currentValue.substring(lineEnd);
+    const newCursorStart = lineStart + replacement.length;
+    const newCursorEnd = lineStart + replacement.length;
+
+    onChange(newValue);
+    requestAnimationFrame(() => {
+      inputEl.focus();
+      inputEl.setSelectionRange(newCursorStart, newCursorEnd);
+    });
+    return;
+  }
+
   const selectedText = currentValue.substring(start, end);
 
   let prefix = '';
@@ -159,7 +259,7 @@ export function stripMarkdownTokens(text?: string | null): string {
   if (!text) return '';
   if (typeof text !== 'string') return String(text);
 
-  if (!text.includes('*') && !text.includes('_') && !text.includes('<u>') && !text.includes('~')) {
+  if (!text.includes('*') && !text.includes('_') && !text.includes('<u>') && !text.includes('~') && !text.includes('•') && !text.includes('-')) {
     return text;
   }
 
@@ -169,7 +269,8 @@ export function stripMarkdownTokens(text?: string | null): string {
     .replace(/<\/?u>/g, '')
     .replace(/~(.*?)~/g, '$1')
     .replace(/\*(.*?)\*/g, '$1')
-    .replace(/_(.*?)_/g, '$1');
+    .replace(/_(.*?)_/g, '$1')
+    .replace(/^(\s*)[*•\-+]\s+/gm, '$1');
 }
 
 /**
