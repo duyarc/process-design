@@ -8,7 +8,7 @@
 |---|---|
 | **Module Name** | Form Operations |
 | **Status** | Active Development |
-| **Verified At Commit** | (2026-10-16) — TABLE guidance: 100% visual style parity (rounded rect 4px, light mint #f0fdfa, Chevron icons) verified against source |
+| **Verified At Commit** | (2026-10-16) — Synchronous viewMode init, userInteractedViewModeRef tracking, sections.length >= 1 relax, and SWR cache sync verified against source |
 
 ### Quick File Index
 
@@ -416,6 +416,13 @@ Fields with options (`checkbox`, `radio`, `select`) support an expandable "Khác
 - **Normalized "Other" Prefix Handling:** Compound values with the `__other__:<text>` prefix are formatted as `"[Label]: [Custom Text]"` with exactly one colon separator, eliminating technical prefix leakage (`__other__:`) and preventing duplicate colons (`Khác::`).
 - **Defense-in-Depth Print Rendering:** Default field fallbacks in `PrintFilledForm.tsx` intercept `isOtherValue` values automatically, guaranteeing raw storage prefixes never appear on printed documents regardless of block type.
 
+### 6.9 Synchronous Focus Mode Initialization & SWR Cache Synchronization
+
+- **Synchronous Default Mode (`viewMode`):** `FormFiller.tsx` initializes `viewMode` state synchronously via lazy initializer function inspecting `preloadedFormTemplate` and `initialCache.process` (`rawFormTemplate.defaultFocusMode === true`). Guarantees 0ms immediate render in Focus mode without flickering or defaulting to continuous view.
+- **Dynamic Live DB Resynchronization (`userInteractedViewModeRef`):** Replaced one-shot `hasInitializedViewMode` ref with `userInteractedViewModeRef = useRef(false)`. If an operator has not explicitly toggled the mode, any background SWR revalidation (`fetchProcess`) updating `rawFormTemplate` will seamlessly synchronize `viewMode` to `rawFormTemplate.defaultFocusMode`. User interaction permanently preserves operator choice.
+- **SWR Cache Synchronization Across Modules:** `FormBuilder.tsx` and `ProcessEditor.tsx` now synchronously update `sessionStorage.getItem('swr_forms')` on form save (`saveFormToBackend`, `onSave`), ensuring instant paint always receives fresh `default_focus_mode` metadata.
+- **Section Threshold Relaxation:** `sections.length >= 1` allows single-section forms with H2 sub-sections or standalone sections to cleanly render in Focus accordion mode.
+
 ---
 
 ## 7. Known Design Constraints & Technical Debt
@@ -429,7 +436,7 @@ Fields with options (`checkbox`, `radio`, `select`) support an expandable "Khác
 | **Photo evidence keys not tracked by submission ID** | Storage management is difficult | Photos are uploaded to R2 using the `processId` and `formName` as path prefix — not scoped to the submission ID. Orphaned photos cannot easily be detected or cleaned up |
 | **Operator ID is free-text, not authenticated** | Attributability is not verified | The `operatorId` field accepts any string. There is no tie to the authenticated `currentUser` — an operator can enter any name |
 | **Supervisor name pre-fill is role-based but unverified** | Supervisor sign-off can be made by anyone who types a name | `supervisorName` is pre-filled from `currentUser.full_name` if role is `admin` or `supervisor`, but the field is editable and there is no server-side permission check on the signoff endpoint |
-| **Form template resolved from `workflowFormsData`** | Stale template risk | FormFiller and FormManager read the form layout from `process.workflowFormsData[formName]`, which may be an older snapshot if the form was updated after the process version was saved. The live template from `GET /api/forms/:formId` is only used in `unlinked` mode |
+| **Form template resolved from `workflowFormsData`** | Stale template risk mitigated | Background SWR revalidation in `FormFiller` parallel-fetches `/api/forms/:id` and updates virtual process state. FormBuilder and ProcessEditor synchronize `sessionStorage` (`swr_forms`) on save. |
 
 ---
 
@@ -440,7 +447,6 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 
 | Date | Commit | Change |
 |---|---|---|
-| 2026-09-30 | `CURRENT` | **Visual Frame Alignment & Toolbar Hoisting (Direction 1):** (1) Added `hideToolbar`, `externalSearchTerm`, `externalProcessFilter`, and `externalSignoffFilter` props to `SubmissionManager`. (2) Supported hoisted parent toolbar from `Dashboard.tsx`, eliminating redundant nested card and unifying vertical spacing rhythm to 1.25rem (20px). |
 | 2026-09-30 | `CURRENT` | **Visual Parity & English UI Harmonization (`SubmissionManager`):** (1) Added `accent-teal` class to form group accordion cards in `SubmissionManager.tsx`, aligning the top teal gradient line across Processes, Forms, Submissions, and Reports. (2) Harmonized status badges to 100% English: `Verified` and `Pending Review`. (3) Harmonized accordion header buttons and labels to `+ Fill Form` and `Process:`. (4) Translated loading and empty state feedback strings to English. |
 | 2026-09-30 | `CURRENT` | **FormFiller SWR Instant Paint & Single Process Endpoint:** (1) Implemented synchronous SWR instant paint in `FormFiller.tsx`: initializes `process` and `loading = false` synchronously via `initialCache` from `preloadedFormTemplate` or `sessionStorage` (`swr_forms`, `swr_processes`), eliminating the blank "Loading digital template form..." screen for all in-app navigation (0ms render). (2) Added `GET /api/processes/:id` in `server.cjs` returning single process + process_forms, replacing multi-megabyte full-table database scan (`SELECT * FROM processes`). (3) Parallelized `fetchProcess` network calls via `Promise.all([fetchForm, fetchProcessSingle])`, dropping cold load latency from ~3.5s to ~300ms. (4) Extracted pure utility `buildVirtualProcess` and pruned ~90 lines of duplicated code. |
 | 2026-10-13 | `CURRENT` | **INFO_GRID Label Typography & Long Text Wrapping (`FormFiller`, `PrintFilledForm`):** (1) In `FormFiller.tsx`, upgraded `INFO_GRID` field label typography from `0.78rem` muted text to `0.82rem` (`fontWeight: 500`, `var(--text-primary)`, `whiteSpace: 'pre-wrap'`, `wordBreak: 'break-word'`) for survey readability. (2) In `PrintFilledForm.tsx`, added `isLongTextLabel` wrapping for single-line text/number fields (`length > 45` or multiline) stacking answer lines vertically with `100%` width, and wrapped `OPTION_A` checkbox/radio options when length exceeds 45 characters. |
@@ -455,6 +461,7 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 | 2026-10-16 | `CURRENT` | **Image Width Modes Parity & Print Integration (`FormFiller`, `PrintFilledForm`, `PrintScoring`):** (1) In `FormFiller.tsx`, updated `field.type === 'image'` rendering to respect `field.imageWidthMode`: eliminated `maxHeight: 220px` clamp for `full` mode allowing 100% margin stretch (`width: 100%`, `height: auto`), supported `bleed` (borderless full-bleed) and `fit` (constrained proportional width). (2) In `PrintFilledForm.tsx` and `PrintScoring.tsx`, standardized full-width image rendering with `height: auto` and proportional aspect ratio constraints. |
 | 2026-10-16 | `CURRENT` | **TABLE Block & Row Guidance Interactive Display (`FormFiller`):** (1) In `FormFiller.tsx`, added block-level guidance banner under table header rendering formatted markdown (`block.description \|\| block.guidance`). (2) Added interactive row guidance accordion button `[ 💡 Hướng dẫn ▾/▴ ]` in table host cell (`getTableItemColumnId`), expanding formatted guidance box with teal accent border (`#0d9488`). State managed via `expandedGuidanceMap` with key `${block.id}_${row.id}`. (3) Set `verticalAlign: 'top'` on host cells with guidance for natural multi-line reading flow. |
 | 2026-10-16 | `CURRENT` | **Collapsible TABLE Block Guidance Accordion (`FormFiller`):** (1) In `FormFiller.tsx`, added `[ 💡 Hướng dẫn ▾/▴ ]` accordion button beside table title (or above table when title is hidden), allowing operators to expand/collapse table-level guidance on demand. (2) Aligned 100% visual style parity with `INFO_GRID`: `borderRadius: '4px'`, `background: '#f0fdfa'`, `color: '#0f766e'`, and `ChevronUp`/`ChevronDown` icons. (3) Maintained state via `expandedGuidanceMap[block.id]`, keeping table header clean by default. |
+| 2026-10-16 | `CURRENT` | **Synchronous Focus Mode Init & SWR Cache Synchronization (`FormFiller`, `FormBuilder`, `ProcessEditor`):** (1) In `FormFiller.tsx`, initialized `viewMode` state synchronously from `preloadedFormTemplate` / `initialCache`, eliminating stale cache traps and render flickers. (2) Replaced one-shot `hasInitializedViewMode` guard with `userInteractedViewModeRef` allowing background DB revalidation to activate default focus mode unless operator manually toggles view mode. (3) Relaxed Focus mode render and toggle guard to `sections.length >= 1`. (4) Enabled non-blocking SWR background revalidation when `preloadedFormTemplate` is provided. (5) In `FormBuilder.tsx` and `ProcessEditor.tsx`, synchronized `sessionStorage` (`swr_forms`) on form save. |
 
 
 

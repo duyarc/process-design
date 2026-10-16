@@ -3027,6 +3027,34 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
               return [updatedRecord, ...filtered];
             });
 
+            // Sync swr_forms in sessionStorage
+            try {
+              const cachedRaw = sessionStorage.getItem('swr_forms');
+              if (cachedRaw) {
+                const cachedForms: any[] = JSON.parse(cachedRaw);
+                const idx = cachedForms.findIndex((f: any) => f.form_id === savedFormData.formId || f.formId === savedFormData.formId);
+                const cacheRecord = {
+                  ...(idx >= 0 ? cachedForms[idx] : {}),
+                  form_id: savedFormData.formId,
+                  form_name: savedFormData.formId,
+                  form_title: savedFormData.formTitle,
+                  version: savedFormData.version,
+                  status: savedFormData.status,
+                  page_size: savedFormData.pageSize,
+                  is_public: savedFormData.isPublic,
+                  default_focus_mode: savedFormData.defaultFocusMode,
+                  defaultFocusMode: savedFormData.defaultFocusMode,
+                  updated_at: new Date().toISOString()
+                };
+                if (idx >= 0) {
+                  cachedForms[idx] = cacheRecord;
+                } else {
+                  cachedForms.unshift(cacheRecord);
+                }
+                sessionStorage.setItem('swr_forms', JSON.stringify(cachedForms));
+              }
+            } catch (_) {}
+
             // 4. Tự động lưu Process ngầm (auto-save)
             if (processId && processId !== 'unlinked') {
               await handleSave(nextFormsData, true);

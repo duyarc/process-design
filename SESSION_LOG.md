@@ -32,10 +32,34 @@ phiên thực thi để không lặp lại lỗi cũ.
 | 34 | `LOGIC` | Khóa cứng thao tác xóa trên nút bấm (`disabled={... \|\| block.type === 'TITLE'}`) trong khi vẫn để màu kích hoạt đỏ (`var(--danger)`) gây nghịch lý giao diện (nút nhìn bấm được nhưng không phản hồi); ngoài ra `formTitle` vốn là thuộc tính độc lập lưu trong DB chứ không phụ thuộc vào sự tồn tại của khối TITLE trên canvas | Khi vô hiệu hóa nút bấm, luôn chuyển màu sắc sang `var(--text-muted)` và kiểm tra tính độc lập của dữ liệu trước khi áp đặt các ràng buộc cấm xóa cứng nhắc | 1 |
 | 35 | `LOGIC` | `InCanvasImageField` thiếu `processId` và `formName` trong request body của presign-upload, server trả HTTP 400, component fallback sang base64 nhúng trực tiếp multi-MB vào `layoutBlocks` → cascading slow save qua `onSave` → `ProcessEditor` auto-save process chứa toàn bộ JSONB | Khi tích hợp sub-component upload ảnh, luôn truyền đủ context (`processId`, `formName`/`formId`) để presign-upload hoạt động đúng; kiểm tra Network tab xác nhận presign thành công trước khi cho rằng upload OK | 1 |
 | 36 | `LOGIC` | Khối TABLE có schema cột đa dạng (STT, Tiêu chí, Kết quả, Ghi chú) nếu hardcode ID cột hiển thị hướng dẫn (`col_item`, col 1) sẽ bị lệch hoặc nhân bản nút accordion sang mọi cột | Dùng pure utility `getTableItemColumnId` ưu tiên nhận diện cột nội dung chính (`col_item`/`item`/`name`/`content` ➔ `static_text` ➔ col 1 ➔ col 0) để neo duy nhất 1 nút accordion cho mỗi dòng | 1 |
+| 37 | `LOGIC` | Dùng cờ `useRef(false)` một chiều (`hasInitializedViewMode`) khoá cứng `viewMode = 'all'` ngay từ lần tick đầu tiên khi nạp cache SWR ban đầu, khiến việc revalidation ngầm từ DB (`default_focus_mode = true`) bị bỏ qua; đồng thời không đồng bộ cache `swr_forms` trong `sessionStorage` sau khi lưu form trong `FormBuilder` | Khởi tạo state đồng bộ từ `preloadedFormTemplate`/`initialCache`; thay thế guard một chiều bằng tracking tương tác người dùng (`userInteractedRef`) để luôn đồng bộ với DB trừ khi người dùng chủ động bấm toggle; luôn cập nhật `sessionStorage` (`swr_forms`) ngay khi lưu biểu mẫu | 1 |
 
 ---
 
 ## Nhật ký Phiên
+
+### 2026-10-16 — Khắc phục Lỗi Kích hoạt Default Focus Mode (`FormFiller`, `FormBuilder`, `ProcessEditor`)
+
+**Scope:** 3 source files (`src/components/FormFiller.tsx`, `src/components/FormBuilder.tsx`, `src/components/ProcessEditor.tsx`) + 2 design docs (`DESIGN_FORM_OPERATIONS.md`, `DESIGN_FORM_DESIGNER.md`).
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa | 3 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 3 (`npx tsc --noEmit` x2 pass 100%, `npm run build` pass 10.70s) |
+| Lần build đầu thành công? | Có |
+
+**Kết quả đạt được:**
+- **Khởi tạo Đồng bộ Trực tiếp Chế độ Xem (`FormFiller.tsx`):**
+  - Khởi tạo `viewMode` đồng bộ theo lazy initializer từ `preloadedFormTemplate` hoặc `initialCache.process` (`defaultFocusMode === true`), loại bỏ hoàn toàn render flash và trạng thái default sai lệch.
+- **Tracking Tương tác Người dùng (`userInteractedViewModeRef`):**
+  - Thay thế guard một lần `hasInitializedViewMode` bằng `userInteractedViewModeRef`. Dữ liệu SWR revalidation từ DB tự động đồng bộ chế độ Focus Mode mặc định trừ khi người dùng đã chủ động bấm nút toggle.
+- **Nới lỏng Ngưỡng Kiểm tra Phân đoạn (`sections.length >= 1`):**
+  - Cho phép biểu mẫu có 1 section H1 (kèm các sub-section H2) kích hoạt giao diện phân đoạn accordion và hiển thị công tắc Focus mode trên thanh công cụ.
+- **Mở khóa SWR Background Revalidation khi có `preloadedFormTemplate`:**
+  - Loại bỏ early return chặn fetch ngầm trong `fetchProcess`, đảm bảo dữ liệu mới nhất từ máy chủ luôn được đồng bộ.
+- **Đồng bộ Cache `sessionStorage` (`swr_forms`):**
+  - Tự động cập nhật bản ghi cache trong `FormBuilder.tsx` (`saveFormToBackend`) và `ProcessEditor.tsx` (`onSave`) ngay khi lưu thành công, đảm bảo các lần mở biểu mẫu sau đó nhận diện tức thì `default_focus_mode: true`.
 
 ### 2026-10-16 — Thống nhất Trình Soạn thảo & Hiển thị Hướng dẫn Khối Bảng (Unified Table Guidance Accordion)
 

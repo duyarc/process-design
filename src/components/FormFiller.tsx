@@ -584,16 +584,25 @@ function FormFillerInner({
   // ── Section Grouping & Focus / Accordion Mode ──
   const [activeSectionIndex, setActiveSectionIndex] = useState<number>(0);
   const [activeSubSectionMap, setActiveSubSectionMap] = useState<Record<number, number | null>>({ 0: 0 });
-  const [viewMode, setViewMode] = useState<'focus' | 'all'>('all');
-  const hasInitializedViewMode = useRef(false);
+  // Initialize viewMode synchronously from preloaded / cached form template if available
+  const [viewMode, setViewMode] = useState<'focus' | 'all'>(() => {
+    const initTpl = preloadedFormTemplate || (initialCache.process?.workflowFormsData?.[formName] as FormTemplateISO | undefined);
+    const isDefault = initTpl?.defaultFocusMode === true || (initTpl as any)?.default_focus_mode === true;
+    return isDefault ? 'focus' : 'all';
+  });
+  const userInteractedViewModeRef = useRef(false);
 
   useEffect(() => {
-    if (rawFormTemplate && !hasInitializedViewMode.current) {
-      hasInitializedViewMode.current = true;
+    if (rawFormTemplate && !userInteractedViewModeRef.current) {
       const isDefaultFocus = rawFormTemplate.defaultFocusMode === true || (rawFormTemplate as any)?.default_focus_mode === true;
       setViewMode(isDefaultFocus ? 'focus' : 'all');
     }
   }, [rawFormTemplate]);
+
+  const handleToggleViewMode = () => {
+    userInteractedViewModeRef.current = true;
+    setViewMode(prev => prev === 'focus' ? 'all' : 'focus');
+  };
 
   const { preambleBlocks, sections, postambleBlocks } = useMemo(() => {
     if (!rawFormTemplate?.layoutBlocks) return { preambleBlocks: [], sections: [], postambleBlocks: [] };
@@ -793,10 +802,9 @@ function FormFillerInner({
         setLoading(true);
       }
 
-      // Fast path: if preloadedFormTemplate was passed, we're already initialized
-      if (preloadedFormTemplate && process) {
+      // Fast path: if preloadedFormTemplate was passed, instant paint is ready; revalidate in background
+      if (preloadedFormTemplate && process && !isBackgroundRevalidate) {
         setLoading(false);
-        return;
       }
 
       // Parallel fetch: fetch form layout + single process details concurrently
@@ -3625,17 +3633,17 @@ function FormFillerInner({
           {/* Right Actions: Focus mode + Dynamic Link Box + Print + Edit */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'nowrap', flexShrink: 0 }}>
             {/* Focus Mode Switch Toggle - Only in Form tab */}
-            {submissionTab === 'form' && sections.length > 1 && (
+            {submissionTab === 'form' && sections.length >= 1 && (
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', marginRight: '0.15rem' }}>
                 <label
-                  onClick={() => setViewMode(prev => prev === 'focus' ? 'all' : 'focus')}
+                  onClick={handleToggleViewMode}
                   style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.78rem', margin: 0, cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}
                 >
                   Focus mode
                 </label>
                 <button
                   type="button"
-                  onClick={() => setViewMode(prev => prev === 'focus' ? 'all' : 'focus')}
+                  onClick={handleToggleViewMode}
                   style={{
                     width: '30px',
                     height: '16px',
@@ -3870,17 +3878,17 @@ function FormFillerInner({
 
           <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center', flexWrap: 'nowrap', flexShrink: 0 }}>
             {/* Focus Mode Switch Toggle */}
-            {sections.length > 1 && (
+            {sections.length >= 1 && (
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginRight: '0.25rem' }}>
                 <label
-                  onClick={() => setViewMode(prev => prev === 'focus' ? 'all' : 'focus')}
+                  onClick={handleToggleViewMode}
                   style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.8rem', margin: 0, cursor: 'pointer', userSelect: 'none' }}
                 >
                   Focus mode
                 </label>
                 <button
                   type="button"
-                  onClick={() => setViewMode(prev => prev === 'focus' ? 'all' : 'focus')}
+                  onClick={handleToggleViewMode}
                   style={{
                     width: '32px',
                     height: '18px',
@@ -4038,7 +4046,7 @@ function FormFillerInner({
             <div className="paper-card" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '0px' }}>
               
               {/* Checklist Groups / Sections */}
-              {viewMode === 'focus' && sections.length > 1 ? (
+              {viewMode === 'focus' && sections.length >= 1 ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0px' }}>
                   {/* 1. PREAMBLE (Mở đầu - Luôn Uncollapsed) */}
                   {preambleBlocks && preambleBlocks.length > 0 && (

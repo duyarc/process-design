@@ -1327,6 +1327,38 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
       }
       
       const savedForm = await res.json();
+      try {
+        const cachedRaw = sessionStorage.getItem('swr_forms');
+        if (cachedRaw) {
+          const cachedForms: any[] = JSON.parse(cachedRaw);
+          const idx = cachedForms.findIndex((f: any) => f.form_id === formId || f.formId === formId);
+          const updatedBlocks = opts.layoutBlocksOverride ?? layoutBlocks;
+          const formRecord = {
+            ...(idx >= 0 ? cachedForms[idx] : {}),
+            ...savedForm,
+            form_id: formId,
+            form_name: formId,
+            form_title: formTitle,
+            version: activeVersion,
+            status: activeStatus,
+            page_size: pageSize,
+            is_public: isPublic,
+            default_focus_mode: defaultFocusMode,
+            defaultFocusMode: defaultFocusMode,
+            layout_blocks: updatedBlocks,
+            layoutBlocks: updatedBlocks,
+            updated_at: new Date().toISOString()
+          };
+          if (idx >= 0) {
+            cachedForms[idx] = formRecord;
+          } else {
+            cachedForms.unshift(formRecord);
+          }
+          sessionStorage.setItem('swr_forms', JSON.stringify(cachedForms));
+        }
+      } catch (cacheErr) {
+        console.warn('Could not update swr_forms in sessionStorage:', cacheErr);
+      }
       return savedForm;
     } catch (err) {
       console.error(err);
