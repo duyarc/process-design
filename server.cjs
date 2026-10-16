@@ -2134,6 +2134,37 @@ app.get('/api/storage/logos', async (req, res) => {
   }
 });
 
+// GET /api/storage/images - List all image files in R2 storage
+app.get('/api/storage/images', async (req, res) => {
+  try {
+    if (!r2Client) {
+      return res.json({ images: [] });
+    }
+    const command = new ListObjectsV2Command({
+      Bucket: R2_BUCKET_NAME,
+      Prefix: 'uploads/',
+    });
+    const s3Res = await r2Client.send(command);
+    const validImageExts = ['.png', '.jpg', '.jpeg', '.webp', '.svg', '.gif', '.bmp'];
+    const items = (s3Res.Contents || []).filter(item => {
+      const lower = (item.Key || '').toLowerCase();
+      return validImageExts.some(ext => lower.endsWith(ext));
+    });
+
+    const images = items.map(item => ({
+      key: item.Key,
+      name: item.Key.split('/').pop() || item.Key,
+      size: item.Size || 0,
+      lastModified: item.LastModified ? item.LastModified.toISOString() : new Date().toISOString()
+    }));
+
+    res.json({ images });
+  } catch (err) {
+    console.error('Error listing image files:', err);
+    res.status(500).json({ error: 'Failed to list image files' });
+  }
+});
+
 // DELETE /api/storage/logos - Delete an unused logo from R2 storage
 app.delete('/api/storage/logos', async (req, res) => {
   try {

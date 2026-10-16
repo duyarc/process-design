@@ -12,7 +12,6 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 | # | Nhóm | Lỗi | Biện pháp phòng ngừa | Lần gặp |
 |---|---|---|---|---|
-| 13 | `LOGIC` | `updateRuleOverride` silent abort khi `layoutBlocks` rỗng hoặc chưa gán trường vào khối khiến controlled inputs (Score, Weight) không thể chỉnh sửa | Xây dựng Smart Target Block Resolution (5 tầng ưu tiên) kết hợp Auto-Initialization khối Table cho Section H2 | 1 |
 | 14 | `BLOAT` | Trích xuất utility tổng hợp điểm (`summarizeH1ChildGroups`) nhưng vẫn import hàm con (`computeH1CombinedScore`) vào component cha → TS6133 unused import | Khi bọc logic vào pure utility cấp cao hơn, xóa ngay các imports cấp thấp không còn được gọi trực tiếp trong component | 1 |
 | 15 | `LOGIC` | Gọi `form.title` thay vì `form.formTitle` trên `FormTemplateISO` hoặc truyền Raw Block ID từ `FormReferenceCanvas` vào `setActiveBlockId` mà không ánh xạ sang `template.layoutBlocks` | Luôn kiểm tra tên trường chuẩn (`formTitle` vs `reportTitle`) và ánh xạ qua `handleSelectBlockFromFormCanvas` để đồng bộ ID khối giữa Form gốc và Report template | 1 |
 | 16 | `BLOAT` | Thay thế sub-layout cũ (như thanh toolbar text format) làm sót import helper (`applyTextFormat`) ở đầu file → TS6133 unused import khi build production | Khi dọn dẹp cụm UI/control cũ, kiểm tra ngay đầu file để loại bỏ import của các helper chỉ dùng riêng cho control đó | 1 |
@@ -32,10 +31,29 @@ phiên thực thi để không lặp lại lỗi cũ.
 | 30 | `BLOAT` | Nhập liệu nội dung hướng dẫn dài trên sidebar hẹp sinh thanh cuộn dọc kép và bắt buộc cuộn trang | Tách sub-component In-Canvas Accordion Editor với CSS Grid auto-grow textarea, cho phép xem và sửa trực tiếp ngay tại vị trí câu hỏi trên Canvas (Rule 13.9) | 1 |
 | 31 | `LOGIC` | Regex in nghiêng `\*(?:[^*]+)\*` nuốt dấu hoa thị đầu dòng bullet list (`* **Bold**`) thành in nghiêng lỗi | Áp dụng lookahead/lookbehind nghiêm ngặt `\*(?!\s)(?:[^*]+?)(?<!\s)\*` và xử lý phân cấp 2 tầng: tách dòng bullet (`* `, `- `, `+ `, `• `) trước, parse inline markdown sau | 1 |
 | 32 | `SCOPE` | Khi thêm trường mới vào `FormFieldISO.type`, nếu chỉ cập nhật union type cục bộ mà quên thêm vào chữ ký tham số `newType` của `handleChangeFieldType` trong component monolith thì `tsc -b` sẽ báo TS2367 ("no overlap") và TS2345 tại các call-site dropdown | Luôn đồng bộ union type của hàm đổi loại trường (`handleChangeFieldType`) cùng lúc với `FormFieldISO['type']` hoặc gán trực tiếp `newType: FormFieldISO['type']` | 1 |
+| 33 | `LOGIC` | Giới hạn cứng `maxHeight: '200px'`/`'220px'` kết hợp `alignItems: 'center'` trên ảnh tỷ lệ rộng (banner 4:1) khiến ảnh bị bóp hẹp chiều ngang (~800px) tạo 2 dải lề trắng lớn bên trái và phải | Bỏ trần `maxHeight` cứng khi ở chế độ banner/full, đặt `width: '100%'` và `height: 'auto'` kết hợp các chế độ độ rộng `imageWidthMode` ('full' \| 'bleed' \| 'fit') để ảnh dãn bằng phẳng 100% với lề văn bản | 1 |
 
 ---
 
 ## Nhật ký Phiên
+
+### 2026-10-16 — Bổ sung Thư viện Ảnh (Image Gallery Modal) & Giải pháp Dãn Ảnh Tràn Lề Ngang (Full Width Mode)
+
+**Scope:** 8 source files (`src/types.ts`, `server.cjs`, `src/components/form/ImageGalleryModal.tsx` [NEW], `src/components/form/InCanvasImageField.tsx`, `src/components/FormBuilder.tsx`, `src/components/FormFiller.tsx`, `src/components/print/PrintBlankForm.tsx`, `src/components/print/PrintFilledForm.tsx`, `src/components/print/PrintScoring.tsx`) + 3 design docs (`DESIGN_FORM_DESIGNER.md`, `DESIGN_FORM_OPERATIONS.md`, `DESIGN_BACKEND.md`).
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa / tạo mới | 8 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 1 (`tsc -b && vite build` pass 100% 9.45s) |
+| Lần build đầu thành công? | Có |
+
+**Kết quả đạt được:**
+- **Giải quyết Triệt để Vấn đề Co Lề Ảnh (Banner Horizontal Stretch):** Chuẩn đoán nguyên nhân gốc rễ do `maxHeight: '200px'`/`'220px'` kết hợp `alignItems: 'center'` bóp hẹp ảnh 4.2:1 xuống ~800px. Bổ sung `imageWidthMode?: 'full' | 'bleed' | 'fit'` vào `FormFieldISO`, đặt `width: '100%'`, `height: 'auto'`, loại bỏ trần `maxHeight` cho chế độ `full` (mặc định cho banner) giúp dãn phẳng 100% khớp tuyệt đối với lề tiêu đề và văn bản bên trên/dưới.
+- **Sub-component `ImageGalleryModal` (Rule 4.3 Monolith Guard):** Tạo modal thư viện ảnh dùng chung trong `src/components/form/` với ô tìm kiếm tên file, lưới thumbnail ảnh R2, kích thước file, badge nhận diện ảnh đang chọn, và nút tải ảnh mới trực tiếp.
+- **Backend API (`server.cjs`):** Bổ sung endpoint `GET /api/storage/images` duyệt tìm các tệp có đuôi ảnh (`.png`, `.jpg`, `.jpeg`, `.webp`, `.svg`, `.gif`, `.bmp`) từ Cloudflare R2 bucket.
+- **Form Designer Canvas & Right Inspector:** Cập nhật `InCanvasImageField.tsx` với dải nút độ rộng `[ 100% Lề ]` / `[ Tràn mép ]` / `[ Thu nhỏ ]` và nút `[ 📁 Thư viện ]` mở Image Gallery. Đồng bộ cấu hình tương ứng trên Right Inspector của `FormBuilder.tsx`.
+- **Form Operations & Print Out Đồng bộ:** `FormFiller.tsx` hỗ trợ render ảnh theo cả 3 chế độ độ rộng kèm Lightbox phóng to. Các component in ấn (`PrintBlankForm.tsx`, `PrintFilledForm.tsx`, `PrintScoring.tsx`) dãn phẳng toàn bộ chiều rộng trang với `height: 'auto'`.
 
 ### 2026-10-16 — Bổ sung Trường Hình ảnh (Image Field Type), Tỷ lệ Khung hình Banner & Lightbox Phóng to
 
@@ -206,20 +224,5 @@ phiên thực thi để không lặp lại lỗi cũ.
 - **Nâng cấp Thứ tự Lớp (Dynamic Stacking Elevation):** Bổ sung thuộc tính `zIndex: isGroupActive ? 30 : 1` (kèm `position: 'relative'`) trên thẻ `.paper-card` bao bọc, bảo đảm dropdown menu khi mở tràn xuống dưới sẽ nổi hoàn toàn lên trên các thẻ quy trình / biểu mẫu kế tiếp mà không bị che khuất.
 - **Bảo toàn 100% Chức năng & Không phát sinh Rework:** Giữ nguyên các chức năng xem lịch sử nộp, in phôi trắng, xuất PDF, nhân bản biểu mẫu, cấu hình báo cáo, và cơ chế đóng tự động khi click ra ngoài.
 
-### 2026-10-13 — Chuẩn hóa Kiểu chữ, Lề trang & Bố cục `3S-FA02` theo Hệ thống (Phương án 3 Hybrid)
-
-**Scope:** 4 source files (`PrintBlankForm.tsx`, `PrintFilledForm.tsx`, `PrintScoring.tsx`, `FormFiller.tsx`) + 1 seed script (`scripts/seedFactoryAssessmentForm.cjs`) + 3 design docs (`DESIGN_FORM_DESIGNER.md`, `DESIGN_FORM_OPERATIONS.md`, `DESIGN_REPORT_BUILDER.md`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Số file nguồn chỉnh sửa | 5 (`PrintBlankForm`, `PrintFilledForm`, `PrintScoring`, `FormFiller`, `seedFactoryAssessmentForm.cjs`) |
-| Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 2 (`npx tsc --noEmit` pass 100%, `npm run build` pass 10.64s) |
-| Lần build đầu thành công? | Có |
-
-**Kết quả đạt được:**
-- **Sửa tận gốc lỗi ép co trang in A4 (`PrintBlankForm`, `PrintFilledForm`, `PrintScoring`):** Thêm cơ chế `isLongTextLabel` (`cleanLabel.length > 45 || cleanLabel.includes('\n')`) cho các trường `text`/`number` một dòng trong `INFO_GRID` để tự động ngắt dòng nhãn (`whiteSpace: 'pre-wrap'`, `wordBreak: 'break-word'`) và xếp dòng kẻ chấm trả lời xuống dưới (`width: '100%'`), đồng thời cho phép nhãn `OPTION_A` `checkbox`/`radio` dài hơn 45 ký tự tự xuống dòng. Loại bỏ hoàn toàn hiện tượng `.print-outer-table` phình ra 1.250px làm trình duyệt thu nhỏ tỷ lệ in xuống 55%.
-- **Chuẩn hóa Typography trên màn hình điền biểu mẫu (`FormFiller`):** Nâng cấp nhãn câu hỏi trong `INFO_GRID` từ `0.78rem` (`fontWeight: 400`, `var(--text-secondary)`) lên chuẩn hệ thống `0.82rem` (`fontWeight: 500`, `var(--text-primary)`, `whiteSpace: 'pre-wrap'`) và nhãn tùy chọn `checkbox` lên `0.82rem`.
-- **Nâng cấp Cấu trúc Biểu mẫu `3S-FA02` (`seedFactoryAssessmentForm.cjs`):** Chuyển đổi 4 bảng danh sách nhiều cột (`Đại diện doanh nghiệp làm việc`, `Sản phẩm / nhóm sản phẩm chính`, `Danh sách thiết bị chính`, `Doanh nghiệp đang có Chứng nhận Hệ thống Quản lý ATTP đang còn hiệu lực?`) từ `subtable` sang các khối `TABLE` (`borderStyle: 'grid'`, `titleFormat: 'H2'`) cấp cao nhất; tách tiêu đề 8 phần chính và tiểu mục thành các khối `SECTION_LABEL` (`H1`/`H2`). Đồng bộ thành công 28 blocks và 79 fields vào PostgreSQL.
 
 

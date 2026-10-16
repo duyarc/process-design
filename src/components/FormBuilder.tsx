@@ -49,6 +49,7 @@ import ConfirmModal from './common/ConfirmModal';
 import InCanvasGuidanceEditor from './form/InCanvasGuidanceEditor';
 import InCanvasLabelField from './form/InCanvasLabelField';
 import InCanvasImageField from './form/InCanvasImageField';
+import ImageGalleryModal from './form/ImageGalleryModal';
 import { useAuth } from '../context/AuthContext';
 
 interface FormBuilderProps {
@@ -1323,6 +1324,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
   }, [titleBlockLogo]);
 
   const [showLogoGallery, setShowLogoGallery] = useState(false);
+  const [showInspectorImageGallery, setShowInspectorImageGallery] = useState(false);
   const [resolvedLogos, setResolvedLogos] = useState<{[key: string]: string}>({});
 
   // Copy section states
@@ -6813,7 +6815,60 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                      <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.78rem' }}>Đường dẫn ảnh (URL hoặc Key)</label>
+                      <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.78rem' }}>Độ rộng hiển thị (Width Mode)</label>
+                      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                        {[
+                          { value: 'full', label: '100% Lề' },
+                          { value: 'bleed', label: 'Tràn mép' },
+                          { value: 'fit', label: 'Thu nhỏ' }
+                        ].map((wm) => {
+                          const isAct = (activeField.imageWidthMode || 'full') === wm.value;
+                          return (
+                            <button
+                              key={wm.value}
+                              type="button"
+                              disabled={isLocked}
+                              onClick={() => handleUpdateField(activeBlockId!, activeFieldId!, { imageWidthMode: wm.value as any })}
+                              style={{
+                                fontSize: '0.7rem',
+                                padding: '2px 8px',
+                                borderRadius: '3px',
+                                border: isAct ? '1.5px solid var(--primary)' : '1px solid #cbd5e1',
+                                background: isAct ? 'rgba(16, 163, 163, 0.1)' : '#ffffff',
+                                color: isAct ? 'var(--primary)' : '#475569',
+                                fontWeight: isAct ? 600 : 400,
+                                cursor: 'pointer'
+                              }}
+                            >
+                              {wm.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.78rem' }}>Đường dẫn ảnh (URL hoặc Key)</label>
+                        <button
+                          type="button"
+                          disabled={isLocked}
+                          onClick={() => setShowInspectorImageGallery(true)}
+                          style={{
+                            border: 'none',
+                            background: 'none',
+                            color: 'var(--primary)',
+                            fontSize: '0.7rem',
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '2px',
+                            textDecoration: 'underline'
+                          }}
+                        >
+                          Chọn từ thư viện
+                        </button>
+                      </div>
                       <input
                         type="text"
                         disabled={isLocked}
@@ -10530,6 +10585,18 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
         variant="success"
         onConfirm={() => setPublishedVersionModal(null)}
         onCancel={() => setPublishedVersionModal(null)}
+      />
+
+      <ImageGalleryModal
+        isOpen={showInspectorImageGallery}
+        onClose={() => setShowInspectorImageGallery(false)}
+        onSelectImage={(imageUrlOrKey) => {
+          if (activeBlockId && activeFieldId) {
+            handleUpdateField(activeBlockId, activeFieldId, { imageUrl: imageUrlOrKey });
+          }
+          setShowInspectorImageGallery(false);
+        }}
+        currentValue={activeField?.imageUrl}
       />
     </div>
   );

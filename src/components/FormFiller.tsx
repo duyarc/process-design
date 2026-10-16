@@ -1643,6 +1643,28 @@ function FormFillerInner({
 
                     if (field.type === 'image') {
                       const resolvedSrc = resolveImageSrc(field.imageUrl);
+                      const widthMode = field.imageWidthMode || 'full';
+                      const isBleed = widthMode === 'bleed';
+                      const isFit = widthMode === 'fit';
+
+                      const imgStyle: React.CSSProperties = isFit ? {
+                        maxWidth: '480px',
+                        width: '100%',
+                        aspectRatio: field.imageAspectRatio === '16:9' ? '16/9' : field.imageAspectRatio === '4:3' ? '4/3' : field.imageAspectRatio === '1:1' ? '1/1' : undefined,
+                        objectFit: 'contain',
+                        borderRadius: '4px',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+                        cursor: 'zoom-in'
+                      } : {
+                        width: '100%',
+                        height: 'auto',
+                        aspectRatio: field.imageAspectRatio === '16:9' ? '16/9' : field.imageAspectRatio === '4:3' ? '4/3' : field.imageAspectRatio === '1:1' ? '1/1' : undefined,
+                        objectFit: 'contain',
+                        borderRadius: isBleed ? '0' : '4px',
+                        boxShadow: isBleed ? 'none' : '0 1px 3px rgba(0,0,0,0.08)',
+                        cursor: 'zoom-in'
+                      };
+
                       return (
                         <div 
                           key={field.id} 
@@ -1652,7 +1674,7 @@ function FormFillerInner({
                             display: 'flex', 
                             flexDirection: 'column',
                             alignItems: 'center',
-                            padding: '0.45rem 0',
+                            padding: isBleed ? '0' : '0.45rem 0',
                             width: '100%'
                           }}
                         >
@@ -1661,14 +1683,7 @@ function FormFillerInner({
                               src={resolvedSrc}
                               alt={field.imageCaption || field.checkItem || 'Reference image'}
                               onClick={() => setLightboxImage({ src: resolvedSrc, caption: field.imageCaption || field.checkItem })}
-                              style={{
-                                maxWidth: '100%',
-                                maxHeight: field.imageAspectRatio === 'banner' ? '220px' : field.imageAspectRatio === '1:1' ? '240px' : '360px',
-                                objectFit: 'contain',
-                                borderRadius: '4px',
-                                boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-                                cursor: 'zoom-in'
-                              }}
+                              style={imgStyle}
                               title="Nhấp để phóng to toàn màn hình"
                             />
                           ) : (

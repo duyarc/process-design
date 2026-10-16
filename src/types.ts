@@ -133,6 +133,7 @@ export interface FormFieldISO {
   imageUrl?: string; // Reference image URL or storage key for 'image' field type
   imageAspectRatio?: 'banner' | '16:9' | '4:3' | '1:1' | 'auto'; // Aspect ratio preset
   imageCaption?: string; // Caption or description displayed beneath the image
+  imageWidthMode?: 'full' | 'bleed' | 'fit'; // Layout width mode: 'full' (100% lề văn bản), 'bleed' (tràn mép viền trang), 'fit' (thu gọn tỷ lệ)
 }
 
 export interface FormRevisionEntry {

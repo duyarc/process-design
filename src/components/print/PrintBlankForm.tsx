@@ -242,6 +242,8 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
 
                           if (f.type === 'image') {
                             const resolvedSrc = resolveImageSrc(f.imageUrl, true);
+                            const widthMode = f.imageWidthMode || 'full';
+                            const isFit = widthMode === 'fit';
                             return (
                               <div key={f.id} style={{ ...gridItemStyle, display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '0.82rem', pageBreakInside: 'avoid', width: '100%' }}>
                                 {resolvedSrc && (
@@ -249,10 +251,12 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                     src={resolvedSrc}
                                     alt={f.imageCaption || f.checkItem || 'Reference'}
                                     style={{
-                                      maxWidth: '100%',
-                                      maxHeight: f.imageAspectRatio === 'banner' ? '180px' : f.imageAspectRatio === '1:1' ? '200px' : '260px',
+                                      width: isFit ? 'auto' : '100%',
+                                      maxWidth: isFit ? '380px' : '100%',
+                                      height: 'auto',
+                                      aspectRatio: f.imageAspectRatio === '16:9' ? '16/9' : f.imageAspectRatio === '4:3' ? '4/3' : f.imageAspectRatio === '1:1' ? '1/1' : undefined,
                                       objectFit: 'contain',
-                                      borderRadius: '3px'
+                                      borderRadius: widthMode === 'bleed' ? '0' : '3px'
                                     }}
                                   />
                                 )}

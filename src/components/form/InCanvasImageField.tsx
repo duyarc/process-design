@@ -1,7 +1,8 @@
 import React, { useState, useRef } from 'react';
-import { GripVertical, Upload, Link as LinkIcon, Trash2, RefreshCw } from 'lucide-react';
+import { GripVertical, Upload, Link as LinkIcon, Trash2, RefreshCw, FolderOpen } from 'lucide-react';
 import type { FormFieldISO } from '../../types';
 import { resolveImageSrc } from '../../utils/formUtils';
+import ImageGalleryModal from './ImageGalleryModal';
 
 export interface InCanvasImageFieldProps {
   field: FormFieldISO;
@@ -24,6 +25,12 @@ const ASPECT_RATIO_PRESETS: { value: NonNullable<FormFieldISO['imageAspectRatio'
   { value: 'auto', label: 'Auto' },
 ];
 
+const WIDTH_MODE_PRESETS: { value: NonNullable<FormFieldISO['imageWidthMode']>; label: string; title: string }[] = [
+  { value: 'full', label: '100% Lề', title: '100% chiều rộng theo lề văn bản' },
+  { value: 'bleed', label: 'Tràn mép', title: 'Dãn tràn mép sát viền trang (Full Bleed)' },
+  { value: 'fit', label: 'Thu nhỏ', title: 'Thu gọn tỷ lệ vừa phải' },
+];
+
 export const InCanvasImageField: React.FC<InCanvasImageFieldProps> = ({
   field,
   isFieldSelected: _isFieldSelected,
@@ -37,10 +44,12 @@ export const InCanvasImageField: React.FC<InCanvasImageFieldProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [showUrlInput, setShowUrlInput] = useState(false);
+  const [showGalleryModal, setShowGalleryModal] = useState(false);
   const [urlDraft, setUrlDraft] = useState('');
   const [isDragOver, setIsDragOver] = useState(false);
 
   const currentRatio = field.imageAspectRatio || 'banner';
+  const currentWidthMode = field.imageWidthMode || 'full';
   const resolvedSrc = resolveImageSrc(field.imageUrl);
 
   const handleFileUpload = async (file: File) => {
@@ -101,27 +110,31 @@ export const InCanvasImageField: React.FC<InCanvasImageFieldProps> = ({
   };
 
   const getImageStyle = (): React.CSSProperties => {
+    const isBleed = currentWidthMode === 'bleed';
+    const isFit = currentWidthMode === 'fit';
+
     const base: React.CSSProperties = {
-      maxWidth: '100%',
       objectFit: 'contain',
-      borderRadius: '4px',
-      boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+      borderRadius: isBleed ? '0' : '4px',
+      boxShadow: isBleed ? 'none' : '0 1px 3px rgba(0,0,0,0.06)',
       display: 'block'
     };
 
-    switch (currentRatio) {
-      case 'banner':
-        return { ...base, width: '100%', maxHeight: '200px' };
-      case '16:9':
-        return { ...base, width: '100%', aspectRatio: '16/9' };
-      case '4:3':
-        return { ...base, width: '100%', aspectRatio: '4/3' };
-      case '1:1':
-        return { ...base, maxWidth: '240px', aspectRatio: '1/1' };
-      case 'auto':
-      default:
-        return { ...base, width: '100%', maxHeight: '360px' };
+    if (isFit) {
+      return {
+        ...base,
+        maxWidth: '480px',
+        width: '100%',
+        aspectRatio: currentRatio === '16:9' ? '16/9' : currentRatio === '4:3' ? '4/3' : currentRatio === '1:1' ? '1/1' : undefined
+      };
     }
+
+    return {
+      ...base,
+      width: '100%',
+      height: 'auto',
+      aspectRatio: currentRatio === '16:9' ? '16/9' : currentRatio === '4:3' ? '4/3' : currentRatio === '1:1' ? '1/1' : undefined
+    };
   };
 
   return (
@@ -183,8 +196,8 @@ export const InCanvasImageField: React.FC<InCanvasImageFieldProps> = ({
           </span>
         </div>
 
-        {/* Center cluster: Aspect ratio pills */}
-        <div style={{ display: 'flex', gap: '3px', alignItems: 'center' }}>
+        {/* Center cluster: Aspect ratio pills & Width mode pills */}
+        <div style={{ display: 'flex', gap: '3px', alignItems: 'center', flexWrap: 'wrap' }}>
           {ASPECT_RATIO_PRESETS.map((p) => {
             const isAct = currentRatio === p.value;
             return (
@@ -210,6 +223,35 @@ export const InCanvasImageField: React.FC<InCanvasImageFieldProps> = ({
                 title={`Đặt tỷ lệ khung hình ${p.label}`}
               >
                 {p.label}
+              </button>
+            );
+          })}
+          <span style={{ color: '#cbd5e1', fontSize: '0.7rem' }}>|</span>
+          {WIDTH_MODE_PRESETS.map((wm) => {
+            const isAct = currentWidthMode === wm.value;
+            return (
+              <button
+                key={wm.value}
+                type="button"
+                disabled={isLocked}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onUpdateField({ imageWidthMode: wm.value });
+                }}
+                style={{
+                  fontSize: '0.67rem',
+                  padding: '1px 5px',
+                  borderRadius: '3px',
+                  border: isAct ? '1px solid var(--primary)' : '1px solid #e2e8f0',
+                  background: isAct ? 'rgba(16, 163, 163, 0.08)' : '#ffffff',
+                  color: isAct ? 'var(--primary)' : '#64748b',
+                  fontWeight: isAct ? 600 : 400,
+                  cursor: isLocked ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.1s ease'
+                }}
+                title={wm.title}
+              >
+                {wm.label}
               </button>
             );
           })}
@@ -247,6 +289,29 @@ export const InCanvasImageField: React.FC<InCanvasImageFieldProps> = ({
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
+                  setShowGalleryModal(true);
+                }}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '3px',
+                  fontSize: '0.68rem',
+                  padding: '2px 5px',
+                  borderRadius: '3px',
+                  border: '1px solid #cbd5e1',
+                  background: '#ffffff',
+                  color: '#475569',
+                  cursor: 'pointer'
+                }}
+                title="Chọn ảnh từ thư viện đã tải lên"
+              >
+                <FolderOpen size={11} />
+                <span>Thư viện</span>
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
                   onUpdateField({ imageUrl: '' });
                 }}
                 style={{
@@ -278,9 +343,10 @@ export const InCanvasImageField: React.FC<InCanvasImageFieldProps> = ({
             flexDirection: 'column',
             alignItems: 'center',
             background: '#fafafa',
-            border: '1px dashed #cbd5e1',
-            borderRadius: '4px',
-            padding: '8px',
+            border: currentWidthMode === 'bleed' ? 'none' : '1px dashed #cbd5e1',
+            borderRadius: currentWidthMode === 'bleed' ? '0' : '4px',
+            padding: currentWidthMode === 'bleed' ? '0' : '8px',
+            overflow: 'hidden',
             position: 'relative'
           }}
         >
@@ -352,8 +418,32 @@ export const InCanvasImageField: React.FC<InCanvasImageFieldProps> = ({
             </span>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.7rem', color: '#94a3b8' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.7rem', color: '#94a3b8', flexWrap: 'wrap', justifyContent: 'center' }}>
             <span>Hỗ trợ JPG, PNG, WEBP, SVG</span>
+            <span>•</span>
+            <button
+              type="button"
+              disabled={isLocked}
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowGalleryModal(true);
+              }}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--primary)',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '3px',
+                padding: '0',
+                textDecoration: 'underline',
+                fontSize: '0.7rem'
+              }}
+            >
+              <FolderOpen size={11} />
+              <span>Chọn từ thư viện</span>
+            </button>
             <span>•</span>
             <button
               type="button"
@@ -430,6 +520,17 @@ export const InCanvasImageField: React.FC<InCanvasImageFieldProps> = ({
           )}
         </div>
       )}
+
+      {/* Image Gallery Modal */}
+      <ImageGalleryModal
+        isOpen={showGalleryModal}
+        onClose={() => setShowGalleryModal(false)}
+        onSelectImage={(imageUrlOrKey) => {
+          onUpdateField({ imageUrl: imageUrlOrKey });
+          setShowGalleryModal(false);
+        }}
+        currentValue={field.imageUrl}
+      />
     </div>
   );
 };
