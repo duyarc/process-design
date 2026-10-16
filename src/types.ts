@@ -218,6 +218,7 @@ export interface LayoutBlockISO {
   fields: FormFieldISO[];
   logo?: string;
   description?: string;
+  guidance?: string; // Hướng dẫn chi tiết / tiêu chuẩn chung cho toàn khối
   sectionFormat?: 'H1' | 'H2';
   titleFormat?: TitleFormatISO;
   borderStyle?: 'grid' | 'borderless' | 'horizontal_only'; // Table border style: default 'grid'

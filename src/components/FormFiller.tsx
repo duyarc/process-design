@@ -65,7 +65,8 @@ import {
   encodeOtherValue,
   getEffectiveCellOptions,
   toFormSlug,
-  resolveImageSrc
+  resolveImageSrc,
+  getTableItemColumnId
 } from '../utils/formUtils';
 import { renderFormattedText, stripMarkdownTokens } from '../utils/textFormatter';
 import { useAuth } from '../context/AuthContext';
@@ -2585,6 +2586,26 @@ function FormFillerInner({
                 const bStyle = block.borderStyle || 'grid';
                 return (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: isSeamless ? '0px' : '0.5rem' }}>
+                  {(block.description || block.guidance) && (
+                    <div style={{
+                      padding: '6px 10px',
+                      background: 'var(--neutral-bg)',
+                      border: '1px solid #ccfbf1',
+                      borderLeft: '3px solid #0d9488',
+                      borderRadius: '4px',
+                      fontSize: '0.82rem',
+                      color: '#0f766e',
+                      lineHeight: 1.5,
+                      display: 'flex',
+                      gap: '6px',
+                      alignItems: 'flex-start'
+                    }}>
+                      <span style={{ fontSize: '0.95rem', lineHeight: 1 }}>💡</span>
+                      <div style={{ flex: 1, whiteSpace: 'pre-wrap' }}>
+                        {renderFormattedText(block.description || block.guidance || '')}
+                      </div>
+                    </div>
+                  )}
                   <div style={{ overflowX: 'auto' }}>
                     <table
                       className={bStyle === 'borderless' ? 'print-table--borderless' : bStyle === 'horizontal_only' ? 'print-table--horizontal' : ''}
@@ -2697,6 +2718,7 @@ function FormFillerInner({
                                      staticVal.toString().trim() !== '';
                             });
                             const isDeletable = !row.isGroupHeader && !hasStaticText && activeRows.length > 1;
+                            const itemColId = getTableItemColumnId(block.tableColumns);
 
                             return [
                               <tr key={row.id} style={{ borderBottom: bStyle === 'borderless' ? 'none' : '1px solid var(--neutral-border)' }}>
@@ -2718,7 +2740,7 @@ function FormFillerInner({
                                       padding: '6px',
                                       borderRight: bStyle === 'grid' ? '1px solid var(--neutral-border)' : 'none',
                                       borderBottom: bStyle === 'borderless' ? 'none' : '1px solid var(--neutral-border)',
-                                      verticalAlign: 'middle',
+                                      verticalAlign: (col.id === itemColId && row.guidance) ? 'top' : 'middle',
                                       textAlign: cellAlign,
                                       width: colWidth,
                                       maxWidth: colWidth,
@@ -3037,6 +3059,51 @@ function FormFillerInner({
                                         onChange={(val) => handleTableCellChangeWithAutoAppend(block, row.id, col.id, val, thisGroupHeaderId)} 
                                         style={{ width: '100%', padding: '0.35rem 0.45rem', fontSize: '0.8rem', border: '1px solid #e2e8f0', borderRadius: '4px', textAlign: 'left', backgroundColor: '#f8fafc' }}
                                       />
+                                    )}
+                                    {col.id === itemColId && row.guidance && (
+                                      <div style={{ marginTop: '4px', textAlign: 'left' }}>
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            toggleGuidance(`${block.id}_${row.id}`);
+                                          }}
+                                          style={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '3px',
+                                            padding: '1px 5px',
+                                            borderRadius: '3px',
+                                            border: `1px solid ${expandedGuidanceMap[`${block.id}_${row.id}`] ? '#0d9488' : '#cbd5e1'}`,
+                                            background: expandedGuidanceMap[`${block.id}_${row.id}`] ? '#f0fdfa' : '#ffffff',
+                                            color: expandedGuidanceMap[`${block.id}_${row.id}`] ? '#0f766e' : '#475569',
+                                            fontSize: '0.72rem',
+                                            cursor: 'pointer',
+                                            lineHeight: 1.3
+                                          }}
+                                        >
+                                          <span>💡 Hướng dẫn</span>
+                                          {expandedGuidanceMap[`${block.id}_${row.id}`] ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+                                        </button>
+                                        {expandedGuidanceMap[`${block.id}_${row.id}`] && (
+                                          <div style={{
+                                            marginTop: '4px',
+                                            padding: '5px 8px',
+                                            background: 'var(--neutral-bg)',
+                                            border: '1px solid #ccfbf1',
+                                            borderLeft: '3px solid #0d9488',
+                                            borderRadius: '4px',
+                                            fontSize: '0.78rem',
+                                            color: '#0f766e',
+                                            lineHeight: 1.45,
+                                            textAlign: 'left'
+                                          }}>
+                                            <div style={{ whiteSpace: 'pre-wrap' }}>
+                                              {renderFormattedText(row.guidance)}
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
                                     )}
                                   </td>
                                 );

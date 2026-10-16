@@ -1179,3 +1179,17 @@ export function resolveImageSrc(urlOrKey?: string, isPrintInline: boolean = fals
   }
   return urlOrKey;
 }
+
+/**
+ * Resolves the primary item/content column ID in a TABLE block
+ * where row guidance should be attached.
+ */
+export function getTableItemColumnId(tableColumns?: TableColumnConfig[]): string | undefined {
+  if (!tableColumns || tableColumns.length === 0) return undefined;
+  const match = tableColumns.find(c =>
+    ['col_item', 'item', 'name', 'content'].includes(c.id.toLowerCase()) || c.type === 'static_text'
+  );
+  if (match) return match.id;
+  if (tableColumns.length > 1) return tableColumns[1].id;
+  return tableColumns[0].id;
+}

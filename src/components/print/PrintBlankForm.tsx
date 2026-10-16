@@ -2,7 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import type { FormTemplateISO } from '../../types';
 import { getColStyleWidth } from '../../types';
-import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock, getInfoGridTemplateColumns, getEffectiveCellOptions, getChecklistColumns, groupTableRowsForPrint, resolveImageSrc } from '../../utils/formUtils';
+import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock, getInfoGridTemplateColumns, getEffectiveCellOptions, getChecklistColumns, groupTableRowsForPrint, resolveImageSrc, getTableItemColumnId } from '../../utils/formUtils';
 import { renderFormattedText } from '../../utils/textFormatter';
 import { usePrintLogo, PrintDocumentStyles, PrintTitleBlock, PrintSectionHeader, PrintPageFooter } from './printShared';
 
@@ -834,6 +834,27 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                       </div>
                     )
                   )}
+                  {(block.description || (includeGuidance && block.guidance)) && (
+                    <div style={{
+                      margin: '2px 0 6px 0',
+                      padding: '4px 8px',
+                      background: '#f8fafc',
+                      borderLeft: '2.5px solid #0d9488',
+                      borderRadius: '2px',
+                      fontSize: '0.75rem',
+                      color: '#334155',
+                      lineHeight: 1.45,
+                      pageBreakAfter: 'avoid',
+                      breakAfter: 'avoid'
+                    }}>
+                      <div style={{ display: 'flex', gap: '4px', alignItems: 'flex-start' }}>
+                        <span style={{ color: '#0d9488', flexShrink: 0, marginTop: '1px' }}>💡</span>
+                        <div style={{ flex: 1, whiteSpace: 'pre-wrap' }}>
+                          {renderFormattedText(block.description || block.guidance || '')}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   <table
                     className={`print-table ${bStyle === 'borderless' ? 'print-table--borderless' : bStyle === 'horizontal_only' ? 'print-table--horizontal' : ''}`}
                     style={{
@@ -956,6 +977,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                           const lc = row.lineCount ?? 1;
                           const fieldId = `${block.id}_r${rIdx}_${row.id}`;
                           const displayTitle = `${block.title || 'Table'} - Dòng ${rIdx + 1}`;
+                          const itemColId = getTableItemColumnId(block.tableColumns);
                           return (
                           <tr key={row.id} style={{ pageBreakInside: 'avoid' }}>
                             {(block.tableColumns || []).map((col) => {
@@ -975,7 +997,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                     <span style={{ fontWeight: 'var(--pw-weight-regular)', display: 'block', textAlign: cellAlign, whiteSpace: 'pre-wrap', wordBreak: 'break-word', color: '#000000', fontSize: '0.82rem', lineHeight: 1.4 }}>
                                       {renderFormattedText(staticVal)}
                                     </span>
-                                    {includeGuidance && row.guidance && (col.id === 'col_item' || col.id === 'item' || col.id === 'name' || col.id === 'content' || col.id === block.tableColumns?.[1]?.id) && (
+                                    {includeGuidance && row.guidance && (col.id === itemColId) && (
                                       <PrintFieldGuidanceBox guidance={row.guidance} />
                                     )}
                                   </td>

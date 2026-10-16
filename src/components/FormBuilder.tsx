@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import type { FormFieldISO, FormRevisionEntry, FormTemplateISO, LayoutBlockISO, RadioOption, MatrixConfigISO, TableColumnConfig, TableRowConfig, ColumnSummaryRowConfig, TitleFormatISO, SubtableColumn, BlockVisibilityCondition, LinkedWorkStepInfo } from '../types';
 import { formatFormVersion, getColStyleWidth } from '../types';
-import { sanitizeLabel, getEffectiveTitleFormat, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, isSeamlessTableBlock, getInfoGridTemplateColumns, snap2ColWidth, snap3ColWidths, INFO_GRID_2COL_PRESETS, generateSmartFieldSlug, getCheckboxGridTemplate, reorderOptionsArray, reorderArray, getEffectiveCellOptions as getEffectiveCellOptionsUtil, toFormSlug } from '../utils/formUtils';
+import { sanitizeLabel, getEffectiveTitleFormat, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, isSeamlessTableBlock, getInfoGridTemplateColumns, snap2ColWidth, snap3ColWidths, INFO_GRID_2COL_PRESETS, generateSmartFieldSlug, getCheckboxGridTemplate, reorderOptionsArray, reorderArray, getEffectiveCellOptions as getEffectiveCellOptionsUtil, toFormSlug, getTableItemColumnId } from '../utils/formUtils';
 import { applyTextFormat, handleFormatKeyDown, insertTextAtCursor } from '../utils/textFormatter';
 import { 
   Plus, 
@@ -782,7 +782,8 @@ function InCanvasTitleHeader({
   );
 
   const renderDescription = () => {
-    if (block.type !== 'SECTION_LABEL') return null;
+    if (block.type !== 'SECTION_LABEL' && block.type !== 'TABLE') return null;
+    if (block.type === 'TABLE' && !block.description && !isBlockSelected) return null;
     return (
       <div style={{ display: 'grid', width: '100%', marginTop: '4px', position: 'relative' }}>
         {/* CSS Grid Auto-Grow Textarea mirror span */}
@@ -1799,6 +1800,14 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
       if (b.id !== blockId) return b;
       const updatedFields = b.fields.map((f, idx) => idx === 0 ? { ...f, checkItem: newDesc } : f);
       return { ...b, description: newDesc, fields: updatedFields };
+    }));
+  };
+
+  const handleUpdateTableRowGuidance = (blockId: string, rowId: string, guidance: string) => {
+    setLayoutBlocks(prev => prev.map(b => {
+      if (b.id !== blockId) return b;
+      const updatedRows = (b.tableRows || []).map(r => r.id === rowId ? { ...r, guidance } : r);
+      return { ...b, tableRows: updatedRows };
     }));
   };
 
@@ -5002,6 +5011,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                               isLocked={isLocked}
                               isBlockSelected={isBlockSelected}
                               onUpdateTitle={(val) => handleUpdateBlockTitle(block.id, val)}
+                              onUpdateDescription={(val) => handleUpdateBlockDescription(block.id, val)}
                               onUpdateTitleFormat={(fmt) => handleUpdateBlockTitleFormat(block.id, fmt)}
                               onSelectBlock={() => {
                                 setActiveBlockId(block.id);
@@ -5552,6 +5562,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                           const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'checkbox' || col.type === 'radio' ? (hasOpts ? 'left' : 'center') : col.type === 'likert_scale' ? 'center' : 'left'));
                                           const isCellSelected = activeCellKey === cellKey;
                                           const isOptionCell = col.type === 'checkbox' || col.type === 'radio';
+                                          const itemColId = getTableItemColumnId(block.tableColumns);
 
                                           return (
                                             <td 
@@ -6260,6 +6271,78 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                      <Trash2 size={11} />
                                                    </button>
                                                  </div>
+                                              )}
+                                              {col.id === itemColId && (
+                                                <div style={{ padding: '0 6px 4px 6px', textAlign: 'left' }} onClick={(e) => e.stopPropagation()}>
+                                                  {row.guidance ? (
+                                                    <button
+                                                      type="button"
+                                                      disabled={isLocked}
+                                                      onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        toggleCanvasGuidance(row.id);
+                                                      }}
+                                                      style={{
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: '3px',
+                                                        background: canvasExpandedGuidanceMap[row.id] ? '#f0fdfa' : '#f8fafc',
+                                                        border: `1px solid ${canvasExpandedGuidanceMap[row.id] ? '#0d9488' : '#cbd5e1'}`,
+                                                        borderRadius: '4px',
+                                                        padding: '2px 6px',
+                                                        fontSize: '0.72rem',
+                                                        color: canvasExpandedGuidanceMap[row.id] ? '#0f766e' : '#475569',
+                                                        cursor: isLocked ? 'default' : 'pointer',
+                                                        fontWeight: 500,
+                                                        transition: 'all 0.15s ease'
+                                                      }}
+                                                      title={canvasExpandedGuidanceMap[row.id] ? "Thu gọn hướng dẫn" : "Xem/sửa hướng dẫn dòng"}
+                                                    >
+                                                      <span>💡</span>
+                                                      <span>Hướng dẫn</span>
+                                                      {canvasExpandedGuidanceMap[row.id] ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+                                                    </button>
+                                                  ) : (
+                                                    (isCellSelected || canvasExpandedGuidanceMap[row.id]) && !isLocked && (
+                                                      <button
+                                                        type="button"
+                                                        disabled={isLocked}
+                                                        onClick={(e) => {
+                                                          e.stopPropagation();
+                                                          toggleCanvasGuidance(row.id);
+                                                        }}
+                                                        style={{
+                                                          display: 'inline-flex',
+                                                          alignItems: 'center',
+                                                          gap: '2px',
+                                                          background: 'transparent',
+                                                          border: '1px dashed #cbd5e1',
+                                                          borderRadius: '4px',
+                                                          padding: '1px 5px',
+                                                          fontSize: '0.68rem',
+                                                          color: '#64748b',
+                                                          cursor: 'pointer',
+                                                          transition: 'all 0.15s ease'
+                                                        }}
+                                                        title="Thêm hướng dẫn chi tiết cho dòng này"
+                                                      >
+                                                        <Plus size={10} />
+                                                        <span>💡 Hướng dẫn</span>
+                                                      </button>
+                                                    )
+                                                  )}
+
+                                                  {canvasExpandedGuidanceMap[row.id] && (
+                                                    <div style={{ marginTop: '4px' }}>
+                                                      <InCanvasGuidanceEditor
+                                                        guidance={row.guidance || ''}
+                                                        isLocked={isLocked}
+                                                        onUpdateGuidance={(val) => handleUpdateTableRowGuidance(block.id, row.id, val)}
+                                                        onClose={() => toggleCanvasGuidance(row.id)}
+                                                      />
+                                                    </div>
+                                                  )}
+                                                </div>
                                               )}
                                             </td>
                                           );
@@ -7703,10 +7786,12 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.8rem' }}>
-                {activeBlock.type === 'SECTION_LABEL' && (
+                {(activeBlock.type === 'SECTION_LABEL' || activeBlock.type === 'TABLE') && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.75rem' }}>Description</label>
+                      <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.75rem' }}>
+                        {activeBlock.type === 'TABLE' ? 'Hướng dẫn chung khối bảng (Guidance)' : 'Description'}
+                      </label>
                       <div style={{ display: 'flex', gap: '4px' }}>
                         <button
                           type="button"
@@ -7744,7 +7829,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                       value={activeBlock.description || ''}
                       onKeyDown={(e) => handleFormatKeyDown(e, activeBlock.description || '', (val) => handleUpdateBlockDescription(activeBlockId!, val))}
                       onChange={(e) => handleUpdateBlockDescription(activeBlockId!, e.target.value)}
-                      placeholder="Nhập mô tả hoặc hướng dẫn danh mục..."
+                      placeholder={activeBlock.type === 'TABLE' ? "Nhập hướng dẫn chung cho khối bảng..." : "Nhập mô tả hoặc hướng dẫn danh mục..."}
                       style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', fontSize: '0.8rem', resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.4 }}
                     />
                   </div>
@@ -8284,6 +8369,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                   const lastColAdjusted = Math.max(0, 100 - sumOtherPercent);
 
                   const activeGroupRow = (activeBlock.tableRows || []).find(r => `${r.id}_group` === activeCellKey);
+                  const activeRowId = activeCellKey && !activeCellKey.endsWith('_group') ? activeCellKey.split('_')[0] : null;
+                  const activeTableRow = activeRowId ? (activeBlock.tableRows || []).find(r => r.id === activeRowId) : null;
 
                   return (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -8444,6 +8531,41 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                           </div>
                         );
                       })()}
+
+                      {activeTableRow && !activeTableRow.isGroupHeader && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '0.25rem', padding: '8px', border: '1px solid #ccfbf1', borderRadius: '4px', background: '#f0fdfa' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <label style={{ fontWeight: 600, color: '#0f766e', fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <span>💡 Hướng dẫn dòng (Row Guidance)</span>
+                            </label>
+                            <button
+                              type="button"
+                              disabled={isLocked}
+                              onClick={() => toggleCanvasGuidance(activeTableRow.id)}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                fontSize: '0.7rem',
+                                color: '#0d9488',
+                                cursor: isLocked ? 'default' : 'pointer',
+                                fontWeight: 500,
+                                textDecoration: 'underline'
+                              }}
+                            >
+                              {canvasExpandedGuidanceMap[activeTableRow.id] ? 'Đang mở trên Canvas ▴' : 'Mở trên Canvas ▾'}
+                            </button>
+                          </div>
+                          <textarea
+                            rows={3}
+                            disabled={isLocked}
+                            value={activeTableRow.guidance || ''}
+                            onKeyDown={(e) => handleFormatKeyDown(e, activeTableRow.guidance || '', (val) => handleUpdateTableRowGuidance(activeBlock.id, activeTableRow.id, val))}
+                            onChange={(e) => handleUpdateTableRowGuidance(activeBlock.id, activeTableRow.id, e.target.value)}
+                            placeholder="Nhập hướng dẫn thực hiện, tiêu chí đánh giá cho dòng này..."
+                            style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid #cbd5e1', fontSize: '0.78rem', resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.45, background: '#ffffff' }}
+                          />
+                        </div>
+                      )}
 
                       <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Cấu hình Cột</label>
                       

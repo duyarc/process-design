@@ -12,7 +12,6 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 | # | Nhóm | Lỗi | Biện pháp phòng ngừa | Lần gặp |
 |---|---|---|---|---|
-| 16 | `BLOAT` | Thay thế sub-layout cũ (như thanh toolbar text format) làm sót import helper (`applyTextFormat`) ở đầu file → TS6133 unused import khi build production | Khi dọn dẹp cụm UI/control cũ, kiểm tra ngay đầu file để loại bỏ import của các helper chỉ dùng riêng cho control đó | 1 |
 | 17 | `CTX` | Khi lồng conditional JSX (`ternary ? :`), đóng nhầm thẻ `</div>` của wrapper cha bên ngoài → TS17015 expected closing tag | Kiểm tra kỹ cấu trúc mở/đóng thẻ của wrapper cha trước khi chèn ternary; bọc fragment độc lập cho từng nhánh | 1 |
 | 18 | `LOGIC` | Trùng tên giữa Section H2 cha và khối TABLE con khiến hàm tìm kiếm lầm tưởng là click vào Section H2 (Name Shadowing Collision) | Tách riêng luồng sự kiện theo bản chất đối tượng: click vào vỏ/thead khối dùng onSelectBlock; chỉ dùng onSelectTableGroup cho các hàng group header thực sự, và luôn ưu tiên tìm kiếm Element con trước Section cha | 1 |
 | 19 | `LOGIC` | updateRuleOverride tìm targetBlock theo tiêu đề (cleanGroup) mà không lọc theo loại khối (b.type), dẫn đến lưu nhầm ruleOverrides vào SECTION_LABEL | Bắt buộc áp dụng Strict Block Type Scoping: trường thuộc TABLE thì chỉ gán vào khối TABLE; trường thuộc INFO_GRID thì chỉ gán vào INFO_GRID | 1 |
@@ -32,10 +31,36 @@ phiên thực thi để không lặp lại lỗi cũ.
 | 33 | `LOGIC` | Giới hạn cứng `maxHeight: '200px'`/`'220px'` kết hợp `alignItems: 'center'` trên ảnh tỷ lệ rộng (banner 4:1) khiến ảnh bị bóp hẹp chiều ngang (~800px) tạo 2 dải lề trắng lớn bên trái và phải | Bỏ trần `maxHeight` cứng khi ở chế độ banner/full, đặt `width: '100%'` và `height: 'auto'` kết hợp các chế độ độ rộng `imageWidthMode` ('full' \| 'bleed' \| 'fit') để ảnh dãn bằng phẳng 100% với lề văn bản | 1 |
 | 34 | `LOGIC` | Khóa cứng thao tác xóa trên nút bấm (`disabled={... \|\| block.type === 'TITLE'}`) trong khi vẫn để màu kích hoạt đỏ (`var(--danger)`) gây nghịch lý giao diện (nút nhìn bấm được nhưng không phản hồi); ngoài ra `formTitle` vốn là thuộc tính độc lập lưu trong DB chứ không phụ thuộc vào sự tồn tại của khối TITLE trên canvas | Khi vô hiệu hóa nút bấm, luôn chuyển màu sắc sang `var(--text-muted)` và kiểm tra tính độc lập của dữ liệu trước khi áp đặt các ràng buộc cấm xóa cứng nhắc | 1 |
 | 35 | `LOGIC` | `InCanvasImageField` thiếu `processId` và `formName` trong request body của presign-upload, server trả HTTP 400, component fallback sang base64 nhúng trực tiếp multi-MB vào `layoutBlocks` → cascading slow save qua `onSave` → `ProcessEditor` auto-save process chứa toàn bộ JSONB | Khi tích hợp sub-component upload ảnh, luôn truyền đủ context (`processId`, `formName`/`formId`) để presign-upload hoạt động đúng; kiểm tra Network tab xác nhận presign thành công trước khi cho rằng upload OK | 1 |
+| 36 | `LOGIC` | Khối TABLE có schema cột đa dạng (STT, Tiêu chí, Kết quả, Ghi chú) nếu hardcode ID cột hiển thị hướng dẫn (`col_item`, col 1) sẽ bị lệch hoặc nhân bản nút accordion sang mọi cột | Dùng pure utility `getTableItemColumnId` ưu tiên nhận diện cột nội dung chính (`col_item`/`item`/`name`/`content` ➔ `static_text` ➔ col 1 ➔ col 0) để neo duy nhất 1 nút accordion cho mỗi dòng | 1 |
 
 ---
 
 ## Nhật ký Phiên
+
+### 2026-10-16 — Cập nhật Hiển thị và Soạn thảo Hướng dẫn Khối Bảng (Table Block Guidance)
+
+**Scope:** 5 source files (`src/utils/formUtils.ts`, `src/types.ts`, `src/components/FormFiller.tsx`, `src/components/print/PrintBlankForm.tsx`, `src/components/FormBuilder.tsx`) + 2 design docs (`DESIGN_FORM_DESIGNER.md`, `DESIGN_FORM_OPERATIONS.md`).
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa | 5 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 4 (`npx tsc --noEmit` pass 100%, `npm run build` pass 18.02s) |
+| Lần build đầu thành công? | Có |
+
+**Kết quả đạt được:**
+- **Trích xuất Pure Utility `getTableItemColumnId` (`src/utils/formUtils.ts`):** Nhận diện chính xác cột chứa nội dung/tiêu chí chính của bảng theo thứ tự ưu tiên (`col_item`/`item`/`name`/`content` ➔ `static_text` ➔ col 1 ➔ col 0) theo Rule 13.8.
+- **Mở rộng Schema (`src/types.ts`):** Bổ sung `guidance?: string` vào `LayoutBlockISO`.
+- **Hiển thị Hướng dẫn Đa Cấp trên Form Điền (`FormFiller.tsx`):**
+  - Hiển thị banner hướng dẫn chung cho bảng ngay dưới tiêu đề khối bảng khi có `block.description` hoặc `block.guidance`.
+  - Hiển thị nút accordion `[ 💡 Hướng dẫn ▾/▴ ]` tại ô nội dung tiêu chí khi dòng có `row.guidance`, mở rộng khung hướng dẫn chi tiết màu teal `#0d9488`.
+- **Hỗ trợ In Biểu Mẫu Trắng Kèm Hướng Dẫn (`PrintBlankForm.tsx`):**
+  - In banner hướng dẫn chung khối bảng khi bật `includeGuidance` hoặc khi có `block.description`.
+  - In `PrintFieldGuidanceBox` cho dòng tại đúng cột `itemColId`.
+- **Trình Soạn thảo Hướng dẫn Khối & Dòng trên Canvas (`FormBuilder.tsx`):**
+  - Mở rộng `InCanvasTitleHeader` cho phép khối `TABLE` soạn thảo mô tả/hướng dẫn khối trực tiếp trên Canvas với CSS Grid auto-grow textarea.
+  - Tích hợp nút accordion `[ 💡 Hướng dẫn ▾/▴ ]` / `[ + 💡 Hướng dẫn ]` trên Canvas table row nhúng sub-component `InCanvasGuidanceEditor` (Rule 4.3 Monolith Guard) đầy đủ công cụ markdown và xem trước.
+  - Bổ sung vùng `💡 HƯỚNG DẪN DÒNG (ROW GUIDANCE)` và hỗ trợ sửa Hướng dẫn chung khối `TABLE` trên Right Inspector với liên kết mở trên Canvas 2 chiều.
 
 ### 2026-10-16 — Tối ưu Hiệu suất Lưu Biểu mẫu (Form Save Performance Optimization)
 
@@ -188,21 +213,5 @@ phiên thực thi để không lặp lại lỗi cũ.
 - **Tập trung hóa Từ điển Guidance (`scripts/guidanceData.cjs`):** Tạo module từ điển `GUIDANCE_MAP` lưu trữ các chuỗi markdown hướng dẫn, tích hợp trực tiếp vào seed script để tự động áp dụng cho template biểu mẫu `3S-FA02`.
 - **Đồng bộ Cơ sở Dữ liệu PostgreSQL:** Nạp thành công toàn bộ 17 chuỗi hướng dẫn vào bảng `forms` (3S-FA02 v0.1) và đồng bộ trường `workflowFormsData['3S-FA02']` trong bảng `processes` (quy trình `3S-FA`), kích hoạt hiển thị hướng dẫn tức thì trên cả `FormBuilder` (in-canvas editor) và `FormFiller` (accordion tooltip).
 
-### 2026-10-14 — Trình Soạn thảo Hướng dẫn Điền Câu hỏi Trên Canvas (FormBuilder)
-
-**Scope:** 2 source files (`src/components/form/InCanvasGuidanceEditor.tsx` [NEW], `src/components/FormBuilder.tsx`) + 1 design doc (`DESIGN_FORM_DESIGNER.md`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Số file nguồn chỉnh sửa | 2 |
-| Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 2 (`npx tsc --noEmit` pass 100%, `npm run build` pass 17.26s) |
-| Lần build đầu thành công? | Có |
-
-**Kết quả đạt được:**
-- **Sub-component Độc lập (`InCanvasGuidanceEditor.tsx`):** Đóng gói toàn bộ logic và JSX của trình soạn thảo / xem trước hướng dẫn theo Rule 13.9 (Monolith Guard). Tích hợp thanh công cụ inline `[ B ] [ I ] [ U ] [ • ] [ 💡 ]`, nút chuyển đổi chế độ `[ 👁 Xem trước / ✍️ Soạn thảo ]` và nút thu gọn.
-- **CSS Grid Auto-Grow Textarea (Triệt tiêu 100% thanh cuộn):** Sử dụng kỹ thuật CSS Grid mirror span để khung textarea tự động dãn nở chiều cao theo nội dung, loại bỏ hoàn toàn thanh cuộn dọc bên trong ô nhập liệu (khắc phục triệt để lỗi bó hẹp chiều cao trên sidebar).
-- **Tích hợp Accordion Trên Canvas (`FormBuilder.tsx`):** Bổ sung nút `[ 💡 Hướng dẫn ▾/▴ ]` đối với câu hỏi đã có nội dung và `[ + 💡 Hướng dẫn ]` khi trường được chọn. Cho phép người thiết kế xem và sửa hướng dẫn trực tiếp ngay tại vị trí câu hỏi trên tờ A4 Canvas mà không cần di chuyển mắt hay cuộn trang sidebar.
-- **Đồng bộ 2 Chiều & Nâng cấp Inspector:** Thêm nút `[ Mở trên Canvas ▾/▴ ]` tại mục HƯỚNG DẪN trong Right Inspector và mở rộng `minHeight: 80px, maxHeight: 260px` cho textarea sidebar.
 
 
