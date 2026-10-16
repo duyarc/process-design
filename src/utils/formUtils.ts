@@ -365,6 +365,7 @@ export interface FormSectionGroup {
   title: string;
   description?: string;
   titleFormat: TitleFormatISO;
+  headerBlock?: LayoutBlockISO;
   leadingBlocks: LayoutBlockISO[];
   subSections: FormSubSectionGroup[];
   blocks: LayoutBlockISO[];
@@ -434,6 +435,7 @@ export function groupBlocksIntoSections(layoutBlocks: LayoutBlockISO[]): FormGro
     title: string;
     description?: string;
     titleFormat: TitleFormatISO;
+    headerBlock?: LayoutBlockISO;
     blocks: LayoutBlockISO[];
   }[] = [];
 
@@ -453,6 +455,7 @@ export function groupBlocksIntoSections(layoutBlocks: LayoutBlockISO[]): FormGro
         title: block.title || `Phần ${sectionCounter}`,
         description: block.description,
         titleFormat: 'H1',
+        headerBlock: block,
         blocks: [block]
       };
       rawH1Sections.push(currentH1);
@@ -464,6 +467,7 @@ export function groupBlocksIntoSections(layoutBlocks: LayoutBlockISO[]): FormGro
           index: sectionCounter - 1,
           title: `Phần ${sectionCounter}`,
           titleFormat: 'H1',
+          headerBlock: block,
           blocks: []
         };
         rawH1Sections.push(currentH1);
@@ -518,6 +522,7 @@ export function groupBlocksIntoSections(layoutBlocks: LayoutBlockISO[]): FormGro
       title: sec.title,
       description: sec.description,
       titleFormat: sec.titleFormat,
+      headerBlock: sec.headerBlock,
       leadingBlocks,
       subSections,
       blocks: sec.blocks

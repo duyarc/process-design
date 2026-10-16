@@ -4126,7 +4126,7 @@ function FormFillerInner({
                         {/* Expanded Child Content (Only when active H1) */}
                         {isActive && (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '0px', marginTop: '4px' }}>
-                            {sec.description && (
+                            {sec.description && sec.headerBlock?.type !== 'TABLE' && (
                               <p style={{ margin: '0 0 12px 0', fontSize: '0.85rem', color: 'var(--text-secondary)', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
                                 {renderFormattedText(sec.description)}
                               </p>
@@ -4219,7 +4219,7 @@ function FormFillerInner({
                                           paddingLeft: '10px',
                                           borderLeft: '2px solid rgba(13, 148, 136, 0.15)'
                                         }}>
-                                          {subSec.description && (
+                                          {subSec.description && subSec.headerBlock?.type !== 'TABLE' && (
                                             <p style={{ margin: '0 0 8px 0', fontSize: '0.82rem', color: 'var(--text-secondary)', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
                                               {renderFormattedText(subSec.description)}
                                             </p>

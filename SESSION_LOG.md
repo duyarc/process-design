@@ -12,7 +12,6 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 | # | Nhóm | Lỗi | Biện pháp phòng ngừa | Lần gặp |
 |---|---|---|---|---|
-| 17 | `CTX` | Khi lồng conditional JSX (`ternary ? :`), đóng nhầm thẻ `</div>` của wrapper cha bên ngoài → TS17015 expected closing tag | Kiểm tra kỹ cấu trúc mở/đóng thẻ của wrapper cha trước khi chèn ternary; bọc fragment độc lập cho từng nhánh | 1 |
 | 18 | `LOGIC` | Trùng tên giữa Section H2 cha và khối TABLE con khiến hàm tìm kiếm lầm tưởng là click vào Section H2 (Name Shadowing Collision) | Tách riêng luồng sự kiện theo bản chất đối tượng: click vào vỏ/thead khối dùng onSelectBlock; chỉ dùng onSelectTableGroup cho các hàng group header thực sự, và luôn ưu tiên tìm kiếm Element con trước Section cha | 1 |
 | 19 | `LOGIC` | updateRuleOverride tìm targetBlock theo tiêu đề (cleanGroup) mà không lọc theo loại khối (b.type), dẫn đến lưu nhầm ruleOverrides vào SECTION_LABEL | Bắt buộc áp dụng Strict Block Type Scoping: trường thuộc TABLE thì chỉ gán vào khối TABLE; trường thuộc INFO_GRID thì chỉ gán vào INFO_GRID | 1 |
 | 20 | `SCOPE` | `extractTableFields` chỉ đọc `col.options` mà bỏ qua `block.cellOptionsMap` khiến trường bóc tách rơi về giá trị mặc định của cột (Có/Không) thay vì các tùy chọn tùy biến của ô | Luôn dùng `getEffectiveCellOptions(block.cellOptionsMap, row.id, col.id, col.options)` và `cellPlaceholderMap` khi duyệt trích xuất các ô trong khối `TABLE` | 1 |
@@ -33,10 +32,32 @@ phiên thực thi để không lặp lại lỗi cũ.
 | 35 | `LOGIC` | `InCanvasImageField` thiếu `processId` và `formName` trong request body của presign-upload, server trả HTTP 400, component fallback sang base64 nhúng trực tiếp multi-MB vào `layoutBlocks` → cascading slow save qua `onSave` → `ProcessEditor` auto-save process chứa toàn bộ JSONB | Khi tích hợp sub-component upload ảnh, luôn truyền đủ context (`processId`, `formName`/`formId`) để presign-upload hoạt động đúng; kiểm tra Network tab xác nhận presign thành công trước khi cho rằng upload OK | 1 |
 | 36 | `LOGIC` | Khối TABLE có schema cột đa dạng (STT, Tiêu chí, Kết quả, Ghi chú) nếu hardcode ID cột hiển thị hướng dẫn (`col_item`, col 1) sẽ bị lệch hoặc nhân bản nút accordion sang mọi cột | Dùng pure utility `getTableItemColumnId` ưu tiên nhận diện cột nội dung chính (`col_item`/`item`/`name`/`content` ➔ `static_text` ➔ col 1 ➔ col 0) để neo duy nhất 1 nút accordion cho mỗi dòng | 1 |
 | 37 | `LOGIC` | Dùng cờ `useRef(false)` một chiều (`hasInitializedViewMode`) khoá cứng `viewMode = 'all'` ngay từ lần tick đầu tiên khi nạp cache SWR ban đầu, khiến việc revalidation ngầm từ DB (`default_focus_mode = true`) bị bỏ qua; đồng thời không đồng bộ cache `swr_forms` trong `sessionStorage` sau khi lưu form trong `FormBuilder` | Khởi tạo state đồng bộ từ `preloadedFormTemplate`/`initialCache`; thay thế guard một chiều bằng tracking tương tác người dùng (`userInteractedRef`) để luôn đồng bộ với DB trừ khi người dùng chủ động bấm toggle; luôn cập nhật `sessionStorage` (`swr_forms`) ngay khi lưu biểu mẫu | 1 |
+| 38 | `LOGIC` | Khi khối TABLE làm header phân đoạn (H1/H2), `groupBlocksIntoSections` đưa mô tả bảng vào `sec.description`/`subSec.description` (render dạng `<p>` văn bản thô) trong khi khối TABLE con tiếp tục render nút và hộp hướng dẫn xanh ngọc `[ 💡 Hướng dẫn ]` bên trong, gây trùng lặp 2 lần | Bổ sung `headerBlock?: LayoutBlockISO` vào `FormSectionGroup` và triệt tiêu render văn bản thô `sec.description` / `subSec.description` khi `headerBlock?.type === 'TABLE'`, để toàn bộ hướng dẫn bảng được quản lý duy nhất qua accordion tương tác | 1 |
 
 ---
 
 ## Nhật ký Phiên
+
+### 2026-10-16 — Triệt tiêu Trùng lặp Hướng dẫn Bảng trong Chế độ Focus Mode (`FormFiller`, `formUtils`)
+
+**Scope:** 2 source files (`src/utils/formUtils.ts`, `src/components/FormFiller.tsx`) + 1 design doc (`DESIGN_FORM_OPERATIONS.md`).
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa | 2 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 2 (`npx tsc --noEmit` pass 100%, `npm run build` pass 10.33s) |
+| Lần build đầu thành công? | Có |
+
+**Kết quả đạt được:**
+- **Nhận diện Khối Khởi tạo Phân đoạn (`formUtils.ts`):**
+  - Mở rộng interface `FormSectionGroup` với trường `headerBlock?: LayoutBlockISO` và gán `headerBlock: block` trong hàm pure utility `groupBlocksIntoSections` (cả nhánh `isSectionHeader` và fallback `!currentH1`, cũng như mapping danh sách `sections` trả về), đồng bộ cấu trúc với `FormSubSectionGroup`.
+- **Triệt tiêu Render Văn bản Mô tả Thô Dư thừa (`FormFiller.tsx`):**
+  - Trong phân đoạn H1 (dòng 4129) và phân đoạn con H2 (dòng 4222), áp dụng điều kiện `sec.headerBlock?.type !== 'TABLE'` và `subSec.headerBlock?.type !== 'TABLE'`, loại bỏ hoàn toàn việc in đoạn text hướng dẫn thô `<p>` bên trên nút tương tác `[ 💡 Hướng dẫn ]`.
+- **Tập trung Quản lý Hướng dẫn Qua Accordion Chuyên dụng:**
+  - Hướng dẫn bảng được hiển thị duy nhất 1 lần trong hộp xanh ngọc 💡 của accordion `[ 💡 Hướng dẫn ⌃/⌄ ]`, cho phép người vận hành linh hoạt mở rộng để tham khảo hoặc thu gọn để tối ưu diện tích màn hình trên thiết bị di động / desktop.
+- **Bảo toàn Hiển thị Phân đoạn `SECTION_LABEL`:**
+  - Giữ nguyên 100% hiển thị mô tả cho các phân đoạn `SECTION_LABEL` thông thường (vốn không có input hay accordion hướng dẫn riêng).
 
 ### 2026-10-16 — Khắc phục Lỗi Kích hoạt Default Focus Mode (`FormFiller`, `FormBuilder`, `ProcessEditor`)
 
@@ -227,23 +248,3 @@ phiên thực thi để không lặp lại lỗi cũ.
 - **Mở rộng Cơ chế Ẩn Tiêu đề Phân cấp (`FormFiller.tsx`):** Bổ sung tham số `hideH2Title?: boolean` cho hàm `renderBlock` và kết hợp vào điều kiện ẩn tiêu đề `!(hideH2Title && blockTitleFmt === 'H2')`, tương tự cơ chế `hideH1Title` đã có.
 - **Triệt tiêu Lặp Tiêu đề H2 trong Focus Mode:** Truyền `hideH2Title = true` khi render các block con bên trong phân đoạn Accordion H2 (`subSec.blocks.map`), loại bỏ hoàn toàn tiêu đề H2 lặp lại lần 2 bên trên bảng dữ liệu (như khối "Đại diện doanh nghiệp" trên biểu mẫu 3S-FA02).
 - **Bảo toàn Chế độ Xem Liên tục & In ấn:** Giữ nguyên 100% hiển thị tiêu đề H2 trên chế độ xem liên tục (Continuous View Mode) và in ấn (PrintFilledForm & PrintBlankForm).
-
-### 2026-10-14 — Chuẩn Hóa URL Slug Tiếng Việt Cho Biểu Mẫu (Frontend & Backend Aligned, Không Tương Thích Ngược)
-
-**Scope:** 4 source files (`src/utils/formUtils.ts`, `server.cjs`, `src/components/FormBuilder.tsx`, `src/components/FormFiller.tsx`) + 3 design docs (`DESIGN_FORM_OPERATIONS.md`, `DESIGN_FORM_DESIGNER.md`, `DESIGN_BACKEND.md`).
-
-| Chỉ số | Giá trị |
-|---|---|
-| Số file nguồn chỉnh sửa | 4 |
-| Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 1 (`npx tsc --noEmit` pass 100%, `npm run build` pass 20.35s) |
-| Lần build đầu thành công? | Có |
-
-**Kết quả đạt được:**
-- **Trích xuất Pure Utility `toFormSlug` (`src/utils/formUtils.ts`):** Xây dựng hàm pure utility chuẩn hóa chuỗi tiếng Việt thành slug URL an toàn qua Unicode NFD, bóc tách dấu mũ/thanh, chuyển đổi ký tự `đ/Đ` thành `d`, chuyển ký tự đặc biệt thành `-` và xóa gạch thừa hai đầu (ví dụ: `"Biểu mẫu đánh giá nhà máy"` ➔ `bieu-mau-danh-gia-nha-may`).
-- **Đồng bộ hóa Backend (`server.cjs`):** Nâng cấp hàm `toSlug` xử lý `đ/Đ ➔ d`, giúp endpoint `GET /api/forms/resolve/*identifier` so khớp chính xác 100% giữa URL slug và tiêu đề form trong cơ sở dữ liệu (`toSlug(formRecord.form_title)`), triệt tiêu lỗi 404 khi truy cập biểu mẫu công khai.
-- **Thay thế Code Inline Frontend (`FormBuilder.tsx`, `FormFiller.tsx`):** Thay thế toàn bộ các đoạn mã regex sinh slug thô bằng lời gọi hàm tập trung `toFormSlug`, loại bỏ triệt để các đường link dị tật cắt chữ (như `bi-u-m-u-nh-gi-nh-m-y`).
-- **Tuân thủ Tuyệt đối Yêu cầu Không Tương Thích Ngược:** Không sinh thêm fallback code hay bloatware cho các URL unicode dị tật cũ vốn dĩ không hoạt động.
-
-
-
