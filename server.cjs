@@ -21,6 +21,10 @@ const JWT_SECRET = process.env.JWT_SECRET || 'process_optimization_secure_jwt_se
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
+// Gzip compression for all responses (reduces JSON payload transfer by 60-80%)
+const compression = require('compression');
+app.use(compression());
+
 
 const DATABASE_URL = process.env.DATABASE_URL;
 let dbPool = null;
@@ -1004,14 +1008,14 @@ app.post('/api/forms', async (req, res) => {
           is_public = EXCLUDED.is_public,
           default_focus_mode = EXCLUDED.default_focus_mode,
           updated_at = NOW()
-        RETURNING *
+        RETURNING form_id, form_name, form_title, status, version, effective_date, page_size, is_public, default_focus_mode, pdf_name, pdf_key, pdf_size, created_at, updated_at
       `;
       const values = [formId, formName, formTitle || formName, status || 'DRAFT', ver, effectiveDate || null, blocks, history, pdfName || null, pdfKey || null, pdfSize || 0, pSize, isPublic, defaultFocusMode];
       const result = await dbPool.query(query, values);
 
       // Fanout updated revision_history to ALL other rows of the same form_id
-      // so no stale row retains deleted version entries
-      if (req.body.allowActiveUpdate || revisionHistory) {
+      // so no stale row retains deleted version entries (only when history has content)
+      if (revisionHistory && Array.isArray(revisionHistory) && revisionHistory.length > 0) {
         await dbPool.query(
           'UPDATE forms SET revision_history = $1 WHERE form_id = $2 AND version != $3',
           [history, formId, ver]

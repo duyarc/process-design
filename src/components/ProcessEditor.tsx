@@ -2989,13 +2989,16 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
             }
 
             // 2. Cập nhật workflowFormsData: di chuyển sang key mới nếu đổi mã
+            // Only keep lightweight metadata — layoutBlocks/revisionHistory are persisted
+            // in the forms table directly, not in workflowFormsData (performance optimization)
             const nextFormsData = { ...workflowFormsData };
             if (isRenamed) {
               delete nextFormsData[oldFormId];
             }
+            const { layoutBlocks: _lb, revisionHistory: _rh, ...savedMetadata } = savedFormData;
             nextFormsData[newFormId] = {
               ...(isRenamed ? workflowFormsData[oldFormId] : workflowFormsData[newFormId]),
-              ...savedFormData
+              ...savedMetadata
             };
             setWorkflowFormsData(nextFormsData);
 
@@ -3003,7 +3006,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
               setActiveFormToBuild(newFormId);
             }
 
-            // 3. Cập nhật allForms trong local state
+            // 3. Cập nhật allForms trong local state (metadata only)
             setAllForms(prev => {
               const updatedRecord = {
                 form_id: savedFormData.formId,
@@ -3014,8 +3017,6 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                 page_size: savedFormData.pageSize,
                 is_public: savedFormData.isPublic,
                 default_focus_mode: savedFormData.defaultFocusMode,
-                layout_blocks: savedFormData.layoutBlocks,
-                revision_history: savedFormData.revisionHistory,
                 updated_at: new Date().toISOString()
               };
               const filtered = isRenamed ? prev.filter(f => f.form_id !== oldFormId) : prev;

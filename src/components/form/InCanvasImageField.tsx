@@ -8,6 +8,7 @@ export interface InCanvasImageFieldProps {
   field: FormFieldISO;
   blockId: string;
   fieldIndex: number;
+  formId: string;
   isFieldSelected: boolean;
   isLocked: boolean;
   canDrag: boolean;
@@ -33,6 +34,7 @@ const WIDTH_MODE_PRESETS: { value: NonNullable<FormFieldISO['imageWidthMode']>; 
 
 export const InCanvasImageField: React.FC<InCanvasImageFieldProps> = ({
   field,
+  formId,
   isFieldSelected: _isFieldSelected,
   isLocked,
   canDrag,
@@ -60,6 +62,8 @@ export const InCanvasImageField: React.FC<InCanvasImageFieldProps> = ({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          processId: 'global',
+          formName: formId || 'images',
           fileName: file.name,
           fileSize: file.size,
           fileType: file.type,

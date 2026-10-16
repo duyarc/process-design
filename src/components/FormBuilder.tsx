@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import type { FormFieldISO, FormRevisionEntry, FormTemplateISO, LayoutBlockISO, RadioOption, MatrixConfigISO, TableColumnConfig, TableRowConfig, ColumnSummaryRowConfig, TitleFormatISO, SubtableColumn, BlockVisibilityCondition, LinkedWorkStepInfo } from '../types';
 import { formatFormVersion, getColStyleWidth } from '../types';
 import { sanitizeLabel, getEffectiveTitleFormat, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, isSeamlessTableBlock, getInfoGridTemplateColumns, snap2ColWidth, snap3ColWidths, INFO_GRID_2COL_PRESETS, generateSmartFieldSlug, getCheckboxGridTemplate, reorderOptionsArray, reorderArray, getEffectiveCellOptions as getEffectiveCellOptionsUtil, toFormSlug } from '../utils/formUtils';
@@ -1271,8 +1271,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
   const [activeLineCountRowKey, setActiveLineCountRowKey] = useState<string | null>(null);
   const [activeCellKey, setActiveCellKey] = useState<string | null>(null);
 
-  // Compute live snapshot & isSaved state
-  const currentSnapshot = getFormSnapshot({
+  // Compute live snapshot & isSaved state (memoized to avoid JSON.stringify on every render)
+  const currentSnapshot = useMemo(() => getFormSnapshot({
     formId,
     formTitle,
     version,
@@ -1283,7 +1283,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     effectiveDate: status === 'ACTIVE' ? effectiveDate : undefined,
     layoutBlocks,
     revisionHistory
-  });
+  }), [formId, formTitle, version, status, pageSize, isPublic, defaultFocusMode, effectiveDate, layoutBlocks, revisionHistory]);
   const isSaved = lastSavedSnapshot !== '' && lastSavedSnapshot === currentSnapshot;
 
   useEffect(() => {
@@ -2420,9 +2420,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
         status: 'ACTIVE',
         pageSize,
         isPublic,
-        defaultFocusMode,
-        layoutBlocks,
-        revisionHistory: updatedHistory
+        defaultFocusMode
       });
 
       setPublishedVersionModal(newActiveVersion);
@@ -2691,9 +2689,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
         status,
         pageSize,
         isPublic,
-        defaultFocusMode,
-        layoutBlocks,
-        revisionHistory
+        defaultFocusMode
       });
       setLastSavedSnapshot(currentSnapshot);
     } catch (err) {
@@ -3667,6 +3663,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                         field={f}
                                         blockId={block.id}
                                         fieldIndex={fIdx}
+                                        formId={formId}
                                         isFieldSelected={isFieldSelected}
                                         isLocked={isLocked}
                                         canDrag={canDrag}

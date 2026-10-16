@@ -12,7 +12,6 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 | # | Nhóm | Lỗi | Biện pháp phòng ngừa | Lần gặp |
 |---|---|---|---|---|
-| 15 | `LOGIC` | Gọi `form.title` thay vì `form.formTitle` trên `FormTemplateISO` hoặc truyền Raw Block ID từ `FormReferenceCanvas` vào `setActiveBlockId` mà không ánh xạ sang `template.layoutBlocks` | Luôn kiểm tra tên trường chuẩn (`formTitle` vs `reportTitle`) và ánh xạ qua `handleSelectBlockFromFormCanvas` để đồng bộ ID khối giữa Form gốc và Report template | 1 |
 | 16 | `BLOAT` | Thay thế sub-layout cũ (như thanh toolbar text format) làm sót import helper (`applyTextFormat`) ở đầu file → TS6133 unused import khi build production | Khi dọn dẹp cụm UI/control cũ, kiểm tra ngay đầu file để loại bỏ import của các helper chỉ dùng riêng cho control đó | 1 |
 | 17 | `CTX` | Khi lồng conditional JSX (`ternary ? :`), đóng nhầm thẻ `</div>` của wrapper cha bên ngoài → TS17015 expected closing tag | Kiểm tra kỹ cấu trúc mở/đóng thẻ của wrapper cha trước khi chèn ternary; bọc fragment độc lập cho từng nhánh | 1 |
 | 18 | `LOGIC` | Trùng tên giữa Section H2 cha và khối TABLE con khiến hàm tìm kiếm lầm tưởng là click vào Section H2 (Name Shadowing Collision) | Tách riêng luồng sự kiện theo bản chất đối tượng: click vào vỏ/thead khối dùng onSelectBlock; chỉ dùng onSelectTableGroup cho các hàng group header thực sự, và luôn ưu tiên tìm kiếm Element con trước Section cha | 1 |
@@ -31,11 +30,29 @@ phiên thực thi để không lặp lại lỗi cũ.
 | 31 | `LOGIC` | Regex in nghiêng `\*(?:[^*]+)\*` nuốt dấu hoa thị đầu dòng bullet list (`* **Bold**`) thành in nghiêng lỗi | Áp dụng lookahead/lookbehind nghiêm ngặt `\*(?!\s)(?:[^*]+?)(?<!\s)\*` và xử lý phân cấp 2 tầng: tách dòng bullet (`* `, `- `, `+ `, `• `) trước, parse inline markdown sau | 1 |
 | 32 | `SCOPE` | Khi thêm trường mới vào `FormFieldISO.type`, nếu chỉ cập nhật union type cục bộ mà quên thêm vào chữ ký tham số `newType` của `handleChangeFieldType` trong component monolith thì `tsc -b` sẽ báo TS2367 ("no overlap") và TS2345 tại các call-site dropdown | Luôn đồng bộ union type của hàm đổi loại trường (`handleChangeFieldType`) cùng lúc với `FormFieldISO['type']` hoặc gán trực tiếp `newType: FormFieldISO['type']` | 1 |
 | 33 | `LOGIC` | Giới hạn cứng `maxHeight: '200px'`/`'220px'` kết hợp `alignItems: 'center'` trên ảnh tỷ lệ rộng (banner 4:1) khiến ảnh bị bóp hẹp chiều ngang (~800px) tạo 2 dải lề trắng lớn bên trái và phải | Bỏ trần `maxHeight` cứng khi ở chế độ banner/full, đặt `width: '100%'` và `height: 'auto'` kết hợp các chế độ độ rộng `imageWidthMode` ('full' \| 'bleed' \| 'fit') để ảnh dãn bằng phẳng 100% với lề văn bản | 1 |
-| 34 | `LOGIC` | Khóa cứng thao tác xóa trên nút bấm (`disabled={... || block.type === 'TITLE'}`) trong khi vẫn để màu kích hoạt đỏ (`var(--danger)`) gây nghịch lý giao diện (nút nhìn bấm được nhưng không phản hồi); ngoài ra `formTitle` vốn là thuộc tính độc lập lưu trong DB chứ không phụ thuộc vào sự tồn tại của khối TITLE trên canvas | Khi vô hiệu hóa nút bấm, luôn chuyển màu sắc sang `var(--text-muted)` và kiểm tra tính độc lập của dữ liệu trước khi áp đặt các ràng buộc cấm xóa cứng nhắc | 1 |
+| 34 | `LOGIC` | Khóa cứng thao tác xóa trên nút bấm (`disabled={... \|\| block.type === 'TITLE'}`) trong khi vẫn để màu kích hoạt đỏ (`var(--danger)`) gây nghịch lý giao diện (nút nhìn bấm được nhưng không phản hồi); ngoài ra `formTitle` vốn là thuộc tính độc lập lưu trong DB chứ không phụ thuộc vào sự tồn tại của khối TITLE trên canvas | Khi vô hiệu hóa nút bấm, luôn chuyển màu sắc sang `var(--text-muted)` và kiểm tra tính độc lập của dữ liệu trước khi áp đặt các ràng buộc cấm xóa cứng nhắc | 1 |
+| 35 | `LOGIC` | `InCanvasImageField` thiếu `processId` và `formName` trong request body của presign-upload, server trả HTTP 400, component fallback sang base64 nhúng trực tiếp multi-MB vào `layoutBlocks` → cascading slow save qua `onSave` → `ProcessEditor` auto-save process chứa toàn bộ JSONB | Khi tích hợp sub-component upload ảnh, luôn truyền đủ context (`processId`, `formName`/`formId`) để presign-upload hoạt động đúng; kiểm tra Network tab xác nhận presign thành công trước khi cho rằng upload OK | 1 |
 
 ---
 
 ## Nhật ký Phiên
+
+### 2026-10-16 — Tối ưu Hiệu suất Lưu Biểu mẫu (Form Save Performance Optimization)
+
+**Scope:** 4 source files (`src/components/form/InCanvasImageField.tsx`, `src/components/FormBuilder.tsx`, `src/components/ProcessEditor.tsx`, `server.cjs`) + `package.json` + 3 design docs (`DESIGN_FORM_DESIGNER.md`, `DESIGN_BACKEND.md`, `DESIGN_PROCESS_DESIGNER.md`).
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa | 4 |
+| Lượt edit sửa lỗi (rework) | 4 |
+| Số lần build | 5 (`npx tsc --noEmit` + `npm run build` pass 100% 17.24s) |
+| Lần build đầu thành công? | Có |
+
+**Kết quả đạt được:**
+- **Khắc phục Presign-Upload Thất bại (Root Cause #1):** Phát hiện `InCanvasImageField` thiếu `processId` và `formName` trong request body khi gọi `/api/storage/presign-upload` → server trả HTTP 400 → component fallback sang base64 nhúng multi-MB vào `layoutBlocks`. Bổ sung `formId` prop và truyền đủ context vào request.
+- **Loại bỏ Cascading Process Auto-Save (Root Cause #2):** `onSave` callback từ `FormBuilder` truyền toàn bộ `savedFormData` (bao gồm `layoutBlocks` + `revisionHistory`) lên `ProcessEditor` → tự động ghi vào `workflowFormsData` JSONB → cascading `POST /api/processes` với payload multi-MB. Destructure loại bỏ `layoutBlocks` và `revisionHistory` trước khi merge.
+- **Memoize `getFormSnapshot` (React Render Perf):** Bọc `getFormSnapshot()` trong `useMemo` với 10-field dependency array, triệt tiêu `JSON.stringify` trên mỗi re-render.
+- **Backend Compression & RETURNING Optimization:** Thêm middleware `compression` cho gzip/brotli. Đổi `RETURNING *` thành column-list (loại trừ `layout_blocks` và `revision_history`). Siết điều kiện fanout `revision_history` chỉ khi mảng có phần tử.
 
 ### 2026-10-16 — Mở khóa Xóa Khối Tiêu Đề (Title Block) & Đồng bộ ConfirmModal Xóa Khối (FormBuilder)
 
@@ -187,42 +204,5 @@ phiên thực thi để không lặp lại lỗi cũ.
 - **CSS Grid Auto-Grow Textarea (Triệt tiêu 100% thanh cuộn):** Sử dụng kỹ thuật CSS Grid mirror span để khung textarea tự động dãn nở chiều cao theo nội dung, loại bỏ hoàn toàn thanh cuộn dọc bên trong ô nhập liệu (khắc phục triệt để lỗi bó hẹp chiều cao trên sidebar).
 - **Tích hợp Accordion Trên Canvas (`FormBuilder.tsx`):** Bổ sung nút `[ 💡 Hướng dẫn ▾/▴ ]` đối với câu hỏi đã có nội dung và `[ + 💡 Hướng dẫn ]` khi trường được chọn. Cho phép người thiết kế xem và sửa hướng dẫn trực tiếp ngay tại vị trí câu hỏi trên tờ A4 Canvas mà không cần di chuyển mắt hay cuộn trang sidebar.
 - **Đồng bộ 2 Chiều & Nâng cấp Inspector:** Thêm nút `[ Mở trên Canvas ▾/▴ ]` tại mục HƯỚNG DẪN trong Right Inspector và mở rộng `minHeight: 80px, maxHeight: 260px` cho textarea sidebar.
-
-### 2026-10-14 — Chuẩn hóa Bố cục Thích ứng & Khắc phục Lỗi Cắt chữ Radio Button trong Info Grid (FormBuilder & FormFiller)
-
-**Scope:** 3 source files (`src/utils/formUtils.ts`, `src/components/FormFiller.tsx`, `src/components/FormBuilder.tsx`) + 2 design docs (`DESIGN_FORM_OPERATIONS.md`, `DESIGN_FORM_DESIGNER.md`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Số file nguồn chỉnh sửa | 3 |
-| Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 3 (`npx tsc --noEmit` pass 100%, `npm run build` pass 24.77s) |
-| Lần build đầu thành công? | Có |
-
-**Kết quả đạt được:**
-- **Chuẩn hóa Bố cục Thích ứng (Adaptive Hybrid Layout theo NN/g & Material Design):** Tinh chỉnh hàm pure helper `hasLongOptions` trong `formUtils.ts`. Tự động chuyển sang bố cục xếp dọc (1 lựa chọn / 1 dòng) khi có $\ge 3$ lựa chọn hoặc bất kỳ nhãn nào $> 25$ ký tự, hoặc khối Info Grid chia $\ge 2$ cột; chỉ giữ hàng ngang khi có đúng 2 lựa chọn nhị phân ngắn (như "Đạt / Không đạt", "Có / Không").
-- **Khắc phục Lỗi Cắt Chữ trên FormBuilder Canvas (`FormBuilder.tsx`):** Loại bỏ giới hạn cứng `maxWidth: '180px'` trên thẻ input lựa chọn. Khi ở dạng xếp dọc, áp dụng cơ chế CSS Grid auto-growing `<textarea>` overlay (`width: 100%`, `display: flex`, `alignItems: flex-start`), cho phép câu chữ dài hàng trăm ký tự xuống dòng 2-3 dòng trọn vẹn, không bị che khuất mép phải, đồng thời bảo toàn tính năng kéo thả đổi thứ tự và sửa nhãn trực tiếp.
-- **Tách riêng Radio Button Group trong FormFiller (`FormFiller.tsx`):** Tách biệt rạch ròi `field.type === 'radio'` ra khỏi `field.type === 'select'`. Render Radio Button Group thực thụ với các nút tròn radio native, nhãn dạng `<label>` hỗ trợ `whiteSpace: 'pre-wrap'`, `wordBreak: 'break-word'`, click chọn mượt mà và hỗ trợ đầy đủ ô nhập tự do khi chọn mục "Khác".
-
-### 2026-10-13 — Chức năng Hướng dẫn Điền Câu hỏi (Question Guidance) & In Kèm Hướng dẫn
-
-**Scope:** 6 source files (`types.ts`, `textFormatter.tsx`, `FormBuilder.tsx`, `PrintBlankForm.tsx`, `FormFiller.tsx`, `Dashboard.tsx`) + 1 seed script (`scripts/seedFactoryAssessmentForm.cjs`) + 3 design docs (`DESIGN_FORM_DESIGNER.md`, `DESIGN_FORM_OPERATIONS.md`, `DESIGN_PLATFORM_SHELL.md`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Số file nguồn chỉnh sửa | 6 |
-| Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 2 (`npx tsc --noEmit` pass 100%, `npm run build` pass 15.56s) |
-| Lần build đầu thành công? | Có |
-
-**Kết quả đạt được:**
-- **Soạn thảo Hướng dẫn Điền (`FormBuilder`):** Bổ sung thuộc tính `guidance?: string` trong `FormFieldISO` và `TableRowConfig`. Hiển thị phần soạn thảo `HƯỚNG DẪN` cùng dòng với toolbar định dạng inline `[ B ] [ I ] [ U ] [ • ] [ 💡 ]`. Trích xuất pure helper `insertTextAtCursor` hỗ trợ chèn ký hiệu bullet và emoji tự động duy trì con trỏ/focus.
-- **Accordion Tương tác trong Form Filler (`FormFiller`):** Nhấp vào tiêu đề câu hỏi hoặc nút `[ 💡 Hướng dẫn ▾/▴ ]` mở rộng/thu gọn khối hướng dẫn markdown phong phú (theo Phương án 1: không hardcode tiêu đề tĩnh, dải viền xanh ngọc `#0d9488`, nền `var(--neutral-bg)`). Quản lý trạng thái thông qua `expandedGuidanceMap`.
-- **Nâng cấp Menu In Đa Tùy chọn (`FormFiller` & `Dashboard`):**
-  - Tại `FormFiller`: Nâng cấp nút in trên thanh công cụ thành dropdown menu `[ 🖨️ In ▾ ]` cho phép lựa chọn `In bản khai` hoặc `In bảng câu hỏi kèm hướng dẫn`. Tự động đóng menu khi nhấp chuột ra ngoài.
-  - Tại `Dashboard` (Tab Forms): Thêm tùy chọn `In bảng câu hỏi kèm hướng dẫn` vào menu `[ ••• ]` với icon `BookOpen`.
-  - Tái sử dụng trọn vẹn `PrintBlankForm`: Tích hợp helper `PrintFieldGuidanceBox` hiển thị icon `💡` và nội dung hướng dẫn trên các khối `INFO_GRID`, `CHECKLIST_TABLE`, và `TABLE` khi cờ `includeGuidance={true}` được bật, bảo toàn 100% khung tiêu đề động, lề in A4 và chân trang phân trang.
-- **Dữ liệu Mẫu Khảo sát Nhà máy (`3S-FA02`):** Cập nhật script `seedFactoryAssessmentForm.cjs` bổ sung tiêu chí đánh giá, phương pháp thu thập bằng chứng cho các câu hỏi thẩm định thực tế và đồng bộ dữ liệu vào PostgreSQL.
-
 
 

@@ -9,7 +9,7 @@
 | **Module Name** | Process Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-09-03) — Sections 4.5 and 6.2 checked against ProcessEditor.tsx (Promise.all fetchProcess, eliminated redundant fetchFormsList on mount) |
+| **Verified At Commit** | (2026-10-16) — ProcessEditor `onSave` callback payload trim (excludes `layoutBlocks`/`revisionHistory` from `workflowFormsData`) verified against source |
 
 > **⚠️ Note:** Several architectural facts here are not obvious from the code — see Sections 4.5, 6.2, and 7.
 
@@ -543,3 +543,4 @@ full diff of any entry below.
 | 2026-07-18 | `24d0ea5` | Process description preserves newlines in ProcessReader via `whiteSpace: 'pre-line'`. |
 | 2026-08-31 | `CURRENT` | **ProcessReader Parallel Fetching:** Converted sequential calls of `fetchProcess()` and `fetchFormsList()` in `ProcessReader.tsx`'s `useEffect` to `Promise.all([fetchProcess(), fetchFormsList()])`. |
 | 2026-09-03 | `CURRENT` | **ProcessEditor Loading Optimization:** Parallelized `fetch('/api/forms')` and `fetch('/api/processes')` with `Promise.all` in `fetchProcess()`, cutting initial loading time by ~50%. Removed redundant `fetchFormsList()` invocation at component mount when `processId` is present. |
+| 2026-10-16 | `CURRENT` | **Form Save Cascading Payload Optimization:** In `onSave` callback (Section 6.2), destructured `savedFormData` to exclude `layoutBlocks` and `revisionHistory` before merging into `workflowFormsData`. Also stripped `layout_blocks` and `revision_history` from the `allForms` local state update. Prevents cascading multi-MB `POST /api/processes` auto-save when forms contain embedded base64 images or large revision histories. |
