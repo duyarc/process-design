@@ -1606,7 +1606,8 @@ function FormFillerInner({
                       }}
                       title={expandedGuidanceMap[block.id] ? "Thu gọn hướng dẫn" : "Xem hướng dẫn chung cho bảng"}
                     >
-                      <span>💡 Hướng dẫn</span>
+                      <span>💡</span>
+                      <span>Hướng dẫn</span>
                       {expandedGuidanceMap[block.id] ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
                     </button>
                   )}
@@ -2647,28 +2648,30 @@ function FormFillerInner({
                         }}
                         title={expandedGuidanceMap[block.id] ? "Thu gọn hướng dẫn" : "Xem hướng dẫn chung cho bảng"}
                       >
-                        <span>💡 Hướng dẫn</span>
+                        <span>💡</span>
+                        <span>Hướng dẫn</span>
                         {expandedGuidanceMap[block.id] ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
                       </button>
                     </div>
                   )}
                   {hasGuidance && expandedGuidanceMap[block.id] && (
                     <div style={{
+                      marginTop: '2px',
+                      marginBottom: '4px',
                       padding: '6px 10px',
-                      background: 'var(--neutral-bg)',
-                      border: '1px solid #ccfbf1',
+                      background: '#f8fafc',
                       borderLeft: '3px solid #0d9488',
-                      borderRadius: '4px',
-                      fontSize: '0.82rem',
-                      color: '#0f766e',
+                      borderRadius: '3px',
+                      fontSize: '0.78rem',
+                      color: 'var(--text-primary)',
                       lineHeight: 1.5,
-                      display: 'flex',
-                      gap: '6px',
-                      alignItems: 'flex-start'
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
                     }}>
-                      <span style={{ fontSize: '0.95rem', lineHeight: 1 }}>💡</span>
-                      <div style={{ flex: 1, whiteSpace: 'pre-wrap' }}>
-                        {renderFormattedText(block.description || block.guidance || '')}
+                      <div style={{ display: 'flex', gap: '6px', alignItems: 'flex-start' }}>
+                        <span style={{ color: '#0d9488', flexShrink: 0, marginTop: '2px', fontSize: '0.82rem' }}>💡</span>
+                        <div style={{ flex: 1, whiteSpace: 'pre-wrap' }}>
+                          {renderFormattedText(block.description || block.guidance || '')}
+                        </div>
                       </div>
                     </div>
                   )}
@@ -3148,24 +3151,28 @@ function FormFillerInner({
                                             lineHeight: 1.3
                                           }}
                                         >
-                                          <span>💡 Hướng dẫn</span>
+                                          <span>💡</span>
+                                          <span>Hướng dẫn</span>
                                           {expandedGuidanceMap[`${block.id}_${row.id}`] ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
                                         </button>
                                         {expandedGuidanceMap[`${block.id}_${row.id}`] && (
                                           <div style={{
                                             marginTop: '4px',
-                                            padding: '5px 8px',
-                                            background: 'var(--neutral-bg)',
-                                            border: '1px solid #ccfbf1',
+                                            padding: '6px 10px',
+                                            background: '#f8fafc',
                                             borderLeft: '3px solid #0d9488',
-                                            borderRadius: '4px',
+                                            borderRadius: '3px',
                                             fontSize: '0.78rem',
-                                            color: '#0f766e',
-                                            lineHeight: 1.45,
+                                            color: 'var(--text-primary)',
+                                            lineHeight: 1.5,
+                                            boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
                                             textAlign: 'left'
                                           }}>
-                                            <div style={{ whiteSpace: 'pre-wrap' }}>
-                                              {renderFormattedText(row.guidance)}
+                                            <div style={{ display: 'flex', gap: '6px', alignItems: 'flex-start' }}>
+                                              <span style={{ color: '#0d9488', flexShrink: 0, marginTop: '2px', fontSize: '0.82rem' }}>💡</span>
+                                              <div style={{ flex: 1, whiteSpace: 'pre-wrap' }}>
+                                                {renderFormattedText(row.guidance)}
+                                              </div>
                                             </div>
                                           </div>
                                         )}

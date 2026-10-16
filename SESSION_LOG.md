@@ -12,7 +12,6 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 | # | Nhóm | Lỗi | Biện pháp phòng ngừa | Lần gặp |
 |---|---|---|---|---|
-| 18 | `LOGIC` | Trùng tên giữa Section H2 cha và khối TABLE con khiến hàm tìm kiếm lầm tưởng là click vào Section H2 (Name Shadowing Collision) | Tách riêng luồng sự kiện theo bản chất đối tượng: click vào vỏ/thead khối dùng onSelectBlock; chỉ dùng onSelectTableGroup cho các hàng group header thực sự, và luôn ưu tiên tìm kiếm Element con trước Section cha | 1 |
 | 19 | `LOGIC` | updateRuleOverride tìm targetBlock theo tiêu đề (cleanGroup) mà không lọc theo loại khối (b.type), dẫn đến lưu nhầm ruleOverrides vào SECTION_LABEL | Bắt buộc áp dụng Strict Block Type Scoping: trường thuộc TABLE thì chỉ gán vào khối TABLE; trường thuộc INFO_GRID thì chỉ gán vào INFO_GRID | 1 |
 | 20 | `SCOPE` | `extractTableFields` chỉ đọc `col.options` mà bỏ qua `block.cellOptionsMap` khiến trường bóc tách rơi về giá trị mặc định của cột (Có/Không) thay vì các tùy chọn tùy biến của ô | Luôn dùng `getEffectiveCellOptions(block.cellOptionsMap, row.id, col.id, col.options)` và `cellPlaceholderMap` khi duyệt trích xuất các ô trong khối `TABLE` | 1 |
 | 21 | `SCOPE` | Khi sửa lỗi lệch bố cục trên `FormReferenceCanvas` (`tab Form`), đánh đồng việc hiển thị dữ liệu `sampleSubmission` với lỗi ghi đè cấu trúc `matchedReportBlock` dẫn đến xóa nhầm tính năng xem dữ liệu bản nộp | Phân tách rõ 2 tầng trách nhiệm trên `FormReferenceCanvas`: (1) Cấu trúc & Bố cục (`layoutBlocks`, `fields`, `titleFormat`, `showDate`) luôn lấy 1:1 từ `form` gốc; (2) Giá trị hiển thị trong ô nhập liệu đọc từ `sampleSubmission` để hỗ trợ cấu hình chấm điểm | 1 |
@@ -33,10 +32,34 @@ phiên thực thi để không lặp lại lỗi cũ.
 | 36 | `LOGIC` | Khối TABLE có schema cột đa dạng (STT, Tiêu chí, Kết quả, Ghi chú) nếu hardcode ID cột hiển thị hướng dẫn (`col_item`, col 1) sẽ bị lệch hoặc nhân bản nút accordion sang mọi cột | Dùng pure utility `getTableItemColumnId` ưu tiên nhận diện cột nội dung chính (`col_item`/`item`/`name`/`content` ➔ `static_text` ➔ col 1 ➔ col 0) để neo duy nhất 1 nút accordion cho mỗi dòng | 1 |
 | 37 | `LOGIC` | Dùng cờ `useRef(false)` một chiều (`hasInitializedViewMode`) khoá cứng `viewMode = 'all'` ngay từ lần tick đầu tiên khi nạp cache SWR ban đầu, khiến việc revalidation ngầm từ DB (`default_focus_mode = true`) bị bỏ qua; đồng thời không đồng bộ cache `swr_forms` trong `sessionStorage` sau khi lưu form trong `FormBuilder` | Khởi tạo state đồng bộ từ `preloadedFormTemplate`/`initialCache`; thay thế guard một chiều bằng tracking tương tác người dùng (`userInteractedRef`) để luôn đồng bộ với DB trừ khi người dùng chủ động bấm toggle; luôn cập nhật `sessionStorage` (`swr_forms`) ngay khi lưu biểu mẫu | 1 |
 | 38 | `LOGIC` | Khi khối TABLE làm header phân đoạn (H1/H2), `groupBlocksIntoSections` đưa mô tả bảng vào `sec.description`/`subSec.description` (render dạng `<p>` văn bản thô) trong khi khối TABLE con tiếp tục render nút và hộp hướng dẫn xanh ngọc `[ 💡 Hướng dẫn ]` bên trong, gây trùng lặp 2 lần | Bổ sung `headerBlock?: LayoutBlockISO` vào `FormSectionGroup` và triệt tiêu render văn bản thô `sec.description` / `subSec.description` khi `headerBlock?.type === 'TABLE'`, để toàn bộ hướng dẫn bảng được quản lý duy nhất qua accordion tương tác | 1 |
+| 39 | `UI` | Khi thêm tính năng mới kế thừa từ component khác nhưng dùng inline token riêng (`#ccfbf1`, `#0f766e`, `border: 1px solid`) thay vì tái sử dụng token chuẩn (`#f8fafc`, `borderLeft: 3px solid #0d9488`, `var(--text-primary)`), gây lệch chuẩn thị giác giữa các loại khối | Luôn đối chiếu trực tiếp với component/field chuẩn (`INFO_GRID`) và tuân thủ chặt chẽ Design System (`DESIGN_UI_UX.md`), đảm bảo màu chữ `var(--text-primary)`, nền `#f8fafc` và chỉ có viền chỉ mục trái | 1 |
 
 ---
 
 ## Nhật ký Phiên
+
+### 2026-10-16 — Đồng bộ Hóa 100% Styling Hướng dẫn Khối Bảng với Trường Thông thường (`FormFiller`)
+
+**Scope:** 1 source file (`src/components/FormFiller.tsx`) + 1 design doc (`DESIGN_FORM_OPERATIONS.md`).
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa | 1 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 2 (`npx tsc --noEmit` pass 100%, `npm run build` pass 9.65s) |
+| Lần build đầu thành công? | Có |
+
+**Kết quả đạt được:**
+- **Đồng bộ Hộp Hướng dẫn Khối Bảng (`TABLE` block guidance):**
+  - Chuyển màu chữ từ xanh ngọc `#0f766e` sang `var(--text-primary)`, đảm bảo tương phản sắc nét và nhất quán với typography toàn hệ thống.
+  - Chuyển `background` từ `var(--neutral-bg)` sang xám nhạt trung tính `#f8fafc`.
+  - Loại bỏ hoàn toàn viền bao 4 phía `border: 1px solid #ccfbf1`, chỉ giữ lại thanh chỉ mục bên trái `borderLeft: 3px solid #0d9488`.
+  - Thêm `boxShadow: 0 1px 3px rgba(0,0,0,0.04)`, `borderRadius: 3px`, `fontSize: 0.78rem`, `marginTop: 2px`, `marginBottom: 4px`.
+  - Chuẩn hóa container icon bóng đèn 💡 `<span style={{ color: '#0d9488', flexShrink: 0, marginTop: '2px', fontSize: '0.82rem' }}>💡</span>`.
+- **Đồng bộ Hộp Hướng dẫn Từng Dòng Bảng (`row.guidance`):**
+  - Cập nhật styling tương tự về cùng chuẩn `#f8fafc`, `borderLeft: 3px solid #0d9488`, `var(--text-primary)`.
+- **Chuẩn hóa Nút bấm Accordion:**
+  - Tách rời thẻ `<span>💡</span>` và `<span>Hướng dẫn</span>` với khoảng cách `gap: 3px` tương tự như ở trường thông thường.
 
 ### 2026-10-16 — Triệt tiêu Trùng lặp Hướng dẫn Bảng trong Chế độ Focus Mode (`FormFiller`, `formUtils`)
 
@@ -232,19 +255,3 @@ phiên thực thi để không lặp lại lỗi cũ.
 - **Mở rộng Đầy đủ 3 Chế độ In Ấn (`FormFiller.tsx`):** Thay thế `printWithGuidanceTemplate` bằng `printBlankConfig: { template, includeGuidance }`, hỗ trợ cả 3 luồng in ấn độc lập: (1) In biểu mẫu trắng không hướng dẫn (phôi tiêu chuẩn), (2) In biểu mẫu trắng kèm hướng dẫn (phôi khảo sát chi tiết), và (3) In bản khai (phiếu đã có dữ liệu).
 - **Thiết kế Tinh gọn theo Biến thể 2 (Không Icon, Kèm Tag Trạng thái):** Mở rộng độ rộng menu lên `280px` triệt tiêu lỗi ngắt dòng mồ côi (*"dẫn"*), căn lề hai đầu phẳng thanh thoát, tag trạng thái phân định (`[ Trống ]`, `[ + Hướng dẫn ]`, `[ Có dữ liệu ]`), xoay mũi tên 180° khi mở menu.
 - **Dead-Code Pruning (Rule 4.2):** Xóa bỏ import icon `BookOpen` không còn sử dụng.
-
-### 2026-10-14 — Khắc phục Lặp Tiêu đề H2 trong Chế độ Focus Mode (FormFiller)
-
-**Scope:** 1 source file (`src/components/FormFiller.tsx`) + 1 design doc (`DESIGN_FORM_OPERATIONS.md`).
-
-| Chỉ số | Giá trị |
-|---|---|
-| Số file nguồn chỉnh sửa | 1 |
-| Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 1 (`npx tsc --noEmit` pass 100%, `npm run build` pass 16.93s) |
-| Lần build đầu thành công? | Có |
-
-**Kết quả đạt được:**
-- **Mở rộng Cơ chế Ẩn Tiêu đề Phân cấp (`FormFiller.tsx`):** Bổ sung tham số `hideH2Title?: boolean` cho hàm `renderBlock` và kết hợp vào điều kiện ẩn tiêu đề `!(hideH2Title && blockTitleFmt === 'H2')`, tương tự cơ chế `hideH1Title` đã có.
-- **Triệt tiêu Lặp Tiêu đề H2 trong Focus Mode:** Truyền `hideH2Title = true` khi render các block con bên trong phân đoạn Accordion H2 (`subSec.blocks.map`), loại bỏ hoàn toàn tiêu đề H2 lặp lại lần 2 bên trên bảng dữ liệu (như khối "Đại diện doanh nghiệp" trên biểu mẫu 3S-FA02).
-- **Bảo toàn Chế độ Xem Liên tục & In ấn:** Giữ nguyên 100% hiển thị tiêu đề H2 trên chế độ xem liên tục (Continuous View Mode) và in ấn (PrintFilledForm & PrintBlankForm).
