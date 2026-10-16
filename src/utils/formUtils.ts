@@ -1158,4 +1158,24 @@ export function groupTableRowsForPrint(rawRows: any[]): { groupHeaderRow?: any; 
   return groups;
 }
 
-
+/**
+ * Resolves an image URL or R2 storage key into an accessible URL for web display or print.
+ */
+export function resolveImageSrc(urlOrKey?: string, isPrintInline: boolean = false): string {
+  if (!urlOrKey) return '';
+  if (
+    urlOrKey.startsWith('http://') ||
+    urlOrKey.startsWith('https://') ||
+    urlOrKey.startsWith('data:') ||
+    urlOrKey.startsWith('blob:') ||
+    urlOrKey.startsWith('/')
+  ) {
+    return urlOrKey;
+  }
+  if (urlOrKey.startsWith('uploads/')) {
+    return isPrintInline
+      ? `/api/storage/download-inline?key=${encodeURIComponent(urlOrKey)}`
+      : `/api/storage/download-url?key=${encodeURIComponent(urlOrKey)}`;
+  }
+  return urlOrKey;
+}

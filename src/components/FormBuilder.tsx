@@ -41,12 +41,14 @@ import {
   RotateCcw,
   PanelTop,
   Zap,
-  GripVertical
+  GripVertical,
+  Image as ImageIcon
 } from 'lucide-react';
 import PrintBlankForm from './print/PrintBlankForm';
 import ConfirmModal from './common/ConfirmModal';
 import InCanvasGuidanceEditor from './form/InCanvasGuidanceEditor';
 import InCanvasLabelField from './form/InCanvasLabelField';
+import InCanvasImageField from './form/InCanvasImageField';
 import { useAuth } from '../context/AuthContext';
 
 interface FormBuilderProps {
@@ -480,7 +482,7 @@ function InfoGridSteppedSplitter({ columns, columnWidths, onChange, disabled }: 
 }
 
 export interface FieldTypeOptionItem {
-  value: 'label' | 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo' | 'subtable' | 'likert_scale' | 'rating' | 'select';
+  value: 'label' | 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo' | 'subtable' | 'likert_scale' | 'rating' | 'select' | 'image';
   label: string;
   icon: React.ComponentType<{ size?: number; strokeWidth?: number; className?: string; style?: React.CSSProperties }>;
 }
@@ -523,12 +525,13 @@ export const FIELD_TYPE_OPTIONS: FieldTypeOptionItem[] = [
   { value: 'photo', label: 'Photo', icon: Camera },
   { value: 'signature', label: 'Sign-off', icon: PenTool },
   { value: 'subtable', label: 'Subtable', icon: TableIcon },
-  { value: 'label', label: 'Label', icon: AlignLeft }
+  { value: 'label', label: 'Label', icon: AlignLeft },
+  { value: 'image', label: 'Image', icon: ImageIcon }
 ];
 
 interface FieldTypeDropdownProps {
-  value: 'label' | 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo' | 'rating' | 'subtable' | 'likert_scale' | 'select';
-  onChange: (newType: 'label' | 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo' | 'rating' | 'subtable' | 'likert_scale' | 'select') => void;
+  value: 'label' | 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo' | 'rating' | 'subtable' | 'likert_scale' | 'select' | 'image';
+  onChange: (newType: 'label' | 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo' | 'rating' | 'subtable' | 'likert_scale' | 'select' | 'image') => void;
   disabled?: boolean;
   compact?: boolean;
 }
@@ -2087,7 +2090,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     { label: 'Không', value: 'FAIL', isPass: false }
   ];
 
-  const handleAddField = (blockId: string, type: 'text' | 'number' | 'date' | 'time' | 'radio' | 'checkbox' | 'signature' | 'photo' | 'subtable') => {
+  const handleAddField = (blockId: string, type: 'text' | 'number' | 'date' | 'time' | 'radio' | 'checkbox' | 'signature' | 'photo' | 'subtable' | 'image') => {
     if (isLocked) return;
     
     const labelPrefix = type === 'radio' || type === 'checkbox' ? 'Kiểm tra ' : type === 'number' ? 'Đo thông số ' : type === 'time' ? 'Thời gian ' : type === 'subtable' ? 'Bảng ' : 'Thông tin ';
@@ -2149,7 +2152,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     }
   };
 
-  const handleChangeFieldType = (blockId: string, fieldId: string, newType: 'label' | 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo' | 'subtable' | 'likert_scale' | 'rating' | 'select') => {
+  const handleChangeFieldType = (blockId: string, fieldId: string, newType: 'label' | 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo' | 'subtable' | 'likert_scale' | 'rating' | 'select' | 'image') => {
     if (isLocked) return;
     
     // Find current field to inspect its options
@@ -2206,6 +2209,15 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
       updates.placeholder = field?.placeholder || '[photo]';
       if (!field?.checkItem || field.checkItem === 'Thông tin mới' || field.checkItem === '[photo]') {
         updates.checkItem = 'Ảnh bằng chứng';
+      }
+      updates.minSpec = undefined;
+      updates.maxSpec = undefined;
+      updates.unit = undefined;
+    } else if (newType === 'image') {
+      updates.imageAspectRatio = field?.imageAspectRatio || 'banner';
+      updates.colSpan = field?.colSpan ?? -1;
+      if (!field?.checkItem || field.checkItem === 'Thông tin mới') {
+        updates.checkItem = 'Image';
       }
       updates.minSpec = undefined;
       updates.maxSpec = undefined;
@@ -3637,6 +3649,37 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                         isGuidanceExpanded={!!canvasExpandedGuidanceMap[f.id]}
                                         onToggleGuidance={() => toggleCanvasGuidance(f.id)}
                                         onUpdateGuidance={(val) => handleUpdateField(block.id, f.id, { guidance: val })}
+                                        renderTypeDropdown={
+                                          <FieldTypeDropdown
+                                            compact
+                                            disabled={isLocked}
+                                            value={f.type}
+                                            onChange={(newType) => {
+                                              setActiveBlockId(block.id);
+                                              setActiveFieldId(f.id);
+                                              handleChangeFieldType(block.id, f.id, newType);
+                                            }}
+                                          />
+                                        }
+                                      />
+                                    ) : f.type === 'image' ? (
+                                      <InCanvasImageField
+                                        field={f}
+                                        blockId={block.id}
+                                        fieldIndex={fIdx}
+                                        isFieldSelected={isFieldSelected}
+                                        isLocked={isLocked}
+                                        canDrag={canDrag}
+                                        onSelectField={() => {
+                                          setActiveBlockId(block.id);
+                                          setActiveFieldId(f.id);
+                                        }}
+                                        onUpdateField={(updates) => handleUpdateField(block.id, f.id, updates)}
+                                        onStartDrag={(e) => {
+                                          e.stopPropagation();
+                                          setDraggedGridField({ blockId: block.id, fieldId: f.id, index: fIdx });
+                                          e.dataTransfer.effectAllowed = 'move';
+                                        }}
                                         renderTypeDropdown={
                                           <FieldTypeDropdown
                                             compact
@@ -6734,6 +6777,64 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                       style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
                     />
                     <span style={{ fontSize: '0.7rem', color: '#64748b' }}>Chữ này hiển thị căn giữa bên trong khung nét đứt. Nếu để trống sẽ hiển thị ô trắng.</span>
+                  </div>
+                )}
+
+                {activeField.type === 'image' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', background: '#f8fafc', padding: '8px', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                      <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.78rem' }}>Tỷ lệ khung hình (Aspect Ratio)</label>
+                      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                        {(['banner', '16:9', '4:3', '1:1', 'auto'] as const).map((r) => {
+                          const isAct = (activeField.imageAspectRatio || 'banner') === r;
+                          const label = r === 'banner' ? 'Banner' : r === 'auto' ? 'Auto' : r;
+                          return (
+                            <button
+                              key={r}
+                              type="button"
+                              disabled={isLocked}
+                              onClick={() => handleUpdateField(activeBlockId!, activeFieldId!, { imageAspectRatio: r })}
+                              style={{
+                                fontSize: '0.7rem',
+                                padding: '2px 8px',
+                                borderRadius: '3px',
+                                border: isAct ? '1.5px solid var(--primary)' : '1px solid #cbd5e1',
+                                background: isAct ? 'rgba(16, 163, 163, 0.1)' : '#ffffff',
+                                color: isAct ? 'var(--primary)' : '#475569',
+                                fontWeight: isAct ? 600 : 400,
+                                cursor: 'pointer'
+                              }}
+                            >
+                              {label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                      <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.78rem' }}>Đường dẫn ảnh (URL hoặc Key)</label>
+                      <input
+                        type="text"
+                        disabled={isLocked}
+                        value={activeField.imageUrl ?? ''}
+                        onChange={(e) => handleUpdateField(activeBlockId!, activeFieldId!, { imageUrl: e.target.value })}
+                        placeholder="https://... hoặc key lưu trữ"
+                        style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', fontSize: '0.78rem' }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                      <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.78rem' }}>Chú thích ảnh (Caption)</label>
+                      <input
+                        type="text"
+                        disabled={isLocked}
+                        value={activeField.imageCaption ?? ''}
+                        onChange={(e) => handleUpdateField(activeBlockId!, activeFieldId!, { imageCaption: e.target.value })}
+                        placeholder="Ví dụ: Sơ đồ 5 công đoạn sản xuất"
+                        style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', fontSize: '0.78rem' }}
+                      />
+                    </div>
                   </div>
                 )}
 

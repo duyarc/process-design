@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import { Star } from 'lucide-react';
 import type { Submission, SubmissionFieldSnapshot, FormTemplateISO, TableColumnConfig } from '../../types';
 import { formatFormVersion, getColStyleWidth } from '../../types';
-import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock, getInfoGridTemplateColumns, isOtherValue, extractOtherText, formatOptionDisplay, getEffectiveCellOptions, getChecklistColumns } from '../../utils/formUtils';
+import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock, getInfoGridTemplateColumns, isOtherValue, extractOtherText, formatOptionDisplay, getEffectiveCellOptions, getChecklistColumns, resolveImageSrc } from '../../utils/formUtils';
 import { renderFormattedText } from '../../utils/textFormatter';
 import { PrintDocumentStyles, PrintSectionHeader } from './printShared';
 
@@ -409,6 +409,31 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                               return (
                                 <div key={f.id} style={{ ...gridItemStyle, display: 'block', fontSize: '0.82rem', wordBreak: 'break-word', pageBreakInside: 'avoid', lineHeight: 1.5, width: '100%' }}>
                                   <div style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', width: '100%' }}>{renderFormattedText(f.checkItem)}</div>
+                                </div>
+                              );
+                            }
+
+                            if (f.type === 'image') {
+                              const resolvedSrc = resolveImageSrc(f.imageUrl, true);
+                              return (
+                                <div key={f.id} style={{ ...gridItemStyle, display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '0.82rem', pageBreakInside: 'avoid', width: '100%' }}>
+                                  {resolvedSrc && (
+                                    <img
+                                      src={resolvedSrc}
+                                      alt={f.imageCaption || f.checkItem || 'Reference'}
+                                      style={{
+                                        maxWidth: '100%',
+                                        maxHeight: f.imageAspectRatio === 'banner' ? '180px' : f.imageAspectRatio === '1:1' ? '200px' : '260px',
+                                        objectFit: 'contain',
+                                        borderRadius: '3px'
+                                      }}
+                                    />
+                                  )}
+                                  {f.imageCaption && (
+                                    <div style={{ fontSize: '0.72rem', color: '#475569', fontStyle: 'italic', marginTop: '3px', textAlign: 'center', width: '100%' }}>
+                                      {f.imageCaption}
+                                    </div>
+                                  )}
                                 </div>
                               );
                             }

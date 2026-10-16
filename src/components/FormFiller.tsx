@@ -64,7 +64,8 @@ import {
   extractOtherText,
   encodeOtherValue,
   getEffectiveCellOptions,
-  toFormSlug
+  toFormSlug,
+  resolveImageSrc
 } from '../utils/formUtils';
 import { renderFormattedText, stripMarkdownTokens } from '../utils/textFormatter';
 import { useAuth } from '../context/AuthContext';
@@ -436,6 +437,17 @@ function FormFillerInner({
   const [copiedShareLink, setCopiedShareLink] = useState(false);
   const [triggerReportPrint, setTriggerReportPrint] = useState(false);
   const [prefetchedReportTemplate, setPrefetchedReportTemplate] = useState<ReportTemplateISO | null>(null);
+  const [lightboxImage, setLightboxImage] = useState<{ src: string; caption?: string } | null>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setLightboxImage(null);
+    };
+    if (lightboxImage) {
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [lightboxImage]);
 
   useEffect(() => {
     if (initialSubmissionTab) {
@@ -1625,6 +1637,50 @@ function FormFillerInner({
                           <div style={{ fontSize: '0.82rem', fontWeight: 400, color: 'var(--text-primary)', wordBreak: 'break-word', lineHeight: 1.5, width: '100%' }}>
                             {renderFormattedText(field.checkItem)}
                           </div>
+                        </div>
+                      );
+                    }
+
+                    if (field.type === 'image') {
+                      const resolvedSrc = resolveImageSrc(field.imageUrl);
+                      return (
+                        <div 
+                          key={field.id} 
+                          style={{ 
+                            gridRow: rSpan ? `span ${rSpan}` : undefined,
+                            gridColumn: cSpan && cSpan > 1 ? `span ${cSpan}` : cSpan === -1 ? '1 / -1' : undefined,
+                            display: 'flex', 
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            padding: '0.45rem 0',
+                            width: '100%'
+                          }}
+                        >
+                          {resolvedSrc ? (
+                            <img
+                              src={resolvedSrc}
+                              alt={field.imageCaption || field.checkItem || 'Reference image'}
+                              onClick={() => setLightboxImage({ src: resolvedSrc, caption: field.imageCaption || field.checkItem })}
+                              style={{
+                                maxWidth: '100%',
+                                maxHeight: field.imageAspectRatio === 'banner' ? '220px' : field.imageAspectRatio === '1:1' ? '240px' : '360px',
+                                objectFit: 'contain',
+                                borderRadius: '4px',
+                                boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+                                cursor: 'zoom-in'
+                              }}
+                              title="Nhấp để phóng to toàn màn hình"
+                            />
+                          ) : (
+                            <div style={{ fontSize: '0.75rem', color: '#94a3b8', fontStyle: 'italic', padding: '12px' }}>
+                              [Chưa tải ảnh]
+                            </div>
+                          )}
+                          {field.imageCaption && (
+                            <div style={{ fontSize: '0.74rem', color: '#64748b', fontStyle: 'italic', marginTop: '4px', textAlign: 'center', width: '100%' }}>
+                              {field.imageCaption}
+                            </div>
+                          )}
                         </div>
                       );
                     }
@@ -4188,6 +4244,45 @@ function FormFillerInner({
             <CheckCircle2 size={16} style={{ color: '#10b981' }} />
           )}
           <span>{localToast.message}</span>
+        </div>
+      )}
+
+      {/* Lightbox Modal for Image Field */}
+      {lightboxImage && (
+        <div
+          onClick={() => setLightboxImage(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.88)',
+            zIndex: 99999,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '24px',
+            cursor: 'zoom-out'
+          }}
+        >
+          <img
+            src={lightboxImage.src}
+            alt={lightboxImage.caption || 'Enlarged image'}
+            style={{
+              maxWidth: '92vw',
+              maxHeight: '84vh',
+              objectFit: 'contain',
+              borderRadius: '6px',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+            }}
+          />
+          {lightboxImage.caption && (
+            <div style={{ color: '#f8fafc', fontSize: '0.85rem', marginTop: '12px', background: 'rgba(0,0,0,0.6)', padding: '4px 14px', borderRadius: '4px', maxWidth: '80%', textAlign: 'center' }}>
+              {lightboxImage.caption}
+            </div>
+          )}
+          <div style={{ color: '#94a3b8', fontSize: '0.72rem', marginTop: '8px' }}>
+            Nhấp chuột hoặc bấm phím Esc để đóng
+          </div>
         </div>
       )}
     </div>

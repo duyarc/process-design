@@ -107,7 +107,7 @@ export interface SubtableColumn {
 
 export interface FormFieldISO {
   id: string;
-  type: 'label' | 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo' | 'subtable' | 'rating' | 'likert_scale' | 'select';
+  type: 'label' | 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo' | 'subtable' | 'rating' | 'likert_scale' | 'select' | 'image';
   checkItem: string;
   placeholder?: string; // For input/photo placeholder or instruction text
   locationCode: string;
@@ -130,6 +130,9 @@ export interface FormFieldISO {
   rowSpan?: number; // Row span in INFO_GRID (e.g. 1, 2, 3, 4)
   colSpan?: number; // Column span in INFO_GRID (e.g. 1, 2, 3, or -1 for full width)
   guidance?: string; // Hướng dẫn chi tiết / Tiêu chí đánh giá / Minh chứng cần kiểm tra
+  imageUrl?: string; // Reference image URL or storage key for 'image' field type
+  imageAspectRatio?: 'banner' | '16:9' | '4:3' | '1:1' | 'auto'; // Aspect ratio preset
+  imageCaption?: string; // Caption or description displayed beneath the image
 }
 
 export interface FormRevisionEntry {

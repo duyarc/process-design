@@ -12,7 +12,6 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 | # | Nhóm | Lỗi | Biện pháp phòng ngừa | Lần gặp |
 |---|---|---|---|---|
-| 12 | `LOGIC` | Truyền `row.id` đơn lẻ khi click canvas thay vì composite ID (`${blockId}_${rowId}_${colId}`) khiến registry lookup trả về `undefined` | Luôn dùng composite ID resolver helper (`getTableFieldId`, `getTableRowPrimaryFieldId`) khớp quy ước định danh của extractor | 1 |
 | 13 | `LOGIC` | `updateRuleOverride` silent abort khi `layoutBlocks` rỗng hoặc chưa gán trường vào khối khiến controlled inputs (Score, Weight) không thể chỉnh sửa | Xây dựng Smart Target Block Resolution (5 tầng ưu tiên) kết hợp Auto-Initialization khối Table cho Section H2 | 1 |
 | 14 | `BLOAT` | Trích xuất utility tổng hợp điểm (`summarizeH1ChildGroups`) nhưng vẫn import hàm con (`computeH1CombinedScore`) vào component cha → TS6133 unused import | Khi bọc logic vào pure utility cấp cao hơn, xóa ngay các imports cấp thấp không còn được gọi trực tiếp trong component | 1 |
 | 15 | `LOGIC` | Gọi `form.title` thay vì `form.formTitle` trên `FormTemplateISO` hoặc truyền Raw Block ID từ `FormReferenceCanvas` vào `setActiveBlockId` mà không ánh xạ sang `template.layoutBlocks` | Luôn kiểm tra tên trường chuẩn (`formTitle` vs `reportTitle`) và ánh xạ qua `handleSelectBlockFromFormCanvas` để đồng bộ ID khối giữa Form gốc và Report template | 1 |
@@ -32,10 +31,29 @@ phiên thực thi để không lặp lại lỗi cũ.
 | 29 | `LOGIC` | Gộp chung `field.type === 'radio'` với `select` trong render nhánh form khiến radio biến thành dropdown `<select>` và chữ dài bị ép 1 dòng; dùng `maxWidth: '180px'` cứng nhắc trên canvas khiến nhãn radio dài bị cắt cụt | Luôn tách riêng component render radio button group với radio circle native; với nhãn nhiều dòng trên canvas, dùng CSS Grid auto-growing `<textarea>` thay vì `<input>` cố định chiều rộng | 1 |
 | 30 | `BLOAT` | Nhập liệu nội dung hướng dẫn dài trên sidebar hẹp sinh thanh cuộn dọc kép và bắt buộc cuộn trang | Tách sub-component In-Canvas Accordion Editor với CSS Grid auto-grow textarea, cho phép xem và sửa trực tiếp ngay tại vị trí câu hỏi trên Canvas (Rule 13.9) | 1 |
 | 31 | `LOGIC` | Regex in nghiêng `\*(?:[^*]+)\*` nuốt dấu hoa thị đầu dòng bullet list (`* **Bold**`) thành in nghiêng lỗi | Áp dụng lookahead/lookbehind nghiêm ngặt `\*(?!\s)(?:[^*]+?)(?<!\s)\*` và xử lý phân cấp 2 tầng: tách dòng bullet (`* `, `- `, `+ `, `• `) trước, parse inline markdown sau | 1 |
+| 32 | `SCOPE` | Khi thêm trường mới vào `FormFieldISO.type`, nếu chỉ cập nhật union type cục bộ mà quên thêm vào chữ ký tham số `newType` của `handleChangeFieldType` trong component monolith thì `tsc -b` sẽ báo TS2367 ("no overlap") và TS2345 tại các call-site dropdown | Luôn đồng bộ union type của hàm đổi loại trường (`handleChangeFieldType`) cùng lúc với `FormFieldISO['type']` hoặc gán trực tiếp `newType: FormFieldISO['type']` | 1 |
 
 ---
 
 ## Nhật ký Phiên
+
+### 2026-10-16 — Bổ sung Trường Hình ảnh (Image Field Type), Tỷ lệ Khung hình Banner & Lightbox Phóng to
+
+**Scope:** 8 source files (`src/types.ts`, `src/utils/formUtils.ts`, `src/components/form/InCanvasImageField.tsx` [NEW], `src/components/FormBuilder.tsx`, `src/components/FormFiller.tsx`, `src/components/print/PrintBlankForm.tsx`, `src/components/print/PrintFilledForm.tsx`, `src/components/print/PrintScoring.tsx`) + 2 design docs (`DESIGN_FORM_DESIGNER.md`, `DESIGN_FORM_OPERATIONS.md`).
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa / tạo mới | 8 |
+| Lượt edit sửa lỗi (rework) | 1 (thêm `'image'` vào `handleChangeFieldType` parameter type) |
+| Số lần build | 2 (`tsc -b && vite build` pass 100% 14.25s) |
+| Lần build đầu thành công? | Không (`tsc -b` bắt TS2367/TS2345 tại `handleChangeFieldType`, sửa dứt điểm ngay) |
+
+**Kết quả đạt được:**
+- **Schema & Pure Utility:** Thêm `'image'` và `imageUrl`, `imageAspectRatio`, `imageCaption` vào `FormFieldISO`. Thêm pure utility `resolveImageSrc` giải quyết linh hoạt URL, Base64 dataUrl và R2 storage key cho Web và Print.
+- **Sub-component `InCanvasImageField` (Rule 4.3 Monolith Guard):** Tách subcomponent riêng biệt khỏi `FormBuilder.tsx`, cung cấp dải pills chọn tỷ lệ (`Banner`, `16:9`, `4:3`, `1:1`, `Auto`), dropzone kéo thả / tải ảnh với FileReader Base64 fallback, và input chú thích inline.
+- **Form Designer Canvas & Menu:** Giữ nguyên 100% kích thước và 12 loại trường cũ của `FieldTypeDropdown`, chỉ thêm mục thứ 13 là `Image`. Thêm cấu hình thuộc tính trong Right Inspector.
+- **Form Operations & Lightbox Modal:** `FormFiller.tsx` hiển thị ảnh tham chiếu tĩnh và hỗ trợ mở Lightbox phóng to toàn màn hình khi nhấp vào ảnh, bấm Esc để đóng.
+- **In ấn A4 Chuẩn:** `PrintBlankForm.tsx`, `PrintFilledForm.tsx`, `PrintScoring.tsx` hiển thị ảnh với `page-break-inside: avoid;` và `max-width: 100%`.
 
 ### 2026-10-15 — Nâng cấp Định dạng Markdown, Bullet List & Canvas WYSIWYG Linh động cho Trường Label
 
@@ -203,24 +221,5 @@ phiên thực thi để không lặp lại lỗi cũ.
 - **Sửa tận gốc lỗi ép co trang in A4 (`PrintBlankForm`, `PrintFilledForm`, `PrintScoring`):** Thêm cơ chế `isLongTextLabel` (`cleanLabel.length > 45 || cleanLabel.includes('\n')`) cho các trường `text`/`number` một dòng trong `INFO_GRID` để tự động ngắt dòng nhãn (`whiteSpace: 'pre-wrap'`, `wordBreak: 'break-word'`) và xếp dòng kẻ chấm trả lời xuống dưới (`width: '100%'`), đồng thời cho phép nhãn `OPTION_A` `checkbox`/`radio` dài hơn 45 ký tự tự xuống dòng. Loại bỏ hoàn toàn hiện tượng `.print-outer-table` phình ra 1.250px làm trình duyệt thu nhỏ tỷ lệ in xuống 55%.
 - **Chuẩn hóa Typography trên màn hình điền biểu mẫu (`FormFiller`):** Nâng cấp nhãn câu hỏi trong `INFO_GRID` từ `0.78rem` (`fontWeight: 400`, `var(--text-secondary)`) lên chuẩn hệ thống `0.82rem` (`fontWeight: 500`, `var(--text-primary)`, `whiteSpace: 'pre-wrap'`) và nhãn tùy chọn `checkbox` lên `0.82rem`.
 - **Nâng cấp Cấu trúc Biểu mẫu `3S-FA02` (`seedFactoryAssessmentForm.cjs`):** Chuyển đổi 4 bảng danh sách nhiều cột (`Đại diện doanh nghiệp làm việc`, `Sản phẩm / nhóm sản phẩm chính`, `Danh sách thiết bị chính`, `Doanh nghiệp đang có Chứng nhận Hệ thống Quản lý ATTP đang còn hiệu lực?`) từ `subtable` sang các khối `TABLE` (`borderStyle: 'grid'`, `titleFormat: 'H2'`) cấp cao nhất; tách tiêu đề 8 phần chính và tiểu mục thành các khối `SECTION_LABEL` (`H1`/`H2`). Đồng bộ thành công 28 blocks và 79 fields vào PostgreSQL.
-
-### 2026-10-13 — Factory Assessment Form (`3S-FA02` - Biểu mẫu đánh giá nhà máy): Complete 8-Section Schema Seed & Sync
-
-**Scope:** 1 script file (`scripts/seedFactoryAssessmentForm.cjs` [NEW]) + PostgreSQL DB (`forms` & `processes`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Số file nguồn chỉnh sửa | 1 (`scripts/seedFactoryAssessmentForm.cjs`) |
-| Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 1 (`npx tsc --noEmit` pass 100%, `npm run build` pass 11.07s) |
-| Lần build đầu thành công? | Có |
-
-**Kết quả đạt được:**
-- **Phân tích & Bóc tách 100% PDF 6 trang ("BIỂU MẪU ĐÁNH GIÁ NHÀ MÁY"):** Thiết kế và khởi tạo đầy đủ 12 khối (`layoutBlocks`) gồm 83 trường dữ liệu (`FormFieldISO`) trải dài qua 8 phần chính (`I. THÔNG TIN CHUNG`, `II. CÔNG SUẤT`, `III. NĂNG LỰC QUẢN LÝ CHẤT LƯỢNG`, `IV. NĂNG LỰC GIAO HÀNG`, `V. NĂNG LỰC QUẢN LÝ & TỔ CHỨC` + `KEY STAFF RETENTION RATE`, `VI. TUÂN THỦ QUY ĐỊNH & PHÁP LÝ`, `VII. NĂNG LỰC ỨNG DỤNG CÔNG NGHỆ`, `VIII. HÌNH ẢNH MINH CHỨNG`) và khối chữ ký xác nhận (`SIGN`).
-- **Chuẩn hóa Cấu trúc Trường cho ReportBuilder & FormFiller:** Tách riêng từng chỉ số sản lượng/công suất thành các trường `number` độc lập kèm `unit` (`cont/tháng`, `tấn/tháng`, `%`, `giờ`, `ngày`, `năm`, `người`, `lần`, `m3/ngày`), dựng 4 bảng danh sách động (`subtable`) và hiệu chỉnh các lỗi chính tả từ bản PDF gốc.
-- **Đồng bộ CSDL (`forms` & `processes`):** Cập nhật trực tiếp vào biểu mẫu `3S-FA02` (`v0.1`, `DRAFT`) và đồng bộ `workflowFormsData['3S-FA02']` trong quy trình `3S-FA` (*"Quy trình đánh giá nhà máy"*).
-
-
-
 
 
