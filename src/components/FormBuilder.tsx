@@ -788,23 +788,23 @@ function InCanvasTitleHeader({
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '4px',
-              padding: '2px 8px',
+              gap: '3px',
+              background: isGuidanceExpanded ? '#f0fdfa' : '#f8fafc',
+              border: `1px solid ${isGuidanceExpanded ? '#0d9488' : '#cbd5e1'}`,
+              borderRadius: '4px',
+              padding: '2px 6px',
               fontSize: '0.72rem',
-              fontWeight: 600,
-              borderRadius: '12px',
-              border: `1px solid ${isGuidanceExpanded ? '#0d9488' : '#99f6e4'}`,
-              background: isGuidanceExpanded ? '#0f766e' : '#f0fdfa',
-              color: isGuidanceExpanded ? '#ffffff' : '#0d9488',
+              color: isGuidanceExpanded ? '#0f766e' : '#475569',
               cursor: isLocked ? 'not-allowed' : 'pointer',
+              fontWeight: 500,
               transition: 'all 0.15s ease',
-              lineHeight: '16px',
-              userSelect: 'none'
+              flexShrink: 0
             }}
-            title="Bật/Tắt khung hướng dẫn chung cho bảng"
+            title={isGuidanceExpanded ? "Thu gọn hướng dẫn" : "Xem/sửa hướng dẫn chung cho bảng"}
           >
-            <span>💡 Hướng dẫn</span>
-            <span style={{ fontSize: '0.65rem' }}>{isGuidanceExpanded ? '▴' : '▾'}</span>
+            <span>💡</span>
+            <span>Hướng dẫn</span>
+            {isGuidanceExpanded ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
           </button>
         ) : isBlockSelected ? (
           <button
@@ -817,18 +817,18 @@ function InCanvasTitleHeader({
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '3px',
-              padding: '2px 7px',
-              fontSize: '0.72rem',
-              fontWeight: 500,
-              borderRadius: '12px',
-              border: '1px dashed #94a3b8',
-              background: '#ffffff',
-              color: '#64748b',
+              gap: '2px',
+              background: 'transparent',
+              border: '1px dashed #0d9488',
+              borderRadius: '4px',
+              padding: '2px 5px',
+              fontSize: '0.7rem',
+              color: '#0d9488',
               cursor: isLocked ? 'not-allowed' : 'pointer',
+              fontWeight: 500,
+              opacity: 0.85,
               transition: 'all 0.15s ease',
-              lineHeight: '16px',
-              userSelect: 'none'
+              flexShrink: 0
             }}
             title="Thêm hướng dẫn chung cho bảng"
           >

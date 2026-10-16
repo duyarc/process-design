@@ -51,13 +51,15 @@ phiên thực thi để không lặp lại lỗi cũ.
 **Kết quả đạt được:**
 - **Thống nhất Element Soạn thảo Hướng dẫn Khối Bảng (`FormBuilder.tsx`):**
   - Loại bỏ textarea trần cũ trong `renderDescription()` đối với khối `TABLE` trong `InCanvasTitleHeader`.
-  - Bổ sung nút pill `[ 💡 Hướng dẫn ▾/▴ ]` (khi đã có hướng dẫn) và `[ + 💡 Hướng dẫn ]` (khi chưa có và đang chọn khối) trên thanh tiêu đề `renderControlGroup`.
+  - Bổ sung nút bấm `[ 💡 Hướng dẫn ⌃/⌄ ]` (khi đã có hướng dẫn) và `[ + 💡 Hướng dẫn ]` (khi chưa có và đang chọn khối) trên thanh tiêu đề `renderControlGroup`.
+  - Đồng nhất 100% Visual Style Parity với khối `INFO_GRID`: `borderRadius: '4px'`, nền xanh bạc hà nhạt `#f0fdfa`, viền `1px solid #0d9488`, chữ `#0f766e`, icon `<ChevronUp size={11} />` / `<ChevronDown size={11} />` (thay vì pill bo tròn 12px và ký tự unicode text `▴`/`▾`).
   - Tích hợp sub-component chuẩn `InCanvasGuidanceEditor` (Rule 4.3 Monolith Guard) mở rộng dạng accordion ngay dưới tiêu đề, trang bị toolbar markdown `[ B ] [ I ] [ U ] [ • ] [ 💡 ]`, preview toggle `[ 👁 Xem trước / ✍️ Soạn thảo ]`, auto-grow CSS Grid textarea, và nút đóng `[ ✕ ]`.
   - Hỗ trợ hiển thị hướng dẫn khi tiêu đề bị ẩn (`titleFmt === 'NONE'`).
   - Bổ sung nút liên kết `[ Mở trên Canvas ▾/▴ ]` trên Right Inspector để đồng bộ đóng/mở trực tiếp với Canvas.
 - **Hiển thị Thu gọn/Mở rộng Linh hoạt trên Form Điền (`FormFiller.tsx`):**
-  - Bổ sung nút accordion `[ 💡 Hướng dẫn ▾/▴ ]` bên cạnh tiêu đề bảng (hoặc phía trên bảng khi tiêu đề ẩn), cho phép người vận hành chủ động đóng/mở hướng dẫn chung của bảng.
-  - Quản lý trạng thái qua `expandedGuidanceMap[block.id]`, đồng bộ 100% phong cách hiển thị với khối `INFO_GRID` và các dòng tiêu chí con.
+  - Bổ sung nút accordion `[ 💡 Hướng dẫn ⌃/⌄ ]` bên cạnh tiêu đề bảng (hoặc phía trên bảng khi tiêu đề ẩn), cho phép người vận hành chủ động đóng/mở hướng dẫn chung của bảng.
+  - Chuẩn hóa style nút bấm bo góc 4px, màu sắc và icon đồng bộ 100% với câu hỏi `INFO_GRID` và các dòng tiêu chí con.
+  - Quản lý trạng thái qua `expandedGuidanceMap[block.id]`, giữ bảng điền luôn gọn gàng và tập trung.
 
 ### 2026-10-16 — Cập nhật Hiển thị và Soạn thảo Hướng dẫn Khối Bảng (Table Block Guidance)
 

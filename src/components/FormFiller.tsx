@@ -1583,23 +1583,23 @@ function FormFillerInner({
                       style={{
                         display: 'inline-flex',
                         alignItems: 'center',
-                        gap: '4px',
-                        padding: '2px 8px',
+                        gap: '3px',
+                        padding: '1px 6px',
                         fontSize: '0.72rem',
-                        fontWeight: 600,
-                        borderRadius: '12px',
-                        border: `1px solid ${expandedGuidanceMap[block.id] ? '#0d9488' : '#99f6e4'}`,
-                        background: expandedGuidanceMap[block.id] ? '#0f766e' : '#f0fdfa',
-                        color: expandedGuidanceMap[block.id] ? '#ffffff' : '#0d9488',
+                        fontWeight: 500,
+                        borderRadius: '4px',
+                        border: `1px solid ${expandedGuidanceMap[block.id] ? '#0d9488' : 'var(--neutral-border)'}`,
+                        background: expandedGuidanceMap[block.id] ? '#f0fdfa' : '#f8fafc',
+                        color: expandedGuidanceMap[block.id] ? '#0f766e' : 'var(--text-secondary)',
                         cursor: 'pointer',
                         transition: 'all 0.15s ease',
-                        lineHeight: '16px',
+                        lineHeight: 1.3,
                         userSelect: 'none'
                       }}
-                      title="Bật/Tắt khung hướng dẫn chung cho bảng"
+                      title={expandedGuidanceMap[block.id] ? "Thu gọn hướng dẫn" : "Xem hướng dẫn chung cho bảng"}
                     >
                       <span>💡 Hướng dẫn</span>
-                      <span style={{ fontSize: '0.65rem' }}>{expandedGuidanceMap[block.id] ? '▴' : '▾'}</span>
+                      {expandedGuidanceMap[block.id] ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
                     </button>
                   )}
                 </div>
@@ -2624,23 +2624,23 @@ function FormFillerInner({
                         style={{
                           display: 'inline-flex',
                           alignItems: 'center',
-                          gap: '4px',
-                          padding: '2px 8px',
+                          gap: '3px',
+                          padding: '1px 6px',
                           fontSize: '0.72rem',
-                          fontWeight: 600,
-                          borderRadius: '12px',
-                          border: `1px solid ${expandedGuidanceMap[block.id] ? '#0d9488' : '#99f6e4'}`,
-                          background: expandedGuidanceMap[block.id] ? '#0f766e' : '#f0fdfa',
-                          color: expandedGuidanceMap[block.id] ? '#ffffff' : '#0d9488',
+                          fontWeight: 500,
+                          borderRadius: '4px',
+                          border: `1px solid ${expandedGuidanceMap[block.id] ? '#0d9488' : 'var(--neutral-border)'}`,
+                          background: expandedGuidanceMap[block.id] ? '#f0fdfa' : '#f8fafc',
+                          color: expandedGuidanceMap[block.id] ? '#0f766e' : 'var(--text-secondary)',
                           cursor: 'pointer',
                           transition: 'all 0.15s ease',
-                          lineHeight: '16px',
+                          lineHeight: 1.3,
                           userSelect: 'none'
                         }}
-                        title="Bật/Tắt khung hướng dẫn chung cho bảng"
+                        title={expandedGuidanceMap[block.id] ? "Thu gọn hướng dẫn" : "Xem hướng dẫn chung cho bảng"}
                       >
                         <span>💡 Hướng dẫn</span>
-                        <span style={{ fontSize: '0.65rem' }}>{expandedGuidanceMap[block.id] ? '▴' : '▾'}</span>
+                        {expandedGuidanceMap[block.id] ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
                       </button>
                     </div>
                   )}

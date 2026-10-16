@@ -8,7 +8,7 @@
 |---|---|
 | **Module Name** | Form Operations |
 | **Status** | Active Development |
-| **Verified At Commit** | (2026-10-16) — TABLE guidance: collapsible block guidance banner & header accordion button in FormFiller verified against source |
+| **Verified At Commit** | (2026-10-16) — TABLE guidance: 100% visual style parity (rounded rect 4px, light mint #f0fdfa, Chevron icons) verified against source |
 
 ### Quick File Index
 
@@ -454,7 +454,7 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 | 2026-10-16 | `CURRENT` | **Reference Image Field & Full-Screen Lightbox Modal (`FormFiller`, `PrintFilledForm`, `PrintScoring`):** (1) In `FormFiller.tsx`, handled `field.type === 'image'` rendering static reference diagrams/banners with aspect ratio constraint (`banner`, `16:9`, `4:3`, `1:1`, `auto`) and caption without collecting operator inputs. (2) Added interactive full-screen Lightbox modal on image click/tap with dark overlay, centered image zoom, caption display, and Escape keyboard listener. (3) In `PrintFilledForm.tsx` and `PrintScoring.tsx`, printed reference images with `page-break-inside: avoid;` and centered caption. |
 | 2026-10-16 | `CURRENT` | **Image Width Modes Parity & Print Integration (`FormFiller`, `PrintFilledForm`, `PrintScoring`):** (1) In `FormFiller.tsx`, updated `field.type === 'image'` rendering to respect `field.imageWidthMode`: eliminated `maxHeight: 220px` clamp for `full` mode allowing 100% margin stretch (`width: 100%`, `height: auto`), supported `bleed` (borderless full-bleed) and `fit` (constrained proportional width). (2) In `PrintFilledForm.tsx` and `PrintScoring.tsx`, standardized full-width image rendering with `height: auto` and proportional aspect ratio constraints. |
 | 2026-10-16 | `CURRENT` | **TABLE Block & Row Guidance Interactive Display (`FormFiller`):** (1) In `FormFiller.tsx`, added block-level guidance banner under table header rendering formatted markdown (`block.description \|\| block.guidance`). (2) Added interactive row guidance accordion button `[ 💡 Hướng dẫn ▾/▴ ]` in table host cell (`getTableItemColumnId`), expanding formatted guidance box with teal accent border (`#0d9488`). State managed via `expandedGuidanceMap` with key `${block.id}_${row.id}`. (3) Set `verticalAlign: 'top'` on host cells with guidance for natural multi-line reading flow. |
-| 2026-10-16 | `CURRENT` | **Collapsible TABLE Block Guidance Accordion (`FormFiller`):** (1) In `FormFiller.tsx`, added `[ 💡 Hướng dẫn ▾/▴ ]` accordion button beside table title (or above table when title is hidden), allowing operators to expand/collapse table-level guidance on demand. (2) Maintained state via `expandedGuidanceMap[block.id]`, keeping table header clean by default and matching visual design language with `INFO_GRID` and row criteria guidance. |
+| 2026-10-16 | `CURRENT` | **Collapsible TABLE Block Guidance Accordion (`FormFiller`):** (1) In `FormFiller.tsx`, added `[ 💡 Hướng dẫn ▾/▴ ]` accordion button beside table title (or above table when title is hidden), allowing operators to expand/collapse table-level guidance on demand. (2) Aligned 100% visual style parity with `INFO_GRID`: `borderRadius: '4px'`, `background: '#f0fdfa'`, `color: '#0f766e'`, and `ChevronUp`/`ChevronDown` icons. (3) Maintained state via `expandedGuidanceMap[block.id]`, keeping table header clean by default. |
 
 
 
