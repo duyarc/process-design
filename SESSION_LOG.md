@@ -37,6 +37,28 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 ## Nhật ký Phiên
 
+### 2026-10-16 — Thống nhất Trình Soạn thảo & Hiển thị Hướng dẫn Khối Bảng (Unified Table Guidance Accordion)
+
+**Scope:** 2 source files (`src/components/FormBuilder.tsx`, `src/components/FormFiller.tsx`) + 2 design docs (`DESIGN_FORM_DESIGNER.md`, `DESIGN_FORM_OPERATIONS.md`).
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa | 2 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 3 (`npx tsc --noEmit` x2 pass 100%, `npm run build` pass 9.31s) |
+| Lần build đầu thành công? | Có |
+
+**Kết quả đạt được:**
+- **Thống nhất Element Soạn thảo Hướng dẫn Khối Bảng (`FormBuilder.tsx`):**
+  - Loại bỏ textarea trần cũ trong `renderDescription()` đối với khối `TABLE` trong `InCanvasTitleHeader`.
+  - Bổ sung nút pill `[ 💡 Hướng dẫn ▾/▴ ]` (khi đã có hướng dẫn) và `[ + 💡 Hướng dẫn ]` (khi chưa có và đang chọn khối) trên thanh tiêu đề `renderControlGroup`.
+  - Tích hợp sub-component chuẩn `InCanvasGuidanceEditor` (Rule 4.3 Monolith Guard) mở rộng dạng accordion ngay dưới tiêu đề, trang bị toolbar markdown `[ B ] [ I ] [ U ] [ • ] [ 💡 ]`, preview toggle `[ 👁 Xem trước / ✍️ Soạn thảo ]`, auto-grow CSS Grid textarea, và nút đóng `[ ✕ ]`.
+  - Hỗ trợ hiển thị hướng dẫn khi tiêu đề bị ẩn (`titleFmt === 'NONE'`).
+  - Bổ sung nút liên kết `[ Mở trên Canvas ▾/▴ ]` trên Right Inspector để đồng bộ đóng/mở trực tiếp với Canvas.
+- **Hiển thị Thu gọn/Mở rộng Linh hoạt trên Form Điền (`FormFiller.tsx`):**
+  - Bổ sung nút accordion `[ 💡 Hướng dẫn ▾/▴ ]` bên cạnh tiêu đề bảng (hoặc phía trên bảng khi tiêu đề ẩn), cho phép người vận hành chủ động đóng/mở hướng dẫn chung của bảng.
+  - Quản lý trạng thái qua `expandedGuidanceMap[block.id]`, đồng bộ 100% phong cách hiển thị với khối `INFO_GRID` và các dòng tiêu chí con.
+
 ### 2026-10-16 — Cập nhật Hiển thị và Soạn thảo Hướng dẫn Khối Bảng (Table Block Guidance)
 
 **Scope:** 5 source files (`src/utils/formUtils.ts`, `src/types.ts`, `src/components/FormFiller.tsx`, `src/components/print/PrintBlankForm.tsx`, `src/components/FormBuilder.tsx`) + 2 design docs (`DESIGN_FORM_DESIGNER.md`, `DESIGN_FORM_OPERATIONS.md`).
@@ -196,22 +218,6 @@ phiên thực thi để không lặp lại lỗi cũ.
 - **Đồng bộ hóa Backend (`server.cjs`):** Nâng cấp hàm `toSlug` xử lý `đ/Đ ➔ d`, giúp endpoint `GET /api/forms/resolve/*identifier` so khớp chính xác 100% giữa URL slug và tiêu đề form trong cơ sở dữ liệu (`toSlug(formRecord.form_title)`), triệt tiêu lỗi 404 khi truy cập biểu mẫu công khai.
 - **Thay thế Code Inline Frontend (`FormBuilder.tsx`, `FormFiller.tsx`):** Thay thế toàn bộ các đoạn mã regex sinh slug thô bằng lời gọi hàm tập trung `toFormSlug`, loại bỏ triệt để các đường link dị tật cắt chữ (như `bi-u-m-u-nh-gi-nh-m-y`).
 - **Tuân thủ Tuyệt đối Yêu cầu Không Tương Thích Ngược:** Không sinh thêm fallback code hay bloatware cho các URL unicode dị tật cũ vốn dĩ không hoạt động.
-
-### 2026-10-14 — Chuẩn hóa Hướng dẫn Nghiệp vụ & Đồng bộ Database cho Biểu mẫu Đánh giá Nhà máy (3S-FA02)
-
-**Scope:** 2 script files (`scripts/guidanceData.cjs` [NEW], `scripts/seedFactoryAssessmentForm.cjs`) + PostgreSQL Database (`forms`, `processes`).
-
-| Chỉ số | Giá trị |
-|---|---|
-| Số trường được nạp hướng dẫn | 17 trường chỉ số nghiệp vụ trọng yếu |
-| Số file nguồn frontend (`src/`) sửa đổi | 0 (Zero source change - tuân thủ kiến trúc động) |
-| Số lần build | 1 (`npx tsc --noEmit` 0 lỗi, `npm run build` pass 13.69s) |
-| Lần build đầu thành công? | Có |
-
-**Kết quả đạt được:**
-- **Chuẩn hóa Sổ tay Nghiệp vụ (`guidelines_factory_assessment.md`):** Xây dựng bộ quy tắc 3 đầu dòng không đánh số (Định nghĩa & Cách tính, Tài liệu đối chứng, Kiểm tra tính hợp lý / Đánh giá độ ổn định) cho toàn bộ 14 nhóm chỉ số số liệu của Biểu mẫu 3S-FA02 (Sản lượng cont, tấn, công suất thiết kế, cam kết, bảo trì CM/PM, dừng máy, tập trung NCC, khiếu nại, giao trễ, độ biến thiên lead-time, tỷ lệ giữ chân nhân sự chủ chốt, công suất nước thải).
-- **Tập trung hóa Từ điển Guidance (`scripts/guidanceData.cjs`):** Tạo module từ điển `GUIDANCE_MAP` lưu trữ các chuỗi markdown hướng dẫn, tích hợp trực tiếp vào seed script để tự động áp dụng cho template biểu mẫu `3S-FA02`.
-- **Đồng bộ Cơ sở Dữ liệu PostgreSQL:** Nạp thành công toàn bộ 17 chuỗi hướng dẫn vào bảng `forms` (3S-FA02 v0.1) và đồng bộ trường `workflowFormsData['3S-FA02']` trong bảng `processes` (quy trình `3S-FA`), kích hoạt hiển thị hướng dẫn tức thì trên cả `FormBuilder` (in-canvas editor) và `FormFiller` (accordion tooltip).
 
 
 

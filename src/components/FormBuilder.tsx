@@ -711,6 +711,8 @@ interface InCanvasTitleHeaderProps {
   onUpdateTitleFormat: (fmt: TitleFormatISO) => void;
   onSelectBlock: () => void;
   extraControls?: React.ReactNode;
+  isGuidanceExpanded?: boolean;
+  onToggleGuidance?: () => void;
 }
 
 function InCanvasTitleHeader({
@@ -721,9 +723,12 @@ function InCanvasTitleHeader({
   onUpdateDescription,
   onUpdateTitleFormat,
   onSelectBlock,
-  extraControls
+  extraControls,
+  isGuidanceExpanded,
+  onToggleGuidance
 }: InCanvasTitleHeaderProps) {
   const titleFmt = getEffectiveTitleFormat(block);
+  const hasGuidance = !!(block.description || block.guidance);
 
   const renderStylePill = () => (
     <div
@@ -771,6 +776,66 @@ function InCanvasTitleHeader({
 
   const renderControlGroup = () => (
     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+      {onToggleGuidance && (
+        hasGuidance ? (
+          <button
+            type="button"
+            disabled={isLocked}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleGuidance();
+            }}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              padding: '2px 8px',
+              fontSize: '0.72rem',
+              fontWeight: 600,
+              borderRadius: '12px',
+              border: `1px solid ${isGuidanceExpanded ? '#0d9488' : '#99f6e4'}`,
+              background: isGuidanceExpanded ? '#0f766e' : '#f0fdfa',
+              color: isGuidanceExpanded ? '#ffffff' : '#0d9488',
+              cursor: isLocked ? 'not-allowed' : 'pointer',
+              transition: 'all 0.15s ease',
+              lineHeight: '16px',
+              userSelect: 'none'
+            }}
+            title="Bật/Tắt khung hướng dẫn chung cho bảng"
+          >
+            <span>💡 Hướng dẫn</span>
+            <span style={{ fontSize: '0.65rem' }}>{isGuidanceExpanded ? '▴' : '▾'}</span>
+          </button>
+        ) : isBlockSelected ? (
+          <button
+            type="button"
+            disabled={isLocked}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleGuidance();
+            }}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '3px',
+              padding: '2px 7px',
+              fontSize: '0.72rem',
+              fontWeight: 500,
+              borderRadius: '12px',
+              border: '1px dashed #94a3b8',
+              background: '#ffffff',
+              color: '#64748b',
+              cursor: isLocked ? 'not-allowed' : 'pointer',
+              transition: 'all 0.15s ease',
+              lineHeight: '16px',
+              userSelect: 'none'
+            }}
+            title="Thêm hướng dẫn chung cho bảng"
+          >
+            <span>+ 💡 Hướng dẫn</span>
+          </button>
+        ) : null
+      )}
       {renderStylePill()}
       {extraControls && (
         <>
@@ -782,8 +847,7 @@ function InCanvasTitleHeader({
   );
 
   const renderDescription = () => {
-    if (block.type !== 'SECTION_LABEL' && block.type !== 'TABLE') return null;
-    if (block.type === 'TABLE' && !block.description && !isBlockSelected) return null;
+    if (block.type !== 'SECTION_LABEL') return null;
     return (
       <div style={{ display: 'grid', width: '100%', marginTop: '4px', position: 'relative' }}>
         {/* CSS Grid Auto-Grow Textarea mirror span */}
@@ -847,8 +911,24 @@ function InCanvasTitleHeader({
     );
   };
 
+  const renderGuidanceEditor = () => {
+    if (!onToggleGuidance || !isGuidanceExpanded) return null;
+    return (
+      <div style={{ marginTop: '6px' }} onClick={(e) => e.stopPropagation()}>
+        <InCanvasGuidanceEditor
+          guidance={block.description || block.guidance || ''}
+          isLocked={isLocked}
+          onUpdateGuidance={(val) => {
+            onUpdateDescription?.(val);
+          }}
+          onClose={onToggleGuidance}
+        />
+      </div>
+    );
+  };
+
   if (titleFmt === 'NONE') {
-    if (block.type === 'SECTION_LABEL' || isBlockSelected) {
+    if (block.type === 'SECTION_LABEL' || isBlockSelected || (hasGuidance && isGuidanceExpanded)) {
       return (
         <div style={{ marginBottom: '0.5rem' }}>
           <div
@@ -903,6 +983,7 @@ function InCanvasTitleHeader({
             {renderControlGroup()}
           </div>
           {renderDescription()}
+          {renderGuidanceEditor()}
         </div>
       );
     }
@@ -1008,6 +1089,7 @@ function InCanvasTitleHeader({
       </div>
 
       {renderDescription()}
+      {renderGuidanceEditor()}
     </div>
   );
 }
@@ -1799,7 +1881,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     setLayoutBlocks(prev => prev.map(b => {
       if (b.id !== blockId) return b;
       const updatedFields = b.fields.map((f, idx) => idx === 0 ? { ...f, checkItem: newDesc } : f);
-      return { ...b, description: newDesc, fields: updatedFields };
+      return { ...b, description: newDesc, guidance: newDesc, fields: updatedFields };
     }));
   };
 
@@ -5017,6 +5099,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                 setActiveBlockId(block.id);
                                 setActiveFieldId(null);
                               }}
+                              isGuidanceExpanded={!!canvasExpandedGuidanceMap[block.id]}
+                              onToggleGuidance={() => toggleCanvasGuidance(block.id)}
                               extraControls={!isLocked && (
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }} onClick={(e) => e.stopPropagation()}>
                                   {/* Border Style Selector (3 icon pill) */}
@@ -7917,11 +8001,31 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                     </div>
                     
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', borderTop: '1px solid var(--neutral-border)', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
-                      <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Description</label>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.82rem' }}>Hướng dẫn chung (Guidance)</label>
+                        <button
+                          type="button"
+                          onClick={() => toggleCanvasGuidance(activeBlock.id)}
+                          style={{
+                            border: 'none',
+                            background: 'transparent',
+                            color: '#0d9488',
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '2px',
+                            padding: '2px 4px'
+                          }}
+                        >
+                          {canvasExpandedGuidanceMap[activeBlock.id] ? 'Đang mở trên Canvas ▴' : 'Mở trên Canvas ▾'}
+                        </button>
+                      </div>
                       <input
                         type="text"
                         disabled={isLocked}
-                        value={activeBlock.description || ''}
+                        value={activeBlock.description || activeBlock.guidance || ''}
                         onChange={(e) => handleUpdateBlockDescription(activeBlockId!, e.target.value)}
                         placeholder="e.g. (kiểm tra trước khi load...)"
                         style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}

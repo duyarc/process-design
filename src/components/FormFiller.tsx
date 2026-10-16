@@ -1562,19 +1562,47 @@ function FormFillerInner({
               gap: '6px'
             }}>
               {blockTitleFmt !== 'NONE' && block.type !== 'TITLE' && !(hideH1Title && blockTitleFmt === 'H1') && !(hideH2Title && blockTitleFmt === 'H2') && (
-                blockTitleFmt === 'H1' ? (
-                  <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: 'var(--text-primary)' }}>
-                    {renderFormattedText(block.title)}
-                  </h2>
-                ) : blockTitleFmt === 'H2' ? (
-                  <div style={{ padding: '2px 0 2px 8px', background: 'transparent', borderLeft: '3px solid var(--primary)', fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)' }}>
-                    {renderFormattedText(block.title)}
-                  </div>
-                ) : (
-                  <div style={{ margin: 0, fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                    {renderFormattedText(block.title)}
-                  </div>
-                )
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                  {blockTitleFmt === 'H1' ? (
+                    <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.6px', color: 'var(--text-primary)' }}>
+                      {renderFormattedText(block.title)}
+                    </h2>
+                  ) : blockTitleFmt === 'H2' ? (
+                    <div style={{ padding: '2px 0 2px 8px', background: 'transparent', borderLeft: '3px solid var(--primary)', fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)' }}>
+                      {renderFormattedText(block.title)}
+                    </div>
+                  ) : (
+                    <div style={{ margin: 0, fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                      {renderFormattedText(block.title)}
+                    </div>
+                  )}
+                  {block.type === 'TABLE' && (block.description || block.guidance) && (
+                    <button
+                      type="button"
+                      onClick={() => toggleGuidance(block.id)}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '2px 8px',
+                        fontSize: '0.72rem',
+                        fontWeight: 600,
+                        borderRadius: '12px',
+                        border: `1px solid ${expandedGuidanceMap[block.id] ? '#0d9488' : '#99f6e4'}`,
+                        background: expandedGuidanceMap[block.id] ? '#0f766e' : '#f0fdfa',
+                        color: expandedGuidanceMap[block.id] ? '#ffffff' : '#0d9488',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                        lineHeight: '16px',
+                        userSelect: 'none'
+                      }}
+                      title="Bật/Tắt khung hướng dẫn chung cho bảng"
+                    >
+                      <span>💡 Hướng dẫn</span>
+                      <span style={{ fontSize: '0.65rem' }}>{expandedGuidanceMap[block.id] ? '▴' : '▾'}</span>
+                    </button>
+                  )}
+                </div>
               )}
 
               {/* 1. TITLE BLOCK */}
@@ -2584,9 +2612,39 @@ function FormFillerInner({
               {/* 3.1 DYNAMIC TABLE BLOCK */}
               {block.type === 'TABLE' && (() => {
                 const bStyle = block.borderStyle || 'grid';
+                const hasGuidance = !!(block.description || block.guidance);
+                const isTitleHidden = blockTitleFmt === 'NONE' || (hideH1Title && blockTitleFmt === 'H1') || (hideH2Title && blockTitleFmt === 'H2');
                 return (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: isSeamless ? '0px' : '0.5rem' }}>
-                  {(block.description || block.guidance) && (
+                  {isTitleHidden && hasGuidance && (
+                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                      <button
+                        type="button"
+                        onClick={() => toggleGuidance(block.id)}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '2px 8px',
+                          fontSize: '0.72rem',
+                          fontWeight: 600,
+                          borderRadius: '12px',
+                          border: `1px solid ${expandedGuidanceMap[block.id] ? '#0d9488' : '#99f6e4'}`,
+                          background: expandedGuidanceMap[block.id] ? '#0f766e' : '#f0fdfa',
+                          color: expandedGuidanceMap[block.id] ? '#ffffff' : '#0d9488',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                          lineHeight: '16px',
+                          userSelect: 'none'
+                        }}
+                        title="Bật/Tắt khung hướng dẫn chung cho bảng"
+                      >
+                        <span>💡 Hướng dẫn</span>
+                        <span style={{ fontSize: '0.65rem' }}>{expandedGuidanceMap[block.id] ? '▴' : '▾'}</span>
+                      </button>
+                    </div>
+                  )}
+                  {hasGuidance && expandedGuidanceMap[block.id] && (
                     <div style={{
                       padding: '6px 10px',
                       background: 'var(--neutral-bg)',
