@@ -12,7 +12,6 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 | # | Nhóm | Lỗi | Biện pháp phòng ngừa | Lần gặp |
 |---|---|---|---|---|
-| 14 | `BLOAT` | Trích xuất utility tổng hợp điểm (`summarizeH1ChildGroups`) nhưng vẫn import hàm con (`computeH1CombinedScore`) vào component cha → TS6133 unused import | Khi bọc logic vào pure utility cấp cao hơn, xóa ngay các imports cấp thấp không còn được gọi trực tiếp trong component | 1 |
 | 15 | `LOGIC` | Gọi `form.title` thay vì `form.formTitle` trên `FormTemplateISO` hoặc truyền Raw Block ID từ `FormReferenceCanvas` vào `setActiveBlockId` mà không ánh xạ sang `template.layoutBlocks` | Luôn kiểm tra tên trường chuẩn (`formTitle` vs `reportTitle`) và ánh xạ qua `handleSelectBlockFromFormCanvas` để đồng bộ ID khối giữa Form gốc và Report template | 1 |
 | 16 | `BLOAT` | Thay thế sub-layout cũ (như thanh toolbar text format) làm sót import helper (`applyTextFormat`) ở đầu file → TS6133 unused import khi build production | Khi dọn dẹp cụm UI/control cũ, kiểm tra ngay đầu file để loại bỏ import của các helper chỉ dùng riêng cho control đó | 1 |
 | 17 | `CTX` | Khi lồng conditional JSX (`ternary ? :`), đóng nhầm thẻ `</div>` của wrapper cha bên ngoài → TS17015 expected closing tag | Kiểm tra kỹ cấu trúc mở/đóng thẻ của wrapper cha trước khi chèn ternary; bọc fragment độc lập cho từng nhánh | 1 |
@@ -32,10 +31,27 @@ phiên thực thi để không lặp lại lỗi cũ.
 | 31 | `LOGIC` | Regex in nghiêng `\*(?:[^*]+)\*` nuốt dấu hoa thị đầu dòng bullet list (`* **Bold**`) thành in nghiêng lỗi | Áp dụng lookahead/lookbehind nghiêm ngặt `\*(?!\s)(?:[^*]+?)(?<!\s)\*` và xử lý phân cấp 2 tầng: tách dòng bullet (`* `, `- `, `+ `, `• `) trước, parse inline markdown sau | 1 |
 | 32 | `SCOPE` | Khi thêm trường mới vào `FormFieldISO.type`, nếu chỉ cập nhật union type cục bộ mà quên thêm vào chữ ký tham số `newType` của `handleChangeFieldType` trong component monolith thì `tsc -b` sẽ báo TS2367 ("no overlap") và TS2345 tại các call-site dropdown | Luôn đồng bộ union type của hàm đổi loại trường (`handleChangeFieldType`) cùng lúc với `FormFieldISO['type']` hoặc gán trực tiếp `newType: FormFieldISO['type']` | 1 |
 | 33 | `LOGIC` | Giới hạn cứng `maxHeight: '200px'`/`'220px'` kết hợp `alignItems: 'center'` trên ảnh tỷ lệ rộng (banner 4:1) khiến ảnh bị bóp hẹp chiều ngang (~800px) tạo 2 dải lề trắng lớn bên trái và phải | Bỏ trần `maxHeight` cứng khi ở chế độ banner/full, đặt `width: '100%'` và `height: 'auto'` kết hợp các chế độ độ rộng `imageWidthMode` ('full' \| 'bleed' \| 'fit') để ảnh dãn bằng phẳng 100% với lề văn bản | 1 |
+| 34 | `LOGIC` | Khóa cứng thao tác xóa trên nút bấm (`disabled={... || block.type === 'TITLE'}`) trong khi vẫn để màu kích hoạt đỏ (`var(--danger)`) gây nghịch lý giao diện (nút nhìn bấm được nhưng không phản hồi); ngoài ra `formTitle` vốn là thuộc tính độc lập lưu trong DB chứ không phụ thuộc vào sự tồn tại của khối TITLE trên canvas | Khi vô hiệu hóa nút bấm, luôn chuyển màu sắc sang `var(--text-muted)` và kiểm tra tính độc lập của dữ liệu trước khi áp đặt các ràng buộc cấm xóa cứng nhắc | 1 |
 
 ---
 
 ## Nhật ký Phiên
+
+### 2026-10-16 — Mở khóa Xóa Khối Tiêu Đề (Title Block) & Đồng bộ ConfirmModal Xóa Khối (FormBuilder)
+
+**Scope:** 1 source file (`src/components/FormBuilder.tsx`) + 1 design doc (`DESIGN_FORM_DESIGNER.md`).
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa | 1 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 1 (`tsc -b && vite build` pass 100% 11.06s) |
+| Lần build đầu thành công? | Có |
+
+**Kết quả đạt được:**
+- **Giải quyết Triệt để Nghịch lý Giao diện Nút Xóa Khối Tiêu Đề:** Loại bỏ điều kiện vô hiệu hóa cứng `block.type === 'TITLE'` trên Canvas block badge và Right Inspector của `FormBuilder.tsx`. Cho phép người dùng chủ động xóa khối Tiêu đề khi thiết kế các biểu mẫu đặc thù không cần khối title đầu trang hoặc muốn tùy biến lại bố cục.
+- **Bảo toàn Tính Độc lập Kiến trúc của `formTitle`:** Xác minh và bảo toàn 100% tính độc lập của `formTitle` (lưu ở cột `form_title` cấp bảng `forms` trong DB), bảo đảm việc xóa khối `TITLE` trên canvas không làm mất dữ liệu tên biểu mẫu, không gây lỗi runtime trên FormFiller, Submissions, Báo cáo hay Tiến trình BPMN, và có thể thêm lại bất cứ lúc nào qua nút `+ Title` trên toolbar.
+- **Đồng bộ Quy chuẩn `ConfirmModal` (Rule 3 Progressive Adoption):** Loại bỏ hoàn toàn hộp thoại chặn trình duyệt `window.confirm()` trong `handleDeleteBlock`. Thay thế bằng `ConfirmModal` (`variant="danger"`) với thông điệp cảnh báo trực quan riêng cho khối Tiêu đề (giải thích rõ tên form vẫn lưu trong thuộc tính) và các khối thông thường khác.
 
 ### 2026-10-16 — Bổ sung Thư viện Ảnh (Image Gallery Modal) & Giải pháp Dãn Ảnh Tràn Lề Ngang (Full Width Mode)
 
@@ -207,22 +223,6 @@ phiên thực thi để không lặp lại lỗi cũ.
   - Tại `Dashboard` (Tab Forms): Thêm tùy chọn `In bảng câu hỏi kèm hướng dẫn` vào menu `[ ••• ]` với icon `BookOpen`.
   - Tái sử dụng trọn vẹn `PrintBlankForm`: Tích hợp helper `PrintFieldGuidanceBox` hiển thị icon `💡` và nội dung hướng dẫn trên các khối `INFO_GRID`, `CHECKLIST_TABLE`, và `TABLE` khi cờ `includeGuidance={true}` được bật, bảo toàn 100% khung tiêu đề động, lề in A4 và chân trang phân trang.
 - **Dữ liệu Mẫu Khảo sát Nhà máy (`3S-FA02`):** Cập nhật script `seedFactoryAssessmentForm.cjs` bổ sung tiêu chí đánh giá, phương pháp thu thập bằng chứng cho các câu hỏi thẩm định thực tế và đồng bộ dữ liệu vào PostgreSQL.
-
-### 2026-10-13 — Triệt tiêu Lỗi Cắt cụt Dropdown Menu trên Tab Forms & Submissions
-
-**Scope:** 2 source files (`Dashboard.tsx`, `SubmissionManager.tsx`) + 2 design docs (`DESIGN_PLATFORM_SHELL.md`, `DESIGN_FORM_OPERATIONS.md`)
-
-| Chỉ số | Giá trị |
-|---|---|
-| Số file nguồn chỉnh sửa | 2 |
-| Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 3 (`npx tsc --noEmit` pass 100%, `npm run build` pass 14.92s) |
-| Lần build đầu thành công? | Có |
-
-**Kết quả đạt được:**
-- **Giải quyết triệt để CSS Overflow Trap:** Chuyển đổi thuộc tính vùng chứa bảng con từ `overflowX: 'auto'` sang `overflow: 'visible'` trên cả 2 phân hệ `Dashboard.tsx` (Tab Forms) và `SubmissionManager.tsx` (Tab Submissions). Loại bỏ quy tắc CSS tự động tính `overflow-y: auto` làm phát sinh thanh cuộn dọc không mong muốn và cắt cụt menu thao tác (`...`) khi danh sách chỉ có 1–2 bản ghi.
-- **Nâng cấp Thứ tự Lớp (Dynamic Stacking Elevation):** Bổ sung thuộc tính `zIndex: isGroupActive ? 30 : 1` (kèm `position: 'relative'`) trên thẻ `.paper-card` bao bọc, bảo đảm dropdown menu khi mở tràn xuống dưới sẽ nổi hoàn toàn lên trên các thẻ quy trình / biểu mẫu kế tiếp mà không bị che khuất.
-- **Bảo toàn 100% Chức năng & Không phát sinh Rework:** Giữ nguyên các chức năng xem lịch sử nộp, in phôi trắng, xuất PDF, nhân bản biểu mẫu, cấu hình báo cáo, và cơ chế đóng tự động khi click ra ngoài.
 
 
 

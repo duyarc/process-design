@@ -1325,6 +1325,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
 
   const [showLogoGallery, setShowLogoGallery] = useState(false);
   const [showInspectorImageGallery, setShowInspectorImageGallery] = useState(false);
+  const [blockToDelete, setBlockToDelete] = useState<LayoutBlockISO | null>(null);
   const [resolvedLogos, setResolvedLogos] = useState<{[key: string]: string}>({});
 
   // Copy section states
@@ -2038,12 +2039,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
 
   const handleDeleteBlock = (blockId: string) => {
     if (isLocked) return;
-    if (confirm('Are you sure you want to delete this entire layout block and all its fields?')) {
-      setLayoutBlocks(prev => prev.filter(b => b.id !== blockId));
-      if (activeBlockId === blockId) {
-        setActiveBlockId(null);
-        setActiveFieldId(null);
-      }
+    const targetBlock = layoutBlocks.find(b => b.id === blockId);
+    if (targetBlock) {
+      setBlockToDelete(targetBlock);
     }
   };
 
@@ -3331,9 +3329,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                       </button>
                       <button 
                         type="button" 
-                        disabled={isLocked || block.type === 'TITLE'}
+                        disabled={isLocked}
                         onClick={(e) => { e.stopPropagation(); handleDeleteBlock(block.id); }}
-                        style={{ border: '1px solid #cbd5e1', borderRadius: '2px', background: '#ffffff', padding: '1px 3px', cursor: (isLocked || block.type === 'TITLE') ? 'not-allowed' : 'pointer', color: 'var(--danger)' }}
+                        style={{ border: '1px solid #cbd5e1', borderRadius: '2px', background: '#ffffff', padding: '1px 3px', cursor: isLocked ? 'not-allowed' : 'pointer', color: 'var(--danger)' }}
                         title="Xóa khối"
                       >
                         <Trash2 size={10} />
@@ -7697,9 +7695,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                   </button>
                   <button 
                     type="button" 
-                    disabled={isLocked || activeBlock.type === 'TITLE'}
+                    disabled={isLocked}
                     onClick={() => handleDeleteBlock(activeBlockId!)}
-                    style={{ border: 'none', background: 'none', color: (isLocked || activeBlock.type === 'TITLE') ? 'var(--text-muted)' : 'var(--danger)', cursor: (isLocked || activeBlock.type === 'TITLE') ? 'not-allowed' : 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}
+                    style={{ border: 'none', background: 'none', color: isLocked ? 'var(--text-muted)' : 'var(--danger)', cursor: isLocked ? 'not-allowed' : 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}
                     title="Xóa khối"
                   >
                     <Trash2 size={14} />
@@ -10585,6 +10583,41 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
         variant="success"
         onConfirm={() => setPublishedVersionModal(null)}
         onCancel={() => setPublishedVersionModal(null)}
+      />
+
+      <ConfirmModal
+        isOpen={!!blockToDelete}
+        title={blockToDelete?.type === 'TITLE' ? 'Xóa Khối Tiêu Đề Biểu Mẫu' : 'Xóa Khối Biểu Mẫu'}
+        message={
+          blockToDelete?.type === 'TITLE' ? (
+            <div style={{ fontSize: '0.85rem', lineHeight: 1.5, color: '#334155' }}>
+              <p style={{ marginBottom: '0.45rem' }}>
+                Bạn có chắc chắn muốn xóa khối <strong>Tiêu đề</strong> này khỏi bản thiết kế?
+              </p>
+              <p style={{ margin: 0, color: 'var(--text-secondary)' }}>
+                Tên biểu mẫu vẫn được lưu trong thuộc tính form và bạn có thể thêm lại khối Tiêu đề bất cứ lúc nào từ thanh công cụ.
+              </p>
+            </div>
+          ) : (
+            <div style={{ fontSize: '0.85rem', lineHeight: 1.5, color: '#334155' }}>
+              Bạn có chắc chắn muốn xóa khối <strong>"{blockToDelete?.title || blockToDelete?.type}"</strong> cùng toàn bộ các trường bên trong?
+            </div>
+          )
+        }
+        confirmText="Xóa khối"
+        cancelText="Hủy"
+        variant="danger"
+        onConfirm={() => {
+          if (blockToDelete) {
+            setLayoutBlocks(prev => prev.filter(b => b.id !== blockToDelete.id));
+            if (activeBlockId === blockToDelete.id) {
+              setActiveBlockId(null);
+              setActiveFieldId(null);
+            }
+            setBlockToDelete(null);
+          }
+        }}
+        onCancel={() => setBlockToDelete(null)}
       />
 
       <ImageGalleryModal
