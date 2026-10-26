@@ -32,11 +32,32 @@ phiên thực thi để không lặp lại lỗi cũ.
 | 36 | `LOGIC` | Khối TABLE có schema cột đa dạng (STT, Tiêu chí, Kết quả, Ghi chú) nếu hardcode ID cột hiển thị hướng dẫn (`col_item`, col 1) sẽ bị lệch hoặc nhân bản nút accordion sang mọi cột | Dùng pure utility `getTableItemColumnId` ưu tiên nhận diện cột nội dung chính (`col_item`/`item`/`name`/`content` ➔ `static_text` ➔ col 1 ➔ col 0) để neo duy nhất 1 nút accordion cho mỗi dòng | 1 |
 | 37 | `LOGIC` | Dùng cờ `useRef(false)` một chiều (`hasInitializedViewMode`) khoá cứng `viewMode = 'all'` ngay từ lần tick đầu tiên khi nạp cache SWR ban đầu, khiến việc revalidation ngầm từ DB (`default_focus_mode = true`) bị bỏ qua; đồng thời không đồng bộ cache `swr_forms` trong `sessionStorage` sau khi lưu form trong `FormBuilder` | Khởi tạo state đồng bộ từ `preloadedFormTemplate`/`initialCache`; thay thế guard một chiều bằng tracking tương tác người dùng (`userInteractedRef`) để luôn đồng bộ với DB trừ khi người dùng chủ động bấm toggle; luôn cập nhật `sessionStorage` (`swr_forms`) ngay khi lưu biểu mẫu | 1 |
 | 38 | `LOGIC` | Khi khối TABLE làm header phân đoạn (H1/H2), `groupBlocksIntoSections` đưa mô tả bảng vào `sec.description`/`subSec.description` (render dạng `<p>` văn bản thô) trong khi khối TABLE con tiếp tục render nút và hộp hướng dẫn xanh ngọc `[ 💡 Hướng dẫn ]` bên trong, gây trùng lặp 2 lần | Bổ sung `headerBlock?: LayoutBlockISO` vào `FormSectionGroup` và triệt tiêu render văn bản thô `sec.description` / `subSec.description` khi `headerBlock?.type === 'TABLE'`, để toàn bộ hướng dẫn bảng được quản lý duy nhất qua accordion tương tác | 1 |
+| 40 | `LOGIC` | Thêm nhóm mới vào danh sách lựa chọn nhưng hardcode label: 'Lựa chọn 1' và luôn tạo mới một option dummy thay vì gom các lựa chọn chưa nhóm có sẵn | Kiểm tra các lựa chọn chưa có nhóm (ungrouped) để gán vào nhóm mới trước; nếu cần tạo lựa chọn mới, luôn tính số thứ tự tự tăng Lựa chọn ${options.length + 1} | 1 |
 | 39 | `UI` | Khi thêm tính năng mới kế thừa từ component khác nhưng dùng inline token riêng (`#ccfbf1`, `#0f766e`, `border: 1px solid`) thay vì tái sử dụng token chuẩn (`#f8fafc`, `borderLeft: 3px solid #0d9488`, `var(--text-primary)`), gây lệch chuẩn thị giác giữa các loại khối | Luôn đối chiếu trực tiếp với component/field chuẩn (`INFO_GRID`) và tuân thủ chặt chẽ Design System (`DESIGN_UI_UX.md`), đảm bảo màu chữ `var(--text-primary)`, nền `#f8fafc` và chỉ có viền chỉ mục trái | 1 |
 
 ---
 
 ## Nhật ký Phiên
+
+### 2026-10-26 — Sửa Lỗi Tên Nhóm Không Edit Được & Triệt Tiêu "Lựa chọn 1" Khi Thêm Nhóm (`FormBuilder`)
+
+**Scope:** 1 source file (`src/components/FormBuilder.tsx`) + 1 design doc (`DESIGN_FORM_DESIGNER.md`).
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa | 1 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 2 (`npx tsc --noEmit` pass 100%, `npm run build` pass 10.21s) |
+| Lần build đầu thành công? | Có |
+
+**Kết quả đạt được:**
+- **Chỉnh sửa Tên Nhóm Trực Tiếp (Inline Group Renaming):**
+  - Thay thế thẻ `<span>` tĩnh trên cả Canvas và Right Inspector bằng `<input>` phẳng có `defaultValue={cluster.groupName}` và `key={cluster.groupName}`.
+  - Khi nhấp chuột gõ đổi tên (hoặc nhấn Enter/blur), toàn bộ options trong nhóm được cập nhật nguyên tử sang tên nhóm mới.
+  - Tự động khôi phục tên cũ nếu người dùng xóa trắng rồi blur ra ngoài, ngăn ngừa hỏng nhóm.
+- **Smart Grouping cho Nút `[+ Nhóm]` (Triệt tiêu Hoàn toàn "Lựa chọn 1"):**
+  - Khi có các lựa chọn chưa có nhóm (như `Điều`, `Dừa`, `Cà phê`), bấm `[+ Nhóm]` sẽ gom ngay các lựa chọn này vào `Nhóm 1` mà **không sinh thêm bất kỳ lựa chọn dummy nào**.
+  - Khi tất cả lựa chọn đều đã có nhóm, bấm `[+ Nhóm]` sẽ tạo nhóm mới kèm lựa chọn có số thứ tự tự tăng chính xác (`Lựa chọn ${options.length + 1}` ví dụ: `Lựa chọn 4`), chấm dứt hoàn toàn tình trạng hardcode `Lựa chọn 1`.
 
 ### 2026-10-26 — Trường Chuyên dụng Vị trí (Location Field Type) với GPS 1-Chạm & Phân giải Google Maps Link (`LocationInputFiller`, `server.cjs`, `formUtils`)
 

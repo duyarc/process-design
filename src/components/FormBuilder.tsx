@@ -4389,7 +4389,50 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                         <GripVertical size={11} />
                                                       </span>
                                                     )}
-                                                    <span>{cluster.groupName}</span>
+                                                    <input
+                                                      type="text"
+                                                      disabled={isLocked}
+                                                      defaultValue={cluster.groupName}
+                                                      key={cluster.groupName}
+                                                      onClick={(e) => e.stopPropagation()}
+                                                      onBlur={(e) => {
+                                                        const newName = e.target.value.trim();
+                                                        if (newName && newName !== cluster.groupName) {
+                                                          const next = options.map((o: any) => o.group === cluster.groupName ? { ...o, group: newName } : o);
+                                                          handleUpdateField(block.id, f.id, { options: next });
+                                                        } else if (!newName) {
+                                                          e.target.value = cluster.groupName || '';
+                                                        }
+                                                      }}
+                                                      onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') {
+                                                          e.currentTarget.blur();
+                                                        }
+                                                      }}
+                                                      style={{
+                                                        fontSize: '0.72rem',
+                                                        fontWeight: 700,
+                                                        textTransform: 'uppercase',
+                                                        letterSpacing: '0.04em',
+                                                        color: 'var(--text-secondary)',
+                                                        border: '1px solid transparent',
+                                                        borderRadius: '3px',
+                                                        background: 'transparent',
+                                                        padding: '1px 4px',
+                                                        outline: 'none',
+                                                        width: 'auto',
+                                                        minWidth: '60px'
+                                                      }}
+                                                      onFocus={(e) => {
+                                                        e.currentTarget.style.borderColor = 'var(--primary)';
+                                                        e.currentTarget.style.background = '#ffffff';
+                                                      }}
+                                                      onBlurCapture={(e) => {
+                                                        e.currentTarget.style.borderColor = 'transparent';
+                                                        e.currentTarget.style.background = 'transparent';
+                                                      }}
+                                                      title="Nhấp để đổi tên nhóm"
+                                                    />
                                                   </div>
                                                 );
                                               })()}
@@ -4680,10 +4723,27 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                     const otherIndex = options.findIndex((o: any) => o.isOther || o.value === '__other__');
                                                     const existingGroups = Array.from(new Set(options.map((o: any) => (o.group || '').trim()).filter(Boolean)));
                                                     const defaultGroupName = `Nhóm ${existingGroups.length + 1}`;
-                                                    const newOpt = { label: `Lựa chọn 1`, value: `opt_${Date.now()}`, isPass: true, group: defaultGroupName };
-                                                    const newOptions = otherIndex !== -1
-                                                      ? [...options.slice(0, otherIndex), newOpt, ...options.slice(otherIndex)]
-                                                      : [...options, newOpt];
+                                                    const ungroupedIndices: number[] = [];
+                                                    options.forEach((o: any, i: number) => {
+                                                      if (!o.isOther && o.value !== '__other__' && !(o.group && o.group.trim())) {
+                                                        ungroupedIndices.push(i);
+                                                      }
+                                                    });
+
+                                                    let newOptions: any[];
+                                                    if (ungroupedIndices.length > 0) {
+                                                      newOptions = options.map((o: any, i: number) => {
+                                                        if (ungroupedIndices.includes(i)) {
+                                                          return { ...o, group: defaultGroupName };
+                                                        }
+                                                        return o;
+                                                      });
+                                                    } else {
+                                                      const newOpt = { label: `Lựa chọn ${options.length + 1}`, value: `opt_${Date.now()}`, isPass: true, group: defaultGroupName };
+                                                      newOptions = otherIndex !== -1
+                                                        ? [...options.slice(0, otherIndex), newOpt, ...options.slice(otherIndex)]
+                                                        : [...options, newOpt];
+                                                    }
                                                     handleUpdateField(block.id, f.id, { options: newOptions });
                                                   }}
                                                   style={{
@@ -7823,15 +7883,55 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                           transition: 'all 0.15s ease'
                                         }}
                                       >
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '3px', flex: 1, minWidth: 0 }}>
                                           {canDragGrp && (
                                             <span style={{ cursor: 'grab', display: 'flex', alignItems: 'center', color: '#94a3b8' }} title="Kéo để đổi thứ tự nhóm">
                                               <GripVertical size={11} />
                                             </span>
                                           )}
-                                          <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-                                            {opt.group}
-                                          </span>
+                                          <input
+                                            type="text"
+                                            disabled={isLocked}
+                                            defaultValue={opt.group}
+                                            key={opt.group}
+                                            onBlur={(e) => {
+                                              const newName = e.target.value.trim();
+                                              if (newName && newName !== opt.group) {
+                                                const next = currentOpts.map(o => o.group === opt.group ? { ...o, group: newName } : o);
+                                                handleUpdateField(activeBlockId!, activeFieldId!, { options: next });
+                                              } else if (!newName) {
+                                                e.target.value = opt.group || '';
+                                              }
+                                            }}
+                                            onKeyDown={(e) => {
+                                              if (e.key === 'Enter') {
+                                                e.currentTarget.blur();
+                                              }
+                                            }}
+                                            style={{
+                                              fontSize: '0.7rem',
+                                              fontWeight: 700,
+                                              color: '#334155',
+                                              textTransform: 'uppercase',
+                                              letterSpacing: '0.03em',
+                                              border: '1px solid transparent',
+                                              borderRadius: '3px',
+                                              background: 'transparent',
+                                              padding: '1px 4px',
+                                              outline: 'none',
+                                              width: '100%',
+                                              maxWidth: '180px'
+                                            }}
+                                            onFocus={(e) => {
+                                              e.currentTarget.style.borderColor = 'var(--primary)';
+                                              e.currentTarget.style.background = '#ffffff';
+                                            }}
+                                            onBlurCapture={(e) => {
+                                              e.currentTarget.style.borderColor = 'transparent';
+                                              e.currentTarget.style.background = 'transparent';
+                                            }}
+                                            title="Nhấp để đổi tên nhóm"
+                                          />
                                         </div>
                                         <button
                                           type="button"
@@ -8009,10 +8109,27 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                               const otherIndex = currentOpts.findIndex((o: any) => o.isOther || o.value === '__other__');
                               const existingGroups = Array.from(new Set(currentOpts.map(o => (o.group || '').trim()).filter(Boolean)));
                               const defaultGroupName = `Nhóm ${existingGroups.length + 1}`;
-                              const newOpt = { label: `Lựa chọn 1`, value: `OPT_${Date.now()}`, isPass: true, group: defaultGroupName };
-                              const nextOpts = otherIndex !== -1
-                                ? [...currentOpts.slice(0, otherIndex), newOpt, ...currentOpts.slice(otherIndex)]
-                                : [...currentOpts, newOpt];
+                              const ungroupedIndices: number[] = [];
+                              currentOpts.forEach((o: any, i: number) => {
+                                if (!o.isOther && o.value !== '__other__' && !(o.group && o.group.trim())) {
+                                  ungroupedIndices.push(i);
+                                }
+                              });
+
+                              let nextOpts: any[];
+                              if (ungroupedIndices.length > 0) {
+                                nextOpts = currentOpts.map((o: any, i: number) => {
+                                  if (ungroupedIndices.includes(i)) {
+                                    return { ...o, group: defaultGroupName };
+                                  }
+                                  return o;
+                                });
+                              } else {
+                                const newOpt = { label: `Lựa chọn ${currentOpts.length + 1}`, value: `OPT_${Date.now()}`, isPass: true, group: defaultGroupName };
+                                nextOpts = otherIndex !== -1
+                                  ? [...currentOpts.slice(0, otherIndex), newOpt, ...currentOpts.slice(otherIndex)]
+                                  : [...currentOpts, newOpt];
+                              }
                               handleUpdateField(activeBlockId!, activeFieldId!, { options: nextOpts });
                             }}
                             style={{ display: 'flex', alignItems: 'center', gap: '3px', padding: '0.2rem 0.45rem', fontSize: '0.7rem', borderRadius: '4px', border: '1px dashed #94a3b8', background: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}
