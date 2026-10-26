@@ -3749,8 +3749,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                     style={{
                                       gridRow: rSpan ? `span ${rSpan}` : undefined,
                                       gridColumn: cSpan && cSpan > 1 ? `span ${cSpan}` : cSpan === -1 ? '1 / -1' : undefined,
-                                      alignSelf: f.type === 'photo' ? 'stretch' : 'start',
-                                      height: f.type === 'photo' ? '100%' : 'auto',
+                                      alignSelf: (f.type === 'photo' || (f.type === 'location' && f.showMiniMap !== false)) ? 'stretch' : 'start',
+                                      height: (f.type === 'photo' || (f.type === 'location' && f.showMiniMap !== false)) ? '100%' : 'auto',
                                       border: isDragOver && draggedGridField && draggedGridField.index !== fIdx ? '2px solid var(--primary)' : isFieldSelected ? '2px solid var(--primary)' : '1px dotted #cbd5e1',
                                       borderRadius: '4px',
                                       padding: '6px',
@@ -4085,7 +4085,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
 
                                     {/* Location field placeholder & GPS preview */}
                                     {f.type === 'location' && (
-                                      <div style={{ marginTop: '4px', width: '100%', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                      <div style={{ marginTop: '4px', width: '100%', flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                         <div style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                         <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center' }}>
                                           <span style={{ position: 'absolute', left: '6px', color: '#94a3b8', pointerEvents: 'none', display: 'flex', alignItems: 'center' }}>
@@ -4145,7 +4145,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                         {f.showMiniMap !== false && (
                                           <div style={{
                                             width: '100%',
-                                            height: f.rowSpan === 3 ? '100px' : '65px',
+                                            flex: 1,
+                                            minHeight: '65px',
                                             borderRadius: '4px',
                                             border: '1px dashed #cbd5e1',
                                             background: '#f8fafc',
@@ -7411,8 +7412,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                         </span>
                         <div style={{ display: 'inline-flex', background: '#f1f5f9', padding: '2px', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
                           {[
-                            { value: 2, label: '2 dòng (85px)' },
-                            { value: 3, label: '3 dòng (125px)' },
+                            { value: 2, label: '2 dòng' },
+                            { value: 3, label: '3 dòng' },
                             { value: 1, label: '1 dòng' }
                           ].map(opt => {
                             const isSelected = (activeField.rowSpan || 2) === opt.value;

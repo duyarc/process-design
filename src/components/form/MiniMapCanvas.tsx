@@ -45,7 +45,7 @@ export const MiniMapCanvas: React.FC<MiniMapCanvasProps> = ({
   lat,
   lng,
   zoom = 15,
-  height = 130,
+  height,
   mapType = 'roadmap',
   allowToggleType = true,
   className,
@@ -73,13 +73,14 @@ export const MiniMapCanvas: React.FC<MiniMapCanvasProps> = ({
       if (!canvas || !container) return;
 
       const width = container.clientWidth || 320;
+      const heightPx = (height && height > 0) ? height : (container.clientHeight || 120);
       const dpr = typeof window !== 'undefined' ? (window.devicePixelRatio || 1) : 1;
 
       // Scale canvas for high-DPI retina screens while keeping CSS dimensions constant
       canvas.width = width * dpr;
-      canvas.height = height * dpr;
+      canvas.height = heightPx * dpr;
       canvas.style.width = `${width}px`;
-      canvas.style.height = `${height}px`;
+      canvas.style.height = `${heightPx}px`;
 
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
@@ -93,18 +94,18 @@ export const MiniMapCanvas: React.FC<MiniMapCanvasProps> = ({
       const centerPixelY = centerTile.y * tileSize;
 
       const topLeftPixelX = centerPixelX - width / 2;
-      const topLeftPixelY = centerPixelY - height / 2;
+      const topLeftPixelY = centerPixelY - heightPx / 2;
 
       const minTileX = Math.floor(topLeftPixelX / tileSize);
       const maxTileX = Math.floor((topLeftPixelX + width) / tileSize);
       const minTileY = Math.floor(topLeftPixelY / tileSize);
-      const maxTileY = Math.floor((topLeftPixelY + height) / tileSize);
+      const maxTileY = Math.floor((topLeftPixelY + heightPx) / tileSize);
 
       const maxNumTiles = Math.pow(2, zoom);
 
       // Background placeholder tone: darker slate for satellite, light slate for roadmap
       ctx.fillStyle = activeType === 'satellite' ? '#1e293b' : '#e2e8f0';
-      ctx.fillRect(0, 0, width, height);
+      ctx.fillRect(0, 0, width, heightPx);
 
       setIsLoading(true);
 
@@ -144,7 +145,7 @@ export const MiniMapCanvas: React.FC<MiniMapCanvasProps> = ({
 
       // Draw red location marker pin in the exact center
       const markerX = width / 2;
-      const markerY = height / 2;
+      const markerY = heightPx / 2;
 
       // Pulse aura circle
       ctx.beginPath();
@@ -174,7 +175,7 @@ export const MiniMapCanvas: React.FC<MiniMapCanvasProps> = ({
       const badgeW = textWidth + 8;
       const badgeH = 14;
       const badgeX = width - badgeW - 4;
-      const badgeY = height - badgeH - 4;
+      const badgeY = heightPx - badgeH - 4;
 
       ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
       ctx.fillRect(badgeX, badgeY, badgeW, badgeH);
@@ -190,9 +191,18 @@ export const MiniMapCanvas: React.FC<MiniMapCanvasProps> = ({
     };
     window.addEventListener('resize', handleResize);
 
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined' && containerRef.current) {
+      resizeObserver = new ResizeObserver(() => {
+        renderMap();
+      });
+      resizeObserver.observe(containerRef.current);
+    }
+
     return () => {
       isCancelled = true;
       window.removeEventListener('resize', handleResize);
+      if (resizeObserver) resizeObserver.disconnect();
     };
   }, [lat, lng, zoom, height, activeType]);
 
@@ -204,7 +214,9 @@ export const MiniMapCanvas: React.FC<MiniMapCanvasProps> = ({
       style={{
         position: 'relative',
         width: '100%',
-        height: `${height}px`,
+        height: height ? `${height}px` : '100%',
+        flex: height ? undefined : 1,
+        minHeight: '75px',
         borderRadius: '4px',
         overflow: 'hidden',
         border: '1px solid #cbd5e1',

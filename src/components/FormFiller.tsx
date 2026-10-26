@@ -1749,7 +1749,8 @@ function FormFillerInner({
                         style={{ 
                           gridRow: rSpan ? `span ${rSpan}` : undefined,
                           gridColumn: cSpan && cSpan > 1 ? `span ${cSpan}` : cSpan === -1 ? '1 / -1' : undefined,
-                          alignSelf: field.type === 'photo' ? 'stretch' : 'start',
+                          alignSelf: (field.type === 'photo' || (field.type === 'location' && field.showMiniMap !== false)) ? 'stretch' : 'start',
+                          height: (field.type === 'photo' || (field.type === 'location' && field.showMiniMap !== false)) ? '100%' : 'auto',
                           display: 'flex', 
                           flexDirection: 'column', 
                           gap: '0.35rem',

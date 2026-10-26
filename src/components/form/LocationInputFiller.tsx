@@ -178,7 +178,7 @@ export const LocationInputFiller: React.FC<LocationInputFillerProps> = ({
   const shouldShowMiniMap = field.showMiniMap !== false;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%', marginTop: '2px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%', flex: 1, height: '100%' }}>
       {/* Smart Location Bar (Phương án 2: Gộp input & toạ độ làm 1) */}
       {coordDisplayText && !isEditingRaw ? (
         <div style={{
@@ -396,8 +396,8 @@ export const LocationInputFiller: React.FC<LocationInputFillerProps> = ({
           lat={effectiveLat}
           lng={effectiveLng}
           zoom={15}
-          height={field.rowSpan === 3 ? 125 : 85}
           mapType={field.mapType || 'roadmap'}
+          style={{ flex: 1, minHeight: '75px', width: '100%' }}
           onClick={() => {
             if (effectiveMapsUrl) {
               window.open(effectiveMapsUrl, '_blank', 'noopener,noreferrer');

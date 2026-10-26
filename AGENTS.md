@@ -108,7 +108,7 @@ flowchart TD
 1. Chỉnh sửa tuần tự các file mã nguồn theo đúng blueprint (tuân thủ Rule Chunk < 50 dòng).
 2. Chạy `npx tsc --noEmit` sau mỗi file; chạy `npm run build` ở bước cuối xác nhận Vite bundle pass 100%.
 3. Cập nhật tài liệu thiết kế module tương ứng (`DESIGN_*.md`).
-4. Chạy `python scripts/measure_session.py <conversation-id>`, dán Performance Scorecard vào `walkthrough.md`, phân tích lỗi và cập nhật `SESSION_LOG.md`.
+4. Cập nhật `SESSION_LOG.md` (khi và chỉ khi gặp bẫy/lỗi kỹ thuật mới): Bổ sung giải pháp phòng ngừa vào ## Bài học Tích lũy (nếu phiên suôn sẻ không có lỗi mới, KHÔNG chạm vào file này). Triệt tiêu việc ghi nhật ký phiên thủ công (vai trò này do git log và Conventional Commits đảm nhận).
 5. Chạy đúng **1 lần commit & push nguyên tử duy nhất** theo Mục 7 (khi hoàn tất sprint bàn giao).
 6. **BƯỚC CUỐI CÙNG (Chỉ dẫn Nghiệm thu):** Tự động kiểm tra môi trường và thông báo cho Người dùng nên kiểm tra trên Local hay Online theo quy chuẩn Mục 8.
 
@@ -157,20 +157,14 @@ Vào cuối mỗi phản hồi/kết thúc phiên làm việc, Agent **BẮT BU�
 
 ## PHẦN IV: VÒNG LẶP HỌC HỎI & BỘ NHỚ PHIÊN (CONTINUOUS IMPROVEMENT)
 
-### 9. Vòng lặp Tự học Liên tục (Continuous Improvement Loop)
-Bộ nhớ phiên duy nhất là [`SESSION_LOG.md`](SESSION_LOG.md) tại repo root:
-- **Trước khi làm (Giai đoạn 2):** Bắt buộc đọc `## Bài học Tích lũy` để phòng ngừa lỗi cũ lặp lại.
+### 9. Vòng lặp Tự học Tối giản (Lean Episodic Memory)
+Bộ nhớ phiên duy nhất là [`SESSION_LOG.md`](SESSION_LOG.md) tại repo root, tuân thủ triệt để nguyên tắc Subtraction. File này **CHỈ đóng vai trò lưu trữ danh sách Bài học Tích lũy (Negative Constraints)**, bãi bỏ hoàn toàn các bảng thống kê KPI và nhật ký phiên thủ công:
+- **Lưu vết lịch sử công việc:** Do `git log` đảm nhận tự động 100% qua Conventional Commits.
+- **Lưu vết kiến trúc & hợp đồng dữ liệu:** Do `DESIGN_*.md` (mục Change Log) đảm nhận.
+- **Trước khi làm (Giai đoạn 2):** Bắt buộc đọc `## Bài học Tích lũy` trong `SESSION_LOG.md` để nhận diện cạm bẫy kỹ thuật đã từng gặp và phòng ngừa tái diễn.
 - **Trước khi push (Giai đoạn 3):**
-  1. *Đo KPIs bằng script:* Chạy `python scripts/measure_session.py <conversation-id>` (không đếm thủ công — Rule 13.6 Script-First). Dán Scorecard vào `walkthrough.md`.
-  2. *Phân tích lỗi (Reasoning task):* Phân loại lỗi theo Error Taxonomy:
-     - `CTX`: Đọc sai ngữ cảnh, lệch whitespace.
-     - `TOOL`: Dùng tool sai, index slicing, inline python parse error.
-     - `LOGIC`: Lỗi điều kiện, thiếu null-check.
-     - `SCOPE`: Sót file, sót context.
-     - `ENV`: Mạng, lock, timeout.
-     - `BLOAT`: Phình to mã, sót mã chết (`TS6133`), không tách utility.
-  3. *Ghi nhận:* Thêm entry mới vào đầu `## Nhật ký Phiên` (giữ tối đa 10 entries gần nhất), cập nhật `## Bài học Tích lũy` (giữ tối đa 20 entries).
-  4. *Quy tắc tiến hóa (Rule Evolution):* Khi cùng 1 loại lỗi lặp lại **≥ 2 lần**, BẮT BUỘC đề xuất cập nhật thành quy tắc cố định trong `AGENTS.md`.
+  1. *Phân tích & ghi nhận bẫy mới (nếu có):* Nếu phiên làm việc gặp lỗi hoặc bẫy kỹ thuật mới, phân loại theo nhóm (`LOGIC`, `SCOPE`, `UI`, `BLOAT`, `ENV`) và thêm ngay giải pháp vào bảng `## Bài học Tích lũy` (duy trì tối đa ~20-25 bài học thực chiến nhất). Nếu phiên suôn sẻ không có lỗi mới, KHÔNG chỉnh sửa file này.
+  2. *Quy tắc tiến hóa (Rule Evolution):* Khi cùng 1 cạm bẫy lặp lại **≥ 2 lần**, BẮT BUỘC luật hóa thành quy tắc cố định trong `AGENTS.md` và loại bỏ khỏi bảng bài học để tránh trùng lặp.
 
 ### 10. Master Index (`README.md`)
 Agent PHẢI cập nhật [`README.md`](README.md) nếu: thêm module chức năng mới, thay đổi Tech Stack lõi, hoặc thay đổi quy trình khởi chạy hệ thống.

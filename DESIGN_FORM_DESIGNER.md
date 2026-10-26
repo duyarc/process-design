@@ -9,13 +9,20 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-10-26) — FormBuilder external Add Field bar and streamlined compact Right Inspector verified against source |
+| **Verified At Commit** | (2026-10-26) — FormBuilder location auto-stretch preview, rowSpan segmented labels, and design sync verified against source |
 
 > **⚠️ Architectural note:** FormBuilder has no awareness of which process it belongs to. The `formName` prop is always identical to `formId`. See Section 6.1 and the Technical Debt table.
 
 ### Quick File Index
 
-| [`src/components/form/InCanvasColSpanToggle.tsx`](src/components/form/InCanvasColSpanToggle.tsx) | Sub-component rendering in-canvas discrete column span toggle pill (`1/2`, `2/2`, `1/3`, `2/3`, `3/3`) for `INFO_GRID` |
+| [`src/components/FormBuilder.tsx`](src/components/FormBuilder.tsx) | Shell workspace: header bar, left palette, center canvas, right inspector |
+| [`src/components/form/InCanvasColSpanToggle.tsx`](src/components/form/InCanvasColSpanToggle.tsx) | Sub-component: in-canvas discrete colSpan toggle pill (`1/2`, `2/2`, `1/3`, `2/3`, `3/3`) |
+| [`src/components/form/InCanvasGuidanceEditor.tsx`](src/components/form/InCanvasGuidanceEditor.tsx) | Sub-component: accordion editor for row/block guidance with markdown & preview |
+| [`src/components/form/InCanvasImageField.tsx`](src/components/form/InCanvasImageField.tsx) | Sub-component: image field with 3 stretch modes (`full`, `bleed`, `fit`) & presigned upload |
+| [`src/components/form/InCanvasLabelField.tsx`](src/components/form/InCanvasLabelField.tsx) | Sub-component: WYSIWYG heading & markdown banner field |
+| [`src/components/form/ImageGalleryModal.tsx`](src/components/form/ImageGalleryModal.tsx) | Sub-component: Cloudflare R2 media gallery modal |
+| [`src/components/form/MiniMapCanvas.tsx`](src/components/form/MiniMapCanvas.tsx) | Sub-component: pure HTML5 Canvas tile stitcher for Location mini map preview |
+| [`src/components/print/PrintBlankForm.tsx`](src/components/print/PrintBlankForm.tsx) | A4 print layout renderer (React Portal) |
 | [`src/utils/pdfFormExporter.ts`](src/utils/pdfFormExporter.ts) | Facade API entry point for Fillable PDF export |
 | [`src/utils/pdf/types.ts`](src/utils/pdf/types.ts) | Types for PDF export module (`ScannedAcroField`, `PdfPageConfig`) |
 | [`src/utils/pdf/textAnchorInjector.ts`](src/utils/pdf/textAnchorInjector.ts) | Helper functions for text anchor tags `{{acro:id:type:w:h}}` |
@@ -104,16 +111,30 @@ FormBuilder renders as an edge-to-edge **Fullscreen Studio Workspace** (`positio
 ```
 Form Designer Module
 │
-├── FormBuilder.tsx          Shell: header bar + left panel (palette) + center canvas + right panel (properties/versions)
-│   └── PrintBlankForm       Rendered conditionally as a React Portal (replaces FormBuilder in DOM when print is triggered)
+├── FormBuilder.tsx                           Shell: header bar + left palette + center canvas + right inspector
+│   │
+│   ├── form/InCanvasColSpanToggle.tsx        Sub-component: 1-click cyclic colSpan toggle for INFO_GRID fields
+│   ├── form/InCanvasGuidanceEditor.tsx       Sub-component: accordion editor for row/block guidance with Markdown & preview
+│   ├── form/InCanvasImageField.tsx           Sub-component: image field with 3 stretch modes (full, bleed, fit) & upload
+│   ├── form/InCanvasLabelField.tsx           Sub-component: WYSIWYG text & markdown banner editor
+│   ├── form/ImageGalleryModal.tsx            Sub-component: modal gallery for browsing and selecting R2 images
+│   ├── form/MiniMapCanvas.tsx                Sub-component: pure Canvas OSM/Esri tile stitcher for Location preview
+│   └── PrintBlankForm                        Rendered conditionally as a React Portal for print preview
 │
-└── print/PrintBlankForm.tsx  A4 print layout renderer; accepts a FormTemplateISO and renders all block types to print-safe HTML
+└── print/PrintBlankForm.tsx                  A4 print layout renderer; accepts FormTemplateISO and renders print-safe HTML
 ```
 
 ### Component Responsibilities
 
-- **FormBuilder** — Owns all mutable form state (formId, formTitle, version, status, layoutBlocks, revisionHistory). Coordinates save, publish, version management, logo upload, and block/field editing. Communicates back to ProcessEditor via `onSave` and `onClose` callbacks.
-- **PrintBlankForm** — A pure renderer. Takes a `FormTemplateISO` snapshot and renders a full printable A4 document. Mounted via `ReactDOM.createPortal` into `document.body`, replacing the FormBuilder view temporarily. Handles logo URL resolution from Cloudflare R2 via a `GET /api/storage/download-url` call.
+- **FormBuilder** (`src/components/FormBuilder.tsx`) — Owns all mutable form state (`formId`, `formTitle`, `version`, `status`, `layoutBlocks`, `revisionHistory`). Coordinates save, publish, version management, logo upload, and block/field editing. Communicates back to ProcessEditor via `onSave` and `onClose` callbacks.
+- **In-Canvas Sub-Components** (`src/components/form/` — Rule 4.3 Monolith Guard):
+  - `InCanvasColSpanToggle.tsx`: Discrete column span toggle pill (`1/2` ↔ `2/2` or `1/3` ➔ `2/3` ➔ `3/3`).
+  - `InCanvasGuidanceEditor.tsx`: Inline markdown editor with formatting tools and live preview for table/field guidance.
+  - `InCanvasImageField.tsx`: Image rendering with 3 stretch modes (`full`, `bleed`, `fit`) and presigned upload.
+  - `InCanvasLabelField.tsx`: Heading/label field with responsive Markdown rendering.
+  - `ImageGalleryModal.tsx`: Media manager modal for selecting/uploading images to Cloudflare R2.
+  - `MiniMapCanvas.tsx`: Pure Canvas OpenStreetMap / Esri Satellite tile stitcher with zero iframe dependencies.
+- **PrintBlankForm** (`src/components/print/PrintBlankForm.tsx`) — Pure renderer. Takes a `FormTemplateISO` snapshot and renders a full printable A4 document. Mounted via `ReactDOM.createPortal` into `document.body`.
 
 ---
 
@@ -491,9 +512,6 @@ full diff of any entry below.
 
 | Date | Change |
 |---|---|
-| 2026-10-16 | **TABLE Block & Row Guidance Authoring (`FormBuilder`, `PrintBlankForm`):** (1) Added pure utility `getTableItemColumnId` in `src/utils/formUtils.ts` (Rule 13.8) to identify the host column for row guidance. (2) Extended `InCanvasTitleHeader` to support `block.type === 'TABLE'` with in-canvas auto-grow textarea for block guidance/description. (3) On Canvas table rows, added `[ 💡 Hướng dẫn ▾/▴ ]` / `[ + 💡 Hướng dẫn ]` accordion button hosting `InCanvasGuidanceEditor` for inline row criteria authoring with markdown and preview. (4) In Right Inspector, enabled block description for `TABLE` and added dedicated `HƯỚNG DẪN DÒNG (GUIDANCE)` section when selecting a table cell. (5) In `PrintBlankForm.tsx`, rendered block-level guidance banner under table title and row guidance box via `getTableItemColumnId`. |
-| 2026-10-16 | **Unified TABLE Block Guidance Accordion & InCanvasGuidanceEditor (`FormBuilder`):** (1) In `InCanvasTitleHeader`, removed old bare textarea placeholder for `TABLE` blocks. (2) Added in-canvas accordion toggle button `[ 💡 Hướng dẫn ▾/▴ ]` / `[ + 💡 Hướng dẫn ]` directly in `renderControlGroup`, controlling `InCanvasGuidanceEditor` with markdown formatting toolbar `[ B ] [ I ] [ U ] [ • ] [ 💡 ]`, preview toggle `[ 👁 Xem trước / ✍️ Soạn thảo ]`, and auto-grow CSS Grid textarea mirror. (3) Supported hidden title mode (`titleFmt === 'NONE'`) when guidance is expanded. (4) Aligned 100% visual style parity with `INFO_GRID`: `borderRadius: '4px'`, light mint background `#f0fdfa`, teal text `#0f766e`, and Lucide `ChevronUp`/`ChevronDown` icons. (5) In Right Inspector, added `[ Mở trên Canvas ▾/▴ ]` link button to synchronize guidance authoring with Canvas. |
-| 2026-10-16 | **Default Focus Mode & SWR Cache Synchronization (`FormBuilder`):** In `saveFormToBackend`, synchronized the updated form template record (including `default_focus_mode`, `defaultFocusMode`, and latest metadata) into `sessionStorage.getItem('swr_forms')` upon successful save, guaranteeing downstream instant paint in FormFiller always receives live configuration. |
 | 2026-10-16 | **In-Canvas Column Span Toggle for INFO_GRID & Right Inspector Prune (`FormBuilder`, `InCanvasColSpanToggle`):** (1) Created isolated sub-component `src/components/form/InCanvasColSpanToggle.tsx` (Rule 4.3 Monolith Guard) providing 1-click cyclic column span toggle: `1/2` ↔ `2/2` for 2-column grids; `1/3` ➔ `2/3` ➔ `3/3` ➔ `1/3` for 3-column grids, with adaptive teal `#f0fdfa` highlight when expanded and tooltip guidance. (2) In `FormBuilder.tsx`, integrated the toggle directly into the header row of active fields (`isFieldSelected`) in `INFO_GRID` for standard fields, `InCanvasLabelField`, and `InCanvasImageField`, disappearing completely when unfocused (Subtraction Design Mantra). (3) Pruned legacy, isolated `colSpan` `<select>` dropdown from `photo` inspector panel in Right Inspector, unifying column span control purely on Canvas with zero context switching. |
 | 2026-10-26 | **Option Grouping for Checkbox & Radio (`RadioOption`, `FormBuilder`, `formUtils`):** (1) Extended `RadioOption` in `src/types.ts` with `group?: string`. (2) In `src/utils/formUtils.ts`, added pure utility `clusterOptionsByGroup` and updated `getAutoCheckboxLayoutMode` to automatically return `OPTION_C` when options have groups. (3) In `FormBuilder.tsx`, rendered group sub-headers on Canvas and upgraded Right Inspector with group header dividers, inline group `<datalist>` auto-complete suggestions, and `[+ Nhóm mới]` quick creation button. (4) In `FormFiller.tsx`, `ProcessReader.tsx`, `PrintBlankForm.tsx`, and `PrintFilledForm.tsx`, rendered grouped options under clean typography headers with zero layout disruption. |
 | 2026-10-26 | **Button Parity, Group Drag-to-Reorder & Folder Icon Pruning (`FormBuilder`, `formUtils`):** (1) Extracted pure utilities `reorderGroupsInOptions` and `reorderOptionWithGroup` in `src/utils/formUtils.ts`. (2) In `FormBuilder.tsx`, unified the 3-button toolbar across Canvas and Right Inspector: `[+ Lựa chọn]`, `[+ Khác...]`, `[+ Nhóm]`, and pruned legacy `Mục "Khác"` Toggle Switch from Right Inspector. (3) Added Grip handle `::` on group headers enabling full-cluster drag-to-reorder, and updated option drag handler to automatically synchronize `group` attribute to target group. (4) Pruned `📂` emoji icon from group headers on Canvas and Inspector, elevating visual hierarchy with clean uppercase typography. |
@@ -506,5 +524,7 @@ full diff of any entry below.
 | 2026-10-26 | **Satellite Map Layer Configuration (`FormFieldISO`, `FormBuilder`):** (1) Added `mapType?: 'roadmap' \| 'satellite'` to `FormFieldISO` in `src/types.ts` (default: `'roadmap'`). (2) In `FormBuilder.tsx` Right Inspector, added a segmented control `[ 🗺️ Bản đồ \| 🛰️ Vệ tinh ]` to configure the default layer for location fields when `showMiniMap !== false`. (3) Upgraded Canvas preview to display `'🛰️ Ảnh Vệ tinh'` or `'🗺️ Sơ đồ Mini Map'` reflecting the selected `mapType`. |
 | 2026-10-26 | **Location rowSpan Configuration & Dense Grid Auto-Placement (`FormBuilder`):** (1) In `FormBuilder.tsx` `handleAddField` and `handleChangeFieldType`, initialized `location` fields with default `rowSpan = 2`, `showMiniMap = true`, and `mapType = 'roadmap'`. (2) In Right Inspector, added `Chiều cao (Số dòng - rowSpan)` dropdown (`2 dòng`, `3 dòng`, `1 dòng`) for `location` fields in `INFO_GRID`. (3) Added `gridAutoFlow: 'row dense'` to `INFO_GRID` canvas container and dynamically sized mini map preview box (`height: f.rowSpan === 3 ? '100px' : '65px'`). |
 | 2026-10-26 | **External Add Field Bar & Compact Right Inspector (`FormBuilder`):** (1) In `FormBuilder.tsx`, moved `+ Thêm trường vào khối` outside the CSS Grid container in `INFO_GRID`, placing it as a dedicated dashed bar at the block bottom — completely eliminating absorption by `gridAutoFlow: 'row dense'` into empty field slots. (2) Elevated `Type` dropdown to the top level directly under `ID` and `Label`. (3) Pruned redundant placeholder explanation text. (4) Replaced fragmented 4-tier Mini Map controls with a 2-line compact card integrating `[✓] Hiển thị Mini Map`, `[ 🗺️ Bản đồ | 🛰️ Vệ tinh ]`, and 1-touch segmented pills `[ 2 dòng (85px) ] [ 3 dòng (125px) ] [ 1 dòng ]`, reducing inspector vertical height by ~65px. |
+| 2026-10-26 | **Mini Map Auto-Stretch Grid Alignment & Segmented Control Pruning (`FormBuilder`):** (1) In `FormBuilder.tsx`, updated canvas field wrapper for `location` fields with Mini Map to use `alignSelf: 'stretch'` and `height: '100%'`, with preview container set to `flex: 1` and `minHeight: '65px'`. (2) In Right Inspector, pruned hardcoded pixel labels `(85px)` and `(125px)` from the height segmented pills, standardizing them to `[ 2 dòng ] [ 3 dòng ] [ 1 dòng ]` reflecting pure CSS Grid `rowSpan` allocation while height dynamically auto-stretches to match adjacent column content. |
+| 2026-10-26 | **Component Map Architecture Modernization (`DESIGN_FORM_DESIGNER`):** Updated Quick File Index and Section 3 Component Map to document all 6 extracted in-canvas sub-components in `src/components/form/` (Monolith Guard Rule 4.3). Pruned legacy entries from Change Log to maintain standard 12-entry depth. |
 
 
