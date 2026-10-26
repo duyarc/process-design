@@ -4503,11 +4503,10 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                 )}
                                                 {cluster.options.map((opt: any) => {
                                                   const optIdx = options.indexOf(opt);
-                                            const isOtherOpt = opt.isOther || opt.value === '__other__';
                                             const listId = `field-canvas-${block.id}-${f.id}`;
                                             const isDragging = draggedOption?.listId === listId && draggedOption.index === optIdx;
                                             const isDragOver = dragOverOption?.listId === listId && dragOverOption.index === optIdx;
-                                            const canDrag = isFieldSelected && !isLocked && !isOtherOpt && options.length > 1;
+                                            const canDrag = isFieldSelected && !isLocked && options.length > 1;
 
                                             return (
                                               <span
@@ -4525,13 +4524,13 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                   }
                                                 }}
                                                 onDragEnter={() => {
-                                                  if (draggedOption?.listId === listId && !isOtherOpt) {
+                                                  if (draggedOption?.listId === listId) {
                                                     setDragOverOption({ listId, index: optIdx });
                                                   }
                                                 }}
                                                 onDrop={(e) => {
                                                   e.preventDefault();
-                                                  if (draggedOption?.listId === listId && draggedOption.index !== optIdx && !isOtherOpt) {
+                                                  if (draggedOption?.listId === listId && draggedOption.index !== optIdx) {
                                                     const newOptions = reorderOptionWithGroup(options, draggedOption.index, optIdx, opt.group);
                                                     handleUpdateField(block.id, f.id, { options: newOptions });
                                                   }
@@ -7845,19 +7844,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                       {(() => {
                         const currentOpts = activeField.options ?? DEFAULT_RADIO_OPTIONS;
                         const clusters = clusterOptionsByGroup(currentOpts, activeField.optionGroups);
-                        const allGroups = Array.from(new Set([
-                          ...(activeField.optionGroups || []),
-                          ...currentOpts.map(o => (o.group || '').trim()).filter(Boolean)
-                        ]));
-                        const datalistId = `groups-datalist-${activeFieldId}`;
 
                         return (
                           <>
-                            {allGroups.length > 0 && (
-                              <datalist id={datalistId}>
-                                {allGroups.map(g => <option key={g} value={g} />)}
-                              </datalist>
-                            )}
                             {clusters.map((cluster, cIdx) => {
                               const grpListId = `inspector-group-${activeFieldId}`;
                               const isGrpDragging = draggedGroup?.listId === grpListId && draggedGroup.groupName === cluster.groupName;
@@ -8028,7 +8017,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                     const listId = `inspector-field-${activeFieldId}`;
                                     const isDragging = draggedOption?.listId === listId && draggedOption.index === idx;
                                     const isDragOver = dragOverOption?.listId === listId && dragOverOption.index === idx;
-                                    const canDrag = !isLocked && !isOtherOpt && currentOpts.length > 1;
+                                    const canDrag = !isLocked && currentOpts.length > 1;
 
                                     return (
                                       <div
@@ -8046,13 +8035,13 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                           }
                                         }}
                                         onDragEnter={() => {
-                                          if (draggedOption?.listId === listId && !isOtherOpt) {
+                                          if (draggedOption?.listId === listId) {
                                             setDragOverOption({ listId, index: idx });
                                           }
                                         }}
                                         onDrop={(e) => {
                                           e.preventDefault();
-                                          if (draggedOption?.listId === listId && draggedOption.index !== idx && !isOtherOpt) {
+                                          if (draggedOption?.listId === listId && draggedOption.index !== idx) {
                                             const reordered = reorderOptionWithGroup(currentOpts, draggedOption.index, idx, opt.group);
                                             handleUpdateField(activeBlockId!, activeFieldId!, { options: reordered });
                                           }
@@ -8095,7 +8084,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                             handleUpdateField(activeBlockId!, activeFieldId!, { options: newOpts });
                                           }}
                                           style={{
-                                            flex: 2,
+                                            flex: 1,
                                             minWidth: '70px',
                                             padding: '0.2rem 0.35rem',
                                             borderRadius: '4px',
@@ -8104,35 +8093,24 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                             pointerEvents: (draggedOption || draggedGroup) ? 'none' : 'auto'
                                           }}
                                         />
-                                        <input
-                                          type="text"
-                                          list={datalistId}
-                                          disabled={isLocked || isOtherOpt}
-                                          draggable={false}
-                                          onMouseDown={(e) => e.stopPropagation()}
-                                          placeholder="Nhóm..."
-                                          value={opt.group || ''}
-                                          onChange={(e) => {
-                                            const newOpts = [...currentOpts];
-                                            const val = e.target.value.trim() ? e.target.value : undefined;
-                                            newOpts[idx] = { ...newOpts[idx], group: val };
-                                            const nextGroups = val && !(activeField.optionGroups || []).includes(val)
-                                              ? [...(activeField.optionGroups || []), val]
-                                              : activeField.optionGroups;
-                                            handleUpdateField(activeBlockId!, activeFieldId!, { options: newOpts, optionGroups: nextGroups });
-                                          }}
-                                          style={{
-                                            width: '68px',
-                                            padding: '0.2rem 0.3rem',
-                                            borderRadius: '4px',
-                                            border: `1px solid ${opt.group ? 'var(--primary)' : '#cbd5e1'}`,
-                                            fontSize: '0.7rem',
-                                            background: opt.group ? '#f0fdfa' : '#ffffff',
-                                            color: opt.group ? 'var(--primary)' : '#64748b',
-                                            pointerEvents: (draggedOption || draggedGroup) ? 'none' : 'auto'
-                                          }}
-                                          title={opt.group ? `Nhóm: ${opt.group}` : 'Gõ nhóm mới hoặc chọn nhóm từ gợi ý'}
-                                        />
+                                        {isOtherOpt && (
+                                          <span
+                                            style={{
+                                              fontSize: '0.65rem',
+                                              fontWeight: 600,
+                                              color: '#7e22ce',
+                                              background: '#faf5ff',
+                                              border: '1px solid #e9d5ff',
+                                              borderRadius: '3px',
+                                              padding: '1px 5px',
+                                              whiteSpace: 'nowrap',
+                                              userSelect: 'none'
+                                            }}
+                                            title="Lựa chọn mở rộng cho phép người điền tự gõ nội dung"
+                                          >
+                                            Tự do
+                                          </span>
+                                        )}
                                         <label style={{ display: 'flex', alignItems: 'center', gap: '2px', fontSize: '0.7rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap', cursor: 'pointer', pointerEvents: (draggedOption || draggedGroup) ? 'none' : 'auto' }}>
                                           <input
                                             type="checkbox"

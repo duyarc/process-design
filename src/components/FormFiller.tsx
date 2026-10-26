@@ -67,7 +67,8 @@ import {
   toFormSlug,
   resolveImageSrc,
   getTableItemColumnId,
-  clusterOptionsByGroup
+  clusterOptionsByGroup,
+  parseChecklistValues
 } from '../utils/formUtils';
 import { renderFormattedText, stripMarkdownTokens } from '../utils/textFormatter';
 import { useAuth } from '../context/AuthContext';
@@ -1113,7 +1114,7 @@ function FormFillerInner({
       } else if (field.type === 'radio' || field.type === 'checkbox' || field.type === 'select') {
         targetRange = field.options ? field.options.filter((o: any) => o.isPass).map((o: any) => o.label).join(' / ') : (field.targetRange || 'Checked & Ok');
         if (field.type === 'checkbox') {
-          const selectedVals = val ? val.split(',').filter(Boolean) : [];
+          const selectedVals = parseChecklistValues(val);
           if (selectedVals.length > 0) {
             const hasFail = selectedVals.some(v => {
               const opt = field.options?.find((o: any) => o.value === v || (isOtherValue(v) && (o.isOther || o.value === '__other__')));
@@ -1909,7 +1910,7 @@ function FormFillerInner({
                                   }}>
                                     {cluster.options.map((opt: any) => {
                                       const isOtherOpt = opt.isOther || opt.value === '__other__';
-                                      const currentValues = value ? value.split(',').filter(Boolean) : [];
+                                      const currentValues = parseChecklistValues(value);
                                       const isChecked = currentValues.some((v: string) => v === (opt.value || opt.label) || (isOtherOpt && isOtherValue(v)));
                                       const otherText = isOtherOpt ? extractOtherText(currentValues.find((v: string) => isOtherValue(v))) : '';
                                       return (
@@ -2296,7 +2297,7 @@ function FormFillerInner({
                       const passLabels = field.options ? field.options.filter((o: any) => o.isPass).map((o: any) => o.label).join(' / ') : 'Đạt';
                       specHint = `Target: ${passLabels}`;
                       if (field.type === 'checkbox') {
-                        const selectedVals = value ? value.split(',').filter(Boolean) : [];
+                        const selectedVals = parseChecklistValues(value);
                         const hasFail = selectedVals.some((v: string) => {
                           const opt = field.options?.find((o: any) => o.value === v || (isOtherValue(v) && (o.isOther || o.value === '__other__')));
                           return opt && !opt.isPass;
@@ -2399,7 +2400,7 @@ function FormFillerInner({
                                       <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', maxWidth: '100%', paddingLeft: cluster.groupName ? '0.35rem' : '0' }}>
                                         {cluster.options.map((opt: any) => {
                                           const isOtherOpt = opt.isOther || opt.value === '__other__';
-                                          const currentValues = value ? value.split(',').filter(Boolean) : [];
+                                          const currentValues = parseChecklistValues(value);
                                           const isChecked = currentValues.some((v: string) => v === opt.value || (isOtherOpt && isOtherValue(v)));
                                           const otherText = isOtherOpt ? extractOtherText(currentValues.find((v: string) => isOtherValue(v))) : '';
                                           return (
@@ -2918,7 +2919,7 @@ function FormFillerInner({
                                           }}>
                                             {effectiveOpts.map((opt: any, oIdx: number) => {
                                               const isOtherOpt = opt.isOther || opt.value === '__other__';
-                                              const currentValues = cellValue ? cellValue.split(',').filter(Boolean) : [];
+                                              const currentValues = parseChecklistValues(cellValue);
                                               const isChecked = currentValues.some((v: string) => v === (opt.value || opt.label) || (isOtherOpt && isOtherValue(v)));
                                               const otherText = isOtherOpt ? extractOtherText(currentValues.find((v: string) => isOtherValue(v))) : '';
                                               return (

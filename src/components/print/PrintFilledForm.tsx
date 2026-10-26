@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import { Star } from 'lucide-react';
 import type { Submission, SubmissionFieldSnapshot, FormTemplateISO, TableColumnConfig } from '../../types';
 import { formatFormVersion, getColStyleWidth } from '../../types';
-import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock, getInfoGridTemplateColumns, isOtherValue, extractOtherText, formatOptionDisplay, getEffectiveCellOptions, parseGoogleMapsUrl, getChecklistColumns, resolveImageSrc, clusterOptionsByGroup } from '../../utils/formUtils';
+import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock, getInfoGridTemplateColumns, isOtherValue, extractOtherText, formatOptionDisplay, getEffectiveCellOptions, parseGoogleMapsUrl, getChecklistColumns, resolveImageSrc, clusterOptionsByGroup, parseChecklistValues } from '../../utils/formUtils';
 import { renderFormattedText } from '../../utils/textFormatter';
 import { PrintDocumentStyles, PrintSectionHeader } from './printShared';
 
@@ -17,7 +17,7 @@ function isOptionSelected(fieldValue: string, optValue: string, colType: 'radio'
     if (isOther) return isOtherValue(fieldValue);
     return fieldValue.trim() === optValue;
   }
-  const parts = fieldValue.split(',').map(v => v.trim());
+  const parts = parseChecklistValues(fieldValue);
   if (isOther) return parts.some(v => isOtherValue(v));
   return parts.includes(optValue);
 }
@@ -533,7 +533,7 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                               const isLongOpt = hasLongOptions(f);
 
                               if (layoutMode === 'OPTION_C') {
-                                const clusters = clusterOptionsByGroup(options);
+                                const clusters = clusterOptionsByGroup(options, f.optionGroups);
                                 return (
                                   <div key={f.id} style={{ ...gridItemStyle, display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.82rem' }}>
                                     {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a' }}>{renderFormattedText(cleanLabel)}</span>}
@@ -1153,7 +1153,7 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                         if (col.type === 'checkbox') {
                                           if (opts.length > 0) {
                                             const isInline = canTableOptionsFitInline(opts, col.width, col.checkboxLayout);
-                                            const currentValues = cellVal ? cellVal.split(',').map((v: string) => v.trim()).filter(Boolean) : [];
+                                            const currentValues = parseChecklistValues(cellVal);
                                             return (
                                               <td key={col.id} style={{ border: cellBorder, borderBottom: cellBorderBottom, padding: '4px 6px', fontSize: '0.82rem', verticalAlign: 'middle', minHeight: `${minCellHeight}px`, textAlign: cellAlign as any, width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
                                                 <div style={{

@@ -35,10 +35,41 @@ phiên thực thi để không lặp lại lỗi cũ.
 | 40 | `LOGIC` | Thêm nhóm mới vào danh sách lựa chọn nhưng hardcode label: 'Lựa chọn 1' và luôn tạo mới một option dummy thay vì gom các lựa chọn chưa nhóm có sẵn | Kiểm tra các lựa chọn chưa có nhóm (ungrouped) để gán vào nhóm mới trước; nếu cần tạo lựa chọn mới, luôn tính số thứ tự tự tăng Lựa chọn ${options.length + 1} | 1 |
 | 39 | `UI` | Khi thêm tính năng mới kế thừa từ component khác nhưng dùng inline token riêng (`#ccfbf1`, `#0f766e`, `border: 1px solid`) thay vì tái sử dụng token chuẩn (`#f8fafc`, `borderLeft: 3px solid #0d9488`, `var(--text-primary)`), gây lệch chuẩn thị giác giữa các loại khối | Luôn đối chiếu trực tiếp với component/field chuẩn (`INFO_GRID`) và tuân thủ chặt chẽ Design System (`DESIGN_UI_UX.md`), đảm bảo màu chữ `var(--text-primary)`, nền `#f8fafc` và chỉ có viền chỉ mục trái | 1 |
 | 41 | `LOGIC` | HTML5 DnD: phần tử con `<input>`/`<textarea>` nuốt sự kiện kéo thả chuột, chặn drop target; đồng thời loop Inspector duyệt phẳng options bỏ qua nhóm rỗng | Thêm `pointerEvents: (draggedOption || draggedGroup) ? 'none' : 'auto'` cho các input/textarea con khi đang kéo; lưu trữ danh sách nhóm rỗng trong `optionGroups` và duyệt render theo `clusters = clusterOptionsByGroup(...)` thay vì `options.map` | 1 |
+| 42 | `LOGIC` | `clusterOptionsByGroup` đưa mọi option không có group lên đầu câu hỏi khiến mục 'Khác' bị đẩy lên trên các nhóm; chuỗi lưu trữ checkbox `value.split(',')` bị đứt đoạn khi nội dung tự do chứa dấu phẩy | Tách 3 tầng phân nhóm trong `clusterOptionsByGroup`: lựa chọn chưa phân nhóm (trên cùng), nhóm có tên (ở giữa), và 'Khác' độc lập (neo chặt dưới đáy cả câu hỏi); dùng pure utility `parseChecklistValues` để bóc tách compound value `__other__:<text>` mà không cắt vụn dấu phẩy | 1 |
 
 ---
 
 ## Nhật ký Phiên
+
+### 2026-10-26 — Khôi Phục Neo Đáy Lựa Chọn "Khác", Parse Checkbox An Toàn & Dọn Dẹp Dropdown Nhóm Thừa (`FormBuilder`, `formUtils`, `FormFiller`, `PrintBlankForm`, `PrintFilledForm`)
+
+**Scope:** 5 source files (`src/utils/formUtils.ts`, `src/components/FormBuilder.tsx`, `src/components/FormFiller.tsx`, `src/components/print/PrintBlankForm.tsx`, `src/components/print/PrintFilledForm.tsx`) + 2 design docs (`DESIGN_FORM_DESIGNER.md`, `DESIGN_FORM_OPERATIONS.md`).
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa | 5 |
+| Lượt edit sửa lỗi (rework) | 1 (xóa TS6133 isOtherOpt mồ côi trên Canvas) |
+| Số lần build | 2 (`npx tsc --noEmit` pass 100%, `npm run build` pass 17.41s) |
+| Số lệnh thất bại | 0 |
+
+**Phân tích nguyên nhân gốc (Root Cause):**
+1. **Lỗi vị trí của lựa chọn "Khác":** Hàm `clusterOptionsByGroup` trước đây gom toàn bộ các lựa chọn không có `group` vào nhóm `ungrouped` và đặt ở vị trí `clusters[0]` (đầu câu hỏi). Vì lựa chọn "Khác" không có thuộc tính group, nó vô tình bị đẩy lên trên đầu tất cả các nhóm câu hỏi thay vì neo ở đáy.
+2. **Lỗi khóa kéo thả và khóa nhóm của "Khác":** Tại cả Canvas và Right Inspector, logic kéo thả trước đây có điều kiện `!isOtherOpt` trong `canDrag`, `onDragEnter`, `onDrop` và `disabled={isLocked || isOtherOpt}` trên input nhóm. Ràng buộc này biến "Khác" thành một phần tử bất động, không thể sắp xếp lại hay chuyển đổi nhóm.
+3. **Lỗi đứt gãy dữ liệu tự do chứa dấu phẩy:** Các component (`FormFiller`, `PrintFilledForm`) trước đây đều bóc tách chuỗi giá trị checkbox bằng `value.split(',')`. Khi người điền gõ nội dung tự do có chứa dấu phẩy (ví dụ: `Hà Nội, Cần Thơ`), hàm cắt chuỗi thô sơ đã xé giá trị này thành 2 lựa chọn mồ côi, làm sai lệch trạng thái lưu trữ và thẩm định QMS.
+4. **Nhiễu thị giác thanh thuộc tính (Right Inspector):** Mỗi dòng tùy chọn đều chứa một ô nhập nhóm thu nhỏ `[ Nhóm 1 ▾]` rộng 68px và thẻ `<datalist>`. Trong khi đó, người dùng đã có thể kéo thả trực tiếp giữa các khối nhóm hoặc thả vào header nhóm để đổi nhóm, biến ô nhập nhóm này thành rác giao diện (Zero UI Garbage Blacklist).
+
+**Biện pháp khắc phục & Kiểm chứng:**
+- `src/utils/formUtils.ts`:
+  - Thêm pure utility `parseChecklistValues(val)` bảo vệ an toàn cho chuỗi `__other__:<text>` chứa dấu phẩy.
+  - Tái cấu trúc `clusterOptionsByGroup` thành 3 tầng: un-grouped regular options (đầu), named groups (giữa, với `isOther` nằm ở cuối nhóm nếu có), và standalone other (luôn neo chặt ở đáy cùng sau mọi nhóm).
+  - Cập nhật `reorderGroupsInOptions` và `reorderOptionWithGroup` tôn trọng vị trí neo đáy của standalone other.
+- `src/components/FormBuilder.tsx`:
+  - Pruned hoàn toàn ô input `[ Nhóm 1 ▾]` và `<datalist>`, mở rộng ô nhập nhãn `opt.label` thành `flex: 1` thoáng đãng.
+  - Bổ sung huy hiệu `[Tự do]` tím nhạt (`#faf5ff`, `#7e22ce`) tinh tế cho các lựa chọn kiểu "Khác".
+  - Mở khóa kéo thả cho "Khác" trên cả Canvas và Inspector.
+- `src/components/FormFiller.tsx` & Print Views:
+  - Thay thế toàn bộ 5 vị trí `value.split(',')` bằng `parseChecklistValues(value)`.
+  - Truyền `f.optionGroups` vào `clusterOptionsByGroup(options, f.optionGroups)`.
 
 ### 2026-10-26 — Khởi Tạo Nhóm Rỗng & Sửa Lỗi Kéo Thả Lựa Chọn Giữa Các Nhóm (`FormBuilder`, `formUtils`, `types`)
 

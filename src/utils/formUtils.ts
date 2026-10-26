@@ -660,6 +660,22 @@ export function encodeOtherValue(text: string): string {
 }
 
 /**
+ * Tách chuỗi giá trị nhiều lựa chọn (Checkbox) an toàn, bảo toàn dấu phẩy bên trong mục "Khác".
+ * Ví dụ: "OPT_1,OPT_2,__other__:Hà Nội, Cần Thơ" -> ["OPT_1", "OPT_2", "__other__:Hà Nội, Cần Thơ"]
+ */
+export function parseChecklistValues(val?: string | null): string[] {
+  if (!val) return [];
+  const otherIdx = val.indexOf(OTHER_PREFIX);
+  if (otherIdx === -1) {
+    return val.split(',').map(s => s.trim()).filter(Boolean);
+  }
+  const before = val.slice(0, otherIdx);
+  const otherPart = val.slice(otherIdx);
+  const beforeParts = before.split(',').map(s => s.trim()).filter(Boolean);
+  return [...beforeParts, otherPart];
+}
+
+/**
  * Định dạng hiển thị nhãn và nội dung tự gõ cho báo cáo và bản in.
  */
 export function formatOptionDisplay(val: string, options?: { label: string; value: string; isOther?: boolean }[]): string {
@@ -710,7 +726,7 @@ export interface OptionGroupCluster<T = RadioOption> {
  * Giữ nguyên thứ tự khai báo ban đầu.
  * Các lựa chọn không có `group` được gom thành nhóm với groupName = undefined.
  */
-export function clusterOptionsByGroup<T extends { group?: string }>(
+export function clusterOptionsByGroup<T extends { group?: string; isOther?: boolean; value?: string }>(
   options: T[],
   explicitGroups?: string[]
 ): OptionGroupCluster<T>[] {
@@ -726,10 +742,10 @@ export function clusterOptionsByGroup<T extends { group?: string }>(
   const clusters: OptionGroupCluster<T>[] = [];
   const groupMap = new Map<string, OptionGroupCluster<T>>();
 
-  // 1. Phân bổ các lựa chọn chưa có nhóm (ungrouped)
-  const ungrouped = (options || []).filter(o => !(o.group && o.group.trim()));
-  if (ungrouped.length > 0) {
-    const ungroupedCluster: OptionGroupCluster<T> = { groupName: undefined, options: ungrouped };
+  // 1. Phân bổ các lựa chọn thông thường chưa có nhóm (regular ungrouped - loại trừ mục Khác tự do không nhóm)
+  const regularUngrouped = (options || []).filter(o => !(o.group && o.group.trim()) && !(o.isOther || o.value === '__other__'));
+  if (regularUngrouped.length > 0) {
+    const ungroupedCluster: OptionGroupCluster<T> = { groupName: undefined, options: regularUngrouped };
     groupMap.set('__ungrouped__', ungroupedCluster);
     clusters.push(ungroupedCluster);
   }
@@ -762,6 +778,24 @@ export function clusterOptionsByGroup<T extends { group?: string }>(
       clusters.push(cluster);
     }
     cluster.options.push(opt);
+  }
+
+  // Đảm bảo trong mỗi nhóm có tên, nếu có mục Khác thì nó luôn neo ở cuối nhóm đó
+  for (const cluster of clusters) {
+    if (cluster.groupName) {
+      const otherIdx = cluster.options.findIndex(o => o.isOther || o.value === '__other__');
+      if (otherIdx !== -1 && otherIdx !== cluster.options.length - 1) {
+        const [otherOpt] = cluster.options.splice(otherIdx, 1);
+        cluster.options.push(otherOpt);
+      }
+    }
+  }
+
+  // 4. Phân bổ mục "Khác" chung (chưa có nhóm) vào cụm cuối cùng của toàn bộ câu hỏi (Bottom Anchor)
+  const standaloneOther = (options || []).filter(o => !(o.group && o.group.trim()) && (o.isOther || o.value === '__other__'));
+  if (standaloneOther.length > 0) {
+    const otherCluster: OptionGroupCluster<T> = { groupName: undefined, options: standaloneOther };
+    clusters.push(otherCluster);
   }
 
   return clusters;
@@ -811,9 +845,10 @@ export function reorderGroupsInOptions<T extends { group?: string; isOther?: boo
 
   const result = reorderedClusters.flatMap(c => c.options);
 
-  const otherIdx = result.findIndex(o => o.isOther || o.value === '__other__');
-  if (otherIdx !== -1 && otherIdx !== result.length - 1) {
-    const [otherItem] = result.splice(otherIdx, 1);
+  // Chỉ đẩy standalone other (không có nhóm) về cuối mảng options
+  const standaloneOtherIdx = result.findIndex(o => (o.isOther || o.value === '__other__') && !(o.group && o.group.trim()));
+  if (standaloneOtherIdx !== -1 && standaloneOtherIdx !== result.length - 1) {
+    const [otherItem] = result.splice(standaloneOtherIdx, 1);
     result.push(otherItem);
   }
 
@@ -842,9 +877,10 @@ export function reorderOptionWithGroup<T extends { group?: string; isOther?: boo
   const clampedTarget = Math.min(Math.max(0, toIndex), result.length);
   result.splice(clampedTarget, 0, updatedItem);
 
-  const otherIdx = result.findIndex(o => o.isOther || o.value === '__other__');
-  if (otherIdx !== -1 && otherIdx !== result.length - 1) {
-    const [otherItem] = result.splice(otherIdx, 1);
+  // Chỉ đẩy standalone other (không có nhóm) về cuối mảng options
+  const standaloneOtherIdx = result.findIndex(o => (o.isOther || o.value === '__other__') && !(o.group && o.group.trim()));
+  if (standaloneOtherIdx !== -1 && standaloneOtherIdx !== result.length - 1) {
+    const [otherItem] = result.splice(standaloneOtherIdx, 1);
     result.push(otherItem);
   }
 

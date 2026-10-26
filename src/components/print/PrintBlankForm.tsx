@@ -360,7 +360,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                             const isLongOpt = hasLongOptions(f);
 
                             if (layoutMode === 'OPTION_C') {
-                              const clusters = clusterOptionsByGroup(options);
+                              const clusters = clusterOptionsByGroup(options, f.optionGroups);
                               return (
                                 <div key={f.id} style={{ ...gridItemStyle, display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.82rem' }}>
                                   {cleanLabel && (
