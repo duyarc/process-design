@@ -9,6 +9,11 @@ export function getAutoCheckboxLayoutMode(field: FormFieldISO, blockColumns: num
   const labelLength = (field.checkItem || '').trim().length;
   const options = field.options || [];
 
+  // If options have groups defined, always stack underneath with group headers (OPTION_C)
+  if (options.some(opt => !!(opt.group && opt.group.trim()))) {
+    return 'OPTION_C';
+  }
+
   // Effective columns: if field has colSpan spanning full width, treat as 1 column
   const effectiveCols = (field.colSpan && field.colSpan >= blockColumns) ? 1 : blockColumns;
 
@@ -695,6 +700,44 @@ export function formatMultiOptionDisplay(
  * Tái sắp xếp thứ tự các lựa chọn trong mảng options an toàn khi kéo - thả.
  * Đảm bảo mục "Khác" (nếu có) luôn được giữ ở vị trí cuối cùng của danh sách.
  */
+export interface OptionGroupCluster<T = RadioOption> {
+  groupName?: string;
+  options: T[];
+}
+
+/**
+ * Gom cụm các lựa chọn (checkbox/radio options) theo thuộc tính `group`.
+ * Giữ nguyên thứ tự khai báo ban đầu.
+ * Các lựa chọn không có `group` được gom thành nhóm với groupName = undefined.
+ */
+export function clusterOptionsByGroup<T extends { group?: string }>(options: T[]): OptionGroupCluster<T>[] {
+  if (!options || options.length === 0) return [];
+  const hasAnyGroup = options.some(opt => !!(opt.group && opt.group.trim()));
+  if (!hasAnyGroup) {
+    return [{ groupName: undefined, options }];
+  }
+
+  const clusters: OptionGroupCluster<T>[] = [];
+  const groupMap = new Map<string, OptionGroupCluster<T>>();
+
+  for (const opt of options) {
+    const rawGroup = (opt.group || '').trim();
+    const groupKey = rawGroup || '__ungrouped__';
+    let cluster = groupMap.get(groupKey);
+    if (!cluster) {
+      cluster = {
+        groupName: rawGroup || undefined,
+        options: []
+      };
+      groupMap.set(groupKey, cluster);
+      clusters.push(cluster);
+    }
+    cluster.options.push(opt);
+  }
+
+  return clusters;
+}
+
 export function reorderOptionsArray<T extends { isOther?: boolean; value?: string }>(
   options: T[],
   fromIndex: number,

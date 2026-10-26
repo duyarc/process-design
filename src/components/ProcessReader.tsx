@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { Process, SubmissionFieldSnapshot } from '../types';
 import { formatFormVersion, getColStyleWidth } from '../types';
-import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock, getInfoGridTemplateColumns, getEffectiveCellOptions } from '../utils/formUtils';
+import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock, getInfoGridTemplateColumns, getEffectiveCellOptions, clusterOptionsByGroup } from '../utils/formUtils';
 import { renderFormattedText } from '../utils/textFormatter';
 import { useAuth } from '../context/AuthContext';
 import { Printer, Edit2, Camera, AlertTriangle, X, PenTool, GitBranch, Eye, ArrowLeft, Trash2, Star } from 'lucide-react';
@@ -1441,32 +1441,47 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                                           style={inputStyle}
                                         />
                                       )
-                                    ) : field.type === 'checkbox' ? (
-                                      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', minHeight: '34px', alignItems: 'center' }}>
-                                        {(field.options ?? [{ label: 'Đạt', value: 'PASS', isPass: true }, { label: 'Không Đạt', value: 'FAIL', isPass: false }]).map((opt: any) => {
-                                          const currentValues = value ? value.split(',').filter(Boolean) : [];
-                                          const isChecked = currentValues.includes(opt.value);
-                                          return (
-                                            <label key={opt.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.82rem', cursor: 'pointer', margin: 0 }}>
-                                              <input 
-                                                type="checkbox" 
-                                                checked={isChecked}
-                                                onChange={(e) => {
-                                                  let nextValues;
-                                                  if (e.target.checked) {
-                                                    nextValues = [...currentValues, opt.value];
-                                                  } else {
-                                                    nextValues = currentValues.filter((v: string) => v !== opt.value);
-                                                  }
-                                                  setFormValues(prev => ({ ...prev, [field.id]: nextValues.join(',') }));
-                                                }}
-                                              />
-                                              {opt.label}
-                                            </label>
-                                          );
-                                        })}
-                                      </div>
-                                    ) : (field.type === 'likert_scale' || field.type === 'rating') ? (() => {
+                                    ) : field.type === 'checkbox' ? (() => {
+                                      const rawOptions = field.options ?? [{ label: 'Đạt', value: 'PASS', isPass: true }, { label: 'Không Đạt', value: 'FAIL', isPass: false }];
+                                      const clusters = clusterOptionsByGroup(rawOptions);
+                                      return (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%' }}>
+                                          {clusters.map((cluster, cIdx) => (
+                                            <div key={cluster.groupName || cIdx} style={{ display: 'flex', flexDirection: 'column', gap: '2px', width: '100%' }}>
+                                              {cluster.groupName && (
+                                                <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginTop: cIdx > 0 ? '6px' : '0' }}>
+                                                  📂 {cluster.groupName}
+                                                </div>
+                                              )}
+                                              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', minHeight: '34px', alignItems: 'center', paddingLeft: cluster.groupName ? '0.35rem' : '0' }}>
+                                                {cluster.options.map((opt: any) => {
+                                                  const currentValues = value ? value.split(',').filter(Boolean) : [];
+                                                  const isChecked = currentValues.includes(opt.value);
+                                                  return (
+                                                    <label key={opt.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.82rem', cursor: 'pointer', margin: 0 }}>
+                                                      <input 
+                                                        type="checkbox" 
+                                                        checked={isChecked}
+                                                        onChange={(e) => {
+                                                          let nextValues;
+                                                          if (e.target.checked) {
+                                                            nextValues = [...currentValues, opt.value];
+                                                          } else {
+                                                            nextValues = currentValues.filter((v: string) => v !== opt.value);
+                                                          }
+                                                          setFormValues(prev => ({ ...prev, [field.id]: nextValues.join(',') }));
+                                                        }}
+                                                      />
+                                                      {opt.label}
+                                                    </label>
+                                                  );
+                                                })}
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      );
+                                    })() : (field.type === 'likert_scale' || field.type === 'rating') ? (() => {
                                       const isStars = field.likertVariant === 'stars' || field.type === 'rating';
                                       if (isStars) {
                                         const scale = field.ratingScale === 3 ? 3 : 5;

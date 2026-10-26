@@ -66,7 +66,8 @@ import {
   getEffectiveCellOptions,
   toFormSlug,
   resolveImageSrc,
-  getTableItemColumnId
+  getTableItemColumnId,
+  clusterOptionsByGroup
 } from '../utils/formUtils';
 import { renderFormattedText, stripMarkdownTokens } from '../utils/textFormatter';
 import { useAuth } from '../context/AuthContext';
@@ -1872,121 +1873,173 @@ function FormFillerInner({
                         ) : field.type === 'checkbox' ? (() => {
                           const isOptionC = getAutoCheckboxLayoutMode(field, block.columns) === 'OPTION_C';
                           const isLongOpt = hasLongOptions(field);
+                          const rawOptions = field.options ?? [{ label: 'Có', value: 'YES' }, { label: 'Không', value: 'NO' }];
+                          const clusters = clusterOptionsByGroup(rawOptions);
                           return (
-                            <div style={{
-                              display: 'flex',
-                              flexDirection: isOptionC && isLongOpt ? 'column' : 'row',
-                              flexWrap: isOptionC && isLongOpt ? 'nowrap' : 'wrap',
-                              gap: isOptionC && isLongOpt ? '6px' : '6px 20px',
-                              alignItems: isOptionC && isLongOpt ? 'flex-start' : 'center',
-                              padding: '4px 0',
-                              paddingLeft: isOptionC ? '1rem' : '0'
-                            }}>
-                              {(field.options ?? [{ label: 'Có', value: 'YES' }, { label: 'Không', value: 'NO' }]).map((opt: any) => {
-                                const isOtherOpt = opt.isOther || opt.value === '__other__';
-                                const currentValues = value ? value.split(',').filter(Boolean) : [];
-                                const isChecked = currentValues.some((v: string) => v === (opt.value || opt.label) || (isOtherOpt && isOtherValue(v)));
-                                const otherText = isOtherOpt ? extractOtherText(currentValues.find((v: string) => isOtherValue(v))) : '';
-                                return (
-                                  <div key={opt.value} style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                                    <label style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', fontSize: '0.82rem', cursor: effectiveReadOnly ? 'default' : 'pointer', margin: 0 }}>
-                                      <input 
-                                        type="checkbox" 
-                                        checked={isChecked}
-                                        disabled={effectiveReadOnly}
-                                        style={{ marginTop: '2px', flexShrink: 0 }}
-                                        onChange={(e) => {
-                                          let nextValues;
-                                          if (e.target.checked) {
-                                            const entryValue = isOtherOpt ? encodeOtherValue(otherText) : (opt.value || opt.label);
-                                            nextValues = [...currentValues.filter((v: string) => !(isOtherOpt && isOtherValue(v))), entryValue];
-                                          } else {
-                                            nextValues = currentValues.filter((v: string) => v !== (opt.value || opt.label) && !(isOtherOpt && isOtherValue(v)));
-                                          }
-                                          setFormValues(prev => ({ ...prev, [field.id]: nextValues.join(',') }));
-                                        }} 
-                                      />
-                                      <span style={{ lineHeight: '1.3' }}>{opt.label}</span>
-                                    </label>
-                                    {isOtherOpt && isChecked && (
-                                      <div style={{ paddingLeft: '1.25rem', marginTop: '2px' }}>
-                                        <input
-                                          type="text"
-                                          disabled={effectiveReadOnly}
-                                          value={otherText}
-                                          placeholder="Vui lòng ghi rõ..."
-                                          onChange={(e) => {
-                                            const newText = e.target.value;
-                                            const updatedOtherVal = encodeOtherValue(newText);
-                                            const nextValues = currentValues.filter((v: string) => !isOtherValue(v));
-                                            nextValues.push(updatedOtherVal);
-                                            setFormValues(prev => ({ ...prev, [field.id]: nextValues.join(',') }));
-                                          }}
-                                          style={{ width: '100%', maxWidth: '240px', padding: '0.25rem 0.45rem', fontSize: '0.78rem', borderRadius: '4px', border: '1px solid var(--primary)', outline: 'none', background: '#ffffff' }}
-                                          autoFocus
-                                        />
-                                      </div>
-                                    )}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '100%' }}>
+                              {clusters.map((cluster, cIdx) => (
+                                <div key={cluster.groupName || cIdx} style={{ display: 'flex', flexDirection: 'column', gap: '3px', width: '100%' }}>
+                                  {cluster.groupName && (
+                                    <div style={{
+                                      fontSize: '0.72rem',
+                                      fontWeight: 700,
+                                      letterSpacing: '0.04em',
+                                      textTransform: 'uppercase',
+                                      color: 'var(--text-secondary)',
+                                      marginTop: cIdx > 0 ? '8px' : '2px',
+                                      marginBottom: '2px',
+                                      paddingBottom: '2px',
+                                      borderBottom: '1px dashed #e2e8f0',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '4px'
+                                    }}>
+                                      <span>📂 {cluster.groupName}</span>
+                                    </div>
+                                  )}
+                                  <div style={{
+                                    display: 'flex',
+                                    flexDirection: isOptionC && isLongOpt ? 'column' : 'row',
+                                    flexWrap: isOptionC && isLongOpt ? 'nowrap' : 'wrap',
+                                    gap: isOptionC && isLongOpt ? '6px' : '6px 20px',
+                                    alignItems: isOptionC && isLongOpt ? 'flex-start' : 'center',
+                                    padding: '2px 0',
+                                    paddingLeft: cluster.groupName ? '0.4rem' : (isOptionC ? '1rem' : '0')
+                                  }}>
+                                    {cluster.options.map((opt: any) => {
+                                      const isOtherOpt = opt.isOther || opt.value === '__other__';
+                                      const currentValues = value ? value.split(',').filter(Boolean) : [];
+                                      const isChecked = currentValues.some((v: string) => v === (opt.value || opt.label) || (isOtherOpt && isOtherValue(v)));
+                                      const otherText = isOtherOpt ? extractOtherText(currentValues.find((v: string) => isOtherValue(v))) : '';
+                                      return (
+                                        <div key={opt.value} style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                                          <label style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', fontSize: '0.82rem', cursor: effectiveReadOnly ? 'default' : 'pointer', margin: 0 }}>
+                                            <input 
+                                              type="checkbox" 
+                                              checked={isChecked}
+                                              disabled={effectiveReadOnly}
+                                              style={{ marginTop: '2px', flexShrink: 0 }}
+                                              onChange={(e) => {
+                                                let nextValues;
+                                                if (e.target.checked) {
+                                                  const entryValue = isOtherOpt ? encodeOtherValue(otherText) : (opt.value || opt.label);
+                                                  nextValues = [...currentValues.filter((v: string) => !(isOtherOpt && isOtherValue(v))), entryValue];
+                                                } else {
+                                                  nextValues = currentValues.filter((v: string) => v !== (opt.value || opt.label) && !(isOtherOpt && isOtherValue(v)));
+                                                }
+                                                setFormValues(prev => ({ ...prev, [field.id]: nextValues.join(',') }));
+                                              }} 
+                                            />
+                                            <span style={{ lineHeight: '1.3' }}>{opt.label}</span>
+                                          </label>
+                                          {isOtherOpt && isChecked && (
+                                            <div style={{ paddingLeft: '1.25rem', marginTop: '2px' }}>
+                                              <input
+                                                type="text"
+                                                disabled={effectiveReadOnly}
+                                                value={otherText}
+                                                placeholder="Vui lòng ghi rõ..."
+                                                onChange={(e) => {
+                                                  const newText = e.target.value;
+                                                  const updatedOtherVal = encodeOtherValue(newText);
+                                                  const nextValues = currentValues.filter((v: string) => !isOtherValue(v));
+                                                  nextValues.push(updatedOtherVal);
+                                                  setFormValues(prev => ({ ...prev, [field.id]: nextValues.join(',') }));
+                                                }}
+                                                style={{ width: '100%', maxWidth: '240px', padding: '0.25rem 0.45rem', fontSize: '0.78rem', borderRadius: '4px', border: '1px solid var(--primary)', outline: 'none', background: '#ffffff' }}
+                                                autoFocus
+                                              />
+                                            </div>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
                                   </div>
-                                );
-                              })}
+                                </div>
+                              ))}
                             </div>
                           );
                         })() : field.type === 'radio' ? (() => {
                           const isOptionC = getAutoCheckboxLayoutMode(field, block.columns) === 'OPTION_C';
                           const isLongOpt = hasLongOptions(field);
                           const isStacked = isOptionC && isLongOpt;
+                          const rawOptions = field.options ?? [{ label: 'Đạt', value: 'PASS', isPass: true }, { label: 'Không Đạt', value: 'FAIL', isPass: false }];
+                          const clusters = clusterOptionsByGroup(rawOptions);
                           return (
-                            <div style={{
-                              display: 'flex',
-                              flexDirection: isStacked ? 'column' : 'row',
-                              flexWrap: isStacked ? 'nowrap' : 'wrap',
-                              gap: isStacked ? '8px' : '6px 20px',
-                              alignItems: isStacked ? 'flex-start' : 'center',
-                              padding: '4px 0',
-                              paddingLeft: isOptionC ? '1rem' : '0',
-                              width: '100%'
-                            }}>
-                              {(field.options ?? [{ label: 'Đạt', value: 'PASS', isPass: true }, { label: 'Không Đạt', value: 'FAIL', isPass: false }]).map((opt: any) => {
-                                const isOtherOpt = opt.isOther || opt.value === '__other__';
-                                const isChecked = isOtherOpt ? isOtherValue(value) : value === opt.value;
-                                const otherText = isOtherOpt ? extractOtherText(value) : '';
-                                return (
-                                  <div key={opt.value} style={{ display: 'flex', flexDirection: 'column', gap: '3px', width: isStacked ? '100%' : 'auto', maxWidth: '100%' }}>
-                                    <label style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', fontSize: '0.82rem', cursor: effectiveReadOnly ? 'default' : 'pointer', margin: 0, width: '100%' }}>
-                                      <input 
-                                        type="radio" 
-                                        name={`${block.id}_${field.id}`}
-                                        value={opt.value}
-                                        checked={isChecked}
-                                        disabled={effectiveReadOnly}
-                                        style={{ marginTop: '2px', flexShrink: 0, accentColor: 'var(--primary)' }}
-                                        onChange={() => {
-                                          const entryValue = isOtherOpt ? encodeOtherValue(otherText) : opt.value;
-                                          setFormValues(prev => ({ ...prev, [field.id]: entryValue }));
-                                        }} 
-                                      />
-                                      <span style={{ lineHeight: '1.45', color: 'var(--text-primary)', wordBreak: 'break-word', whiteSpace: 'pre-wrap', flex: 1 }}>{opt.label}</span>
-                                    </label>
-                                    {isOtherOpt && isChecked && (
-                                      <div style={{ paddingLeft: '1.25rem', marginTop: '2px' }}>
-                                        <input
-                                          type="text"
-                                          disabled={effectiveReadOnly}
-                                          value={otherText}
-                                          placeholder="Vui lòng ghi rõ..."
-                                          onChange={(e) => {
-                                            const newText = e.target.value;
-                                            setFormValues(prev => ({ ...prev, [field.id]: encodeOtherValue(newText) }));
-                                          }}
-                                          style={{ width: '100%', maxWidth: '280px', padding: '0.25rem 0.45rem', fontSize: '0.78rem', borderRadius: '4px', border: '1px solid var(--primary)', outline: 'none', background: '#ffffff' }}
-                                          autoFocus
-                                        />
-                                      </div>
-                                    )}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '100%' }}>
+                              {clusters.map((cluster, cIdx) => (
+                                <div key={cluster.groupName || cIdx} style={{ display: 'flex', flexDirection: 'column', gap: '3px', width: '100%' }}>
+                                  {cluster.groupName && (
+                                    <div style={{
+                                      fontSize: '0.72rem',
+                                      fontWeight: 700,
+                                      letterSpacing: '0.04em',
+                                      textTransform: 'uppercase',
+                                      color: 'var(--text-secondary)',
+                                      marginTop: cIdx > 0 ? '8px' : '2px',
+                                      marginBottom: '2px',
+                                      paddingBottom: '2px',
+                                      borderBottom: '1px dashed #e2e8f0',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '4px'
+                                    }}>
+                                      <span>📂 {cluster.groupName}</span>
+                                    </div>
+                                  )}
+                                  <div style={{
+                                    display: 'flex',
+                                    flexDirection: isStacked ? 'column' : 'row',
+                                    flexWrap: isStacked ? 'nowrap' : 'wrap',
+                                    gap: isStacked ? '8px' : '6px 20px',
+                                    alignItems: isStacked ? 'flex-start' : 'center',
+                                    padding: '2px 0',
+                                    paddingLeft: cluster.groupName ? '0.4rem' : (isOptionC ? '1rem' : '0'),
+                                    width: '100%'
+                                  }}>
+                                    {cluster.options.map((opt: any) => {
+                                      const isOtherOpt = opt.isOther || opt.value === '__other__';
+                                      const isChecked = isOtherOpt ? isOtherValue(value) : value === opt.value;
+                                      const otherText = isOtherOpt ? extractOtherText(value) : '';
+                                      return (
+                                        <div key={opt.value} style={{ display: 'flex', flexDirection: 'column', gap: '3px', width: isStacked ? '100%' : 'auto', maxWidth: '100%' }}>
+                                          <label style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', fontSize: '0.82rem', cursor: effectiveReadOnly ? 'default' : 'pointer', margin: 0, width: '100%' }}>
+                                            <input 
+                                              type="radio" 
+                                              name={`${block.id}_${field.id}`}
+                                              value={opt.value}
+                                              checked={isChecked}
+                                              disabled={effectiveReadOnly}
+                                              style={{ marginTop: '2px', flexShrink: 0, accentColor: 'var(--primary)' }}
+                                              onChange={() => {
+                                                const entryValue = isOtherOpt ? encodeOtherValue(otherText) : opt.value;
+                                                setFormValues(prev => ({ ...prev, [field.id]: entryValue }));
+                                              }} 
+                                            />
+                                            <span style={{ lineHeight: '1.45', color: 'var(--text-primary)', wordBreak: 'break-word', whiteSpace: 'pre-wrap', flex: 1 }}>{opt.label}</span>
+                                          </label>
+                                          {isOtherOpt && isChecked && (
+                                            <div style={{ paddingLeft: '1.25rem', marginTop: '2px' }}>
+                                              <input
+                                                type="text"
+                                                disabled={effectiveReadOnly}
+                                                value={otherText}
+                                                placeholder="Vui lòng ghi rõ..."
+                                                onChange={(e) => {
+                                                  const newText = e.target.value;
+                                                  setFormValues(prev => ({ ...prev, [field.id]: encodeOtherValue(newText) }));
+                                                }}
+                                                style={{ width: '100%', maxWidth: '280px', padding: '0.25rem 0.45rem', fontSize: '0.78rem', borderRadius: '4px', border: '1px solid var(--primary)', outline: 'none', background: '#ffffff' }}
+                                                autoFocus
+                                              />
+                                            </div>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
                                   </div>
-                                );
-                              })}
+                                </div>
+                              ))}
                             </div>
                           );
                         })() : field.type === 'select' ? (() => {
@@ -2323,58 +2376,73 @@ function FormFillerInner({
                                   style={{ width: '100%', padding: '0.45rem 0.5rem', fontSize: '0.82rem', border: '1px solid var(--neutral-border)', borderRadius: '4px' }}
                                 />
                               )
-                            ) : field.type === 'checkbox' ? (
-                              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', maxWidth: '100%' }}>
-                                {(field.options ?? [{ label: 'Đạt', value: 'PASS', isPass: true }, { label: 'Không Đạt', value: 'FAIL', isPass: false }]).map((opt: any) => {
-                                  const isOtherOpt = opt.isOther || opt.value === '__other__';
-                                  const currentValues = value ? value.split(',').filter(Boolean) : [];
-                                  const isChecked = currentValues.some((v: string) => v === opt.value || (isOtherOpt && isOtherValue(v)));
-                                  const otherText = isOtherOpt ? extractOtherText(currentValues.find((v: string) => isOtherValue(v))) : '';
-                                  return (
-                                    <div key={opt.value} style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                                      <label style={{ display: 'inline-flex', alignItems: 'flex-start', gap: '0.35rem', fontSize: '0.82rem', cursor: effectiveReadOnly ? 'default' : 'pointer', wordBreak: 'break-word', maxWidth: '100%' }}>
-                                        <input 
-                                          type="checkbox" 
-                                          checked={isChecked}
-                                          disabled={effectiveReadOnly}
-                                          style={{ marginTop: '2px', flexShrink: 0 }}
-                                          onChange={(e) => {
-                                            let nextValues;
-                                            if (e.target.checked) {
-                                              const entryValue = isOtherOpt ? encodeOtherValue(otherText) : opt.value;
-                                              nextValues = [...currentValues.filter((v: string) => !(isOtherOpt && isOtherValue(v))), entryValue];
-                                            } else {
-                                              nextValues = currentValues.filter((v: string) => v !== opt.value && !(isOtherOpt && isOtherValue(v)));
-                                            }
-                                            setFormValues(prev => ({ ...prev, [field.id]: nextValues.join(',') }));
-                                          }}
-                                        />
-                                        <span style={{ lineHeight: '1.3' }}>{opt.label}</span>
-                                      </label>
-                                      {isOtherOpt && isChecked && (
-                                        <div style={{ paddingLeft: '1.25rem', marginTop: '2px' }}>
-                                          <input
-                                            type="text"
-                                            disabled={effectiveReadOnly}
-                                            value={otherText}
-                                            placeholder="Vui lòng ghi rõ..."
-                                            onChange={(e) => {
-                                              const newText = e.target.value;
-                                              const updatedOtherVal = encodeOtherValue(newText);
-                                              const nextValues = currentValues.filter((v: string) => !isOtherValue(v));
-                                              nextValues.push(updatedOtherVal);
-                                              setFormValues(prev => ({ ...prev, [field.id]: nextValues.join(',') }));
-                                            }}
-                                            style={{ width: '100%', maxWidth: '240px', padding: '0.25rem 0.45rem', fontSize: '0.78rem', borderRadius: '4px', border: '1px solid var(--primary)', outline: 'none', background: '#ffffff' }}
-                                            autoFocus
-                                          />
+                            ) : field.type === 'checkbox' ? (() => {
+                              const rawOptions = field.options ?? [{ label: 'Đạt', value: 'PASS', isPass: true }, { label: 'Không Đạt', value: 'FAIL', isPass: false }];
+                              const clusters = clusterOptionsByGroup(rawOptions);
+                              return (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '100%' }}>
+                                  {clusters.map((cluster, cIdx) => (
+                                    <div key={cluster.groupName || cIdx} style={{ display: 'flex', flexDirection: 'column', gap: '3px', width: '100%' }}>
+                                      {cluster.groupName && (
+                                        <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginTop: cIdx > 0 ? '6px' : '0' }}>
+                                          📂 {cluster.groupName}
                                         </div>
                                       )}
+                                      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', maxWidth: '100%', paddingLeft: cluster.groupName ? '0.35rem' : '0' }}>
+                                        {cluster.options.map((opt: any) => {
+                                          const isOtherOpt = opt.isOther || opt.value === '__other__';
+                                          const currentValues = value ? value.split(',').filter(Boolean) : [];
+                                          const isChecked = currentValues.some((v: string) => v === opt.value || (isOtherOpt && isOtherValue(v)));
+                                          const otherText = isOtherOpt ? extractOtherText(currentValues.find((v: string) => isOtherValue(v))) : '';
+                                          return (
+                                            <div key={opt.value} style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                                              <label style={{ display: 'inline-flex', alignItems: 'flex-start', gap: '0.35rem', fontSize: '0.82rem', cursor: effectiveReadOnly ? 'default' : 'pointer', wordBreak: 'break-word', maxWidth: '100%' }}>
+                                                <input 
+                                                  type="checkbox" 
+                                                  checked={isChecked}
+                                                  disabled={effectiveReadOnly}
+                                                  style={{ marginTop: '2px', flexShrink: 0 }}
+                                                  onChange={(e) => {
+                                                    let nextValues;
+                                                    if (e.target.checked) {
+                                                      const entryValue = isOtherOpt ? encodeOtherValue(otherText) : opt.value;
+                                                      nextValues = [...currentValues.filter((v: string) => !(isOtherOpt && isOtherValue(v))), entryValue];
+                                                    } else {
+                                                      nextValues = currentValues.filter((v: string) => v !== opt.value && !(isOtherOpt && isOtherValue(v)));
+                                                    }
+                                                    setFormValues(prev => ({ ...prev, [field.id]: nextValues.join(',') }));
+                                                  }}
+                                                />
+                                                <span style={{ lineHeight: '1.3' }}>{opt.label}</span>
+                                              </label>
+                                              {isOtherOpt && isChecked && (
+                                                <div style={{ paddingLeft: '1.25rem', marginTop: '2px' }}>
+                                                  <input
+                                                    type="text"
+                                                    disabled={effectiveReadOnly}
+                                                    value={otherText}
+                                                    placeholder="Vui lòng ghi rõ..."
+                                                    onChange={(e) => {
+                                                      const newText = e.target.value;
+                                                      const updatedOtherVal = encodeOtherValue(newText);
+                                                      const nextValues = currentValues.filter((v: string) => !isOtherValue(v));
+                                                      nextValues.push(updatedOtherVal);
+                                                      setFormValues(prev => ({ ...prev, [field.id]: nextValues.join(',') }));
+                                                    }}
+                                                    style={{ width: '100%', maxWidth: '240px', padding: '0.25rem 0.45rem', fontSize: '0.78rem', borderRadius: '4px', border: '1px solid var(--primary)', outline: 'none', background: '#ffffff' }}
+                                                    autoFocus
+                                                  />
+                                                </div>
+                                              )}
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
                                     </div>
-                                  );
-                                })}
-                              </div>
-                            ) : (field.type === 'likert_scale' || field.type === 'rating') ? (() => {
+                                  ))}
+                                </div>
+                              );
+                            })() : (field.type === 'likert_scale' || field.type === 'rating') ? (() => {
                           const isStars = field.likertVariant === 'stars' || field.type === 'rating';
                           if (isStars) {
                             const scale = field.ratingScale === 3 ? 3 : 5;

@@ -38,6 +38,32 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 ## Nhật ký Phiên
 
+### 2026-10-26 — Option Grouping cho Checkbox & Radio Nhiều Tùy chọn (`FormFiller`, `FormBuilder`, `ProcessReader`, `Print`)
+
+**Scope:** 7 source files (`src/types.ts`, `src/utils/formUtils.ts`, `src/components/FormFiller.tsx`, `src/components/FormBuilder.tsx`, `src/components/ProcessReader.tsx`, `src/components/print/PrintBlankForm.tsx`, `src/components/print/PrintFilledForm.tsx`) + 2 design docs (`DESIGN_FORM_DESIGNER.md`, `DESIGN_FORM_OPERATIONS.md`).
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa | 7 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 2 (`npx tsc --noEmit` pass 100%, `npm run build` pass 7.93s) |
+| Lần build đầu thành công? | Có |
+
+**Kết quả đạt được:**
+- **Mở rộng Schema & Data Invariant (`src/types.ts`):**
+  - Bổ sung `group?: string;` vào interface `RadioOption`. Giữ nguyên giá trị lưu bản nộp dạng danh sách chuỗi, đảm bảo Zero Breaking Change cho database schema và logic tính điểm.
+- **Pure Utility gom nhóm & Tự động thích ứng Layout (`src/utils/formUtils.ts`):**
+  - Trích xuất hàm thuần túy `clusterOptionsByGroup` gom nhóm các tùy chọn theo thứ tự nhóm xuất hiện, ưu tiên các tùy chọn không nhóm lên trên.
+  - Cập nhật `getAutoCheckboxLayoutMode` tự động kích hoạt `OPTION_C` (Label trên, options dưới) khi phát hiện có nhóm.
+- **Hiển thị Form Filler & Process Reader (`FormFiller.tsx`, `ProcessReader.tsx`):**
+  - Tích hợp gom nhóm cho cả 2 khối `INFO_GRID` và `CHECKLIST`.
+  - Hiển thị tiêu đề nhóm tinh gọn `📂 [TÊN NHÓM]` với typography tối giản (`0.72rem`, `fontWeight: 700`, uppercase, `var(--text-secondary)`) và đường kẻ ngang mờ phân cách, loại bỏ triệt để viền bao hộp rườm rà (Subtraction Design Mantra).
+- **Trải nghiệm Thiết kế trong Form Designer (`FormBuilder.tsx`):**
+  - Canvas hiển thị trực quan các cụm nhóm với header phân cách.
+  - Right Inspector hiển thị divider nhóm, ô nhập tên nhóm với `<datalist>` gợi ý các nhóm sẵn có, và nút `[+ Nhóm mới]` tiện lợi.
+- **Đồng bộ Định dạng In ấn (`PrintBlankForm.tsx`, `PrintFilledForm.tsx`):**
+  - Hiển thị tiêu đề nhóm in đậm (`0.7rem`) và căn lề thụt nhẹ nhàng, đảm bảo trang in A4 rõ ràng và chuyên nghiệp.
+
 ### 2026-10-16 — In-Canvas Column Span Toggle cho INFO_GRID (2, 3 Cột) & Right Inspector Prune (`FormBuilder`, `InCanvasColSpanToggle`)
 
 **Scope:** 4 source files (`src/components/form/InCanvasColSpanToggle.tsx`, `src/components/FormBuilder.tsx`, `src/components/form/InCanvasLabelField.tsx`, `src/components/form/InCanvasImageField.tsx`) + 1 design doc (`DESIGN_FORM_DESIGNER.md`).

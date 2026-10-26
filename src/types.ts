@@ -44,6 +44,7 @@ export interface RadioOption {
   value: string;   // Giá trị lưu   — ví dụ: "PASS", "GRADE_B", "__other__"
   isPass?: boolean; // Lựa chọn này có được tính là đạt không?
   isOther?: boolean; // Lựa chọn "Khác" cho phép người điền tự gõ nội dung tự do
+  group?: string;  // Tên nhóm danh mục (ví dụ: "Nông sản", "Thủy hải sản")
 }
 
 export interface FormDesignerField {

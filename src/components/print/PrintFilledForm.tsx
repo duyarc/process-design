@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import { Star } from 'lucide-react';
 import type { Submission, SubmissionFieldSnapshot, FormTemplateISO, TableColumnConfig } from '../../types';
 import { formatFormVersion, getColStyleWidth } from '../../types';
-import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock, getInfoGridTemplateColumns, isOtherValue, extractOtherText, formatOptionDisplay, getEffectiveCellOptions, getChecklistColumns, resolveImageSrc } from '../../utils/formUtils';
+import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock, getInfoGridTemplateColumns, isOtherValue, extractOtherText, formatOptionDisplay, getEffectiveCellOptions, getChecklistColumns, resolveImageSrc, clusterOptionsByGroup } from '../../utils/formUtils';
 import { renderFormattedText } from '../../utils/textFormatter';
 import { PrintDocumentStyles, PrintSectionHeader } from './printShared';
 
@@ -533,55 +533,65 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                               const isLongOpt = hasLongOptions(f);
 
                               if (layoutMode === 'OPTION_C') {
+                                const clusters = clusterOptionsByGroup(options);
                                 return (
                                   <div key={f.id} style={{ ...gridItemStyle, display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.82rem' }}>
                                     {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a' }}>{renderFormattedText(cleanLabel)}</span>}
-                                    <div style={{
-                                      display: 'flex',
-                                      flexDirection: isLongOpt ? 'column' : 'row',
-                                      flexWrap: isLongOpt ? 'nowrap' : 'wrap',
-                                      gap: isLongOpt ? '4px' : '4px 20px',
-                                      paddingLeft: '1.25rem',
-                                      alignItems: isLongOpt ? 'flex-start' : 'center'
-                                    }}>
-                                      {options.map((opt: any) => {
-                                        const selected = isOptionSelected(val, opt.value, f.type as 'radio' | 'checkbox');
-                                        const isOther = opt.isOther || opt.value === '__other__';
-                                        const otherText = isOther && selected ? extractOtherText(val) : '';
-                                        return (
-                                          <span key={opt.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', whiteSpace: 'normal', wordBreak: 'break-word', maxWidth: '100%' }}>
-                                            <span style={{
-                                              display: 'inline-flex',
-                                              alignItems: 'center',
-                                              justifyContent: 'center',
-                                              width: '13px',
-                                              height: '13px',
-                                              border: '1.2px solid #000000',
-                                              background: '#ffffff',
-                                              borderRadius: f.type === 'radio' ? '50%' : '2px',
-                                              flexShrink: 0,
-                                              color: '#000000',
-                                              fontSize: '9px',
-                                              fontWeight: 'bold',
-                                              lineHeight: 1,
-                                              textAlign: 'center',
-                                              boxSizing: 'border-box',
-                                              marginTop: isLongOpt ? '2px' : '0'
-                                            }}>
-                                              {selected ? '✓' : ''}
-                                            </span>
-                                            <span style={{ lineHeight: '1.3' }}>
-                                              {opt.label}
-                                              {isOther && selected && otherText && (
-                                                <span style={{ fontWeight: 600, textDecoration: 'underline', marginLeft: '4px' }}>
-                                                  {opt.label.trim().endsWith(':') ? otherText : `: ${otherText}`}
+                                    {clusters.map((cluster, cIdx) => (
+                                      <div key={cluster.groupName || cIdx} style={{ display: 'flex', flexDirection: 'column', gap: '2px', width: '100%' }}>
+                                        {cluster.groupName && (
+                                          <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: cIdx > 0 ? '4px' : '2px', marginBottom: '1px' }}>
+                                            {cluster.groupName}
+                                          </div>
+                                        )}
+                                        <div style={{
+                                          display: 'flex',
+                                          flexDirection: isLongOpt ? 'column' : 'row',
+                                          flexWrap: isLongOpt ? 'nowrap' : 'wrap',
+                                          gap: isLongOpt ? '4px' : '4px 20px',
+                                          paddingLeft: cluster.groupName ? '0.4rem' : '1.25rem',
+                                          alignItems: isLongOpt ? 'flex-start' : 'center'
+                                        }}>
+                                          {cluster.options.map((opt: any) => {
+                                            const selected = isOptionSelected(val, opt.value, f.type as 'radio' | 'checkbox');
+                                            const isOther = opt.isOther || opt.value === '__other__';
+                                            const otherText = isOther && selected ? extractOtherText(val) : '';
+                                            return (
+                                              <span key={opt.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', whiteSpace: 'normal', wordBreak: 'break-word', maxWidth: '100%' }}>
+                                                <span style={{
+                                                  display: 'inline-flex',
+                                                  alignItems: 'center',
+                                                  justifyContent: 'center',
+                                                  width: '13px',
+                                                  height: '13px',
+                                                  border: '1.2px solid #000000',
+                                                  background: '#ffffff',
+                                                  borderRadius: f.type === 'radio' ? '50%' : '2px',
+                                                  flexShrink: 0,
+                                                  color: '#000000',
+                                                  fontSize: '9px',
+                                                  fontWeight: 'bold',
+                                                  lineHeight: 1,
+                                                  textAlign: 'center',
+                                                  boxSizing: 'border-box',
+                                                  marginTop: isLongOpt ? '2px' : '0'
+                                                }}>
+                                                  {selected ? '✓' : ''}
                                                 </span>
-                                              )}
-                                            </span>
-                                          </span>
-                                        );
-                                      })}
-                                    </div>
+                                                <span style={{ lineHeight: '1.3' }}>
+                                                  {opt.label}
+                                                  {isOther && selected && otherText && (
+                                                    <span style={{ fontWeight: 600, textDecoration: 'underline', marginLeft: '4px' }}>
+                                                      {opt.label.trim().endsWith(':') ? otherText : `: ${otherText}`}
+                                                    </span>
+                                                  )}
+                                                </span>
+                                              </span>
+                                            );
+                                          })}
+                                        </div>
+                                      </div>
+                                    ))}
                                   </div>
                                 );
                               }

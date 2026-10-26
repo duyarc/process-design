@@ -8,7 +8,7 @@
 |---|---|
 | **Module Name** | Form Operations |
 | **Status** | Active Development |
-| **Verified At Commit** | (2026-10-16) — 100% Visual Parity for Table Guidance Box & Row Guidance with Standard Field Guidance verified against source |
+| **Verified At Commit** | (2026-10-26) — Grouped Checkbox & Radio rendering in FormFiller, ProcessReader, PrintBlankForm and PrintFilledForm verified against source |
 
 ### Quick File Index
 
@@ -469,6 +469,7 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 | 2026-10-16 | `CURRENT` | **Synchronous Focus Mode Init & SWR Cache Synchronization (`FormFiller`, `FormBuilder`, `ProcessEditor`):** (1) In `FormFiller.tsx`, initialized `viewMode` state synchronously from `preloadedFormTemplate` / `initialCache`, eliminating stale cache traps and render flickers. (2) Replaced one-shot `hasInitializedViewMode` guard with `userInteractedViewModeRef` allowing background DB revalidation to activate default focus mode unless operator manually toggles view mode. (3) Relaxed Focus mode render and toggle guard to `sections.length >= 1`. (4) Enabled non-blocking SWR background revalidation when `preloadedFormTemplate` is provided. (5) In `FormBuilder.tsx` and `ProcessEditor.tsx`, synchronized `sessionStorage` (`swr_forms`) on form save. |
 | 2026-10-16 | `CURRENT` | **Table Guidance Deduplication in Focus Mode (`FormFiller`, `formUtils`):** (1) In `src/utils/formUtils.ts`, added `headerBlock?: LayoutBlockISO` to `FormSectionGroup` and populated it in `groupBlocksIntoSections` across `rawH1Sections` and `sections` return mapping. (2) In `FormFiller.tsx`, suppressed plain-text description rendering in Focus mode when section/subsection `headerBlock?.type === 'TABLE'` (both H1 and H2), ensuring table guidance is rendered exclusively via the interactive `[ 💡 Hướng dẫn ⌃/⌄ ]` accordion and eliminating duplicate guidance display. |
 | 2026-10-16 | `CURRENT` | **Table Guidance Visual Parity with Field Standard (`FormFiller`):** Re-aligned Table block guidance and row guidance styling to 100% visual parity with standard Field guidance (`INFO_GRID`): replaced green text (`#0f766e`) with high-contrast `var(--text-primary)`, switched green tint (`var(--neutral-bg)`) to neutral `#f8fafc`, eliminated 4-sided `#ccfbf1` border in favor of single `borderLeft: 3px solid #0d9488`, added subtle `boxShadow` (`0 1px 3px rgba(0,0,0,0.04)`), normalized `fontSize` (`0.78rem`), and standardized icon proportions. |
+| 2026-10-26 | `CURRENT` | **Grouped Checkbox & Radio Options Rendering (`FormFiller`, `ProcessReader`, `PrintBlankForm`, `PrintFilledForm`):** (1) Integrated `clusterOptionsByGroup` across `INFO_GRID` and `CHECKLIST` fields in `FormFiller` and `ProcessReader`, rendering discrete group sub-headers (`📂 [TÊN NHÓM]`) with subtle typography (`0.72rem`, `fontWeight: 700`, uppercase, `var(--text-secondary)`) and dashed separator without heavy border clutter. (2) Standardized grouped layout in `PrintBlankForm` and `PrintFilledForm` with consistent `0.7rem` group titles and indented option clusters. |
 
 
 

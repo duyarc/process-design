@@ -109,21 +109,55 @@ flowchart TD
 2. Chạy `npx tsc --noEmit` sau mỗi file; chạy `npm run build` ở bước cuối xác nhận Vite bundle pass 100%.
 3. Cập nhật tài liệu thiết kế module tương ứng (`DESIGN_*.md`).
 4. Chạy `python scripts/measure_session.py <conversation-id>`, dán Performance Scorecard vào `walkthrough.md`, phân tích lỗi và cập nhật `SESSION_LOG.md`.
-5. **BƯỚC CUỐI CÙNG:** Chạy đúng **1 lần commit & push nguyên tử duy nhất** theo Mục 7.
+5. Chạy đúng **1 lần commit & push nguyên tử duy nhất** theo Mục 7 (khi hoàn tất sprint bàn giao).
+6. **BƯỚC CUỐI CÙNG (Chỉ dẫn Nghiệm thu):** Tự động kiểm tra môi trường và thông báo cho Người dùng nên kiểm tra trên Local hay Online theo quy chuẩn Mục 8.
 
-### 7. Quy trình Native Git Push Chuẩn (Atomic Single Commit)
+### 7. Quy trình Native Git Push Chuẩn (Guarded Atomic Single Commit)
 - **Ràng buộc bất biến:** Toàn bộ Code + Tài liệu thiết kế + `SESSION_LOG.md` PHẢI được gộp vào **ĐÚNG 1 COMMIT DUY NHẤT**. Tuyệt đối CẤM tạo commit thứ hai sau khi push để triệt tiêu việc kích hoạt deploy dư thừa trên Vercel / CI.
+- **Tiêu chuẩn Commit Message (Conventional Commits):** Bắt buộc tuân thủ cấu trúc `<type>(<scope>): <summary>`:
+  - *Types:* `feat`, `fix`, `perf`, `refactor`, `docs`, `chore`.
+  - *Scopes:* tên module hoặc tính năng (`form-designer`, `form-filler`, `form-table`, `dashboard`, `ui-ux`, `backend`, ...).
+  - *Summary:* mô tả ngắn gọn, động từ chỉ hành động rõ nghĩa (ví dụ: `feat(form-table): synchronize table guidance styling`).
 - **Vệ sinh tiến trình nền & Lock (Process Hygiene — Bắt buộc):** Trên Windows, các tiến trình `git.exe` chạy ngầm có thể giữ file lock khiến `git status` hoặc `git commit` bị treo vĩnh viễn. Bắt buộc dọn dẹp bằng `Stop-Process` trước khi chạy lệnh git.
-- **Lệnh thực thi duy nhất trong PowerShell** (`WaitMsBeforeAsync: 25000` ms):
+- **Rà soát file trước khi Stage:** Luôn quan sát `git status --short` để đảm bảo không lọt file tạm, file debug (`.py`, `.tmp`, dump data) vào staging.
+- **Lệnh thực thi Guarded duy nhất trong PowerShell** (`WaitMsBeforeAsync: 25000` ms) kiểm soát `$LASTEXITCODE` và đồng bộ an toàn:
   ```powershell
-  Stop-Process -Name git -Force -ErrorAction SilentlyContinue; Remove-Item -Path .git\index.lock -Force -ErrorAction SilentlyContinue; git add -A; git commit -m "<message>"; git push origin main; git log -n 1 --oneline
+  Stop-Process -Name git -Force -ErrorAction SilentlyContinue; Remove-Item -Path .git\index.lock -Force -ErrorAction SilentlyContinue; git add -A; if ($LASTEXITCODE -eq 0) { git commit -m "<type>(<scope>): <summary>"; if ($LASTEXITCODE -eq 0) { git pull --rebase origin main; git push origin main; git log -n 1 --oneline } }
   ```
+
+### 8. Quy Chuẩn Chỉ Dẫn Nghiệm Thu Cuối Phiên (End-of-Session Verification Protocol)
+Vào cuối mỗi phản hồi/kết thúc phiên làm việc, Agent **BẮT BUỘC** thông báo rõ ràng cho Người dùng nên kiểm tra kết quả tại đâu (**Local** hay **Online**):
+
+#### 8.1 Trường hợp Kiểm tra trên Local (Check Local)
+- **Áp dụng khi:** Đang trong quá trình phát triển/tinh chỉnh, vừa sửa code chưa push, hoặc tính năng cần người dùng tương tác thử nghiệm trực tiếp trên máy trước khi bàn giao.
+- **Tự động kiểm tra Local Server:**
+  Agent chủ động chạy lệnh kiểm tra cổng dev server trong hệ thống (Vite port `3000`, Express API port `3001`):
+  ```powershell
+  Get-NetTCPConnection -LocalPort 3000, 3001 -State Listen -ErrorAction SilentlyContinue | Select-Object LocalPort, State
+  ```
+- **Quy chuẩn hiển thị Link (Bắt buộc dùng IP thay cho `localhost`):**
+  Tuyệt đối không dùng chuỗi `localhost`. Bắt buộc hiển thị theo địa chỉ IP IPv4 (`http://127.0.0.1:3000` hoặc IP mạng nội bộ như `http://192.168.1.119:3000` nếu cần test từ thiết bị khác) để tránh lỗi phân giải IPv6 (`::1`) trên Windows.
+- **Hành động phản hồi:**
+  - *Nếu Server đang chạy:* Cung cấp ngay đường link trực tiếp (Clickable Markdown Link) theo định dạng IP (ví dụ: `http://127.0.0.1:3000`, `http://127.0.0.1:3000/forms/:id/fill`,...).
+  - *Nếu Server chưa chạy:* Báo rõ "Server đang tắt" và cung cấp sẵn lệnh 1 chạm để người dùng khởi động: `npm run dev`, kèm link `http://127.0.0.1:3000`.
+
+#### 8.2 Trường hợp Kiểm tra trên Môi trường Trực tuyến (Check Online)
+- **Áp dụng khi:** Đã hoàn tất sprint, hoàn thành Atomic Single Commit & Push lên nhánh `main`, hoặc tính năng cần kiểm chứng thực tế trên domain production (Cloudflare R2 presigned URLs, Google OAuth redirect, kiểm thử đa thiết bị).
+- **Hành động phản hồi:**
+  - Cung cấp liên kết commit mới nhất: [GitHub Commits](https://github.com/duyarc/process-design/commits/main).
+  - Cung cấp liên kết trực tiếp tới phiên bản online trên Vercel: [Process Design](https://process.wolver.vn/).
+  - Định dạng thông báo mẫu chuẩn tối giản:
+    ```markdown
+    ### Nghiệm thu Online
+    - Commit: [<hash> — <summary>](https://github.com/duyarc/process-design/commits/main)
+    - Trải nghiệm trực tiếp: [Process Design](https://process.wolver.vn/) *(chờ Vercel build ~1–2 phút)*
+    ```
 
 ---
 
 ## PHẦN IV: VÒNG LẶP HỌC HỎI & BỘ NHỚ PHIÊN (CONTINUOUS IMPROVEMENT)
 
-### 8. Vòng lặp Tự học Liên tục (Continuous Improvement Loop)
+### 9. Vòng lặp Tự học Liên tục (Continuous Improvement Loop)
 Bộ nhớ phiên duy nhất là [`SESSION_LOG.md`](SESSION_LOG.md) tại repo root:
 - **Trước khi làm (Giai đoạn 2):** Bắt buộc đọc `## Bài học Tích lũy` để phòng ngừa lỗi cũ lặp lại.
 - **Trước khi push (Giai đoạn 3):**
@@ -138,5 +172,5 @@ Bộ nhớ phiên duy nhất là [`SESSION_LOG.md`](SESSION_LOG.md) tại repo r
   3. *Ghi nhận:* Thêm entry mới vào đầu `## Nhật ký Phiên` (giữ tối đa 10 entries gần nhất), cập nhật `## Bài học Tích lũy` (giữ tối đa 20 entries).
   4. *Quy tắc tiến hóa (Rule Evolution):* Khi cùng 1 loại lỗi lặp lại **≥ 2 lần**, BẮT BUỘC đề xuất cập nhật thành quy tắc cố định trong `AGENTS.md`.
 
-### 9. Master Index (`README.md`)
+### 10. Master Index (`README.md`)
 Agent PHẢI cập nhật [`README.md`](README.md) nếu: thêm module chức năng mới, thay đổi Tech Stack lõi, hoặc thay đổi quy trình khởi chạy hệ thống.

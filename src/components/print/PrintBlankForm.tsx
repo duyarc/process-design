@@ -2,7 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import type { FormTemplateISO } from '../../types';
 import { getColStyleWidth } from '../../types';
-import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock, getInfoGridTemplateColumns, getEffectiveCellOptions, getChecklistColumns, groupTableRowsForPrint, resolveImageSrc, getTableItemColumnId } from '../../utils/formUtils';
+import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock, getInfoGridTemplateColumns, getEffectiveCellOptions, getChecklistColumns, groupTableRowsForPrint, resolveImageSrc, getTableItemColumnId, clusterOptionsByGroup } from '../../utils/formUtils';
 import { renderFormattedText } from '../../utils/textFormatter';
 import { usePrintLogo, PrintDocumentStyles, PrintTitleBlock, PrintSectionHeader, PrintPageFooter } from './printShared';
 
@@ -360,44 +360,54 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                             const isLongOpt = hasLongOptions(f);
 
                             if (layoutMode === 'OPTION_C') {
+                              const clusters = clusterOptionsByGroup(options);
                               return (
                                 <div key={f.id} style={{ ...gridItemStyle, display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.82rem' }}>
                                   {cleanLabel && (
                                     <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a' }}>{renderFormattedText(cleanLabel)}</span>
                                   )}
                                   {includeGuidance && f.guidance && <PrintFieldGuidanceBox guidance={f.guidance} />}
-                                  <div style={{
-                                    display: 'flex',
-                                    flexDirection: isLongOpt ? 'column' : 'row',
-                                    flexWrap: isLongOpt ? 'nowrap' : 'wrap',
-                                    gap: isLongOpt ? '4px' : '4px 20px',
-                                    paddingLeft: '1.25rem',
-                                    alignItems: isLongOpt ? 'flex-start' : 'center'
-                                  }}>
-                                    {options.map((opt: any) => (
-                                      <span key={opt.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', whiteSpace: 'normal', wordBreak: 'break-word', maxWidth: '100%' }}>
-                                        <span
-                                          className="acro-option-icon"
-                                          data-acroform-field="true"
-                                          data-field-id={f.id}
-                                          data-field-type={f.type}
-                                          data-field-name={cleanLabel}
-                                          data-field-radiogroup={f.id}
-                                          data-field-radiovalue={opt.value}
-                                          style={{
-                                            borderRadius: f.type === 'radio' ? '50%' : '2px',
-                                            marginTop: isLongOpt ? '2px' : '0'
-                                          }}
-                                        />
-                                        <span style={{ lineHeight: '1.3', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                          <span>{opt.label}</span>
-                                          {(opt.isOther || opt.value === '__other__') && (
-                                            <span style={{ borderBottom: '1px dotted #000000', width: '80px', display: 'inline-block', height: '10px' }} />
-                                          )}
-                                        </span>
-                                      </span>
-                                    ))}
-                                  </div>
+                                  {clusters.map((cluster, cIdx) => (
+                                    <div key={cluster.groupName || cIdx} style={{ display: 'flex', flexDirection: 'column', gap: '2px', width: '100%' }}>
+                                      {cluster.groupName && (
+                                        <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: cIdx > 0 ? '4px' : '2px', marginBottom: '1px' }}>
+                                          {cluster.groupName}
+                                        </div>
+                                      )}
+                                      <div style={{
+                                        display: 'flex',
+                                        flexDirection: isLongOpt ? 'column' : 'row',
+                                        flexWrap: isLongOpt ? 'nowrap' : 'wrap',
+                                        gap: isLongOpt ? '4px' : '4px 20px',
+                                        paddingLeft: cluster.groupName ? '0.4rem' : '1.25rem',
+                                        alignItems: isLongOpt ? 'flex-start' : 'center'
+                                      }}>
+                                        {cluster.options.map((opt: any) => (
+                                          <span key={opt.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', whiteSpace: 'normal', wordBreak: 'break-word', maxWidth: '100%' }}>
+                                            <span
+                                              className="acro-option-icon"
+                                              data-acroform-field="true"
+                                              data-field-id={f.id}
+                                              data-field-type={f.type}
+                                              data-field-name={cleanLabel}
+                                              data-field-radiogroup={f.id}
+                                              data-field-radiovalue={opt.value}
+                                              style={{
+                                                borderRadius: f.type === 'radio' ? '50%' : '2px',
+                                                marginTop: isLongOpt ? '2px' : '0'
+                                              }}
+                                            />
+                                            <span style={{ lineHeight: '1.3', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                              <span>{opt.label}</span>
+                                              {(opt.isOther || opt.value === '__other__') && (
+                                                <span style={{ borderBottom: '1px dotted #000000', width: '80px', display: 'inline-block', height: '10px' }} />
+                                              )}
+                                            </span>
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  ))}
                                 </div>
                               );
                             }
