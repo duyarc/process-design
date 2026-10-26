@@ -760,6 +760,58 @@ export function reorderOptionsArray<T extends { isOther?: boolean; value?: strin
   return result;
 }
 
+export function reorderGroupsInOptions<T extends { group?: string; isOther?: boolean; value?: string }>(
+  options: T[],
+  fromGroupName: string,
+  toGroupName: string
+): T[] {
+  if (fromGroupName === toGroupName) return options;
+  const clusters = clusterOptionsByGroup(options);
+  const fromIndex = clusters.findIndex(c => (c.groupName || '') === fromGroupName);
+  const toIndex = clusters.findIndex(c => (c.groupName || '') === toGroupName);
+  if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) return options;
+
+  const reorderedClusters = [...clusters];
+  const [movedCluster] = reorderedClusters.splice(fromIndex, 1);
+  reorderedClusters.splice(toIndex, 0, movedCluster);
+
+  const result = reorderedClusters.flatMap(c => c.options);
+
+  const otherIdx = result.findIndex(o => o.isOther || o.value === '__other__');
+  if (otherIdx !== -1 && otherIdx !== result.length - 1) {
+    const [otherItem] = result.splice(otherIdx, 1);
+    result.push(otherItem);
+  }
+
+  return result;
+}
+
+export function reorderOptionWithGroup<T extends { group?: string; isOther?: boolean; value?: string }>(
+  options: T[],
+  fromIndex: number,
+  toIndex: number,
+  targetGroup?: string
+): T[] {
+  if (fromIndex < 0 || toIndex < 0 || fromIndex >= options.length || toIndex >= options.length) {
+    return options;
+  }
+  const result = [...options];
+  const [movedItem] = result.splice(fromIndex, 1);
+  const updatedItem = {
+    ...movedItem,
+    group: (targetGroup && targetGroup.trim()) ? targetGroup.trim() : undefined
+  };
+  result.splice(toIndex, 0, updatedItem);
+
+  const otherIdx = result.findIndex(o => o.isOther || o.value === '__other__');
+  if (otherIdx !== -1 && otherIdx !== result.length - 1) {
+    const [otherItem] = result.splice(otherIdx, 1);
+    result.push(otherItem);
+  }
+
+  return result;
+}
+
 /**
  * Tái sắp xếp phần tử trong mảng an toàn khi kéo - thả (Drag to Reorder)
  */

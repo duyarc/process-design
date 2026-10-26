@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, Fragment } from 'react';
 import type { FormFieldISO, FormRevisionEntry, FormTemplateISO, LayoutBlockISO, RadioOption, MatrixConfigISO, TableColumnConfig, TableRowConfig, ColumnSummaryRowConfig, TitleFormatISO, SubtableColumn, BlockVisibilityCondition, LinkedWorkStepInfo } from '../types';
 import { formatFormVersion, getColStyleWidth } from '../types';
-import { sanitizeLabel, getEffectiveTitleFormat, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, isSeamlessTableBlock, getInfoGridTemplateColumns, snap2ColWidth, snap3ColWidths, INFO_GRID_2COL_PRESETS, generateSmartFieldSlug, getCheckboxGridTemplate, reorderOptionsArray, reorderArray, getEffectiveCellOptions as getEffectiveCellOptionsUtil, toFormSlug, getTableItemColumnId, clusterOptionsByGroup } from '../utils/formUtils';
+import { sanitizeLabel, getEffectiveTitleFormat, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, isSeamlessTableBlock, getInfoGridTemplateColumns, snap2ColWidth, snap3ColWidths, INFO_GRID_2COL_PRESETS, generateSmartFieldSlug, getCheckboxGridTemplate, reorderOptionsArray, reorderArray, getEffectiveCellOptions as getEffectiveCellOptionsUtil, toFormSlug, getTableItemColumnId, clusterOptionsByGroup, reorderGroupsInOptions, reorderOptionWithGroup } from '../utils/formUtils';
 import { applyTextFormat, handleFormatKeyDown, insertTextAtCursor } from '../utils/textFormatter';
 import { 
   Plus, 
@@ -1125,6 +1125,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
   // Drag-and-drop state for reordering options across Canvas and Property Bar
   const [draggedOption, setDraggedOption] = useState<{ listId: string; index: number } | null>(null);
   const [dragOverOption, setDragOverOption] = useState<{ listId: string; index: number } | null>(null);
+  const [draggedGroup, setDraggedGroup] = useState<{ listId: string; groupName: string } | null>(null);
+  const [dragOverGroup, setDragOverGroup] = useState<{ listId: string; groupName: string } | null>(null);
   // Drag-and-drop state for reordering Table rows on Canvas
   const [draggedTableRow, setDraggedTableRow] = useState<{ blockId: string; rowId: string; index: number } | null>(null);
   const [dragOverTableRow, setDragOverTableRow] = useState<{ blockId: string; rowId: string; index: number } | null>(null);
@@ -4247,25 +4249,80 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '100%', maxWidth: '100%', marginTop: '4px' }}>
                                           {clusters.map((cluster, cIdx) => (
                                             <div key={cluster.groupName || cIdx} style={{ display: 'flex', flexDirection: 'column', gap: '3px', width: '100%' }}>
-                                              {cluster.groupName && (
-                                                <div style={{
-                                                  width: '100%',
-                                                  fontSize: '0.72rem',
-                                                  fontWeight: 700,
-                                                  textTransform: 'uppercase',
-                                                  letterSpacing: '0.04em',
-                                                  color: 'var(--text-secondary)',
-                                                  marginTop: cIdx > 0 ? '8px' : '2px',
-                                                  marginBottom: '2px',
-                                                  paddingBottom: '2px',
-                                                  borderBottom: '1px dashed #e2e8f0',
-                                                  display: 'flex',
-                                                  alignItems: 'center',
-                                                  gap: '4px'
-                                                }}>
-                                                  <span>📂 {cluster.groupName}</span>
-                                                </div>
-                                              )}
+                                              {cluster.groupName && (() => {
+                                                const groupListId = `canvas-group-${block.id}-${f.id}`;
+                                                const isGrpDragging = draggedGroup?.listId === groupListId && draggedGroup.groupName === cluster.groupName;
+                                                const isGrpDragOver = dragOverGroup?.listId === groupListId && dragOverGroup.groupName === cluster.groupName;
+                                                const isOptOverGrp = draggedOption?.listId === `field-canvas-${block.id}-${f.id}` && dragOverGroup?.listId === groupListId && dragOverGroup.groupName === cluster.groupName;
+                                                const canDragGrp = isFieldSelected && !isLocked && clusters.length > 1;
+
+                                                return (
+                                                  <div
+                                                    draggable={canDragGrp}
+                                                    onDragStart={(e) => {
+                                                      e.dataTransfer.setData('text/plain', cluster.groupName!);
+                                                      e.dataTransfer.effectAllowed = 'move';
+                                                      setDraggedGroup({ listId: groupListId, groupName: cluster.groupName! });
+                                                    }}
+                                                    onDragOver={(e) => {
+                                                      if (draggedGroup?.listId === groupListId || draggedOption?.listId === `field-canvas-${block.id}-${f.id}`) {
+                                                        e.preventDefault();
+                                                        e.dataTransfer.dropEffect = 'move';
+                                                      }
+                                                    }}
+                                                    onDragEnter={() => {
+                                                      if (draggedGroup?.listId === groupListId || draggedOption?.listId === `field-canvas-${block.id}-${f.id}`) {
+                                                        setDragOverGroup({ listId: groupListId, groupName: cluster.groupName! });
+                                                      }
+                                                    }}
+                                                    onDrop={(e) => {
+                                                      e.preventDefault();
+                                                      if (draggedGroup?.listId === groupListId && draggedGroup.groupName !== cluster.groupName) {
+                                                        const newOptions = reorderGroupsInOptions(options, draggedGroup.groupName, cluster.groupName!);
+                                                        handleUpdateField(block.id, f.id, { options: newOptions });
+                                                      } else if (draggedOption?.listId === `field-canvas-${block.id}-${f.id}`) {
+                                                        const targetIdx = options.indexOf(cluster.options[0]);
+                                                        const newOptions = reorderOptionWithGroup(options, draggedOption.index, targetIdx >= 0 ? targetIdx : 0, cluster.groupName);
+                                                        handleUpdateField(block.id, f.id, { options: newOptions });
+                                                      }
+                                                      setDraggedGroup(null);
+                                                      setDragOverGroup(null);
+                                                      setDraggedOption(null);
+                                                      setDragOverOption(null);
+                                                    }}
+                                                    onDragEnd={() => {
+                                                      setDraggedGroup(null);
+                                                      setDragOverGroup(null);
+                                                    }}
+                                                    style={{
+                                                      width: '100%',
+                                                      fontSize: '0.72rem',
+                                                      fontWeight: 700,
+                                                      textTransform: 'uppercase',
+                                                      letterSpacing: '0.04em',
+                                                      color: 'var(--text-secondary)',
+                                                      marginTop: cIdx > 0 ? '8px' : '2px',
+                                                      marginBottom: '2px',
+                                                      paddingBottom: '2px',
+                                                      borderBottom: isGrpDragOver ? '2px solid var(--primary)' : '1px dashed #e2e8f0',
+                                                      display: 'flex',
+                                                      alignItems: 'center',
+                                                      gap: '4px',
+                                                      opacity: isGrpDragging ? 0.4 : 1,
+                                                      background: isOptOverGrp ? '#f0fdfa' : 'transparent',
+                                                      cursor: canDragGrp ? 'grab' : 'default',
+                                                      transition: 'all 0.15s ease'
+                                                    }}
+                                                  >
+                                                    {canDragGrp && (
+                                                      <span style={{ cursor: 'grab', display: 'inline-flex', alignItems: 'center', color: '#94a3b8' }} title="Kéo để đổi thứ tự nhóm">
+                                                        <GripVertical size={11} />
+                                                      </span>
+                                                    )}
+                                                    <span>{cluster.groupName}</span>
+                                                  </div>
+                                                );
+                                              })()}
                                               <div style={{
                                                 display: 'flex',
                                                 flexDirection: isStacked ? 'column' : 'row',
@@ -4308,7 +4365,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                 onDrop={(e) => {
                                                   e.preventDefault();
                                                   if (draggedOption?.listId === listId && draggedOption.index !== optIdx && !isOtherOpt) {
-                                                    const newOptions = reorderOptionsArray(options, draggedOption.index, optIdx);
+                                                    const newOptions = reorderOptionWithGroup(options, draggedOption.index, optIdx, opt.group);
                                                     handleUpdateField(block.id, f.id, { options: newOptions });
                                                   }
                                                   setDraggedOption(null);
@@ -4497,7 +4554,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                   onClick={(e) => {
                                                     e.stopPropagation();
                                                     const otherIndex = options.findIndex((o: any) => o.isOther || o.value === '__other__');
-                                                    const newOpt = { label: `Tùy chọn ${options.length + 1}`, value: `opt_${Date.now()}` };
+                                                    const newOpt = { label: `Lựa chọn ${options.length + 1}`, value: `opt_${Date.now()}` };
                                                     const newOptions = otherIndex !== -1
                                                       ? [...options.slice(0, otherIndex), newOpt, ...options.slice(otherIndex)]
                                                       : [...options, newOpt];
@@ -4515,9 +4572,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                     color: 'var(--text-secondary)',
                                                     cursor: 'pointer'
                                                   }}
-                                                  title="Thêm tùy chọn mới"
+                                                  title="Thêm lựa chọn mới"
                                                 >
-                                                  <Plus size={10} /> Thêm
+                                                  <Plus size={10} /> Lựa chọn
                                                 </button>
 
                                                 {!hasOther && (
@@ -4545,6 +4602,36 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                     <Plus size={10} /> Khác...
                                                   </button>
                                                 )}
+
+                                                <button
+                                                  type="button"
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    const otherIndex = options.findIndex((o: any) => o.isOther || o.value === '__other__');
+                                                    const existingGroups = Array.from(new Set(options.map((o: any) => (o.group || '').trim()).filter(Boolean)));
+                                                    const defaultGroupName = `Nhóm ${existingGroups.length + 1}`;
+                                                    const newOpt = { label: `Lựa chọn 1`, value: `opt_${Date.now()}`, isPass: true, group: defaultGroupName };
+                                                    const newOptions = otherIndex !== -1
+                                                      ? [...options.slice(0, otherIndex), newOpt, ...options.slice(otherIndex)]
+                                                      : [...options, newOpt];
+                                                    handleUpdateField(block.id, f.id, { options: newOptions });
+                                                  }}
+                                                  style={{
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    gap: '2px',
+                                                    padding: '1px 5px',
+                                                    fontSize: '0.68rem',
+                                                    borderRadius: '3px',
+                                                    border: '1px dashed #94a3b8',
+                                                    background: '#ffffff',
+                                                    color: 'var(--text-secondary)',
+                                                    cursor: 'pointer'
+                                                  }}
+                                                  title="Tạo nhóm mới"
+                                                >
+                                                  <Plus size={10} /> Nhóm
+                                                </button>
                                               </div>
                                             );
                                           })()}
@@ -7601,35 +7688,90 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
 
                               return (
                                 <Fragment key={idx}>
-                                  {showGroupDivider && (
-                                    <div style={{
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'space-between',
-                                      padding: '3px 6px',
-                                      background: '#f8fafc',
-                                      borderLeft: '3px solid var(--primary)',
-                                      borderRadius: '3px',
-                                      marginTop: idx > 0 ? '6px' : '2px',
-                                      marginBottom: '1px'
-                                    }}>
-                                      <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-                                        📂 {opt.group}
-                                      </span>
-                                      <button
-                                        type="button"
-                                        title={`Gỡ nhóm "${opt.group}" cho các mục này`}
-                                        onClick={() => {
-                                          const grp = opt.group;
-                                          const next = currentOpts.map(o => o.group === grp ? { ...o, group: undefined } : o);
-                                          handleUpdateField(activeBlockId!, activeFieldId!, { options: next });
+                                  {showGroupDivider && (() => {
+                                    const grpListId = `inspector-group-${activeFieldId}`;
+                                    const isGrpDragging = draggedGroup?.listId === grpListId && draggedGroup.groupName === opt.group;
+                                    const isGrpDragOver = dragOverGroup?.listId === grpListId && dragOverGroup.groupName === opt.group;
+                                    const canDragGrp = !isLocked && existingGroups.length > 1;
+
+                                    return (
+                                      <div
+                                        draggable={canDragGrp}
+                                        onDragStart={(e) => {
+                                          e.dataTransfer.setData('text/plain', opt.group!);
+                                          e.dataTransfer.effectAllowed = 'move';
+                                          setDraggedGroup({ listId: grpListId, groupName: opt.group! });
                                         }}
-                                        style={{ border: 'none', background: 'none', color: '#94a3b8', cursor: 'pointer', padding: '0 2px', fontSize: '0.68rem' }}
+                                        onDragOver={(e) => {
+                                          if (draggedGroup?.listId === grpListId || draggedOption?.listId === listId) {
+                                            e.preventDefault();
+                                            e.dataTransfer.dropEffect = 'move';
+                                          }
+                                        }}
+                                        onDragEnter={() => {
+                                          if (draggedGroup?.listId === grpListId || draggedOption?.listId === listId) {
+                                            setDragOverGroup({ listId: grpListId, groupName: opt.group! });
+                                          }
+                                        }}
+                                        onDrop={(e) => {
+                                          e.preventDefault();
+                                          if (draggedGroup?.listId === grpListId && draggedGroup.groupName !== opt.group) {
+                                            const reordered = reorderGroupsInOptions(currentOpts, draggedGroup.groupName, opt.group!);
+                                            handleUpdateField(activeBlockId!, activeFieldId!, { options: reordered });
+                                          } else if (draggedOption?.listId === listId) {
+                                            const reordered = reorderOptionWithGroup(currentOpts, draggedOption.index, idx, opt.group);
+                                            handleUpdateField(activeBlockId!, activeFieldId!, { options: reordered });
+                                          }
+                                          setDraggedGroup(null);
+                                          setDragOverGroup(null);
+                                          setDraggedOption(null);
+                                          setDragOverOption(null);
+                                        }}
+                                        onDragEnd={() => {
+                                          setDraggedGroup(null);
+                                          setDragOverGroup(null);
+                                        }}
+                                        style={{
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'space-between',
+                                          padding: '3px 6px',
+                                          background: '#f8fafc',
+                                          borderLeft: '3px solid var(--primary)',
+                                          borderBottom: isGrpDragOver ? '2px solid var(--primary)' : undefined,
+                                          borderRadius: '3px',
+                                          marginTop: idx > 0 ? '6px' : '2px',
+                                          marginBottom: '1px',
+                                          opacity: isGrpDragging ? 0.4 : 1,
+                                          cursor: canDragGrp ? 'grab' : 'default',
+                                          transition: 'all 0.15s ease'
+                                        }}
                                       >
-                                        ✕ Gỡ nhóm
-                                      </button>
-                                    </div>
-                                  )}
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                          {canDragGrp && (
+                                            <span style={{ cursor: 'grab', display: 'flex', alignItems: 'center', color: '#94a3b8' }} title="Kéo để đổi thứ tự nhóm">
+                                              <GripVertical size={11} />
+                                            </span>
+                                          )}
+                                          <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                                            {opt.group}
+                                          </span>
+                                        </div>
+                                        <button
+                                          type="button"
+                                          title={`Gỡ nhóm "${opt.group}" cho các mục này`}
+                                          onClick={() => {
+                                            const grp = opt.group;
+                                            const next = currentOpts.map(o => o.group === grp ? { ...o, group: undefined } : o);
+                                            handleUpdateField(activeBlockId!, activeFieldId!, { options: next });
+                                          }}
+                                          style={{ border: 'none', background: 'none', color: '#94a3b8', cursor: 'pointer', padding: '0 2px', fontSize: '0.68rem' }}
+                                        >
+                                          ✕ Gỡ nhóm
+                                        </button>
+                                      </div>
+                                    );
+                                  })()}
                                   <div
                                     draggable={canDrag}
                                     onDragStart={(e) => {
@@ -7651,7 +7793,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                     onDrop={(e) => {
                                       e.preventDefault();
                                       if (draggedOption?.listId === listId && draggedOption.index !== idx && !isOtherOpt) {
-                                        const reordered = reorderOptionsArray(currentOpts, draggedOption.index, idx);
+                                        const reordered = reorderOptionWithGroup(currentOpts, draggedOption.index, idx, opt.group);
                                         handleUpdateField(activeBlockId!, activeFieldId!, { options: reordered });
                                       }
                                       setDraggedOption(null);
@@ -7762,88 +7904,46 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                         handleUpdateField(activeBlockId!, activeFieldId!, { options: nextOpts });
                       };
 
-                      const handleToggleOther = () => {
-                        if (hasOther) {
-                          const nextOpts = currentOpts.filter((o: any) => !o.isOther && o.value !== '__other__');
-                          handleUpdateField(activeBlockId!, activeFieldId!, { options: nextOpts });
-                        } else {
-                          const nextOpts = [...currentOpts, { label: 'Khác:', value: '__other__', isOther: true, isPass: true }];
-                          handleUpdateField(activeBlockId!, activeFieldId!, { options: nextOpts });
-                        }
-                      };
-
                       return (
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.4rem', paddingTop: '0.35rem', borderTop: '1px dashed var(--neutral-border)', flexWrap: 'wrap', gap: '4px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <button
-                              type="button"
-                              onClick={handleAddRegularOption}
-                              style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '0.2rem 0.45rem', fontSize: '0.7rem', borderRadius: '4px', border: '1px dashed #94a3b8', background: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}
-                            >
-                              <Plus size={11} /> Lựa chọn
-                            </button>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '0.4rem', paddingTop: '0.35rem', borderTop: '1px dashed var(--neutral-border)', flexWrap: 'wrap' }}>
+                          <button
+                            type="button"
+                            onClick={handleAddRegularOption}
+                            style={{ display: 'flex', alignItems: 'center', gap: '3px', padding: '0.2rem 0.45rem', fontSize: '0.7rem', borderRadius: '4px', border: '1px dashed #94a3b8', background: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}
+                            title="Thêm lựa chọn mới"
+                          >
+                            <Plus size={11} /> Lựa chọn
+                          </button>
+                          {!hasOther && (
                             <button
                               type="button"
                               onClick={() => {
-                                const otherIndex = currentOpts.findIndex((o: any) => o.isOther || o.value === '__other__');
-                                const existingGroups = Array.from(new Set(currentOpts.map(o => (o.group || '').trim()).filter(Boolean)));
-                                const defaultGroupName = `Nhóm ${existingGroups.length + 1}`;
-                                const newOpt = { label: `Lựa chọn 1`, value: `OPT_${Date.now()}`, isPass: true, group: defaultGroupName };
-                                const nextOpts = otherIndex !== -1
-                                  ? [...currentOpts.slice(0, otherIndex), newOpt, ...currentOpts.slice(otherIndex)]
-                                  : [...currentOpts, newOpt];
+                                const nextOpts = [...currentOpts, { label: 'Khác:', value: '__other__', isOther: true, isPass: true }];
                                 handleUpdateField(activeBlockId!, activeFieldId!, { options: nextOpts });
                               }}
-                              style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '0.2rem 0.45rem', fontSize: '0.7rem', borderRadius: '4px', border: '1px dashed var(--primary)', background: '#f0fdfa', color: 'var(--primary)', cursor: 'pointer' }}
-                              title="Tạo thêm nhóm mới kèm lựa chọn đầu tiên"
+                              style={{ display: 'flex', alignItems: 'center', gap: '3px', padding: '0.2rem 0.45rem', fontSize: '0.7rem', borderRadius: '4px', border: '1px dashed #94a3b8', background: 'none', color: 'var(--primary)', cursor: 'pointer' }}
+                              title="Thêm mục Khác (cho phép người điền tự ghi)"
                             >
-                              <Plus size={11} /> Nhóm mới
+                              <Plus size={11} /> Khác...
                             </button>
-                          </div>
-
-                          {/* Toggle Switch chuẩn 16px x 28px */}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <span
-                              onClick={handleToggleOther}
-                              style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-secondary)', cursor: 'pointer', userSelect: 'none' }}
-                            >
-                              Mục "Khác"
-                            </span>
-                            <button
-                              type="button"
-                              role="switch"
-                              aria-checked={hasOther}
-                              onClick={handleToggleOther}
-                              style={{
-                                width: '28px',
-                                height: '16px',
-                                borderRadius: '8px',
-                                background: hasOther ? 'var(--primary)' : '#cbd5e1',
-                                border: 'none',
-                                cursor: 'pointer',
-                                position: 'relative',
-                                padding: '1px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                transition: 'background-color 0.2s ease',
-                                outline: 'none'
-                              }}
-                              title={hasOther ? 'Tắt lựa chọn Khác' : 'Bật lựa chọn Khác (cho phép người điền tự ghi)'}
-                            >
-                              <span
-                                style={{
-                                  width: '14px',
-                                  height: '14px',
-                                  borderRadius: '50%',
-                                  background: '#ffffff',
-                                  boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
-                                  transform: hasOther ? 'translateX(12px)' : 'translateX(0px)',
-                                  transition: 'transform 0.2s ease',
-                                  display: 'block'
-                                }}
-                              />
-                            </button>
-                          </div>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const otherIndex = currentOpts.findIndex((o: any) => o.isOther || o.value === '__other__');
+                              const existingGroups = Array.from(new Set(currentOpts.map(o => (o.group || '').trim()).filter(Boolean)));
+                              const defaultGroupName = `Nhóm ${existingGroups.length + 1}`;
+                              const newOpt = { label: `Lựa chọn 1`, value: `OPT_${Date.now()}`, isPass: true, group: defaultGroupName };
+                              const nextOpts = otherIndex !== -1
+                                ? [...currentOpts.slice(0, otherIndex), newOpt, ...currentOpts.slice(otherIndex)]
+                                : [...currentOpts, newOpt];
+                              handleUpdateField(activeBlockId!, activeFieldId!, { options: nextOpts });
+                            }}
+                            style={{ display: 'flex', alignItems: 'center', gap: '3px', padding: '0.2rem 0.45rem', fontSize: '0.7rem', borderRadius: '4px', border: '1px dashed #94a3b8', background: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}
+                            title="Tạo nhóm mới"
+                          >
+                            <Plus size={11} /> Nhóm
+                          </button>
                         </div>
                       );
                     })()}

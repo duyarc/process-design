@@ -38,6 +38,29 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 ## Nhật ký Phiên
 
+### 2026-10-26 — Đồng bộ Bộ 3 Nút Bấm, Drag-to-Reorder Nhóm & Triệt tiêu Icon Folder (`FormBuilder`, `formUtils`)
+
+**Scope:** 2 source files (`src/utils/formUtils.ts`, `src/components/FormBuilder.tsx`) + 1 design doc (`DESIGN_FORM_DESIGNER.md`).
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa | 2 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 2 (`npx tsc --noEmit` pass 100%, `npm run build` pass 19.02s) |
+| Lần build đầu thành công? | Có |
+
+**Kết quả đạt được:**
+- **Đồng bộ hóa 100% Bộ 3 Nút bấm giữa Canvas và Right Inspector:**
+  - Khai tử hoàn toàn công tắc gạt Toggle Switch `Mục "Khác"` cồng kềnh trong Right Inspector (Rule 13.7 Dead-Code Pruning).
+  - Thống nhất duy nhất một bộ 3 nút bấm 1-chạm chuẩn mực trên cả Canvas và Inspector: `[+ Lựa chọn]  [+ Khác...]  [+ Nhóm]`.
+  - Nút `[+ Khác...]` tự động ẩn khi danh sách đã có mục Khác và hiện lại khi người dùng xóa mục Khác.
+- **Triển khai Drag-to-Reorder cho Nhóm (Group Drag) & Chuyển nhóm tự động:**
+  - Trích xuất 2 pure utilities `reorderGroupsInOptions` và `reorderOptionWithGroup` trong `src/utils/formUtils.ts` (Rule 13.8).
+  - Gắn tay cầm Grip `::` trên thanh tiêu đề nhóm cho phép kéo thả hoán đổi vị trí cả cụm nhóm A lên trước/sau nhóm B trên cả Canvas và Right Inspector.
+  - Tự động cập nhật thuộc tính `group` của option sang nhóm đích khi kéo thả option vào nhóm khác.
+- **Triệt tiêu Icon Folder `📂` (Khoanh vùng FormBuilder):**
+  - Loại bỏ hoàn toàn icon `📂` tại Group Headers trên Canvas và Inspector, thay bằng typography chữ in hoa đậm thanh lịch (`0.72rem`, `letterSpacing: 0.04em`, `var(--text-secondary)`).
+
 ### 2026-10-26 — Option Grouping cho Checkbox & Radio Nhiều Tùy chọn (`FormFiller`, `FormBuilder`, `ProcessReader`, `Print`)
 
 **Scope:** 7 source files (`src/types.ts`, `src/utils/formUtils.ts`, `src/components/FormFiller.tsx`, `src/components/FormBuilder.tsx`, `src/components/ProcessReader.tsx`, `src/components/print/PrintBlankForm.tsx`, `src/components/print/PrintFilledForm.tsx`) + 2 design docs (`DESIGN_FORM_DESIGNER.md`, `DESIGN_FORM_OPERATIONS.md`).
