@@ -4075,7 +4075,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
 
                                     {/* Location field placeholder & GPS preview */}
                                     {f.type === 'location' && (
-                                      <div style={{ marginTop: '4px', width: '100%', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                      <div style={{ marginTop: '4px', width: '100%', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                        <div style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                         <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center' }}>
                                           <span style={{ position: 'absolute', left: '6px', color: '#94a3b8', pointerEvents: 'none', display: 'flex', alignItems: 'center' }}>
                                             <MapPin size={12} />
@@ -4130,6 +4131,26 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                         }}>
                                           <MapPin size={10} /> GPS
                                         </span>
+                                        </div>
+                                        {f.showMiniMap !== false && (
+                                          <div style={{
+                                            width: '100%',
+                                            height: '55px',
+                                            borderRadius: '4px',
+                                            border: '1px dashed #cbd5e1',
+                                            background: '#f8fafc',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: '6px',
+                                            color: '#94a3b8',
+                                            fontSize: '0.72rem',
+                                            userSelect: 'none'
+                                          }}>
+                                            <MapPin size={12} color="var(--primary)" />
+                                            <span>Sơ đồ Mini Map (hiển thị khi có toạ độ)</span>
+                                          </div>
+                                        )}
                                       </div>
                                     )}
 
@@ -7296,6 +7317,21 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                         ? 'Chữ mờ hiển thị gợi ý người dùng dán link Google Maps hoặc bấm nút lấy GPS.'
                         : 'Chữ này hiển thị căn giữa bên trong khung nét đứt. Nếu để trống sẽ hiển thị ô trắng.'}
                     </span>
+                  </div>
+                )}
+
+                {activeField.type === 'location' && (
+                  <div style={{ marginTop: '0.1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', cursor: isLocked ? 'default' : 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        disabled={isLocked}
+                        checked={activeField.showMiniMap !== false}
+                        onChange={(e) => handleUpdateField(activeBlockId!, activeFieldId!, { showMiniMap: e.target.checked })}
+                        style={{ cursor: isLocked ? 'default' : 'pointer' }}
+                      />
+                      Hiển thị Mini Map
+                    </label>
                   </div>
                 )}
 

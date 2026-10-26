@@ -136,6 +136,7 @@ export interface FormFieldISO {
   imageAspectRatio?: 'banner' | '16:9' | '4:3' | '1:1' | 'auto'; // Aspect ratio preset
   imageCaption?: string; // Caption or description displayed beneath the image
   imageWidthMode?: 'full' | 'bleed' | 'fit'; // Layout width mode: 'full' (100% lề văn bản), 'bleed' (tràn mép viền trang), 'fit' (thu gọn tỷ lệ)
+  showMiniMap?: boolean; // For 'location' field type: whether to render the visual mini map (default: true)
 }
 
 export interface FormRevisionEntry {

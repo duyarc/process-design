@@ -9,7 +9,7 @@
 | **Module Name** | Backend & Persistence |
 | **Status** | Active Development |
 | **Document Version** | 1.2 |
-| **Verified At Commit** | (2026-10-26) — Google Maps shortlink unshorten proxy endpoint and in-memory cache verified against source |
+| **Verified At Commit** | (2026-10-26) — Google Maps unshorten-map HTML body meta-refresh coordinate parsing verified against source |
 
 ### Quick File Index
 
@@ -292,7 +292,6 @@ Architectural changes only — schema, endpoints, invariants. UI polish lives in
 
 | Date | Commit | Change |
 |---|---|---|
-| 2026-08-11 | `a12b0c9` | **Cron ping route & config:** Added `/api/cron-ping` endpoint and configured daily Vercel Cron Job in `vercel.json` to query the DB and prevent automatic pausing of Supabase free tier. |
 | 2026-08-26 | `CURRENT` | **Daily Sequential Submission ID Generation:** Implemented `generateDailySequentialSubmissionId` in `server.cjs` and updated `POST /api/submissions` to automatically assign human-friendly daily sequential IDs (`YYMMDD-XX`, e.g. `260826-01`). |
 | 2026-08-27 | `CURRENT` | **Vercel SPA Rewrites & Form Resolution:** Configured `vercel.json` rewrites for `/f/:path*` to `index.html` (resolving Vercel 404 on direct URL visits) and added case-insensitive matching in `GET /api/forms/resolve/*identifier`. |
 | 2026-08-27 | `CURRENT` | **Form-Centric Dynamic Process Link Resolution:** Updated `GET /api/submissions` with `LEFT JOIN LATERAL process_forms` so `COALESCE(pf.process_id, s.process_id, 'unlinked')` always reflects the current active process when forms are re-linked/unlinked. Added auto-resolution in `POST /api/submissions`. |
@@ -309,3 +308,4 @@ Architectural changes only — schema, endpoints, invariants. UI polish lives in
 | 2026-10-16 | `CURRENT` | **Image Storage Gallery Endpoint (`server.cjs`):** Added `GET /api/storage/images` endpoint listing all files under `uploads/` with valid image extensions (`.png`, `.jpg`, `.jpeg`, `.webp`, `.svg`, `.gif`, `.bmp`), returning metadata (key, name, size, lastModified) for the frontend Image Gallery modal. |
 | 2026-10-16 | `CURRENT` | **Form Save Performance (`server.cjs`):** (1) Added `compression` middleware after body parsers for gzip/brotli response compression. (2) Optimized `PUT /api/forms/:formId` to `RETURNING` only metadata columns instead of `RETURNING *` (excludes `layout_blocks` and `revision_history` JSONB). (3) Tightened `revision_history` fanout condition from `req.body.allowActiveUpdate \|\| revisionHistory` to `revisionHistory && Array.isArray(revisionHistory) && revisionHistory.length > 0`, preventing unnecessary INSERT on every draft save. |
 | 2026-10-26 | `CURRENT` | **Google Maps Shortlink Unshorten Proxy (`server.cjs`):** Added `GET /api/utils/unshorten-map?url=...` endpoint resolving short links (`maps.app.goo.gl`, `goo.gl/maps`) via native Node `fetch` without following redirect loops (`redirect: 'manual'`), extracting destination URL and coordinates from `Location` header, and caching results in-memory (`mapUnshortenCache`) to bypass browser CORS / CSP iframe restrictions. |
+| 2026-10-26 | `CURRENT` | **Google Maps Unshorten Meta-Refresh Coordinates Resolution (`server.cjs`):** Enhanced `GET /api/utils/unshorten-map` to inspect response HTML body when redirect returns a 200 meta-refresh or place page, parsing coordinates via `!3d...`, `@lat,lng`, and `?q=lat,lng` regex to guarantee reliable `lat` and `lng` extraction for `maps.app.goo.gl` shortlinks. |

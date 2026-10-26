@@ -8,13 +8,15 @@
 |---|---|
 | **Module Name** | Form Operations |
 | **Status** | Active Development |
-| **Verified At Commit** | (2026-10-26) — FormFiller and PrintFilledForm smart layout flex-wrap and option indent alignment verified against source |
+| **Verified At Commit** | (2026-10-26) — MiniMapCanvas tile stitcher, LocationInputFiller coordinate display & showMiniMap toggle, and PrintFilledForm map print verified against source |
 
 ### Quick File Index
 
 | File | Role |
 |---|---|
 | [`src/components/FormFiller.tsx`](src/components/FormFiller.tsx) | Digital form fill-out UI for operators |
+| [`src/components/form/MiniMapCanvas.tsx`](src/components/form/MiniMapCanvas.tsx) | **NEW** — Pure HTML5 Canvas OpenStreetMap thumbnail stitcher (zero dependency, no scroll trap, PDF-compatible) |
+| [`src/components/form/LocationInputFiller.tsx`](src/components/form/LocationInputFiller.tsx) | Location input bar, GPS trigger, coordinate card & Mini Map |
 | [`src/components/SubmissionViewer.tsx`](src/components/SubmissionViewer.tsx) | **NEW** — Public submission review & amendment container |
 | [`src/components/FormManager.tsx`](src/components/FormManager.tsx) | Per-form submission log + supervisor sign-off |
 | [`src/components/SubmissionManager.tsx`](src/components/SubmissionManager.tsx) | Cross-form global submission log (embedded in Dashboard) |
@@ -454,7 +456,6 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 
 | Date | Commit | Change |
 |---|---|---|
-| 2026-10-13 | `CURRENT` | **Question Guidance Accordion & Dual Print Dropdown Menu (`FormFiller`, `PrintBlankForm`):** (1) Integrated interactive question guidance in `FormFiller.tsx`: question labels are clickable and accompanied by `[ 💡 Hướng dẫn ▾/▴ ]` toggles, expanding markdown guidance with teal accent border (`#0d9488`). State managed via `expandedGuidanceMap`. (2) Upgraded FormFiller toolbar print button to dropdown `[ 🖨️ In ▾ ]` supporting both filled submission printing and blank questionnaire printing with guidance (`includeGuidance={true}`). (3) Reusable `PrintFieldGuidanceBox` in `PrintBlankForm.tsx` conditionally prints guidance across INFO_GRID, CHECKLIST_TABLE, and TABLE blocks. |
 | 2026-10-14 | `CURRENT` | **Vietnamese URL Slug Normalization (`FormFiller`, `formUtils`):** (1) Integrated `toFormSlug` from `src/utils/formUtils.ts` into `FormFiller.tsx`, replacing raw regex. Normalized URL slugs resolve diacritics via Unicode NFD and convert 'đ/Đ' to 'd' (e.g., 'Biểu mẫu đánh giá nhà máy' -> 'bieu-mau-danh-gia-nha-may'). (2) Applied `toFormSlug` across template resolution fallback, share URL computation, copy-to-clipboard actions, and post-submission navigation links. |
 | 2026-10-14 | `CURRENT` | **Focus Mode H2 Duplicate Title Suppression (`FormFiller`):** Added `hideH2Title?: boolean` parameter to `renderBlock` and passed `true` inside `subSec.blocks.map`. Suppressed inner H2 title (`!(hideH2Title && blockTitleFmt === 'H2')`) for blocks (such as `TABLE`, `INFO_GRID`) rendered inside H2 accordion sections, eliminating duplicate H2 titles in focus mode. |
 | 2026-10-14 | `CURRENT` | **3-Option Print Menu Redesign with Status Tags (`FormFiller`):** (1) Replaced `printWithGuidanceTemplate` with `printBlankConfig: { template, includeGuidance }` supporting both blank form print modes. (2) Redesigned print dropdown menu to 280px flat layout with status tags (`[ Trống ]`, `[ + Hướng dẫn ]`, `[ Có dữ liệu ]`) and smooth Chevron rotation, eliminating orphan word wrap and unaligned bare icons. (3) Pruned unused `BookOpen` import. |
@@ -470,6 +471,7 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 | 2026-10-26 | `CURRENT` | **Dedicated Location Field Filler & DMS Coordinates Print (`LocationInputFiller`, `FormFiller`, `PrintFilledForm`):** (1) Created isolated sub-component `src/components/form/LocationInputFiller.tsx` (Rule 4.3 Monolith Guard) integrating input field for Google Maps URLs / coordinates, 1-touch HTML5 GPS Geolocation button, and minimalist Location Card displaying DMS coordinates (`12°35'34.6"N 107°14'33.9"E`) with direct external link `[ ↗ Mở Maps ]` (zero iframe clutter). (2) Integrated `LocationInputFiller` into `FormFiller.tsx` and `ProcessReader.tsx` across `INFO_GRID` and `CHECKLIST_TABLE` blocks with `disabled` prop support. (3) In `PrintFilledForm.tsx`, formatted location values with DMS coordinates and printable maps link. |
 | 2026-10-26 | `CURRENT` | **Comma-Safe Checkbox Value Parsing & Option Grouping Integration (`FormFiller`, `PrintFilledForm`):** (1) Integrated `parseChecklistValues` across all checkbox answer evaluation and display points in `FormFiller.tsx` (evaluation, input change, and table cells) and `PrintFilledForm.tsx`, ensuring operator free-text entered into "Khác" options containing commas (`Hà Nội, Cần Thơ`) is never severed into corrupted rogue options. (2) Passed `f.optionGroups` into `clusterOptionsByGroup` in `PrintBlankForm.tsx` and `PrintFilledForm.tsx` to ensure print rendering mirrors form designer group ordering and empty group handling. |
 | 2026-10-26 | `CURRENT` | **Smart Layout Horizontal Wrapping & Indent Alignment (`FormFiller`, `PrintFilledForm`):** (1) Integrated cluster-level `isClusterLong = hasLongOptions(cluster.options)` in `FormFiller.tsx` and `PrintFilledForm.tsx`, allowing short grouped options (e.g., agricultural checklist items) to wrap horizontally with `gap: 4px 20px` while preserving vertical column stack for long text (> 25 chars). (2) Aligned option container indentation to `hasAnyGroups ? '0.4rem' : (isClusterLong ? '1.25rem' : '0.4rem')`, bringing checkboxes and the bottom-anchored "Khác" option into perfect vertical alignment. |
+| 2026-10-26 | `CURRENT` | **Pure Canvas Mini Map & Location Coordinate Display (`MiniMapCanvas`, `LocationInputFiller`, `PrintFilledForm`):** (1) Created isolated sub-component `src/components/form/MiniMapCanvas.tsx` (Rule 4.3 Monolith Guard) rendering OpenStreetMap thumbnail on HTML5 Canvas via Web Mercator projection (0 KB dependency, zero scroll trap on mobile, 100% printable to PDF via html2canvas). (2) In `LocationInputFiller.tsx`, replaced ambiguous static phrase "Đã xác định vị trí" with actual coordinates (DMS or Decimal), auto-resolved shortlinks (`maps.app.goo.gl`) on mount, and added interactive toggle button `[ 🗺️ Bản đồ ▾/▴ ]`. (3) In `PrintFilledForm.tsx`, printed Mini Map Canvas thumbnail for locations when `field.showMiniMap !== false`. |
 
 
 

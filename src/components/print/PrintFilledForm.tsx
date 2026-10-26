@@ -6,6 +6,7 @@ import { formatFormVersion, getColStyleWidth } from '../../types';
 import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock, getInfoGridTemplateColumns, isOtherValue, extractOtherText, formatOptionDisplay, getEffectiveCellOptions, parseGoogleMapsUrl, getChecklistColumns, resolveImageSrc, clusterOptionsByGroup, parseChecklistValues } from '../../utils/formUtils';
 import { renderFormattedText } from '../../utils/textFormatter';
 import { PrintDocumentStyles, PrintSectionHeader } from './printShared';
+import { MiniMapCanvas } from '../form/MiniMapCanvas';
 
 // ─── Filled-mode Helpers ─────────────────────────────────────────────────────
 
@@ -713,17 +714,33 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                             if (f.type === 'location') {
                               const loc = parseGoogleMapsUrl(val);
                               const displayVal = loc ? (loc.dmsText || loc.decimalText || val) : val;
+                              const hasMiniMap = f.showMiniMap !== false && loc?.lat != null && loc?.lng != null;
                               return (
-                                <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'center', minHeight: 'var(--pw-line-h)', gap: '8px', fontSize: '0.85rem' }}>
-                                  {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap', lineHeight: 1.4 }}>{renderFormattedText(cleanLabel)}</span>}
-                                  <div style={{ flex: 1, borderBottom: '1px dotted #cbd5e1', minHeight: '16px', fontWeight: 600, color: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                                    <span>{displayVal ? `📍 ${displayVal}` : '\u00A0'}</span>
-                                    {loc && loc.mapsUrl && (
-                                      <a href={loc.mapsUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.72rem', color: '#0284c7', textDecoration: 'none', fontWeight: 500 }}>
-                                        ↗ Mở Maps
-                                      </a>
-                                    )}
+                                <div key={f.id} style={{
+                                  ...gridItemStyle,
+                                  display: 'flex',
+                                  flexDirection: hasMiniMap ? 'column' : 'row',
+                                  alignItems: hasMiniMap ? 'flex-start' : 'center',
+                                  minHeight: 'var(--pw-line-h)',
+                                  gap: hasMiniMap ? '4px' : '8px',
+                                  fontSize: '0.85rem'
+                                }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', width: '100%', gap: '8px' }}>
+                                    {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap', lineHeight: 1.4 }}>{renderFormattedText(cleanLabel)}</span>}
+                                    <div style={{ flex: 1, borderBottom: '1px dotted #cbd5e1', minHeight: '16px', fontWeight: 600, color: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                                      <span>{displayVal ? `📍 ${displayVal}` : '\u00A0'}</span>
+                                      {loc && loc.mapsUrl && (
+                                        <a href={loc.mapsUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.72rem', color: '#0284c7', textDecoration: 'none', fontWeight: 500 }}>
+                                          ↗ Mở Maps
+                                        </a>
+                                      )}
+                                    </div>
                                   </div>
+                                  {hasMiniMap && (
+                                    <div style={{ width: '100%', height: '110px', marginTop: '2px', borderRadius: '3px', overflow: 'hidden', border: '1px solid #cbd5e1' }}>
+                                      <MiniMapCanvas lat={loc.lat!} lng={loc.lng!} zoom={15} height={110} />
+                                    </div>
+                                  )}
                                 </div>
                               );
                             }

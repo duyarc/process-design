@@ -3335,6 +3335,8 @@ app.get('/api/utils/unshorten-map', async (req, res) => {
     }
 
     let finalUrl = rawUrl;
+    let lat = null;
+    let lng = null;
     if (rawUrl.includes('maps.app.goo.gl') || rawUrl.includes('goo.gl/maps') || rawUrl.includes('google.com/maps')) {
       try {
         const response = await fetch(rawUrl, {
@@ -3345,13 +3347,29 @@ app.get('/api/utils/unshorten-map', async (req, res) => {
           }
         });
         finalUrl = response.url || rawUrl;
+        if (response.ok) {
+          const htmlBody = await response.text();
+          if (htmlBody) {
+            const dBody = htmlBody.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
+            const atBody = htmlBody.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+            const qBody = htmlBody.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/);
+            if (dBody) {
+              lat = parseFloat(dBody[1]);
+              lng = parseFloat(dBody[2]);
+            } else if (atBody) {
+              lat = parseFloat(atBody[1]);
+              lng = parseFloat(atBody[2]);
+            } else if (qBody) {
+              lat = parseFloat(qBody[1]);
+              lng = parseFloat(qBody[2]);
+            }
+          }
+        }
       } catch (fetchErr) {
         console.warn('[unshorten-map] Fetch redirect failed, fallback to rawUrl:', fetchErr.message);
       }
     }
 
-    let lat = null;
-    let lng = null;
     const atMatch = finalUrl.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
     const dMatch = finalUrl.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
     const qMatch = finalUrl.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/);
