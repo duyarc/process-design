@@ -38,6 +38,31 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 ## Nhật ký Phiên
 
+### 2026-10-16 — In-Canvas Column Span Toggle cho INFO_GRID (2, 3 Cột) & Right Inspector Prune (`FormBuilder`, `InCanvasColSpanToggle`)
+
+**Scope:** 4 source files (`src/components/form/InCanvasColSpanToggle.tsx`, `src/components/FormBuilder.tsx`, `src/components/form/InCanvasLabelField.tsx`, `src/components/form/InCanvasImageField.tsx`) + 1 design doc (`DESIGN_FORM_DESIGNER.md`).
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa / tạo mới | 4 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 2 (`npx tsc --noEmit` pass 100%, `npm run build` pass 10.58s) |
+| Lần build đầu thành công? | Có |
+
+**Kết quả đạt được:**
+- **Tạo Sub-Component `InCanvasColSpanToggle` (Rule 4.3 & 13.8):**
+  - Quản lý độc lập logic tính toán chu kỳ 1 chạm (1-click cycle):
+    - Lưới 2 cột: `1/2` ↔ `2/2` (Toàn dòng).
+    - Lưới 3 cột: `1/3` ➔ `2/3` ➔ `3/3` ➔ `1/3`.
+  - Hiển thị tooltip hướng dẫn chi tiết và highlight nhẹ nhàng (`#f0fdfa`, `var(--primary)`) khi trường mở rộng.
+- **Tích hợp In-Canvas Tối giản trên `FormBuilder.tsx`:**
+  - Nút pill xuất hiện tinh tế ngay cạnh `FieldTypeDropdown` khi trường được chọn (`isFieldSelected`) trong khối `INFO_GRID` 2 hoặc 3 cột.
+  - Tự động ẩn 100% khi không active, triệt tiêu hoàn toàn rác thị giác trên Canvas (Subtraction Design Mantra).
+  - Đồng bộ hỗ trợ cho cả trường thông thường, `InCanvasLabelField` và `InCanvasImageField`.
+- **Dọn dẹp Mã cũ & Triệt tiêu Trùng lặp (Rule 13.7 Dead-Code Pruning):**
+  - Xóa bỏ dropdown `<select>` cấu hình `colSpan` cô lập ở Right Inspector (khối `photo`), tập trung toàn bộ tương tác trực tiếp lên Canvas (Instant WYSIWYG).
+
+
 ### 2026-10-16 — Đồng bộ Hóa 100% Styling Hướng dẫn Khối Bảng với Trường Thông thường (`FormFiller`)
 
 **Scope:** 1 source file (`src/components/FormFiller.tsx`) + 1 design doc (`DESIGN_FORM_OPERATIONS.md`).

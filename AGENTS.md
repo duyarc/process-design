@@ -42,6 +42,12 @@ Mỗi interface dùng chung có **đúng một** tài liệu chủ:
 ## PHẦN II: TIÊU CHUẨN GIAO DIỆN & KIẾN TRÚC MÃ NGUỒN (UI/UX & CODE QUALITY)
 
 ### 3. Tuân thủ Master Design (UI/UX Compliance)
+- **Triết lý Thiết kế Tối giản (Subtraction Design Mantra):** "Mọi phần tử xuất hiện trên màn hình bắt buộc phải có một mục đích cụ thể và thiết yếu. Nếu có thể lược bỏ hoặc gộp lại mà không làm mất tính năng, hãy lược bỏ." Mọi phần tử không trực tiếp phục vụ một quyết định hoặc hành động cụ thể của người dùng đều bị coi là nhiễu thị giác cần phải cắt tỉa.
+- **4 Tiêu chuẩn Thiết kế Tối giản (Minimalist Criteria):**
+  1. *Loại bỏ triệt để yếu tố trang trí thừa:* Không dùng hiệu ứng gradient màu mè, đổ bóng rườm rà, icon vô nghĩa không mang giá trị điều hướng, không lặp lại huy hiệu (badges) không cần thiết.
+  2. *Tỷ lệ Tín hiệu trên Nhiễu cao (High Signal-to-Noise Ratio):* Ưu tiên khoảng trắng (whitespace) thoáng đãng để dẫn dắt tầm mắt; phân cấp thị giác bằng kích thước và độ đậm của kiểu chữ (typography hierarchy) và độ tương phản tự nhiên, không dùng màu sắc lòe loẹt.
+  3. *Gộp và Tối giản hóa:* Tận dụng placeholder, inline feedback, và trạng thái tương tác tự nhiên thay vì tạo thêm các khối giao diện phụ trợ hay văn bản giải thích dài dòng.
+  4. *Quy tắc Cấm rác UI (Zero UI Garbage Blacklist):* Tuyệt đối cấm các câu chữ hướng dẫn thao tác thừa thãi ("Bấm vào đây để...", "Nhấp..."), tooltip hành vi rườm rà (`title="Nhấp để..."`), và icon chỉ báo tự chế vô nghĩa.
 - **CSS Tokens & Utility Classes:** Bắt buộc dùng CSS variables (`var(--primary)`, `var(--neutral-bg)`, …) và utility class (`.paper-card`, `.btn`) trong `src/index.css`. CẤM hardcode inline mã màu (ví dụ `#10a3a3`).
 - **Nghiêm cấm `window.confirm()` / `alert()`:** Mọi xác nhận BẮT BUỘC dùng component dùng chung `ConfirmModal` (`src/components/common/ConfirmModal.tsx`).
 - **Chuyển đổi lũy tiến (Progressive Adoption):** Khi sửa một component có `window.confirm()` cũ, bắt buộc chuyển toàn bộ sang `ConfirmModal`.
@@ -73,11 +79,18 @@ flowchart TD
 ```
 
 #### Giai đoạn 1: Kế hoạch Kiến trúc Sơ bộ (Trước khi nhận `Proceed`)
-- **Mục tiêu:** Cung cấp bức tranh tổng quan để Người dùng (The Thinker) duyệt nhanh định hướng kiến trúc.
+- **Mục tiêu:** Cung cấp bức tranh tổng quan để Người dùng (The Thinker) duyệt nhanh định hướng kiến trúc & thẩm định phản biện giao diện.
 - **Nội dung `implementation_plan.md`:**
   - Tóm tắt vấn đề & Nguyên nhân gốc (Root Cause).
   - Danh sách file ảnh hưởng (`[MODIFY]`, `[NEW]`, `[DELETE]`).
-  - Hướng tiếp cận logic, breaking change, schema impact & Mockup giao diện (nếu có UI).
+  - Hướng tiếp cận logic, breaking change, schema impact.
+  - **Phản biện UI/UX & ASCII Wireframe (BẮT BUỘC khi có thêm mới/chỉnh sửa UI):**
+    1. *Bảng Thẩm định Phản biện Phần tử UI (Bộ 3 câu hỏi chất vấn cốt tử: Purpose & Essentiality, Chống Over-engineering, Natural Affordance):*
+       | Phần tử UI | Mục đích sử dụng thực tế | Điểm thiết yếu (/10) | Quyết định phản biện |
+       |---|---|---|---|
+       | Tên khối/nút/trường | Người dùng dùng để làm gì? | 1 - 10 | Giữ lại / Loại bỏ / Gộp vào [X] |
+       *(Mọi phần tử có Điểm thiết yếu < 7/10 BẮT BUỘC đưa vào diện loại bỏ hoặc gộp).*
+    2. *ASCII Wireframe Đối chiếu Trực quan 2 Phiên bản:* Thay thế hoàn toàn mockup UI bằng ASCII Wireframe 2 phiên bản (Bản Hiện tại vs. Bản Dự kiến Chỉnh sửa / Before vs. After) tuân thủ 4 Tiêu chuẩn Thiết kế Tối giản.
   - Kế hoạch kiểm chứng (Verification Plan).
 - **RÀNG BUỘC CỨNG (NEVER):** **TUYỆT ĐỐI CẤM viết các đoạn code thay thế dài dòng** ở giai đoạn này để tránh kéo dài thời gian review và gây nhiễu định hướng.
 - **Hành động:** Đặt `RequestFeedback: true` và dừng lại chờ Người dùng bấm `Proceed`.

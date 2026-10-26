@@ -49,6 +49,7 @@ import ConfirmModal from './common/ConfirmModal';
 import InCanvasGuidanceEditor from './form/InCanvasGuidanceEditor';
 import InCanvasLabelField from './form/InCanvasLabelField';
 import InCanvasImageField from './form/InCanvasImageField';
+import InCanvasColSpanToggle from './form/InCanvasColSpanToggle';
 import ImageGalleryModal from './form/ImageGalleryModal';
 import { useAuth } from '../context/AuthContext';
 
@@ -3689,6 +3690,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                 const parsedRSpan = f.type === 'subtable' ? undefined : (f.rowSpan ? Number(f.rowSpan) : undefined);
                                 const rSpan = parsedRSpan && !isNaN(parsedRSpan) && parsedRSpan > 1 ? parsedRSpan : undefined;
                                 const cSpan = f.type === 'subtable' ? -1 : (f.colSpan ? Number(f.colSpan) : undefined);
+                                const canToggleSpan = !isLocked && isFieldSelected && block.type === 'INFO_GRID' && (block.columns === 2 || block.columns === 3) && f.type !== 'subtable';
 
                                 return (
                                   <div 
@@ -3768,6 +3770,16 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                         isGuidanceExpanded={!!canvasExpandedGuidanceMap[f.id]}
                                         onToggleGuidance={() => toggleCanvasGuidance(f.id)}
                                         onUpdateGuidance={(val) => handleUpdateField(block.id, f.id, { guidance: val })}
+                                        renderColSpanToggle={
+                                          canToggleSpan ? (
+                                            <InCanvasColSpanToggle
+                                              blockColumns={block.columns}
+                                              colSpan={f.colSpan}
+                                              disabled={isLocked}
+                                              onUpdateColSpan={(newSpan) => handleUpdateField(block.id, f.id, { colSpan: newSpan })}
+                                            />
+                                          ) : undefined
+                                        }
                                         renderTypeDropdown={
                                           <FieldTypeDropdown
                                             compact
@@ -3800,6 +3812,16 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                           setDraggedGridField({ blockId: block.id, fieldId: f.id, index: fIdx });
                                           e.dataTransfer.effectAllowed = 'move';
                                         }}
+                                        renderColSpanToggle={
+                                          canToggleSpan ? (
+                                            <InCanvasColSpanToggle
+                                              blockColumns={block.columns}
+                                              colSpan={f.colSpan}
+                                              disabled={isLocked}
+                                              onUpdateColSpan={(newSpan) => handleUpdateField(block.id, f.id, { colSpan: newSpan })}
+                                            />
+                                          ) : undefined
+                                        }
                                         renderTypeDropdown={
                                           <FieldTypeDropdown
                                             compact
@@ -3979,6 +4001,14 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                               <span>💡 Hướng dẫn</span>
                                             </button>
                                           )
+                                        )}
+                                        {canToggleSpan && (
+                                          <InCanvasColSpanToggle
+                                            blockColumns={block.columns}
+                                            colSpan={f.colSpan}
+                                            disabled={isLocked}
+                                            onUpdateColSpan={(newSpan) => handleUpdateField(block.id, f.id, { colSpan: newSpan })}
+                                          />
                                         )}
                                         <FieldTypeDropdown
                                           compact
@@ -7414,18 +7444,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                       </select>
                     </div>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                      <label style={{ fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Chiều rộng (Số cột - colSpan)</label>
-                      <select
-                        disabled={isLocked}
-                        value={activeField.colSpan || 1}
-                        onChange={(e) => handleUpdateField(activeBlockId!, activeFieldId!, { colSpan: parseInt(e.target.value, 10) })}
-                        style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', background: '#fff', fontSize: '0.75rem' }}
-                      >
-                        <option value={1}>1 cột</option>
-                        <option value={-1}>Tràn toàn bộ dòng (Full width)</option>
-                      </select>
-                    </div>
+
                   </div>
                 )}
 

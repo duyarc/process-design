@@ -9,12 +9,13 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-10-16) — SWR cache synchronization (swr_forms in sessionStorage) and defaultFocusMode contract verified against source |
+| **Verified At Commit** | (2026-10-16) — In-Canvas Column Span Toggle (InCanvasColSpanToggle) in INFO_GRID and Right Inspector colSpan prune verified against source |
 
 > **⚠️ Architectural note:** FormBuilder has no awareness of which process it belongs to. The `formName` prop is always identical to `formId`. See Section 6.1 and the Technical Debt table.
 
 ### Quick File Index
 
+| [`src/components/form/InCanvasColSpanToggle.tsx`](src/components/form/InCanvasColSpanToggle.tsx) | Sub-component rendering in-canvas discrete column span toggle pill (`1/2`, `2/2`, `1/3`, `2/3`, `3/3`) for `INFO_GRID` |
 | [`src/utils/pdfFormExporter.ts`](src/utils/pdfFormExporter.ts) | Facade API entry point for Fillable PDF export |
 | [`src/utils/pdf/types.ts`](src/utils/pdf/types.ts) | Types for PDF export module (`ScannedAcroField`, `PdfPageConfig`) |
 | [`src/utils/pdf/textAnchorInjector.ts`](src/utils/pdf/textAnchorInjector.ts) | Helper functions for text anchor tags `{{acro:id:type:w:h}}` |
@@ -506,5 +507,6 @@ full diff of any entry below.
 | 2026-10-16 | **TABLE Block & Row Guidance Authoring (`FormBuilder`, `PrintBlankForm`):** (1) Added pure utility `getTableItemColumnId` in `src/utils/formUtils.ts` (Rule 13.8) to identify the host column for row guidance. (2) Extended `InCanvasTitleHeader` to support `block.type === 'TABLE'` with in-canvas auto-grow textarea for block guidance/description. (3) On Canvas table rows, added `[ 💡 Hướng dẫn ▾/▴ ]` / `[ + 💡 Hướng dẫn ]` accordion button hosting `InCanvasGuidanceEditor` for inline row criteria authoring with markdown and preview. (4) In Right Inspector, enabled block description for `TABLE` and added dedicated `HƯỚNG DẪN DÒNG (GUIDANCE)` section when selecting a table cell. (5) In `PrintBlankForm.tsx`, rendered block-level guidance banner under table title and row guidance box via `getTableItemColumnId`. |
 | 2026-10-16 | **Unified TABLE Block Guidance Accordion & InCanvasGuidanceEditor (`FormBuilder`):** (1) In `InCanvasTitleHeader`, removed old bare textarea placeholder for `TABLE` blocks. (2) Added in-canvas accordion toggle button `[ 💡 Hướng dẫn ▾/▴ ]` / `[ + 💡 Hướng dẫn ]` directly in `renderControlGroup`, controlling `InCanvasGuidanceEditor` with markdown formatting toolbar `[ B ] [ I ] [ U ] [ • ] [ 💡 ]`, preview toggle `[ 👁 Xem trước / ✍️ Soạn thảo ]`, and auto-grow CSS Grid textarea mirror. (3) Supported hidden title mode (`titleFmt === 'NONE'`) when guidance is expanded. (4) Aligned 100% visual style parity with `INFO_GRID`: `borderRadius: '4px'`, light mint background `#f0fdfa`, teal text `#0f766e`, and Lucide `ChevronUp`/`ChevronDown` icons. (5) In Right Inspector, added `[ Mở trên Canvas ▾/▴ ]` link button to synchronize guidance authoring with Canvas. |
 | 2026-10-16 | **Default Focus Mode & SWR Cache Synchronization (`FormBuilder`):** In `saveFormToBackend`, synchronized the updated form template record (including `default_focus_mode`, `defaultFocusMode`, and latest metadata) into `sessionStorage.getItem('swr_forms')` upon successful save, guaranteeing downstream instant paint in FormFiller always receives live configuration. |
+| 2026-10-16 | **In-Canvas Column Span Toggle for INFO_GRID & Right Inspector Prune (`FormBuilder`, `InCanvasColSpanToggle`):** (1) Created isolated sub-component `src/components/form/InCanvasColSpanToggle.tsx` (Rule 4.3 Monolith Guard) providing 1-click cyclic column span toggle: `1/2` ↔ `2/2` for 2-column grids; `1/3` ➔ `2/3` ➔ `3/3` ➔ `1/3` for 3-column grids, with adaptive teal `#f0fdfa` highlight when expanded and tooltip guidance. (2) In `FormBuilder.tsx`, integrated the toggle directly into the header row of active fields (`isFieldSelected`) in `INFO_GRID` for standard fields, `InCanvasLabelField`, and `InCanvasImageField`, disappearing completely when unfocused (Subtraction Design Mantra). (3) Pruned legacy, isolated `colSpan` `<select>` dropdown from `photo` inspector panel in Right Inspector, unifying column span control purely on Canvas with zero context switching. |
 
 

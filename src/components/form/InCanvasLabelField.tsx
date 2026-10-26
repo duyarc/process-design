@@ -20,6 +20,7 @@ export interface InCanvasLabelFieldProps {
   onToggleGuidance: () => void;
   onUpdateGuidance: (val: string) => void;
   renderTypeDropdown: React.ReactNode;
+  renderColSpanToggle?: React.ReactNode;
 }
 
 export const InCanvasLabelField: React.FC<InCanvasLabelFieldProps> = ({
@@ -35,7 +36,8 @@ export const InCanvasLabelField: React.FC<InCanvasLabelFieldProps> = ({
   isGuidanceExpanded,
   onToggleGuidance,
   onUpdateGuidance,
-  renderTypeDropdown
+  renderTypeDropdown,
+  renderColSpanToggle
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -303,6 +305,7 @@ export const InCanvasLabelField: React.FC<InCanvasLabelFieldProps> = ({
               </button>
             )
           )}
+          {renderColSpanToggle}
           {renderTypeDropdown}
         </div>
       </div>

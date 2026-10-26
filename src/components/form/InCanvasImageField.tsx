@@ -16,6 +16,7 @@ export interface InCanvasImageFieldProps {
   onUpdateField: (updates: Partial<FormFieldISO>) => void;
   onStartDrag: (e: React.DragEvent) => void;
   renderTypeDropdown: React.ReactNode;
+  renderColSpanToggle?: React.ReactNode;
 }
 
 const ASPECT_RATIO_PRESETS: { value: NonNullable<FormFieldISO['imageAspectRatio']>; label: string }[] = [
@@ -41,7 +42,8 @@ export const InCanvasImageField: React.FC<InCanvasImageFieldProps> = ({
   onSelectField,
   onUpdateField,
   onStartDrag,
-  renderTypeDropdown
+  renderTypeDropdown,
+  renderColSpanToggle
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -334,6 +336,7 @@ export const InCanvasImageField: React.FC<InCanvasImageFieldProps> = ({
               </button>
             </>
           )}
+          {renderColSpanToggle}
           {renderTypeDropdown}
         </div>
       </div>

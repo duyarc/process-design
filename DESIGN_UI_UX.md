@@ -9,7 +9,7 @@ This document is the **single source of truth** for the visual design language o
 
 | Field | Value |
 |---|---|
-| **Verified At Commit** | (2026-09-22) — ConfirmModal success variant & single-button alert mode (hideCancel) verified in FormBuilder publish flow |
+| **Verified At Commit** | (2026-10-26) — Subtraction Design Mantra & ASCII Wireframe Audit Standard integrated into Design System |
 
 ## 1. Design Principles
 
@@ -19,6 +19,39 @@ The visual system is designed to convey **Executive Trustworthiness** and **Prem
 - **Cream & Charcoal Base:** The app avoids harsh stark-white interfaces, using a soft cream background (`--neutral-bg: #f6f4f0`) to replicate executive document cardstock.
 - **Glassmorphism:** Elements like headers use transparent backdrops with a blur filter (`backdrop-filter: blur(12px)`) to float elegantly over the canvas background.
 - **Teal Focus:** Teal gradients (`--primary` and `--secondary`) act as the primary interactive signal, used for highlights, CTA buttons, and focus states.
+
+### 1.1 Triết lý Thiết kế Tối giản (Subtraction Design Mantra) & ASCII Wireframing
+
+#### Triết lý nền tảng (Subtraction Design Mantra)
+> *"Mọi phần tử xuất hiện trên màn hình bắt buộc phải có một mục đích cụ thể và thiết yếu. Nếu có thể lược bỏ hoặc gộp lại mà không làm mất tính năng, hãy lược bỏ."*
+Mọi phần tử không trực tiếp phục vụ một quyết định hoặc một hành động cụ thể của người dùng đều bị coi là nhiễu thị giác cần phải cắt tỉa.
+
+#### Bộ 3 Câu hỏi Chất vấn Cốt tử (The 3 Crucial Audit Questions)
+Mọi phần tử trên bản phác thảo phải vượt qua 3 câu hỏi chất vấn gắt gao sau:
+1. **Mục đích & Hành vi thiết yếu (Purpose & Essentiality):**
+   - *Câu hỏi:* Phần tử này giải quyết quyết định hoặc hành động cụ thể nào của người dùng?
+   - *Nguyên tắc:* Nếu phần tử chỉ hiển thị "cho có", "cho đủ thông tin kỹ thuật" mà không dẫn tới bất kỳ hành vi hay quyết định tiếp theo nào ➔ **Loại bỏ ngay**.
+2. **Mức độ chi tiết vừa đủ (Chống Over-detailed / Over-engineering):**
+   - *Câu hỏi:* Mức độ chi tiết của thông tin có thực sự cần thiết trong bối cảnh sử dụng thực tế không?
+   - *Nguyên tắc:* Loại bỏ mọi dữ liệu kỹ thuật thứ cấp, số liệu đếm lặp thừa thãi, hoặc các bộ lọc/phân loại phức tạp khi quy mô dữ liệu thực tế không đòi hỏi.
+3. **Tận dụng Hành động Mặc định Tự nhiên (Natural Affordance):**
+   - *Câu hỏi:* Có thể tận dụng tương tác trực tiếp tự nhiên của người dùng trên khối phần tử thay vì tạo thêm nút bấm, khối phụ hoặc nhãn giải thích không?
+   - *Nguyên tắc:* Ưu tiên click trực tiếp vào khối thông tin/thẻ để mở chi tiết; ẩn các thao tác nguy hiểm/ít dùng vào ngữ cảnh tương tác (menu/hover) thay vì bày sẵn ra giao diện chính.
+
+#### 4 Tiêu chuẩn Thiết kế Tối giản (Minimalist Criteria)
+1. **Loại bỏ triệt để yếu tố trang trí thừa:** Không dùng hiệu ứng gradient màu mè, đổ bóng rườm rà, icon vô nghĩa không mang giá trị điều hướng, không lặp lại huy hiệu (badges) không cần thiết.
+2. **Tỷ lệ Tín hiệu trên Nhiễu cao (High Signal-to-Noise Ratio):** Ưu tiên khoảng trắng (whitespace) thoáng đãng để dẫn dắt tầm mắt; phân cấp thị giác bằng kích thước và độ đậm của kiểu chữ (typography hierarchy) và độ tương phản tự nhiên, không dùng màu sắc lòe loẹt.
+3. **Gộp và Tối giản hóa:** Tận dụng placeholder, inline feedback, và trạng thái tương tác tự nhiên thay vì tạo thêm các khối giao diện phụ trợ hay văn bản giải thích dài dòng.
+4. **Quy tắc Cấm rác UI (Zero UI Garbage Blacklist):** Tuyệt đối cấm các câu chữ hướng dẫn thao tác thừa thãi ("Bấm vào đây để...", "Nhấp..."), tooltip hành vi rườm rà (`title="Nhấp để..."`) và các icon chỉ báo tự chế vô nghĩa.
+
+#### Phương pháp Nghiệm thu Phản biện trên Artifact Plan
+Kết quả phản biện bắt buộc phải được thể hiện trên giấy trắng mực đen trong Artifact Implementation Plan tại Giai đoạn 1:
+1. **Bảng Thẩm định Phản biện Phần tử UI:**
+   | Phần tử UI | Mục đích sử dụng thực tế | Điểm thiết yếu (/10) | Quyết định phản biện |
+   |---|---|---|---|
+   | Tên khối/nút/trường | Người dùng dùng để làm gì? | 1 - 10 | Giữ lại / Loại bỏ / Gộp vào [X] |
+   *(Các phần tử có điểm thiết yếu < 7/10 bắt buộc phải đưa vào diện loại bỏ hoặc gộp).*
+2. **ASCII Wireframe 2 Phiên bản (Bản Hiện tại vs. Bản Dự kiến Chỉnh sửa):** Thay thế toàn bộ mockup UI bằng ASCII Wireframe đối chiếu trực quan (Before vs. After) trước khi trình người dùng phê duyệt `Proceed`.
 
 ---
 
@@ -182,3 +215,4 @@ exclusion, otherwise designed header tints are still forced to `#f0f0f0`.
 | 2026-08-28 | `CURRENT` | **Form Properties 1-Line 2-Toggle & Ultra-Clean Top Bar UI Pattern:** (1) FormBuilder Properties tab features a compact 1-line 2-toggle row for `Focus mode` and `Public link` with immediate URL box + 1-click Copy button. (2) FormFiller Top Bar features clean text `"Focus mode"` (without emoji) and single unified `[ 🔗 Sao chép link ]` button without admin toggles. |
 | 2026-09-17 | `CURRENT` | **Dashboard Forms Table Hover-to-Reveal Actions & Segmented Clusters:** Added `.dashboard-form-row:hover .dashboard-form-actions-reveal` and `.dashboard-btn-cluster` utility classes in `src/index.css`. Cột Actions ở trạng thái idle hiển thị dấu ba chấm mờ (`⋯`), ẩn toàn bộ cụm nút (zero layout shift); khi hover vào dòng sẽ hiện 3 cụm nút (Vận hành, In ấn, Thiết kế) mượt mà 0.18s cubic-bezier. |
 | 2026-09-22 | `CURRENT` | **ConfirmModal Success Variant & Single-Action Alert Mode:** Extended `ConfirmModal` with `variant="success"` (`CheckCircle` icon with emerald/teal circle) and `hideCancel?: boolean` to support streamlined single-button acknowledgment dialogs (`confirmText="OK"`), eliminating legacy browser `alert()` popups in compliance with Rule 3. |
+| 2026-10-26 | `CURRENT` | **Subtraction Design Mantra & ASCII Wireframing:** Added §1.1 codifying the 3 Crucial Audit Questions, 4 Minimalist Criteria, Zero UI Garbage Blacklist, and mandatory Before/After ASCII wireframe comparison with UI Element Audit Table in planning artifacts. |
