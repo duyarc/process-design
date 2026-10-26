@@ -37,6 +37,24 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 ## Nhật ký Phiên
 
+### 2026-10-26 — Smart Location Bar Unification & Dense Grid Auto-Placement (`LocationInputFiller`, `FormBuilder`, `FormFiller`, `ProcessReader`, `PrintFilledForm`, `PrintBlankForm`)
+
+**Scope:** 6 source files (`src/components/form/LocationInputFiller.tsx`, `src/components/FormBuilder.tsx`, `src/components/FormFiller.tsx`, `src/components/ProcessReader.tsx`, `src/components/print/PrintFilledForm.tsx`, `src/components/print/PrintBlankForm.tsx`) + 2 design docs (`DESIGN_FORM_DESIGNER.md`, `DESIGN_FORM_OPERATIONS.md`).
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa | 6 |
+| Lượt edit sửa lỗi (rework) | 1 (`handleAddField` type parameter) |
+| Số lần build | 9 (`npx tsc --noEmit` pass 100%, `npm run build` pass 19.48s) |
+| Số lệnh thất bại | 1 |
+
+**Phân tích nguyên nhân gốc & Quyết định giải pháp:**
+1. **Khắc phục "Bánh kẹp 3 tầng":** Trường `Location` trước đây xếp chồng 3 khối: URL thô rác + Thẻ tọa độ độc lập + Mini Map. Gộp hoàn toàn vào **Smart Location Bar** duy nhất (36px): hiển thị tọa độ DMS rõ ràng, nút `[ ↗ ]` mở Maps ngoài, nút `[ 📍 ]` lấy GPS, và nút `[ ✕ ]` đổi/xóa vị trí. Mini Map phẳng bên dưới với chiều cao linh hoạt.
+2. **Lấp kín khoảng trống chết 200px trong lưới 2 cột:** Trong `INFO_GRID`, chiều cao hàng trước đây bị phình rộng bởi Tọa độ (~240px) khiến trường đối diện (`Tên doanh nghiệp`) để lại khoảng trống mênh mông bên dưới. Giải quyết dứt điểm bằng cách:
+   - Gán mặc định `rowSpan = 2` cho `location` khi `showMiniMap !== false`.
+   - Bổ sung cấu hình `rowSpan` trong Right Inspector của `FormBuilder`.
+   - Kích hoạt `gridAutoFlow: 'row dense'` cho `INFO_GRID` trên toàn bộ hệ thống (`FormFiller`, `FormBuilder`, `ProcessReader`, `PrintFilledForm`, `PrintBlankForm`). Trường tiếp theo (`Địa chỉ nhà máy`) tự động được kéo lên ngay bên dưới `Tên doanh nghiệp`, cân bằng đối xứng 2 cột hoàn hảo.
+
 ### 2026-10-26 — Tích Hợp Lớp Ảnh Vệ Tinh (Satellite Imagery) & Cấu Hình MapType Cho Mini Map (`types`, `MiniMapCanvas`, `LocationInputFiller`, `FormBuilder`, `PrintFilledForm`)
 
 **Scope:** 5 source files (`src/types.ts`, `src/components/form/MiniMapCanvas.tsx`, `src/components/form/LocationInputFiller.tsx`, `src/components/FormBuilder.tsx`, `src/components/print/PrintFilledForm.tsx`) + 2 design docs (`DESIGN_FORM_DESIGNER.md`, `DESIGN_FORM_OPERATIONS.md`).
@@ -466,20 +484,4 @@ phiên thực thi để không lặp lại lỗi cũ.
 - **Form Operations & Lightbox Modal:** `FormFiller.tsx` hiển thị ảnh tham chiếu tĩnh và hỗ trợ mở Lightbox phóng to toàn màn hình khi nhấp vào ảnh, bấm Esc để đóng.
 - **In ấn A4 Chuẩn:** `PrintBlankForm.tsx`, `PrintFilledForm.tsx`, `PrintScoring.tsx` hiển thị ảnh với `page-break-inside: avoid;` và `max-width: 100%`.
 
-### 2026-10-15 — Nâng cấp Định dạng Markdown, Bullet List & Canvas WYSIWYG Linh động cho Trường Label
-
-**Scope:** 7 source files (`src/utils/textFormatter.tsx`, `src/components/form/InCanvasLabelField.tsx`, `src/components/FormBuilder.tsx`, `src/components/FormFiller.tsx`, `src/components/print/PrintBlankForm.tsx`, `src/components/print/PrintFilledForm.tsx`, `src/components/print/PrintScoring.tsx`) + 2 design docs (`DESIGN_FORM_DESIGNER.md`, `DESIGN_FORM_OPERATIONS.md`).
-
-| Chỉ số | Giá trị |
-|---|---|
-| Số file nguồn chỉnh sửa / tạo mới | 7 |
-| Lượt edit sửa lỗi (rework) | 2 (sửa type-only import & unused import sau `tsc -b`) |
-| Số lần build | 2 (`tsc -b && vite build` pass 100% 10.18s) |
-| Lần build đầu thành công? | Không (`tsc -b` bắt TS1484, TS6133, TS2367; sửa dứt điểm ngay) |
-
-**Kết quả đạt được:**
-- **Khắc phục lỗi parser Markdown (`src/utils/textFormatter.tsx`):** Thêm lookahead/lookbehind `\*(?!\s)(?:[^*]+?)(?<!\s)\*` triệt tiêu lỗi nuốt dấu hoa thị đầu dòng khi kết hợp bullet với in đậm (`* **Công suất**`). Bóc tách phân cấp 2 tầng (tầng dòng nhận diện `* `, `- `, `+ `, `• ` và thụt lề; tầng inline parse in đậm, in nghiêng, gạch chân). Mở rộng `applyTextFormat` hỗ trợ mode `'bullet'`.
-- **Sub-component `InCanvasLabelField` & Toolbar Co giãn Linh động (Rule 4.3):** Tách sub-component riêng biệt (~420 dòng) khỏi monolith `FormBuilder.tsx`. Toolbar gộp chung trên 1 hàng phẳng (`flex-wrap: wrap`), tự động xuống dòng mềm mại khi cột ô lưới hẹp (`gap: 6px`). Hỗ trợ 2 chế độ: Xem trước WYSIWYG và Soạn thảo với CSS Grid auto-grow textarea mirror.
-- **Mở rộng Right Inspector:** Thêm nút `•` (Bullet point) cạnh `B`, `I`, `U` và tăng `rows={6}` cho trường nhãn.
-- **Đồng bộ FormFiller & Print Out:** Bỏ `sanitizeLabel` (bảo toàn dấu `:` cuối câu dẫn), chuyển `display: 'block'` (loại bỏ lỗi căn giữa flexbox của đoạn văn nhiều dòng).
 

@@ -1654,12 +1654,13 @@ function FormFillerInner({
                 <div style={{
                   display: 'grid',
                   gridTemplateColumns: getInfoGridTemplateColumns(block),
+                  gridAutoFlow: 'row dense',
                   gap: '1rem'
                 }}>
                   {(block.fields || []).map((field: any) => {
                     const value = formValues[field.id] || '';
                     const inputStyle = { padding: '0.45rem 0.6rem', fontSize: '0.82rem', border: '1px solid #e2e8f0', borderRadius: '4px', width: '100%', height: '36px', backgroundColor: '#f8fafc' };
-                    const parsedRSpan = field.type === 'subtable' ? undefined : (field.rowSpan ? Number(field.rowSpan) : undefined);
+                    const parsedRSpan = field.type === 'subtable' ? undefined : (field.rowSpan ? Number(field.rowSpan) : (field.type === 'location' && field.showMiniMap !== false ? 2 : undefined));
                     const rSpan = parsedRSpan && !isNaN(parsedRSpan) && parsedRSpan > 1 ? parsedRSpan : undefined;
                     const cSpan = field.type === 'subtable' ? -1 : (field.colSpan ? Number(field.colSpan) : undefined);
 

@@ -2218,7 +2218,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     { label: 'Không', value: 'FAIL', isPass: false }
   ];
 
-  const handleAddField = (blockId: string, type: 'text' | 'number' | 'date' | 'time' | 'radio' | 'checkbox' | 'signature' | 'photo' | 'subtable' | 'image') => {
+  const handleAddField = (blockId: string, type: FormFieldISO['type']) => {
     if (isLocked) return;
     
     const labelPrefix = type === 'radio' || type === 'checkbox' ? 'Kiểm tra ' : type === 'number' ? 'Đo thông số ' : type === 'time' ? 'Thời gian ' : type === 'subtable' ? 'Bảng ' : 'Thông tin ';
@@ -2246,6 +2246,12 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
       newField.checkItem = 'Ảnh bằng chứng';
       newField.placeholder = '[photo]';
       newField.rowSpan = 3;
+    } else if (type === 'location') {
+      newField.checkItem = 'Toạ độ / Vị trí';
+      newField.placeholder = 'Dán link Google Maps hoặc toạ độ...';
+      newField.showMiniMap = true;
+      newField.mapType = 'roadmap';
+      newField.rowSpan = 2;
     } else if (type === 'subtable') {
       newField.subtableColumns = [
         { id: `stcol_${Date.now()}_1`, label: 'Ngành hàng', type: 'text', width: '35%' },
@@ -2352,6 +2358,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
       updates.unit = undefined;
     } else if (newType === 'location') {
       updates.placeholder = field?.placeholder || 'Dán link Google Maps hoặc toạ độ...';
+      updates.showMiniMap = field?.showMiniMap ?? true;
+      updates.mapType = field?.mapType || 'roadmap';
+      updates.rowSpan = field?.rowSpan ?? 2;
       if (!field?.checkItem || field.checkItem === 'Thông tin mới') {
         updates.checkItem = 'Vị trí / Bản đồ';
       }
@@ -3692,6 +3701,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                               gridTemplateColumns: getInfoGridTemplateColumns(block),
                               columnGap: '0.75rem',
                               rowGap: '0.5rem',
+                              gridAutoFlow: 'row dense',
                               gridAutoRows: 'minmax(38px, auto)',
                             }}>
                               {block.fields.map((f, fIdx) => {
@@ -3699,7 +3709,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                 const isDragging = draggedGridField?.blockId === block.id && draggedGridField.fieldId === f.id;
                                 const isDragOver = dragOverGridField?.blockId === block.id && dragOverGridField.fieldId === f.id;
                                 const canDrag = !isLocked && (block.fields || []).length > 1;
-                                const parsedRSpan = f.type === 'subtable' ? undefined : (f.rowSpan ? Number(f.rowSpan) : undefined);
+                                const parsedRSpan = f.type === 'subtable' ? undefined : (f.rowSpan ? Number(f.rowSpan) : (f.type === 'location' && f.showMiniMap !== false ? 2 : undefined));
                                 const rSpan = parsedRSpan && !isNaN(parsedRSpan) && parsedRSpan > 1 ? parsedRSpan : undefined;
                                 const cSpan = f.type === 'subtable' ? -1 : (f.colSpan ? Number(f.colSpan) : undefined);
                                 const canToggleSpan = !isLocked && isFieldSelected && block.type === 'INFO_GRID' && (block.columns === 2 || block.columns === 3) && f.type !== 'subtable';
@@ -4135,7 +4145,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                         {f.showMiniMap !== false && (
                                           <div style={{
                                             width: '100%',
-                                            height: '55px',
+                                            height: f.rowSpan === 3 ? '100px' : '65px',
                                             borderRadius: '4px',
                                             border: '1px dashed #cbd5e1',
                                             background: '#f8fafc',
@@ -7376,6 +7386,24 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                             🛰️ Vệ tinh
                           </button>
                         </div>
+
+                        {activeBlock?.type === 'INFO_GRID' && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', marginTop: '0.35rem' }}>
+                            <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                              Chiều cao (Số dòng - rowSpan):
+                            </span>
+                            <select
+                              disabled={isLocked}
+                              value={activeField.rowSpan || 2}
+                              onChange={(e) => handleUpdateField(activeBlockId!, activeFieldId!, { rowSpan: parseInt(e.target.value, 10) })}
+                              style={{ padding: '0.25rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', background: '#fff', fontSize: '0.75rem', width: 'fit-content' }}
+                            >
+                              <option value={2}>2 dòng (Gọn gàng ~85px map)</option>
+                              <option value={3}>3 dòng (Mở rộng ~125px map)</option>
+                              <option value={1}>1 dòng (Không chiếm dòng phụ)</option>
+                            </select>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

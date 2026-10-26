@@ -219,10 +219,10 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                       </div>
                     )
                   )}
-                  <div className="print-info-grid" style={{ gridTemplateColumns: getInfoGridTemplateColumns(block) }}>
+                  <div className="print-info-grid" style={{ gridTemplateColumns: getInfoGridTemplateColumns(block), gridAutoFlow: 'row dense' }}>
                     {block.fields.map((f) => {
                           const cleanLabel = sanitizeLabel(f.checkItem);
-                          const parsedRSpan = f.type === 'subtable' ? undefined : (f.rowSpan ? Number(f.rowSpan) : undefined);
+                          const parsedRSpan = f.type === 'subtable' ? undefined : (f.rowSpan ? Number(f.rowSpan) : (f.type === 'location' && f.showMiniMap !== false ? 2 : undefined));
                           const rSpan = parsedRSpan && !isNaN(parsedRSpan) && parsedRSpan > 1 ? parsedRSpan : undefined;
                           const cSpan = f.type === 'subtable' ? -1 : (f.colSpan ? Number(f.colSpan) : undefined);
                           const gridItemStyle: React.CSSProperties = {

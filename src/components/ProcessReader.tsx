@@ -1349,12 +1349,13 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                             <div style={{
                               display: 'grid',
                               gridTemplateColumns: getInfoGridTemplateColumns(block),
+                              gridAutoFlow: 'row dense',
                               gap: '1rem'
                             }}>
                               {block.fields.map((field: any) => {
                                 const value = formValues[field.id] || '';
                                 const inputStyle = { padding: '0.4rem 0.5rem', fontSize: '0.8rem', border: '1px solid #e2e8f0', borderRadius: '4px', width: '100%', height: '34px', backgroundColor: '#f8fafc' };
-                                const parsedRSpan = field.type === 'subtable' ? undefined : (field.rowSpan ? Number(field.rowSpan) : undefined);
+                                const parsedRSpan = field.type === 'subtable' ? undefined : (field.rowSpan ? Number(field.rowSpan) : (field.type === 'location' && field.showMiniMap !== false ? 2 : undefined));
                                 const rSpan = parsedRSpan && !isNaN(parsedRSpan) && parsedRSpan > 1 ? parsedRSpan : undefined;
                                 const cSpan = field.type === 'subtable' ? -1 : (field.colSpan ? Number(field.colSpan) : undefined);
 

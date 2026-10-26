@@ -393,11 +393,11 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                             <div style={{ fontSize: '0.85rem', fontWeight: 'var(--pw-weight-medium)', marginBottom: '8px', color: '#0f172a' }}>{renderFormattedText(block.title)}</div>
                           )
                         )}
-                        <div className="print-info-grid" style={{ gridTemplateColumns: getInfoGridTemplateColumns(block) }}>
+                        <div className="print-info-grid" style={{ gridTemplateColumns: getInfoGridTemplateColumns(block), gridAutoFlow: 'row dense' }}>
                           {block.fields.map((f) => {
                             const cleanLabel = sanitizeLabel(f.checkItem);
                             const val = getVal(f.id);
-                            const parsedRSpan = f.type === 'subtable' ? undefined : (f.rowSpan ? Number(f.rowSpan) : undefined);
+                            const parsedRSpan = f.type === 'subtable' ? undefined : (f.rowSpan ? Number(f.rowSpan) : (f.type === 'location' && f.showMiniMap !== false ? 2 : undefined));
                             const rSpan = parsedRSpan && !isNaN(parsedRSpan) && parsedRSpan > 1 ? parsedRSpan : undefined;
                             const cSpan = f.type === 'subtable' ? -1 : (f.colSpan ? Number(f.colSpan) : undefined);
                             const gridItemStyle: React.CSSProperties = {
@@ -736,11 +736,14 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                       )}
                                     </div>
                                   </div>
-                                  {hasMiniMap && (
-                                    <div style={{ width: '100%', height: '110px', marginTop: '2px', borderRadius: '3px', overflow: 'hidden', border: '1px solid #cbd5e1' }}>
-                                      <MiniMapCanvas lat={loc.lat!} lng={loc.lng!} zoom={15} height={110} mapType={f.mapType || 'roadmap'} allowToggleType={false} />
-                                    </div>
-                                  )}
+                                  {hasMiniMap && (() => {
+                                    const mapHeight = f.rowSpan === 3 ? 125 : 85;
+                                    return (
+                                      <div style={{ width: '100%', height: `${mapHeight}px`, marginTop: '2px', borderRadius: '3px', overflow: 'hidden', border: '1px solid #cbd5e1' }}>
+                                        <MiniMapCanvas lat={loc.lat!} lng={loc.lng!} zoom={15} height={mapHeight} mapType={f.mapType || 'roadmap'} allowToggleType={false} />
+                                      </div>
+                                    );
+                                  })()}
                                 </div>
                               );
                             }

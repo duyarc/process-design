@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import type { FormFieldISO } from '../../types';
 import { parseGoogleMapsUrl, formatDMS } from '../../utils/formUtils';
-import { MapPin, ExternalLink, Loader2, Map, ChevronDown, ChevronUp } from 'lucide-react';
+import { MapPin, ExternalLink, Loader2, X } from 'lucide-react';
 import { MiniMapCanvas } from './MiniMapCanvas';
 
 interface LocationInputFillerProps {
@@ -21,7 +21,7 @@ export const LocationInputFiller: React.FC<LocationInputFillerProps> = ({
   const [isResolving, setIsResolving] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [isMapExpanded, setIsMapExpanded] = useState<boolean>(true);
+  const [isEditingRaw, setIsEditingRaw] = useState(false);
   const [resolvedCoords, setResolvedCoords] = useState<{
     lat?: number;
     lng?: number;
@@ -179,76 +179,204 @@ export const LocationInputFiller: React.FC<LocationInputFillerProps> = ({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%', marginTop: '2px' }}>
-      {/* Input bar with GPS 1-touch button */}
-      <div style={{ display: 'flex', gap: '4px', alignItems: 'center', width: '100%' }}>
-        <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center' }}>
-          <span style={{ position: 'absolute', left: '8px', color: '#94a3b8', pointerEvents: 'none', display: 'flex', alignItems: 'center' }}>
-            <MapPin size={13} />
-          </span>
-          <input
-            type="text"
-            disabled={disabled}
-            value={inputValue}
-            placeholder={field.placeholder || 'Dán link Google Maps hoặc toạ độ...'}
-            onChange={(e) => {
-              setInputValue(e.target.value);
-            }}
-            onBlur={() => handleResolveAndSave(inputValue)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                handleResolveAndSave(inputValue);
-              }
-            }}
-            style={{
-              width: '100%',
-              padding: '0.35rem 0.5rem 0.35rem 1.7rem',
-              fontSize: '0.78rem',
-              borderRadius: '4px',
-              border: '1px solid #cbd5e1',
-              background: disabled ? '#f1f5f9' : '#ffffff',
-              color: 'var(--text-primary)',
-              outline: 'none',
-              boxSizing: 'border-box'
-            }}
-          />
-        </div>
+      {/* Smart Location Bar (Phương án 2: Gộp input & toạ độ làm 1) */}
+      {coordDisplayText && !isEditingRaw ? (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          width: '100%',
+          height: '36px',
+          padding: '0 0.5rem 0 0.65rem',
+          background: disabled ? '#f8fafc' : '#ffffff',
+          border: '1px solid #cbd5e1',
+          borderRadius: '4px',
+          boxSizing: 'border-box',
+          gap: '6px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden', flex: 1 }}>
+            <MapPin size={13} color="var(--primary)" style={{ flexShrink: 0 }} />
+            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {coordDisplayText}
+            </span>
+          </div>
 
-        {!disabled && (
-          <button
-            type="button"
-            disabled={isLocating}
-            onClick={handleGetGPS}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              padding: '0.35rem 0.65rem',
-              fontSize: '0.72rem',
-              fontWeight: 600,
-              borderRadius: '4px',
-              border: '1px solid var(--primary)',
-              background: '#f0fdfa',
-              color: 'var(--primary)',
-              cursor: isLocating ? 'wait' : 'pointer',
-              whiteSpace: 'nowrap',
-              flexShrink: 0,
-              transition: 'all 0.15s ease'
-            }}
-            title="Lấy toạ độ GPS thiết bị hiện tại"
-          >
-            {isLocating ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+            {effectiveMapsUrl && (
+              <a
+                href={effectiveMapsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '2px',
+                  padding: '2px 5px',
+                  borderRadius: '3px',
+                  color: 'var(--primary)',
+                  fontSize: '0.72rem',
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                  background: '#f0fdfa',
+                  border: '1px solid rgba(13, 148, 136, 0.2)'
+                }}
+                title="Mở trên Google Maps"
+              >
+                <ExternalLink size={11} /> <span>Mở Maps</span>
+              </a>
+            )}
+
+            {!disabled && (
               <>
-                <Loader2 size={12} className="animate-spin" /> Đang định vị...
-              </>
-            ) : (
-              <>
-                <MapPin size={12} /> GPS
+                <button
+                  type="button"
+                  onClick={handleGetGPS}
+                  disabled={isLocating}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '2px',
+                    padding: '2px 6px',
+                    borderRadius: '3px',
+                    border: '1px solid var(--primary)',
+                    background: '#f0fdfa',
+                    color: 'var(--primary)',
+                    fontSize: '0.72rem',
+                    fontWeight: 600,
+                    cursor: isLocating ? 'wait' : 'pointer'
+                  }}
+                  title="Lấy lại GPS vị trí hiện tại"
+                >
+                  {isLocating ? <Loader2 size={11} className="animate-spin" /> : <><MapPin size={11} /> GPS</>}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsEditingRaw(true)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    padding: '3px 4px',
+                    borderRadius: '3px',
+                    border: '1px solid #cbd5e1',
+                    background: '#f8fafc',
+                    color: '#64748b',
+                    fontSize: '0.72rem',
+                    cursor: 'pointer'
+                  }}
+                  title="Đổi toạ độ / nhập lại link"
+                >
+                  <X size={11} />
+                </button>
               </>
             )}
-          </button>
-        )}
-      </div>
+          </div>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', gap: '4px', alignItems: 'center', width: '100%' }}>
+          <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center' }}>
+            <span style={{ position: 'absolute', left: '8px', color: '#94a3b8', pointerEvents: 'none', display: 'flex', alignItems: 'center' }}>
+              <MapPin size={13} />
+            </span>
+            <input
+              type="text"
+              disabled={disabled}
+              value={inputValue}
+              autoFocus={isEditingRaw}
+              placeholder={field.placeholder || 'Dán link Google Maps hoặc toạ độ...'}
+              onChange={(e) => setInputValue(e.target.value)}
+              onBlur={() => {
+                handleResolveAndSave(inputValue);
+                if (coordDisplayText) setIsEditingRaw(false);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleResolveAndSave(inputValue);
+                  if (coordDisplayText) setIsEditingRaw(false);
+                } else if (e.key === 'Escape' && coordDisplayText) {
+                  setInputValue(value || '');
+                  setIsEditingRaw(false);
+                }
+              }}
+              style={{
+                width: '100%',
+                height: '36px',
+                padding: '0.35rem 0.5rem 0.35rem 1.7rem',
+                fontSize: '0.78rem',
+                borderRadius: '4px',
+                border: '1px solid #cbd5e1',
+                background: disabled ? '#f1f5f9' : '#ffffff',
+                color: 'var(--text-primary)',
+                outline: 'none',
+                boxSizing: 'border-box'
+              }}
+            />
+          </div>
+
+          {!disabled && (
+            <button
+              type="button"
+              disabled={isLocating}
+              onClick={handleGetGPS}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
+                height: '36px',
+                padding: '0 0.65rem',
+                fontSize: '0.72rem',
+                fontWeight: 600,
+                borderRadius: '4px',
+                border: '1px solid var(--primary)',
+                background: '#f0fdfa',
+                color: 'var(--primary)',
+                cursor: isLocating ? 'wait' : 'pointer',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+                boxSizing: 'border-box'
+              }}
+              title="Lấy toạ độ GPS thiết bị hiện tại"
+            >
+              {isLocating ? (
+                <>
+                  <Loader2 size={12} className="animate-spin" /> Đang định vị...
+                </>
+              ) : (
+                <>
+                  <MapPin size={12} /> GPS
+                </>
+              )}
+            </button>
+          )}
+
+          {isEditingRaw && coordDisplayText && (
+            <button
+              type="button"
+              onClick={() => {
+                setInputValue(value || '');
+                setIsEditingRaw(false);
+              }}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                height: '36px',
+                padding: '0 0.5rem',
+                fontSize: '0.72rem',
+                borderRadius: '4px',
+                border: '1px solid #cbd5e1',
+                background: '#f8fafc',
+                color: '#64748b',
+                cursor: 'pointer',
+                boxSizing: 'border-box'
+              }}
+              title="Huỷ chỉnh sửa"
+            >
+              Huỷ
+            </button>
+          )}
+        </div>
+      )}
 
       {isResolving && (
         <span style={{ fontSize: '0.7rem', color: '#64748b', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -262,92 +390,20 @@ export const LocationInputFiller: React.FC<LocationInputFillerProps> = ({
         </span>
       )}
 
-      {/* Thẻ Vị trí Tinh gọn — Hiển thị toạ độ thực tế & tuỳ chọn Mini Map */}
-      {(coordDisplayText || effectiveMapsUrl) && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', width: '100%' }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '0.35rem 0.65rem',
-            background: '#f8fafc',
-            borderLeft: '3px solid var(--primary)',
-            borderRadius: '3px',
-            marginTop: '2px',
-            fontSize: '0.78rem',
-            gap: '8px'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', overflow: 'hidden' }}>
-              <span style={{ color: 'var(--primary)', flexShrink: 0, fontSize: '0.82rem' }}>📍</span>
-              <span style={{ fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {coordDisplayText || (isResolving ? 'Đang xác định toạ độ...' : value)}
-              </span>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-              {/* Nút thu gọn / mở rộng Mini Map nếu được bật */}
-              {shouldShowMiniMap && effectiveLat != null && effectiveLng != null && (
-                <button
-                  type="button"
-                  onClick={() => setIsMapExpanded(prev => !prev)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--primary)',
-                    fontSize: '0.72rem',
-                    fontWeight: 600,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '2px',
-                    cursor: 'pointer',
-                    padding: '2px 4px',
-                    borderRadius: '3px'
-                  }}
-                  title={isMapExpanded ? 'Thu gọn bản đồ' : 'Hiển thị bản đồ'}
-                >
-                  <Map size={11} /> {isMapExpanded ? 'Ẩn' : 'Bản đồ'} {isMapExpanded ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
-                </button>
-              )}
-
-              {effectiveMapsUrl && (
-                <a
-                  href={effectiveMapsUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '3px',
-                    color: 'var(--primary)',
-                    fontWeight: 600,
-                    fontSize: '0.72rem',
-                    textDecoration: 'none',
-                    whiteSpace: 'nowrap'
-                  }}
-                  title="Mở vị trí trên Google Maps"
-                >
-                  <ExternalLink size={11} /> Mở Maps
-                </a>
-              )}
-            </div>
-          </div>
-
-          {/* Sơ đồ thu nhỏ Mini Map Canvas (Phương án 4: Siêu nhẹ, không scroll trap, in PDF 100%) */}
-          {shouldShowMiniMap && isMapExpanded && effectiveLat != null && effectiveLng != null && (
-            <MiniMapCanvas
-              lat={effectiveLat}
-              lng={effectiveLng}
-              zoom={15}
-              height={130}
-              mapType={field.mapType || 'roadmap'}
-              onClick={() => {
-                if (effectiveMapsUrl) {
-                  window.open(effectiveMapsUrl, '_blank', 'noopener,noreferrer');
-                }
-              }}
-            />
-          )}
-        </div>
+      {/* Sơ đồ thu nhỏ Mini Map Canvas phẳng (Phương án 4: Siêu nhẹ, không scroll trap, in PDF 100%) */}
+      {shouldShowMiniMap && effectiveLat != null && effectiveLng != null && (
+        <MiniMapCanvas
+          lat={effectiveLat}
+          lng={effectiveLng}
+          zoom={15}
+          height={field.rowSpan === 3 ? 125 : 85}
+          mapType={field.mapType || 'roadmap'}
+          onClick={() => {
+            if (effectiveMapsUrl) {
+              window.open(effectiveMapsUrl, '_blank', 'noopener,noreferrer');
+            }
+          }}
+        />
       )}
     </div>
   );
