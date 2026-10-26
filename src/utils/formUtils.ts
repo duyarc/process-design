@@ -49,16 +49,23 @@ export function getAutoCheckboxLayoutMode(field: FormFieldISO, blockColumns: num
 }
 
 /**
- * Checks whether options within a field are long or dense, requiring vertical stacking (column).
- * If false, options can be displayed horizontally inline with flex-direction: row.
- * Aligned with NN/g, Material Design 3, and GOV.UK UX guidelines:
- * - Vertical stack if any option > 25 chars, or >= 3 options with labels > 12 chars, or > 4 options total.
+ * Checks whether options within a field or cluster are long or dense, requiring vertical stacking (column).
+ * If false, options can be displayed horizontally inline with flex-direction: row and flex-wrap: wrap.
+ * - Vertical stack if any option > 25 chars or contains newline
+ * - Vertical stack if >= 3 options with labels > 14 chars
+ * - Vertical stack if total length > 100 chars
  */
-export function hasLongOptions(field: FormFieldISO): boolean {
-  const options = field.options || [];
-  if (options.some(opt => (opt.label || '').length > 25)) return true;
-  if (options.length >= 3 && options.some(opt => (opt.label || '').length > 12)) return true;
-  if (options.length > 4) return true;
+export function hasLongOptions(target?: FormFieldISO | Array<{ label?: string; [key: string]: any }>): boolean {
+  if (!target) return false;
+  const options = Array.isArray(target) ? target : (target.options || []);
+  if (options.length === 0) return false;
+  if (options.some(opt => {
+    const lbl = (opt.label || '').trim();
+    return lbl.length > 25 || lbl.includes('\n');
+  })) return true;
+  if (options.filter(opt => (opt.label || '').trim().length > 14).length >= 3) return true;
+  const totalLength = options.reduce((sum, opt) => sum + (opt.label || '').trim().length, 0);
+  if (totalLength > 100) return true;
   return false;
 }
 

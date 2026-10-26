@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { Process, SubmissionFieldSnapshot } from '../types';
 import { formatFormVersion, getColStyleWidth } from '../types';
-import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock, getInfoGridTemplateColumns, getEffectiveCellOptions, clusterOptionsByGroup } from '../utils/formUtils';
+import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock, getInfoGridTemplateColumns, getEffectiveCellOptions, clusterOptionsByGroup, parseChecklistValues } from '../utils/formUtils';
 import { renderFormattedText } from '../utils/textFormatter';
 import { useAuth } from '../context/AuthContext';
 import { Printer, Edit2, Camera, AlertTriangle, X, PenTool, GitBranch, Eye, ArrowLeft, Trash2, Star } from 'lucide-react';
@@ -1454,9 +1454,9 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                                                   {cluster.groupName}
                                                 </div>
                                               )}
-                                              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', minHeight: '34px', alignItems: 'center', paddingLeft: cluster.groupName ? '0.35rem' : '0' }}>
+                                              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', minHeight: '34px', alignItems: 'center', paddingLeft: clusters.some(c => !!c.groupName) ? '0.35rem' : '0' }}>
                                                 {cluster.options.map((opt: any) => {
-                                                  const currentValues = value ? value.split(',').filter(Boolean) : [];
+                                                  const currentValues = parseChecklistValues(value);
                                                   const isChecked = currentValues.includes(opt.value);
                                                   return (
                                                     <label key={opt.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.82rem', cursor: 'pointer', margin: 0 }}>

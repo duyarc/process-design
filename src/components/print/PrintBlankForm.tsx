@@ -357,31 +357,32 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                             const rawOptions = f.options ?? [{ label: 'Có', value: 'YES' }, { label: 'Không', value: 'NO' }];
                             const options = rawOptions.filter((opt: any) => opt.label && opt.label.trim() !== '');
                             const layoutMode = getAutoCheckboxLayoutMode(f, block.columns);
-                            const isLongOpt = hasLongOptions(f);
-
                             if (layoutMode === 'OPTION_C') {
                               const clusters = clusterOptionsByGroup(options, f.optionGroups);
+                              const hasAnyGroups = clusters.some(c => !!c.groupName) || ((f.optionGroups || []).length > 0);
                               return (
                                 <div key={f.id} style={{ ...gridItemStyle, display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.82rem' }}>
                                   {cleanLabel && (
                                     <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a' }}>{renderFormattedText(cleanLabel)}</span>
                                   )}
                                   {includeGuidance && f.guidance && <PrintFieldGuidanceBox guidance={f.guidance} />}
-                                  {clusters.map((cluster, cIdx) => (
-                                    <div key={cluster.groupName || cIdx} style={{ display: 'flex', flexDirection: 'column', gap: '2px', width: '100%' }}>
-                                      {cluster.groupName && (
-                                        <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: cIdx > 0 ? '4px' : '2px', marginBottom: '1px' }}>
-                                          {cluster.groupName}
-                                        </div>
-                                      )}
-                                      <div style={{
-                                        display: 'flex',
-                                        flexDirection: isLongOpt ? 'column' : 'row',
-                                        flexWrap: isLongOpt ? 'nowrap' : 'wrap',
-                                        gap: isLongOpt ? '4px' : '4px 20px',
-                                        paddingLeft: cluster.groupName ? '0.4rem' : '1.25rem',
-                                        alignItems: isLongOpt ? 'flex-start' : 'center'
-                                      }}>
+                                  {clusters.map((cluster, cIdx) => {
+                                    const isClusterLong = hasLongOptions(cluster.options);
+                                    return (
+                                      <div key={cluster.groupName || cIdx} style={{ display: 'flex', flexDirection: 'column', gap: '2px', width: '100%' }}>
+                                        {cluster.groupName && (
+                                          <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: cIdx > 0 ? '4px' : '2px', marginBottom: '1px' }}>
+                                            {cluster.groupName}
+                                          </div>
+                                        )}
+                                        <div style={{
+                                          display: 'flex',
+                                          flexDirection: isClusterLong ? 'column' : 'row',
+                                          flexWrap: isClusterLong ? 'nowrap' : 'wrap',
+                                          gap: isClusterLong ? '4px' : '4px 20px',
+                                          paddingLeft: hasAnyGroups ? '0.4rem' : (isClusterLong ? '1.25rem' : '0.4rem'),
+                                          alignItems: isClusterLong ? 'flex-start' : 'center'
+                                        }}>
                                         {cluster.options.map((opt: any) => (
                                           <span key={opt.value} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', whiteSpace: 'normal', wordBreak: 'break-word', maxWidth: '100%' }}>
                                             <span
@@ -394,7 +395,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                               data-field-radiovalue={opt.value}
                                               style={{
                                                 borderRadius: f.type === 'radio' ? '50%' : '2px',
-                                                marginTop: isLongOpt ? '2px' : '0'
+                                                marginTop: isClusterLong ? '2px' : '0'
                                               }}
                                             />
                                             <span style={{ lineHeight: '1.3', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
@@ -407,7 +408,8 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                         ))}
                                       </div>
                                     </div>
-                                  ))}
+                                  );
+                                  })}
                                 </div>
                               );
                             }

@@ -36,10 +36,37 @@ phiên thực thi để không lặp lại lỗi cũ.
 | 39 | `UI` | Khi thêm tính năng mới kế thừa từ component khác nhưng dùng inline token riêng (`#ccfbf1`, `#0f766e`, `border: 1px solid`) thay vì tái sử dụng token chuẩn (`#f8fafc`, `borderLeft: 3px solid #0d9488`, `var(--text-primary)`), gây lệch chuẩn thị giác giữa các loại khối | Luôn đối chiếu trực tiếp với component/field chuẩn (`INFO_GRID`) và tuân thủ chặt chẽ Design System (`DESIGN_UI_UX.md`), đảm bảo màu chữ `var(--text-primary)`, nền `#f8fafc` và chỉ có viền chỉ mục trái | 1 |
 | 41 | `LOGIC` | HTML5 DnD: phần tử con `<input>`/`<textarea>` nuốt sự kiện kéo thả chuột, chặn drop target; đồng thời loop Inspector duyệt phẳng options bỏ qua nhóm rỗng | Thêm `pointerEvents: (draggedOption || draggedGroup) ? 'none' : 'auto'` cho các input/textarea con khi đang kéo; lưu trữ danh sách nhóm rỗng trong `optionGroups` và duyệt render theo `clusters = clusterOptionsByGroup(...)` thay vì `options.map` | 1 |
 | 42 | `LOGIC` | `clusterOptionsByGroup` đưa mọi option không có group lên đầu câu hỏi khiến mục 'Khác' bị đẩy lên trên các nhóm; chuỗi lưu trữ checkbox `value.split(',')` bị đứt đoạn khi nội dung tự do chứa dấu phẩy | Tách 3 tầng phân nhóm trong `clusterOptionsByGroup`: lựa chọn chưa phân nhóm (trên cùng), nhóm có tên (ở giữa), và 'Khác' độc lập (neo chặt dưới đáy cả câu hỏi); dùng pure utility `parseChecklistValues` để bóc tách compound value `__other__:<text>` mà không cắt vụn dấu phẩy | 1 |
+| 43 | `LOGIC` | `hasLongOptions` chứa điều kiện cứng `options.length > 4` khiến mọi câu hỏi có nhóm (thường > 4 lựa chọn) bị ép xếp thành 1 cột dọc dù toàn bộ là từ ngữ ngắn 2-6 ký tự, gây lãng phí giấy in nghiêm trọng; đồng thời `cluster.groupName ? '0.4rem' : (isOptionC ? '1rem' : '0')` khiến mục 'Khác' độc lập bị thụt lề 16px tạo bố cục zíc-zắc | Bỏ điều kiện cứng `options.length > 4`, thay bằng kiểm tra độ dài nhãn thực tế (> 25 chars, >= 3 nhãn > 14 chars, tổng > 100 chars); dùng `hasAnyGroups ? '0.4rem' : (isClusterLong ? '1.25rem' : '0.4rem')` để đồng bộ 100% trục tung cho cả nhóm và mục 'Khác' | 1 |
 
 ---
 
 ## Nhật ký Phiên
+
+### 2026-10-26 — Khôi Phục Smart Layout Hàng Ngang Tiết Kiệm Giấy In & Đồng Bộ Thụt Lề Nhóm "Khác" (`formUtils`, `FormBuilder`, `FormFiller`, `ProcessReader`, `PrintBlankForm`, `PrintFilledForm`)
+
+**Scope:** 6 source files (`src/utils/formUtils.ts`, `src/components/FormBuilder.tsx`, `src/components/FormFiller.tsx`, `src/components/ProcessReader.tsx`, `src/components/print/PrintBlankForm.tsx`, `src/components/print/PrintFilledForm.tsx`) + 3 design docs (`DESIGN_FORM_DESIGNER.md`, `DESIGN_FORM_OPERATIONS.md`, `DESIGN_PROCESS_DESIGNER.md`).
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa | 6 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 6 (`npx tsc --noEmit` pass 100%, `npm run build` pass 20.14s) |
+| Số lệnh thất bại | 0 |
+
+**Phân tích nguyên nhân gốc (Root Cause):**
+1. **Lãng phí giấy in do ép 1 cột dọc:** Hàm `hasLongOptions` trong `src/utils/formUtils.ts` có dòng `if (options.length > 4) return true;`. Khi người dùng tạo các nhóm câu hỏi (thường có tổng > 4 lựa chọn, ví dụ `NÔNG SẢN` và `THỦY SẢN` gồm 13 mục), hàm này luôn trả về `true` ép toàn bộ các cụm sang xếp dọc 1 cột (`flex-direction: column`) dù toàn bộ là từ ngữ ngắn 2-6 ký tự (`Cá`, `Tôm`, `Dừa`, `Lúa gạo`), để trống nửa trang giấy bên phải và gây lãng phí trang in nghiêm trọng.
+2. **Lệch thụt lề mục "Khác":** Biểu thức gán thụt lề trước đây `cluster.groupName ? '0.4rem' : (isOptionC ? '1rem' : '0')` khiến mục "Khác" độc lập (không có `groupName`) rơi vào nhánh `1rem` (16px), trong khi các lựa chọn trong nhóm nhận `0.4rem` (6.4px), làm ô checkbox "Khác" bị lệch vào trong 10px tạo thành bố cục zíc-zắc.
+
+**Biện pháp khắc phục & Kiểm chứng:**
+- `src/utils/formUtils.ts`:
+  - Nâng cấp `hasLongOptions(target?: FormFieldISO | Array<{ label?: string; [key: string]: any }>): boolean`.
+  - Loại bỏ điều kiện thô `options.length > 4`.
+  - Triển khai logic kiểm tra độ dài nhãn thực tế: chỉ xếp dọc khi có nhãn > 25 ký tự, hoặc >= 3 nhãn > 14 ký tự, hoặc tổng chiều dài nhãn > 100 ký tự.
+- `FormBuilder.tsx`, `PrintBlankForm.tsx`, `PrintFilledForm.tsx`, `FormFiller.tsx`, `ProcessReader.tsx`:
+  - Đánh giá `isClusterLong = hasLongOptions(cluster.options)` độc lập cho từng nhóm.
+  - Cho phép các nhóm từ ngữ ngắn tự động dàn hàng ngang (`flex-direction: row; flex-wrap: wrap; gap: 4px 20px`), tiết kiệm tới ~75% chiều cao trang in.
+  - Đồng bộ thụt lề: áp dụng `hasAnyGroups ? '0.4rem' : (isClusterLong ? '1.25rem' : '0.4rem')`, đưa ô checkbox và nhãn của mục "Khác" về cùng một trục tung thẳng hàng 100% với các lựa chọn bên trong nhóm.
+- Đã xác nhận `npx tsc --noEmit` pass 100% và `npm run build` pass 100%.
 
 ### 2026-10-26 — Khôi Phục Neo Đáy Lựa Chọn "Khác", Parse Checkbox An Toàn & Dọn Dẹp Dropdown Nhóm Thừa (`FormBuilder`, `formUtils`, `FormFiller`, `PrintBlankForm`, `PrintFilledForm`)
 

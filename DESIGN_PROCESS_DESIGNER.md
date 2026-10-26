@@ -9,7 +9,7 @@
 | **Module Name** | Process Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-10-16) — ProcessEditor `onSave` callback payload trim (excludes `layoutBlocks`/`revisionHistory` from `workflowFormsData`) verified against source |
+| **Verified At Commit** | (2026-10-26) — ProcessReader ChecklistTable & InfoGrid parseChecklistValues and cluster padding verified against source |
 
 > **⚠️ Note:** Several architectural facts here are not obvious from the code — see Sections 4.5, 6.2, and 7.
 
@@ -529,7 +529,6 @@ full diff of any entry below.
 
 | Date | Commit | Change |
 |---|---|---|
-| 2026-07-14 | `e02e99d` | **Interface change:** added `linkedProcessId` and `onUnlinkFromProcess` to the FormBuilder bridge (Section 6.2). Implemented the Form ID lock and unlink flow. |
 | 2026-07-14 | `e02e99d` | **Invariants documented (Section 4.5):** `workflowFormsData` cleanup happens only in `handleSave`; the `process_forms` junction table and derived `workflowForms` list; `normalizeProcessFormsData()` legacy key migration; and the `handleSave` stale-`steps` race fixed via `pendingStepsRef`. |
 | 2026-07-20 | `02aa7a9` | **Refactor:** `bpmnXmlGenerator.ts` split from a ~1,000-line monolith into 5 sub-modules under `src/utils/layout/` (`gridLayout`, `linkEvents`, `nodePositioner`, `edgeRouter`, `documentPlacer`). Public API (`getNumRows`, `generateBPMNXML`) unchanged. Section 4.6 added. |
 | 2026-07-29 | `9a6bb9a` | **BPMN Export Toolset:** (1) Added `src/utils/bpmnExportUtils.ts` providing `copyBpmnToClipboard` (PNG with opaque white background `#ffffff` at 2x High-DPI 300 DPI for 1-Click `Ctrl+V` MS Word paste) and `downloadBpmnVectorFile` (raw `.svg` vector export). (2) Updated `BpmnViewerComponent.tsx` and `BpmnModelerComponent.tsx` with concise `[ 📋 Copy ]` and `[ 📥 Download ]` action buttons and Toast notifications. |
@@ -544,3 +543,4 @@ full diff of any entry below.
 | 2026-08-31 | `CURRENT` | **ProcessReader Parallel Fetching:** Converted sequential calls of `fetchProcess()` and `fetchFormsList()` in `ProcessReader.tsx`'s `useEffect` to `Promise.all([fetchProcess(), fetchFormsList()])`. |
 | 2026-09-03 | `CURRENT` | **ProcessEditor Loading Optimization:** Parallelized `fetch('/api/forms')` and `fetch('/api/processes')` with `Promise.all` in `fetchProcess()`, cutting initial loading time by ~50%. Removed redundant `fetchFormsList()` invocation at component mount when `processId` is present. |
 | 2026-10-16 | `CURRENT` | **Form Save Cascading Payload Optimization:** In `onSave` callback (Section 6.2), destructured `savedFormData` to exclude `layoutBlocks` and `revisionHistory` before merging into `workflowFormsData`. Also stripped `layout_blocks` and `revision_history` from the `allForms` local state update. Prevents cascading multi-MB `POST /api/processes` auto-save when forms contain embedded base64 images or large revision histories. |
+| 2026-10-26 | `CURRENT` | **ProcessReader Checklist & Group Indent Parity (`ProcessReader`):** (1) Integrated `parseChecklistValues` for robust comma-safe checkbox option parsing. (2) Aligned option cluster padding to `clusters.some(c => c.groupName) ? '0.35rem' : '0'` to maintain visual parity with FormFiller and Print forms. |

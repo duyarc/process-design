@@ -1874,12 +1874,14 @@ function FormFillerInner({
                           )
                         ) : field.type === 'checkbox' ? (() => {
                           const isOptionC = getAutoCheckboxLayoutMode(field, block.columns) === 'OPTION_C';
-                          const isLongOpt = hasLongOptions(field);
                           const rawOptions = field.options ?? [{ label: 'Có', value: 'YES' }, { label: 'Không', value: 'NO' }];
                           const clusters = clusterOptionsByGroup(rawOptions, field.optionGroups).filter(c => c.options.length > 0);
+                          const hasAnyGroups = clusters.some(c => !!c.groupName) || ((field.optionGroups || []).length > 0);
                           return (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '100%' }}>
-                              {clusters.map((cluster, cIdx) => (
+                              {clusters.map((cluster, cIdx) => {
+                                const isClusterLong = hasLongOptions(cluster.options);
+                                return (
                                 <div key={cluster.groupName || cIdx} style={{ display: 'flex', flexDirection: 'column', gap: '3px', width: '100%' }}>
                                   {cluster.groupName && (
                                     <div style={{
@@ -1901,12 +1903,12 @@ function FormFillerInner({
                                   )}
                                   <div style={{
                                     display: 'flex',
-                                    flexDirection: isOptionC && isLongOpt ? 'column' : 'row',
-                                    flexWrap: isOptionC && isLongOpt ? 'nowrap' : 'wrap',
-                                    gap: isOptionC && isLongOpt ? '6px' : '6px 20px',
-                                    alignItems: isOptionC && isLongOpt ? 'flex-start' : 'center',
+                                    flexDirection: isOptionC && isClusterLong ? 'column' : 'row',
+                                    flexWrap: isOptionC && isClusterLong ? 'nowrap' : 'wrap',
+                                    gap: isOptionC && isClusterLong ? '6px' : '6px 20px',
+                                    alignItems: isOptionC && isClusterLong ? 'flex-start' : 'center',
                                     padding: '2px 0',
-                                    paddingLeft: cluster.groupName ? '0.4rem' : (isOptionC ? '1rem' : '0')
+                                    paddingLeft: hasAnyGroups ? '0.4rem' : (isOptionC ? '1rem' : '0')
                                   }}>
                                     {cluster.options.map((opt: any) => {
                                       const isOtherOpt = opt.isOther || opt.value === '__other__';
@@ -1958,18 +1960,21 @@ function FormFillerInner({
                                     })}
                                   </div>
                                 </div>
-                              ))}
+                              );
+                              })}
                             </div>
                           );
                         })() : field.type === 'radio' ? (() => {
                           const isOptionC = getAutoCheckboxLayoutMode(field, block.columns) === 'OPTION_C';
-                          const isLongOpt = hasLongOptions(field);
-                          const isStacked = isOptionC && isLongOpt;
                           const rawOptions = field.options ?? [{ label: 'Đạt', value: 'PASS', isPass: true }, { label: 'Không Đạt', value: 'FAIL', isPass: false }];
                           const clusters = clusterOptionsByGroup(rawOptions, field.optionGroups).filter(c => c.options.length > 0);
+                          const hasAnyGroups = clusters.some(c => !!c.groupName) || ((field.optionGroups || []).length > 0);
                           return (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '100%' }}>
-                              {clusters.map((cluster, cIdx) => (
+                              {clusters.map((cluster, cIdx) => {
+                                const isClusterLong = hasLongOptions(cluster.options);
+                                const isStacked = isOptionC && isClusterLong;
+                                return (
                                 <div key={cluster.groupName || cIdx} style={{ display: 'flex', flexDirection: 'column', gap: '3px', width: '100%' }}>
                                   {cluster.groupName && (
                                     <div style={{
@@ -1996,7 +2001,7 @@ function FormFillerInner({
                                     gap: isStacked ? '8px' : '6px 20px',
                                     alignItems: isStacked ? 'flex-start' : 'center',
                                     padding: '2px 0',
-                                    paddingLeft: cluster.groupName ? '0.4rem' : (isOptionC ? '1rem' : '0'),
+                                    paddingLeft: hasAnyGroups ? '0.4rem' : (isOptionC ? '1rem' : '0'),
                                     width: '100%'
                                   }}>
                                     {cluster.options.map((opt: any) => {
@@ -2041,7 +2046,8 @@ function FormFillerInner({
                                     })}
                                   </div>
                                 </div>
-                              ))}
+                              );
+                              })}
                             </div>
                           );
                         })() : field.type === 'select' ? (() => {
@@ -2397,7 +2403,7 @@ function FormFillerInner({
                                           {cluster.groupName}
                                         </div>
                                       )}
-                                      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', maxWidth: '100%', paddingLeft: cluster.groupName ? '0.35rem' : '0' }}>
+                                      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', maxWidth: '100%', paddingLeft: clusters.some(c => !!c.groupName) ? '0.35rem' : '0' }}>
                                         {cluster.options.map((opt: any) => {
                                           const isOtherOpt = opt.isOther || opt.value === '__other__';
                                           const currentValues = parseChecklistValues(value);

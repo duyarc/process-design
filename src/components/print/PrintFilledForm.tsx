@@ -530,28 +530,29 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                             if (f.type === 'checkbox' || f.type === 'radio') {
                               const options = f.options ?? [{ label: 'Có', value: 'YES' }, { label: 'Không', value: 'NO' }];
                               const layoutMode = getAutoCheckboxLayoutMode(f, block.columns);
-                              const isLongOpt = hasLongOptions(f);
-
                               if (layoutMode === 'OPTION_C') {
                                 const clusters = clusterOptionsByGroup(options, f.optionGroups);
+                                const hasAnyGroups = clusters.some(c => !!c.groupName) || ((f.optionGroups || []).length > 0);
                                 return (
                                   <div key={f.id} style={{ ...gridItemStyle, display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '0.82rem' }}>
                                     {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a' }}>{renderFormattedText(cleanLabel)}</span>}
-                                    {clusters.map((cluster, cIdx) => (
-                                      <div key={cluster.groupName || cIdx} style={{ display: 'flex', flexDirection: 'column', gap: '2px', width: '100%' }}>
-                                        {cluster.groupName && (
-                                          <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: cIdx > 0 ? '4px' : '2px', marginBottom: '1px' }}>
-                                            {cluster.groupName}
-                                          </div>
-                                        )}
-                                        <div style={{
-                                          display: 'flex',
-                                          flexDirection: isLongOpt ? 'column' : 'row',
-                                          flexWrap: isLongOpt ? 'nowrap' : 'wrap',
-                                          gap: isLongOpt ? '4px' : '4px 20px',
-                                          paddingLeft: cluster.groupName ? '0.4rem' : '1.25rem',
-                                          alignItems: isLongOpt ? 'flex-start' : 'center'
-                                        }}>
+                                    {clusters.map((cluster, cIdx) => {
+                                      const isClusterLong = hasLongOptions(cluster.options);
+                                      return (
+                                        <div key={cluster.groupName || cIdx} style={{ display: 'flex', flexDirection: 'column', gap: '2px', width: '100%' }}>
+                                          {cluster.groupName && (
+                                            <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: cIdx > 0 ? '4px' : '2px', marginBottom: '1px' }}>
+                                              {cluster.groupName}
+                                            </div>
+                                          )}
+                                          <div style={{
+                                            display: 'flex',
+                                            flexDirection: isClusterLong ? 'column' : 'row',
+                                            flexWrap: isClusterLong ? 'nowrap' : 'wrap',
+                                            gap: isClusterLong ? '4px' : '4px 20px',
+                                            paddingLeft: hasAnyGroups ? '0.4rem' : (isClusterLong ? '1.25rem' : '0.4rem'),
+                                            alignItems: isClusterLong ? 'flex-start' : 'center'
+                                          }}>
                                           {cluster.options.map((opt: any) => {
                                             const selected = isOptionSelected(val, opt.value, f.type as 'radio' | 'checkbox');
                                             const isOther = opt.isOther || opt.value === '__other__';
@@ -574,7 +575,7 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                                   lineHeight: 1,
                                                   textAlign: 'center',
                                                   boxSizing: 'border-box',
-                                                  marginTop: isLongOpt ? '2px' : '0'
+                                                  marginTop: isClusterLong ? '2px' : '0'
                                                 }}>
                                                   {selected ? '✓' : ''}
                                                 </span>
@@ -591,7 +592,8 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                           })}
                                         </div>
                                       </div>
-                                    ))}
+                                    );
+                                    })}
                                   </div>
                                 );
                               }

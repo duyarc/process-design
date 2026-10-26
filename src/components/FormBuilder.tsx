@@ -4312,12 +4312,14 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                       const options = f.options ?? [{ label: 'Đạt', value: 'PASS' }, { label: 'Không Đạt', value: 'FAIL' }];
                                       const layoutMode = getAutoCheckboxLayoutMode(f, block.columns);
                                       const isOptionC = layoutMode === 'OPTION_C';
-                                      const isLongOpt = hasLongOptions(f);
-                                      const isStacked = isOptionC && isLongOpt;
                                       const clusters = clusterOptionsByGroup(options, f.optionGroups);
+                                      const hasAnyGroups = clusters.some(c => !!c.groupName) || ((f.optionGroups || []).length > 0);
                                       return (
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '100%', maxWidth: '100%', marginTop: '4px' }}>
-                                          {clusters.map((cluster, cIdx) => (
+                                          {clusters.map((cluster, cIdx) => {
+                                            const isClusterLong = hasLongOptions(cluster.options);
+                                            const isStacked = isOptionC && isClusterLong;
+                                            return (
                                             <div key={cluster.groupName || cIdx} style={{ display: 'flex', flexDirection: 'column', gap: '3px', width: '100%' }}>
                                               {cluster.groupName && (() => {
                                                 const groupListId = `canvas-group-${block.id}-${f.id}`;
@@ -4492,7 +4494,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                 gap: isStacked ? '6px' : '6px 18px',
                                                 alignItems: isStacked ? 'flex-start' : 'center',
                                                 paddingTop: '2px',
-                                                paddingLeft: cluster.groupName ? '0.4rem' : (isOptionC ? '1rem' : '0'),
+                                                paddingLeft: hasAnyGroups ? '0.4rem' : (isOptionC ? '1rem' : '0'),
                                                 width: '100%',
                                                 maxWidth: '100%'
                                               }}>
@@ -4712,7 +4714,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                           })}
                                               </div>
                                             </div>
-                                          ))}
+                                          );
+                                          })}
                                           {isFieldSelected && !isLocked && (() => {
                                             const hasOther = options.some((o: any) => o.isOther || o.value === '__other__');
                                             return (
