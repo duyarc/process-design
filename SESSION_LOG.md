@@ -12,7 +12,6 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 | # | Nhóm | Lỗi | Biện pháp phòng ngừa | Lần gặp |
 |---|---|---|---|---|
-| 26 | `LOGIC` | Dùng trường câu hỏi dài (>45 ký tự) trong `INFO_GRID` bị áp `whiteSpace: 'nowrap'` trên `PrintBlankForm` khiến bảng in phình rộng >1.200px và co chữ xuống 55%; nhúng bảng nhiều cột vào `subtable` làm giảm cỡ chữ xuống `0.75rem` | Với bảng dữ liệu nhiều cột, ưu tiên dùng khối `TABLE` (`borderStyle: 'grid'`) cấp cao nhất; trong `INFO_GRID`, tự động ngắt dòng (`isLongTextLabel`) khi `cleanLabel.length > 45` hoặc có `\n` | 1 |
 | 27 | `LOGIC` | Container bảng dùng `overflowX: 'auto'` tự động kích hoạt `overflowY: 'auto'` theo chuẩn W3C CSS khiến dropdown menu (`position: absolute; top: 100%`) bị cắt cụt (cut off) ở đáy bảng và sinh thanh cuộn dọc không mong muốn khi bảng có ít hàng | Đặt `overflow: 'visible'` trên wrapper bảng nếu các hàng có dropdown menu tuyệt đối; bổ sung dynamic `zIndex: isGroupActive ? 30 : 1` trên card cha để menu hiển thị đè lên các card tiếp theo | 1 |
 | 28 | `SCOPE` | Khi thêm tính năng in kèm hướng dẫn biểu mẫu trắng, nếu tạo component in mới sẽ trùng lặp title block, logo, @page CSS và phân trang | Kế thừa trực tiếp component in hiện hữu (`PrintBlankForm`) thông qua cờ prop `includeGuidance?: boolean` để giữ 100% nhất quán định dạng và zero duplication | 1 |
 | 29 | `LOGIC` | Gộp chung `field.type === 'radio'` với `select` trong render nhánh form khiến radio biến thành dropdown `<select>` và chữ dài bị ép 1 dòng; dùng `maxWidth: '180px'` cứng nhắc trên canvas khiến nhãn radio dài bị cắt cụt | Luôn tách riêng component render radio button group với radio circle native; với nhãn nhiều dòng trên canvas, dùng CSS Grid auto-growing `<textarea>` thay vì `<input>` cố định chiều rộng | 1 |
@@ -32,10 +31,29 @@ phiên thực thi để không lặp lại lỗi cũ.
 | 43 | `LOGIC` | `hasLongOptions` chứa điều kiện cứng `options.length > 4` khiến mọi câu hỏi có nhóm (thường > 4 lựa chọn) bị ép xếp thành 1 cột dọc dù toàn bộ là từ ngữ ngắn 2-6 ký tự, gây lãng phí giấy in nghiêm trọng; đồng thời `cluster.groupName ? '0.4rem' : (isOptionC ? '1rem' : '0')` khiến mục 'Khác' độc lập bị thụt lề 16px tạo bố cục zíc-zắc | Bỏ điều kiện cứng `options.length > 4`, thay bằng kiểm tra độ dài nhãn thực tế (> 25 chars, >= 3 nhãn > 14 chars, tổng > 100 chars); dùng `hasAnyGroups ? '0.4rem' : (isClusterLong ? '1.25rem' : '0.4rem')` để đồng bộ 100% trục tung cho cả nhóm và mục 'Khác' | 1 |
 | 44 | `UI` | Nhúng iframe Google Maps/OSM vào form field gây 3 rủi ro chí mạng: nạp 2-3MB per iframe, Scroll Trap kẹt ngón tay khi cuộn form trên di động, và `html2canvas` bị chặn sandbox CORS khiến bản in PDF nghiệm thu bị trắng xóa hình bản đồ | Dùng Pure HTML5 Canvas OSM Tile Stitcher (`MiniMapCanvas`): tải raster tile qua Web Mercator math thuần và vẽ lên `<canvas>` nội bộ với `crossOrigin="anonymous"`, 0 KB dependency, không bẫy cuộn di động và xuất PDF 100% | 1 |
 | 45 | `UI` | Bản đồ raster vệ tinh REST API của Esri (`ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}`) đảo ngược thứ tự trục tọa độ `{y}` (hàng) trước `{x}` (cột) so với chuẩn OpenStreetMap XYZ thông thường `{z}/{x}/{y}` | Luôn kiểm tra định dạng URI của nhà cung cấp tile map: với OpenStreetMap là `/{z}/{x}/{y}.png`, với Esri REST TileServer là `/{z}/{y}/{x}`. Tải ảnh với `crossOrigin="anonymous"` để bảo toàn khả năng chụp ảnh Canvas xuất PDF mà không bị taint | 1 |
+| 46 | `LOGIC` | Nút tương tác builder (`+ Add Field Slot`) đặt bên trong container `display: grid` có `gridAutoFlow: 'row dense'` bị thuật toán tự động nhét vào các ô trống dữ liệu giữa các câu hỏi | Luôn đặt các nút điều khiển của builder (Add button, action bar) bên ngoài thẻ CSS Grid container của dữ liệu, hoặc bắt buộc gán `gridColumn: '1 / -1'` nằm phẳng ở đáy | 1 |
 
 ---
 
 ## Nhật ký Phiên
+
+### 2026-10-26 — External Add Field Bar & Compact Right Inspector (`FormBuilder`)
+
+**Scope:** 1 source file (`src/components/FormBuilder.tsx`) + 1 design doc (`DESIGN_FORM_DESIGNER.md`).
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa | 1 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 10 (`npx tsc --noEmit` pass 100%, `npm run build` pass 16.53s) |
+| Số lệnh thất bại | 0 |
+
+**Phân tích nguyên nhân gốc & Quyết định giải pháp:**
+1. **Lỗi `+ Add Field Slot` bị nhét vào giữa lưới:** Nút thêm trường trước đây nằm bên trong container `display: grid` với `gridAutoFlow: 'row dense'`. Khi xuất hiện ô trống ở cột trái do trường đối diện có `rowSpan`, CSS Grid tự động coi nút này là một cell dữ liệu và nhét nó vào giữa các trường. Khắc phục bằng cách đưa nút ra bên ngoài thẻ container grid, tạo thành thanh bar phẳng ở đáy block.
+2. **Tinh gọn Right Inspector (Subtraction Design):**
+   - Đưa `Loại trường (Type)` lên nhóm phân cấp đầu tiên (dưới `ID`, trên `Label` và các panel con).
+   - Xóa bỏ câu chữ giải thích rác dưới ô placeholder.
+   - Thay thế 4 tầng cấu hình Mini Map rời rạc bằng 1 card phẳng 2 dòng tích hợp `[✓] Hiển thị Mini Map`, segmented control `[ 🗺️ Bản đồ | 🛰️ Vệ tinh ]`, và các nút bấm 1-touch `[ 2 dòng (85px) ] [ 3 dòng (125px) ] [ 1 dòng ]`, giảm hơn 50% chiều cao và triệt tiêu thanh cuộn dọc trên sidebar.
 
 ### 2026-10-26 — Smart Location Bar Unification & Dense Grid Auto-Placement (`LocationInputFiller`, `FormBuilder`, `FormFiller`, `ProcessReader`, `PrintFilledForm`, `PrintBlankForm`)
 
@@ -466,22 +484,5 @@ phiên thực thi để không lặp lại lỗi cũ.
 - **Form Designer Canvas & Right Inspector:** Cập nhật `InCanvasImageField.tsx` với dải nút độ rộng `[ 100% Lề ]` / `[ Tràn mép ]` / `[ Thu nhỏ ]` và nút `[ 📁 Thư viện ]` mở Image Gallery. Đồng bộ cấu hình tương ứng trên Right Inspector của `FormBuilder.tsx`.
 - **Form Operations & Print Out Đồng bộ:** `FormFiller.tsx` hỗ trợ render ảnh theo cả 3 chế độ độ rộng kèm Lightbox phóng to. Các component in ấn (`PrintBlankForm.tsx`, `PrintFilledForm.tsx`, `PrintScoring.tsx`) dãn phẳng toàn bộ chiều rộng trang với `height: 'auto'`.
 
-### 2026-10-16 — Bổ sung Trường Hình ảnh (Image Field Type), Tỷ lệ Khung hình Banner & Lightbox Phóng to
-
-**Scope:** 8 source files (`src/types.ts`, `src/utils/formUtils.ts`, `src/components/form/InCanvasImageField.tsx` [NEW], `src/components/FormBuilder.tsx`, `src/components/FormFiller.tsx`, `src/components/print/PrintBlankForm.tsx`, `src/components/print/PrintFilledForm.tsx`, `src/components/print/PrintScoring.tsx`) + 2 design docs (`DESIGN_FORM_DESIGNER.md`, `DESIGN_FORM_OPERATIONS.md`).
-
-| Chỉ số | Giá trị |
-|---|---|
-| Số file nguồn chỉnh sửa / tạo mới | 8 |
-| Lượt edit sửa lỗi (rework) | 1 (thêm `'image'` vào `handleChangeFieldType` parameter type) |
-| Số lần build | 2 (`tsc -b && vite build` pass 100% 14.25s) |
-| Lần build đầu thành công? | Không (`tsc -b` bắt TS2367/TS2345 tại `handleChangeFieldType`, sửa dứt điểm ngay) |
-
-**Kết quả đạt được:**
-- **Schema & Pure Utility:** Thêm `'image'` và `imageUrl`, `imageAspectRatio`, `imageCaption` vào `FormFieldISO`. Thêm pure utility `resolveImageSrc` giải quyết linh hoạt URL, Base64 dataUrl và R2 storage key cho Web và Print.
-- **Sub-component `InCanvasImageField` (Rule 4.3 Monolith Guard):** Tách subcomponent riêng biệt khỏi `FormBuilder.tsx`, cung cấp dải pills chọn tỷ lệ (`Banner`, `16:9`, `4:3`, `1:1`, `Auto`), dropzone kéo thả / tải ảnh với FileReader Base64 fallback, và input chú thích inline.
-- **Form Designer Canvas & Menu:** Giữ nguyên 100% kích thước và 12 loại trường cũ của `FieldTypeDropdown`, chỉ thêm mục thứ 13 là `Image`. Thêm cấu hình thuộc tính trong Right Inspector.
-- **Form Operations & Lightbox Modal:** `FormFiller.tsx` hiển thị ảnh tham chiếu tĩnh và hỗ trợ mở Lightbox phóng to toàn màn hình khi nhấp vào ảnh, bấm Esc để đóng.
-- **In ấn A4 Chuẩn:** `PrintBlankForm.tsx`, `PrintFilledForm.tsx`, `PrintScoring.tsx` hiển thị ảnh với `page-break-inside: avoid;` và `max-width: 100%`.
 
 

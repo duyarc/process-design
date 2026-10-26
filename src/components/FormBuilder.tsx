@@ -5183,37 +5183,39 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                   </div>
                                 );
                               })}
-                              {!isLocked && (
-                                <div 
-                                  onClick={(e) => { e.stopPropagation(); handleAddField(block.id, 'text'); }}
-                                  style={{ 
-                                    display: 'flex', 
-                                    alignItems: 'center', 
-                                    justifyContent: 'center', 
-                                    border: '1px dashed #cbd5e1', 
-                                    borderRadius: '4px', 
-                                    padding: '5px', 
-                                    fontSize: '0.72rem', 
-                                    fontWeight: 500,
-                                    color: 'var(--text-muted)', 
-                                    cursor: 'pointer',
-                                    transition: 'all 0.15s ease'
-                                  }}
-                                  onMouseEnter={(e) => { 
-                                    e.currentTarget.style.borderColor = 'var(--primary)'; 
-                                    e.currentTarget.style.color = 'var(--primary)'; 
-                                    e.currentTarget.style.background = 'rgba(13, 148, 136, 0.04)';
-                                  }}
-                                  onMouseLeave={(e) => { 
-                                    e.currentTarget.style.borderColor = '#cbd5e1'; 
-                                    e.currentTarget.style.color = 'var(--text-muted)'; 
-                                    e.currentTarget.style.background = 'transparent';
-                                  }}
-                                >
-                                  <Plus size={11} style={{ marginRight: '3px' }} /> Add Field Slot
-                                </div>
-                              )}
                             </div>
+
+                            {!isLocked && (
+                              <div 
+                                onClick={(e) => { e.stopPropagation(); handleAddField(block.id, 'text'); }}
+                                style={{ 
+                                  marginTop: '0.5rem',
+                                  display: 'flex', 
+                                  alignItems: 'center', 
+                                  justifyContent: 'center', 
+                                  border: '1px dashed #cbd5e1', 
+                                  borderRadius: '4px', 
+                                  padding: '5px', 
+                                  fontSize: '0.72rem', 
+                                  fontWeight: 500,
+                                  color: 'var(--text-muted)', 
+                                  cursor: 'pointer',
+                                  transition: 'all 0.15s ease'
+                                }}
+                                onMouseEnter={(e) => { 
+                                  e.currentTarget.style.borderColor = 'var(--primary)'; 
+                                  e.currentTarget.style.color = 'var(--primary)'; 
+                                  e.currentTarget.style.background = 'rgba(13, 148, 136, 0.04)';
+                                }}
+                                onMouseLeave={(e) => { 
+                                  e.currentTarget.style.borderColor = '#cbd5e1'; 
+                                  e.currentTarget.style.color = 'var(--text-muted)'; 
+                                  e.currentTarget.style.background = 'transparent';
+                                }}
+                              >
+                                <Plus size={11} style={{ marginRight: '3px' }} /> Thêm trường vào khối
+                              </div>
+                            )}
                           </div>
                         );
                       })()}
@@ -7256,6 +7258,18 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                   />
                 </div>
 
+                {/* Field Type (Loại trường - đưa lên đầu phân cấp) */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
+                  <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.78rem', minWidth: '40px' }}>Loại trường</label>
+                  <div style={{ flex: 1 }}>
+                    <FieldTypeDropdown
+                      disabled={isLocked}
+                      value={activeField.type}
+                      onChange={(newType) => handleChangeFieldType(activeBlockId!, activeFieldId!, newType)}
+                    />
+                  </div>
+                </div>
+
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Label</label>
@@ -7311,7 +7325,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
 
                 {(activeField.type === 'photo' || activeField.type === 'location') && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                    <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>
+                    <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.78rem' }}>
                       {activeField.type === 'location' ? 'Văn bản gợi ý (Placeholder)' : 'Văn bản gợi ý trong ô (Placeholder Text)'}
                     </label>
                     <input
@@ -7320,44 +7334,45 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                       value={activeField.placeholder ?? ''}
                       onChange={(e) => handleUpdateField(activeBlockId!, activeFieldId!, { placeholder: e.target.value })}
                       placeholder={activeField.type === 'location' ? "Dán link Google Maps hoặc toạ độ..." : "Ví dụ: [photo]"}
-                      style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
+                      style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', fontSize: '0.78rem' }}
                     />
-                    <span style={{ fontSize: '0.7rem', color: '#64748b' }}>
-                      {activeField.type === 'location'
-                        ? 'Chữ mờ hiển thị gợi ý người dùng dán link Google Maps hoặc bấm nút lấy GPS.'
-                        : 'Chữ này hiển thị căn giữa bên trong khung nét đứt. Nếu để trống sẽ hiển thị ô trắng.'}
-                    </span>
                   </div>
                 )}
 
                 {activeField.type === 'location' && (
-                  <div style={{ marginTop: '0.1rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', cursor: isLocked ? 'default' : 'pointer' }}>
-                      <input
-                        type="checkbox"
-                        disabled={isLocked}
-                        checked={activeField.showMiniMap !== false}
-                        onChange={(e) => handleUpdateField(activeBlockId!, activeFieldId!, { showMiniMap: e.target.checked })}
-                        style={{ cursor: isLocked ? 'default' : 'pointer' }}
-                      />
-                      Hiển thị Mini Map
-                    </label>
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.4rem',
+                    background: '#f8fafc',
+                    padding: '8px 10px',
+                    borderRadius: '6px',
+                    border: '1px solid #e2e8f0',
+                    marginTop: '0.1rem'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                      <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)', cursor: isLocked ? 'default' : 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          disabled={isLocked}
+                          checked={activeField.showMiniMap !== false}
+                          onChange={(e) => handleUpdateField(activeBlockId!, activeFieldId!, { showMiniMap: e.target.checked })}
+                          style={{ cursor: isLocked ? 'default' : 'pointer' }}
+                        />
+                        Hiển thị Mini Map
+                      </label>
 
-                    {activeField.showMiniMap !== false && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', paddingLeft: '1.25rem' }}>
-                        <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                          Chế độ xem mặc định:
-                        </span>
-                        <div style={{ display: 'inline-flex', background: '#f1f5f9', padding: '2px', borderRadius: '4px', width: 'fit-content', border: '1px solid #e2e8f0' }}>
+                      {activeField.showMiniMap !== false && (
+                        <div style={{ display: 'inline-flex', background: '#f1f5f9', padding: '2px', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
                           <button
                             type="button"
                             disabled={isLocked}
                             onClick={() => handleUpdateField(activeBlockId!, activeFieldId!, { mapType: 'roadmap' })}
                             style={{
-                              padding: '2px 8px',
+                              padding: '2px 7px',
                               borderRadius: '3px',
                               border: 'none',
-                              fontSize: '0.72rem',
+                              fontSize: '0.7rem',
                               fontWeight: 600,
                               cursor: isLocked ? 'default' : 'pointer',
                               background: (activeField.mapType || 'roadmap') === 'roadmap' ? '#ffffff' : 'transparent',
@@ -7372,10 +7387,10 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                             disabled={isLocked}
                             onClick={() => handleUpdateField(activeBlockId!, activeFieldId!, { mapType: 'satellite' })}
                             style={{
-                              padding: '2px 8px',
+                              padding: '2px 7px',
                               borderRadius: '3px',
                               border: 'none',
-                              fontSize: '0.72rem',
+                              fontSize: '0.7rem',
                               fontWeight: 600,
                               cursor: isLocked ? 'default' : 'pointer',
                               background: activeField.mapType === 'satellite' ? '#ffffff' : 'transparent',
@@ -7386,24 +7401,44 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                             🛰️ Vệ tinh
                           </button>
                         </div>
+                      )}
+                    </div>
 
-                        {activeBlock?.type === 'INFO_GRID' && (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', marginTop: '0.35rem' }}>
-                            <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                              Chiều cao (Số dòng - rowSpan):
-                            </span>
-                            <select
-                              disabled={isLocked}
-                              value={activeField.rowSpan || 2}
-                              onChange={(e) => handleUpdateField(activeBlockId!, activeFieldId!, { rowSpan: parseInt(e.target.value, 10) })}
-                              style={{ padding: '0.25rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', background: '#fff', fontSize: '0.75rem', width: 'fit-content' }}
-                            >
-                              <option value={2}>2 dòng (Gọn gàng ~85px map)</option>
-                              <option value={3}>3 dòng (Mở rộng ~125px map)</option>
-                              <option value={1}>1 dòng (Không chiếm dòng phụ)</option>
-                            </select>
-                          </div>
-                        )}
+                    {activeBlock?.type === 'INFO_GRID' && activeField.showMiniMap !== false && (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', paddingTop: '4px', borderTop: '1px dashed #e2e8f0' }}>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                          Chiều cao:
+                        </span>
+                        <div style={{ display: 'inline-flex', background: '#f1f5f9', padding: '2px', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
+                          {[
+                            { value: 2, label: '2 dòng (85px)' },
+                            { value: 3, label: '3 dòng (125px)' },
+                            { value: 1, label: '1 dòng' }
+                          ].map(opt => {
+                            const isSelected = (activeField.rowSpan || 2) === opt.value;
+                            return (
+                              <button
+                                key={opt.value}
+                                type="button"
+                                disabled={isLocked}
+                                onClick={() => handleUpdateField(activeBlockId!, activeFieldId!, { rowSpan: opt.value })}
+                                style={{
+                                  padding: '2px 6px',
+                                  borderRadius: '3px',
+                                  border: 'none',
+                                  fontSize: '0.7rem',
+                                  fontWeight: isSelected ? 600 : 400,
+                                  cursor: isLocked ? 'default' : 'pointer',
+                                  background: isSelected ? '#ffffff' : 'transparent',
+                                  color: isSelected ? 'var(--primary)' : '#64748b',
+                                  boxShadow: isSelected ? '0 1px 2px rgba(0,0,0,0.06)' : 'none'
+                                }}
+                              >
+                                {opt.label}
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -7520,16 +7555,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                   </div>
                 )}
 
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
-                  <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.8rem', minWidth: '40px' }}>Type</label>
-                  <div style={{ flex: 1 }}>
-                    <FieldTypeDropdown
-                      disabled={isLocked}
-                      value={activeField.type}
-                      onChange={(newType) => handleChangeFieldType(activeBlockId!, activeFieldId!, newType)}
-                    />
-                  </div>
-                </div>
+
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', marginTop: '0.4rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
