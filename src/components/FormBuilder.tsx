@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, Fragment } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import type { FormFieldISO, FormRevisionEntry, FormTemplateISO, LayoutBlockISO, RadioOption, MatrixConfigISO, TableColumnConfig, TableRowConfig, ColumnSummaryRowConfig, TitleFormatISO, SubtableColumn, BlockVisibilityCondition, LinkedWorkStepInfo } from '../types';
 import { formatFormVersion, getColStyleWidth } from '../types';
 import { sanitizeLabel, getEffectiveTitleFormat, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, isSeamlessTableBlock, getInfoGridTemplateColumns, snap2ColWidth, snap3ColWidths, INFO_GRID_2COL_PRESETS, generateSmartFieldSlug, getCheckboxGridTemplate, reorderOptionsArray, reorderArray, getEffectiveCellOptions as getEffectiveCellOptionsUtil, toFormSlug, getTableItemColumnId, clusterOptionsByGroup, reorderGroupsInOptions, reorderOptionWithGroup } from '../utils/formUtils';
@@ -4314,7 +4314,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                       const isOptionC = layoutMode === 'OPTION_C';
                                       const isLongOpt = hasLongOptions(f);
                                       const isStacked = isOptionC && isLongOpt;
-                                      const clusters = clusterOptionsByGroup(options);
+                                      const clusters = clusterOptionsByGroup(options, f.optionGroups);
                                       return (
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '100%', maxWidth: '100%', marginTop: '4px' }}>
                                           {clusters.map((cluster, cIdx) => (
@@ -4348,11 +4348,24 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                     onDrop={(e) => {
                                                       e.preventDefault();
                                                       if (draggedGroup?.listId === groupListId && draggedGroup.groupName !== cluster.groupName) {
-                                                        const newOptions = reorderGroupsInOptions(options, draggedGroup.groupName, cluster.groupName!);
-                                                        handleUpdateField(block.id, f.id, { options: newOptions });
+                                                        const result = reorderGroupsInOptions(options, draggedGroup.groupName, cluster.groupName!, f.optionGroups);
+                                                        handleUpdateField(block.id, f.id, { options: result.options, optionGroups: result.optionGroups });
                                                       } else if (draggedOption?.listId === `field-canvas-${block.id}-${f.id}`) {
-                                                        const targetIdx = options.indexOf(cluster.options[0]);
-                                                        const newOptions = reorderOptionWithGroup(options, draggedOption.index, targetIdx >= 0 ? targetIdx : 0, cluster.groupName);
+                                                        let targetIdx: number;
+                                                        if (cluster.options.length > 0) {
+                                                          targetIdx = options.indexOf(cluster.options[0]);
+                                                        } else {
+                                                          let foundIdx = -1;
+                                                          for (let prev = cIdx - 1; prev >= 0; prev--) {
+                                                            if (clusters[prev].options.length > 0) {
+                                                              const lastOpt = clusters[prev].options[clusters[prev].options.length - 1];
+                                                              foundIdx = options.indexOf(lastOpt) + 1;
+                                                              break;
+                                                            }
+                                                          }
+                                                          targetIdx = foundIdx >= 0 ? foundIdx : 0;
+                                                        }
+                                                        const newOptions = reorderOptionWithGroup(options, draggedOption.index, targetIdx, cluster.groupName);
                                                         handleUpdateField(block.id, f.id, { options: newOptions });
                                                       }
                                                       setDraggedGroup(null);
@@ -4398,8 +4411,10 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                       onBlur={(e) => {
                                                         const newName = e.target.value.trim();
                                                         if (newName && newName !== cluster.groupName) {
+                                                          const nextGroups = (f.optionGroups || []).map(g => g === cluster.groupName ? newName : g);
+                                                          if (!nextGroups.includes(newName)) nextGroups.push(newName);
                                                           const next = options.map((o: any) => o.group === cluster.groupName ? { ...o, group: newName } : o);
-                                                          handleUpdateField(block.id, f.id, { options: next });
+                                                          handleUpdateField(block.id, f.id, { options: next, optionGroups: nextGroups });
                                                         } else if (!newName) {
                                                           e.target.value = cluster.groupName || '';
                                                         }
@@ -4421,7 +4436,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                         padding: '1px 4px',
                                                         outline: 'none',
                                                         width: 'auto',
-                                                        minWidth: '60px'
+                                                        minWidth: '60px',
+                                                        pointerEvents: (draggedOption || draggedGroup) ? 'none' : 'auto'
                                                       }}
                                                       onFocus={(e) => {
                                                         e.currentTarget.style.borderColor = 'var(--primary)';
@@ -4433,6 +4449,39 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                       }}
                                                       title="Nhấp để đổi tên nhóm"
                                                     />
+                                                    {isFieldSelected && !isLocked && (
+                                                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', marginLeft: 'auto' }}>
+                                                        <button
+                                                          type="button"
+                                                          onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            const otherIndex = options.findIndex((o: any) => o.isOther || o.value === '__other__');
+                                                            const newOpt = { label: `Lựa chọn ${options.length + 1}`, value: `opt_${Date.now()}`, isPass: true, group: cluster.groupName };
+                                                            const newOptions = otherIndex !== -1
+                                                              ? [...options.slice(0, otherIndex), newOpt, ...options.slice(otherIndex)]
+                                                              : [...options, newOpt];
+                                                            handleUpdateField(block.id, f.id, { options: newOptions });
+                                                          }}
+                                                          style={{ border: 'none', background: 'none', color: 'var(--primary)', cursor: 'pointer', padding: '0 2px', fontSize: '10px', lineHeight: 1 }}
+                                                          title={`Thêm lựa chọn vào ${cluster.groupName}`}
+                                                        >
+                                                          <Plus size={10} />
+                                                        </button>
+                                                        <button
+                                                          type="button"
+                                                          onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            const nextGroups = (f.optionGroups || []).filter(g => g !== cluster.groupName);
+                                                            const nextOptions = options.map((o: any) => o.group === cluster.groupName ? { ...o, group: undefined } : o);
+                                                            handleUpdateField(block.id, f.id, { options: nextOptions, optionGroups: nextGroups });
+                                                          }}
+                                                          style={{ border: 'none', background: 'none', color: '#ef4444', cursor: 'pointer', padding: '0 2px', fontSize: '10px', lineHeight: 1, opacity: 0.6 }}
+                                                          title={`Xóa nhóm ${cluster.groupName}`}
+                                                        >
+                                                          ✕
+                                                        </button>
+                                                      </span>
+                                                    )}
                                                   </div>
                                                 );
                                               })()}
@@ -4447,6 +4496,11 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                 width: '100%',
                                                 maxWidth: '100%'
                                               }}>
+                                                {cluster.options.length === 0 && isFieldSelected && !isLocked && (
+                                                  <span style={{ fontSize: '0.7rem', color: '#94a3b8', fontStyle: 'italic', paddingLeft: '4px' }}>
+                                                    (Nhóm trống - kéo lựa chọn vào đây hoặc nhấn + để thêm)
+                                                  </span>
+                                                )}
                                                 {cluster.options.map((opt: any) => {
                                                   const optIdx = options.indexOf(opt);
                                             const isOtherOpt = opt.isOther || opt.value === '__other__';
@@ -4569,6 +4623,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                         outline: 'none',
                                                         cursor: isLocked ? 'default' : 'text',
                                                         padding: '1px 3px',
+                                                        pointerEvents: (draggedOption || draggedGroup) ? 'none' : 'auto',
                                                         transition: 'all 0.15s ease'
                                                       }}
                                                       onFocus={(e) => {
@@ -4609,6 +4664,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                       padding: '1px 3px',
                                                       minWidth: '40px',
                                                       maxWidth: '100%',
+                                                      pointerEvents: (draggedOption || draggedGroup) ? 'none' : 'auto',
                                                       transition: 'all 0.15s ease'
                                                     }}
                                                     onFocus={(e) => {
@@ -4720,31 +4776,17 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                   type="button"
                                                   onClick={(e) => {
                                                     e.stopPropagation();
-                                                    const otherIndex = options.findIndex((o: any) => o.isOther || o.value === '__other__');
-                                                    const existingGroups = Array.from(new Set(options.map((o: any) => (o.group || '').trim()).filter(Boolean)));
-                                                    const defaultGroupName = `Nhóm ${existingGroups.length + 1}`;
-                                                    const ungroupedIndices: number[] = [];
-                                                    options.forEach((o: any, i: number) => {
-                                                      if (!o.isOther && o.value !== '__other__' && !(o.group && o.group.trim())) {
-                                                        ungroupedIndices.push(i);
-                                                      }
-                                                    });
-
-                                                    let newOptions: any[];
-                                                    if (ungroupedIndices.length > 0) {
-                                                      newOptions = options.map((o: any, i: number) => {
-                                                        if (ungroupedIndices.includes(i)) {
-                                                          return { ...o, group: defaultGroupName };
-                                                        }
-                                                        return o;
-                                                      });
-                                                    } else {
-                                                      const newOpt = { label: `Lựa chọn ${options.length + 1}`, value: `opt_${Date.now()}`, isPass: true, group: defaultGroupName };
-                                                      newOptions = otherIndex !== -1
-                                                        ? [...options.slice(0, otherIndex), newOpt, ...options.slice(otherIndex)]
-                                                        : [...options, newOpt];
+                                                    const currentGroups = f.optionGroups && f.optionGroups.length > 0
+                                                      ? f.optionGroups
+                                                      : Array.from(new Set(options.map((o: any) => (o.group || '').trim()).filter(Boolean)));
+                                                    let nextNum = currentGroups.length + 1;
+                                                    let defaultGroupName = `Nhóm ${nextNum}`;
+                                                    while (currentGroups.includes(defaultGroupName)) {
+                                                      nextNum++;
+                                                      defaultGroupName = `Nhóm ${nextNum}`;
                                                     }
-                                                    handleUpdateField(block.id, f.id, { options: newOptions });
+                                                    const newGroups = [...currentGroups, defaultGroupName];
+                                                    handleUpdateField(block.id, f.id, { optionGroups: newGroups });
                                                   }}
                                                   style={{
                                                     display: 'inline-flex',
@@ -7802,265 +7844,321 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                       {(() => {
                         const currentOpts = activeField.options ?? DEFAULT_RADIO_OPTIONS;
-                        const existingGroups = Array.from(new Set(currentOpts.map(o => (o.group || '').trim()).filter(Boolean)));
+                        const clusters = clusterOptionsByGroup(currentOpts, activeField.optionGroups);
+                        const allGroups = Array.from(new Set([
+                          ...(activeField.optionGroups || []),
+                          ...currentOpts.map(o => (o.group || '').trim()).filter(Boolean)
+                        ]));
                         const datalistId = `groups-datalist-${activeFieldId}`;
 
                         return (
                           <>
-                            {existingGroups.length > 0 && (
+                            {allGroups.length > 0 && (
                               <datalist id={datalistId}>
-                                {existingGroups.map(g => <option key={g} value={g} />)}
+                                {allGroups.map(g => <option key={g} value={g} />)}
                               </datalist>
                             )}
-                            {currentOpts.map((opt, idx) => {
-                              const isOtherOpt = opt.isOther || opt.value === '__other__';
-                              const listId = `inspector-field-${activeFieldId}`;
-                              const isDragging = draggedOption?.listId === listId && draggedOption.index === idx;
-                              const isDragOver = dragOverOption?.listId === listId && dragOverOption.index === idx;
-                              const canDrag = !isLocked && !isOtherOpt && currentOpts.length > 1;
-
-                              const prevOpt = idx > 0 ? currentOpts[idx - 1] : undefined;
-                              const showGroupDivider = opt.group && (!prevOpt || prevOpt.group !== opt.group);
+                            {clusters.map((cluster, cIdx) => {
+                              const grpListId = `inspector-group-${activeFieldId}`;
+                              const isGrpDragging = draggedGroup?.listId === grpListId && draggedGroup.groupName === cluster.groupName;
+                              const isGrpDragOver = dragOverGroup?.listId === grpListId && dragOverGroup.groupName === cluster.groupName;
+                              const isOptOverGrp = draggedOption?.listId === `inspector-field-${activeFieldId}` && dragOverGroup?.listId === grpListId && dragOverGroup.groupName === cluster.groupName;
+                              const canDragGrp = !isLocked && clusters.length > 1;
 
                               return (
-                                <Fragment key={idx}>
-                                  {showGroupDivider && (() => {
-                                    const grpListId = `inspector-group-${activeFieldId}`;
-                                    const isGrpDragging = draggedGroup?.listId === grpListId && draggedGroup.groupName === opt.group;
-                                    const isGrpDragOver = dragOverGroup?.listId === grpListId && dragOverGroup.groupName === opt.group;
-                                    const canDragGrp = !isLocked && existingGroups.length > 1;
+                                <div key={cluster.groupName || `ungrouped-${cIdx}`} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                  {cluster.groupName && (
+                                    <div
+                                      draggable={canDragGrp}
+                                      onDragStart={(e) => {
+                                        e.dataTransfer.setData('text/plain', cluster.groupName!);
+                                        e.dataTransfer.effectAllowed = 'move';
+                                        setDraggedGroup({ listId: grpListId, groupName: cluster.groupName! });
+                                      }}
+                                      onDragOver={(e) => {
+                                        if (draggedGroup?.listId === grpListId || draggedOption?.listId === `inspector-field-${activeFieldId}`) {
+                                          e.preventDefault();
+                                          e.dataTransfer.dropEffect = 'move';
+                                        }
+                                      }}
+                                      onDragEnter={() => {
+                                        if (draggedGroup?.listId === grpListId || draggedOption?.listId === `inspector-field-${activeFieldId}`) {
+                                          setDragOverGroup({ listId: grpListId, groupName: cluster.groupName! });
+                                        }
+                                      }}
+                                      onDrop={(e) => {
+                                        e.preventDefault();
+                                        if (draggedGroup?.listId === grpListId && draggedGroup.groupName !== cluster.groupName) {
+                                          const result = reorderGroupsInOptions(currentOpts, draggedGroup.groupName, cluster.groupName!, activeField.optionGroups);
+                                          handleUpdateField(activeBlockId!, activeFieldId!, { options: result.options, optionGroups: result.optionGroups });
+                                        } else if (draggedOption?.listId === `inspector-field-${activeFieldId}`) {
+                                          let targetIdx: number;
+                                          if (cluster.options.length > 0) {
+                                            targetIdx = currentOpts.indexOf(cluster.options[0]);
+                                          } else {
+                                            let foundIdx = -1;
+                                            for (let prev = cIdx - 1; prev >= 0; prev--) {
+                                              if (clusters[prev].options.length > 0) {
+                                                const lastOpt = clusters[prev].options[clusters[prev].options.length - 1];
+                                                foundIdx = currentOpts.indexOf(lastOpt) + 1;
+                                                break;
+                                              }
+                                            }
+                                            targetIdx = foundIdx >= 0 ? foundIdx : 0;
+                                          }
+                                          const reordered = reorderOptionWithGroup(currentOpts, draggedOption.index, targetIdx, cluster.groupName);
+                                          handleUpdateField(activeBlockId!, activeFieldId!, { options: reordered });
+                                        }
+                                        setDraggedGroup(null);
+                                        setDragOverGroup(null);
+                                        setDraggedOption(null);
+                                        setDragOverOption(null);
+                                      }}
+                                      onDragEnd={() => {
+                                        setDraggedGroup(null);
+                                        setDragOverGroup(null);
+                                      }}
+                                      style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        padding: '3px 6px',
+                                        background: isOptOverGrp ? '#f0fdfa' : '#f8fafc',
+                                        borderLeft: '3px solid var(--primary)',
+                                        borderBottom: isGrpDragOver ? '2px solid var(--primary)' : undefined,
+                                        borderRadius: '3px',
+                                        marginTop: cIdx > 0 ? '6px' : '2px',
+                                        marginBottom: '1px',
+                                        opacity: isGrpDragging ? 0.4 : 1,
+                                        cursor: canDragGrp ? 'grab' : 'default',
+                                        transition: 'all 0.15s ease'
+                                      }}
+                                    >
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '3px', flex: 1, minWidth: 0 }}>
+                                        {canDragGrp && (
+                                          <span style={{ cursor: 'grab', display: 'flex', alignItems: 'center', color: '#94a3b8' }} title="Kéo để đổi thứ tự nhóm">
+                                            <GripVertical size={11} />
+                                          </span>
+                                        )}
+                                        <input
+                                          type="text"
+                                          disabled={isLocked}
+                                          defaultValue={cluster.groupName}
+                                          key={cluster.groupName}
+                                          onBlur={(e) => {
+                                            const newName = e.target.value.trim();
+                                            if (newName && newName !== cluster.groupName) {
+                                              const nextGroups = (activeField.optionGroups || []).map(g => g === cluster.groupName ? newName : g);
+                                              if (!nextGroups.includes(newName)) nextGroups.push(newName);
+                                              const next = currentOpts.map(o => o.group === cluster.groupName ? { ...o, group: newName } : o);
+                                              handleUpdateField(activeBlockId!, activeFieldId!, { options: next, optionGroups: nextGroups });
+                                            } else if (!newName) {
+                                              e.target.value = cluster.groupName || '';
+                                            }
+                                          }}
+                                          onKeyDown={(e) => {
+                                            if (e.key === 'Enter') e.currentTarget.blur();
+                                          }}
+                                          style={{
+                                            fontSize: '0.7rem',
+                                            fontWeight: 700,
+                                            color: '#334155',
+                                            textTransform: 'uppercase',
+                                            letterSpacing: '0.03em',
+                                            border: '1px solid transparent',
+                                            borderRadius: '3px',
+                                            background: 'transparent',
+                                            padding: '1px 4px',
+                                            outline: 'none',
+                                            width: '100%',
+                                            maxWidth: '160px',
+                                            pointerEvents: (draggedOption || draggedGroup) ? 'none' : 'auto'
+                                          }}
+                                          onFocus={(e) => {
+                                            e.currentTarget.style.borderColor = 'var(--primary)';
+                                            e.currentTarget.style.background = '#ffffff';
+                                          }}
+                                          onBlurCapture={(e) => {
+                                            e.currentTarget.style.borderColor = 'transparent';
+                                            e.currentTarget.style.background = 'transparent';
+                                          }}
+                                          title="Nhấp để đổi tên nhóm"
+                                        />
+                                      </div>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                        <button
+                                          type="button"
+                                          title={`Thêm lựa chọn vào nhóm "${cluster.groupName}"`}
+                                          onClick={() => {
+                                            const otherIndex = currentOpts.findIndex(o => o.isOther || o.value === '__other__');
+                                            const newOpt = { label: `Lựa chọn ${currentOpts.length + 1}`, value: `OPT_${Date.now()}`, isPass: true, group: cluster.groupName };
+                                            const nextOpts = otherIndex !== -1
+                                              ? [...currentOpts.slice(0, otherIndex), newOpt, ...currentOpts.slice(otherIndex)]
+                                              : [...currentOpts, newOpt];
+                                            handleUpdateField(activeBlockId!, activeFieldId!, { options: nextOpts });
+                                          }}
+                                          style={{ border: 'none', background: 'none', color: 'var(--primary)', cursor: 'pointer', padding: '0 2px', fontSize: '0.68rem', display: 'flex', alignItems: 'center', gap: '2px' }}
+                                        >
+                                          <Plus size={10} /> Mục
+                                        </button>
+                                        <button
+                                          type="button"
+                                          title={`Xóa nhóm "${cluster.groupName}"`}
+                                          onClick={() => {
+                                            const grp = cluster.groupName;
+                                            const nextGroups = (activeField.optionGroups || []).filter(g => g !== grp);
+                                            const next = currentOpts.map(o => o.group === grp ? { ...o, group: undefined } : o);
+                                            handleUpdateField(activeBlockId!, activeFieldId!, { options: next, optionGroups: nextGroups });
+                                          }}
+                                          style={{ border: 'none', background: 'none', color: '#94a3b8', cursor: 'pointer', padding: '0 2px', fontSize: '0.68rem' }}
+                                        >
+                                          ✕ Xóa
+                                        </button>
+                                      </div>
+                                    </div>
+                                  )}
+                                  {cluster.options.length === 0 && (
+                                    <div style={{ fontSize: '0.68rem', color: '#94a3b8', fontStyle: 'italic', padding: '2px 8px' }}>
+                                      (Nhóm trống - kéo lựa chọn vào đây hoặc nhấn "+ Mục" để thêm)
+                                    </div>
+                                  )}
+                                  {cluster.options.map((opt) => {
+                                    const idx = currentOpts.indexOf(opt);
+                                    const isOtherOpt = opt.isOther || opt.value === '__other__';
+                                    const listId = `inspector-field-${activeFieldId}`;
+                                    const isDragging = draggedOption?.listId === listId && draggedOption.index === idx;
+                                    const isDragOver = dragOverOption?.listId === listId && dragOverOption.index === idx;
+                                    const canDrag = !isLocked && !isOtherOpt && currentOpts.length > 1;
 
                                     return (
                                       <div
-                                        draggable={canDragGrp}
+                                        key={opt.value || idx}
+                                        draggable={canDrag}
                                         onDragStart={(e) => {
-                                          e.dataTransfer.setData('text/plain', opt.group!);
+                                          e.dataTransfer.setData('text/plain', String(idx));
                                           e.dataTransfer.effectAllowed = 'move';
-                                          setDraggedGroup({ listId: grpListId, groupName: opt.group! });
+                                          setDraggedOption({ listId, index: idx });
                                         }}
                                         onDragOver={(e) => {
-                                          if (draggedGroup?.listId === grpListId || draggedOption?.listId === listId) {
+                                          if (draggedOption?.listId === listId) {
                                             e.preventDefault();
                                             e.dataTransfer.dropEffect = 'move';
                                           }
                                         }}
                                         onDragEnter={() => {
-                                          if (draggedGroup?.listId === grpListId || draggedOption?.listId === listId) {
-                                            setDragOverGroup({ listId: grpListId, groupName: opt.group! });
+                                          if (draggedOption?.listId === listId && !isOtherOpt) {
+                                            setDragOverOption({ listId, index: idx });
                                           }
                                         }}
                                         onDrop={(e) => {
                                           e.preventDefault();
-                                          if (draggedGroup?.listId === grpListId && draggedGroup.groupName !== opt.group) {
-                                            const reordered = reorderGroupsInOptions(currentOpts, draggedGroup.groupName, opt.group!);
-                                            handleUpdateField(activeBlockId!, activeFieldId!, { options: reordered });
-                                          } else if (draggedOption?.listId === listId) {
+                                          if (draggedOption?.listId === listId && draggedOption.index !== idx && !isOtherOpt) {
                                             const reordered = reorderOptionWithGroup(currentOpts, draggedOption.index, idx, opt.group);
                                             handleUpdateField(activeBlockId!, activeFieldId!, { options: reordered });
                                           }
-                                          setDraggedGroup(null);
-                                          setDragOverGroup(null);
                                           setDraggedOption(null);
                                           setDragOverOption(null);
                                         }}
                                         onDragEnd={() => {
-                                          setDraggedGroup(null);
-                                          setDragOverGroup(null);
+                                          setDraggedOption(null);
+                                          setDragOverOption(null);
                                         }}
                                         style={{
                                           display: 'flex',
+                                          gap: '0.35rem',
                                           alignItems: 'center',
-                                          justifyContent: 'space-between',
-                                          padding: '3px 6px',
-                                          background: '#f8fafc',
-                                          borderLeft: '3px solid var(--primary)',
-                                          borderBottom: isGrpDragOver ? '2px solid var(--primary)' : undefined,
-                                          borderRadius: '3px',
-                                          marginTop: idx > 0 ? '6px' : '2px',
-                                          marginBottom: '1px',
-                                          opacity: isGrpDragging ? 0.4 : 1,
-                                          cursor: canDragGrp ? 'grab' : 'default',
+                                          opacity: isDragging ? 0.4 : 1,
+                                          borderTop: isDragOver && draggedOption && draggedOption.index > idx ? '2px solid var(--primary)' : undefined,
+                                          borderBottom: isDragOver && draggedOption && draggedOption.index < idx ? '2px solid var(--primary)' : undefined,
+                                          padding: '2px 0',
                                           transition: 'all 0.15s ease'
                                         }}
                                       >
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '3px', flex: 1, minWidth: 0 }}>
-                                          {canDragGrp && (
-                                            <span style={{ cursor: 'grab', display: 'flex', alignItems: 'center', color: '#94a3b8' }} title="Kéo để đổi thứ tự nhóm">
-                                              <GripVertical size={11} />
-                                            </span>
-                                          )}
+                                        {canDrag && (
+                                          <span
+                                            style={{ cursor: 'grab', display: 'flex', alignItems: 'center', color: '#94a3b8', padding: '0 1px' }}
+                                            title="Kéo để đổi thứ tự"
+                                          >
+                                            <GripVertical size={13} />
+                                          </span>
+                                        )}
+                                        <input
+                                          type="text"
+                                          disabled={isLocked}
+                                          draggable={false}
+                                          onMouseDown={(e) => e.stopPropagation()}
+                                          placeholder="Nhãn"
+                                          value={opt.label}
+                                          onChange={(e) => {
+                                            const newOpts = [...currentOpts];
+                                            newOpts[idx] = { ...newOpts[idx], label: e.target.value };
+                                            handleUpdateField(activeBlockId!, activeFieldId!, { options: newOpts });
+                                          }}
+                                          style={{
+                                            flex: 2,
+                                            minWidth: '70px',
+                                            padding: '0.2rem 0.35rem',
+                                            borderRadius: '4px',
+                                            border: '1px solid var(--neutral-border)',
+                                            fontSize: '0.75rem',
+                                            pointerEvents: (draggedOption || draggedGroup) ? 'none' : 'auto'
+                                          }}
+                                        />
+                                        <input
+                                          type="text"
+                                          list={datalistId}
+                                          disabled={isLocked || isOtherOpt}
+                                          draggable={false}
+                                          onMouseDown={(e) => e.stopPropagation()}
+                                          placeholder="Nhóm..."
+                                          value={opt.group || ''}
+                                          onChange={(e) => {
+                                            const newOpts = [...currentOpts];
+                                            const val = e.target.value.trim() ? e.target.value : undefined;
+                                            newOpts[idx] = { ...newOpts[idx], group: val };
+                                            const nextGroups = val && !(activeField.optionGroups || []).includes(val)
+                                              ? [...(activeField.optionGroups || []), val]
+                                              : activeField.optionGroups;
+                                            handleUpdateField(activeBlockId!, activeFieldId!, { options: newOpts, optionGroups: nextGroups });
+                                          }}
+                                          style={{
+                                            width: '68px',
+                                            padding: '0.2rem 0.3rem',
+                                            borderRadius: '4px',
+                                            border: `1px solid ${opt.group ? 'var(--primary)' : '#cbd5e1'}`,
+                                            fontSize: '0.7rem',
+                                            background: opt.group ? '#f0fdfa' : '#ffffff',
+                                            color: opt.group ? 'var(--primary)' : '#64748b',
+                                            pointerEvents: (draggedOption || draggedGroup) ? 'none' : 'auto'
+                                          }}
+                                          title={opt.group ? `Nhóm: ${opt.group}` : 'Gõ nhóm mới hoặc chọn nhóm từ gợi ý'}
+                                        />
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '2px', fontSize: '0.7rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap', cursor: 'pointer', pointerEvents: (draggedOption || draggedGroup) ? 'none' : 'auto' }}>
                                           <input
-                                            type="text"
+                                            type="checkbox"
                                             disabled={isLocked}
-                                            defaultValue={opt.group}
-                                            key={opt.group}
-                                            onBlur={(e) => {
-                                              const newName = e.target.value.trim();
-                                              if (newName && newName !== opt.group) {
-                                                const next = currentOpts.map(o => o.group === opt.group ? { ...o, group: newName } : o);
-                                                handleUpdateField(activeBlockId!, activeFieldId!, { options: next });
-                                              } else if (!newName) {
-                                                e.target.value = opt.group || '';
-                                              }
+                                            checked={opt.isPass}
+                                            onChange={(e) => {
+                                              const newOpts = [...currentOpts];
+                                              newOpts[idx] = { ...newOpts[idx], isPass: e.target.checked };
+                                              handleUpdateField(activeBlockId!, activeFieldId!, { options: newOpts });
                                             }}
-                                            onKeyDown={(e) => {
-                                              if (e.key === 'Enter') {
-                                                e.currentTarget.blur();
-                                              }
-                                            }}
-                                            style={{
-                                              fontSize: '0.7rem',
-                                              fontWeight: 700,
-                                              color: '#334155',
-                                              textTransform: 'uppercase',
-                                              letterSpacing: '0.03em',
-                                              border: '1px solid transparent',
-                                              borderRadius: '3px',
-                                              background: 'transparent',
-                                              padding: '1px 4px',
-                                              outline: 'none',
-                                              width: '100%',
-                                              maxWidth: '180px'
-                                            }}
-                                            onFocus={(e) => {
-                                              e.currentTarget.style.borderColor = 'var(--primary)';
-                                              e.currentTarget.style.background = '#ffffff';
-                                            }}
-                                            onBlurCapture={(e) => {
-                                              e.currentTarget.style.borderColor = 'transparent';
-                                              e.currentTarget.style.background = 'transparent';
-                                            }}
-                                            title="Nhấp để đổi tên nhóm"
                                           />
-                                        </div>
+                                          Đạt
+                                        </label>
                                         <button
                                           type="button"
-                                          title={`Gỡ nhóm "${opt.group}" cho các mục này`}
+                                          disabled={isLocked || currentOpts.length <= 1}
                                           onClick={() => {
-                                            const grp = opt.group;
-                                            const next = currentOpts.map(o => o.group === grp ? { ...o, group: undefined } : o);
-                                            handleUpdateField(activeBlockId!, activeFieldId!, { options: next });
+                                            const newOpts = currentOpts.filter((_, i) => i !== idx);
+                                            handleUpdateField(activeBlockId!, activeFieldId!, { options: newOpts });
                                           }}
-                                          style={{ border: 'none', background: 'none', color: '#94a3b8', cursor: 'pointer', padding: '0 2px', fontSize: '0.68rem' }}
-                                        >
-                                          ✕ Gỡ nhóm
-                                        </button>
+                                          style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '0 2px', fontSize: '0.8rem', lineHeight: 1 }}
+                                        >✕</button>
                                       </div>
                                     );
-                                  })()}
-                                  <div
-                                    draggable={canDrag}
-                                    onDragStart={(e) => {
-                                      e.dataTransfer.setData('text/plain', String(idx));
-                                      e.dataTransfer.effectAllowed = 'move';
-                                      setDraggedOption({ listId, index: idx });
-                                    }}
-                                    onDragOver={(e) => {
-                                      if (draggedOption?.listId === listId) {
-                                        e.preventDefault();
-                                        e.dataTransfer.dropEffect = 'move';
-                                      }
-                                    }}
-                                    onDragEnter={() => {
-                                      if (draggedOption?.listId === listId && !isOtherOpt) {
-                                        setDragOverOption({ listId, index: idx });
-                                      }
-                                    }}
-                                    onDrop={(e) => {
-                                      e.preventDefault();
-                                      if (draggedOption?.listId === listId && draggedOption.index !== idx && !isOtherOpt) {
-                                        const reordered = reorderOptionWithGroup(currentOpts, draggedOption.index, idx, opt.group);
-                                        handleUpdateField(activeBlockId!, activeFieldId!, { options: reordered });
-                                      }
-                                      setDraggedOption(null);
-                                      setDragOverOption(null);
-                                    }}
-                                    onDragEnd={() => {
-                                      setDraggedOption(null);
-                                      setDragOverOption(null);
-                                    }}
-                                    style={{
-                                      display: 'flex',
-                                      gap: '0.35rem',
-                                      alignItems: 'center',
-                                      opacity: isDragging ? 0.4 : 1,
-                                      borderTop: isDragOver && draggedOption && draggedOption.index > idx ? '2px solid var(--primary)' : undefined,
-                                      borderBottom: isDragOver && draggedOption && draggedOption.index < idx ? '2px solid var(--primary)' : undefined,
-                                      padding: '2px 0',
-                                      transition: 'all 0.15s ease'
-                                    }}
-                                  >
-                                    {canDrag && (
-                                      <span
-                                        style={{ cursor: 'grab', display: 'flex', alignItems: 'center', color: '#94a3b8', padding: '0 1px' }}
-                                        title="Kéo để đổi thứ tự"
-                                      >
-                                        <GripVertical size={13} />
-                                      </span>
-                                    )}
-                                    <input
-                                      type="text"
-                                      disabled={isLocked}
-                                      draggable={false}
-                                      onMouseDown={(e) => e.stopPropagation()}
-                                      placeholder="Nhãn"
-                                      value={opt.label}
-                                      onChange={(e) => {
-                                        const newOpts = [...currentOpts];
-                                        newOpts[idx] = { ...newOpts[idx], label: e.target.value };
-                                        handleUpdateField(activeBlockId!, activeFieldId!, { options: newOpts });
-                                      }}
-                                      style={{ flex: 2, minWidth: '70px', padding: '0.2rem 0.35rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', fontSize: '0.75rem' }}
-                                    />
-                                    <input
-                                      type="text"
-                                      list={datalistId}
-                                      disabled={isLocked || isOtherOpt}
-                                      draggable={false}
-                                      onMouseDown={(e) => e.stopPropagation()}
-                                      placeholder="Nhóm..."
-                                      value={opt.group || ''}
-                                      onChange={(e) => {
-                                        const newOpts = [...currentOpts];
-                                        const val = e.target.value.trim() ? e.target.value : undefined;
-                                        newOpts[idx] = { ...newOpts[idx], group: val };
-                                        handleUpdateField(activeBlockId!, activeFieldId!, { options: newOpts });
-                                      }}
-                                      style={{
-                                        width: '68px',
-                                        padding: '0.2rem 0.3rem',
-                                        borderRadius: '4px',
-                                        border: `1px solid ${opt.group ? 'var(--primary)' : '#cbd5e1'}`,
-                                        fontSize: '0.7rem',
-                                        background: opt.group ? '#f0fdfa' : '#ffffff',
-                                        color: opt.group ? 'var(--primary)' : '#64748b'
-                                      }}
-                                      title={opt.group ? `Nhóm: ${opt.group}` : 'Gõ nhóm mới hoặc chọn nhóm từ gợi ý'}
-                                    />
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: '2px', fontSize: '0.7rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap', cursor: 'pointer' }}>
-                                      <input
-                                        type="checkbox"
-                                        disabled={isLocked}
-                                        checked={opt.isPass}
-                                        onChange={(e) => {
-                                          const newOpts = [...currentOpts];
-                                          newOpts[idx] = { ...newOpts[idx], isPass: e.target.checked };
-                                          handleUpdateField(activeBlockId!, activeFieldId!, { options: newOpts });
-                                        }}
-                                      />
-                                      Đạt
-                                    </label>
-                                    <button
-                                      type="button"
-                                      disabled={isLocked || currentOpts.length <= 1}
-                                      onClick={() => {
-                                        const newOpts = currentOpts.filter((_, i) => i !== idx);
-                                        handleUpdateField(activeBlockId!, activeFieldId!, { options: newOpts });
-                                      }}
-                                      style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '0 2px', fontSize: '0.8rem', lineHeight: 1 }}
-                                    >✕</button>
-                                  </div>
-                                </Fragment>
+                                  })}
+                                </div>
                               );
                             })}
                           </>
@@ -8106,31 +8204,17 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                           <button
                             type="button"
                             onClick={() => {
-                              const otherIndex = currentOpts.findIndex((o: any) => o.isOther || o.value === '__other__');
-                              const existingGroups = Array.from(new Set(currentOpts.map(o => (o.group || '').trim()).filter(Boolean)));
-                              const defaultGroupName = `Nhóm ${existingGroups.length + 1}`;
-                              const ungroupedIndices: number[] = [];
-                              currentOpts.forEach((o: any, i: number) => {
-                                if (!o.isOther && o.value !== '__other__' && !(o.group && o.group.trim())) {
-                                  ungroupedIndices.push(i);
-                                }
-                              });
-
-                              let nextOpts: any[];
-                              if (ungroupedIndices.length > 0) {
-                                nextOpts = currentOpts.map((o: any, i: number) => {
-                                  if (ungroupedIndices.includes(i)) {
-                                    return { ...o, group: defaultGroupName };
-                                  }
-                                  return o;
-                                });
-                              } else {
-                                const newOpt = { label: `Lựa chọn ${currentOpts.length + 1}`, value: `OPT_${Date.now()}`, isPass: true, group: defaultGroupName };
-                                nextOpts = otherIndex !== -1
-                                  ? [...currentOpts.slice(0, otherIndex), newOpt, ...currentOpts.slice(otherIndex)]
-                                  : [...currentOpts, newOpt];
+                              const currentGroups = activeField.optionGroups && activeField.optionGroups.length > 0
+                                ? activeField.optionGroups
+                                : Array.from(new Set(currentOpts.map(o => (o.group || '').trim()).filter(Boolean)));
+                              let nextNum = currentGroups.length + 1;
+                              let defaultGroupName = `Nhóm ${nextNum}`;
+                              while (currentGroups.includes(defaultGroupName)) {
+                                nextNum++;
+                                defaultGroupName = `Nhóm ${nextNum}`;
                               }
-                              handleUpdateField(activeBlockId!, activeFieldId!, { options: nextOpts });
+                              const nextGroups = [...currentGroups, defaultGroupName];
+                              handleUpdateField(activeBlockId!, activeFieldId!, { optionGroups: nextGroups });
                             }}
                             style={{ display: 'flex', alignItems: 'center', gap: '3px', padding: '0.2rem 0.45rem', fontSize: '0.7rem', borderRadius: '4px', border: '1px dashed #94a3b8', background: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}
                             title="Tạo nhóm mới"

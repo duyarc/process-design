@@ -1875,7 +1875,7 @@ function FormFillerInner({
                           const isOptionC = getAutoCheckboxLayoutMode(field, block.columns) === 'OPTION_C';
                           const isLongOpt = hasLongOptions(field);
                           const rawOptions = field.options ?? [{ label: 'Có', value: 'YES' }, { label: 'Không', value: 'NO' }];
-                          const clusters = clusterOptionsByGroup(rawOptions);
+                          const clusters = clusterOptionsByGroup(rawOptions, field.optionGroups).filter(c => c.options.length > 0);
                           return (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '100%' }}>
                               {clusters.map((cluster, cIdx) => (
@@ -1895,7 +1895,7 @@ function FormFillerInner({
                                       alignItems: 'center',
                                       gap: '4px'
                                     }}>
-                                      <span>📂 {cluster.groupName}</span>
+                                      <span>{cluster.groupName}</span>
                                     </div>
                                   )}
                                   <div style={{
@@ -1965,7 +1965,7 @@ function FormFillerInner({
                           const isLongOpt = hasLongOptions(field);
                           const isStacked = isOptionC && isLongOpt;
                           const rawOptions = field.options ?? [{ label: 'Đạt', value: 'PASS', isPass: true }, { label: 'Không Đạt', value: 'FAIL', isPass: false }];
-                          const clusters = clusterOptionsByGroup(rawOptions);
+                          const clusters = clusterOptionsByGroup(rawOptions, field.optionGroups).filter(c => c.options.length > 0);
                           return (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '100%' }}>
                               {clusters.map((cluster, cIdx) => (
@@ -1985,7 +1985,7 @@ function FormFillerInner({
                                       alignItems: 'center',
                                       gap: '4px'
                                     }}>
-                                      <span>📂 {cluster.groupName}</span>
+                                      <span>{cluster.groupName}</span>
                                     </div>
                                   )}
                                   <div style={{
@@ -2386,14 +2386,14 @@ function FormFillerInner({
                               )
                             ) : field.type === 'checkbox' ? (() => {
                               const rawOptions = field.options ?? [{ label: 'Đạt', value: 'PASS', isPass: true }, { label: 'Không Đạt', value: 'FAIL', isPass: false }];
-                              const clusters = clusterOptionsByGroup(rawOptions);
+                              const clusters = clusterOptionsByGroup(rawOptions, field.optionGroups).filter(c => c.options.length > 0);
                               return (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '100%' }}>
                                   {clusters.map((cluster, cIdx) => (
                                     <div key={cluster.groupName || cIdx} style={{ display: 'flex', flexDirection: 'column', gap: '3px', width: '100%' }}>
                                       {cluster.groupName && (
                                         <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginTop: cIdx > 0 ? '6px' : '0' }}>
-                                          📂 {cluster.groupName}
+                                          {cluster.groupName}
                                         </div>
                                       )}
                                       <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', maxWidth: '100%', paddingLeft: cluster.groupName ? '0.35rem' : '0' }}>

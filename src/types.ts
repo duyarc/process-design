@@ -119,6 +119,7 @@ export interface FormFieldISO {
   unit?: string;
   targetRange?: string; // For text/boolean targets e.g. "Released & functional"
   options?: RadioOption[]; // For radio type: list of selectable options
+  optionGroups?: string[]; // Danh sách nhóm tùy chọn (bao gồm cả các nhóm rỗng/trống)
   frequency?: string;
   reactionProtocol: string;
   timeMode?: 'single' | 'dual';

@@ -710,26 +710,55 @@ export interface OptionGroupCluster<T = RadioOption> {
  * Giữ nguyên thứ tự khai báo ban đầu.
  * Các lựa chọn không có `group` được gom thành nhóm với groupName = undefined.
  */
-export function clusterOptionsByGroup<T extends { group?: string }>(options: T[]): OptionGroupCluster<T>[] {
-  if (!options || options.length === 0) return [];
-  const hasAnyGroup = options.some(opt => !!(opt.group && opt.group.trim()));
+export function clusterOptionsByGroup<T extends { group?: string }>(
+  options: T[],
+  explicitGroups?: string[]
+): OptionGroupCluster<T>[] {
+  const groupsList = explicitGroups && explicitGroups.length > 0
+    ? [...explicitGroups]
+    : Array.from(new Set((options || []).map(o => (o.group || '').trim()).filter(Boolean)));
+
+  const hasAnyGroup = groupsList.length > 0 || (options || []).some(opt => !!(opt.group && opt.group.trim()));
   if (!hasAnyGroup) {
-    return [{ groupName: undefined, options }];
+    return [{ groupName: undefined, options: options || [] }];
   }
 
   const clusters: OptionGroupCluster<T>[] = [];
   const groupMap = new Map<string, OptionGroupCluster<T>>();
 
-  for (const opt of options) {
-    const rawGroup = (opt.group || '').trim();
-    const groupKey = rawGroup || '__ungrouped__';
-    let cluster = groupMap.get(groupKey);
-    if (!cluster) {
-      cluster = {
-        groupName: rawGroup || undefined,
+  // 1. Phân bổ các lựa chọn chưa có nhóm (ungrouped)
+  const ungrouped = (options || []).filter(o => !(o.group && o.group.trim()));
+  if (ungrouped.length > 0) {
+    const ungroupedCluster: OptionGroupCluster<T> = { groupName: undefined, options: ungrouped };
+    groupMap.set('__ungrouped__', ungroupedCluster);
+    clusters.push(ungroupedCluster);
+  }
+
+  // 2. Tạo cụm nhóm từ groupsList (đảm bảo nhóm rỗng vẫn tồn tại)
+  for (const grp of groupsList) {
+    const trimmed = grp.trim();
+    if (!trimmed) continue;
+    if (!groupMap.has(trimmed)) {
+      const cluster: OptionGroupCluster<T> = {
+        groupName: trimmed,
         options: []
       };
-      groupMap.set(groupKey, cluster);
+      groupMap.set(trimmed, cluster);
+      clusters.push(cluster);
+    }
+  }
+
+  // 3. Phân bổ các lựa chọn có nhóm vào cụm tương ứng
+  for (const opt of (options || [])) {
+    const rawGroup = (opt.group || '').trim();
+    if (!rawGroup) continue;
+    let cluster = groupMap.get(rawGroup);
+    if (!cluster) {
+      cluster = {
+        groupName: rawGroup,
+        options: []
+      };
+      groupMap.set(rawGroup, cluster);
       clusters.push(cluster);
     }
     cluster.options.push(opt);
@@ -763,13 +792,18 @@ export function reorderOptionsArray<T extends { isOther?: boolean; value?: strin
 export function reorderGroupsInOptions<T extends { group?: string; isOther?: boolean; value?: string }>(
   options: T[],
   fromGroupName: string,
-  toGroupName: string
-): T[] {
-  if (fromGroupName === toGroupName) return options;
-  const clusters = clusterOptionsByGroup(options);
+  toGroupName: string,
+  explicitGroups?: string[]
+): { options: T[]; optionGroups: string[] } {
+  if (fromGroupName === toGroupName) {
+    return { options, optionGroups: explicitGroups || [] };
+  }
+  const clusters = clusterOptionsByGroup(options, explicitGroups);
   const fromIndex = clusters.findIndex(c => (c.groupName || '') === fromGroupName);
   const toIndex = clusters.findIndex(c => (c.groupName || '') === toGroupName);
-  if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) return options;
+  if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) {
+    return { options, optionGroups: explicitGroups || [] };
+  }
 
   const reorderedClusters = [...clusters];
   const [movedCluster] = reorderedClusters.splice(fromIndex, 1);
@@ -783,7 +817,11 @@ export function reorderGroupsInOptions<T extends { group?: string; isOther?: boo
     result.push(otherItem);
   }
 
-  return result;
+  const newOptionGroups = reorderedClusters
+    .map(c => c.groupName)
+    .filter((g): g is string => !!g && g.trim().length > 0);
+
+  return { options: result, optionGroups: newOptionGroups };
 }
 
 export function reorderOptionWithGroup<T extends { group?: string; isOther?: boolean; value?: string }>(
@@ -792,7 +830,7 @@ export function reorderOptionWithGroup<T extends { group?: string; isOther?: boo
   toIndex: number,
   targetGroup?: string
 ): T[] {
-  if (fromIndex < 0 || toIndex < 0 || fromIndex >= options.length || toIndex >= options.length) {
+  if (fromIndex < 0 || toIndex < 0 || fromIndex >= options.length) {
     return options;
   }
   const result = [...options];
@@ -801,7 +839,8 @@ export function reorderOptionWithGroup<T extends { group?: string; isOther?: boo
     ...movedItem,
     group: (targetGroup && targetGroup.trim()) ? targetGroup.trim() : undefined
   };
-  result.splice(toIndex, 0, updatedItem);
+  const clampedTarget = Math.min(Math.max(0, toIndex), result.length);
+  result.splice(clampedTarget, 0, updatedItem);
 
   const otherIdx = result.findIndex(o => o.isOther || o.value === '__other__');
   if (otherIdx !== -1 && otherIdx !== result.length - 1) {

@@ -34,10 +34,34 @@ phiên thực thi để không lặp lại lỗi cũ.
 | 38 | `LOGIC` | Khi khối TABLE làm header phân đoạn (H1/H2), `groupBlocksIntoSections` đưa mô tả bảng vào `sec.description`/`subSec.description` (render dạng `<p>` văn bản thô) trong khi khối TABLE con tiếp tục render nút và hộp hướng dẫn xanh ngọc `[ 💡 Hướng dẫn ]` bên trong, gây trùng lặp 2 lần | Bổ sung `headerBlock?: LayoutBlockISO` vào `FormSectionGroup` và triệt tiêu render văn bản thô `sec.description` / `subSec.description` khi `headerBlock?.type === 'TABLE'`, để toàn bộ hướng dẫn bảng được quản lý duy nhất qua accordion tương tác | 1 |
 | 40 | `LOGIC` | Thêm nhóm mới vào danh sách lựa chọn nhưng hardcode label: 'Lựa chọn 1' và luôn tạo mới một option dummy thay vì gom các lựa chọn chưa nhóm có sẵn | Kiểm tra các lựa chọn chưa có nhóm (ungrouped) để gán vào nhóm mới trước; nếu cần tạo lựa chọn mới, luôn tính số thứ tự tự tăng Lựa chọn ${options.length + 1} | 1 |
 | 39 | `UI` | Khi thêm tính năng mới kế thừa từ component khác nhưng dùng inline token riêng (`#ccfbf1`, `#0f766e`, `border: 1px solid`) thay vì tái sử dụng token chuẩn (`#f8fafc`, `borderLeft: 3px solid #0d9488`, `var(--text-primary)`), gây lệch chuẩn thị giác giữa các loại khối | Luôn đối chiếu trực tiếp với component/field chuẩn (`INFO_GRID`) và tuân thủ chặt chẽ Design System (`DESIGN_UI_UX.md`), đảm bảo màu chữ `var(--text-primary)`, nền `#f8fafc` và chỉ có viền chỉ mục trái | 1 |
+| 41 | `LOGIC` | HTML5 DnD: phần tử con `<input>`/`<textarea>` nuốt sự kiện kéo thả chuột, chặn drop target; đồng thời loop Inspector duyệt phẳng options bỏ qua nhóm rỗng | Thêm `pointerEvents: (draggedOption || draggedGroup) ? 'none' : 'auto'` cho các input/textarea con khi đang kéo; lưu trữ danh sách nhóm rỗng trong `optionGroups` và duyệt render theo `clusters = clusterOptionsByGroup(...)` thay vì `options.map` | 1 |
 
 ---
 
 ## Nhật ký Phiên
+
+### 2026-10-26 — Khởi Tạo Nhóm Rỗng & Sửa Lỗi Kéo Thả Lựa Chọn Giữa Các Nhóm (`FormBuilder`, `formUtils`, `types`)
+
+**Scope:** 5 source files (`src/types.ts`, `src/utils/formUtils.ts`, `src/components/FormBuilder.tsx`, `src/components/FormFiller.tsx`, `src/components/ProcessReader.tsx`) + 1 design doc (`DESIGN_FORM_DESIGNER.md`).
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa | 5 |
+| Lượt edit sửa lỗi (rework) | 1 (xóa TS6133 Fragment mồ côi) |
+| Số lần build | 2 (`npx tsc --noEmit` pass 100%, `npm run build` pass 9.99s) |
+| Số lệnh thất bại | 0 |
+
+**Phân tích nguyên nhân gốc (Root Cause):**
+1. **Lỗi không kéo thả được lựa chọn sang nhóm khác:** Trong HTML5 DnD, các phần tử con `<input>`/`<textarea>` bên trong mỗi dòng lựa chọn nuốt (swallow) sự kiện chuột khi con trỏ di chuyển qua, khiến sự kiện `dragover`/`drop` của thẻ cha không kích hoạt được. Thêm `pointerEvents: (draggedOption || draggedGroup) ? 'none' : 'auto'` giải quyết dứt điểm.
+2. **Lỗi tự động sinh lựa chọn khi tạo nhóm & không lưu được nhóm rỗng:** Trước đây các nhóm chỉ được suy luận từ `options.map(o => o.group)`. Nếu một nhóm rỗng (chưa có lựa chọn), nó sẽ biến mất khỏi dữ liệu và UI. Bổ sung `optionGroups?: string[]` vào `FormFieldISO` cho phép lưu trữ nhóm rỗng độc lập, và nút `[+ Nhóm]` chỉ thêm nhóm mới vào `optionGroups` mà không sinh ra option dummy nào ("không tự động thêm lựa chọn mới khi tạo nhóm").
+3. **Loop hiển thị Inspector:** Trước đây Right Inspector duyệt phẳng `currentOpts.map(...)` dẫn đến các nhóm rỗng hoàn toàn vô hình trong thanh thuộc tính. Chuyển sang duyệt theo `clusters = clusterOptionsByGroup(currentOpts, activeField.optionGroups)` giúp hiển thị đầy đủ tiêu đề nhóm, nút `+ Mục` và `✕ Xóa` ngay cả khi nhóm chưa có phần tử nào.
+
+**Biện pháp khắc phục & Kiểm chứng:**
+- `FormFieldISO`: Thêm `optionGroups?: string[]`.
+- `formUtils.ts`: Cập nhật `clusterOptionsByGroup`, `reorderGroupsInOptions` hỗ trợ `explicitGroups` và trả về `{ options, optionGroups }`.
+- `FormBuilder.tsx`: Canvas và Inspector render theo cluster, nhóm rỗng có thể nhận drop lựa chọn, nút `+ Nhóm` chỉ thêm nhóm rỗng, pointerEvents chặn nuốt sự kiện kéo thả, điều kiện kéo nhóm nới lỏng thành `clusters.length > 1`.
+- `FormFiller.tsx`, `ProcessReader.tsx`: Lọc bỏ nhóm rỗng khi hiển thị điền và triệt tiêu `📂` icon.
+- Đã kiểm chứng `tsc -b && vite build` thành công 100%.
 
 ### 2026-10-26 — Sửa Lỗi Tên Nhóm Không Edit Được & Triệt Tiêu "Lựa chọn 1" Khi Thêm Nhóm (`FormBuilder`)
 

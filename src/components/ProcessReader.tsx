@@ -1444,14 +1444,14 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                                       )
                                     ) : field.type === 'checkbox' ? (() => {
                                       const rawOptions = field.options ?? [{ label: 'Đạt', value: 'PASS', isPass: true }, { label: 'Không Đạt', value: 'FAIL', isPass: false }];
-                                      const clusters = clusterOptionsByGroup(rawOptions);
+                                      const clusters = clusterOptionsByGroup(rawOptions, field.optionGroups).filter(c => c.options.length > 0);
                                       return (
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%' }}>
                                           {clusters.map((cluster, cIdx) => (
                                             <div key={cluster.groupName || cIdx} style={{ display: 'flex', flexDirection: 'column', gap: '2px', width: '100%' }}>
                                               {cluster.groupName && (
                                                 <div style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginTop: cIdx > 0 ? '6px' : '0' }}>
-                                                  📂 {cluster.groupName}
+                                                  {cluster.groupName}
                                                 </div>
                                               )}
                                               <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', minHeight: '34px', alignItems: 'center', paddingLeft: cluster.groupName ? '0.35rem' : '0' }}>
