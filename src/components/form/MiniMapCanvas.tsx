@@ -5,6 +5,8 @@ export interface MiniMapCanvasProps {
   lng: number;
   zoom?: number;
   height?: number;
+  mapType?: 'roadmap' | 'satellite';
+  allowToggleType?: boolean;
   className?: string;
   style?: React.CSSProperties;
   onClick?: () => void;
@@ -35,8 +37,8 @@ function loadTileImage(url: string): Promise<HTMLImageElement> {
 }
 
 /**
- * Pure HTML5 Canvas OSM Tile Stitcher Mini Map.
- * Renders an OpenStreetMap thumbnail without any external GIS libraries or API keys.
+ * Pure HTML5 Canvas OSM & Satellite Tile Stitcher Mini Map.
+ * Renders standard OpenStreetMap tiles or high-resolution Esri World Imagery satellite tiles.
  * Fully compatible with React 19, mobile touch scrolling (no scroll trap), and print/PDF export.
  */
 export const MiniMapCanvas: React.FC<MiniMapCanvasProps> = ({
@@ -44,13 +46,23 @@ export const MiniMapCanvas: React.FC<MiniMapCanvasProps> = ({
   lng,
   zoom = 15,
   height = 130,
+  mapType = 'roadmap',
+  allowToggleType = true,
   className,
   style,
   onClick
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [activeType, setActiveType] = useState<'roadmap' | 'satellite'>(mapType || 'roadmap');
   const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  // Sync internal activeType when prop changes
+  useEffect(() => {
+    if (mapType) {
+      setActiveType(mapType);
+    }
+  }, [mapType]);
 
   useEffect(() => {
     let isCancelled = false;
@@ -90,8 +102,8 @@ export const MiniMapCanvas: React.FC<MiniMapCanvasProps> = ({
 
       const maxNumTiles = Math.pow(2, zoom);
 
-      // Clear previous canvas
-      ctx.fillStyle = '#e2e8f0';
+      // Background placeholder tone: darker slate for satellite, light slate for roadmap
+      ctx.fillStyle = activeType === 'satellite' ? '#1e293b' : '#e2e8f0';
       ctx.fillRect(0, 0, width, height);
 
       setIsLoading(true);
@@ -102,7 +114,11 @@ export const MiniMapCanvas: React.FC<MiniMapCanvasProps> = ({
         for (let y = minTileY; y <= maxTileY; y++) {
           const wrappedX = ((x % maxNumTiles) + maxNumTiles) % maxNumTiles;
           if (y >= 0 && y < maxNumTiles) {
-            const tileUrl = `https://tile.openstreetmap.org/${zoom}/${wrappedX}/${y}.png`;
+            // Esri World Imagery uses tile/{z}/{y}/{x} with CORS enabled; OSM uses tile/{z}/{x}/{y}.png
+            const tileUrl = activeType === 'satellite'
+              ? `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${zoom}/${y}/${wrappedX}`
+              : `https://tile.openstreetmap.org/${zoom}/${wrappedX}/${y}.png`;
+
             const drawX = (x * tileSize) - topLeftPixelX;
             const drawY = (y * tileSize) - topLeftPixelY;
 
@@ -133,7 +149,7 @@ export const MiniMapCanvas: React.FC<MiniMapCanvasProps> = ({
       // Pulse aura circle
       ctx.beginPath();
       ctx.arc(markerX, markerY, 14, 0, 2 * Math.PI);
-      ctx.fillStyle = 'rgba(239, 68, 68, 0.2)';
+      ctx.fillStyle = activeType === 'satellite' ? 'rgba(239, 68, 68, 0.35)' : 'rgba(239, 68, 68, 0.2)';
       ctx.fill();
 
       // Outer white ring
@@ -142,7 +158,7 @@ export const MiniMapCanvas: React.FC<MiniMapCanvasProps> = ({
       ctx.fillStyle = '#ffffff';
       ctx.fill();
       ctx.lineWidth = 1.5;
-      ctx.strokeStyle = '#cbd5e1';
+      ctx.strokeStyle = activeType === 'satellite' ? '#0f172a' : '#cbd5e1';
       ctx.stroke();
 
       // Inner red pin dot
@@ -151,8 +167,8 @@ export const MiniMapCanvas: React.FC<MiniMapCanvasProps> = ({
       ctx.fillStyle = '#ef4444';
       ctx.fill();
 
-      // OSM attribution badge
-      const attrText = '© OpenStreetMap';
+      // Attribution badge
+      const attrText = activeType === 'satellite' ? '© Esri, Maxar' : '© OpenStreetMap';
       ctx.font = '9px system-ui, -apple-system, sans-serif';
       const textWidth = ctx.measureText(attrText).width;
       const badgeW = textWidth + 8;
@@ -160,9 +176,9 @@ export const MiniMapCanvas: React.FC<MiniMapCanvasProps> = ({
       const badgeX = width - badgeW - 4;
       const badgeY = height - badgeH - 4;
 
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
       ctx.fillRect(badgeX, badgeY, badgeW, badgeH);
-      ctx.fillStyle = '#475569';
+      ctx.fillStyle = '#334155';
       ctx.fillText(attrText, badgeX + 4, badgeY + 10);
     };
 
@@ -178,7 +194,7 @@ export const MiniMapCanvas: React.FC<MiniMapCanvasProps> = ({
       isCancelled = true;
       window.removeEventListener('resize', handleResize);
     };
-  }, [lat, lng, zoom, height]);
+  }, [lat, lng, zoom, height, activeType]);
 
   return (
     <div
@@ -192,7 +208,7 @@ export const MiniMapCanvas: React.FC<MiniMapCanvasProps> = ({
         borderRadius: '4px',
         overflow: 'hidden',
         border: '1px solid #cbd5e1',
-        background: '#f1f5f9',
+        background: activeType === 'satellite' ? '#0f172a' : '#f1f5f9',
         boxSizing: 'border-box',
         cursor: onClick ? 'pointer' : 'default',
         ...style
@@ -201,6 +217,63 @@ export const MiniMapCanvas: React.FC<MiniMapCanvasProps> = ({
     >
       <canvas ref={canvasRef} style={{ display: 'block', width: '100%', height: '100%' }} />
 
+      {/* Layer switch pill toggle (Roadmap vs Satellite) */}
+      {allowToggleType && (
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            position: 'absolute',
+            top: '5px',
+            right: '5px',
+            display: 'inline-flex',
+            background: 'rgba(255, 255, 255, 0.92)',
+            backdropFilter: 'blur(4px)',
+            borderRadius: '4px',
+            padding: '1px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+            zIndex: 10,
+            fontSize: '0.68rem',
+            fontWeight: 600,
+            userSelect: 'none'
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => setActiveType('roadmap')}
+            style={{
+              padding: '2px 6px',
+              borderRadius: '3px',
+              border: 'none',
+              background: activeType === 'roadmap' ? 'var(--primary)' : 'transparent',
+              color: activeType === 'roadmap' ? '#ffffff' : '#475569',
+              cursor: 'pointer',
+              fontSize: '0.68rem',
+              fontWeight: 600,
+              transition: 'all 0.15s ease'
+            }}
+          >
+            Bản đồ
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveType('satellite')}
+            style={{
+              padding: '2px 6px',
+              borderRadius: '3px',
+              border: 'none',
+              background: activeType === 'satellite' ? 'var(--primary)' : 'transparent',
+              color: activeType === 'satellite' ? '#ffffff' : '#475569',
+              cursor: 'pointer',
+              fontSize: '0.68rem',
+              fontWeight: 600,
+              transition: 'all 0.15s ease'
+            }}
+          >
+            Vệ tinh
+          </button>
+        </div>
+      )}
+
       {isLoading && (
         <div style={{
           position: 'absolute',
@@ -208,11 +281,11 @@ export const MiniMapCanvas: React.FC<MiniMapCanvasProps> = ({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: 'rgba(248, 250, 252, 0.6)',
+          background: activeType === 'satellite' ? 'rgba(15, 23, 42, 0.6)' : 'rgba(248, 250, 252, 0.6)',
           fontSize: '0.72rem',
-          color: '#64748b'
+          color: activeType === 'satellite' ? '#94a3b8' : '#64748b'
         }}>
-          Đang tải bản đồ...
+          Đang tải {activeType === 'satellite' ? 'ảnh vệ tinh' : 'bản đồ'}...
         </div>
       )}
     </div>

@@ -339,6 +339,7 @@ export const LocationInputFiller: React.FC<LocationInputFillerProps> = ({
               lng={effectiveLng}
               zoom={15}
               height={130}
+              mapType={field.mapType || 'roadmap'}
               onClick={() => {
                 if (effectiveMapsUrl) {
                   window.open(effectiveMapsUrl, '_blank', 'noopener,noreferrer');

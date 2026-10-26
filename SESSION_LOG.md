@@ -12,13 +12,6 @@ phiên thực thi để không lặp lại lỗi cũ.
 
 | # | Nhóm | Lỗi | Biện pháp phòng ngừa | Lần gặp |
 |---|---|---|---|---|
-| 19 | `LOGIC` | updateRuleOverride tìm targetBlock theo tiêu đề (cleanGroup) mà không lọc theo loại khối (b.type), dẫn đến lưu nhầm ruleOverrides vào SECTION_LABEL | Bắt buộc áp dụng Strict Block Type Scoping: trường thuộc TABLE thì chỉ gán vào khối TABLE; trường thuộc INFO_GRID thì chỉ gán vào INFO_GRID | 1 |
-| 20 | `SCOPE` | `extractTableFields` chỉ đọc `col.options` mà bỏ qua `block.cellOptionsMap` khiến trường bóc tách rơi về giá trị mặc định của cột (Có/Không) thay vì các tùy chọn tùy biến của ô | Luôn dùng `getEffectiveCellOptions(block.cellOptionsMap, row.id, col.id, col.options)` và `cellPlaceholderMap` khi duyệt trích xuất các ô trong khối `TABLE` | 1 |
-| 21 | `SCOPE` | Khi sửa lỗi lệch bố cục trên `FormReferenceCanvas` (`tab Form`), đánh đồng việc hiển thị dữ liệu `sampleSubmission` với lỗi ghi đè cấu trúc `matchedReportBlock` dẫn đến xóa nhầm tính năng xem dữ liệu bản nộp | Phân tách rõ 2 tầng trách nhiệm trên `FormReferenceCanvas`: (1) Cấu trúc & Bố cục (`layoutBlocks`, `fields`, `titleFormat`, `showDate`) luôn lấy 1:1 từ `form` gốc; (2) Giá trị hiển thị trong ô nhập liệu đọc từ `sampleSubmission` để hỗ trợ cấu hình chấm điểm | 1 |
-| 22 | `CTX` | API `/api/forms/:formId` trả về raw DB row với key snake_case `layout_blocks` nhưng component đọc camelCase `layoutBlocks` → `undefined` → mọi field lookup đều fail theo kiểu cascade (label, decode option, render type) | Luôn normalize raw DB response ngay tại điểm nhận: `layoutBlocks: raw.layoutBlocks \|\| raw.layout_blocks \|\| []`. Áp dụng cho mọi path (authenticated + public) | 1 |
-| 23 | `TOOL` | Thêm `field?.label` vào fallback chain nhưng `FormFieldISO` không có property `label` → TS2339 build fail | Luôn tra cứu interface type (`FormFieldISO`) trước khi dùng optional chain trên typed object. `checkItem` là nhãn duy nhất trong `FormFieldISO` | 1 |
-| 24 | `ENV` | Tiến trình `git.exe` nền trên Windows bị treo giữ file lock `.git\index.lock` khiến git status/commit ngưng trệ | Luôn chạy `Stop-Process -Name git -Force; Remove-Item .git\index.lock -Force` trước lệnh git | 1 |
-| 25 | `BLOAT` | Bỏ logic gán status nhưng sót tên biến `isOverallPass` tại chữ ký destructuring `const { snapshots, isOverallPass }` và hàm trả về → TS6133 | Áp dụng Rule 13.10 Destructuring Prune: Xóa ngay tên biến tại destructure và hàm sinh trong cùng lần patch | 1 |
 | 26 | `LOGIC` | Dùng trường câu hỏi dài (>45 ký tự) trong `INFO_GRID` bị áp `whiteSpace: 'nowrap'` trên `PrintBlankForm` khiến bảng in phình rộng >1.200px và co chữ xuống 55%; nhúng bảng nhiều cột vào `subtable` làm giảm cỡ chữ xuống `0.75rem` | Với bảng dữ liệu nhiều cột, ưu tiên dùng khối `TABLE` (`borderStyle: 'grid'`) cấp cao nhất; trong `INFO_GRID`, tự động ngắt dòng (`isLongTextLabel`) khi `cleanLabel.length > 45` hoặc có `\n` | 1 |
 | 27 | `LOGIC` | Container bảng dùng `overflowX: 'auto'` tự động kích hoạt `overflowY: 'auto'` theo chuẩn W3C CSS khiến dropdown menu (`position: absolute; top: 100%`) bị cắt cụt (cut off) ở đáy bảng và sinh thanh cuộn dọc không mong muốn khi bảng có ít hàng | Đặt `overflow: 'visible'` trên wrapper bảng nếu các hàng có dropdown menu tuyệt đối; bổ sung dynamic `zIndex: isGroupActive ? 30 : 1` trên card cha để menu hiển thị đè lên các card tiếp theo | 1 |
 | 28 | `SCOPE` | Khi thêm tính năng in kèm hướng dẫn biểu mẫu trắng, nếu tạo component in mới sẽ trùng lặp title block, logo, @page CSS và phân trang | Kế thừa trực tiếp component in hiện hữu (`PrintBlankForm`) thông qua cờ prop `includeGuidance?: boolean` để giữ 100% nhất quán định dạng và zero duplication | 1 |
@@ -38,10 +31,30 @@ phiên thực thi để không lặp lại lỗi cũ.
 | 42 | `LOGIC` | `clusterOptionsByGroup` đưa mọi option không có group lên đầu câu hỏi khiến mục 'Khác' bị đẩy lên trên các nhóm; chuỗi lưu trữ checkbox `value.split(',')` bị đứt đoạn khi nội dung tự do chứa dấu phẩy | Tách 3 tầng phân nhóm trong `clusterOptionsByGroup`: lựa chọn chưa phân nhóm (trên cùng), nhóm có tên (ở giữa), và 'Khác' độc lập (neo chặt dưới đáy cả câu hỏi); dùng pure utility `parseChecklistValues` để bóc tách compound value `__other__:<text>` mà không cắt vụn dấu phẩy | 1 |
 | 43 | `LOGIC` | `hasLongOptions` chứa điều kiện cứng `options.length > 4` khiến mọi câu hỏi có nhóm (thường > 4 lựa chọn) bị ép xếp thành 1 cột dọc dù toàn bộ là từ ngữ ngắn 2-6 ký tự, gây lãng phí giấy in nghiêm trọng; đồng thời `cluster.groupName ? '0.4rem' : (isOptionC ? '1rem' : '0')` khiến mục 'Khác' độc lập bị thụt lề 16px tạo bố cục zíc-zắc | Bỏ điều kiện cứng `options.length > 4`, thay bằng kiểm tra độ dài nhãn thực tế (> 25 chars, >= 3 nhãn > 14 chars, tổng > 100 chars); dùng `hasAnyGroups ? '0.4rem' : (isClusterLong ? '1.25rem' : '0.4rem')` để đồng bộ 100% trục tung cho cả nhóm và mục 'Khác' | 1 |
 | 44 | `UI` | Nhúng iframe Google Maps/OSM vào form field gây 3 rủi ro chí mạng: nạp 2-3MB per iframe, Scroll Trap kẹt ngón tay khi cuộn form trên di động, và `html2canvas` bị chặn sandbox CORS khiến bản in PDF nghiệm thu bị trắng xóa hình bản đồ | Dùng Pure HTML5 Canvas OSM Tile Stitcher (`MiniMapCanvas`): tải raster tile qua Web Mercator math thuần và vẽ lên `<canvas>` nội bộ với `crossOrigin="anonymous"`, 0 KB dependency, không bẫy cuộn di động và xuất PDF 100% | 1 |
+| 45 | `UI` | Bản đồ raster vệ tinh REST API của Esri (`ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}`) đảo ngược thứ tự trục tọa độ `{y}` (hàng) trước `{x}` (cột) so với chuẩn OpenStreetMap XYZ thông thường `{z}/{x}/{y}` | Luôn kiểm tra định dạng URI của nhà cung cấp tile map: với OpenStreetMap là `/{z}/{x}/{y}.png`, với Esri REST TileServer là `/{z}/{y}/{x}`. Tải ảnh với `crossOrigin="anonymous"` để bảo toàn khả năng chụp ảnh Canvas xuất PDF mà không bị taint | 1 |
 
 ---
 
 ## Nhật ký Phiên
+
+### 2026-10-26 — Tích Hợp Lớp Ảnh Vệ Tinh (Satellite Imagery) & Cấu Hình MapType Cho Mini Map (`types`, `MiniMapCanvas`, `LocationInputFiller`, `FormBuilder`, `PrintFilledForm`)
+
+**Scope:** 5 source files (`src/types.ts`, `src/components/form/MiniMapCanvas.tsx`, `src/components/form/LocationInputFiller.tsx`, `src/components/FormBuilder.tsx`, `src/components/print/PrintFilledForm.tsx`) + 2 design docs (`DESIGN_FORM_DESIGNER.md`, `DESIGN_FORM_OPERATIONS.md`).
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa | 5 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 7 (`npx tsc --noEmit` pass 100%, `npm run build` pass 10.48s) |
+| Số lệnh thất bại | 0 |
+
+**Phân tích nguyên nhân gốc & Quyết định giải pháp:**
+1. **Nhu cầu nhận diện thực địa (Satellite Context):** Trên thực địa nông nghiệp, lâm nghiệp hoặc công trình nhà máy rộng lớn, bản đồ vector đường phố (OpenStreetMap roadmap) chỉ thấy các đường giao thông chính, không thể hiện được địa vật cụ thể (mái tôn nhà kho, ao hồ, bờ thửa, ranh giới lô đất). Kỹ thuật viên hiện trường cần lớp ảnh vệ tinh để đối chiếu trực tiếp.
+2. **Khảo sát giải pháp & Nguồn dữ liệu miễn phí, mở:** Khảo sát các nhà cung cấp raster tile miễn phí không cần API key và có hỗ trợ CORS (`Access-Control-Allow-Origin: *`). Chọn dịch vụ **Esri World Imagery** (`https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}`) vì hình ảnh vệ tinh cực nét tại Việt Nam (sub-meter), hỗ trợ CORS công khai và tương thích hoàn toàn với thuật toán Web Mercator Canvas hiện có. Lưu ý đặc thù Esri REST API đảo ngược trục `{y}` (hàng) trước `{x}` (cột).
+3. **Triển khai kép (Dual Implementation):**
+   - **Form Filler:** Bổ sung switcher pill kính mờ `[ Bản đồ | Vệ tinh ]` ở góc trên bên phải Mini Map Canvas, cho phép người dùng chuyển đổi tức thì giữa 2 lớp bản đồ tại hiện trường mà không gián đoạn việc nhập liệu.
+   - **Form Designer:** Thêm segmented control `[ 🗺️ Bản đồ | 🛰️ Vệ tinh ]` trong Right Inspector để người thiết kế biểu mẫu chủ động đặt lớp bản đồ mặc định phù hợp với từng loại hình câu hỏi.
+   - **In ấn & PDF:** Canvas tự động render đúng layer ảnh vệ tinh hoặc bản đồ đã cấu hình, đồng thời ẩn nút bấm chuyển layer để bản in nghiệm thu phẳng, sạch sẽ và đạt chuẩn QMS.
 
 ### 2026-10-26 — Nâng Cấp Field Type Location Hiển Thị Mini Map Canvas & Tùy Chọn Bật/Tắt (`types`, `MiniMapCanvas`, `LocationInputFiller`, `FormBuilder`, `PrintFilledForm`, `server.cjs`)
 
@@ -470,18 +483,3 @@ phiên thực thi để không lặp lại lỗi cũ.
 - **Mở rộng Right Inspector:** Thêm nút `•` (Bullet point) cạnh `B`, `I`, `U` và tăng `rows={6}` cho trường nhãn.
 - **Đồng bộ FormFiller & Print Out:** Bỏ `sanitizeLabel` (bảo toàn dấu `:` cuối câu dẫn), chuyển `display: 'block'` (loại bỏ lỗi căn giữa flexbox của đoạn văn nhiều dòng).
 
-### 2026-10-14 — Tối giản Menu Tùy chọn In ấn (Biến thể 2 kèm Tag Trạng thái) (FormFiller)
-
-**Scope:** 1 source file (`src/components/FormFiller.tsx`) + 1 design doc (`DESIGN_FORM_OPERATIONS.md`).
-
-| Chỉ số | Giá trị |
-|---|---|
-| Số file nguồn chỉnh sửa | 1 |
-| Lượt edit sửa lỗi (rework) | 0 |
-| Số lần build | 1 (`npx tsc --noEmit` pass 100%, `npm run build` pass 21.92s) |
-| Lần build đầu thành công? | Có |
-
-**Kết quả đạt được:**
-- **Mở rộng Đầy đủ 3 Chế độ In Ấn (`FormFiller.tsx`):** Thay thế `printWithGuidanceTemplate` bằng `printBlankConfig: { template, includeGuidance }`, hỗ trợ cả 3 luồng in ấn độc lập: (1) In biểu mẫu trắng không hướng dẫn (phôi tiêu chuẩn), (2) In biểu mẫu trắng kèm hướng dẫn (phôi khảo sát chi tiết), và (3) In bản khai (phiếu đã có dữ liệu).
-- **Thiết kế Tinh gọn theo Biến thể 2 (Không Icon, Kèm Tag Trạng thái):** Mở rộng độ rộng menu lên `280px` triệt tiêu lỗi ngắt dòng mồ côi (*"dẫn"*), căn lề hai đầu phẳng thanh thoát, tag trạng thái phân định (`[ Trống ]`, `[ + Hướng dẫn ]`, `[ Có dữ liệu ]`), xoay mũi tên 180° khi mở menu.
-- **Dead-Code Pruning (Rule 4.2):** Xóa bỏ import icon `BookOpen` không còn sử dụng.

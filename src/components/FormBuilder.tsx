@@ -4148,7 +4148,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                             userSelect: 'none'
                                           }}>
                                             <MapPin size={12} color="var(--primary)" />
-                                            <span>Sơ đồ Mini Map (hiển thị khi có toạ độ)</span>
+                                            <span>{f.mapType === 'satellite' ? '🛰️ Ảnh Vệ tinh (hiển thị khi có toạ độ)' : '🗺️ Sơ đồ Mini Map (hiển thị khi có toạ độ)'}</span>
                                           </div>
                                         )}
                                       </div>
@@ -7321,7 +7321,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                 )}
 
                 {activeField.type === 'location' && (
-                  <div style={{ marginTop: '0.1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ marginTop: '0.1rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
                     <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', cursor: isLocked ? 'default' : 'pointer' }}>
                       <input
                         type="checkbox"
@@ -7332,6 +7332,52 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                       />
                       Hiển thị Mini Map
                     </label>
+
+                    {activeField.showMiniMap !== false && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', paddingLeft: '1.25rem' }}>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                          Chế độ xem mặc định:
+                        </span>
+                        <div style={{ display: 'inline-flex', background: '#f1f5f9', padding: '2px', borderRadius: '4px', width: 'fit-content', border: '1px solid #e2e8f0' }}>
+                          <button
+                            type="button"
+                            disabled={isLocked}
+                            onClick={() => handleUpdateField(activeBlockId!, activeFieldId!, { mapType: 'roadmap' })}
+                            style={{
+                              padding: '2px 8px',
+                              borderRadius: '3px',
+                              border: 'none',
+                              fontSize: '0.72rem',
+                              fontWeight: 600,
+                              cursor: isLocked ? 'default' : 'pointer',
+                              background: (activeField.mapType || 'roadmap') === 'roadmap' ? '#ffffff' : 'transparent',
+                              color: (activeField.mapType || 'roadmap') === 'roadmap' ? 'var(--primary)' : '#64748b',
+                              boxShadow: (activeField.mapType || 'roadmap') === 'roadmap' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none'
+                            }}
+                          >
+                            🗺️ Bản đồ
+                          </button>
+                          <button
+                            type="button"
+                            disabled={isLocked}
+                            onClick={() => handleUpdateField(activeBlockId!, activeFieldId!, { mapType: 'satellite' })}
+                            style={{
+                              padding: '2px 8px',
+                              borderRadius: '3px',
+                              border: 'none',
+                              fontSize: '0.72rem',
+                              fontWeight: 600,
+                              cursor: isLocked ? 'default' : 'pointer',
+                              background: activeField.mapType === 'satellite' ? '#ffffff' : 'transparent',
+                              color: activeField.mapType === 'satellite' ? 'var(--primary)' : '#64748b',
+                              boxShadow: activeField.mapType === 'satellite' ? '0 1px 2px rgba(0,0,0,0.06)' : 'none'
+                            }}
+                          >
+                            🛰️ Vệ tinh
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 

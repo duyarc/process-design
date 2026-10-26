@@ -738,7 +738,7 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                   </div>
                                   {hasMiniMap && (
                                     <div style={{ width: '100%', height: '110px', marginTop: '2px', borderRadius: '3px', overflow: 'hidden', border: '1px solid #cbd5e1' }}>
-                                      <MiniMapCanvas lat={loc.lat!} lng={loc.lng!} zoom={15} height={110} />
+                                      <MiniMapCanvas lat={loc.lat!} lng={loc.lng!} zoom={15} height={110} mapType={f.mapType || 'roadmap'} allowToggleType={false} />
                                     </div>
                                   )}
                                 </div>
