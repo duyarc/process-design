@@ -8,7 +8,7 @@
 |---|---|
 | **Module Name** | Form Operations |
 | **Status** | Active Development |
-| **Verified At Commit** | (2026-10-26) — Grouped Checkbox & Radio rendering in FormFiller, ProcessReader, PrintBlankForm and PrintFilledForm verified against source |
+| **Verified At Commit** | (2026-10-26) — LocationInputFiller integration, GPS 1-touch geolocation, and PrintFilledForm location coordinates verified against source |
 
 ### Quick File Index
 
@@ -470,6 +470,7 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 | 2026-10-16 | `CURRENT` | **Table Guidance Deduplication in Focus Mode (`FormFiller`, `formUtils`):** (1) In `src/utils/formUtils.ts`, added `headerBlock?: LayoutBlockISO` to `FormSectionGroup` and populated it in `groupBlocksIntoSections` across `rawH1Sections` and `sections` return mapping. (2) In `FormFiller.tsx`, suppressed plain-text description rendering in Focus mode when section/subsection `headerBlock?.type === 'TABLE'` (both H1 and H2), ensuring table guidance is rendered exclusively via the interactive `[ 💡 Hướng dẫn ⌃/⌄ ]` accordion and eliminating duplicate guidance display. |
 | 2026-10-16 | `CURRENT` | **Table Guidance Visual Parity with Field Standard (`FormFiller`):** Re-aligned Table block guidance and row guidance styling to 100% visual parity with standard Field guidance (`INFO_GRID`): replaced green text (`#0f766e`) with high-contrast `var(--text-primary)`, switched green tint (`var(--neutral-bg)`) to neutral `#f8fafc`, eliminated 4-sided `#ccfbf1` border in favor of single `borderLeft: 3px solid #0d9488`, added subtle `boxShadow` (`0 1px 3px rgba(0,0,0,0.04)`), normalized `fontSize` (`0.78rem`), and standardized icon proportions. |
 | 2026-10-26 | `CURRENT` | **Grouped Checkbox & Radio Options Rendering (`FormFiller`, `ProcessReader`, `PrintBlankForm`, `PrintFilledForm`):** (1) Integrated `clusterOptionsByGroup` across `INFO_GRID` and `CHECKLIST` fields in `FormFiller` and `ProcessReader`, rendering discrete group sub-headers (`📂 [TÊN NHÓM]`) with subtle typography (`0.72rem`, `fontWeight: 700`, uppercase, `var(--text-secondary)`) and dashed separator without heavy border clutter. (2) Standardized grouped layout in `PrintBlankForm` and `PrintFilledForm` with consistent `0.7rem` group titles and indented option clusters. |
+| 2026-10-26 | `CURRENT` | **Dedicated Location Field Filler & DMS Coordinates Print (`LocationInputFiller`, `FormFiller`, `PrintFilledForm`):** (1) Created isolated sub-component `src/components/form/LocationInputFiller.tsx` (Rule 4.3 Monolith Guard) integrating input field for Google Maps URLs / coordinates, 1-touch HTML5 GPS Geolocation button, and minimalist Location Card displaying DMS coordinates (`12°35'34.6"N 107°14'33.9"E`) with direct external link `[ ↗ Mở Maps ]` (zero iframe clutter). (2) Integrated `LocationInputFiller` into `FormFiller.tsx` and `ProcessReader.tsx` across `INFO_GRID` and `CHECKLIST_TABLE` blocks with `disabled` prop support. (3) In `PrintFilledForm.tsx`, formatted location values with DMS coordinates and printable maps link. |
 
 
 

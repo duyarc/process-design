@@ -3297,6 +3297,100 @@ app.delete('/api/users/:id', async (req, res) => {
   }
 });
 
+// In-memory cache for resolved Google Maps short links (max 1000 entries)
+const mapUnshortenCache = new Map();
+
+// GET /api/utils/unshorten-map - Resolves short Google Maps URLs to coordinates & standard maps URL
+app.get('/api/utils/unshorten-map', async (req, res) => {
+  try {
+    const rawUrl = (req.query.url || '').trim();
+    if (!rawUrl) {
+      return res.status(400).json({ error: 'Missing url parameter' });
+    }
+
+    if (mapUnshortenCache.has(rawUrl)) {
+      return res.json(mapUnshortenCache.get(rawUrl));
+    }
+
+    // Direct lat,lng match: e.g. "12.5929312, 107.2427499"
+    const directCoordsMatch = rawUrl.match(/^(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)$/);
+    if (directCoordsMatch) {
+      const lat = parseFloat(directCoordsMatch[1]);
+      const lng = parseFloat(directCoordsMatch[2]);
+      const result = {
+        success: true,
+        originalUrl: rawUrl,
+        resolvedUrl: `https://www.google.com/maps?q=${lat},${lng}`,
+        lat,
+        lng,
+        mapsUrl: `https://www.google.com/maps?q=${lat},${lng}`
+      };
+      mapUnshortenCache.set(rawUrl, result);
+      return res.json(result);
+    }
+
+    // Validate URL scheme
+    if (!rawUrl.startsWith('http://') && !rawUrl.startsWith('https://')) {
+      return res.status(400).json({ error: 'Invalid URL scheme' });
+    }
+
+    let finalUrl = rawUrl;
+    if (rawUrl.includes('maps.app.goo.gl') || rawUrl.includes('goo.gl/maps') || rawUrl.includes('google.com/maps')) {
+      try {
+        const response = await fetch(rawUrl, {
+          method: 'GET',
+          redirect: 'follow',
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+          }
+        });
+        finalUrl = response.url || rawUrl;
+      } catch (fetchErr) {
+        console.warn('[unshorten-map] Fetch redirect failed, fallback to rawUrl:', fetchErr.message);
+      }
+    }
+
+    let lat = null;
+    let lng = null;
+    const atMatch = finalUrl.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+    const dMatch = finalUrl.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
+    const qMatch = finalUrl.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/);
+
+    if (dMatch) {
+      lat = parseFloat(dMatch[1]);
+      lng = parseFloat(dMatch[2]);
+    } else if (atMatch) {
+      lat = parseFloat(atMatch[1]);
+      lng = parseFloat(atMatch[2]);
+    } else if (qMatch) {
+      lat = parseFloat(qMatch[1]);
+      lng = parseFloat(qMatch[2]);
+    }
+
+    const mapsUrl = (lat != null && lng != null)
+      ? `https://www.google.com/maps?q=${lat},${lng}`
+      : finalUrl;
+
+    const result = {
+      success: true,
+      originalUrl: rawUrl,
+      resolvedUrl: finalUrl,
+      lat,
+      lng,
+      mapsUrl
+    };
+
+    if (mapUnshortenCache.size > 1000) {
+      mapUnshortenCache.clear();
+    }
+    mapUnshortenCache.set(rawUrl, result);
+    return res.json(result);
+  } catch (err) {
+    console.error('[unshorten-map] Error:', err);
+    return res.status(500).json({ error: 'Failed to resolve location' });
+  }
+});
+
 // GET /api/cron-ping - Database Keep-Alive route triggered by Cron/pinger
 app.get('/api/cron-ping', async (req, res) => {
   try {

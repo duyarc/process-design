@@ -13,6 +13,7 @@ const stringifySubtableValue = (rows: Record<string, string>[]): string => JSON.
 import { generateBPMNXML, getNumRows } from '../utils/bpmnXmlGenerator';
 import { BpmnViewerComponent } from './BpmnViewerComponent';
 import PrintBlankForm from './print/PrintBlankForm';
+import { LocationInputFiller } from './form/LocationInputFiller';
 
 interface ProcessReaderProps {
   processId: string;
@@ -1744,7 +1745,13 @@ setFormValues(prev => ({ ...prev, [field.id]: stringifySubtableValue(newRows) })
                                           <div style={{ clear: 'both' }} />
                                         </div>
                                       );
-                                    })() : (
+                                    })() : field.type === 'location' ? (
+                                      <LocationInputFiller
+                                        field={field}
+                                        value={value}
+                                        onChange={(val) => setFormValues(prev => ({ ...prev, [field.id]: val }))}
+                                      />
+                                    ) : (
                                       <input
                                         type="text"
                                         value={value}
@@ -1943,6 +1950,16 @@ setFormValues(prev => ({ ...prev, [field.id]: stringifySubtableValue(newRows) })
                                           placeholder="Enter observation note"
                                           style={{ padding: '0.4rem 0.5rem', fontSize: '0.85rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', flex: 1 }}
                                         />
+                                      )}
+
+                                      {field.type === 'location' && (
+                                        <div style={{ flex: 1 }}>
+                                          <LocationInputFiller
+                                            field={field}
+                                            value={value}
+                                            onChange={(val) => setFormValues(prev => ({ ...prev, [field.id]: val }))}
+                                          />
+                                        </div>
                                       )}
 
                                       {field.type === 'photo' && (

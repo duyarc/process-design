@@ -1293,3 +1293,80 @@ export function getTableItemColumnId(tableColumns?: TableColumnConfig[]): string
   if (tableColumns.length > 1) return tableColumns[1].id;
   return tableColumns[0].id;
 }
+
+
+/**
+ * Converts decimal degrees latitude and longitude into international DMS format (e.g. 12°35'34.6"N 107°14'33.9"E).
+ */
+export function formatDMS(lat: number, lng: number): string {
+  const formatCoord = (deg: number, isLat: boolean) => {
+    const dir = isLat ? (deg >= 0 ? 'N' : 'S') : (deg >= 0 ? 'E' : 'W');
+    const abs = Math.abs(deg);
+    const d = Math.floor(abs);
+    const mFloat = (abs - d) * 60;
+    const m = Math.floor(mFloat);
+    const s = ((mFloat - m) * 60).toFixed(1);
+    return `${d}°${m}'${s}"${dir}`;
+  };
+  return `${formatCoord(lat, true)} ${formatCoord(lng, false)}`;
+}
+
+/**
+ * Parses a Google Maps link, coordinates, or URL string into coordinates and display texts.
+ */
+export function parseGoogleMapsUrl(rawUrl?: string): { lat?: number; lng?: number; mapsUrl: string; dmsText?: string; decimalText?: string } | null {
+  if (!rawUrl || typeof rawUrl !== 'string') return null;
+  const trimmed = rawUrl.trim();
+  if (!trimmed) return null;
+
+  // Direct lat,lng match: e.g. "12.5929312, 107.2427499"
+  const directMatch = trimmed.match(/^(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)$/);
+  if (directMatch) {
+    const lat = parseFloat(directMatch[1]);
+    const lng = parseFloat(directMatch[2]);
+    return {
+      lat,
+      lng,
+      mapsUrl: `https://www.google.com/maps?q=${lat},${lng}`,
+      dmsText: formatDMS(lat, lng),
+      decimalText: `${lat.toFixed(6)}, ${lng.toFixed(6)}`
+    };
+  }
+
+  // Extract from Google Maps URL patterns
+  const atMatch = trimmed.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+  const dMatch = trimmed.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
+  const qMatch = trimmed.match(/[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/);
+
+  let lat: number | undefined;
+  let lng: number | undefined;
+
+  if (dMatch) {
+    lat = parseFloat(dMatch[1]);
+    lng = parseFloat(dMatch[2]);
+  } else if (atMatch) {
+    lat = parseFloat(atMatch[1]);
+    lng = parseFloat(atMatch[2]);
+  } else if (qMatch) {
+    lat = parseFloat(qMatch[1]);
+    lng = parseFloat(qMatch[2]);
+  }
+
+  if (lat !== undefined && lng !== undefined) {
+    return {
+      lat,
+      lng,
+      mapsUrl: `https://www.google.com/maps?q=${lat},${lng}`,
+      dmsText: formatDMS(lat, lng),
+      decimalText: `${lat.toFixed(6)}, ${lng.toFixed(6)}`
+    };
+  }
+
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    return {
+      mapsUrl: trimmed
+    };
+  }
+
+  return null;
+}

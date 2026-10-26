@@ -25,7 +25,7 @@ phiên thực thi để không lặp lại lỗi cũ.
 | 29 | `LOGIC` | Gộp chung `field.type === 'radio'` với `select` trong render nhánh form khiến radio biến thành dropdown `<select>` và chữ dài bị ép 1 dòng; dùng `maxWidth: '180px'` cứng nhắc trên canvas khiến nhãn radio dài bị cắt cụt | Luôn tách riêng component render radio button group với radio circle native; với nhãn nhiều dòng trên canvas, dùng CSS Grid auto-growing `<textarea>` thay vì `<input>` cố định chiều rộng | 1 |
 | 30 | `BLOAT` | Nhập liệu nội dung hướng dẫn dài trên sidebar hẹp sinh thanh cuộn dọc kép và bắt buộc cuộn trang | Tách sub-component In-Canvas Accordion Editor với CSS Grid auto-grow textarea, cho phép xem và sửa trực tiếp ngay tại vị trí câu hỏi trên Canvas (Rule 13.9) | 1 |
 | 31 | `LOGIC` | Regex in nghiêng `\*(?:[^*]+)\*` nuốt dấu hoa thị đầu dòng bullet list (`* **Bold**`) thành in nghiêng lỗi | Áp dụng lookahead/lookbehind nghiêm ngặt `\*(?!\s)(?:[^*]+?)(?<!\s)\*` và xử lý phân cấp 2 tầng: tách dòng bullet (`* `, `- `, `+ `, `• `) trước, parse inline markdown sau | 1 |
-| 32 | `SCOPE` | Khi thêm trường mới vào `FormFieldISO.type`, nếu chỉ cập nhật union type cục bộ mà quên thêm vào chữ ký tham số `newType` của `handleChangeFieldType` trong component monolith thì `tsc -b` sẽ báo TS2367 ("no overlap") và TS2345 tại các call-site dropdown | Luôn đồng bộ union type của hàm đổi loại trường (`handleChangeFieldType`) cùng lúc với `FormFieldISO['type']` hoặc gán trực tiếp `newType: FormFieldISO['type']` | 1 |
+| 32 | `SCOPE` | Khi thêm trường mới vào `FormFieldISO.type`, nếu chỉ cập nhật union type cục bộ mà quên thêm vào chữ ký tham số `newType` của `handleChangeFieldType` trong component monolith thì `tsc -b` sẽ báo TS2367 ("no overlap") và TS2345 tại các call-site dropdown | Gán trực tiếp `newType: FormFieldISO['type']` cho chữ ký tham số thay vì liệt kê thủ công union type rời rạc | 2 |
 | 33 | `LOGIC` | Giới hạn cứng `maxHeight: '200px'`/`'220px'` kết hợp `alignItems: 'center'` trên ảnh tỷ lệ rộng (banner 4:1) khiến ảnh bị bóp hẹp chiều ngang (~800px) tạo 2 dải lề trắng lớn bên trái và phải | Bỏ trần `maxHeight` cứng khi ở chế độ banner/full, đặt `width: '100%'` và `height: 'auto'` kết hợp các chế độ độ rộng `imageWidthMode` ('full' \| 'bleed' \| 'fit') để ảnh dãn bằng phẳng 100% với lề văn bản | 1 |
 | 34 | `LOGIC` | Khóa cứng thao tác xóa trên nút bấm (`disabled={... \|\| block.type === 'TITLE'}`) trong khi vẫn để màu kích hoạt đỏ (`var(--danger)`) gây nghịch lý giao diện (nút nhìn bấm được nhưng không phản hồi); ngoài ra `formTitle` vốn là thuộc tính độc lập lưu trong DB chứ không phụ thuộc vào sự tồn tại của khối TITLE trên canvas | Khi vô hiệu hóa nút bấm, luôn chuyển màu sắc sang `var(--text-muted)` và kiểm tra tính độc lập của dữ liệu trước khi áp đặt các ràng buộc cấm xóa cứng nhắc | 1 |
 | 35 | `LOGIC` | `InCanvasImageField` thiếu `processId` và `formName` trong request body của presign-upload, server trả HTTP 400, component fallback sang base64 nhúng trực tiếp multi-MB vào `layoutBlocks` → cascading slow save qua `onSave` → `ProcessEditor` auto-save process chứa toàn bộ JSONB | Khi tích hợp sub-component upload ảnh, luôn truyền đủ context (`processId`, `formName`/`formId`) để presign-upload hoạt động đúng; kiểm tra Network tab xác nhận presign thành công trước khi cho rằng upload OK | 1 |
@@ -37,6 +37,33 @@ phiên thực thi để không lặp lại lỗi cũ.
 ---
 
 ## Nhật ký Phiên
+
+### 2026-10-26 — Trường Chuyên dụng Vị trí (Location Field Type) với GPS 1-Chạm & Phân giải Google Maps Link (`LocationInputFiller`, `server.cjs`, `formUtils`)
+
+**Scope:** 7 source files (`src/types.ts`, `server.cjs`, `src/utils/formUtils.ts`, `src/components/form/LocationInputFiller.tsx`, `src/components/FormBuilder.tsx`, `src/components/FormFiller.tsx`, `src/components/ProcessReader.tsx`, `src/components/print/PrintFilledForm.tsx`) + 3 design docs (`DESIGN_FORM_DESIGNER.md`, `DESIGN_FORM_OPERATIONS.md`, `DESIGN_BACKEND.md`).
+
+| Chỉ số | Giá trị |
+|---|---|
+| Số file nguồn chỉnh sửa / thêm mới | 8 |
+| Lượt edit sửa lỗi (rework) | 0 |
+| Số lần build | 2 (`npx tsc --noEmit` pass 100%, `npm run build` pass 9.96s) |
+| Lần build đầu thành công? | Có |
+
+**Kết quả đạt được:**
+- **Thêm Loại Trường Chuyên dụng `'location'` vào Form Engine:**
+  - Bổ sung `'location'` vào union `FormFieldISO.type` trong `src/types.ts`.
+  - Hỗ trợ đầy đủ trong `FormBuilder`: icon `MapPin`, `FIELD_TYPE_OPTIONS`, dropdown switch, Canvas inline placeholder và mock `[📍 GPS]`, cùng placeholder configuration trên Right Inspector.
+- **Backend Unshorten Proxy Endpoint (`server.cjs`):**
+  - Thêm `GET /api/utils/unshorten-map?url=...` resolve các link rút gọn `maps.app.goo.gl` và `goo.gl/maps` bằng HTTP request không follow loop, trích xuất toạ độ và lưu in-memory cache `mapUnshortenCache`.
+- **Pure Utilities (`src/utils/formUtils.ts`):**
+  - Trích xuất `formatDMS` (chuyển đổi toạ độ thập phân sang định dạng độ, phút, giây kinh vĩ độ ISO `12°35'34.6"N 107°14'33.9"E`) và `parseGoogleMapsUrl` (nhận diện URL Google Maps, CID, query toạ độ và chuỗi lat, lng thuần).
+- **Sub-component Độc lập `LocationInputFiller.tsx` (Rule 4.3 Monolith Guard):**
+  - Ô nhập liệu linh hoạt hỗ trợ dán link Google Maps hoặc gõ toạ độ, tích hợp nút `[📍 GPS]` 1-chạm (HTML5 Geolocation API với độ chính xác cao).
+  - Tự động gọi backend unshorten proxy khi dán shortlink Google Maps.
+  - Thẻ Vị trí Tinh gọn theo Lựa chọn A (Siêu nhẹ — Zero Iframe): hiển thị toạ độ DMS sắc nét kèm duy nhất nút link ngoài `[ ↗ Mở Maps ]`.
+- **Tích hợp Toàn diện & Bản in A4 Sắc nét:**
+  - Tích hợp `LocationInputFiller` vào cả `INFO_GRID` và `CHECKLIST_TABLE` trong `FormFiller.tsx` và `ProcessReader.tsx`.
+  - `PrintFilledForm.tsx`: hiển thị toạ độ chuẩn hoá dạng text kèm link `[ ↗ Mở Maps ]` sắc nét cho thanh tra và lưu trữ audit ISO.
 
 ### 2026-10-26 — Đồng bộ Bộ 3 Nút Bấm, Drag-to-Reorder Nhóm & Triệt tiêu Icon Folder (`FormBuilder`, `formUtils`)
 

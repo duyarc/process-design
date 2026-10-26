@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import { Star } from 'lucide-react';
 import type { Submission, SubmissionFieldSnapshot, FormTemplateISO, TableColumnConfig } from '../../types';
 import { formatFormVersion, getColStyleWidth } from '../../types';
-import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock, getInfoGridTemplateColumns, isOtherValue, extractOtherText, formatOptionDisplay, getEffectiveCellOptions, getChecklistColumns, resolveImageSrc, clusterOptionsByGroup } from '../../utils/formUtils';
+import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock, getInfoGridTemplateColumns, isOtherValue, extractOtherText, formatOptionDisplay, getEffectiveCellOptions, parseGoogleMapsUrl, getChecklistColumns, resolveImageSrc, clusterOptionsByGroup } from '../../utils/formUtils';
 import { renderFormattedText } from '../../utils/textFormatter';
 import { PrintDocumentStyles, PrintSectionHeader } from './printShared';
 
@@ -708,6 +708,24 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                               );
                             }
 
+                            if (f.type === 'location') {
+                              const loc = parseGoogleMapsUrl(val);
+                              const displayVal = loc ? (loc.dmsText || loc.decimalText || val) : val;
+                              return (
+                                <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'center', minHeight: 'var(--pw-line-h)', gap: '8px', fontSize: '0.85rem' }}>
+                                  {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap', lineHeight: 1.4 }}>{renderFormattedText(cleanLabel)}</span>}
+                                  <div style={{ flex: 1, borderBottom: '1px dotted #cbd5e1', minHeight: '16px', fontWeight: 600, color: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                                    <span>{displayVal ? `📍 ${displayVal}` : '\u00A0'}</span>
+                                    {loc && loc.mapsUrl && (
+                                      <a href={loc.mapsUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.72rem', color: '#0284c7', textDecoration: 'none', fontWeight: 500 }}>
+                                        ↗ Mở Maps
+                                      </a>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            }
+
                             if (f.type === 'select') {
                               const displayVal = formatOptionDisplay(val, f.options);
                               return (
@@ -855,7 +873,25 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                         );
                                       }
                                     }
-                                    if (field.type === 'number' || field.type === 'text') {
+                                    if (field.type === 'location') {
+                                        const loc = parseGoogleMapsUrl(fieldVal);
+                                        const displayVal = loc ? (loc.dmsText || loc.decimalText || fieldVal) : fieldVal;
+                                        return (
+                                          <td key={col.id} style={{ ...commonStyle, textAlign: 'center', fontWeight: 600 }}>
+                                            {displayVal ? (
+                                              <span>
+                                                📍 {displayVal}
+                                                {loc && loc.mapsUrl && (
+                                                  <a href={loc.mapsUrl} target="_blank" rel="noopener noreferrer" style={{ marginLeft: '4px', fontSize: '0.7rem', color: '#0284c7', textDecoration: 'none' }}>
+                                                    ↗
+                                                  </a>
+                                                )}
+                                              </span>
+                                            ) : ''}
+                                          </td>
+                                        );
+                                      }
+                                      if (field.type === 'number' || field.type === 'text') {
                                         return <td key={col.id} style={{ ...commonStyle, textAlign: 'center', fontWeight: 600 }}>{fieldVal}</td>;
                                       }
                                       if (col.id === 'col_reaction') {

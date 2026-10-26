@@ -108,7 +108,7 @@ export interface SubtableColumn {
 
 export interface FormFieldISO {
   id: string;
-  type: 'label' | 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo' | 'subtable' | 'rating' | 'likert_scale' | 'select' | 'image';
+  type: 'label' | 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo' | 'subtable' | 'rating' | 'likert_scale' | 'select' | 'image' | 'location';
   checkItem: string;
   placeholder?: string; // For input/photo placeholder or instruction text
   locationCode: string;

@@ -73,6 +73,7 @@ import { renderFormattedText, stripMarkdownTokens } from '../utils/textFormatter
 import { useAuth } from '../context/AuthContext';
 import PrintFilledForm from './print/PrintFilledForm';
 import PrintBlankForm from './print/PrintBlankForm';
+import { LocationInputFiller } from './form/LocationInputFiller';
 import FormReport from './FormReport';
 import { 
   ArrowLeft, 
@@ -2242,7 +2243,14 @@ function FormFillerInner({
                               <div style={{ clear: 'both' }} />
                             </div>
                           );
-                        })() : (
+                        })() : field.type === 'location' ? (
+                          <LocationInputFiller
+                            field={field}
+                            value={value}
+                            onChange={(val) => setFormValues(prev => ({ ...prev, [field.id]: val }))}
+                            disabled={effectiveReadOnly}
+                          />
+                        ) : (
                           <AutoResizingTextarea
                             value={value}
                             placeholder={field.placeholder}
@@ -2629,7 +2637,14 @@ function FormFillerInner({
                                   )}
                                 </div>
                               );
-                            })() : (
+                            })() : field.type === 'location' ? (
+                              <LocationInputFiller
+                                field={field}
+                                value={value}
+                                onChange={(val) => setFormValues(prev => ({ ...prev, [field.id]: val }))}
+                                disabled={effectiveReadOnly}
+                              />
+                            ) : (
                               <AutoResizingTextarea 
                                 value={value}
                                 onChange={(val) => setFormValues(prev => ({ ...prev, [field.id]: val }))}

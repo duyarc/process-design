@@ -42,7 +42,8 @@ import {
   PanelTop,
   Zap,
   GripVertical,
-  Image as ImageIcon
+  Image as ImageIcon,
+  MapPin
 } from 'lucide-react';
 import PrintBlankForm from './print/PrintBlankForm';
 import ConfirmModal from './common/ConfirmModal';
@@ -484,7 +485,7 @@ function InfoGridSteppedSplitter({ columns, columnWidths, onChange, disabled }: 
 }
 
 export interface FieldTypeOptionItem {
-  value: 'label' | 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo' | 'subtable' | 'likert_scale' | 'rating' | 'select' | 'image';
+  value: 'label' | 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo' | 'subtable' | 'likert_scale' | 'rating' | 'select' | 'image' | 'location';
   label: string;
   icon: React.ComponentType<{ size?: number; strokeWidth?: number; className?: string; style?: React.CSSProperties }>;
 }
@@ -526,14 +527,15 @@ export const FIELD_TYPE_OPTIONS: FieldTypeOptionItem[] = [
   { value: 'likert_scale', label: 'Scale', icon: SlidersHorizontal },
   { value: 'photo', label: 'Photo', icon: Camera },
   { value: 'signature', label: 'Sign-off', icon: PenTool },
+  { value: 'location', label: 'Location', icon: MapPin },
   { value: 'subtable', label: 'Subtable', icon: TableIcon },
   { value: 'label', label: 'Label', icon: AlignLeft },
   { value: 'image', label: 'Image', icon: ImageIcon }
 ];
 
 interface FieldTypeDropdownProps {
-  value: 'label' | 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo' | 'rating' | 'subtable' | 'likert_scale' | 'select' | 'image';
-  onChange: (newType: 'label' | 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo' | 'rating' | 'subtable' | 'likert_scale' | 'select' | 'image') => void;
+  value: 'label' | 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo' | 'rating' | 'subtable' | 'likert_scale' | 'select' | 'image' | 'location';
+  onChange: (newType: 'label' | 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo' | 'rating' | 'subtable' | 'likert_scale' | 'select' | 'image' | 'location') => void;
   disabled?: boolean;
   compact?: boolean;
 }
@@ -2278,7 +2280,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     }
   };
 
-  const handleChangeFieldType = (blockId: string, fieldId: string, newType: 'label' | 'text' | 'number' | 'date' | 'time' | 'checkbox' | 'radio' | 'signature' | 'photo' | 'subtable' | 'likert_scale' | 'rating' | 'select' | 'image') => {
+  const handleChangeFieldType = (blockId: string, fieldId: string, newType: FormFieldISO['type']) => {
     if (isLocked) return;
     
     // Find current field to inspect its options
@@ -2344,6 +2346,14 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
       updates.colSpan = field?.colSpan ?? -1;
       if (!field?.checkItem || field.checkItem === 'Thông tin mới') {
         updates.checkItem = 'Image';
+      }
+      updates.minSpec = undefined;
+      updates.maxSpec = undefined;
+      updates.unit = undefined;
+    } else if (newType === 'location') {
+      updates.placeholder = field?.placeholder || 'Dán link Google Maps hoặc toạ độ...';
+      if (!field?.checkItem || field.checkItem === 'Thông tin mới') {
+        updates.checkItem = 'Vị trí / Bản đồ';
       }
       updates.minSpec = undefined;
       updates.maxSpec = undefined;
@@ -4060,6 +4070,66 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                           }}
                                           placeholder="Gõ ghi chú/hướng dẫn ảnh..."
                                         />
+                                      </div>
+                                    )}
+
+                                    {/* Location field placeholder & GPS preview */}
+                                    {f.type === 'location' && (
+                                      <div style={{ marginTop: '4px', width: '100%', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center' }}>
+                                          <span style={{ position: 'absolute', left: '6px', color: '#94a3b8', pointerEvents: 'none', display: 'flex', alignItems: 'center' }}>
+                                            <MapPin size={12} />
+                                          </span>
+                                          <input
+                                            type="text"
+                                            disabled={isLocked}
+                                            value={f.placeholder ?? ''}
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setActiveBlockId(block.id);
+                                              setActiveFieldId(f.id);
+                                            }}
+                                            onChange={(e) => handleUpdateField(block.id, f.id, { placeholder: e.target.value })}
+                                            placeholder="[Dán link Google Maps hoặc toạ độ...]"
+                                            style={{
+                                              width: '100%',
+                                              padding: '3px 6px 3px 22px',
+                                              fontSize: '0.78rem',
+                                              fontStyle: 'italic',
+                                              color: f.placeholder ? '#475569' : '#94a3b8',
+                                              background: '#f8fafc',
+                                              border: '1px dashed #cbd5e1',
+                                              borderRadius: '4px',
+                                              outline: 'none',
+                                              boxSizing: 'border-box',
+                                              cursor: isLocked ? 'default' : 'text'
+                                            }}
+                                            onFocus={(e) => {
+                                              e.currentTarget.style.borderColor = 'var(--primary)';
+                                              e.currentTarget.style.background = '#ffffff';
+                                            }}
+                                            onBlur={(e) => {
+                                              e.currentTarget.style.borderColor = '#cbd5e1';
+                                              e.currentTarget.style.background = '#f8fafc';
+                                            }}
+                                          />
+                                        </div>
+                                        <span style={{
+                                          fontSize: '0.7rem',
+                                          fontWeight: 600,
+                                          padding: '2px 6px',
+                                          borderRadius: '4px',
+                                          border: '1px solid var(--primary)',
+                                          background: '#f0fdfa',
+                                          color: 'var(--primary)',
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: '3px',
+                                          whiteSpace: 'nowrap',
+                                          userSelect: 'none'
+                                        }}>
+                                          <MapPin size={10} /> GPS
+                                        </span>
                                       </div>
                                     )}
 
@@ -7104,18 +7174,24 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                   />
                 </div>
 
-                {activeField.type === 'photo' && (
+                {(activeField.type === 'photo' || activeField.type === 'location') && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                    <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Văn bản gợi ý trong ô (Placeholder Text)</label>
+                    <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>
+                      {activeField.type === 'location' ? 'Văn bản gợi ý (Placeholder)' : 'Văn bản gợi ý trong ô (Placeholder Text)'}
+                    </label>
                     <input
                       type="text"
                       disabled={isLocked}
                       value={activeField.placeholder ?? ''}
                       onChange={(e) => handleUpdateField(activeBlockId!, activeFieldId!, { placeholder: e.target.value })}
-                      placeholder="Ví dụ: [photo]"
+                      placeholder={activeField.type === 'location' ? "Dán link Google Maps hoặc toạ độ..." : "Ví dụ: [photo]"}
                       style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
                     />
-                    <span style={{ fontSize: '0.7rem', color: '#64748b' }}>Chữ này hiển thị căn giữa bên trong khung nét đứt. Nếu để trống sẽ hiển thị ô trắng.</span>
+                    <span style={{ fontSize: '0.7rem', color: '#64748b' }}>
+                      {activeField.type === 'location'
+                        ? 'Chữ mờ hiển thị gợi ý người dùng dán link Google Maps hoặc bấm nút lấy GPS.'
+                        : 'Chữ này hiển thị căn giữa bên trong khung nét đứt. Nếu để trống sẽ hiển thị ô trắng.'}
+                    </span>
                   </div>
                 )}
 

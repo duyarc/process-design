@@ -9,7 +9,7 @@
 | **Module Name** | Backend & Persistence |
 | **Status** | Active Development |
 | **Document Version** | 1.2 |
-| **Verified At Commit** | (2026-10-16) — compression middleware, RETURNING column-list optimization, revision_history fanout guard verified against source |
+| **Verified At Commit** | (2026-10-26) — Google Maps shortlink unshorten proxy endpoint and in-memory cache verified against source |
 
 ### Quick File Index
 
@@ -308,3 +308,4 @@ Architectural changes only — schema, endpoints, invariants. UI polish lives in
 | 2026-10-14 | `CURRENT` | **Vietnamese Slug Normalization (`server.cjs`):** Enhanced `toSlug` helper in `server.cjs` to convert 'đ/Đ' to 'd' in addition to Unicode NFD diacritics stripping, aligning resolution with frontend `toFormSlug` for `/api/forms/resolve/*identifier`. |
 | 2026-10-16 | `CURRENT` | **Image Storage Gallery Endpoint (`server.cjs`):** Added `GET /api/storage/images` endpoint listing all files under `uploads/` with valid image extensions (`.png`, `.jpg`, `.jpeg`, `.webp`, `.svg`, `.gif`, `.bmp`), returning metadata (key, name, size, lastModified) for the frontend Image Gallery modal. |
 | 2026-10-16 | `CURRENT` | **Form Save Performance (`server.cjs`):** (1) Added `compression` middleware after body parsers for gzip/brotli response compression. (2) Optimized `PUT /api/forms/:formId` to `RETURNING` only metadata columns instead of `RETURNING *` (excludes `layout_blocks` and `revision_history` JSONB). (3) Tightened `revision_history` fanout condition from `req.body.allowActiveUpdate \|\| revisionHistory` to `revisionHistory && Array.isArray(revisionHistory) && revisionHistory.length > 0`, preventing unnecessary INSERT on every draft save. |
+| 2026-10-26 | `CURRENT` | **Google Maps Shortlink Unshorten Proxy (`server.cjs`):** Added `GET /api/utils/unshorten-map?url=...` endpoint resolving short links (`maps.app.goo.gl`, `goo.gl/maps`) via native Node `fetch` without following redirect loops (`redirect: 'manual'`), extracting destination URL and coordinates from `Location` header, and caching results in-memory (`mapUnshortenCache`) to bypass browser CORS / CSP iframe restrictions. |
