@@ -3960,19 +3960,18 @@ function FormFillerInner({
                   {isPrintMenuOpen && submissionTab === 'form' && (
                     <>
                       <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => setIsPrintMenuOpen(false)} />
-                      <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: '4px', background: '#ffffff', borderRadius: '8px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.05)', border: '1px solid var(--neutral-border)', zIndex: 100, minWidth: '200px', padding: '4px', display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                      <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: '4px', background: '#ffffff', borderRadius: '8px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.05)', border: '1px solid var(--neutral-border)', zIndex: 100, minWidth: '150px', padding: '4px', display: 'flex', flexDirection: 'column', gap: '1px' }}>
                         <button
                           type="button"
                           onClick={() => {
                             setIsPrintMenuOpen(false);
                             setPrintBlankConfig({ template: rawFormTemplate || formTemplate, includeGuidance: isAllGuidanceExpanded });
                           }}
-                          style={{ padding: '0.45rem 0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 500, border: 'none', background: 'transparent', borderRadius: '6px', cursor: 'pointer', color: 'var(--text-primary)', textAlign: 'left', width: '100%', transition: 'background-color 0.15s ease' }}
+                          style={{ padding: '0.45rem 0.65rem', display: 'flex', alignItems: 'center', fontSize: '0.78rem', fontWeight: 500, border: 'none', background: 'transparent', borderRadius: '6px', cursor: 'pointer', color: 'var(--text-primary)', textAlign: 'left', width: '100%', transition: 'background-color 0.15s ease' }}
                           onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; }}
                           onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
                         >
                           <span>In biểu mẫu trắng</span>
-                          <span style={{ fontSize: '0.68rem', color: isAllGuidanceExpanded ? '#0d9488' : '#64748b', background: isAllGuidanceExpanded ? 'rgba(13, 148, 136, 0.08)' : '#f1f5f9', border: isAllGuidanceExpanded ? '1px solid rgba(13, 148, 136, 0.2)' : 'none', padding: '1px 6px', borderRadius: '4px', fontWeight: isAllGuidanceExpanded ? 600 : 500 }}>{isAllGuidanceExpanded ? '+ Hướng dẫn' : 'Trống'}</span>
                         </button>
                         <div style={{ height: '1px', background: 'rgba(0,0,0,0.06)', margin: '3px 0' }} />
                         <button
@@ -3983,12 +3982,11 @@ function FormFillerInner({
                               setPrintCurrentSubmission(initialSubmission);
                             }
                           }}
-                          style={{ padding: '0.45rem 0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 500, border: 'none', background: 'transparent', borderRadius: '6px', cursor: 'pointer', color: 'var(--text-primary)', textAlign: 'left', width: '100%', transition: 'background-color 0.15s ease' }}
+                          style={{ padding: '0.45rem 0.65rem', display: 'flex', alignItems: 'center', fontSize: '0.78rem', fontWeight: 500, border: 'none', background: 'transparent', borderRadius: '6px', cursor: 'pointer', color: 'var(--text-primary)', textAlign: 'left', width: '100%', transition: 'background-color 0.15s ease' }}
                           onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; }}
                           onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
                         >
                           <span>In bản khai</span>
-                          <span style={{ fontSize: '0.68rem', color: '#1d4ed8', background: 'rgba(29, 78, 216, 0.08)', border: '1px solid rgba(29, 78, 216, 0.2)', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>Có dữ liệu</span>
                         </button>
                       </div>
                     </>
@@ -4142,19 +4140,18 @@ function FormFillerInner({
               {isPrintMenuOpen && (
                 <>
                   <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => setIsPrintMenuOpen(false)} />
-                  <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: '4px', background: '#ffffff', borderRadius: '8px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.05)', border: '1px solid var(--neutral-border)', zIndex: 100, minWidth: '200px', padding: '4px', display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                  <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: '4px', background: '#ffffff', borderRadius: '8px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.05)', border: '1px solid var(--neutral-border)', zIndex: 100, minWidth: '150px', padding: '4px', display: 'flex', flexDirection: 'column', gap: '1px' }}>
                     <button
                       type="button"
                       onClick={() => {
                         setIsPrintMenuOpen(false);
                         setPrintBlankConfig({ template: rawFormTemplate || formTemplate, includeGuidance: isAllGuidanceExpanded });
                       }}
-                      style={{ padding: '0.45rem 0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 500, border: 'none', background: 'transparent', borderRadius: '6px', cursor: 'pointer', color: 'var(--text-primary)', textAlign: 'left', width: '100%', transition: 'background-color 0.15s ease' }}
+                      style={{ padding: '0.45rem 0.65rem', display: 'flex', alignItems: 'center', fontSize: '0.78rem', fontWeight: 500, border: 'none', background: 'transparent', borderRadius: '6px', cursor: 'pointer', color: 'var(--text-primary)', textAlign: 'left', width: '100%', transition: 'background-color 0.15s ease' }}
                       onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; }}
                       onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
                     >
                       <span>In biểu mẫu trắng</span>
-                      <span style={{ fontSize: '0.68rem', color: isAllGuidanceExpanded ? '#0d9488' : '#64748b', background: isAllGuidanceExpanded ? 'rgba(13, 148, 136, 0.08)' : '#f1f5f9', border: isAllGuidanceExpanded ? '1px solid rgba(13, 148, 136, 0.2)' : 'none', padding: '1px 6px', borderRadius: '4px', fontWeight: isAllGuidanceExpanded ? 600 : 500 }}>{isAllGuidanceExpanded ? '+ Hướng dẫn' : 'Trống'}</span>
                     </button>
                     <div style={{ height: '1px', background: 'rgba(0,0,0,0.06)', margin: '3px 0' }} />
                     <button
@@ -4191,12 +4188,11 @@ function FormFillerInner({
                         };
                         setPrintCurrentSubmission(draftSub);
                       }}
-                      style={{ padding: '0.45rem 0.65rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 500, border: 'none', background: 'transparent', borderRadius: '6px', cursor: 'pointer', color: 'var(--text-primary)', textAlign: 'left', width: '100%', transition: 'background-color 0.15s ease' }}
+                      style={{ padding: '0.45rem 0.65rem', display: 'flex', alignItems: 'center', fontSize: '0.78rem', fontWeight: 500, border: 'none', background: 'transparent', borderRadius: '6px', cursor: 'pointer', color: 'var(--text-primary)', textAlign: 'left', width: '100%', transition: 'background-color 0.15s ease' }}
                       onMouseEnter={e => { e.currentTarget.style.background = '#f8fafc'; }}
                       onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
                     >
                       <span>In bản khai</span>
-                      <span style={{ fontSize: '0.68rem', color: '#1d4ed8', background: 'rgba(29, 78, 216, 0.08)', border: '1px solid rgba(29, 78, 216, 0.2)', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>Có dữ liệu</span>
                     </button>
                   </div>
                 </>
