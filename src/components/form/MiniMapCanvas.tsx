@@ -10,6 +10,7 @@ export interface MiniMapCanvasProps {
   className?: string;
   style?: React.CSSProperties;
   onClick?: () => void;
+  onLoaded?: () => void;
 }
 
 /**
@@ -50,10 +51,12 @@ export const MiniMapCanvas: React.FC<MiniMapCanvasProps> = ({
   allowToggleType = true,
   className,
   style,
-  onClick
+  onClick,
+  onLoaded
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const lastRenderedSizeRef = useRef<{ w: number; h: number }>({ w: 0, h: 0 });
   const [activeType, setActiveType] = useState<'roadmap' | 'satellite'>(mapType || 'roadmap');
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -76,14 +79,14 @@ export const MiniMapCanvas: React.FC<MiniMapCanvasProps> = ({
       const heightPx = (height && height > 0) ? height : (container.clientHeight || 120);
       const dpr = typeof window !== 'undefined' ? (window.devicePixelRatio || 1) : 1;
 
-      // Scale canvas for high-DPI retina screens while keeping CSS dimensions fluid via container
-      canvas.width = width * dpr;
-      canvas.height = heightPx * dpr;
+      // Create offscreen canvas for atomic double-buffering (never wipe visible canvas while tiles load)
+      const offCanvas = document.createElement('canvas');
+      offCanvas.width = width * dpr;
+      offCanvas.height = heightPx * dpr;
+      const offCtx = offCanvas.getContext('2d');
+      if (!offCtx) return;
 
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
-
-      ctx.scale(dpr, dpr);
+      offCtx.scale(dpr, dpr);
 
       // Web Mercator calculation for target center point
       const tileSize = 256;
@@ -102,8 +105,8 @@ export const MiniMapCanvas: React.FC<MiniMapCanvasProps> = ({
       const maxNumTiles = Math.pow(2, zoom);
 
       // Background placeholder tone: darker slate for satellite, light slate for roadmap
-      ctx.fillStyle = activeType === 'satellite' ? '#1e293b' : '#e2e8f0';
-      ctx.fillRect(0, 0, width, heightPx);
+      offCtx.fillStyle = activeType === 'satellite' ? '#1e293b' : '#e2e8f0';
+      offCtx.fillRect(0, 0, width, heightPx);
 
       setIsLoading(true);
 
@@ -123,8 +126,8 @@ export const MiniMapCanvas: React.FC<MiniMapCanvasProps> = ({
 
             const p = loadTileImage(tileUrl)
               .then((img) => {
-                if (!isCancelled && ctx) {
-                  ctx.drawImage(img, drawX, drawY, tileSize, tileSize);
+                if (!isCancelled && offCtx) {
+                  offCtx.drawImage(img, drawX, drawY, tileSize, tileSize);
                 }
               })
               .catch(() => {
@@ -139,61 +142,74 @@ export const MiniMapCanvas: React.FC<MiniMapCanvasProps> = ({
       await Promise.allSettled(tilePromises);
       if (isCancelled) return;
 
-      setIsLoading(false);
-
-      // Draw red location marker pin in the exact center
+      // Draw red location marker pin in the exact center on offCanvas
       const markerX = width / 2;
       const markerY = heightPx / 2;
 
       // Pulse aura circle
-      ctx.beginPath();
-      ctx.arc(markerX, markerY, 14, 0, 2 * Math.PI);
-      ctx.fillStyle = activeType === 'satellite' ? 'rgba(239, 68, 68, 0.35)' : 'rgba(239, 68, 68, 0.2)';
-      ctx.fill();
+      offCtx.beginPath();
+      offCtx.arc(markerX, markerY, 14, 0, 2 * Math.PI);
+      offCtx.fillStyle = activeType === 'satellite' ? 'rgba(239, 68, 68, 0.35)' : 'rgba(239, 68, 68, 0.2)';
+      offCtx.fill();
 
       // Outer white ring
-      ctx.beginPath();
-      ctx.arc(markerX, markerY, 7, 0, 2 * Math.PI);
-      ctx.fillStyle = '#ffffff';
-      ctx.fill();
-      ctx.lineWidth = 1.5;
-      ctx.strokeStyle = activeType === 'satellite' ? '#0f172a' : '#cbd5e1';
-      ctx.stroke();
+      offCtx.beginPath();
+      offCtx.arc(markerX, markerY, 7, 0, 2 * Math.PI);
+      offCtx.fillStyle = '#ffffff';
+      offCtx.fill();
+      offCtx.lineWidth = 1.5;
+      offCtx.strokeStyle = activeType === 'satellite' ? '#0f172a' : '#cbd5e1';
+      offCtx.stroke();
 
       // Inner red pin dot
-      ctx.beginPath();
-      ctx.arc(markerX, markerY, 5, 0, 2 * Math.PI);
-      ctx.fillStyle = '#ef4444';
-      ctx.fill();
+      offCtx.beginPath();
+      offCtx.arc(markerX, markerY, 5, 0, 2 * Math.PI);
+      offCtx.fillStyle = '#ef4444';
+      offCtx.fill();
 
       // Attribution badge
       const attrText = activeType === 'satellite' ? '© Esri, Maxar' : '© OpenStreetMap';
-      ctx.font = '9px system-ui, -apple-system, sans-serif';
-      const textWidth = ctx.measureText(attrText).width;
+      offCtx.font = '9px system-ui, -apple-system, sans-serif';
+      const textWidth = offCtx.measureText(attrText).width;
       const badgeW = textWidth + 8;
       const badgeH = 14;
       const badgeX = width - badgeW - 4;
       const badgeY = heightPx - badgeH - 4;
 
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-      ctx.fillRect(badgeX, badgeY, badgeW, badgeH);
-      ctx.fillStyle = '#334155';
-      ctx.fillText(attrText, badgeX + 4, badgeY + 10);
+      offCtx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+      offCtx.fillRect(badgeX, badgeY, badgeW, badgeH);
+      offCtx.fillStyle = '#334155';
+      offCtx.fillText(attrText, badgeX + 4, badgeY + 10);
+
+      // Synchronously transfer the completed map from offCanvas to visible canvas
+      canvas.width = width * dpr;
+      canvas.height = heightPx * dpr;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(offCanvas, 0, 0);
+      }
+
+      lastRenderedSizeRef.current = { w: width, h: heightPx };
+      setIsLoading(false);
+      onLoaded?.();
     };
 
     renderMap();
 
-    // Re-render on container resize & before printing
+    // Re-render only on real container size change (never wipe on beforeprint)
     const handleResize = () => {
-      renderMap();
+      const w = containerRef.current?.clientWidth || 0;
+      const h = (height && height > 0) ? height : (containerRef.current?.clientHeight || 0);
+      if (w > 0 && (w !== lastRenderedSizeRef.current.w || h !== lastRenderedSizeRef.current.h)) {
+        renderMap();
+      }
     };
     window.addEventListener('resize', handleResize);
-    window.addEventListener('beforeprint', handleResize);
 
     let resizeObserver: ResizeObserver | null = null;
     if (typeof ResizeObserver !== 'undefined' && containerRef.current) {
       resizeObserver = new ResizeObserver(() => {
-        renderMap();
+        handleResize();
       });
       resizeObserver.observe(containerRef.current);
     }
@@ -201,7 +217,6 @@ export const MiniMapCanvas: React.FC<MiniMapCanvasProps> = ({
     return () => {
       isCancelled = true;
       window.removeEventListener('resize', handleResize);
-      window.removeEventListener('beforeprint', handleResize);
       if (resizeObserver) resizeObserver.disconnect();
     };
   }, [lat, lng, zoom, height, activeType]);

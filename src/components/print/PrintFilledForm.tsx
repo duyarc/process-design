@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import ReactDOM from 'react-dom';
 import { Star } from 'lucide-react';
 import type { Submission, SubmissionFieldSnapshot, FormTemplateISO, TableColumnConfig } from '../../types';
@@ -157,6 +157,23 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
   const [photoUrlMap, setPhotoUrlMap]     = useState<Record<string, string>>({});
   const [resolvedLocations, setResolvedLocations] = useState<Record<string, { lat: number; lng: number; dmsText?: string; decimalText?: string; mapsUrl?: string }>>({});
   const [loadingLocations, setLoadingLocations] = useState(false);
+  const [mapLoaded, setMapLoaded] = useState(false);
+
+  // Check if template contains any location field configured with a Mini Map
+  const hasAnyMiniMap = useMemo(() => {
+    return (template?.layoutBlocks || []).some(b =>
+      (b.fields || []).some(f => f.type === 'location' && f.showMiniMap !== false)
+    );
+  }, [template]);
+
+  // Safety fallback: if minimap network tiles stall, allow print after 1.5s
+  useEffect(() => {
+    if (!hasAnyMiniMap) return;
+    const timeout = setTimeout(() => {
+      setMapLoaded(true);
+    }, 1500);
+    return () => clearTimeout(timeout);
+  }, [hasAnyMiniMap]);
 
   // 1. Fetch FormTemplateISO if prop not provided (SubmissionManager path)
   useEffect(() => {
@@ -312,14 +329,14 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
       .finally(() => setLoadingLocations(false));
   }, [template, submission]);
 
-  // 4. Trigger print after everything is ready
+  // 4. Trigger print after everything is ready (including minimap tile rendering)
   useEffect(() => {
-    if (loading || loadingImages || loadingLocations || !imgLoaded || !template) return;
+    if (loading || loadingImages || loadingLocations || (hasAnyMiniMap && !mapLoaded) || !imgLoaded || !template) return;
     const handleAfterPrint = () => onClose();
     window.addEventListener('afterprint', handleAfterPrint);
-    const timer = setTimeout(() => window.print(), 500);
+    const timer = setTimeout(() => window.print(), 700);
     return () => { window.removeEventListener('afterprint', handleAfterPrint); clearTimeout(timer); };
-  }, [loading, loadingImages, loadingLocations, imgLoaded, template, onClose]);
+  }, [loading, loadingImages, loadingLocations, hasAnyMiniMap, mapLoaded, imgLoaded, template, onClose]);
 
   // 5. Document title — REC_{YYYYMMDD}_{FORMNAME}
   useEffect(() => {
@@ -631,15 +648,38 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                 }
                               }
                               return (
-                                <div key={f.id} style={{ ...gridItemStyle, display: 'flex', flexDirection: 'column', width: '100%', pageBreakInside: 'avoid' }}>
-                                  {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', fontSize: '0.82rem', marginBottom: '4px' }}>{renderFormattedText(cleanLabel)}</span>}
-                                  <div style={{ flex: 1, width: '100%', border: '1px solid #cbd5e1', borderRadius: '3px', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '110px', padding: '4px', boxSizing: 'border-box', background: '#f8fafc' }}>
-                                    {photoUrl ? (
-                                      <img src={photoUrl} alt={cleanLabel || "Evidence"} style={{ maxWidth: '100%', maxHeight: '140px', objectFit: 'contain' }} />
-                                    ) : (
+                                <div key={f.id} style={{ ...gridItemStyle, display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', pageBreakInside: 'avoid' }}>
+                                  {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', fontSize: '0.82rem', marginBottom: '4px', alignSelf: 'flex-start' }}>{renderFormattedText(cleanLabel)}</span>}
+                                  {photoUrl ? (
+                                    <div style={{
+                                      maxWidth: '100%',
+                                      border: '1px solid #cbd5e1',
+                                      borderRadius: '3px',
+                                      overflow: 'hidden',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      background: '#ffffff',
+                                      boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                                    }}>
+                                      <img
+                                        src={photoUrl}
+                                        alt={cleanLabel || "Evidence"}
+                                        style={{
+                                          maxWidth: '100%',
+                                          maxHeight: '185px',
+                                          width: 'auto',
+                                          height: 'auto',
+                                          display: 'block',
+                                          objectFit: 'contain'
+                                        }}
+                                      />
+                                    </div>
+                                  ) : (
+                                    <div style={{ width: '100%', border: '1px solid #cbd5e1', borderRadius: '3px', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80px', background: '#f8fafc' }}>
                                       <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontStyle: 'italic' }}>(Không có ảnh đính kèm)</span>
-                                    )}
-                                  </div>
+                                    </div>
+                                  )}
                                 </div>
                               );
                             }
@@ -855,7 +895,7 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                     const mapHeight = f.rowSpan === 3 ? 125 : 85;
                                     return (
                                       <div style={{ width: '100%', height: `${mapHeight}px`, marginTop: '6px', borderRadius: '3px', overflow: 'hidden' }}>
-                                        <MiniMapCanvas lat={loc.lat!} lng={loc.lng!} zoom={15} height={mapHeight} mapType={f.mapType || 'roadmap'} allowToggleType={false} />
+                                        <MiniMapCanvas lat={loc.lat!} lng={loc.lng!} zoom={15} height={mapHeight} mapType={f.mapType || 'roadmap'} allowToggleType={false} onLoaded={() => setMapLoaded(true)} />
                                       </div>
                                     );
                                   })()}
