@@ -1054,11 +1054,12 @@ function FormFillerInner({
         ...prev,
         [fieldId]: [...(prev[fieldId] || []), pdfKey]
       }));
-
-      alert('Photo evidence uploaded successfully!');
     } catch (err) {
       console.error(err);
-      alert(`Error uploading photo: ${err instanceof Error ? err.message : 'Upload failed'}`);
+      setLocalToast({
+        message: `Lỗi tải ảnh: ${err instanceof Error ? err.message : 'Tải lên thất bại'}`,
+        type: 'error'
+      });
     } finally {
       setIsPhotoUploading(prev => ({ ...prev, [fieldId]: false }));
     }

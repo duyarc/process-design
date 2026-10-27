@@ -130,14 +130,14 @@ export const PhotoFieldFiller: React.FC<PhotoFieldFillerProps> = ({
             border: '1px solid #cbd5e1',
             borderRadius: '4px',
             background: '#f8fafc',
-            padding: '8px',
+            padding: '6px',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
             position: 'relative',
             overflow: 'hidden',
-            minHeight: '110px'
+            minHeight: '180px'
           }}
         >
           {isUploading ? (
@@ -198,7 +198,9 @@ export const PhotoFieldFiller: React.FC<PhotoFieldFillerProps> = ({
                 onClick={() => setIsLightboxOpen(true)}
                 style={{
                   maxWidth: '100%',
-                  maxHeight: '140px',
+                  maxHeight: '220px',
+                  width: 'auto',
+                  height: 'auto',
                   objectFit: 'contain',
                   borderRadius: '3px',
                   cursor: 'zoom-in',

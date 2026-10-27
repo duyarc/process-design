@@ -136,11 +136,8 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
         ...prev,
         [fieldId]: [pdfKey]
       }));
-
-      alert('Photo evidence uploaded successfully!');
     } catch (err) {
-      console.error(err);
-      alert(`Error uploading photo: ${err instanceof Error ? err.message : 'Upload failed'}`);
+      console.error('Error uploading photo:', err);
     } finally {
       setIsPhotoUploading(prev => ({ ...prev, [fieldId]: false }));
     }
