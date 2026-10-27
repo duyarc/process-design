@@ -2026,10 +2026,153 @@ async function getTotalStorageUsage() {
   }
 }
 
+// Helper: List all objects under uploads/ from R2 with pagination
+async function listAllUploadsInR2() {
+  if (!r2Client) return [];
+  const allObjects = [];
+  let continuationToken = undefined;
+  do {
+    const command = new ListObjectsV2Command({
+      Bucket: R2_BUCKET_NAME,
+      Prefix: 'uploads/',
+      ContinuationToken: continuationToken
+    });
+    const s3Res = await r2Client.send(command);
+    if (s3Res.Contents) {
+      allObjects.push(...s3Res.Contents);
+    }
+    continuationToken = s3Res.IsTruncated ? s3Res.NextContinuationToken : undefined;
+  } while (continuationToken);
+  return allObjects;
+}
+
+// Helper: Scan R2 uploads/ and find orphaned files older than 2 hours (Safety Buffer)
+async function findOrphanedMedia() {
+  if (!r2Client) return { orphanedFiles: [], totalCount: 0, totalSize: 0 };
+
+  // 1. Fetch all objects in uploads/ from R2
+  const allObjects = await listAllUploadsInR2();
+
+  // 2. Filter candidates: must be older than 2 hours (Safety Buffer) and not a logo or directory marker
+  const twoHoursAgo = Date.now() - 2 * 60 * 60 * 1000;
+  const candidates = allObjects.filter(item => {
+    if (!item.Key || item.Key.startsWith('uploads/logo_') || item.Key.endsWith('/')) {
+      return false;
+    }
+    const modifiedTime = item.LastModified ? new Date(item.LastModified).getTime() : 0;
+    return modifiedTime < twoHoursAgo;
+  });
+
+  if (candidates.length === 0) {
+    return { orphanedFiles: [], totalCount: 0, totalSize: 0 };
+  }
+
+  // 3. Gather all actively referenced keys from Database
+  const activeKeys = new Set();
+
+  if (dbPool) {
+    // 3a. Submissions (media_urls and form_data)
+    const subRes = await dbPool.query(`SELECT media_urls, form_data FROM submissions`);
+    for (const row of subRes.rows) {
+      const urls = typeof row.media_urls === 'string' ? JSON.parse(row.media_urls || '[]') : (row.media_urls || []);
+      if (Array.isArray(urls)) {
+        for (const u of urls) if (typeof u === 'string') activeKeys.add(u);
+      }
+      const fdStr = typeof row.form_data === 'string' ? row.form_data : JSON.stringify(row.form_data || {});
+      const matches = fdStr.match(/uploads\/[^\s"',\\]+/g);
+      if (matches) {
+        for (const m of matches) activeKeys.add(m);
+      }
+    }
+
+    // 3b. Forms (layout_blocks)
+    const formsRes = await dbPool.query(`SELECT layout_blocks FROM forms`);
+    for (const row of formsRes.rows) {
+      const lbStr = typeof row.layout_blocks === 'string' ? row.layout_blocks : JSON.stringify(row.layout_blocks || []);
+      const matches = lbStr.match(/uploads\/[^\s"',\\]+/g);
+      if (matches) {
+        for (const m of matches) activeKeys.add(m);
+      }
+    }
+
+    // 3c. Process forms (pdf_key)
+    const pfRes = await dbPool.query(`SELECT pdf_key FROM process_forms WHERE pdf_key IS NOT NULL`);
+    for (const row of pfRes.rows) {
+      if (row.pdf_key) activeKeys.add(row.pdf_key);
+    }
+  }
+
+  // 4. Identify orphans: candidates not found in activeKeys
+  const orphanedFiles = [];
+  let totalSize = 0;
+
+  for (const item of candidates) {
+    if (!activeKeys.has(item.Key)) {
+      orphanedFiles.push({
+        key: item.Key,
+        name: item.Key.split('/').pop() || item.Key,
+        size: item.Size || 0,
+        lastModified: item.LastModified ? item.LastModified.toISOString() : new Date().toISOString()
+      });
+      totalSize += (item.Size || 0);
+    }
+  }
+
+  return {
+    orphanedFiles,
+    totalCount: orphanedFiles.length,
+    totalSize
+  };
+}
+
+let lastGCRunTimestamp = 0;
+let isGCRunning = false;
+
+// Opportunistic background GC trigger
+function triggerOpportunisticGC(totalSize) {
+  const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+  const now = Date.now();
+  const isTimeForGC = (now - lastGCRunTimestamp) > ONE_DAY_MS;
+  const isQuotaHigh = (totalSize / STORAGE_QUOTA_LIMIT) > 0.8;
+
+  if ((isTimeForGC || isQuotaHigh) && !isGCRunning && r2Client) {
+    isGCRunning = true;
+    lastGCRunTimestamp = now;
+    console.log(`[Storage GC] Triggering opportunistic background GC (QuotaHigh: ${isQuotaHigh}, TimeExpired: ${isTimeForGC})...`);
+    setImmediate(async () => {
+      try {
+        const { orphanedFiles } = await findOrphanedMedia();
+        if (orphanedFiles.length > 0) {
+          let count = 0;
+          for (const f of orphanedFiles) {
+            try {
+              await r2Client.send(new DeleteObjectCommand({
+                Bucket: R2_BUCKET_NAME,
+                Key: f.key
+              }));
+              count++;
+            } catch (delErr) {
+              // ignore individual failure
+            }
+          }
+          console.log(`[Storage GC] Background GC purged ${count} orphaned files.`);
+        } else {
+          console.log(`[Storage GC] Background GC: 0 orphaned files found.`);
+        }
+      } catch (gcErr) {
+        console.error('[Storage GC] Background GC error:', gcErr.message);
+      } finally {
+        isGCRunning = false;
+      }
+    });
+  }
+}
+
 // GET /api/storage/quota-status - Retrieve current storage usage and limit info
 app.get('/api/storage/quota-status', async (req, res) => {
   try {
     const totalSize = await getTotalStorageUsage();
+    triggerOpportunisticGC(totalSize);
     res.json({
       totalSize,
       quotaLimit: STORAGE_QUOTA_LIMIT,
@@ -2039,6 +2182,49 @@ app.get('/api/storage/quota-status', async (req, res) => {
   } catch (err) {
     console.error('Error fetching quota status:', err);
     res.status(500).json({ error: 'Failed to fetch storage quota status' });
+  }
+});
+
+// GET /api/storage/orphaned-media - Scan and list orphaned media files
+app.get('/api/storage/orphaned-media', async (req, res) => {
+  try {
+    const result = await findOrphanedMedia();
+    res.json(result);
+  } catch (err) {
+    console.error('Error scanning orphaned media:', err);
+    res.status(500).json({ error: 'Failed to scan orphaned media' });
+  }
+});
+
+// POST /api/storage/cleanup-orphaned - Purge orphaned media files from R2
+app.post('/api/storage/cleanup-orphaned', async (req, res) => {
+  try {
+    const { orphanedFiles } = await findOrphanedMedia();
+    if (!r2Client || orphanedFiles.length === 0) {
+      return res.json({ success: true, deletedCount: 0, freedBytes: 0 });
+    }
+
+    let deletedCount = 0;
+    let freedBytes = 0;
+
+    for (const file of orphanedFiles) {
+      try {
+        await r2Client.send(new DeleteObjectCommand({
+          Bucket: R2_BUCKET_NAME,
+          Key: file.key
+        }));
+        deletedCount++;
+        freedBytes += file.size;
+      } catch (err) {
+        console.error(`[Storage GC] Failed to purge ${file.key}:`, err.message);
+      }
+    }
+
+    console.log(`[Storage GC] Successfully purged ${deletedCount} orphaned files (${(freedBytes / 1024 / 1024).toFixed(2)} MB).`);
+    res.json({ success: true, deletedCount, freedBytes });
+  } catch (err) {
+    console.error('Error cleaning up orphaned media:', err);
+    res.status(500).json({ error: 'Failed to clean up orphaned media' });
   }
 });
 
@@ -2378,6 +2564,38 @@ app.delete('/api/storage/delete-file', async (req, res) => {
   } catch (err) {
     console.error('Error deleting file:', err);
     res.status(500).json({ error: 'Failed to delete file' });
+  }
+});
+
+// POST /api/storage/delete-media - Remove a single media file from R2 bucket
+app.post('/api/storage/delete-media', async (req, res) => {
+  try {
+    const { key } = req.body;
+    if (!key || typeof key !== 'string' || !key.startsWith('uploads/')) {
+      return res.status(400).json({ error: 'Invalid or missing media key.' });
+    }
+    // Prevent deleting logos via this endpoint
+    if (key.startsWith('uploads/logo_')) {
+      return res.status(400).json({ error: 'Cannot delete logo via delete-media endpoint.' });
+    }
+
+    if (r2Client) {
+      try {
+        await r2Client.send(new DeleteObjectCommand({
+          Bucket: R2_BUCKET_NAME,
+          Key: key
+        }));
+        console.log(`[Storage] Deleted media file ${key} from R2.`);
+      } catch (s3Err) {
+        console.error(`[Storage] Failed to delete media file ${key}:`, s3Err.message);
+        return res.status(500).json({ error: 'Failed to delete file from storage.' });
+      }
+    }
+
+    res.json({ success: true, key });
+  } catch (err) {
+    console.error('Error deleting media file:', err);
+    res.status(500).json({ error: 'Failed to delete media file.' });
   }
 });
 
@@ -2974,7 +3192,7 @@ app.put('/api/submissions/:id', async (req, res) => {
   }
 });
 
-// DELETE /api/submissions/:id - Delete a submission record (Admin only)
+// DELETE /api/submissions/:id - Delete a submission record and associated R2 media (Admin only)
 app.delete('/api/submissions/:id', async (req, res) => {
   try {
     if (!dbPool) {
@@ -2982,16 +3200,60 @@ app.delete('/api/submissions/:id', async (req, res) => {
     }
     const { id } = req.params;
 
-    const result = await dbPool.query(`
-      DELETE FROM submissions
-      WHERE id = $1
+    // 1. Fetch submission media to delete physical files from R2
+    const subRes = await dbPool.query(`
+      SELECT media_urls, form_data FROM submissions WHERE id = $1
     `, [id]);
 
-    if (result.rowCount === 0) {
+    if (subRes.rows.length === 0) {
       return res.status(404).json({ error: 'Submission record not found.' });
     }
 
-    res.json({ success: true, id });
+    const { media_urls, form_data } = subRes.rows[0];
+    const keysToDelete = new Set();
+
+    // Collect keys from media_urls
+    const parsedUrls = typeof media_urls === 'string' ? JSON.parse(media_urls || '[]') : (media_urls || []);
+    if (Array.isArray(parsedUrls)) {
+      for (const u of parsedUrls) {
+        if (typeof u === 'string' && u.startsWith('uploads/')) {
+          keysToDelete.add(u);
+        }
+      }
+    }
+
+    // Collect keys from form_data
+    const fdStr = typeof form_data === 'string' ? form_data : JSON.stringify(form_data || {});
+    const matches = fdStr.match(/uploads\/[^\s"',\\]+/g);
+    if (matches) {
+      for (const m of matches) {
+        if (!m.startsWith('uploads/logo_')) {
+          keysToDelete.add(m);
+        }
+      }
+    }
+
+    // 2. Delete submission from database
+    await dbPool.query(`DELETE FROM submissions WHERE id = $1`, [id]);
+
+    // 3. Delete physical files from R2
+    let deletedMediaCount = 0;
+    if (r2Client && keysToDelete.size > 0) {
+      for (const key of keysToDelete) {
+        try {
+          await r2Client.send(new DeleteObjectCommand({
+            Bucket: R2_BUCKET_NAME,
+            Key: key
+          }));
+          deletedMediaCount++;
+          console.log(`[Storage GC] Deleted R2 object ${key} for submission ${id}`);
+        } catch (s3Err) {
+          console.error(`[Storage GC] Failed to delete R2 object ${key}:`, s3Err.message);
+        }
+      }
+    }
+
+    res.json({ success: true, id, deletedMediaCount });
   } catch (err) {
     console.error('Error deleting submission:', err);
     res.status(500).json({ error: 'Failed to delete submission record.' });

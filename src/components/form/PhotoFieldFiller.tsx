@@ -99,6 +99,19 @@ export const PhotoFieldFiller: React.FC<PhotoFieldFillerProps> = ({
     e.target.value = '';
   };
 
+  const handleRemove = () => {
+    if (photoKey && photoKey.startsWith('uploads/')) {
+      fetch('/api/storage/delete-media', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: photoKey })
+      }).catch((err) => {
+        console.warn('Failed to delete photo from R2:', err);
+      });
+    }
+    onRemove();
+  };
+
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', minHeight: '100px', position: 'relative' }}>
       <input
@@ -250,7 +263,7 @@ export const PhotoFieldFiller: React.FC<PhotoFieldFillerProps> = ({
 
                     <button
                       type="button"
-                      onClick={onRemove}
+                      onClick={handleRemove}
                       style={{
                         background: 'rgba(255, 241, 242, 0.92)',
                         border: '1px solid #fecdd3',

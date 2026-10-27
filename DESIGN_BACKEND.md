@@ -8,8 +8,8 @@
 |---|---|
 | **Module Name** | Backend & Persistence |
 | **Status** | Active Development |
-| **Document Version** | 1.2 |
-| **Verified At Commit** | (2026-10-27) — Storage download-url 302 redirect & /api/storage/view endpoint verified against source |
+| **Document Version** | 1.3 |
+| **Verified At Commit** | (2026-10-27) — Synchronous submission photo cleanup & R2 orphaned media GC verified against source |
 
 ### Quick File Index
 
@@ -310,3 +310,4 @@ Architectural changes only — schema, endpoints, invariants. UI polish lives in
 | 2026-10-26 | `CURRENT` | **Google Maps Shortlink Unshorten Proxy (`server.cjs`):** Added `GET /api/utils/unshorten-map?url=...` endpoint resolving short links (`maps.app.goo.gl`, `goo.gl/maps`) via native Node `fetch` without following redirect loops (`redirect: 'manual'`), extracting destination URL and coordinates from `Location` header, and caching results in-memory (`mapUnshortenCache`) to bypass browser CORS / CSP iframe restrictions. |
 | 2026-10-26 | `CURRENT` | **Google Maps Unshorten Meta-Refresh Coordinates Resolution (`server.cjs`):** Enhanced `GET /api/utils/unshorten-map` to inspect response HTML body when redirect returns a 200 meta-refresh or place page, parsing coordinates via `!3d...`, `@lat,lng`, and `?q=lat,lng` regex to guarantee reliable `lat` and `lng` extraction for `maps.app.goo.gl` shortlinks. |
 | 2026-10-27 | `CURRENT` | **R2 Storage 302 Redirect & Direct Image View Endpoint (`server.cjs`):** (1) Updated `GET /api/storage/download-url` to check for `redirect === 'true'` or browser `Accept: image/*` header and return HTTP 302 Found redirecting directly to the Cloudflare R2 presigned URL, while preserving JSON `{ downloadUrl }` response for programmatic `fetch()` callers. (2) Added dedicated `GET /api/storage/view` endpoint that unconditionally redirects to the presigned URL, allowing browser `<img>` tags to load private R2 images natively. |
+| 2026-10-27 | `CURRENT` | **Synchronous Submission Photo Deletion & Orphaned Media GC (`server.cjs`):** (1) Updated `DELETE /api/submissions/:id` to inspect `media_urls` and `form_data` and purge all associated physical image objects from Cloudflare R2 bucket. (2) Added `POST /api/storage/delete-media` for single-photo client-side removal. (3) Added `GET /api/storage/orphaned-media` and `POST /api/storage/cleanup-orphaned` to scan and clean R2 objects older than 2 hours not referenced in any DB tables. (4) Added smart opportunistic background GC trigger in `GET /api/storage/quota-status` (runs every 24h or when usage > 80%). |

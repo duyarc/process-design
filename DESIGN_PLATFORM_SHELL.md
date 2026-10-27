@@ -8,8 +8,8 @@
 |---|---|
 | **Module Name** | Platform Shell |
 | **Status** | Active Development |
-| **Document Version** | 1.1 |
-| **Verified At Commit** | (2026-10-13) — Print questionnaire with guidance action in Dashboard.tsx verified against source |
+| **Document Version** | 1.2 |
+| **Verified At Commit** | (2026-10-27) — Storage quota indicator & Orphaned media cleanup modal in UserManagement.tsx verified against source |
 
 ### Quick File Index
 
@@ -224,3 +224,4 @@ lives in `git log`; run `git show <commit>` for the full diff of any entry below
 | 2026-09-30 | `CURRENT` | **Preloaded Form Template Prop Pipeline (`App`, `Dashboard`):** (1) Updated `DashboardProps['onOpenFormFiller']` to accept optional `preloadedTpl?: FormTemplateISO` and forwarded `form.rawRecord` from `handleFillAction` and process select dialog. (2) Added `preloadedFormTemplate` state in `App.tsx` and forwarded `preloadedFormTemplate={preloadedFormTemplate || undefined}` to `<FormFiller />`, eliminating network latency and enabling 0ms instant paint when opening forms from Dashboard. |
 | 2026-10-13 | `CURRENT` | **Fix Dropdown Menu Cutoff in Tab Forms (`Dashboard`):** (1) Changed group forms table wrapper from `overflowX: 'auto'` to `overflow: 'visible'`, resolving the CSS overflow trap where `overflow-x: auto` computed `overflow-y: auto` and clipped contextual dropdown menus. (2) Added dynamic card stacking elevation (`zIndex: isGroupActive ? 30 : 1`) on `.paper-card` ensuring dropdown menus float cleanly above subsequent sibling cards without occlusion. |
 | 2026-10-13 | `CURRENT` | **Print Questionnaire with Guidance Action (`Dashboard`):** (1) Added `printBlankWithGuidance` state in `Dashboard.tsx` and upgraded `handlePrintBlankForm` to support `includeGuidance?: boolean`. (2) In Tab Forms Actions dropdown menu (`[ ••• ]`), added "In bảng câu hỏi kèm hướng dẫn" with `BookOpen` icon. (3) Forwarded `includeGuidance` prop to `<PrintBlankForm />` preview modal, ensuring blank forms can be printed with guidance directly from the Dashboard. |
+| 2026-10-27 | `CURRENT` | **Cloudflare R2 Storage Quota & Orphaned Media GC Toolbar in Admin (`UserManagement`):** (1) Added compact storage indicator widget to header toolbar in `UserManagement.tsx` displaying real-time R2 usage (`XX MB / 10 GB`), percentage, and slim progress bar for Admin users. (2) Added `[ 🧹 Dọn dẹp ảnh mồ côi ]` action button triggering `GET /api/storage/orphaned-media`. (3) Integrated `ConfirmModal` presenting orphan scan results (file count, reclaimable MB, 2-hour safety buffer notice) and executing `POST /api/storage/cleanup-orphaned` with live progress and feedback. |

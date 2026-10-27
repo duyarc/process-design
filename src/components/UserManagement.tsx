@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   useAuth,
   ROLES,
@@ -18,7 +18,11 @@ import {
   Check,
   Search,
   UserCircle2,
+  HardDrive,
+  Trash2,
+  Loader2,
 } from 'lucide-react';
+import ConfirmModal from './common/ConfirmModal';
 
 // ─────────────────────────────────────────────────────────────
 // PERMISSION LABELS for the Role Matrix UI
@@ -75,6 +79,81 @@ const UserManagement: React.FC<Props> = ({ onBack }) => {
   // ── Determine what roles this user can create / edit ──────
   const isAdmin = currentUser?.role_id === 'admin';
   const allowedRoles: RoleId[] = isAdmin ? ['admin', 'supervisor', 'operator'] : ['operator'];
+
+  // ── Cloudflare R2 Storage Quota & GC state (Admin Only) ──
+  const [storageQuota, setStorageQuota] = useState<{
+    totalSize: number;
+    quotaLimit: number;
+    percentage: string;
+    isConfigured: boolean;
+  } | null>(null);
+  const [isGcModalOpen, setIsGcModalOpen] = useState(false);
+  const [isGcScanning, setIsGcScanning] = useState(false);
+  const [isGcCleaning, setIsGcCleaning] = useState(false);
+  const [gcScanResult, setGcScanResult] = useState<{
+    orphanedFiles: Array<{ key: string; name: string; size: number }>;
+    totalCount: number;
+    totalSize: number;
+  } | null>(null);
+  const [gcNotice, setGcNotice] = useState<string | null>(null);
+
+  const fetchStorageQuota = async () => {
+    try {
+      const res = await fetch('/api/storage/quota-status');
+      if (res.ok) {
+        const data = await res.json();
+        setStorageQuota(data);
+      }
+    } catch (err) {
+      console.error('Failed to load storage quota:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (isAdmin) {
+      fetchStorageQuota();
+    }
+  }, [isAdmin]);
+
+  const handleOpenGcModal = async () => {
+    setIsGcModalOpen(true);
+    setIsGcScanning(true);
+    setGcNotice(null);
+    setGcScanResult(null);
+    try {
+      const res = await fetch('/api/storage/orphaned-media');
+      if (res.ok) {
+        const data = await res.json();
+        setGcScanResult(data);
+      } else {
+        setGcNotice('Không thể quét bộ nhớ lưu trữ. Vui lòng thử lại sau.');
+      }
+    } catch {
+      setGcNotice('Lỗi kết nối khi quét bộ nhớ lưu trữ.');
+    } finally {
+      setIsGcScanning(false);
+    }
+  };
+
+  const handleConfirmCleanup = async () => {
+    setIsGcCleaning(true);
+    try {
+      const res = await fetch('/api/storage/cleanup-orphaned', { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json();
+        const freedMB = ((data.freedBytes || 0) / (1024 * 1024)).toFixed(2);
+        setGcNotice(`Đã dọn dẹp thành công ${data.deletedCount} tệp ảnh (${freedMB} MB) khỏi Cloudflare R2.`);
+        setGcScanResult(null);
+        await fetchStorageQuota();
+      } else {
+        setGcNotice('Có lỗi xảy ra trong quá trình dọn dẹp ảnh mồ côi.');
+      }
+    } catch {
+      setGcNotice('Lỗi kết nối khi dọn dẹp ảnh mồ côi.');
+    } finally {
+      setIsGcCleaning(false);
+    }
+  };
 
   // ── Filtered user list ────────────────────────────────────
   const filteredUsers = users.filter((u) =>
@@ -184,22 +263,95 @@ const UserManagement: React.FC<Props> = ({ onBack }) => {
   return (
     <div style={{ padding: '1.5rem 2rem', maxWidth: '1100px', margin: '0 auto' }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
-        <button
-          onClick={onBack}
-          className="btn btn-sm btn-secondary"
-          style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', borderRadius: '20px', padding: '0.35rem 0.85rem' }}
-        >
-          <ChevronLeft size={15} /> Quay lại
-        </button>
-        <div>
-          <h2 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-            Quản lý Nhân sự
-          </h2>
-          <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-            Tài khoản thành viên & cấu hình phân quyền hệ thống
-          </p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <button
+            onClick={onBack}
+            className="btn btn-sm btn-secondary"
+            style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', borderRadius: '20px', padding: '0.35rem 0.85rem' }}
+          >
+            <ChevronLeft size={15} /> Quay lại
+          </button>
+          <div>
+            <h2 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+              Quản trị Hệ thống
+            </h2>
+            <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+              Tài khoản thành viên & tài nguyên lưu trữ Cloudflare R2
+            </p>
+          </div>
         </div>
+
+        {/* Storage Quota & GC Toolbar (Admin Only) */}
+        {isAdmin && storageQuota && storageQuota.isConfigured && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              padding: '0.4rem 0.85rem',
+              background: 'var(--neutral-bg, #f8fafc)',
+              border: '1px solid var(--neutral-border, #e2e8f0)',
+              borderRadius: '8px',
+              fontSize: '0.8rem',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--text-secondary)' }}>
+              <HardDrive size={15} style={{ color: 'var(--primary)' }} />
+              <span>
+                <strong style={{ color: 'var(--text-primary)' }}>
+                  {(storageQuota.totalSize / (1024 * 1024)).toFixed(1)} MB
+                </strong>
+                {' / '}
+                {(storageQuota.quotaLimit / (1024 * 1024 * 1024)).toFixed(0)} GB
+                {' '}
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                  ({storageQuota.percentage}%)
+                </span>
+              </span>
+            </div>
+
+            {/* Progress bar */}
+            <div
+              style={{
+                width: '50px',
+                height: '5px',
+                background: '#e2e8f0',
+                borderRadius: '3px',
+                overflow: 'hidden',
+              }}
+            >
+              <div
+                style={{
+                  width: `${Math.min(100, parseFloat(storageQuota.percentage))}%`,
+                  height: '100%',
+                  background: parseFloat(storageQuota.percentage) > 80 ? 'var(--danger, #ef4444)' : 'var(--primary)',
+                  borderRadius: '3px',
+                }}
+              />
+            </div>
+
+            {/* Clean orphan button */}
+            <button
+              onClick={handleOpenGcModal}
+              disabled={isGcScanning || isGcCleaning}
+              className="btn btn-sm btn-secondary"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                padding: '0.25rem 0.65rem',
+                fontSize: '0.75rem',
+                borderRadius: '6px',
+                cursor: 'pointer',
+              }}
+              title="Dọn dẹp ảnh mồ côi trên Cloudflare R2"
+            >
+              <Trash2 size={12} style={{ color: 'var(--text-secondary)' }} />
+              <span>Dọn ảnh mồ côi</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Tabs */}
@@ -554,6 +706,80 @@ const UserManagement: React.FC<Props> = ({ onBack }) => {
           </div>
         </>
       )}
+
+      {/* Storage Garbage Collector Confirmation Modal */}
+      <ConfirmModal
+        isOpen={isGcModalOpen}
+        title="Dọn dẹp ảnh mồ côi trên Cloudflare R2"
+        variant={gcScanResult && gcScanResult.totalCount > 0 ? 'warning' : 'info'}
+        confirmText={
+          gcNotice || !gcScanResult || gcScanResult.totalCount === 0
+            ? 'Đóng'
+            : isGcCleaning
+            ? 'Đang dọn dẹp...'
+            : 'Xác nhận dọn dẹp'
+        }
+        cancelText="Hủy"
+        hideCancel={!!gcNotice || !gcScanResult || gcScanResult.totalCount === 0}
+        loading={isGcCleaning}
+        onConfirm={
+          gcNotice || !gcScanResult || gcScanResult.totalCount === 0
+            ? () => setIsGcModalOpen(false)
+            : handleConfirmCleanup
+        }
+        onCancel={() => {
+          if (!isGcCleaning) setIsGcModalOpen(false);
+        }}
+        message={
+          isGcScanning ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '1rem 0' }}>
+              <Loader2 size={18} className="animate-spin" style={{ color: 'var(--primary)' }} />
+              <span>Đang quét Cloudflare R2 và đối chiếu cơ sở dữ liệu...</span>
+            </div>
+          ) : gcNotice ? (
+            <div style={{ padding: '0.5rem 0', color: 'var(--text-primary)' }}>
+              <p style={{ margin: 0, fontWeight: 500 }}>{gcNotice}</p>
+            </div>
+          ) : gcScanResult ? (
+            gcScanResult.totalCount === 0 ? (
+              <div style={{ padding: '0.5rem 0', color: 'var(--text-primary)' }}>
+                <p style={{ margin: 0, lineHeight: 1.5 }}>
+                  Không phát hiện ảnh mồ côi nào. Toàn bộ hình ảnh trên Cloudflare R2 đều đang được liên kết an toàn với biểu mẫu và bản ghi.
+                </p>
+                <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                  (Hệ thống đã tự động loại trừ các tệp mới tải lên trong vòng 2 giờ qua để bảo vệ phiên điền form).
+                </p>
+              </div>
+            ) : (
+              <div style={{ padding: '0.5rem 0', color: 'var(--text-primary)' }}>
+                <p style={{ margin: '0 0 0.5rem 0', lineHeight: 1.5 }}>
+                  Phát hiện <strong>{gcScanResult.totalCount} ảnh mồ côi</strong> (tổng dung lượng{' '}
+                  <strong>{(gcScanResult.totalSize / (1024 * 1024)).toFixed(2)} MB</strong>) không còn liên kết với bất kỳ bản ghi hoặc biểu mẫu nào.
+                </p>
+                <div
+                  style={{
+                    padding: '0.5rem 0.75rem',
+                    background: '#fffbeb',
+                    border: '1px solid #fef3c7',
+                    borderRadius: '6px',
+                    fontSize: '0.75rem',
+                    color: '#92400e',
+                    marginBottom: '0.75rem',
+                    lineHeight: 1.4,
+                  }}
+                >
+                  Vùng đệm an toàn 2 giờ: Hệ thống đã tự động giữ lại các ảnh tải lên gần đây để tránh ảnh hưởng đến người dùng đang điền form.
+                </div>
+                <p style={{ margin: 0, fontSize: '0.85rem' }}>
+                  Bạn có muốn xóa vĩnh viễn các tệp ảnh thừa này trên Cloudflare R2 để giải phóng bộ nhớ không?
+                </p>
+              </div>
+            )
+          ) : (
+            <p>Không có thông tin quét.</p>
+          )
+        }
+      />
 
       {/* Keyframe for drawer slide-in */}
       <style>{`
