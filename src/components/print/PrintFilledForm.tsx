@@ -892,9 +892,10 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                     </div>
                                   </div>
                                   {hasMiniMap && (() => {
-                                    const mapHeight = f.rowSpan === 3 ? 125 : 85;
+                                    const rSpanNum = f.rowSpan ? Number(f.rowSpan) : 2;
+                                    const mapHeight = rSpanNum >= 5 ? 125 : rSpanNum === 4 ? 98 : rSpanNum === 3 ? 68 : 55;
                                     return (
-                                      <div style={{ width: '100%', height: `${mapHeight}px`, marginTop: '6px', borderRadius: '3px', overflow: 'hidden' }}>
+                                      <div style={{ width: '100%', height: `${mapHeight}px`, maxHeight: `${mapHeight}px`, marginTop: '4px', borderRadius: '3px', overflow: 'hidden' }}>
                                         <MiniMapCanvas lat={loc.lat!} lng={loc.lng!} zoom={15} height={mapHeight} mapType={f.mapType || 'roadmap'} allowToggleType={false} onLoaded={() => setMapLoaded(true)} />
                                       </div>
                                     );

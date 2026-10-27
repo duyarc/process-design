@@ -57,6 +57,7 @@ export const MiniMapCanvas: React.FC<MiniMapCanvasProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const lastRenderedSizeRef = useRef<{ w: number; h: number }>({ w: 0, h: 0 });
+  const renderIdRef = useRef<number>(0);
   const [activeType, setActiveType] = useState<'roadmap' | 'satellite'>(mapType || 'roadmap');
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -75,8 +76,10 @@ export const MiniMapCanvas: React.FC<MiniMapCanvasProps> = ({
       const container = containerRef.current;
       if (!canvas || !container) return;
 
-      const width = container.clientWidth || 320;
-      const heightPx = (height && height > 0) ? height : (container.clientHeight || 120);
+      const currentRenderId = ++renderIdRef.current;
+      const rect = container.getBoundingClientRect();
+      const width = Math.round(rect.width) || container.clientWidth || 320;
+      const heightPx = (height && height > 0) ? height : (Math.round(rect.height) || container.clientHeight || 120);
       const dpr = typeof window !== 'undefined' ? (window.devicePixelRatio || 1) : 1;
 
       // Create offscreen canvas for atomic double-buffering (never wipe visible canvas while tiles load)
@@ -140,7 +143,7 @@ export const MiniMapCanvas: React.FC<MiniMapCanvasProps> = ({
       }
 
       await Promise.allSettled(tilePromises);
-      if (isCancelled) return;
+      if (isCancelled || currentRenderId !== renderIdRef.current) return;
 
       // Draw red location marker pin in the exact center on offCanvas
       const markerX = width / 2;
@@ -182,8 +185,13 @@ export const MiniMapCanvas: React.FC<MiniMapCanvasProps> = ({
       offCtx.fillText(attrText, badgeX + 4, badgeY + 10);
 
       // Synchronously transfer the completed map from offCanvas to visible canvas
+      if (isCancelled || currentRenderId !== renderIdRef.current) return;
+
       canvas.width = width * dpr;
       canvas.height = heightPx * dpr;
+      canvas.style.width = '100%';
+      canvas.style.height = height ? `${height}px` : '100%';
+
       const ctx = canvas.getContext('2d');
       if (ctx) {
         ctx.drawImage(offCanvas, 0, 0);
@@ -194,17 +202,22 @@ export const MiniMapCanvas: React.FC<MiniMapCanvasProps> = ({
       onLoaded?.();
     };
 
-    renderMap();
+    // Initial render: defer via requestAnimationFrame to guarantee CSS Grid has computed column widths
+    const animFrame = requestAnimationFrame(() => {
+      renderMap();
+    });
 
     // Re-render only on real container size change (never wipe on beforeprint)
     const handleResize = () => {
-      const w = containerRef.current?.clientWidth || 0;
-      const h = (height && height > 0) ? height : (containerRef.current?.clientHeight || 0);
+      const rect = containerRef.current?.getBoundingClientRect();
+      const w = Math.round(rect?.width || 0) || containerRef.current?.clientWidth || 0;
+      const h = (height && height > 0) ? height : (Math.round(rect?.height || 0) || containerRef.current?.clientHeight || 0);
       if (w > 0 && (w !== lastRenderedSizeRef.current.w || h !== lastRenderedSizeRef.current.h)) {
         renderMap();
       }
     };
     window.addEventListener('resize', handleResize);
+    window.addEventListener('beforeprint', handleResize);
 
     let resizeObserver: ResizeObserver | null = null;
     if (typeof ResizeObserver !== 'undefined' && containerRef.current) {
@@ -216,7 +229,9 @@ export const MiniMapCanvas: React.FC<MiniMapCanvasProps> = ({
 
     return () => {
       isCancelled = true;
+      cancelAnimationFrame(animFrame);
       window.removeEventListener('resize', handleResize);
+      window.removeEventListener('beforeprint', handleResize);
       if (resizeObserver) resizeObserver.disconnect();
     };
   }, [lat, lng, zoom, height, activeType]);
@@ -230,8 +245,9 @@ export const MiniMapCanvas: React.FC<MiniMapCanvasProps> = ({
         position: 'relative',
         width: '100%',
         height: height ? `${height}px` : '100%',
+        maxHeight: height ? `${height}px` : undefined,
         flex: height ? undefined : 1,
-        minHeight: '75px',
+        minHeight: height ? `${height}px` : '75px',
         borderRadius: '4px',
         overflow: 'hidden',
         border: '1px solid #cbd5e1',
@@ -242,7 +258,15 @@ export const MiniMapCanvas: React.FC<MiniMapCanvasProps> = ({
       }}
       title={onClick ? 'Nhấp để xem bản đồ lớn' : undefined}
     >
-      <canvas ref={canvasRef} style={{ display: 'block', width: '100%', height: '100%' }} />
+      <canvas
+        ref={canvasRef}
+        style={{
+          display: 'block',
+          width: '100%',
+          height: height ? `${height}px` : '100%',
+          objectFit: 'contain'
+        }}
+      />
 
       {/* Layer switch pill toggle (Roadmap vs Satellite) */}
       {allowToggleType && (
