@@ -371,8 +371,10 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
 
       {/* Preview bar — screen only */}
       <div className="no-print" style={{
+        maxWidth: isA5 ? '210mm' : '210mm',
+        margin: '0 auto 1.5rem',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        paddingBottom: '1rem', borderBottom: '1px solid #cbd5e1', marginBottom: '2rem'
+        paddingBottom: '1rem', borderBottom: '1px solid #cbd5e1'
       }}>
         <div>
           <span style={{ fontSize: '0.8rem', color: '#f59e0b', fontWeight: 600 }}>● Filled Record Preview</span>
@@ -397,7 +399,12 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
       </div>
 
       {/* Outer table wrapper — for native print header/footer support */}
-      <table className="print-outer-table">
+      <div className="print-page-wrapper" style={{
+        maxWidth: isA5 ? '210mm' : '210mm',
+        margin: '0 auto',
+        boxSizing: 'border-box'
+      }}>
+        <table className="print-outer-table">
         <tbody>
           <tr>
             <td>
@@ -806,7 +813,7 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                               return (
                                 <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'center', minHeight: 'var(--pw-line-h)', gap: '8px', fontSize: '0.85rem' }}>
                                   {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap', lineHeight: 1.4 }}>{renderFormattedText(cleanLabel)}</span>}
-                                  <span style={{ fontWeight: 600, color: '#0f172a', minWidth: '80px', borderBottom: '1px dotted #cbd5e1' }}>{val || '\u00A0'}</span>
+                                  <span style={{ fontWeight: 600, color: '#0f172a', minWidth: '80px', borderBottom: '1px dotted #cbd5e1', paddingBottom: '1px' }}>{val || '\u00A0'}</span>
                                 </div>
                               );
                             }
@@ -815,7 +822,7 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                               return (
                                 <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'center', minHeight: 'var(--pw-line-h)', gap: '8px', fontSize: '0.85rem' }}>
                                   {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap', lineHeight: 1.4 }}>{renderFormattedText(cleanLabel)}</span>}
-                                  <span style={{ fontWeight: 600, color: '#0f172a', minWidth: '60px', borderBottom: '1px dotted #cbd5e1' }}>{val || '\u00A0'}</span>
+                                  <span style={{ fontWeight: 600, color: '#0f172a', minWidth: '60px', borderBottom: '1px dotted #cbd5e1', paddingBottom: '1px' }}>{val || '\u00A0'}</span>
                                 </div>
                               );
                             }
@@ -840,19 +847,14 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                 }}>
                                   <div style={{ display: 'flex', alignItems: 'center', width: '100%', gap: '8px' }}>
                                     {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap', lineHeight: 1.4 }}>{renderFormattedText(cleanLabel)}</span>}
-                                    <div style={{ flex: 1, borderBottom: '1px dotted #cbd5e1', minHeight: '16px', fontWeight: 600, color: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                                    <div style={{ flex: 1, borderBottom: '1px dotted #cbd5e1', minHeight: '16px', paddingBottom: '1px', fontWeight: 600, color: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }}>
                                       <span>{displayVal ? `📍 ${displayVal}` : '\u00A0'}</span>
-                                      {loc && loc.mapsUrl && (
-                                        <a href={loc.mapsUrl} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.72rem', color: '#0284c7', textDecoration: 'none', fontWeight: 500 }}>
-                                          ↗ Mở Maps
-                                        </a>
-                                      )}
                                     </div>
                                   </div>
                                   {hasMiniMap && (() => {
                                     const mapHeight = f.rowSpan === 3 ? 125 : 85;
                                     return (
-                                      <div style={{ width: '100%', height: `${mapHeight}px`, marginTop: '2px', borderRadius: '3px', overflow: 'hidden', border: '1px solid #cbd5e1' }}>
+                                      <div style={{ width: '100%', height: `${mapHeight}px`, marginTop: '6px', borderRadius: '3px', overflow: 'hidden' }}>
                                         <MiniMapCanvas lat={loc.lat!} lng={loc.lng!} zoom={15} height={mapHeight} mapType={f.mapType || 'roadmap'} allowToggleType={false} />
                                       </div>
                                     );
@@ -866,7 +868,7 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                               return (
                                 <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'center', minHeight: 'var(--pw-line-h)', gap: '8px', fontSize: '0.85rem' }}>
                                   {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap', lineHeight: 1.4 }}>{renderFormattedText(cleanLabel)}</span>}
-                                  <div style={{ flex: 1, borderBottom: '1px dotted #cbd5e1', minHeight: '16px', fontWeight: 600, color: '#0f172a' }}>
+                                  <div style={{ flex: 1, borderBottom: '1px dotted #cbd5e1', minHeight: '16px', paddingBottom: '1px', fontWeight: 600, color: '#0f172a' }}>
                                     {displayVal ? renderFormattedText(displayVal) : '\u00A0'}
                                   </div>
                                 </div>
@@ -879,7 +881,7 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                             return (
                               <div key={f.id} style={{ ...gridItemStyle, display: 'flex', flexDirection: isLongTextLabel ? 'column' : 'row', alignItems: isLongTextLabel ? 'stretch' : 'center', minHeight: 'var(--pw-line-h)', gap: isLongTextLabel ? '4px' : '8px', fontSize: '0.85rem' }}>
                                 {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: isLongTextLabel ? 'pre-wrap' : 'nowrap', wordBreak: isLongTextLabel ? 'break-word' : undefined, lineHeight: 1.4 }}>{renderFormattedText(cleanLabel)}</span>}
-                                <div style={{ flex: isLongTextLabel ? undefined : 1, width: isLongTextLabel ? '100%' : undefined, borderBottom: '1px dotted #cbd5e1', minHeight: '16px', fontWeight: 600, color: '#0f172a' }}>
+                                <div style={{ flex: isLongTextLabel ? undefined : 1, width: isLongTextLabel ? '100%' : undefined, borderBottom: '1px dotted #cbd5e1', minHeight: '16px', paddingBottom: '1px', fontWeight: 600, color: '#0f172a' }}>
                                   {displayVal ? renderFormattedText(displayVal) : '\u00A0'}
                                 </div>
                               </div>
@@ -1618,6 +1620,7 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
           <tr><td><div className="print-footer-spacer" /></td></tr>
         </tfoot>
       </table>
+      </div>
 
       <div className="print-footer">
         <span>{template.formId || submission.formId}</span>

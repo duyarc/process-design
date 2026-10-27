@@ -291,6 +291,14 @@ body.printing-active .bpmn-viewer-card {
 }
 
 /* Layout Table cho bản in */
+.print-page-wrapper {
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
 .print-outer-table {
   width: 100% !important;
   border-collapse: collapse !important;

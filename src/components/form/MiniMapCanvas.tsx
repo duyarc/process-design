@@ -76,11 +76,9 @@ export const MiniMapCanvas: React.FC<MiniMapCanvasProps> = ({
       const heightPx = (height && height > 0) ? height : (container.clientHeight || 120);
       const dpr = typeof window !== 'undefined' ? (window.devicePixelRatio || 1) : 1;
 
-      // Scale canvas for high-DPI retina screens while keeping CSS dimensions constant
+      // Scale canvas for high-DPI retina screens while keeping CSS dimensions fluid via container
       canvas.width = width * dpr;
       canvas.height = heightPx * dpr;
-      canvas.style.width = `${width}px`;
-      canvas.style.height = `${heightPx}px`;
 
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
@@ -185,11 +183,12 @@ export const MiniMapCanvas: React.FC<MiniMapCanvasProps> = ({
 
     renderMap();
 
-    // Re-render on container resize
+    // Re-render on container resize & before printing
     const handleResize = () => {
       renderMap();
     };
     window.addEventListener('resize', handleResize);
+    window.addEventListener('beforeprint', handleResize);
 
     let resizeObserver: ResizeObserver | null = null;
     if (typeof ResizeObserver !== 'undefined' && containerRef.current) {
@@ -202,6 +201,7 @@ export const MiniMapCanvas: React.FC<MiniMapCanvasProps> = ({
     return () => {
       isCancelled = true;
       window.removeEventListener('resize', handleResize);
+      window.removeEventListener('beforeprint', handleResize);
       if (resizeObserver) resizeObserver.disconnect();
     };
   }, [lat, lng, zoom, height, activeType]);

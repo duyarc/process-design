@@ -74,6 +74,13 @@ export function PrintDocumentStyles({ isA5 }: { isA5: boolean }) {
           margin: 0 !important;
           box-sizing: border-box !important;
         }
+        .print-page-wrapper {
+          max-width: 100% !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          box-shadow: none !important;
+          background: transparent !important;
+        }
         @page {
           size: ${isA5 ? 'A5 landscape' : 'A4 portrait'};
           margin: ${isA5 ? '8mm 10mm 10mm 10mm' : '12mm 15mm 15mm 15mm'};
