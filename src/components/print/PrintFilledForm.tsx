@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import { Star } from 'lucide-react';
 import type { Submission, SubmissionFieldSnapshot, FormTemplateISO, TableColumnConfig } from '../../types';
 import { formatFormVersion, getColStyleWidth } from '../../types';
-import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock, getInfoGridTemplateColumns, isOtherValue, extractOtherText, formatOptionDisplay, getEffectiveCellOptions, parseGoogleMapsUrl, getChecklistColumns, resolveImageSrc, clusterOptionsByGroup, parseChecklistValues } from '../../utils/formUtils';
+import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock, getInfoGridTemplateColumns, isOtherValue, extractOtherText, formatOptionDisplay, getEffectiveCellOptions, parseGoogleMapsUrl, getChecklistColumns, resolveImageSrc, clusterOptionsByGroup, parseChecklistValues, formatDMS } from '../../utils/formUtils';
 import { renderFormattedText } from '../../utils/textFormatter';
 import { PrintDocumentStyles, PrintSectionHeader } from './printShared';
 import { MiniMapCanvas } from '../form/MiniMapCanvas';
@@ -154,6 +154,9 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
   const [imgLoaded, setImgLoaded] = useState(false);
   const [imageUrls, setImageUrls]         = useState<string[]>([]);
   const [loadingImages, setLoadingImages] = useState(false);
+  const [photoUrlMap, setPhotoUrlMap]     = useState<Record<string, string>>({});
+  const [resolvedLocations, setResolvedLocations] = useState<Record<string, { lat: number; lng: number; dmsText?: string; decimalText?: string; mapsUrl?: string }>>({});
+  const [loadingLocations, setLoadingLocations] = useState(false);
 
   // 1. Fetch FormTemplateISO if prop not provided (SubmissionManager path)
   useEffect(() => {
@@ -195,30 +198,128 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
     }
   }, [template]);
 
-  // 3. Fetch photo evidence presigned URLs
+  // 3. Fetch photo evidence presigned URLs and preload image binaries
   useEffect(() => {
-    if (!submission.mediaUrls || submission.mediaUrls.length === 0) return;
+    const allKeys = new Set<string>();
+    (submission.mediaUrls || []).forEach(k => { if (k && typeof k === 'string') allKeys.add(k); });
+    submission.formData.forEach(s => {
+      if (s.value && typeof s.value === 'string' && s.value.startsWith('uploads/')) {
+        allKeys.add(s.value);
+      }
+    });
+
+    const keyList = Array.from(allKeys);
+    if (keyList.length === 0) {
+      setLoadingImages(false);
+      return;
+    }
+
     setLoadingImages(true);
     Promise.all(
-      submission.mediaUrls.map(key =>
-        fetch(`/api/storage/download-url?key=${encodeURIComponent(key)}`)
-          .then(r => r.json())
-          .then((d: any) => d.downloadUrl as string)
-          .catch(() => '')
-      )
+      keyList.map(async (key) => {
+        try {
+          const res = await fetch(`/api/storage/download-url?key=${encodeURIComponent(key)}`);
+          if (!res.ok) throw new Error('Failed to resolve URL');
+          const data = await res.json();
+          const downloadUrl = data.downloadUrl as string;
+          if (downloadUrl) {
+            // Preload image object into browser memory before printing
+            await new Promise<void>((resolve) => {
+              const img = new Image();
+              img.onload = () => resolve();
+              img.onerror = () => resolve();
+              img.src = downloadUrl;
+            });
+            return { key, downloadUrl };
+          }
+        } catch {
+          // ignore error
+        }
+        return null;
+      })
     )
-      .then(urls => setImageUrls(urls.filter(Boolean)))
+      .then(results => {
+        const map: Record<string, string> = {};
+        const urls: string[] = [];
+        results.forEach(r => {
+          if (r) {
+            map[r.key] = r.downloadUrl;
+            urls.push(r.downloadUrl);
+          }
+        });
+        setPhotoUrlMap(map);
+        setImageUrls(urls);
+      })
       .finally(() => setLoadingImages(false));
   }, [submission]);
 
+  // 3b. Pre-resolve Google Maps shortlinks for location fields
+  useEffect(() => {
+    if (!template) return;
+    const locFields: { id: string; url: string }[] = [];
+    const valMap = new Map<string, string>();
+    submission.formData.forEach(s => valMap.set(s.id, s.value));
+
+    template.layoutBlocks?.forEach(b => {
+      b.fields?.forEach(f => {
+        if (f.type === 'location') {
+          const raw = valMap.get(f.id) || '';
+          if (raw && (raw.includes('maps.app.goo.gl') || raw.includes('goo.gl/maps') || (raw.startsWith('http') && raw.includes('google.com/maps')))) {
+            const parsed = parseGoogleMapsUrl(raw);
+            if (!parsed || parsed.lat == null || parsed.lng == null) {
+              locFields.push({ id: f.id, url: raw.trim() });
+            }
+          }
+        }
+      });
+    });
+
+    if (locFields.length === 0) {
+      setLoadingLocations(false);
+      return;
+    }
+
+    setLoadingLocations(true);
+    Promise.all(
+      locFields.map(async item => {
+        try {
+          const res = await fetch(`/api/utils/unshorten-map?url=${encodeURIComponent(item.url)}`);
+          if (!res.ok) throw new Error('Unshorten error');
+          const data = await res.json();
+          if (data && data.lat != null && data.lng != null) {
+            return {
+              id: item.id,
+              lat: data.lat,
+              lng: data.lng,
+              dmsText: formatDMS(data.lat, data.lng),
+              decimalText: `${data.lat.toFixed(6)}, ${data.lng.toFixed(6)}`,
+              mapsUrl: data.mapsUrl || `https://www.google.com/maps?q=${data.lat},${data.lng}`
+            };
+          }
+        } catch {
+          // ignore
+        }
+        return null;
+      })
+    )
+      .then(results => {
+        const map: Record<string, any> = {};
+        results.forEach(r => {
+          if (r) map[r.id] = r;
+        });
+        setResolvedLocations(map);
+      })
+      .finally(() => setLoadingLocations(false));
+  }, [template, submission]);
+
   // 4. Trigger print after everything is ready
   useEffect(() => {
-    if (loading || loadingImages || !imgLoaded || !template) return;
+    if (loading || loadingImages || loadingLocations || !imgLoaded || !template) return;
     const handleAfterPrint = () => onClose();
     window.addEventListener('afterprint', handleAfterPrint);
-    const timer = setTimeout(() => window.print(), 200);
+    const timer = setTimeout(() => window.print(), 500);
     return () => { window.removeEventListener('afterprint', handleAfterPrint); clearTimeout(timer); };
-  }, [loading, loadingImages, imgLoaded, template, onClose]);
+  }, [loading, loadingImages, loadingLocations, imgLoaded, template, onClose]);
 
   // 5. Document title — REC_{YYYYMMDD}_{FORMNAME}
   useEffect(() => {
@@ -513,13 +614,21 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                             }
 
                             if (f.type === 'photo') {
-                              const singleUrl = imageUrls[0];
+                              let photoUrl = val ? (photoUrlMap[val] || val) : '';
+                              if (!photoUrl && submission.mediaUrls && submission.mediaUrls.length > 0) {
+                                const allPhotoFields = template.layoutBlocks.flatMap(b => b.fields || []).filter(field => field.type === 'photo');
+                                const pIdx = allPhotoFields.findIndex(field => field.id === f.id);
+                                if (pIdx >= 0 && submission.mediaUrls[pIdx]) {
+                                  const fallbackKey = submission.mediaUrls[pIdx];
+                                  photoUrl = photoUrlMap[fallbackKey] || fallbackKey;
+                                }
+                              }
                               return (
                                 <div key={f.id} style={{ ...gridItemStyle, display: 'flex', flexDirection: 'column', width: '100%', pageBreakInside: 'avoid' }}>
                                   {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', fontSize: '0.82rem', marginBottom: '4px' }}>{renderFormattedText(cleanLabel)}</span>}
-                                  <div style={{ flex: 1, width: '100%', border: '1px solid #cbd5e1', borderRadius: '3px', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60px', padding: '4px', boxSizing: 'border-box', background: '#f8fafc' }}>
-                                    {singleUrl ? (
-                                      <img src={singleUrl} alt="Evidence" style={{ maxWidth: '100%', maxHeight: '200px', objectFit: 'contain' }} />
+                                  <div style={{ flex: 1, width: '100%', border: '1px solid #cbd5e1', borderRadius: '3px', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '110px', padding: '4px', boxSizing: 'border-box', background: '#f8fafc' }}>
+                                    {photoUrl ? (
+                                      <img src={photoUrl} alt={cleanLabel || "Evidence"} style={{ maxWidth: '100%', maxHeight: '140px', objectFit: 'contain' }} />
                                     ) : (
                                       <span style={{ fontSize: '0.75rem', color: '#94a3b8', fontStyle: 'italic' }}>(Không có ảnh đính kèm)</span>
                                     )}
@@ -712,7 +821,11 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                             }
 
                             if (f.type === 'location') {
-                              const loc = parseGoogleMapsUrl(val);
+                              const clientLoc = parseGoogleMapsUrl(val);
+                              const resolved = resolvedLocations[f.id];
+                              const loc = (clientLoc && clientLoc.lat != null && clientLoc.lng != null)
+                                ? clientLoc
+                                : (resolved || clientLoc);
                               const displayVal = loc ? (loc.dmsText || loc.decimalText || val) : val;
                               const hasMiniMap = f.showMiniMap !== false && loc?.lat != null && loc?.lng != null;
                               return (
@@ -1480,8 +1593,8 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
               );
             })}
 
-              {/* ── Photo Evidence Section ── */}
-              {imageUrls.length > 0 && (
+              {/* ── Photo Evidence Section (Only rendered if template does NOT already have dedicated photo fields) ── */}
+              {imageUrls.length > 0 && !template.layoutBlocks.some(b => b.fields?.some(f => f.type === 'photo')) && (
                 <div className="print-block print-block-avoid" style={{ marginTop: '1rem' }}>
                   <h3 style={{ fontSize: '0.9rem', fontWeight: 700, margin: '0 0 8px 0', textTransform: 'uppercase', borderBottom: '1px solid #000000', paddingBottom: '4px', color: '#000000' }}>
                     Ảnh bằng chứng

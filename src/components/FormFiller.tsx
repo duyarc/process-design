@@ -1054,6 +1054,10 @@ function FormFillerInner({
         ...prev,
         [fieldId]: [...(prev[fieldId] || []), pdfKey]
       }));
+      setFormValues(prev => ({
+        ...prev,
+        [fieldId]: pdfKey
+      }));
     } catch (err) {
       console.error(err);
       setLocalToast({
@@ -1088,7 +1092,9 @@ function FormFillerInner({
     const snapshots: SubmissionFieldSnapshot[] = [];
 
     allFields.forEach((field: any) => {
-      const val = formValues[field.id];
+      const val = (field.type === 'photo')
+        ? (formValues[field.id] || (uploadedPhotos[field.id] || [])[0] || '')
+        : formValues[field.id];
       let fieldStatus: 'PASS' | 'FAIL' = 'PASS';
       let targetRange = '';
 
@@ -2102,11 +2108,18 @@ function FormFillerInner({
                             isUploading={isPhotoUploading[field.id]}
                             readOnly={effectiveReadOnly}
                             onUpload={(file) => handlePhotoUpload(field.id, file)}
-                            onRemove={() => setUploadedPhotos(prev => {
-                              const next = { ...prev };
-                              delete next[field.id];
-                              return next;
-                            })}
+                            onRemove={() => {
+                              setUploadedPhotos(prev => {
+                                const next = { ...prev };
+                                delete next[field.id];
+                                return next;
+                              });
+                              setFormValues(prev => {
+                                const next = { ...prev };
+                                delete next[field.id];
+                                return next;
+                              });
+                            }}
                           />
                         ) : field.type === 'subtable' ? (() => {
                           const cols = field.subtableColumns ?? [];
@@ -4037,6 +4050,11 @@ function FormFillerInner({
                         const allMediaKeys: string[] = [];
                         Object.values(uploadedPhotos).forEach(keys => {
                           allMediaKeys.push(...keys);
+                        });
+                        snapshots.forEach(s => {
+                          if (s.value && s.value.startsWith('uploads/') && !allMediaKeys.includes(s.value)) {
+                            allMediaKeys.push(s.value);
+                          }
                         });
 
                         const draftSub: Submission = {
