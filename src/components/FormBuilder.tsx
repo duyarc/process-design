@@ -1144,12 +1144,39 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
   const inspectorGroupTitleRef = useRef<HTMLTextAreaElement>(null);
   const [canvasExpandedGuidanceMap, setCanvasExpandedGuidanceMap] = useState<Record<string, boolean>>({});
   const [canvasLabelPreviewMap, setCanvasLabelPreviewMap] = useState<Record<string, boolean>>({});
+  const [isAllGuidanceExpanded, setIsAllGuidanceExpanded] = useState<boolean>(false);
 
   const toggleCanvasGuidance = (fieldId: string) => {
     setCanvasExpandedGuidanceMap(prev => ({
       ...prev,
       [fieldId]: !prev[fieldId]
     }));
+  };
+
+  const handleToggleAllGuidance = () => {
+    if (isAllGuidanceExpanded) {
+      setCanvasExpandedGuidanceMap({});
+      setIsAllGuidanceExpanded(false);
+    } else {
+      const nextMap: Record<string, boolean> = {};
+      (layoutBlocks || []).forEach(b => {
+        if (b.description || b.guidance) {
+          nextMap[b.id] = true;
+        }
+        (b.fields || []).forEach(f => {
+          if (f.guidance) {
+            nextMap[f.id] = true;
+          }
+        });
+        (b.tableRows || []).forEach(r => {
+          if (r.guidance) {
+            nextMap[r.id] = true;
+          }
+        });
+      });
+      setCanvasExpandedGuidanceMap(nextMap);
+      setIsAllGuidanceExpanded(true);
+    }
   };
 
   const [effectiveDate, setEffectiveDate] = useState(() => (initialData as any)?.effectiveDate || (initialData as any)?.effective_date || new Date().toISOString().split('T')[0]);
@@ -2882,6 +2909,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
         template={printPreviewData}
         autoExportPdf={autoExportPdf}
         exportMode={autoExportPdf}
+        includeGuidance={isAllGuidanceExpanded}
         onClose={() => {
           setPrintPreviewData(null);
           setAutoExportPdf(false);
@@ -3149,6 +3177,46 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
               A5 Ngang
             </button>
           </div>
+
+          <div style={{ borderLeft: '1px solid var(--neutral-border)', height: '16px', margin: '0 0.1rem' }} />
+
+          {/* Guidance Toggle Button (Refined Minimalist Pill) */}
+          <button
+            type="button"
+            onClick={handleToggleAllGuidance}
+            style={{
+              background: isAllGuidanceExpanded ? '#f0fdfa' : 'none',
+              border: `1px solid ${isAllGuidanceExpanded ? '#0d9488' : '#cbd5e1'}`,
+              color: isAllGuidanceExpanded ? '#0f766e' : '#334155',
+              padding: '3px 8px',
+              borderRadius: '4px',
+              fontSize: '0.78rem',
+              fontWeight: isAllGuidanceExpanded ? 600 : 500,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.3rem',
+              transition: 'all 0.2s',
+              boxShadow: isAllGuidanceExpanded ? '0 1px 2px rgba(13, 148, 136, 0.12)' : 'none'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = isAllGuidanceExpanded ? '#e6fffa' : '#f8fafc';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = isAllGuidanceExpanded ? '#f0fdfa' : 'none';
+            }}
+            title={isAllGuidanceExpanded ? "Thu gọn toàn bộ hướng dẫn (In/PDF bản sạch)" : "Mở rộng toàn bộ hướng dẫn (In/PDF kèm hướng dẫn)"}
+          >
+            <span style={{ fontSize: '0.8rem', lineHeight: 1, filter: isAllGuidanceExpanded ? 'none' : 'grayscale(100%) opacity(0.7)' }}>💡</span>
+            <span>Hướng dẫn</span>
+            <span style={{
+              width: '5px',
+              height: '5px',
+              borderRadius: '50%',
+              background: isAllGuidanceExpanded ? '#0d9488' : '#94a3b8',
+              marginLeft: '1px'
+            }} />
+          </button>
 
           <div style={{ borderLeft: '1px solid var(--neutral-border)', height: '16px', margin: '0 0.1rem' }} />
 
