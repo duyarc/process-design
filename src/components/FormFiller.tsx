@@ -483,6 +483,23 @@ function FormFillerInner({
       });
       setTableRowsMap(restoredTableRowsMap);
 
+      // Phục hồi lại ảnh đã tải lên cho các trường Photo
+      const restoredPhotos: { [fieldId: string]: string[] } = {};
+      const allPhotoFields = (rawFormTemplate.layoutBlocks || [])
+        .flatMap((b: any) => b.fields || [])
+        .filter((f: any) => f.type === 'photo');
+
+      allPhotoFields.forEach((f: any, idx: number) => {
+        const val = restoredValues[f.id];
+        if (val && (val.startsWith('uploads/') || val.startsWith('http') || val.startsWith('data:'))) {
+          restoredPhotos[f.id] = [val];
+        } else if (initialSubmission.mediaUrls && initialSubmission.mediaUrls[idx]) {
+          restoredPhotos[f.id] = [initialSubmission.mediaUrls[idx]];
+          restoredValues[f.id] = initialSubmission.mediaUrls[idx];
+        }
+      });
+      setUploadedPhotos(restoredPhotos);
+
       setFormValues(restoredValues);
       setFieldReactions(restoredReactions);
       setOperatorId(initialSubmission.operatorId || '');
@@ -710,7 +727,7 @@ function FormFillerInner({
 
   // Load initial values if editing
   useEffect(() => {
-    if (initialSubmission && process && rawFormTemplate) {
+    if (initialSubmission && rawFormTemplate) {
       const restoredValues: { [fieldId: string]: string } = {};
       const restoredReactions: { [fieldId: string]: string } = {};
       
@@ -752,11 +769,28 @@ function FormFillerInner({
       });
       setTableRowsMap(restoredTableRowsMap);
 
+      // Phục hồi lại ảnh đã tải lên cho các trường Photo
+      const restoredPhotos: { [fieldId: string]: string[] } = {};
+      const allPhotoFields = (rawFormTemplate.layoutBlocks || [])
+        .flatMap((b: any) => b.fields || [])
+        .filter((f: any) => f.type === 'photo');
+
+      allPhotoFields.forEach((f: any, idx: number) => {
+        const val = restoredValues[f.id];
+        if (val && (val.startsWith('uploads/') || val.startsWith('http') || val.startsWith('data:'))) {
+          restoredPhotos[f.id] = [val];
+        } else if (initialSubmission.mediaUrls && initialSubmission.mediaUrls[idx]) {
+          restoredPhotos[f.id] = [initialSubmission.mediaUrls[idx]];
+          restoredValues[f.id] = initialSubmission.mediaUrls[idx];
+        }
+      });
+      setUploadedPhotos(restoredPhotos);
+
       setFormValues(restoredValues);
       setFieldReactions(restoredReactions);
       setOperatorId(initialSubmission.operatorId || '');
     }
-  }, [initialSubmission, process, rawFormTemplate]);
+  }, [initialSubmission, rawFormTemplate]);
 
   const calculateSummaryValue = (
     col: any,
@@ -2104,7 +2138,12 @@ function FormFillerInner({
                         })() : field.type === 'photo' ? (
                           <PhotoFieldFiller
                             field={field}
-                            photoKey={(uploadedPhotos[field.id] || [])[0]}
+                            photoKey={
+                              (uploadedPhotos[field.id] || [])[0] ||
+                              (formValues[field.id]?.startsWith('uploads/') || formValues[field.id]?.startsWith('http') || formValues[field.id]?.startsWith('data:')
+                                ? formValues[field.id]
+                                : undefined)
+                            }
                             isUploading={isPhotoUploading[field.id]}
                             readOnly={effectiveReadOnly}
                             onUpload={(file) => handlePhotoUpload(field.id, file)}
