@@ -2388,7 +2388,7 @@ app.get('/api/storage/download-url', async (req, res) => {
       return res.status(503).json({ error: 'Cloudflare R2 is not configured on this server.' });
     }
 
-    const { key } = req.query;
+    const { key, redirect } = req.query;
     if (!key) {
       return res.status(400).json({ error: 'Missing required query parameter "key".' });
     }
@@ -2401,10 +2401,38 @@ app.get('/api/storage/download-url', async (req, res) => {
 
     const downloadUrl = await getSignedUrl(r2Client, command, { expiresIn: 900 });
 
+    // If client requested redirect or if request came from an <img> tag (Accept: image/*)
+    const isImageRequest = req.headers.accept && req.headers.accept.includes('image/');
+    if (redirect === 'true' || redirect === '1' || isImageRequest) {
+      return res.redirect(302, downloadUrl);
+    }
+
     res.json({ downloadUrl });
   } catch (err) {
     console.error('Error generating presigned download URL:', err);
     res.status(500).json({ error: 'Failed to generate download URL' });
+  }
+});
+
+// GET /api/storage/view - Direct image view endpoint that always redirects to the presigned URL
+app.get('/api/storage/view', async (req, res) => {
+  try {
+    if (!r2Client) {
+      return res.status(503).send('Cloudflare R2 is not configured on this server.');
+    }
+    const { key } = req.query;
+    if (!key) {
+      return res.status(400).send('Missing required query parameter "key".');
+    }
+    const command = new GetObjectCommand({
+      Bucket: R2_BUCKET_NAME,
+      Key: key,
+    });
+    const downloadUrl = await getSignedUrl(r2Client, command, { expiresIn: 900 });
+    return res.redirect(302, downloadUrl);
+  } catch (err) {
+    console.error('Error viewing file:', err);
+    res.status(500).send('Failed to view file');
   }
 });
 

@@ -14,6 +14,7 @@ import { generateBPMNXML, getNumRows } from '../utils/bpmnXmlGenerator';
 import { BpmnViewerComponent } from './BpmnViewerComponent';
 import PrintBlankForm from './print/PrintBlankForm';
 import { LocationInputFiller } from './form/LocationInputFiller';
+import { PhotoFieldFiller } from './form/PhotoFieldFiller';
 
 interface ProcessReaderProps {
   processId: string;
@@ -1596,61 +1597,18 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                                       const isUploading = isPhotoUploading[field.id];
 
                                       return (
-                                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', minHeight: '100px' }}>
-                                          <input
-                                            type="file"
-                                            accept="image/*"
-                                            id={`reader_photo_input_${field.id}`}
-                                            style={{ display: 'none' }}
-                                            disabled={isUploading}
-                                            onChange={(e) => {
-                                              const file = e.target.files?.[0];
-                                              if (file) handlePhotoUpload(field.id, file);
-                                            }}
-                                          />
-                                          {singleKey ? (
-                                            <div style={{ flex: 1, border: '1px solid #cbd5e1', borderRadius: '4px', background: '#f8fafc', padding: '6px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-                                              <img
-                                                src={`/api/storage/download-url?key=${encodeURIComponent(singleKey)}`}
-                                                alt="Evidence"
-                                                style={{ maxWidth: '100%', maxHeight: '140px', objectFit: 'contain', borderRadius: '3px' }}
-                                              />
-                                              <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>
-                                                <button
-                                                  type="button"
-                                                  onClick={() => document.getElementById(`reader_photo_input_${field.id}`)?.click()}
-                                                  disabled={isUploading}
-                                                  style={{ fontSize: '0.7rem', padding: '2px 6px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '3px', cursor: 'pointer' }}
-                                                >
-                                                  🔄 Thay ảnh
-                                                </button>
-                                                <button
-                                                  type="button"
-                                                  onClick={() => setUploadedPhotos(prev => {
-                                                    const next = { ...prev };
-                                                    delete next[field.id];
-                                                    return next;
-                                                  })}
-                                                  style={{ fontSize: '0.7rem', padding: '2px 6px', background: '#fff1f2', border: '1px solid #fecdd3', color: '#e11d48', borderRadius: '3px', cursor: 'pointer' }}
-                                                >
-                                                  🗑️ Xóa
-                                                </button>
-                                              </div>
-                                            </div>
-                                          ) : (
-                                            <div
-                                              onClick={() => !isUploading && document.getElementById(`reader_photo_input_${field.id}`)?.click()}
-                                              style={{ flex: 1, border: '1.5px dashed #cbd5e1', borderRadius: '4px', background: '#f8fafc', padding: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', minHeight: '80px' }}
-                                            >
-                                              <span style={{ fontSize: '0.78rem', color: '#475569', fontWeight: 500, fontStyle: 'italic', textAlign: 'center' }}>
-                                                {isUploading ? 'Đang tải ảnh...' : (field.placeholder ?? '')}
-                                              </span>
-                                              <span style={{ fontSize: '0.68rem', color: '#94a3b8', marginTop: '4px' }}>
-                                                (Hỗ trợ PNG, JPG, JPEG)
-                                              </span>
-                                            </div>
-                                          )}
-                                        </div>
+                                        <PhotoFieldFiller
+                                          field={field}
+                                          photoKey={singleKey}
+                                          isUploading={isUploading}
+                                          readOnly={false}
+                                          onUpload={(file) => handlePhotoUpload(field.id, file)}
+                                          onRemove={() => setUploadedPhotos(prev => {
+                                            const next = { ...prev };
+                                            delete next[field.id];
+                                            return next;
+                                          })}
+                                        />
                                       );
                                     })() : field.type === 'subtable' ? (() => {
                                       const cols = field.subtableColumns ?? [];
