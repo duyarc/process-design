@@ -17,7 +17,8 @@ import {
   ChevronDown,
   ChevronRight,
   MoreHorizontal,
-  PenTool
+  PenTool,
+  Share2
 } from 'lucide-react';
 import PrintFilledForm from './print/PrintFilledForm';
 import ConfirmModal from './common/ConfirmModal';
@@ -30,6 +31,7 @@ interface SubmissionManagerProps {
   isEmbedded?: boolean;
   layoutMode?: 'grid' | 'list';
   cachedProcesses?: Process[];
+  cachedForms?: any[];
   hideToolbar?: boolean;
   externalSearchTerm?: string;
   externalProcessFilter?: string;
@@ -44,7 +46,8 @@ export default function SubmissionManager({
   onBack, 
   initialFormFilter, 
   isEmbedded = false, 
-  cachedProcesses, 
+  cachedProcesses,
+  cachedForms,
   hideToolbar = false,
   externalSearchTerm,
   externalProcessFilter,
@@ -67,6 +70,13 @@ export default function SubmissionManager({
     if (cachedProcesses && cachedProcesses.length > 0) return cachedProcesses;
     try {
       const cached = sessionStorage.getItem('swr_processes');
+      return cached ? JSON.parse(cached) : [];
+    } catch { return []; }
+  });
+  const [forms] = useState<any[]>(() => {
+    if (cachedForms && cachedForms.length > 0) return cachedForms;
+    try {
+      const cached = sessionStorage.getItem('swr_forms');
       return cached ? JSON.parse(cached) : [];
     } catch { return []; }
   });
@@ -136,6 +146,18 @@ export default function SubmissionManager({
   // Toast and Error States
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
+
+  // Copy shareable link to form
+  const handleShareLink = (group: FormGroup) => {
+    const shareUrl = `${window.location.origin}/?page=fill&processId=${group.processId}&formName=${encodeURIComponent(group.formId)}`;
+    navigator.clipboard.writeText(shareUrl)
+      .then(() => {
+        setToast({ message: 'Đã sao chép liên kết biểu mẫu vào clipboard!', type: 'success' });
+      })
+      .catch(() => {
+        setToast({ message: 'Không thể sao chép liên kết biểu mẫu.', type: 'error' });
+      });
+  };
 
   // Auto-dismiss toast
   useEffect(() => {
@@ -391,13 +413,37 @@ export default function SubmissionManager({
       grp.submissions.sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
     }
 
+    // If a filter is active, include matching known forms even if 0 submissions
+    const activeFilterTerm = (searchTerm || initialFormFilter || '').trim().toLowerCase();
+    if (activeFilterTerm && forms && forms.length > 0) {
+      for (const f of forms) {
+        const fId = (f.formId || f.formName || '').toLowerCase();
+        const fTitle = (f.formTitle || f.formName || '').toLowerCase();
+        const key = f.formId || f.formName || 'unknown_form';
+        if ((fId.includes(activeFilterTerm) || fTitle.includes(activeFilterTerm)) && !map.has(key)) {
+          const linkedProc = f.linkedProcesses?.[0];
+          map.set(key, {
+            formKey: key,
+            formId: f.formId || f.formName || 'Unknown',
+            formTitle: f.formTitle || f.formName || 'Biểu mẫu',
+            formVersion: f.version || '0.1',
+            processId: linkedProc ? linkedProc.id : 'unlinked',
+            processTitle: linkedProc ? linkedProc.title : 'Biểu mẫu tự do',
+            submissions: [],
+            pendingCount: 0,
+            verifiedCount: 0
+          });
+        }
+      }
+    }
+
     // Sort groups by newest submission date
     return Array.from(map.values()).sort((a, b) => {
       const aTime = a.submissions[0] ? new Date(a.submissions[0].submittedAt).getTime() : 0;
       const bTime = b.submissions[0] ? new Date(b.submissions[0].submittedAt).getTime() : 0;
       return bTime - aTime;
     });
-  }, [filteredSubmissions, processes]);
+  }, [filteredSubmissions, processes, forms, searchTerm, initialFormFilter]);
 
   // 3. Supervisor sign-off handler
   const handleSignOffSubmit = async (subId: string) => {
@@ -640,6 +686,45 @@ export default function SubmissionManager({
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {(initialFormFilter || (searchTerm && onBack)) && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '0.6rem 1rem',
+                background: '#f8fafc',
+                border: '1px solid var(--neutral-border)',
+                borderRadius: '8px',
+                fontSize: '0.82rem'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--text-secondary)' }}>
+                  <span>Đang lọc theo biểu mẫu:</span>
+                  <strong style={{ color: 'var(--primary)' }}>{initialFormFilter || searchTerm}</strong>
+                </div>
+                {onBack && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => {
+                      setSearchTerm('');
+                      onBack();
+                    }}
+                    style={{
+                      padding: '0.2rem 0.55rem',
+                      fontSize: '0.75rem',
+                      height: '26px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.25rem'
+                    }}
+                  >
+                    <XCircle size={13} />
+                    <span>Xem tất cả biểu mẫu</span>
+                  </button>
+                )}
+              </div>
+            )}
+
             {formGroups.map((group) => {
               const isCollapsed = Boolean(collapsedGroups[group.formKey]);
 
@@ -713,7 +798,28 @@ export default function SubmissionManager({
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }} onClick={e => e.stopPropagation()}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }} onClick={e => e.stopPropagation()}>
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => handleShareLink(group)}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.3rem',
+                          fontSize: '0.78rem',
+                          padding: '0.3rem 0.65rem',
+                          background: '#ffffff',
+                          fontWeight: 600,
+                          borderColor: 'var(--neutral-border)',
+                          color: 'var(--text-secondary)'
+                        }}
+                        title="Sao chép link gửi cho người điền (Share Link)"
+                      >
+                        <Share2 size={13} />
+                        <span>Share Link</span>
+                      </button>
+
                       <button
                         type="button"
                         className="btn btn-secondary btn-sm"
@@ -739,6 +845,17 @@ export default function SubmissionManager({
 
                   {/* Group Submissions Table */}
                   {!isCollapsed && (
+                    group.submissions.length === 0 ? (
+                      <div style={{ padding: '2.5rem 1.5rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                        <FileText size={28} style={{ margin: '0 auto 0.5rem', opacity: 0.4, display: 'block' }} />
+                        <p style={{ margin: '0 0 0.35rem 0', fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                          Chưa có bản ghi nộp nào cho biểu mẫu này.
+                        </p>
+                        <p style={{ margin: 0, fontSize: '0.8rem' }}>
+                          Bấm "+ Fill Form" ở góc trên bên phải để bắt đầu ghi nhận dữ liệu.
+                        </p>
+                      </div>
+                    ) : (
                     <div style={{ overflow: 'visible' }}>
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                         <thead>
@@ -1005,6 +1122,7 @@ export default function SubmissionManager({
                         </tbody>
                       </table>
                     </div>
+                    )
                   )}
                 </div>
               );

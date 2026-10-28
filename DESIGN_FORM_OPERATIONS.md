@@ -8,7 +8,7 @@
 |---|---|
 | **Module Name** | Form Operations |
 | **Status** | Active Development |
-| **Verified At Commit** | (2026-10-28) — FormFiller 1-click WYSIWYG print & draft edge-case handling verified against source |
+| **Verified At Commit** | (2026-10-28) — Consolidated Submissions: FormManager pruned & unified into SubmissionManager |
 
 ### Quick File Index
 
@@ -19,8 +19,7 @@
 | [`src/components/form/LocationInputFiller.tsx`](src/components/form/LocationInputFiller.tsx) | Location input bar, GPS trigger, coordinate card & Mini Map |
 | [`src/components/form/PhotoFieldFiller.tsx`](src/components/form/PhotoFieldFiller.tsx) | **NEW** — Sub-component: Photo evidence upload/view, R2 direct resolution, onError fallback, Lightbox modal |
 | [`src/components/SubmissionViewer.tsx`](src/components/SubmissionViewer.tsx) | **NEW** — Public submission review & amendment container |
-| [`src/components/FormManager.tsx`](src/components/FormManager.tsx) | Per-form submission log + supervisor sign-off |
-| [`src/components/SubmissionManager.tsx`](src/components/SubmissionManager.tsx) | Cross-form global submission log (embedded in Dashboard) |
+| [`src/components/SubmissionManager.tsx`](src/components/SubmissionManager.tsx) | Single Source of Truth for submission logs (global & single-form focused view) |
 | [`src/components/print/PrintFilledForm.tsx`](src/components/print/PrintFilledForm.tsx) | **NEW** — Filled submission print renderer; layout mirrors blank form exactly; self-contained |
 | [`src/components/common/ConfirmModal.tsx`](src/components/common/ConfirmModal.tsx) | **NEW** — Reusable confirmation dialog for critical actions across the project |
 | [`src/types.ts`](src/types.ts) | Shared types: `Submission`, `SubmissionFieldSnapshot` (owned by this doc) |
@@ -67,27 +66,19 @@ Form Operations is the **execution and tracking layer** for operational form rec
 | **Success screen** | After submit: shows submission ID, offers "Fill Another Record" or "Back to Form Manager" |
 | **Unlinked form mode** | If `processId === 'unlinked'`, loads the form template directly from `GET /api/forms/:formId` and creates a virtual process object |
 
-### FormManager (Per-Form Supervisor View)
+### SubmissionManager (Unified Submission Operations — Single Source of Truth)
 
 | Feature | Detail |
 |---|---|
-| **Submission list** | Filtered list of all submissions for the specific `formId` linked to this process step |
-| **Filter bar** | Search by operator ID or submission ID; filter by status (ALL / PASS / ABNORMALITY); filter by sign-off (ALL / PENDING / VERIFIED) |
-| **Submission detail panel** | Click a record to expand: shows all field values, PASS/FAIL status per field, photo evidence previews |
-| **Supervisor sign-off** | Name + notes fields; "Verify & Sign Off" button calls `POST /api/submissions/:id/signoff` |
+| **All submissions across all forms** | Fetches the entire `submissions` table; enriches with process titles and form metadata |
+| **Single-form focus mode** | When auditing from a form card or process step, focuses directly on that form with active filter banner and auto-expanded group |
+| **Empty state 0-submission display** | Forms with 0 submissions remain visible when filtered, showing clean empty state + `+ Fill Form` and `Share Link` |
+| **Share link** | Quick `Share Link` button on each group header copying deep URL `/?page=fill&processId=...&formName=...` via non-blocking toast |
+| **Filter bar** | Search by process title, operator ID, submission ID, or form ID; filter by process and sign-off status |
+| **Supervisor sign-off** | Slide-over drawer with name + notes fields; "Verify & Sign Off" button calls `POST /api/submissions/:id/signoff` |
 | **Print record** | "Print" button mounts `PrintFilledForm` with the full submission data and template |
-| **Fill new form** | "+ Fill New Record" button navigates to `FormFiller` via `onOpenFormFiller` callback |
-
-### SubmissionManager (Global Dashboard View)
-
-| Feature | Detail |
-|---|---|
-| **All submissions across all forms** | Fetches the entire `submissions` table; enriches with process titles |
-| **Filter bar** | Search by process title, operator ID, submission ID, or form ID; filter by status and sign-off |
-| **Cross-form sign-off** | Same supervisor sign-off flow as FormManager, but accessible from the global log |
-| **Print record** | Same `PrintFilledForm` portal as FormManager |
-| **Embedded mode** | `isEmbedded=true` prop renders without a Back button (used inside Dashboard tab) |
-| **Photo evidence preview** | Resolves R2 object keys to pre-signed download URLs for inline display |
+| **Embedded mode** | `isEmbedded=true` prop integrates seamlessly inside Dashboard Submissions tab |
+| **Photo evidence preview** | Resolves R2 object keys to pre-signed download URLs for inline display and Lightbox |
 
 ---
 
@@ -98,10 +89,7 @@ Form Operations Module
 │
 ├── FormFiller.tsx              Operator fill-out form UI — standalone page (page='fill-form')
 │
-├── FormManager.tsx             Per-form submission log — standalone page (page='form-manager')
-│   └── PrintFilledForm         Print renderer — mounted as React Portal on print trigger
-│
-├── SubmissionManager.tsx       Global submission log — embedded inside Dashboard
+├── SubmissionManager.tsx       Unified submission log & supervisor operations — embedded inside Dashboard
 │   └── PrintFilledForm         Print renderer — mounted as React Portal on print trigger
 │
 └── print/PrintFilledForm.tsx   A4 filled-record print renderer; mirrors blank form layout
@@ -111,15 +99,13 @@ Form Operations Module
 
 | Route | Component | Launched From |
 |---|---|---|
-| `page='fill-form'` | `FormFiller` | `Dashboard` → form row "Fill" button; deep link URL |
-| `page='form-manager'` | `FormManager` | `Dashboard` → form row "Manage" button; `ProcessReader` form section |
-| Dashboard `Submissions` tab | `SubmissionManager` (embedded) | Dashboard tab switch |
+| `page='fill-form'` | `FormFiller` | `Dashboard` → form card "Fill" button; group header `+ Fill Form`; deep link URL |
+| Dashboard `Submissions` tab | `SubmissionManager` (embedded) | Dashboard tab switch; form card "Audit" button; Process step form audit |
 
 ### Component Responsibilities
 
 - **FormFiller** — Renders the live form template; manages `formValues`, `fieldReactions`, and `uploadedPhotos` state; validates fields against specs; builds and submits a `Submission` payload to the API.
-- **FormManager** — Loads submissions filtered by a specific `formId`; allows supervisors to sign off; triggers print for a selected record.
-- **SubmissionManager** — Loads all submissions across all forms/processes; enriches records with process metadata; supports cross-form filtering, sign-off, and print.
+- **SubmissionManager** — Single Source of Truth for all form submissions; supports global cross-form auditing and single-form focused view; provides supervisor sign-off drawer, Share Link, and print integration.
 - **PrintFilledForm** — A pure renderer mounted via `ReactDOM.createPortal`; mirrors the exact layout of the blank form with filled values, handles dynamic table rows and photo evidence; renders a complete A4-formatted record.
 
 ---
@@ -457,18 +443,5 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 
 | Date | Commit | Change |
 |---|---|---|
-| 2026-10-26 | `CURRENT` | **Comma-Safe Checkbox Value Parsing & Option Grouping Integration (`FormFiller`, `PrintFilledForm`):** (1) Integrated `parseChecklistValues` across all checkbox answer evaluation and display points in `FormFiller.tsx` (evaluation, input change, and table cells) and `PrintFilledForm.tsx`, ensuring operator free-text entered into "Khác" options containing commas (`Hà Nội, Cần Thơ`) is never severed into corrupted rogue options. (2) Passed `f.optionGroups` into `clusterOptionsByGroup` in `PrintBlankForm.tsx` and `PrintFilledForm.tsx` to ensure print rendering mirrors form designer group ordering and empty group handling. |
-| 2026-10-26 | `CURRENT` | **Smart Layout Horizontal Wrapping & Indent Alignment (`FormFiller`, `PrintFilledForm`):** (1) Integrated cluster-level `isClusterLong = hasLongOptions(cluster.options)` in `FormFiller.tsx` and `PrintFilledForm.tsx`, allowing short grouped options (e.g., agricultural checklist items) to wrap horizontally with `gap: 4px 20px` while preserving vertical column stack for long text (> 25 chars). (2) Aligned option container indentation to `hasAnyGroups ? '0.4rem' : (isClusterLong ? '1.25rem' : '0.4rem')`, bringing checkboxes and the bottom-anchored "Khác" option into perfect vertical alignment. |
-| 2026-10-26 | `CURRENT` | **Pure Canvas Mini Map & Location Coordinate Display (`MiniMapCanvas`, `LocationInputFiller`, `PrintFilledForm`):** (1) Created isolated sub-component `src/components/form/MiniMapCanvas.tsx` (Rule 4.3 Monolith Guard) rendering OpenStreetMap thumbnail on HTML5 Canvas via Web Mercator projection (0 KB dependency, zero scroll trap on mobile, 100% printable to PDF via html2canvas). (2) In `LocationInputFiller.tsx`, replaced ambiguous static phrase "Đã xác định vị trí" with actual coordinates (DMS or Decimal), auto-resolved shortlinks (`maps.app.goo.gl`) on mount, and added interactive toggle button `[ 🗺️ Bản đồ ▾/▴ ]`. (3) In `PrintFilledForm.tsx`, printed Mini Map Canvas thumbnail for locations when `field.showMiniMap !== false`. |
-| 2026-10-26 | `CURRENT` | **Satellite Imagery Mini Map Layer & Switcher Pill (`MiniMapCanvas`, `LocationInputFiller`, `PrintFilledForm`):** (1) In `MiniMapCanvas.tsx`, integrated Esri World Imagery satellite raster tile server (`ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}` with `CORS: *` and high-res sub-meter tiles for Vietnam) alongside OpenStreetMap roadmap tiles. (2) Added glassmorphic interactive switcher pill `[ Bản đồ | Vệ tinh ]` with dynamic attribution (`© OpenStreetMap` vs `© Esri, Maxar`). (3) In `LocationInputFiller.tsx`, passed `mapType={field.mapType || 'roadmap'}` into canvas. (4) In `PrintFilledForm.tsx`, printed the configured map layer (`field.mapType`) with `allowToggleType={false}` ensuring clean, toggle-free PDF exports. |
-| 2026-10-26 | `CURRENT` | **Smart Location Bar Unification & Dense Grid Auto-Placement (`LocationInputFiller`, `FormFiller`, `ProcessReader`, `PrintFilledForm`):** (1) In `LocationInputFiller.tsx`, merged input and coordinate card into a single 36px Smart Location Bar displaying DMS coordinates, external maps link `[ ↗ ]`, GPS re-trigger `[ 📍 ]`, and clear/edit button `[ ✕ ]`, eliminating raw URL display and the legacy 3-tier vertical stack. (2) Set Mini Map Canvas height dynamically based on `field.rowSpan` (`f.rowSpan === 3 ? 125 : 85`). (3) In `FormFiller.tsx`, `ProcessReader.tsx`, and `PrintFilledForm.tsx`, added `gridAutoFlow: 'row dense'` to `INFO_GRID` and defaulted `rSpan = 2` for location fields with `showMiniMap !== false`, automatically packing adjacent column fields and eliminating empty grid space. |
-| 2026-10-26 | `CURRENT` | **Mini Map Auto-Stretch Grid Alignment & Horizon Normalization (`MiniMapCanvas`, `LocationInputFiller`, `FormFiller`):** (1) In `MiniMapCanvas.tsx`, replaced hardcoded static heights (85px/125px) with fluid container height (`container.clientHeight`), `flex: 1`, and integrated `ResizeObserver` for dynamic re-rendering on layout reflow. (2) In `LocationInputFiller.tsx`, removed rogue `marginTop: 2px` aligning the Smart Location Bar horizon pixel-perfectly with adjacent input fields, and assigned `flex: 1; height: 100%`. (3) In `FormFiller.tsx`, applied `alignSelf: 'stretch'` and `height: '100%'` to `location` fields with Mini Map, perfectly matching the bottom baseline of adjacent multi-field columns without layout gaps. |
-| 2026-10-27 | `CURRENT` | **PhotoFieldFiller Extraction, R2 302 Redirect & Lightbox Integration (`PhotoFieldFiller`, `FormFiller`, `ProcessReader`, `server.cjs`):** (1) Created isolated sub-component `src/components/form/PhotoFieldFiller.tsx` (Rule 4.3 Monolith Guard) integrating direct R2 presigned URL fetch, full-screen Lightbox modal on image click/tap, and graceful `onError` fallback with retry mechanism, eliminating the legacy broken image icon and English `Evidence` alt text. (2) In `server.cjs`, upgraded `/api/storage/download-url` and added `/api/storage/view` to support HTTP 302 Redirects when requested with `Accept: image/*` or `?redirect=true`, resolving direct image loading. (3) Eliminated the redundant format hint `(Hỗ trợ PNG, JPG, JPEG)` and replaced `[photo]` with an intuitive Camera icon and clean touch trigger (Zero UI Garbage). (4) Integrated `PhotoFieldFiller` across `FormFiller.tsx` and `ProcessReader.tsx`. |
-| 2026-10-27 | `CURRENT` | **Instant Photo Deletion & Submission Media Lifecycle Synchronization (`PhotoFieldFiller`, `server.cjs`):** (1) In `PhotoFieldFiller.tsx`, enhanced `handleRemove` to trigger `POST /api/storage/delete-media` on R2 image keys, freeing Cloudflare R2 storage immediately when operators clear photo evidence. (2) In `server.cjs`, updated `DELETE /api/submissions/:id` to synchronously delete all associated R2 image keys from `media_urls` and `form_data`. (3) Added orphaned media scanner and cleanup API with 2-hour safety buffer. |
-| 2026-10-27 | `CURRENT` | **PhotoFieldFiller 220px Thumbnail Expansion & Alert Popup Eradication (`PhotoFieldFiller`, `FormFiller`, `ProcessReader`):** (1) In `PhotoFieldFiller.tsx`, expanded image `maxHeight` from `140px` to `220px` with `objectFit: 'contain'` and increased card `minHeight` to `180px`, eliminating empty gray side margins and rendering TimeMark timestamps clearly. (2) In `FormFiller.tsx` and `ProcessReader.tsx`, eradicated `alert('Photo evidence uploaded successfully!')`, replacing error handling with `setLocalToast` and relying on natural image rendering affordance. |
-| 2026-10-27 | `CURRENT` | **PrintFilledForm Restoration & Multi-Photo Field Mapping (`PrintFilledForm`, `FormFiller`):** (1) In `FormFiller.tsx`, synchronized `formValues` on photo upload/remove and populated `snapshot.value` with R2 keys in `buildSubmissionSnapshots`, enabling exact field-to-photo mapping. (2) In `PrintFilledForm.tsx`, implemented `Promise.all` with `new Image()` preloading to guarantee R2 image binaries are decoded in memory before `window.print()` fires, eliminating blank photo frames. (3) Added pre-resolution for Google Maps shortlinks (`maps.app.goo.gl`) via `/api/utils/unshorten-map`, restoring DMS coordinates and `MiniMapCanvas` satellite maps on printed documents. (4) Suppressed duplicate bottom 'Ảnh bằng chứng' section when template already has photo fields and constrained print photo height to `maxHeight: 140px`, guaranteeing the entire document and signature fit on a single A4 page. |
-| 2026-10-27 | `CURRENT` | **Submission Review Photo Restoration (`FormFiller`):** (1) In `FormFiller.tsx`, implemented automatic restoration of `uploadedPhotos` and `formValues` when reviewing an existing submission (`initialSubmission`), resolving the bug where reviewed forms showed empty '[ 📷 ] Chưa có ảnh' states. (2) Added fallback mapping from `initialSubmission.mediaUrls` by field index for legacy submissions. (3) Added 2-tier fallback at `PhotoFieldFiller` `photoKey` prop (`uploadedPhotos[field.id]` -> `formValues[field.id]`). |
-| 2026-10-27 | `CURRENT` | **MiniMap Double-Buffering & Photo Frame Fit-Content Refinement (`MiniMapCanvas`, `PrintFilledForm`, `printShared`):** (1) In `MiniMapCanvas.tsx`, eradicated `beforeprint` listener which cleared the canvas to `#1e293b` upon opening the print dialog, implemented offscreen canvas double-buffering (swapping completed tiles atomically and calling `onLoaded`), and added size tracking to prevent unnecessary redraws. (2) In `PrintFilledForm.tsx`, synchronized `loadingMap` with `MiniMapCanvas.onLoaded` before triggering `window.print()` (with 1.5s fallback), and redesigned `field.type === 'photo'` to Option A: wrapped photos in `display: 'inline-flex'` hugging the exact image boundaries with `maxHeight: 185px` and zero side whitespace, preserving uncropped TimeMark watermarks across all aspect ratios. (3) Eliminated web link `↗ Mở Maps` on paper, removed redundant outer map border, increased `marginTop: 6px`, and added `paddingBottom: 1px` to dotted underlines without appending colons to user labels. |
-| 2026-10-27 | `CURRENT` | **MiniMap Aspect-Ratio Locking & Uniform Row Spacing Normalization (`MiniMapCanvas`, `PrintFilledForm`):** (1) In `MiniMapCanvas.tsx`, deferred initial render to `requestAnimationFrame` ensuring CSS Grid column layout resolves before measurement, added `renderIdRef` tracking to drop stale in-flight tile network responses upon container resize, locked `<canvas>` styling with explicit `style.height` matching the height prop, and restored `beforeprint` listener for dynamic re-render without canvas flashing. (2) In `PrintFilledForm.tsx`, standardized `mapHeight` (N=3 -> 68px, N=4 -> 98px) and constrained wrapper with `maxHeight: ${mapHeight}px` and `marginTop: '4px'`, reducing spanned row track inflation by 88% and restoring uniform ~10px vertical field spacing across all adjacent rows. |
-| 2026-10-27 | `CURRENT` | **FormFiller Master Guidance Toggle & Simplified 2-Option Print Dropdown (`FormFiller`):** (1) Integrated master `isAllGuidanceExpanded` state and `handleToggleAllGuidance` handler across Sticky and Standalone headers, syncing canvas accordion guidance states across blocks, fields, and table rows (`expandedGuidanceMap`). (2) Added minimalist visual token toggle button `[ 💡 Hướng dẫn • ]` beside Focus mode (preserving Focus mode switch 100%). (3) Pruned redundant `In biểu mẫu trắng (kèm hướng dẫn)` dropdown row, passing `includeGuidance: isAllGuidanceExpanded` directly into `setPrintBlankConfig`. (4) Eradicated all supplementary badge tags from the print dropdown menu. |
 | 2026-10-28 | `CURRENT` | **WYSIWYG 1-Touch Print & In-Progress Form Handling (`FormFiller`):** (1) Eradicated 2-tier print dropdown menu, chevron icons, and `isPrintMenuOpen` state, unifying print action into a single 1-touch `handlePrintWYSIWYG` button across Viewing and Filling headers. (2) Implemented automatic context detection: view mode prints completed submission, 100% empty form prints blank form (`PrintBlankForm`), and in-progress form (>= 1 filled field) prints clean draft filled form (`PrintFilledForm`) without arbitrary DRAFT stamps or watermarks. (3) Maintained master guidance toggle (`isAllGuidanceExpanded`) synchronization for clean vs. guided printouts. |
+| 2026-10-28 | `CURRENT` | **Submission Manager Consolidation & Dead-Code Pruning (`SubmissionManager`, `FormManager`, `Dashboard`, `App`):** (1) Extracted and pruned `FormManager.tsx` (~723 lines dead-code) and `page='form-manager'` route, unifying submission operations into `SubmissionManager.tsx` as the single source of truth. (2) Upgraded `SubmissionManager` with single-form focused view (active filter banner, auto-expanding accordion), group header Share Link button, and synthetic 0-submission group display with empty state placeholder and `+ Fill Form` trigger. (3) Unified all Audit / View Submissions buttons in `Dashboard.tsx` to navigate directly to the Submissions tab with form filter. |

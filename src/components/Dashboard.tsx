@@ -14,7 +14,6 @@ interface DashboardProps {
   onEditProcess: (id: string | null, tab?: 'description' | 'workflow' | 'form', formName?: string | null) => void;
   onViewFormSubmissions?: (formName: string) => void;
   onPrintForm?: (processId: string, formName: string) => void;
-  onOpenFormManager?: (processId: string, formName: string) => void;
   onOpenFormFiller?: (processId: string, formName: string, preloadedFormTemplate?: any) => void;
   onOpenReportBuilder?: (formId?: string, reportId?: string) => void;
   onOpenFormReport?: (submissionId: string) => void;
@@ -38,7 +37,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onPrintProcess,
   onEditProcess, 
   onViewFormSubmissions, 
-  onOpenFormManager,
   onOpenFormFiller,
   onOpenReportBuilder,
   onOpenFormReport,
@@ -927,10 +925,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
           hideToolbar={true}
           initialFormFilter={initialFormFilter} 
           cachedProcesses={processes}
+          cachedForms={allForms}
           externalSearchTerm={submissionSearchTerm}
           externalProcessFilter={submissionProcessFilter}
           externalSignoffFilter={submissionSignoffFilter}
-          onBack={onClearFormFilter} 
+          onBack={() => {
+            setSubmissionSearchTerm('');
+            onClearFormFilter?.();
+          }} 
           onOpenReport={onOpenFormReport}
           onOpenReportBuilder={onOpenReportBuilder}
           onOpenFormFiller={onOpenFormFiller}
@@ -1049,16 +1051,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
           } else if (form.linkedProcesses.length === 1) {
             if (onOpenFormFiller) {
               onOpenFormFiller(form.linkedProcesses[0].id, form.formName, form.rawRecord);
-            } else if (onOpenFormManager) {
-              onOpenFormManager(form.linkedProcesses[0].id, form.formName);
             } else {
               onSelectProcess(form.linkedProcesses[0].id);
             }
           } else {
             if (onOpenFormFiller) {
               onOpenFormFiller('unlinked', form.formName, form.rawRecord);
-            } else if (onOpenFormManager) {
-              onOpenFormManager('unlinked', form.formName);
             } else {
               onSelectProcess('unlinked');
             }
@@ -1066,18 +1064,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
         };
 
         const handleAuditAction = (form: any) => {
-          if (form.linkedProcesses.length > 1) {
-            setProcessSelectDialog({ form, action: 'audit' });
-          } else if (form.linkedProcesses.length === 1) {
-            if (onOpenFormManager) {
-              onOpenFormManager(form.linkedProcesses[0].id, form.formName);
-            } else if (onViewFormSubmissions) {
-              onViewFormSubmissions(form.formName);
-            }
-          } else {
-            if (onViewFormSubmissions) {
-              onViewFormSubmissions(form.formName);
-            }
+          if (onViewFormSubmissions) {
+            onViewFormSubmissions(form.formName || form.formId);
           }
         };
 
@@ -1986,16 +1974,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
                           if (action === 'fill') {
                             if (onOpenFormFiller) {
                               onOpenFormFiller(lp.id, form.formName, form.rawRecord);
-                            } else if (onOpenFormManager) {
-                              onOpenFormManager(lp.id, form.formName);
                             } else {
                               onSelectProcess(lp.id);
                             }
                           } else {
-                            if (onOpenFormManager) {
-                              onOpenFormManager(lp.id, form.formName);
-                            } else if (onViewFormSubmissions) {
-                              onViewFormSubmissions(form.formName);
+                            if (onViewFormSubmissions) {
+                              onViewFormSubmissions(form.formName || form.formId);
                             }
                           }
                         }}

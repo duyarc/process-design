@@ -4,7 +4,6 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import { Dashboard } from './components/Dashboard';
 import { ProcessEditor } from './components/ProcessEditor';
 import { ProcessReader } from './components/ProcessReader';
-import FormManager from './components/FormManager';
 import FormFiller from './components/FormFiller';
 import SubmissionViewer from './components/SubmissionViewer';
 import UserManagement from './components/UserManagement';
@@ -22,7 +21,6 @@ type PageId =
   | 'reader'
   | 'guide'
   | 'submissions'
-  | 'form-manager'
   | 'fill-form'
   | 'submission-viewer'
   | 'user-management';
@@ -49,7 +47,7 @@ const MainApp: React.FC = () => {
   const [viewerEditMode, setViewerEditMode] = useState<boolean>(false);
   const [viewerInitialTab, setViewerInitialTab] = useState<'form' | 'report'>('form');
 
-  // Form view tracking across Dashboard & FormManager
+  // Form view tracking across Dashboard & FormFiller
   const [isViewingSubmissionInChild, setIsViewingSubmissionInChild] = useState(false);
 
   // Active form canvas check: hides platform navbar to maximize screen estate
@@ -153,13 +151,6 @@ const MainApp: React.FC = () => {
     setPrevPage(page);
     setSelectedProcessId(id);
     setPage('reader');
-  };
-
-  const handleOpenFormManager = (procId: string, formName: string) => {
-    setPrevPage(page);
-    setSelectedProcessId(procId);
-    setSelectedFormName(formName);
-    setPage('form-manager');
   };
 
   const handleOpenFormFiller = (procId: string, formName: string, preloadedTpl?: any) => {
@@ -403,7 +394,6 @@ const MainApp: React.FC = () => {
             onViewFormSubmissions={handleViewFormSubmissions}
             onPrintForm={handlePrintForm}
             onPrintProcess={handlePrintProcess}
-            onOpenFormManager={handleOpenFormManager}
             onOpenFormFiller={handleOpenFormFiller}
             onOpenReportBuilder={(formId, reportId) => setReportBuilderState({ isOpen: true, formId, reportId })}
             onOpenFormReport={(submissionId) => setFormReportState({ isOpen: true, submissionId })}
@@ -450,15 +440,6 @@ const MainApp: React.FC = () => {
             initialTriggerPrint={triggerProcessPrint}
           />
         )}
-        {page === 'form-manager' && (
-          <FormManager
-            processId={selectedProcessId!}
-            formName={selectedFormName!}
-            onOpenFormFiller={handleOpenFormFiller}
-            onBack={() => setPage(prevPage)}
-            onViewingChange={setIsViewingSubmissionInChild}
-          />
-        )}
         {page === 'fill-form' && (
           <FormFiller
             processId={selectedProcessId!}
@@ -467,9 +448,14 @@ const MainApp: React.FC = () => {
             preloadedFormTemplate={preloadedFormTemplate || undefined}
             onSubmitSuccess={(subId) => {
               setToastMessage(`Đã gửi phiếu thành công! (Mã: ${subId})`);
-              setPage('form-manager');
+              setInitialFormFilter(selectedFormName);
+              setDashboardViewMode('submissions');
+              setPage('dashboard');
             }}
-            onBack={() => setPage('form-manager')}
+            onBack={() => {
+              setDashboardViewMode(prevPage === 'dashboard' ? dashboardViewMode : 'submissions');
+              setPage('dashboard');
+            }}
           />
         )}
         {page === 'submission-viewer' && viewerSubmissionId && selectedFormName && (
