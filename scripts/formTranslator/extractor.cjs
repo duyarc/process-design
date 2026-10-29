@@ -197,12 +197,15 @@ function extractTranslatableStrings(form) {
  * Detects the specialized manufacturing / QC / supply-chain domain profile of a form.
  * 
  * @param {Object} form - FormTemplateISO
- * @returns {'FINISHED_PRODUCT_SPECIFICATION' | 'CONTAINER_STUFFING_LOGISTICS' | 'PRODUCTION_PLANNING' | 'ORDER_MANAGEMENT' | 'GENERAL_QC'}
+ * @returns {'FINISHED_PRODUCT_SPECIFICATION' | 'CONTAINER_STUFFING_LOGISTICS' | 'PRODUCTION_PLANNING' | 'ORDER_MANAGEMENT' | 'FACTORY_AUDIT_ASSESSMENT' | 'GENERAL_QC'}
  */
 function detectDomainProfile(form) {
   const formId = (form.formId || form.form_id || '').toUpperCase();
   const title = (form.formTitle || form.form_title || '').toLowerCase();
 
+  if (formId.includes('KYC') || title.includes('đánh giá nhà máy') || title.includes('factory audit') || title.includes('supplier assessment')) {
+    return 'FACTORY_AUDIT_ASSESSMENT';
+  }
   if (formId.includes('Q1.2') || title.includes('tiêu chuẩn kỹ thuật') || title.includes('specification')) {
     return 'FINISHED_PRODUCT_SPECIFICATION';
   }

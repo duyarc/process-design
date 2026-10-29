@@ -207,13 +207,16 @@ const GENERAL_QC_GLOSSARY = {
   "Không": "No"
 };
 
+const { FACTORY_AUDIT_ASSESSMENT_GLOSSARY } = require('./glossaryKYC.cjs');
+
 // Merged master glossary for universal fallback
 const QC_DOMAIN_GLOSSARY = {
   ...GENERAL_QC_GLOSSARY,
   ...ORDER_MANAGEMENT_GLOSSARY,
   ...PRODUCTION_PLANNING_GLOSSARY,
   ...CONTAINER_STUFFING_GLOSSARY,
-  ...FINISHED_PRODUCT_SPEC_GLOSSARY
+  ...FINISHED_PRODUCT_SPEC_GLOSSARY,
+  ...FACTORY_AUDIT_ASSESSMENT_GLOSSARY
 };
 
 /**
@@ -225,6 +228,9 @@ const QC_DOMAIN_GLOSSARY = {
 function getDomainGlossary(domainProfile) {
   let specialized = {};
   switch (domainProfile) {
+    case 'FACTORY_AUDIT_ASSESSMENT':
+      specialized = FACTORY_AUDIT_ASSESSMENT_GLOSSARY;
+      break;
     case 'FINISHED_PRODUCT_SPECIFICATION':
       specialized = FINISHED_PRODUCT_SPEC_GLOSSARY;
       break;
@@ -337,6 +343,22 @@ const TERMINOLOGY_CITATIONS = {
     section: "Inbound Supply Chain Synchronization",
     referenceUrl: "https://www.ascm.org",
     scope: "Inbound Supply Chain & Procurement"
+  },
+  "Factory Audit Guideline": {
+    term: "Factory Audit Guideline",
+    authority: "ISO",
+    standardDoc: "ISO 19011:2018 (Guidelines for Auditing Management Systems)",
+    section: "Clause 6: Conducting an Audit",
+    referenceUrl: "https://www.iso.org",
+    scope: "Supplier Evaluation & Facility Audit"
+  },
+  "CM/PM Ratio": {
+    term: "CM/PM Ratio",
+    authority: "SMRP / WCM",
+    standardDoc: "World-Class Manufacturing Asset Management Metrics",
+    section: "Proactive vs. Reactive Maintenance Benchmarking",
+    referenceUrl: "https://smrp.org",
+    scope: "Plant Engineering & Maintenance"
   }
 };
 
@@ -350,6 +372,7 @@ function listCitations() {
 
 module.exports = {
   QC_DOMAIN_GLOSSARY,
+  FACTORY_AUDIT_ASSESSMENT_GLOSSARY,
   FINISHED_PRODUCT_SPEC_GLOSSARY,
   CONTAINER_STUFFING_GLOSSARY,
   PRODUCTION_PLANNING_GLOSSARY,

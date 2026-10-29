@@ -8,8 +8,8 @@
 |---|---|
 | **Module Name** | Form Translator |
 | **Status** | Active Development |
-| **Document Version** | 1.3 |
-| **Verified At Commit** | (2026-09-20) — Minimal Post-Translation Review Report & User Override Protocol verified across test suite and forms against PostgreSQL |
+| **Document Version** | 1.4 |
+| **Verified At Commit** | (2026-10-29) — Factory Audit Assessment domain profile, FKYC5-EN (286 strings) translation & persistence, and minimal review report verified against PostgreSQL |
 
 > **⚠️ Architectural Invariant:** The Form Translator module is **strictly backend and agent-driven with zero frontend UI footprint**. It is executed via Antigravity agent CLI commands (`npm run translate -- ...`) or programmatic backend pipelines. It operates on `FormTemplateISO` schemas, protecting structural IDs while translating user-facing text into professional ISO 9001/QC English.
 
@@ -20,7 +20,8 @@
 | [`scripts/formTranslator/extractor.cjs`](scripts/formTranslator/extractor.cjs) | Traverses `FormTemplateISO` AST to extract a clean `{ path -> text }` dictionary while strictly shielding structural IDs |
 | [`scripts/formTranslator/reconstitutor.cjs`](scripts/formTranslator/reconstitutor.cjs) | Deep-clones form skeleton, injects translations, and executes automated schema invariant assertions |
 | [`scripts/formTranslator/reporter.cjs`](scripts/formTranslator/reporter.cjs) | Generates minimal review reports (source vs. selected translation) and parses user replacement/override requests |
-| [`scripts/formTranslator/llmInstructions.cjs`](scripts/formTranslator/llmInstructions.cjs) | System prompts, ISO 9001/QC glossary, agricultural trade rules, few-shot examples, and entity preservation |
+| [`scripts/formTranslator/glossaryKYC.cjs`](scripts/formTranslator/glossaryKYC.cjs) | Specialized factory audit and supplier evaluation vocabulary (ISO 19011, GFSI, maintenance CM/PM) |
+| [`scripts/formTranslator/llmInstructions.cjs`](scripts/formTranslator/llmInstructions.cjs) | System prompts, multi-domain glossaries, citation registry, and few-shot guidance |
 | [`scripts/formTranslator/llmClient.cjs`](scripts/formTranslator/llmClient.cjs) | LLM connector: supports Gemini/OpenAI APIs and zero-dependency domain glossary agentic translation |
 | [`scripts/formTranslator/dbAdapter.cjs`](scripts/formTranslator/dbAdapter.cjs) | Supabase PostgreSQL adapter: loads and idempotently upserts `FormTemplateISO` records |
 | [`scripts/formTranslator/index.cjs`](scripts/formTranslator/index.cjs) | Programmatic facade API (`translateFormPipeline`) |
@@ -155,3 +156,4 @@ npm run translate -- run --formId 3S-QC/Q1.1e --override "8: Indirect Export"
 | 2026-09-20 | **Context-Aware Domain Profiling & Best-Practice Re-translation:** Added `detectDomainProfile` algorithm (FINISHED_PRODUCT_SPECIFICATION, CONTAINER_STUFFING_LOGISTICS, PRODUCTION_PLANNING, ORDER_MANAGEMENT), full tableRows and tableData cell extraction, and updated all 4 forms in PostgreSQL with international best-practice terminology. |
 | 2026-09-20 | **Context-Driven Web Search Invariant:** Codified mandatory rule banning reliance on internal LLM reasoning alone. Grounded technical terms via dynamic, context-driven web search (search_web) and domain-agnostic TerminologyCitation provenance schema. |
 | 2026-09-20 | **Minimal Review Report & Override Protocol:** Added `reporter.cjs` generating minimal 2-column review tables (#, Source, Selected Translation, Override Syntax) and added interactive / CLI `--override` parsing support. |
+| 2026-10-29 | **Form FKYC5-EN Translation & Domain Profile:** Added `FACTORY_AUDIT_ASSESSMENT` domain profile (`glossaryKYC.cjs`) grounded in ISO 19011, GFSI, and maintenance CM/PM standards. Translated and persisted 286 strings for `FKYC5-EN` to PostgreSQL. |
