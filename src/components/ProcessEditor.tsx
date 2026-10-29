@@ -3019,7 +3019,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                 default_focus_mode: savedFormData.defaultFocusMode,
                 updated_at: new Date().toISOString()
               };
-              const filtered = isRenamed ? prev.filter(f => f.form_id !== oldFormId) : prev;
+              const filtered = isRenamed ? prev.filter(f => f.form_id !== oldFormId && f.formId !== oldFormId && f.form_name !== oldFormId) : prev;
               const exists = filtered.some(f => f.form_id === savedFormData.formId && f.version === savedFormData.version);
               if (exists) {
                 return filtered.map(f => (f.form_id === savedFormData.formId && f.version === savedFormData.version) ? { ...f, ...updatedRecord } : f);
@@ -3031,7 +3031,10 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
             try {
               const cachedRaw = sessionStorage.getItem('swr_forms');
               if (cachedRaw) {
-                const cachedForms: any[] = JSON.parse(cachedRaw);
+                let cachedForms: any[] = JSON.parse(cachedRaw);
+                if (isRenamed && oldFormId) {
+                  cachedForms = cachedForms.filter((f: any) => f.form_id !== oldFormId && f.formId !== oldFormId && f.form_name !== oldFormId);
+                }
                 const idx = cachedForms.findIndex((f: any) => f.form_id === savedFormData.formId || f.formId === savedFormData.formId);
                 const cacheRecord = {
                   ...(idx >= 0 ? cachedForms[idx] : {}),

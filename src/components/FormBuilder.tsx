@@ -1322,6 +1322,14 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
         setRevisionHistory(activeHistory);
       }
 
+      const rawBlocks = opts.layoutBlocksOverride ?? layoutBlocks;
+      const syncedBlocks = rawBlocks.map(b => {
+        if (b.type === 'TITLE') {
+          return { ...b, formCode: formId, formTitle };
+        }
+        return b;
+      });
+
       const payload = {
         formId,
         formName: formId,
@@ -1332,7 +1340,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
         isPublic,
         defaultFocusMode,
         effectiveDate: activeStatus === 'ACTIVE' ? (opts.effectiveDateOverride || effectiveDate) : null,
-        layoutBlocks: opts.layoutBlocksOverride ?? layoutBlocks,
+        layoutBlocks: syncedBlocks,
         revisionHistory: activeHistory,
         allowActiveUpdate: opts.allowActiveUpdate ?? true,
         oldFormId: initialData?.formId && initialData.formId !== formId ? initialData.formId : undefined,
@@ -1362,9 +1370,12 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
       try {
         const cachedRaw = sessionStorage.getItem('swr_forms');
         if (cachedRaw) {
-          const cachedForms: any[] = JSON.parse(cachedRaw);
+          let cachedForms: any[] = JSON.parse(cachedRaw);
+          if (payload.oldFormId && payload.oldFormId !== formId) {
+            cachedForms = cachedForms.filter((f: any) => f.form_id !== payload.oldFormId && f.formId !== payload.oldFormId && f.form_name !== payload.oldFormId);
+          }
           const idx = cachedForms.findIndex((f: any) => f.form_id === formId || f.formId === formId);
-          const updatedBlocks = opts.layoutBlocksOverride ?? layoutBlocks;
+          const updatedBlocks = syncedBlocks;
           const formRecord = {
             ...(idx >= 0 ? cachedForms[idx] : {}),
             ...savedForm,

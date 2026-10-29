@@ -964,12 +964,71 @@ app.post('/api/forms', async (req, res) => {
     const defaultFocusMode = req.body.defaultFocusMode ?? req.body.default_focus_mode ?? false;
 
     if (dbPool) {
-      // If Form ID changed and it was a draft, delete the old draft record
+      // If Form ID changed and it was a draft, delete the old draft record and cascade rename
       if (oldFormId && oldFormId !== formId) {
         await dbPool.query(
           "DELETE FROM forms WHERE form_id = $1 AND version = $2 AND status = 'DRAFT'",
           [oldFormId, ver]
         );
+
+        // 1. Cascade update process_forms
+        await dbPool.query(
+          "UPDATE process_forms SET form_id = $1, form_name = $1, updated_at = NOW() WHERE form_id = $2 OR form_name = $2",
+          [formId, oldFormId]
+        );
+
+        // 2. Cascade update report_templates
+        await dbPool.query(
+          "UPDATE report_templates SET linked_form_id = $1, updated_at = NOW() WHERE linked_form_id = $2",
+          [formId, oldFormId]
+        );
+
+        // 3. Cascade update submissions
+        await dbPool.query(
+          "UPDATE submissions SET form_id = $1 WHERE form_id = $2",
+          [formId, oldFormId]
+        );
+
+        // 4. Cascade update processes (steps & workflowFormsData)
+        const affectedProcs = await dbPool.query(
+          'SELECT id, steps, "workflowFormsData" FROM processes WHERE steps::text ILIKE $1 OR "workflowFormsData"::text ILIKE $1',
+          [`%${oldFormId}%`]
+        );
+        for (const proc of affectedProcs.rows) {
+          let modified = false;
+          let procSteps = proc.steps || [];
+          if (Array.isArray(procSteps)) {
+            procSteps = procSteps.map(s => {
+              let sMod = false;
+              let sName = s.formName;
+              let sNames = s.formNames;
+              if (sName === oldFormId) { sName = formId; sMod = true; }
+              if (Array.isArray(sNames) && sNames.includes(oldFormId)) {
+                sNames = sNames.map(n => n === oldFormId ? formId : n);
+                sMod = true;
+              }
+              if (sMod) {
+                modified = true;
+                return { ...s, formName: sName, formNames: sNames };
+              }
+              return s;
+            });
+          }
+          let wfd = proc.workflowFormsData || {};
+          if (wfd[oldFormId]) {
+            wfd = { ...wfd };
+            const oldEntry = wfd[oldFormId];
+            delete wfd[oldFormId];
+            wfd[formId] = { ...oldEntry, formId: formId, formTitle: formTitle || oldEntry.formTitle || formId };
+            modified = true;
+          }
+          if (modified) {
+            await dbPool.query(
+              'UPDATE processes SET steps = $1, "workflowFormsData" = $2, "lastUpdated" = $3 WHERE id = $4',
+              [JSON.stringify(procSteps), JSON.stringify(wfd), new Date().toISOString(), proc.id]
+            );
+          }
+        }
       }
       // If Version changed for a draft form, delete the old version draft record
       if (oldVersion && oldVersion !== ver) {

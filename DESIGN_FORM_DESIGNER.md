@@ -9,7 +9,7 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-10-27) — FormBuilder Guidance master toggle button & Print/PDF linkage verified against source |
+| **Verified At Commit** | (2026-10-29) — FormBuilder TITLE block formCode sync & sessionStorage oldFormId purge verified against source |
 
 > **⚠️ Architectural note:** FormBuilder has no awareness of which process it belongs to. The `formName` prop is always identical to `formId`. See Section 6.1 and the Technical Debt table.
 
@@ -527,3 +527,4 @@ full diff of any entry below.
 | 2026-10-26 | **Mini Map Auto-Stretch Grid Alignment & Segmented Control Pruning (`FormBuilder`):** (1) In `FormBuilder.tsx`, updated canvas field wrapper for `location` fields with Mini Map to use `alignSelf: 'stretch'` and `height: '100%'`, with preview container set to `flex: 1` and `minHeight: '65px'`. (2) In Right Inspector, pruned hardcoded pixel labels `(85px)` and `(125px)` from the height segmented pills, standardizing them to `[ 2 dòng ] [ 3 dòng ] [ 1 dòng ]` reflecting pure CSS Grid `rowSpan` allocation while height dynamically auto-stretches to match adjacent column content. |
 | 2026-10-26 | **Component Map Architecture Modernization (`DESIGN_FORM_DESIGNER`):** Updated Quick File Index and Section 3 Component Map to document all 6 extracted in-canvas sub-components in `src/components/form/` (Monolith Guard Rule 4.3). Pruned legacy entries from Change Log to maintain standard 12-entry depth. |
 | 2026-10-27 | **Master Guidance Toggle & Print/PDF Linkage (`FormBuilder`):** (1) In `FormBuilder.tsx`, added `isAllGuidanceExpanded` state and `handleToggleAllGuidance` handler to synchronously expand or collapse all guidance boxes across blocks, fields, and table rows on the Canvas. (2) Integrated independent `[ 💡 Hướng dẫn ]` toggle button on the Top Action Bar with standard token `#f0fdfa` / `#0d9488` when active and dot indicator. (3) Kept `PDF` and `Print` buttons 100% visually standard, while seamlessly linking their output via `includeGuidance={isAllGuidanceExpanded}` in `PrintBlankForm`. |
+| 2026-10-29 | **FormID Rename In-Canvas TITLE Block Sync & Cache Purge (`FormBuilder`):** (1) In `FormBuilder.tsx`, upgraded `saveFormToBackend` to automatically synchronize `formCode` and `formTitle` inside any `TITLE` block whenever saving, eliminating stale form code headers on print/preview. (2) Added active filtering of `oldFormId` from `swr_forms` in `sessionStorage` during rename, preventing ghost/shadow form entries in linkage dropdowns. |
