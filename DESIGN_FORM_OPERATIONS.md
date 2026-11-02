@@ -8,7 +8,7 @@
 |---|---|
 | **Module Name** | Form Operations |
 | **Status** | Active Development |
-| **Verified At Commit** | (2026-10-28) — Consolidated Submissions: FormManager pruned & unified into SubmissionManager |
+| **Verified At Commit** | (2026-11-02) — FormFiller number field unit suffix & PrintFilledForm display value formatting verified against source |
 
 ### Quick File Index
 
@@ -445,3 +445,4 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 |---|---|---|
 | 2026-10-28 | `CURRENT` | **WYSIWYG 1-Touch Print & In-Progress Form Handling (`FormFiller`):** (1) Eradicated 2-tier print dropdown menu, chevron icons, and `isPrintMenuOpen` state, unifying print action into a single 1-touch `handlePrintWYSIWYG` button across Viewing and Filling headers. (2) Implemented automatic context detection: view mode prints completed submission, 100% empty form prints blank form (`PrintBlankForm`), and in-progress form (>= 1 filled field) prints clean draft filled form (`PrintFilledForm`) without arbitrary DRAFT stamps or watermarks. (3) Maintained master guidance toggle (`isAllGuidanceExpanded`) synchronization for clean vs. guided printouts. |
 | 2026-10-28 | `CURRENT` | **Submission Manager Consolidation & Dead-Code Pruning (`SubmissionManager`, `FormManager`, `Dashboard`, `App`):** (1) Extracted and pruned `FormManager.tsx` (~723 lines dead-code) and `page='form-manager'` route, unifying submission operations into `SubmissionManager.tsx` as the single source of truth. (2) Upgraded `SubmissionManager` with single-form focused view (active filter banner, auto-expanding accordion), group header Share Link button, and synthetic 0-submission group display with empty state placeholder and `+ Fill Form` trigger. (3) Unified all Audit / View Submissions buttons in `Dashboard.tsx` to navigate directly to the Submissions tab with form filter. |
+| 2026-11-02 | `CURRENT` | **Number Field Dedicated Input & Unit Suffix Integration (`FormFiller`, `PrintFilledForm`):** (1) In `FormFiller.tsx`, separated the `number` field branch in `INFO_GRID` from generic textareas, rendering `<input type="number">` with a pinned right-side unit badge (`#f1f5f9`, `fontSize: 0.78rem`) and non-overlapping `paddingRight: 52px`. (2) In `PrintFilledForm.tsx`, appended `f.unit` to printed numerical values, formatting outputs clearly as `[value] [unit]` on paper. |

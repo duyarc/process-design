@@ -596,6 +596,11 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                     />
                                   </div>
                                 )
+                              ) : f.type === 'number' && f.unit ? (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: isLongTextLabel ? undefined : 1, width: isLongTextLabel ? '100%' : undefined }}>
+                                  <div data-acroform-field="true" data-field-id={f.id} data-field-type={f.type} data-field-name={cleanLabel} style={{ flex: 1, borderBottom: '1px dotted #cbd5e1', height: '16px' }} />
+                                  <span style={{ fontSize: '0.8rem', color: '#475569', fontWeight: 'var(--pw-weight-medium)', flexShrink: 0 }}>{f.unit}</span>
+                                </div>
                               ) : (
                                 <div data-acroform-field="true" data-field-id={f.id} data-field-type={f.type} data-field-name={cleanLabel} style={{ flex: isLongTextLabel ? undefined : 1, width: isLongTextLabel ? '100%' : undefined, borderBottom: '1px dotted #cbd5e1', height: '16px' }} />
                               )}

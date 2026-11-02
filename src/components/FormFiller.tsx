@@ -2348,6 +2348,43 @@ function FormFillerInner({
                             onChange={(val) => setFormValues(prev => ({ ...prev, [field.id]: val }))}
                             disabled={effectiveReadOnly}
                           />
+                        ) : field.type === 'number' ? (
+                          <div style={{ position: 'relative', width: '100%', display: 'flex', alignItems: 'center' }}>
+                            <input
+                              type="number"
+                              value={value}
+                              onChange={(e) => setFormValues(prev => ({ ...prev, [field.id]: e.target.value }))}
+                              placeholder={field.placeholder || 'Nhập số...'}
+                              disabled={effectiveReadOnly}
+                              style={{
+                                ...inputStyle,
+                                paddingRight: field.unit ? '52px' : inputStyle.padding
+                              }}
+                            />
+                            {field.unit && (
+                              <span style={{
+                                position: 'absolute',
+                                right: '1px',
+                                top: '1px',
+                                bottom: '1px',
+                                padding: '0 8px',
+                                background: '#f1f5f9',
+                                borderLeft: '1px solid #e2e8f0',
+                                borderTopRightRadius: '4px',
+                                borderBottomRightRadius: '4px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '0.78rem',
+                                color: 'var(--text-secondary)',
+                                fontWeight: 500,
+                                pointerEvents: 'none',
+                                userSelect: 'none'
+                              }}>
+                                {field.unit}
+                              </span>
+                            )}
+                          </div>
                         ) : (
                           <AutoResizingTextarea
                             value={value}

@@ -4244,8 +4244,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                       </div>
                                     )}
 
-                                    {/* Text & Number field placeholder editable box */}
-                                    {(f.type === 'text' || f.type === 'number') && (
+                                    {/* Text field placeholder editable box */}
+                                    {f.type === 'text' && (
                                       <div style={{ marginTop: '4px', width: '100%' }}>
                                         <input
                                           type="text"
@@ -4278,6 +4278,86 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                           onBlur={(e) => {
                                             e.currentTarget.style.borderColor = '#cbd5e1';
                                             e.currentTarget.style.background = '#f8fafc';
+                                          }}
+                                        />
+                                      </div>
+                                    )}
+
+                                    {/* Number field WYSIWYG Input Group (Placeholder + Unit) */}
+                                    {f.type === 'number' && (
+                                      <div style={{ marginTop: '4px', width: '100%', display: 'flex', alignItems: 'stretch' }}>
+                                        <input
+                                          type="text"
+                                          disabled={isLocked}
+                                          value={f.placeholder ?? ''}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setActiveBlockId(block.id);
+                                            setActiveFieldId(f.id);
+                                          }}
+                                          onChange={(e) => handleUpdateField(block.id, f.id, { placeholder: e.target.value })}
+                                          placeholder="[Gõ placeholder...]"
+                                          style={{
+                                            flex: 1,
+                                            minWidth: 0,
+                                            padding: '3px 6px',
+                                            fontSize: '0.78rem',
+                                            fontStyle: 'italic',
+                                            color: f.placeholder ? '#475569' : '#94a3b8',
+                                            background: '#f8fafc',
+                                            border: '1px dashed #cbd5e1',
+                                            borderRight: 'none',
+                                            borderTopLeftRadius: '4px',
+                                            borderBottomLeftRadius: '4px',
+                                            outline: 'none',
+                                            boxSizing: 'border-box',
+                                            cursor: isLocked ? 'default' : 'text'
+                                          }}
+                                          onFocus={(e) => {
+                                            e.currentTarget.style.borderColor = 'var(--primary)';
+                                            e.currentTarget.style.background = '#ffffff';
+                                          }}
+                                          onBlur={(e) => {
+                                            e.currentTarget.style.borderColor = '#cbd5e1';
+                                            e.currentTarget.style.background = '#f8fafc';
+                                          }}
+                                        />
+                                        <input
+                                          type="text"
+                                          disabled={isLocked}
+                                          value={f.unit ?? ''}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setActiveBlockId(block.id);
+                                            setActiveFieldId(f.id);
+                                          }}
+                                          onChange={(e) => handleUpdateField(block.id, f.id, { unit: e.target.value })}
+                                          placeholder="[ĐVT]"
+                                          title="Đơn vị tính (e.g. kg, đ, mm, °C...)"
+                                          style={{
+                                            width: '62px',
+                                            flexShrink: 0,
+                                            padding: '3px 6px',
+                                            fontSize: '0.75rem',
+                                            fontWeight: f.unit ? 600 : 400,
+                                            fontStyle: f.unit ? 'normal' : 'italic',
+                                            textAlign: 'center',
+                                            color: f.unit ? 'var(--primary)' : '#94a3b8',
+                                            background: f.unit ? '#f0fdfa' : '#f1f5f9',
+                                            border: `1px dashed ${f.unit ? 'var(--primary)' : '#cbd5e1'}`,
+                                            borderTopRightRadius: '4px',
+                                            borderBottomRightRadius: '4px',
+                                            outline: 'none',
+                                            boxSizing: 'border-box',
+                                            cursor: isLocked ? 'default' : 'text'
+                                          }}
+                                          onFocus={(e) => {
+                                            e.currentTarget.style.borderColor = 'var(--primary)';
+                                            e.currentTarget.style.background = '#ffffff';
+                                          }}
+                                          onBlur={(e) => {
+                                            e.currentTarget.style.borderColor = f.unit ? 'var(--primary)' : '#cbd5e1';
+                                            e.currentTarget.style.background = f.unit ? '#f0fdfa' : '#f1f5f9';
                                           }}
                                         />
                                       </div>

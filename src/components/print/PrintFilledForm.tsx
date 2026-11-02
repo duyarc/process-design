@@ -923,7 +923,12 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                               <div key={f.id} style={{ ...gridItemStyle, display: 'flex', flexDirection: isLongTextLabel ? 'column' : 'row', alignItems: isLongTextLabel ? 'stretch' : 'center', minHeight: 'var(--pw-line-h)', gap: isLongTextLabel ? '4px' : '8px', fontSize: '0.85rem' }}>
                                 {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: isLongTextLabel ? 'pre-wrap' : 'nowrap', wordBreak: isLongTextLabel ? 'break-word' : undefined, lineHeight: 1.4 }}>{renderFormattedText(cleanLabel)}</span>}
                                 <div style={{ flex: isLongTextLabel ? undefined : 1, width: isLongTextLabel ? '100%' : undefined, borderBottom: '1px dotted #cbd5e1', minHeight: '16px', paddingBottom: '1px', fontWeight: 600, color: '#0f172a' }}>
-                                  {displayVal ? renderFormattedText(displayVal) : '\u00A0'}
+                                  {displayVal ? (
+                                    <span>
+                                      {renderFormattedText(displayVal)}
+                                      {f.type === 'number' && f.unit ? ` ${f.unit}` : ''}
+                                    </span>
+                                  ) : '\u00A0'}
                                 </div>
                               </div>
                             );
