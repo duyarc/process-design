@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import type { Process, ProcessStep, FormField, FormDesignerField, SOPSignOff, SOPSignOffs } from '../types';
-import { Save, Plus, Trash2, ArrowUp, ArrowDown, Edit2, Eye, Printer, GitBranch, XCircle, Shield, Calendar, RotateCcw, ArrowLeft } from 'lucide-react';
+import { Save, Plus, Trash2, ArrowUp, ArrowDown, Edit2, Eye, Printer, GitBranch, XCircle, Shield, Calendar, RotateCcw, ArrowLeft, FileText, X } from 'lucide-react';
 import FormBuilder from './FormBuilder';
 import PrintBlankForm from './print/PrintBlankForm';
 import ConfirmModal from './common/ConfirmModal';
+import StepFormPickerModal from './common/StepFormPickerModal';
+import type { FormOptionItem } from './common/StepFormPickerModal';
 import { generateBPMNXML } from '../utils/bpmnXmlGenerator';
 import { extractLinkedWorkSteps, renameFormInSteps } from '../utils/formUtils';
 import { useAuth } from '../context/AuthContext';
@@ -244,6 +246,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
   const [editingRoleIndex, setEditingRoleIndex] = useState<number | null>(null);
   const [editingRoleText, setEditingRoleText] = useState<string>('');
   const [roleError, setRoleError] = useState<string>('');
+  const [stepFormPickerIndex, setStepFormPickerIndex] = useState<number | null>(null);
   const [roleDeleteWarning, setRoleDeleteWarning] = useState<{ isOpen: boolean; message: string }>({
     isOpen: false,
     message: ''
@@ -519,6 +522,84 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
     }
     setRoles(prev => prev.filter(r => r !== roleToDelete));
     setRoleError('');
+  };
+
+  const availableFormsList: FormOptionItem[] = useMemo(() => {
+    const uniqueFormsMap = new Map<string, FormOptionItem>();
+    allForms.forEach(f => {
+      const existing = uniqueFormsMap.get(f.form_id);
+      if (!existing || new Date(f.updated_at).getTime() > new Date(existing.updated_at || 0).getTime()) {
+        uniqueFormsMap.set(f.form_id, {
+          form_id: f.form_id,
+          form_title: f.form_title || f.form_name,
+          form_name: f.form_name || f.form_id,
+          updated_at: f.updated_at
+        });
+      }
+    });
+    Object.entries(workflowFormsData).forEach(([fid, fdata]: [string, any]) => {
+      if (!uniqueFormsMap.has(fid)) {
+        uniqueFormsMap.set(fid, {
+          form_id: fid,
+          form_title: fdata.formTitle || fdata.formName || fid,
+          form_name: fdata.formName || fid
+        });
+      }
+    });
+    return Array.from(uniqueFormsMap.values());
+  }, [allForms, workflowFormsData]);
+
+  const handleRemoveFormFromStep = (stepIndex: number, formIdToRemove: string) => {
+    setSteps(prev => {
+      const updated = [...prev];
+      const step = updated[stepIndex];
+      const currentNames = step.formNames && step.formNames.length > 0
+        ? step.formNames
+        : (step.formName ? [step.formName] : []);
+      const nextNames = currentNames.filter(n => n !== formIdToRemove);
+      
+      updated[stepIndex] = {
+        ...step,
+        producesForm: nextNames.length > 0,
+        formName: nextNames[0] || '',
+        formNames: nextNames
+      };
+      return enforceStepShapes(updated);
+    });
+  };
+
+  const handleAddFormToStep = (stepIndex: number, formIdToAdd: string) => {
+    setSteps(prev => {
+      const updated = [...prev];
+      const step = updated[stepIndex];
+      const currentNames = step.formNames && step.formNames.length > 0
+        ? step.formNames.filter(Boolean)
+        : (step.formName ? [step.formName] : []);
+      if (currentNames.includes(formIdToAdd)) return prev;
+
+      const nextNames = [...currentNames, formIdToAdd];
+      updated[stepIndex] = {
+        ...step,
+        producesForm: true,
+        formName: nextNames[0],
+        formNames: nextNames
+      };
+      return enforceStepShapes(updated);
+    });
+  };
+
+  const handleCreateAndLinkNewForm = (stepIndex: number, newId: string, newTitle: string) => {
+    setWorkflowFormsData(prev => ({
+      ...prev,
+      [newId]: {
+        formId: newId,
+        formTitle: newTitle,
+        status: 'DRAFT',
+        version: 'v0.1',
+        layoutBlocks: []
+      }
+    }));
+    handleAddFormToStep(stepIndex, newId);
   };
 
   // Helper to migrate legacy form-name keys to strictly formId keys
@@ -2363,175 +2444,97 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                               margin: 0
                             }}
                           />
-                          {/* Form Button/Input inside the Action column, rendered inline right below it */}
+                          {/* Form Chips inside the Action column, rendered inline right below it */}
                           {hasFormOption && (() => {
                             const currentFormNames = step.formNames && step.formNames.length > 0 
-                              ? step.formNames 
+                              ? step.formNames.filter(Boolean)
                               : (step.formName ? [step.formName] : []);
 
                             return (
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', width: '100%', marginTop: '2px' }}>
-                                {step.producesForm && currentFormNames.map((formName, fIdx) => (
-                                  <div key={fIdx} style={{ display: 'flex', gap: '0.25rem', alignItems: 'center', width: '100%' }}>
-                                    <select
-                                      value={formName || ''}
-                                      onChange={(e) => {
-                                        const selectedValue = e.target.value;
-                                        if (selectedValue === 'NEW_FORM') {
-                                          const newId = prompt("Nhập mã Form ID mới (ví dụ: 3S-QC/F05):");
-                                          if (!newId) return;
-                                          const trimmedId = newId.trim();
-                                          if (!trimmedId) return;
-                                          
-                                          const idExists = allForms.some(f => f.form_id === trimmedId) || !!workflowFormsData[trimmedId];
-                                          if (idExists) {
-                                            alert("Mã Form ID này đã tồn tại trong hệ thống!");
-                                            return;
-                                          }
-
-                                          const newTitle = prompt("Nhập tên biểu mẫu mới:");
-                                          if (!newTitle) return;
-                                          const trimmedTitle = newTitle.trim();
-                                          if (!trimmedTitle) return;
-
-                                          setWorkflowFormsData(prev => ({
-                                            ...prev,
-                                            [trimmedId]: {
-                                              formId: trimmedId,
-                                              formTitle: trimmedTitle,
-                                              status: 'DRAFT',
-                                              version: 'v0.1',
-                                              layoutBlocks: []
-                                            }
-                                          }));
-
-                                          const updatedNames = [...currentFormNames];
-                                          updatedNames[fIdx] = trimmedId;
-                                          setSteps(prev => {
-                                            const updated = [...prev];
-                                            updated[index] = {
-                                              ...updated[index],
-                                              formName: updatedNames[0],
-                                              formNames: updatedNames
-                                            };
-                                            return enforceStepShapes(updated);
-                                          });
-                                        } else {
-                                          const updatedNames = [...currentFormNames];
-                                          updatedNames[fIdx] = selectedValue;
-                                          setSteps(prev => {
-                                            const updated = [...prev];
-                                            updated[index] = {
-                                              ...updated[index],
-                                              formName: updatedNames[0],
-                                              formNames: updatedNames
-                                            };
-                                            return enforceStepShapes(updated);
-                                          });
-                                        }
-                                      }}
-                                      style={{ 
-                                        flex: 1, 
-                                        padding: '2px 6px', 
-                                        fontSize: '0.75rem',
-                                        margin: 0,
-                                        height: '24px'
+                              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.3rem', width: '100%', marginTop: '3px' }}>
+                                {step.producesForm && currentFormNames.map((fId) => {
+                                  const formData: any = workflowFormsData[fId] || allForms.find(f => f.form_id === fId);
+                                  const title = formData?.formTitle || formData?.form_title || fId;
+                                  return (
+                                    <span
+                                      key={fId}
+                                      style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '0.25rem',
+                                        backgroundColor: '#f0fdfa',
+                                        border: '1px solid #99f6e4',
+                                        borderRadius: '4px',
+                                        padding: '1px 5px',
+                                        fontSize: '0.725rem',
+                                        color: '#0f766e',
+                                        lineHeight: 1.2
                                       }}
                                     >
-                                      <option value="">-- Chọn biểu mẫu liên kết --</option>
-                                      {(() => {
-                                        const uniqueFormsMap = new Map();
-                                        allForms.forEach(f => {
-                                          const existing = uniqueFormsMap.get(f.form_id);
-                                          if (!existing || new Date(f.updated_at).getTime() > new Date(existing.updated_at).getTime()) {
-                                            uniqueFormsMap.set(f.form_id, f);
-                                          }
-                                        });
-                                        Object.entries(workflowFormsData).forEach(([fid, fdata]: [string, any]) => {
-                                          if (!uniqueFormsMap.has(fid)) {
-                                            uniqueFormsMap.set(fid, {
-                                              form_id: fid,
-                                              form_title: fdata.formTitle || fdata.formName || fid,
-                                              form_name: fdata.formName || fid
-                                            });
-                                          }
-                                        });
-                                        return Array.from(uniqueFormsMap.values()).map((f: any) => (
-                                          <option key={f.form_id} value={f.form_id}>
-                                            {f.form_id} - {f.form_title || f.form_name}
-                                          </option>
-                                        ));
-                                      })()}
-                                      <option value="NEW_FORM" style={{ fontWeight: 'bold', color: 'var(--primary-color)' }}>
-                                        + Tạo mới
-                                      </option>
-                                    </select>
-                                    <button
-                                      type="button"
-                                      className="step-delete-btn"
-                                      onClick={() => {
-                                        const updatedNames = currentFormNames.filter((_, idx) => idx !== fIdx);
-                                        setSteps(prev => {
-                                          const updated = [...prev];
-                                          if (updatedNames.length === 0) {
-                                            updated[index] = { 
-                                              ...updated[index], 
-                                              producesForm: false, 
-                                              formName: '',
-                                              formNames: []
-                                            };
-                                          } else {
-                                            updated[index] = { 
-                                              ...updated[index], 
-                                              formName: updatedNames[0],
-                                              formNames: updatedNames
-                                            };
-                                          }
-                                          return enforceStepShapes(updated);
-                                        });
-                                      }}
-                                      style={{ padding: '2px 4px', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '24px', cursor: 'pointer' }}
-                                    >
-                                      <Trash2 size={12} />
-                                    </button>
-                                  </div>
-                                ))}
+                                      <FileText size={11} style={{ color: '#0d9488', flexShrink: 0 }} />
+                                      <span
+                                        onClick={() => handleOpenFormBuilder(fId)}
+                                        title={`${fId} - ${title}\n(Nhấp để mở Form Designer)`}
+                                        style={{ cursor: 'pointer', fontWeight: 600, textDecoration: 'underline', textDecorationColor: '#99f6e4' }}
+                                      >
+                                        {fId}
+                                      </span>
+                                      {!isReadOnly && (
+                                        <button
+                                          type="button"
+                                          onClick={() => handleRemoveFormFromStep(index, fId)}
+                                          title="Hủy liên kết biểu mẫu này"
+                                          style={{
+                                            border: 'none',
+                                            background: 'transparent',
+                                            padding: 0,
+                                            color: '#0d9488',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            marginLeft: '2px'
+                                          }}
+                                          onMouseEnter={(e) => { e.currentTarget.style.color = '#ef4444'; }}
+                                          onMouseLeave={(e) => { e.currentTarget.style.color = '#0d9488'; }}
+                                        >
+                                          <X size={11} />
+                                        </button>
+                                      )}
+                                    </span>
+                                  );
+                                })}
 
-                                {/* Add Form button - always show if not producesForm or producesForm is true */}
-                                <div style={{ display: 'flex' }}>
+                                {!isReadOnly && (
                                   <button
                                     type="button"
-                                    className="btn btn-secondary btn-sm"
-                                    onClick={() => {
-                                      setSteps(prev => {
-                                        const updated = [...prev];
-                                        const newFormNames = step.producesForm ? [...currentFormNames, ''] : [''];
-                                        updated[index] = {
-                                          ...updated[index],
-                                          producesForm: true,
-                                          formName: newFormNames[0],
-                                          formNames: newFormNames
-                                        };
-                                        return enforceStepShapes(updated);
-                                      });
-                                    }}
-                                    style={{ 
-                                      display: 'inline-flex', 
-                                      alignItems: 'center', 
-                                      gap: '0.25rem',
-                                      padding: '2px 6px',
-                                      fontSize: '0.75rem',
+                                    onClick={() => setStepFormPickerIndex(index)}
+                                    title="Liên kết biểu mẫu với bước này"
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '0.2rem',
+                                      padding: '1px 5px',
+                                      fontSize: '0.7rem',
                                       fontWeight: 500,
-                                      background: 'transparent',
+                                      background: '#ffffff',
                                       border: '1px dashed #cbd5e1',
-                                      boxShadow: 'none',
+                                      borderRadius: '4px',
                                       color: 'var(--text-secondary)',
-                                      marginTop: '1px'
+                                      cursor: 'pointer',
+                                      lineHeight: 1.2
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.currentTarget.style.borderColor = 'var(--primary)';
+                                      e.currentTarget.style.color = 'var(--primary)';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.style.borderColor = '#cbd5e1';
+                                      e.currentTarget.style.color = 'var(--text-secondary)';
                                     }}
                                   >
-                                    <Plus size={12} /> Add form
+                                    <Plus size={11} /> Form
                                   </button>
-                                </div>
+                                )}
                               </div>
                             );
                           })()}
@@ -3207,6 +3210,27 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
         hideCancel={true}
         onConfirm={() => setRoleDeleteWarning({ isOpen: false, message: '' })}
         onCancel={() => setRoleDeleteWarning({ isOpen: false, message: '' })}
+      />
+
+      <StepFormPickerModal
+        isOpen={stepFormPickerIndex !== null}
+        onClose={() => setStepFormPickerIndex(null)}
+        availableForms={availableFormsList}
+        linkedFormIds={
+          stepFormPickerIndex !== null && steps[stepFormPickerIndex]
+            ? (steps[stepFormPickerIndex].formNames || (steps[stepFormPickerIndex].formName ? [steps[stepFormPickerIndex].formName!] : []))
+            : []
+        }
+        onSelectForm={(formId) => {
+          if (stepFormPickerIndex !== null) {
+            handleAddFormToStep(stepFormPickerIndex, formId);
+          }
+        }}
+        onCreateForm={(newId, newTitle) => {
+          if (stepFormPickerIndex !== null) {
+            handleCreateAndLinkNewForm(stepFormPickerIndex, newId, newTitle);
+          }
+        }}
       />
     </div>
   );
