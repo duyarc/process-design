@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { GripVertical, Eye, Edit3 } from 'lucide-react';
+import { GripVertical, Eye, Edit3, Trash2 } from 'lucide-react';
 import type { FormFieldISO } from '../../types';
 import { applyTextFormat, handleFormatKeyDown, renderFormattedText } from '../../utils/textFormatter';
 import { InCanvasGuidanceEditor } from './InCanvasGuidanceEditor';
@@ -19,6 +19,7 @@ export interface InCanvasLabelFieldProps {
   isGuidanceExpanded: boolean;
   onToggleGuidance: () => void;
   onUpdateGuidance: (val: string) => void;
+  onDeleteField?: () => void;
   renderTypeDropdown: React.ReactNode;
   renderColSpanToggle?: React.ReactNode;
 }
@@ -36,6 +37,7 @@ export const InCanvasLabelField: React.FC<InCanvasLabelFieldProps> = ({
   isGuidanceExpanded,
   onToggleGuidance,
   onUpdateGuidance,
+  onDeleteField,
   renderTypeDropdown,
   renderColSpanToggle
 }) => {
@@ -274,6 +276,44 @@ export const InCanvasLabelField: React.FC<InCanvasLabelFieldProps> = ({
           </button>
           {renderColSpanToggle}
           {renderTypeDropdown}
+          {isFieldSelected && !isLocked && onDeleteField && (
+            <button
+              type="button"
+              disabled={isLocked}
+              onClick={(e) => {
+                e.stopPropagation();
+                onDeleteField();
+              }}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '22px',
+                height: '22px',
+                borderRadius: '4px',
+                background: 'transparent',
+                border: '1px solid transparent',
+                color: 'var(--text-muted)',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                flexShrink: 0,
+                padding: 0
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = 'var(--danger)';
+                e.currentTarget.style.borderColor = '#fecaca';
+                e.currentTarget.style.background = '#fef2f2';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = 'var(--text-muted)';
+                e.currentTarget.style.borderColor = 'transparent';
+                e.currentTarget.style.background = 'transparent';
+              }}
+              title="Xóa nhãn này"
+            >
+              <Trash2 size={12} />
+            </button>
+          )}
         </div>
       </div>
 

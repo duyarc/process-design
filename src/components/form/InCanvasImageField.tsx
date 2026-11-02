@@ -15,6 +15,7 @@ export interface InCanvasImageFieldProps {
   onSelectField: () => void;
   onUpdateField: (updates: Partial<FormFieldISO>) => void;
   onStartDrag: (e: React.DragEvent) => void;
+  onDeleteField?: () => void;
   renderTypeDropdown: React.ReactNode;
   renderColSpanToggle?: React.ReactNode;
 }
@@ -36,11 +37,12 @@ const WIDTH_MODE_PRESETS: { value: NonNullable<FormFieldISO['imageWidthMode']>; 
 export const InCanvasImageField: React.FC<InCanvasImageFieldProps> = ({
   field,
   formId,
-  isFieldSelected: _isFieldSelected,
+  isFieldSelected,
   isLocked,
   canDrag,
   onSelectField,
   onUpdateField,
+  onDeleteField,
   onStartDrag,
   renderTypeDropdown,
   renderColSpanToggle
@@ -338,6 +340,44 @@ export const InCanvasImageField: React.FC<InCanvasImageFieldProps> = ({
           )}
           {renderColSpanToggle}
           {renderTypeDropdown}
+          {isFieldSelected && !isLocked && onDeleteField && (
+            <button
+              type="button"
+              disabled={isLocked}
+              onClick={(e) => {
+                e.stopPropagation();
+                onDeleteField();
+              }}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '22px',
+                height: '22px',
+                borderRadius: '4px',
+                background: 'transparent',
+                border: '1px solid transparent',
+                color: 'var(--text-muted)',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                flexShrink: 0,
+                padding: 0
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = 'var(--danger)';
+                e.currentTarget.style.borderColor = '#fecaca';
+                e.currentTarget.style.background = '#fef2f2';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = 'var(--text-muted)';
+                e.currentTarget.style.borderColor = 'transparent';
+                e.currentTarget.style.background = 'transparent';
+              }}
+              title="Xóa trường ảnh này"
+            >
+              <Trash2 size={12} />
+            </button>
+          )}
         </div>
       </div>
 

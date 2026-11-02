@@ -1895,31 +1895,33 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     setActiveFieldId(null);
   };
 
-  // Keyboard Shortcut: Ctrl+D / Cmd+D to clone currently active layout block
+  // Keyboard Shortcut: Ctrl+D to clone block, Delete/Backspace to delete active field
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const isEditingText = target && (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.tagName === 'SELECT' ||
+        target.isContentEditable
+      );
+
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd') {
-        if (!isLocked && activeBlockId) {
-          const target = e.target as HTMLElement | null;
-          const isEditingText = target && (
-            target.tagName === 'INPUT' ||
-            target.tagName === 'TEXTAREA' ||
-            target.tagName === 'SELECT' ||
-            target.isContentEditable
-          );
-          if (!isEditingText) {
-            const activeBlk = layoutBlocks.find(b => b.id === activeBlockId);
-            if (activeBlk && activeBlk.type !== 'TITLE') {
-              e.preventDefault();
-              handleCloneBlock(activeBlockId);
-            }
+        if (!isLocked && activeBlockId && !isEditingText) {
+          const activeBlk = layoutBlocks.find(b => b.id === activeBlockId);
+          if (activeBlk && activeBlk.type !== 'TITLE') {
+            e.preventDefault();
+            handleCloneBlock(activeBlockId);
           }
         }
+      } else if ((e.key === 'Delete' || e.key === 'Backspace') && !isLocked && activeBlockId && activeFieldId && !isEditingText) {
+        e.preventDefault();
+        handleDeleteField(activeBlockId, activeFieldId);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeBlockId, isLocked, layoutBlocks]);
+  }, [activeBlockId, activeFieldId, isLocked, layoutBlocks]);
 
   const handleUpdateBlockTitle = (blockId: string, newTitle: string) => {
     setLayoutBlocks(prev => prev.map(b => b.id === blockId ? { ...b, title: newTitle } : b));
@@ -3870,6 +3872,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                         isGuidanceExpanded={!!canvasExpandedGuidanceMap[f.id]}
                                         onToggleGuidance={() => toggleCanvasGuidance(f.id)}
                                         onUpdateGuidance={(val) => handleUpdateField(block.id, f.id, { guidance: val })}
+                                        onDeleteField={() => handleDeleteField(block.id, f.id)}
                                         renderColSpanToggle={
                                           canToggleSpan ? (
                                             <InCanvasColSpanToggle
@@ -3907,6 +3910,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                           setActiveFieldId(f.id);
                                         }}
                                         onUpdateField={(updates) => handleUpdateField(block.id, f.id, updates)}
+                                        onDeleteField={() => handleDeleteField(block.id, f.id)}
                                         onStartDrag={(e) => {
                                           e.stopPropagation();
                                           setDraggedGridField({ blockId: block.id, fieldId: f.id, index: fIdx });
@@ -4085,6 +4089,44 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                             handleChangeFieldType(block.id, f.id, newType);
                                           }}
                                         />
+                                        {isFieldSelected && !isLocked && (
+                                          <button
+                                            type="button"
+                                            disabled={isLocked}
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleDeleteField(block.id, f.id);
+                                            }}
+                                            style={{
+                                              display: 'inline-flex',
+                                              alignItems: 'center',
+                                              justifyContent: 'center',
+                                              width: '22px',
+                                              height: '22px',
+                                              borderRadius: '4px',
+                                              background: 'transparent',
+                                              border: '1px solid transparent',
+                                              color: 'var(--text-muted)',
+                                              cursor: 'pointer',
+                                              transition: 'all 0.15s ease',
+                                              flexShrink: 0,
+                                              padding: 0
+                                            }}
+                                            onMouseEnter={(e) => {
+                                              e.currentTarget.style.color = 'var(--danger)';
+                                              e.currentTarget.style.borderColor = '#fecaca';
+                                              e.currentTarget.style.background = '#fef2f2';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                              e.currentTarget.style.color = 'var(--text-muted)';
+                                              e.currentTarget.style.borderColor = 'transparent';
+                                              e.currentTarget.style.background = 'transparent';
+                                            }}
+                                            title="Xóa trường này"
+                                          >
+                                            <Trash2 size={12} />
+                                          </button>
+                                        )}
                                       </div>
                                     </div>
 
@@ -7255,47 +7297,6 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                 <h3 style={{ fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-primary)' }}>
                   Field Properties
                 </h3>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  {(() => {
-                    const activeBlockObj = layoutBlocks.find(b => b.id === activeBlockId);
-                    if (!activeBlockObj || isLocked) return null;
-                    const fieldIdx = activeBlockObj.fields.findIndex(f => f.id === activeFieldId);
-                    if (fieldIdx === -1) return null;
-                    const isFirst = fieldIdx === 0;
-                    const isLast = fieldIdx === activeBlockObj.fields.length - 1;
-                    return (
-                      <div style={{ display: 'flex', gap: '2px', marginRight: '4px' }}>
-                        <button
-                          type="button"
-                          disabled={isFirst}
-                          onClick={() => handleMoveField(activeBlockId!, activeFieldId!, 'up')}
-                          style={{ width: '22px', height: '22px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: isFirst ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: isFirst ? 0.3 : 1, padding: 0 }}
-                          title="Di chuyển trường lên"
-                        >
-                          <ArrowUp size={12} style={{ color: '#0f172a' }} />
-                        </button>
-                        <button
-                          type="button"
-                          disabled={isLast}
-                          onClick={() => handleMoveField(activeBlockId!, activeFieldId!, 'down')}
-                          style={{ width: '22px', height: '22px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '4px', cursor: isLast ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: isLast ? 0.3 : 1, padding: 0 }}
-                          title="Di chuyển trường xuống"
-                        >
-                          <ArrowDown size={12} style={{ color: '#0f172a' }} />
-                        </button>
-                      </div>
-                    );
-                  })()}
-                  <button 
-                    type="button" 
-                    disabled={isLocked}
-                    onClick={() => handleDeleteField(activeBlockId!, activeFieldId!)}
-                    style={{ border: 'none', background: 'none', color: 'var(--danger)', cursor: isLocked ? 'not-allowed' : 'pointer' }}
-                    title="Xóa trường này"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.8rem' }}>
