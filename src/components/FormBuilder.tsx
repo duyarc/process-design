@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import type { FormFieldISO, FormRevisionEntry, FormTemplateISO, LayoutBlockISO, RadioOption, MatrixConfigISO, TableColumnConfig, TableRowConfig, ColumnSummaryRowConfig, TitleFormatISO, SubtableColumn, BlockVisibilityCondition, LinkedWorkStepInfo } from '../types';
 import { formatFormVersion, getColStyleWidth } from '../types';
 import { sanitizeLabel, getEffectiveTitleFormat, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, isSeamlessTableBlock, getInfoGridTemplateColumns, snap2ColWidth, snap3ColWidths, INFO_GRID_2COL_PRESETS, generateSmartFieldSlug, getCheckboxGridTemplate, reorderOptionsArray, reorderArray, getEffectiveCellOptions as getEffectiveCellOptionsUtil, toFormSlug, getTableItemColumnId, clusterOptionsByGroup, reorderGroupsInOptions, reorderOptionWithGroup } from '../utils/formUtils';
-import { applyTextFormat, handleFormatKeyDown, insertTextAtCursor } from '../utils/textFormatter';
+import { applyTextFormat, handleFormatKeyDown } from '../utils/textFormatter';
 import { 
   Plus, 
   Trash2, 
@@ -1139,7 +1139,6 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
   const [draggedGridField, setDraggedGridField] = useState<{ blockId: string; fieldId: string; index: number } | null>(null);
   const [dragOverGridField, setDragOverGridField] = useState<{ blockId: string; fieldId: string; index: number } | null>(null);
   const inspectorLabelRef = useRef<HTMLTextAreaElement>(null);
-  const inspectorGuidanceRef = useRef<HTMLTextAreaElement>(null);
   const sectionDescRef = useRef<HTMLTextAreaElement>(null);
   const inspectorGroupTitleRef = useRef<HTMLTextAreaElement>(null);
   const [canvasExpandedGuidanceMap, setCanvasExpandedGuidanceMap] = useState<Record<string, boolean>>({});
@@ -4038,71 +4037,36 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                         />
                                       </div>
                                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0, marginTop: '2px' }}>
-                                        {/* Guidance Toggle / Add Button */}
-                                        {f.guidance ? (
-                                          <button
-                                            type="button"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              setActiveBlockId(block.id);
-                                              setActiveFieldId(f.id);
-                                              toggleCanvasGuidance(f.id);
-                                            }}
-                                            style={{
-                                              display: 'inline-flex',
-                                              alignItems: 'center',
-                                              gap: '3px',
-                                              background: canvasExpandedGuidanceMap[f.id] ? '#f0fdfa' : '#f8fafc',
-                                              border: `1px solid ${canvasExpandedGuidanceMap[f.id] ? '#0d9488' : '#cbd5e1'}`,
-                                              borderRadius: '4px',
-                                              padding: '2px 6px',
-                                              fontSize: '0.72rem',
-                                              color: canvasExpandedGuidanceMap[f.id] ? '#0f766e' : '#475569',
-                                              cursor: 'pointer',
-                                              fontWeight: 500,
-                                              transition: 'all 0.15s ease',
-                                              flexShrink: 0
-                                            }}
-                                            title={canvasExpandedGuidanceMap[f.id] ? "Thu gọn hướng dẫn" : "Xem/sửa hướng dẫn điền câu hỏi"}
-                                          >
-                                            <span>💡</span>
-                                            <span>Hướng dẫn</span>
-                                            {canvasExpandedGuidanceMap[f.id] ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
-                                          </button>
-                                        ) : (
-                                          (isFieldSelected || canvasExpandedGuidanceMap[f.id]) && (
-                                            <button
-                                              type="button"
-                                              disabled={isLocked}
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                setActiveBlockId(block.id);
-                                                setActiveFieldId(f.id);
-                                                toggleCanvasGuidance(f.id);
-                                              }}
-                                              style={{
-                                                display: 'inline-flex',
-                                                alignItems: 'center',
-                                                gap: '2px',
-                                                background: 'transparent',
-                                                border: '1px dashed #0d9488',
-                                                borderRadius: '4px',
-                                                padding: '2px 5px',
-                                                fontSize: '0.7rem',
-                                                color: '#0d9488',
-                                                cursor: isLocked ? 'not-allowed' : 'pointer',
-                                                fontWeight: 500,
-                                                opacity: 0.85,
-                                                transition: 'all 0.15s ease',
-                                                flexShrink: 0
-                                              }}
-                                              title="Thêm hướng dẫn điền cho câu hỏi này"
-                                            >
-                                              <Plus size={10} />
-                                              <span>💡 Hướng dẫn</span>
-                                            </button>
-                                          )
-                                        )}
+                                        {/* Guidance Icon Button */}
+                                        <button
+                                          type="button"
+                                          disabled={isLocked}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setActiveBlockId(block.id);
+                                            setActiveFieldId(f.id);
+                                            toggleCanvasGuidance(f.id);
+                                          }}
+                                          style={{
+                                            display: (f.guidance || isFieldSelected || canvasExpandedGuidanceMap[f.id]) ? 'inline-flex' : 'none',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            width: '22px',
+                                            height: '22px',
+                                            borderRadius: '4px',
+                                            background: canvasExpandedGuidanceMap[f.id] ? '#f0fdfa' : f.guidance ? '#f8fafc' : 'transparent',
+                                            border: `1px ${f.guidance ? 'solid' : 'dashed'} ${canvasExpandedGuidanceMap[f.id] ? '#0d9488' : f.guidance ? '#cbd5e1' : '#94a3b8'}`,
+                                            color: canvasExpandedGuidanceMap[f.id] ? '#0d9488' : f.guidance ? '#0f766e' : '#94a3b8',
+                                            cursor: isLocked ? 'not-allowed' : 'pointer',
+                                            fontSize: '0.75rem',
+                                            transition: 'all 0.15s ease',
+                                            flexShrink: 0,
+                                            padding: 0
+                                          }}
+                                          title={canvasExpandedGuidanceMap[f.id] ? "Thu gọn hướng dẫn" : f.guidance ? "Xem/sửa hướng dẫn điền" : "Thêm hướng dẫn điền"}
+                                        >
+                                          <span style={{ fontSize: '0.8rem', lineHeight: 1, filter: f.guidance ? 'none' : 'grayscale(100%) opacity(0.6)' }}>💡</span>
+                                        </button>
                                         {canToggleSpan && (
                                           <InCanvasColSpanToggle
                                             blockColumns={block.columns}
@@ -6900,63 +6864,34 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                               )}
                                               {col.id === itemColId && (
                                                 <div style={{ padding: '0 6px 4px 6px', textAlign: 'left' }} onClick={(e) => e.stopPropagation()}>
-                                                  {row.guidance ? (
-                                                    <button
-                                                      type="button"
-                                                      disabled={isLocked}
-                                                      onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        toggleCanvasGuidance(row.id);
-                                                      }}
-                                                      style={{
-                                                        display: 'inline-flex',
-                                                        alignItems: 'center',
-                                                        gap: '3px',
-                                                        background: canvasExpandedGuidanceMap[row.id] ? '#f0fdfa' : '#f8fafc',
-                                                        border: `1px solid ${canvasExpandedGuidanceMap[row.id] ? '#0d9488' : '#cbd5e1'}`,
-                                                        borderRadius: '4px',
-                                                        padding: '2px 6px',
-                                                        fontSize: '0.72rem',
-                                                        color: canvasExpandedGuidanceMap[row.id] ? '#0f766e' : '#475569',
-                                                        cursor: isLocked ? 'default' : 'pointer',
-                                                        fontWeight: 500,
-                                                        transition: 'all 0.15s ease'
-                                                      }}
-                                                      title={canvasExpandedGuidanceMap[row.id] ? "Thu gọn hướng dẫn" : "Xem/sửa hướng dẫn dòng"}
-                                                    >
-                                                      <span>💡</span>
-                                                      <span>Hướng dẫn</span>
-                                                      {canvasExpandedGuidanceMap[row.id] ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
-                                                    </button>
-                                                  ) : (
-                                                    (isCellSelected || canvasExpandedGuidanceMap[row.id]) && !isLocked && (
-                                                      <button
-                                                        type="button"
-                                                        disabled={isLocked}
-                                                        onClick={(e) => {
-                                                          e.stopPropagation();
-                                                          toggleCanvasGuidance(row.id);
-                                                        }}
-                                                        style={{
-                                                          display: 'inline-flex',
-                                                          alignItems: 'center',
-                                                          gap: '2px',
-                                                          background: 'transparent',
-                                                          border: '1px dashed #cbd5e1',
-                                                          borderRadius: '4px',
-                                                          padding: '1px 5px',
-                                                          fontSize: '0.68rem',
-                                                          color: '#64748b',
-                                                          cursor: 'pointer',
-                                                          transition: 'all 0.15s ease'
-                                                        }}
-                                                        title="Thêm hướng dẫn chi tiết cho dòng này"
-                                                      >
-                                                        <Plus size={10} />
-                                                        <span>💡 Hướng dẫn</span>
-                                                      </button>
-                                                    )
-                                                  )}
+                                                  {/* Guidance Icon Button */}
+                                                  <button
+                                                    type="button"
+                                                    disabled={isLocked}
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      toggleCanvasGuidance(row.id);
+                                                    }}
+                                                    style={{
+                                                      display: (row.guidance || isCellSelected || canvasExpandedGuidanceMap[row.id]) ? 'inline-flex' : 'none',
+                                                      alignItems: 'center',
+                                                      justifyContent: 'center',
+                                                      width: '22px',
+                                                      height: '22px',
+                                                      borderRadius: '4px',
+                                                      background: canvasExpandedGuidanceMap[row.id] ? '#f0fdfa' : row.guidance ? '#f8fafc' : 'transparent',
+                                                      border: `1px ${row.guidance ? 'solid' : 'dashed'} ${canvasExpandedGuidanceMap[row.id] ? '#0d9488' : row.guidance ? '#cbd5e1' : '#94a3b8'}`,
+                                                      color: canvasExpandedGuidanceMap[row.id] ? '#0d9488' : row.guidance ? '#0f766e' : '#94a3b8',
+                                                      cursor: isLocked ? 'default' : 'pointer',
+                                                      fontSize: '0.75rem',
+                                                      transition: 'all 0.15s ease',
+                                                      flexShrink: 0,
+                                                      padding: 0
+                                                    }}
+                                                    title={canvasExpandedGuidanceMap[row.id] ? "Thu gọn hướng dẫn" : row.guidance ? "Xem/sửa hướng dẫn dòng" : "Thêm hướng dẫn chi tiết cho dòng này"}
+                                                  >
+                                                    <span style={{ fontSize: '0.8rem', lineHeight: 1, filter: row.guidance ? 'none' : 'grayscale(100%) opacity(0.6)' }}>💡</span>
+                                                  </button>
 
                                                   {canvasExpandedGuidanceMap[row.id] && (
                                                     <div style={{ marginTop: '4px' }}>
@@ -7715,92 +7650,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                   </div>
                 )}
 
-
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', marginTop: '0.4rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.78rem' }}>HƯỚNG DẪN</label>
-                      <button
-                        type="button"
-                        onClick={() => activeFieldId && toggleCanvasGuidance(activeFieldId)}
-                        style={{
-                          border: 'none',
-                          background: 'none',
-                          color: (activeFieldId && canvasExpandedGuidanceMap[activeFieldId]) ? '#0d9488' : '#64748b',
-                          fontSize: '0.7rem',
-                          cursor: 'pointer',
-                          padding: '1px 4px',
-                          borderRadius: '3px',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '2px',
-                          textDecoration: 'underline'
-                        }}
-                        title="Bật/Tắt xem hướng dẫn trực tiếp trên Canvas"
-                      >
-                        {(activeFieldId && canvasExpandedGuidanceMap[activeFieldId]) ? 'Đang mở trên Canvas ▴' : 'Mở trên Canvas ▾'}
-                      </button>
-                    </div>
-                    <div style={{ display: 'flex', gap: '2px' }}>
-                      <button
-                        type="button"
-                        title="In đậm (**text**)"
-                        disabled={isLocked}
-                        onClick={() => applyTextFormat(inspectorGuidanceRef.current, 'bold', activeField.guidance || '', (val) => handleUpdateField(activeBlockId!, activeFieldId!, { guidance: val }))}
-                        style={{ width: '22px', height: '22px', border: '1px solid #cbd5e1', borderRadius: '3px', background: '#ffffff', fontWeight: 700, fontSize: '0.75rem', cursor: isLocked ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                      >
-                        B
-                      </button>
-                      <button
-                        type="button"
-                        title="In nghiêng (*text*)"
-                        disabled={isLocked}
-                        onClick={() => applyTextFormat(inspectorGuidanceRef.current, 'italic', activeField.guidance || '', (val) => handleUpdateField(activeBlockId!, activeFieldId!, { guidance: val }))}
-                        style={{ width: '22px', height: '22px', border: '1px solid #cbd5e1', borderRadius: '3px', background: '#ffffff', fontStyle: 'italic', fontSize: '0.75rem', cursor: isLocked ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                      >
-                        I
-                      </button>
-                      <button
-                        type="button"
-                        title="Gạch chân (<u>text</u>)"
-                        disabled={isLocked}
-                        onClick={() => applyTextFormat(inspectorGuidanceRef.current, 'underline', activeField.guidance || '', (val) => handleUpdateField(activeBlockId!, activeFieldId!, { guidance: val }))}
-                        style={{ width: '22px', height: '22px', border: '1px solid #cbd5e1', borderRadius: '3px', background: '#ffffff', textDecoration: 'underline', fontSize: '0.75rem', cursor: isLocked ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                      >
-                        U
-                      </button>
-                      <button
-                        type="button"
-                        title="Chèn gạch đầu dòng (• )"
-                        disabled={isLocked}
-                        onClick={() => insertTextAtCursor(inspectorGuidanceRef.current, '• ', activeField.guidance || '', (val) => handleUpdateField(activeBlockId!, activeFieldId!, { guidance: val }))}
-                        style={{ width: '22px', height: '22px', border: '1px solid #cbd5e1', borderRadius: '3px', background: '#ffffff', fontSize: '0.85rem', cursor: isLocked ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                      >
-                        •
-                      </button>
-                      <button
-                        type="button"
-                        title="Chèn gợi ý (💡 )"
-                        disabled={isLocked}
-                        onClick={() => insertTextAtCursor(inspectorGuidanceRef.current, '💡 ', activeField.guidance || '', (val) => handleUpdateField(activeBlockId!, activeFieldId!, { guidance: val }))}
-                        style={{ width: '22px', height: '22px', border: '1px solid #cbd5e1', borderRadius: '3px', background: '#ffffff', fontSize: '0.75rem', cursor: isLocked ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                      >
-                        💡
-                      </button>
-                    </div>
-                  </div>
-                  <textarea
-                    ref={inspectorGuidanceRef}
-                    rows={4}
-                    disabled={isLocked}
-                    placeholder="Nhập hướng dẫn điền, tiêu chí đánh giá, minh chứng..."
-                    value={activeField.guidance || ''}
-                    onKeyDown={(e) => handleFormatKeyDown(e, activeField.guidance || '', (val) => handleUpdateField(activeBlockId!, activeFieldId!, { guidance: val }))}
-                    onChange={(e) => handleUpdateField(activeBlockId!, activeFieldId!, { guidance: e.target.value })}
-                    style={{ padding: '0.4rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', resize: 'vertical', minHeight: '80px', maxHeight: '260px', fontSize: '0.78rem', fontFamily: 'inherit', lineHeight: 1.45 }}
-                  />
-                </div>
+                {/* Guidance is handled directly on Canvas via WYSIWYG Callout Card */}
 
                 {(activeField.type === 'likert_scale' || (activeField.type as any) === 'rating') && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', padding: '0.6rem', border: '1px solid #cbd5e1', borderRadius: '6px', background: '#f8fafc' }}>

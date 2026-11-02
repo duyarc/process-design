@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { GripVertical, ChevronDown, ChevronUp, Plus, Eye, Edit3 } from 'lucide-react';
+import { GripVertical, Eye, Edit3 } from 'lucide-react';
 import type { FormFieldISO } from '../../types';
 import { applyTextFormat, handleFormatKeyDown, renderFormattedText } from '../../utils/textFormatter';
 import { InCanvasGuidanceEditor } from './InCanvasGuidanceEditor';
@@ -243,68 +243,35 @@ export const InCanvasLabelField: React.FC<InCanvasLabelFieldProps> = ({
 
         {/* Right Section: Guidance Button + FieldTypeDropdown */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-          {field.guidance ? (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onSelectField();
-                onToggleGuidance();
-              }}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '3px',
-                background: isGuidanceExpanded ? '#f0fdfa' : '#f8fafc',
-                border: `1px solid ${isGuidanceExpanded ? '#0d9488' : '#cbd5e1'}`,
-                borderRadius: '4px',
-                padding: '2px 6px',
-                fontSize: '0.72rem',
-                color: isGuidanceExpanded ? '#0f766e' : '#475569',
-                cursor: 'pointer',
-                fontWeight: 500,
-                transition: 'all 0.15s ease',
-                flexShrink: 0
-              }}
-              title={isGuidanceExpanded ? 'Thu gọn hướng dẫn' : 'Xem/sửa hướng dẫn'}
-            >
-              <span>💡</span>
-              <span>Hướng dẫn</span>
-              {isGuidanceExpanded ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
-            </button>
-          ) : (
-            (isFieldSelected || isGuidanceExpanded) && (
-              <button
-                type="button"
-                disabled={isLocked}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onSelectField();
-                  onToggleGuidance();
-                }}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '2px',
-                  background: 'transparent',
-                  border: '1px dashed #0d9488',
-                  borderRadius: '4px',
-                  padding: '2px 5px',
-                  fontSize: '0.7rem',
-                  color: '#0d9488',
-                  cursor: isLocked ? 'not-allowed' : 'pointer',
-                  fontWeight: 500,
-                  opacity: 0.85,
-                  transition: 'all 0.15s ease',
-                  flexShrink: 0
-                }}
-                title="Thêm hướng dẫn cho nhãn này"
-              >
-                <Plus size={10} />
-                <span>💡 Hướng dẫn</span>
-              </button>
-            )
-          )}
+          {/* Guidance Icon Button */}
+          <button
+            type="button"
+            disabled={isLocked}
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelectField();
+              onToggleGuidance();
+            }}
+            style={{
+              display: (field.guidance || isFieldSelected || isGuidanceExpanded) ? 'inline-flex' : 'none',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '22px',
+              height: '22px',
+              borderRadius: '4px',
+              background: isGuidanceExpanded ? '#f0fdfa' : field.guidance ? '#f8fafc' : 'transparent',
+              border: `1px ${field.guidance ? 'solid' : 'dashed'} ${isGuidanceExpanded ? '#0d9488' : field.guidance ? '#cbd5e1' : '#94a3b8'}`,
+              color: isGuidanceExpanded ? '#0d9488' : field.guidance ? '#0f766e' : '#94a3b8',
+              cursor: isLocked ? 'not-allowed' : 'pointer',
+              fontSize: '0.75rem',
+              transition: 'all 0.15s ease',
+              flexShrink: 0,
+              padding: 0
+            }}
+            title={isGuidanceExpanded ? 'Thu gọn hướng dẫn' : field.guidance ? 'Xem/sửa hướng dẫn' : 'Thêm hướng dẫn'}
+          >
+            <span style={{ fontSize: '0.8rem', lineHeight: 1, filter: field.guidance ? 'none' : 'grayscale(100%) opacity(0.6)' }}>💡</span>
+          </button>
           {renderColSpanToggle}
           {renderTypeDropdown}
         </div>
