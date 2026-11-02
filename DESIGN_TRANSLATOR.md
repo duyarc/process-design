@@ -8,8 +8,8 @@
 |---|---|
 | **Module Name** | Form Translator |
 | **Status** | Active Development |
-| **Document Version** | 1.4 |
-| **Verified At Commit** | (2026-10-29) — Factory Audit Assessment domain profile, FKYC5-EN (286 strings) translation & persistence, and minimal review report verified against PostgreSQL |
+| **Document Version** | 1.5 |
+| **Verified At Commit** | (2026-10-29) — Comprehensive extraction of guidance (19), unit (24), optionGroups (14) totaling 343 strings, zero remaining Vietnamese strings in FKYC5/FKYC5-EN verified against PostgreSQL |
 
 > **⚠️ Architectural Invariant:** The Form Translator module is **strictly backend and agent-driven with zero frontend UI footprint**. It is executed via Antigravity agent CLI commands (`npm run translate -- ...`) or programmatic backend pipelines. It operates on `FormTemplateISO` schemas, protecting structural IDs while translating user-facing text into professional ISO 9001/QC English.
 
@@ -89,11 +89,11 @@ sequenceDiagram
 | Category | Translatable Attributes (Mutated by LLM) | Shielded Attributes (PERMANENTLY LOCKED) |
 |---|---|---|
 | **Form Root** | `formTitle`, `form_title` | `formId`, `form_id`, `version`, `status`, `pageSize` |
-| **Blocks** | `block.title`, `block.formTitle`, `block.description` | `block.id`, `block.type`, `block.columns`, `block.borderStyle`, `visibilityCondition` |
-| **Fields** | `field.checkItem`, `field.targetRange`, `field.unit`, `field.placeholder`, `field.reactionProtocol` | `field.id`, `field.type`, `field.locationCode`, `field.frequency` |
-| **Options** | `option.label` | `option.value` (`PASS`, `FAIL`, `OPT_*`), `option.isPass`, `option.isOther` |
-| **Table Columns** | `column.label`, `column.options[].label` | `column.id`, `column.type`, `column.width`, `column.align` |
-| **Table Rows** | `row.groupTitle`, `row.label` | `row.id`, `row.isGroupHeader`, `row.lineCount` |
+| **Blocks** | `block.title`, `block.formTitle`, `block.description`, `block.guidance` | `block.id`, `block.type`, `block.columns`, `block.borderStyle`, `visibilityCondition` |
+| **Fields** | `field.checkItem`, `field.targetRange`, `field.unit`, `field.placeholder`, `field.reactionProtocol`, `field.guidance`, `field.imageCaption`, `field.optionGroups` | `field.id`, `field.type`, `field.locationCode`, `field.frequency` |
+| **Options** | `option.label`, `option.group` | `option.value` (`PASS`, `FAIL`, `OPT_*`), `option.isPass`, `option.isOther` |
+| **Table Columns** | `column.label`, `column.unit`, `column.options[].label` | `column.id`, `column.type`, `column.width`, `column.align` |
+| **Table Rows** | `row.groupTitle`, `row.label`, `row.guidance` | `row.id`, `row.isGroupHeader`, `row.lineCount` |
 | **Table Cells** | `tableData[rowId][colId]` (text cells) | Cell structure, coordinates, numeric metrics |
 
 ### 3.1 Domain-Agnostic Terminology Citation Schema
@@ -157,3 +157,4 @@ npm run translate -- run --formId 3S-QC/Q1.1e --override "8: Indirect Export"
 | 2026-09-20 | **Context-Driven Web Search Invariant:** Codified mandatory rule banning reliance on internal LLM reasoning alone. Grounded technical terms via dynamic, context-driven web search (search_web) and domain-agnostic TerminologyCitation provenance schema. |
 | 2026-09-20 | **Minimal Review Report & Override Protocol:** Added `reporter.cjs` generating minimal 2-column review tables (#, Source, Selected Translation, Override Syntax) and added interactive / CLI `--override` parsing support. |
 | 2026-10-29 | **Form FKYC5-EN Translation & Domain Profile:** Added `FACTORY_AUDIT_ASSESSMENT` domain profile (`glossaryKYC.cjs`) grounded in ISO 19011, GFSI, and maintenance CM/PM standards. Translated and persisted 286 strings for `FKYC5-EN` to PostgreSQL. |
+| 2026-10-29 | **Full Guidance & Units Extraction & Standards Alignment:** Expanded `extractor.cjs` to extract `guidance`, `unit`, `optionGroups`, `options[].group`, and `row.guidance` (343 strings). Replaced word-by-word translations with standardized international audit terms (ISO 19011, ISO 22000, BRCGS Issue 9, Incoterms, APICS, SMETA). Verified 0 Vietnamese strings remaining in database. |

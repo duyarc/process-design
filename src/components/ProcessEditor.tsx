@@ -3,6 +3,7 @@ import type { Process, ProcessStep, FormField, FormDesignerField, SOPSignOff, SO
 import { Save, Plus, Trash2, ArrowUp, ArrowDown, Edit2, Eye, Printer, GitBranch, XCircle, Shield, Calendar, RotateCcw, ArrowLeft } from 'lucide-react';
 import FormBuilder from './FormBuilder';
 import PrintBlankForm from './print/PrintBlankForm';
+import ConfirmModal from './common/ConfirmModal';
 import { generateBPMNXML } from '../utils/bpmnXmlGenerator';
 import { extractLinkedWorkSteps, renameFormInSteps } from '../utils/formUtils';
 import { useAuth } from '../context/AuthContext';
@@ -240,6 +241,13 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
   const [versionActionLoading, setVersionActionLoading] = useState(false);
   const [roles, setRoles] = useState<string[]>(['Operator']);
   const [newRoleInput, setNewRoleInput] = useState('');
+  const [editingRoleIndex, setEditingRoleIndex] = useState<number | null>(null);
+  const [editingRoleText, setEditingRoleText] = useState<string>('');
+  const [roleError, setRoleError] = useState<string>('');
+  const [roleDeleteWarning, setRoleDeleteWarning] = useState<{ isOpen: boolean; message: string }>({
+    isOpen: false,
+    message: ''
+  });
   const [steps, setSteps] = useState<ProcessStep[]>([]);
   /** Bypass race condition: handleSave đọc ref này thay vì state nếu có giá trị */
   const pendingStepsRef = useRef<ProcessStep[] | null>(null);
@@ -453,41 +461,64 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
   const handleAddRole = () => {
     const trimmed = newRoleInput.trim();
     if (!trimmed) return;
-    if (roles.includes(trimmed)) {
-      alert('Role already exists.');
+    if (roles.map(r => r.toLowerCase()).includes(trimmed.toLowerCase())) {
+      setRoleError(`Vai trò "${trimmed}" đã tồn tại.`);
       return;
     }
     setRoles(prev => [...prev, trimmed]);
     setNewRoleInput('');
+    setRoleError('');
+  };
+
+  const handleStartRenameRole = (roleName: string, index: number) => {
+    setEditingRoleIndex(index);
+    setEditingRoleText(roleName);
+    setRoleError('');
+  };
+
+  const handleCommitRenameRole = (index: number) => {
+    const oldRoleName = roles[index];
+    const trimmed = editingRoleText.trim();
+    
+    if (!trimmed || trimmed === oldRoleName) {
+      setEditingRoleIndex(null);
+      setRoleError('');
+      return;
+    }
+
+    const isDuplicate = roles.some((r, i) => i !== index && r.toLowerCase() === trimmed.toLowerCase());
+    if (isDuplicate) {
+      setRoleError(`Vai trò "${trimmed}" đã tồn tại.`);
+      return;
+    }
+
+    setRoles(prev => prev.map((r, i) => i === index ? trimmed : r));
+    setSteps(prev => prev.map(s => s.role === oldRoleName ? { ...s, role: trimmed } : s));
+    setEditingRoleIndex(null);
+    setRoleError('');
+  };
+
+  const handleCancelRenameRole = () => {
+    setEditingRoleIndex(null);
+    setRoleError('');
   };
 
   const handleDeleteRole = (roleToDelete: string) => {
     if (roles.length <= 1) {
-      alert('At least one role is required.');
+      setRoleError('Quy trình cần tối thiểu 1 vai trò.');
       return;
     }
     const stepWithRole = steps.find(s => s.role === roleToDelete);
     if (stepWithRole) {
       const stepIndex = steps.indexOf(stepWithRole) + 1;
-      alert(`Cannot delete role "${roleToDelete}" because it is assigned to Step #${stepIndex}. Please re-assign that step first.`);
+      setRoleDeleteWarning({
+        isOpen: true,
+        message: `Không thể xóa vai trò "${roleToDelete}" vì đang được phân công tại Bước #${stepIndex}. Vui lòng đổi vai trò của bước này trước.`
+      });
       return;
     }
     setRoles(prev => prev.filter(r => r !== roleToDelete));
-  };
-
-  const handleRenameRole = (oldRoleName: string) => {
-    const newRoleName = window.prompt(`Rename role "${oldRoleName}" to:`, oldRoleName);
-    if (!newRoleName) return;
-    const trimmed = newRoleName.trim();
-    if (!trimmed || trimmed === oldRoleName) return;
-
-    if (roles.includes(trimmed)) {
-      alert('A role with this name already exists.');
-      return;
-    }
-
-    setRoles(prev => prev.map(r => r === oldRoleName ? trimmed : r));
-    setSteps(prev => prev.map(s => s.role === oldRoleName ? { ...s, role: trimmed } : s));
+    setRoleError('');
   };
 
   // Helper to migrate legacy form-name keys to strictly formId keys
@@ -1528,93 +1559,181 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
             </div>
 
             <div className="form-group" style={{ marginBottom: '1.5rem', borderTop: '1px dashed var(--neutral-border)', paddingTop: '1.5rem' }}>
-              <label className="form-label">Involved Roles*</label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.75rem', padding: '0.5rem', border: '1px solid var(--neutral-border)', borderRadius: 'var(--component-radius)', minHeight: '42px', background: '#f9fafb' }}>
-                {roles.map((role) => (
-                  <span 
-                    key={role} 
-                    className="badge" 
-                    style={{ 
-                      backgroundColor: 'var(--primary)', 
-                      color: '#ffffff', 
-                      padding: '0.25rem 0.55rem', 
-                      display: 'inline-flex', 
-                      alignItems: 'center', 
-                      gap: '0.4rem',
-                      textTransform: 'none',
-                      fontWeight: 500,
-                      fontSize: '0.8rem',
-                      borderRadius: '4px'
-                    }}
-                  >
-                    <span>{role}</span>
-                    {!isReadOnly && (
-                      <button 
-                        type="button" 
-                        onClick={() => handleRenameRole(role)}
-                        title="Rename role"
-                        style={{ 
-                          border: 'none', 
-                          background: 'transparent', 
-                          color: 'rgba(255, 255, 255, 0.75)', 
-                          cursor: 'pointer',
-                          padding: 0,
-                          display: 'flex',
-                          alignItems: 'center'
+              <label className="form-label" style={{ fontWeight: 600, fontSize: '0.875rem', marginBottom: '0.5rem', display: 'block' }}>
+                Involved Roles*
+              </label>
+              <div 
+                style={{ 
+                  display: 'flex', 
+                  flexWrap: 'wrap', 
+                  alignItems: 'center', 
+                  gap: '0.4rem', 
+                  padding: '0.4rem 0.5rem', 
+                  border: roleError ? '1px solid #ef4444' : '1px solid var(--neutral-border)', 
+                  borderRadius: 'var(--component-radius)', 
+                  minHeight: '42px', 
+                  background: '#ffffff',
+                  boxShadow: 'inset 0 1px 2px rgba(0, 0, 0, 0.02)',
+                  transition: 'border-color 0.15s ease'
+                }}
+              >
+                {roles.map((role, idx) => {
+                  const isEditing = editingRoleIndex === idx;
+                  if (isEditing) {
+                    return (
+                      <div
+                        key={idx}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          backgroundColor: 'var(--primary-bg, #f0fdfa)',
+                          border: '1.5px solid var(--primary)',
+                          borderRadius: '4px',
+                          padding: '0.15rem 0.4rem',
+                          gap: '0.3rem'
                         }}
                       >
-                        <Edit2 size={12} />
-                      </button>
-                    )}
-                    {!isReadOnly && (
-                      <button 
-                        type="button" 
-                        onClick={() => handleDeleteRole(role)}
-                        title="Delete role"
-                        style={{ 
-                          border: 'none', 
-                          background: 'transparent', 
-                          color: 'rgba(255, 255, 255, 0.75)', 
-                          cursor: 'pointer',
-                          padding: 0,
-                          lineHeight: 1,
-                          fontSize: '0.9rem',
-                          display: 'flex',
-                          alignItems: 'center'
-                        }}
+                        <input
+                          type="text"
+                          autoFocus
+                          value={editingRoleText}
+                          onChange={(e) => {
+                            setEditingRoleText(e.target.value);
+                            setRoleError('');
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleCommitRenameRole(idx);
+                            } else if (e.key === 'Escape') {
+                              e.preventDefault();
+                              handleCancelRenameRole();
+                            }
+                          }}
+                          onBlur={() => handleCommitRenameRole(idx)}
+                          style={{
+                            border: 'none',
+                            background: 'transparent',
+                            outline: 'none',
+                            fontSize: '0.8rem',
+                            fontWeight: 600,
+                            color: 'var(--text-primary)',
+                            width: `${Math.max(editingRoleText.length * 8 + 16, 50)}px`,
+                            maxWidth: '180px',
+                            padding: 0
+                          }}
+                        />
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <span 
+                      key={role} 
+                      className="badge" 
+                      style={{ 
+                        backgroundColor: 'var(--primary)', 
+                        color: '#ffffff', 
+                        padding: '0.25rem 0.55rem', 
+                        display: 'inline-flex', 
+                        alignItems: 'center', 
+                        gap: '0.35rem',
+                        textTransform: 'none',
+                        fontWeight: 500,
+                        fontSize: '0.8rem',
+                        borderRadius: '4px',
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                      }}
+                    >
+                      <span 
+                        onClick={() => !isReadOnly && handleStartRenameRole(role, idx)}
+                        title={!isReadOnly ? "Nhấp để đổi tên vai trò" : undefined}
+                        style={{ cursor: !isReadOnly ? 'pointer' : 'default', userSelect: 'none' }}
                       >
-                        ×
-                      </button>
-                    )}
-                  </span>
-                ))}
-              </div>
-              {!isReadOnly && (
-                <div style={{ display: 'flex', gap: '0.5rem', maxWidth: '400px' }}>
+                        {role}
+                      </span>
+                      {!isReadOnly && (
+                        <button 
+                          type="button" 
+                          onClick={() => handleStartRenameRole(role, idx)}
+                          title="Đổi tên vai trò"
+                          style={{ 
+                            border: 'none', 
+                            background: 'transparent', 
+                            color: 'rgba(255, 255, 255, 0.75)', 
+                            cursor: 'pointer', 
+                            padding: 0,
+                            display: 'flex',
+                            alignItems: 'center'
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.color = '#ffffff'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255, 255, 255, 0.75)'; }}
+                        >
+                          <Edit2 size={11} />
+                        </button>
+                      )}
+                      {!isReadOnly && (
+                        <button 
+                          type="button" 
+                          onClick={() => handleDeleteRole(role)}
+                          title="Xóa vai trò"
+                          style={{ 
+                            border: 'none', 
+                            background: 'transparent', 
+                            color: 'rgba(255, 255, 255, 0.75)', 
+                            cursor: 'pointer', 
+                            padding: 0,
+                            lineHeight: 1,
+                            fontSize: '0.9rem',
+                            display: 'flex',
+                            alignItems: 'center'
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.color = '#ffffff'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(255, 255, 255, 0.75)'; }}
+                        >
+                          ×
+                        </button>
+                      )}
+                    </span>
+                  );
+                })}
+
+                {!isReadOnly && (
                   <input
                     type="text"
-                    placeholder="e.g. Supervisor"
+                    placeholder={roles.length === 0 ? "Nhập tên vai trò và nhấn Enter..." : "+ Thêm vai trò (nhấn Enter)..."}
                     value={newRoleInput}
-                    onChange={(e) => setNewRoleInput(e.target.value)}
+                    onChange={(e) => {
+                      setNewRoleInput(e.target.value);
+                      setRoleError('');
+                    }}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
+                      if (e.key === 'Enter' || e.key === ',') {
                         e.preventDefault();
                         handleAddRole();
                       }
                     }}
-                    style={{ flex: 1 }}
+                    style={{
+                      border: 'none',
+                      outline: 'none',
+                      background: 'transparent',
+                      padding: '0.2rem 0.4rem',
+                      fontSize: '0.825rem',
+                      flex: '1 1 140px',
+                      minWidth: '120px',
+                      color: 'var(--text-primary)'
+                    }}
                   />
-                  <button 
-                    type="button" 
-                    className="btn btn-secondary" 
-                    onClick={handleAddRole}
-                    style={{ padding: '0.5rem 1rem' }}
-                  >
-                    Add
-                  </button>
+                )}
+              </div>
+
+              {roleError && (
+                <div style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.35rem', fontWeight: 500 }}>
+                  {roleError}
                 </div>
               )}
             </div>
+
 
           </div>
           </fieldset>
@@ -3078,6 +3197,17 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
           onClose={() => setPrintTemplateData(null)}
         />
       )}
+
+      <ConfirmModal
+        isOpen={roleDeleteWarning.isOpen}
+        title="Không thể xóa vai trò"
+        message={roleDeleteWarning.message}
+        variant="warning"
+        confirmText="Đã hiểu"
+        hideCancel={true}
+        onConfirm={() => setRoleDeleteWarning({ isOpen: false, message: '' })}
+        onCancel={() => setRoleDeleteWarning({ isOpen: false, message: '' })}
+      />
     </div>
   );
 };

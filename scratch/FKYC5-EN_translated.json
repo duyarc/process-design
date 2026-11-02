@@ -1,7 +1,7 @@
 {
   "formId": "FKYC5-EN",
   "formName": "FKYC5-EN",
-  "formTitle": "Factory Audit Guideline",
+  "formTitle": "Factory Assessment Guideline",
   "status": "DRAFT",
   "version": "v0.1",
   "effectiveDate": null,
@@ -9,12 +9,12 @@
     {
       "id": "b_title_fa02",
       "type": "TITLE",
-      "title": "Factory Audit Guideline",
+      "title": "Factory Assessment Guideline",
       "fields": [],
       "columns": 1,
       "formCode": "FKYC5-EN",
       "showDate": false,
-      "formTitle": "Factory Audit Guideline",
+      "formTitle": "Factory Assessment Guideline",
       "datePosition": "B"
     },
     {
@@ -45,7 +45,7 @@
           "id": "thong_tin_moi",
           "type": "label",
           "rowSpan": 3,
-          "checkItem": "Factory audit is an on-site assessment designed to verify and evaluate actual manufacturing capacity and identify operational risks of processing plants and workshops. This establishes cooperation priorities and suitability against importer requirements.",
+          "checkItem": "Factory audit is an on-site assessment designed to verify and evaluate actual manufacturing capacity and identify operational risks of processing plants and production facilities. This establishes cooperation priorities and facilitates optimal buyer–supplier matching based on importer requirements.",
           "placeholder": "[photo]",
           "locationCode": "LOC-40",
           "reactionProtocol": ""
@@ -54,7 +54,7 @@
           "id": "thong_tin_moi_2",
           "type": "label",
           "guidance": "",
-          "checkItem": "**AUDIT METHODOLOGY:**\nThe assessment is conducted through a comprehensive evaluation of plant operations, categorized into 6 core criteria:\n\n**Manufacturing:** Assesses plant capacity and asset utilization; equipment condition; raw material supply stability and input supplier diversification.\n**QC:** Evaluates the food safety management system via valid international certifications (HACCP, ISO 22000, FSSC, BRCGS); analytical testing capability (in-house/independent laboratory); end-to-end quality control procedures; sample retention protocols and complaint resolution efficiency.\n**Logistics:** Assesses On-Time In-Full (OTIF) order fulfillment rates; lead time capabilities and delivery consistency.\n**Organizational Capability:** Assesses organizational chart efficiency; executive management tenure; retention of key personnel; and crisis management preparedness.\n**Compliance:** Evaluates historical compliance with customs, phytosanitary, and labeling regulations; reviews regulatory alert lists in key export markets (FDA, EU); assesses risks related to occupational health and safety, environmental protection, and social compliance.\n**Digital Transformation:** Measures digitalization maturity of existing processes; IT investment levels; and adoption roadmap for emerging production technologies.\n\nSpecific evaluation criteria are presented in the questionnaire below. For each question, click **💡Guideline** to review detailed evaluation instructions.",
+          "checkItem": "**EVALUATION FRAMEWORK:**\nThe facility is comprehensively assessed across 6 operational dimensions:\n\n**Manufacturing:** Assesses plant capacity and asset utilization; equipment condition; raw material supply stability and supply base diversification.\n**QC:** Evaluates the food safety management system via valid international certifications (HACCP, ISO 22000, FSSC, BRCGS); analytical testing capability (in-house/independent laboratory); end-to-end quality control procedures; sample retention protocols and complaint resolution efficiency.\n**Logistics:** Assesses On-Time In-Full (OTIF) order fulfillment rates; lead time capabilities and delivery consistency.\n**Organizational Capability:** Assesses organizational chart efficiency; executive management tenure; retention of key personnel; and crisis management preparedness.\n**Compliance:** Evaluates historical compliance with customs, phytosanitary, and labeling regulations; reviews regulatory alert lists in key export markets (FDA, EU); assesses risks related to occupational health and safety, environmental protection, and social compliance.\n**Digital Transformation:** Measures digitalization maturity of existing processes; IT investment levels; and adoption roadmap for emerging production technologies.\n\nSpecific evaluation criteria are presented in the questionnaire below. For each question, click **💡Guideline** to review detailed evaluation instructions.",
           "locationCode": "LOC-46",
           "reactionProtocol": ""
         }
@@ -1985,7 +1985,7 @@
   "pageSize": "A4",
   "isPublic": true,
   "defaultFocusMode": true,
-  "form_title": "Factory Audit Guideline",
+  "form_title": "Factory Assessment Guideline",
   "form_id": "FKYC5-EN",
   "form_name": "FKYC5-EN"
 }

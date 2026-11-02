@@ -344,13 +344,13 @@ const TERMINOLOGY_CITATIONS = {
     referenceUrl: "https://www.ascm.org",
     scope: "Inbound Supply Chain & Procurement"
   },
-  "Factory Audit Guideline": {
-    term: "Factory Audit Guideline",
+  "Factory Assessment Guideline": {
+    term: "Factory Assessment Guideline",
     authority: "ISO",
     standardDoc: "ISO 19011:2018 (Guidelines for Auditing Management Systems)",
-    section: "Clause 6: Conducting an Audit",
+    section: "Clause 6: Conducting an Audit / Facility Evaluation",
     referenceUrl: "https://www.iso.org",
-    scope: "Supplier Evaluation & Facility Audit"
+    scope: "Supplier Evaluation & Facility Assessment"
   },
   "CM/PM Ratio": {
     term: "CM/PM Ratio",

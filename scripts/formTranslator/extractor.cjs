@@ -60,6 +60,13 @@ function extractTranslatableStrings(form) {
         paths.push(path);
       }
 
+      // Block guidance (e.g. general guidance for entire block or TABLE)
+      if (typeof block.guidance === 'string' && block.guidance.trim()) {
+        const path = `blocks[${bIdx}].guidance`;
+        dictionary[path] = block.guidance.trim();
+        paths.push(path);
+      }
+
       // Legacy CHECKLIST_TABLE custom columnLabels
       if (block.columnLabels && typeof block.columnLabels === 'object') {
         ['stt', 'item', 'target', 'reaction'].forEach(colKey => {
@@ -104,6 +111,38 @@ function extractTranslatableStrings(form) {
             paths.push(path);
           }
 
+          // Field guidance (detailed evaluation criteria / guidance)
+          if (typeof field.guidance === 'string' && field.guidance.trim()) {
+            const path = `blocks[${bIdx}].fields[${fIdx}].guidance`;
+            dictionary[path] = field.guidance.trim();
+            paths.push(path);
+          }
+
+          // Field unit of measurement
+          if (typeof field.unit === 'string' && field.unit.trim()) {
+            const path = `blocks[${bIdx}].fields[${fIdx}].unit`;
+            dictionary[path] = field.unit.trim();
+            paths.push(path);
+          }
+
+          // Field imageCaption
+          if (typeof field.imageCaption === 'string' && field.imageCaption.trim()) {
+            const path = `blocks[${bIdx}].fields[${fIdx}].imageCaption`;
+            dictionary[path] = field.imageCaption.trim();
+            paths.push(path);
+          }
+
+          // Field optionGroups
+          if (Array.isArray(field.optionGroups)) {
+            field.optionGroups.forEach((grp, gIdx) => {
+              if (typeof grp === 'string' && grp.trim()) {
+                const path = `blocks[${bIdx}].fields[${fIdx}].optionGroups[${gIdx}]`;
+                dictionary[path] = grp.trim();
+                paths.push(path);
+              }
+            });
+          }
+
           // Field options (for radio, checkbox, select)
           if (Array.isArray(field.options)) {
             field.options.forEach((opt, oIdx) => {
@@ -113,6 +152,13 @@ function extractTranslatableStrings(form) {
                   const path = `blocks[${bIdx}].fields[${fIdx}].options[${oIdx}].label`;
                   dictionary[path] = opt.label.trim();
                   paths.push(path);
+                }
+
+                // Option group
+                if (typeof opt.group === 'string' && opt.group.trim()) {
+                  const groupPath = `blocks[${bIdx}].fields[${fIdx}].options[${oIdx}].group`;
+                  dictionary[groupPath] = opt.group.trim();
+                  paths.push(groupPath);
                 }
               }
             });
@@ -126,6 +172,13 @@ function extractTranslatableStrings(form) {
           if (col && typeof col.label === 'string' && col.label.trim()) {
             const path = `blocks[${bIdx}].tableColumns[${cIdx}].label`;
             dictionary[path] = col.label.trim();
+            paths.push(path);
+          }
+
+          // Column unit of measurement
+          if (col && typeof col.unit === 'string' && col.unit.trim()) {
+            const path = `blocks[${bIdx}].tableColumns[${cIdx}].unit`;
+            dictionary[path] = col.unit.trim();
             paths.push(path);
           }
 
@@ -156,6 +209,11 @@ function extractTranslatableStrings(form) {
           if (typeof row.label === 'string' && row.label.trim()) {
             const path = `blocks[${bIdx}].tableRows[${rIdx}].label`;
             dictionary[path] = row.label.trim();
+            paths.push(path);
+          }
+          if (typeof row.guidance === 'string' && row.guidance.trim()) {
+            const path = `blocks[${bIdx}].tableRows[${rIdx}].guidance`;
+            dictionary[path] = row.guidance.trim();
             paths.push(path);
           }
         });

@@ -212,13 +212,17 @@ async function main() {
       case 'run': {
         const formId = args.formId || args._[1];
         const srcFormId = args.from || args.srcFormId;
-        const targetFormId = args.to || args.targetFormId || formId;
+        const targetFormId = args.to || args.targetFormId;
         if (!formId && !srcFormId && !targetFormId) {
           console.error('Error: --formId or --from/--to is required. Example: node cli.cjs run --formId 3S-QC/Q1.1e');
           process.exit(1);
         }
-        const effectiveTarget = targetFormId || formId;
-        console.log(`Starting FormTranslator pipeline for '${effectiveTarget}' (dryRun: ${!!args.dryRun})...`);
+        const effectiveSource = srcFormId || formId;
+        const defaultTarget = (effectiveSource.endsWith('-EN') || effectiveSource.endsWith('e'))
+          ? effectiveSource
+          : `${effectiveSource}-EN`;
+        const effectiveTarget = targetFormId || defaultTarget;
+        console.log(`Starting FormTranslator pipeline for '${effectiveTarget}' (from '${effectiveSource}', dryRun: ${!!args.dryRun})...`);
         const result = await translateFormPipeline({
           formId,
           srcFormId,
