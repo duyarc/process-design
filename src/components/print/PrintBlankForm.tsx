@@ -501,35 +501,53 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                           }
 
                           if (f.type === 'date') {
+                            const isRange = f.dateMode === 'range';
                             return (
                               <div key={f.id} style={{ ...gridItemStyle, display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', minHeight: 'var(--pw-line-h)', gap: '8px', fontSize: '0.82rem' }}>
                                   {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap', lineHeight: 1.4 }}>{renderFormattedText(cleanLabel)}</span>}
-                                  <div style={{ fontSize: '0.82rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '4px', flex: 1 }}>
-                                    <span
-                                      data-acroform-field="true"
-                                      data-field-id={`${f.id}_dd`}
-                                      data-field-type="date_part"
-                                      data-field-name={`${cleanLabel} (Ngày)`}
-                                      style={{ borderBottom: '1px dotted #cbd5e1', width: '24px', display: 'inline-block', height: '16px' }}
-                                    />
-                                    <span style={{ color: '#000000', fontWeight: 'var(--pw-weight-regular)' }}>/</span>
-                                    <span
-                                      data-acroform-field="true"
-                                      data-field-id={`${f.id}_mm`}
-                                      data-field-type="date_part"
-                                      data-field-name={`${cleanLabel} (Tháng)`}
-                                      style={{ borderBottom: '1px dotted #cbd5e1', width: '24px', display: 'inline-block', height: '16px' }}
-                                    />
-                                    <span style={{ color: '#000000', fontWeight: 'var(--pw-weight-regular)' }}>/</span>
-                                    <span
-                                      data-acroform-field="true"
-                                      data-field-id={`${f.id}_yyyy`}
-                                      data-field-type="date_part"
-                                      data-field-name={`${cleanLabel} (Năm)`}
-                                      style={{ borderBottom: '1px dotted #cbd5e1', width: '40px', display: 'inline-block', height: '16px' }}
-                                    />
-                                  </div>
+                                  {isRange ? (
+                                    <div style={{ fontSize: '0.82rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '4px', flex: 1 }}>
+                                      <span>Từ</span>
+                                      <span data-acroform-field="true" data-field-id={`${f.id}_start_dd`} data-field-type="date_part" data-field-name={`${cleanLabel} (Từ ngày)`} style={{ borderBottom: '1px dotted #cbd5e1', width: '24px', display: 'inline-block', height: '16px' }} />
+                                      <span style={{ color: '#000000', fontWeight: 'var(--pw-weight-regular)' }}>/</span>
+                                      <span data-acroform-field="true" data-field-id={`${f.id}_start_mm`} data-field-type="date_part" data-field-name={`${cleanLabel} (Từ tháng)`} style={{ borderBottom: '1px dotted #cbd5e1', width: '24px', display: 'inline-block', height: '16px' }} />
+                                      <span style={{ color: '#000000', fontWeight: 'var(--pw-weight-regular)' }}>/</span>
+                                      <span data-acroform-field="true" data-field-id={`${f.id}_start_yyyy`} data-field-type="date_part" data-field-name={`${cleanLabel} (Từ năm)`} style={{ borderBottom: '1px dotted #cbd5e1', width: '40px', display: 'inline-block', height: '16px' }} />
+                                      <span style={{ margin: '0 4px' }}>đến</span>
+                                      <span data-acroform-field="true" data-field-id={`${f.id}_end_dd`} data-field-type="date_part" data-field-name={`${cleanLabel} (Đến ngày)`} style={{ borderBottom: '1px dotted #cbd5e1', width: '24px', display: 'inline-block', height: '16px' }} />
+                                      <span style={{ color: '#000000', fontWeight: 'var(--pw-weight-regular)' }}>/</span>
+                                      <span data-acroform-field="true" data-field-id={`${f.id}_end_mm`} data-field-type="date_part" data-field-name={`${cleanLabel} (Đến tháng)`} style={{ borderBottom: '1px dotted #cbd5e1', width: '24px', display: 'inline-block', height: '16px' }} />
+                                      <span style={{ color: '#000000', fontWeight: 'var(--pw-weight-regular)' }}>/</span>
+                                      <span data-acroform-field="true" data-field-id={`${f.id}_end_yyyy`} data-field-type="date_part" data-field-name={`${cleanLabel} (Đến năm)`} style={{ borderBottom: '1px dotted #cbd5e1', width: '40px', display: 'inline-block', height: '16px' }} />
+                                    </div>
+                                  ) : (
+                                    <div style={{ fontSize: '0.82rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '4px', flex: 1 }}>
+                                      <span
+                                        data-acroform-field="true"
+                                        data-field-id={`${f.id}_dd`}
+                                        data-field-type="date_part"
+                                        data-field-name={`${cleanLabel} (Ngày)`}
+                                        style={{ borderBottom: '1px dotted #cbd5e1', width: '24px', display: 'inline-block', height: '16px' }}
+                                      />
+                                      <span style={{ color: '#000000', fontWeight: 'var(--pw-weight-regular)' }}>/</span>
+                                      <span
+                                        data-acroform-field="true"
+                                        data-field-id={`${f.id}_mm`}
+                                        data-field-type="date_part"
+                                        data-field-name={`${cleanLabel} (Tháng)`}
+                                        style={{ borderBottom: '1px dotted #cbd5e1', width: '24px', display: 'inline-block', height: '16px' }}
+                                      />
+                                      <span style={{ color: '#000000', fontWeight: 'var(--pw-weight-regular)' }}>/</span>
+                                      <span
+                                        data-acroform-field="true"
+                                        data-field-id={`${f.id}_yyyy`}
+                                        data-field-type="date_part"
+                                        data-field-name={`${cleanLabel} (Năm)`}
+                                        style={{ borderBottom: '1px dotted #cbd5e1', width: '40px', display: 'inline-block', height: '16px' }}
+                                      />
+                                    </div>
+                                  )}
                                 </div>
                                 {includeGuidance && f.guidance && <PrintFieldGuidanceBox guidance={f.guidance} />}
                               </div>

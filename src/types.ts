@@ -123,6 +123,8 @@ export interface FormFieldISO {
   frequency?: string;
   reactionProtocol: string;
   timeMode?: 'single' | 'dual';
+  dateMode?: 'single' | 'range';
+  isCustomId?: boolean;
   ratingScale?: 3 | 5; // Rating scale: 3 or 5 stars (default: 5)
   likertVariant?: 'scale' | 'stars'; // Scale display variant: 'scale' = Linear Point/Label, 'stars' = Star Rating
   scaleOptions?: string[]; // For 'likert_scale': list of scale labels e.g. ['1', '2', '3', '4', '5']
@@ -179,6 +181,7 @@ export interface TableColumnConfig {
   align?: 'left' | 'center' | 'right';
   checkboxLayout?: '1-column' | '2-column';
   timeMode?: 'single' | 'dual';
+  dateMode?: 'single' | 'range';
   ratingScale?: 3 | 5; // Rating scale: 3 or 5 stars (default: 5)
   scaleOptions?: string[]; // For 'likert_scale': list of scale labels, e.g. ['Easy to Answer', 'Could Answer', 'Difficult to Answer']
   summaryRows?: ColumnSummaryRowConfig[];

@@ -850,10 +850,16 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
 
                             // date / time / text / number — render value with underline line preserved
                             if (f.type === 'date') {
+                              const isRange = f.dateMode === 'range';
+                              let displayVal = val || '\u00A0';
+                              if (isRange && val && val.includes(' - ')) {
+                                const [s, e] = val.split(' - ');
+                                displayVal = `Từ ${s || '...'} đến ${e || '...'}`;
+                              }
                               return (
                                 <div key={f.id} style={{ ...gridItemStyle, display: 'flex', alignItems: 'center', minHeight: 'var(--pw-line-h)', gap: '8px', fontSize: '0.85rem' }}>
                                   {cleanLabel && <span style={{ fontWeight: 'var(--pw-weight-regular)', color: '#0f172a', whiteSpace: 'nowrap', lineHeight: 1.4 }}>{renderFormattedText(cleanLabel)}</span>}
-                                  <span style={{ fontWeight: 600, color: '#0f172a', minWidth: '80px', borderBottom: '1px dotted #cbd5e1', paddingBottom: '1px' }}>{val || '\u00A0'}</span>
+                                  <span style={{ fontWeight: 600, color: '#0f172a', minWidth: '80px', borderBottom: '1px dotted #cbd5e1', paddingBottom: '1px' }}>{displayVal}</span>
                                 </div>
                               );
                             }

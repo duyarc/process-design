@@ -1952,12 +1952,47 @@ function FormFillerInner({
                           </div>
                         )}
                         {field.type === 'date' ? (
-                          <input
-                            type="date"
-                            value={value}
-                            onChange={(e) => setFormValues(prev => ({ ...prev, [field.id]: e.target.value }))}
-                            style={inputStyle}
-                          />
+                          field.dateMode === 'range' ? (() => {
+                            const parts = (value || '').split(' - ');
+                            const sDate = parts[0] || '';
+                            const eDate = parts[1] || '';
+                            return (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', width: '100%' }}>
+                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                  <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginBottom: '1px' }}>Từ</span>
+                                  <input
+                                    type="date"
+                                    value={sDate}
+                                    onChange={(e) => {
+                                      const val = e.target.value;
+                                      setFormValues(prev => ({ ...prev, [field.id]: `${val} - ${eDate}` }));
+                                    }}
+                                    style={inputStyle}
+                                  />
+                                </div>
+                                <span style={{ marginTop: '12px', color: '#cbd5e1' }}>~</span>
+                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                  <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginBottom: '1px' }}>Đến</span>
+                                  <input
+                                    type="date"
+                                    value={eDate}
+                                    onChange={(e) => {
+                                      const val = e.target.value;
+                                      setFormValues(prev => ({ ...prev, [field.id]: `${sDate} - ${val}` }));
+                                    }}
+                                    style={inputStyle}
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })() : (
+                            <input
+                              type="date"
+                              value={value}
+                              onChange={(e) => setFormValues(prev => ({ ...prev, [field.id]: e.target.value }))}
+                              style={inputStyle}
+                            />
+                          )
                         ) : field.type === 'time' ? (
                           field.timeMode === 'dual' ? (() => {
                             const parts = (value || '').split(' - ');

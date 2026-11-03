@@ -2279,6 +2279,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
       newField.unit = '';
     } else if (type === 'time') {
       newField.timeMode = 'single';
+    } else if (type === 'date') {
+      newField.dateMode = 'single';
     } else if (type === 'radio' || type === 'checkbox') {
       newField.options = [...DEFAULT_RADIO_OPTIONS];
     } else if (type === 'photo') {
@@ -2325,6 +2327,19 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     }
   };
 
+  const handleAutoSlugField = (blockId: string, fieldId: string, label: string, fieldType?: string, force = false) => {
+    const field = layoutBlocks.flatMap(b => b.fields || []).find(f => f.id === fieldId);
+    if (!field) return;
+    if (!force && field.isCustomId) return;
+    const otherIds = layoutBlocks
+      .flatMap(b => (b.fields || []).map(f => f.id))
+      .filter(id => id !== fieldId);
+    const autoSlug = generateSmartFieldSlug(label, otherIds, fieldType || field.type);
+    if (autoSlug && autoSlug !== fieldId) {
+      handleUpdateField(blockId, fieldId, { id: autoSlug, isCustomId: false });
+    }
+  };
+
   const handleChangeFieldType = (blockId: string, fieldId: string, newType: FormFieldISO['type']) => {
     if (isLocked) return;
     
@@ -2340,6 +2355,11 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
       updates.unit = '';
     } else if (newType === 'time') {
       updates.timeMode = 'single';
+      updates.minSpec = undefined;
+      updates.maxSpec = undefined;
+      updates.unit = undefined;
+    } else if (newType === 'date') {
+      updates.dateMode = field?.dateMode || 'single';
       updates.minSpec = undefined;
       updates.maxSpec = undefined;
       updates.unit = undefined;
@@ -4034,10 +4054,13 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                             e.target.style.borderColor = 'var(--primary)';
                                             e.target.style.background = '#ffffff';
                                           }}
-                                          onBlur={(e) => {
-                                            e.target.style.borderColor = 'transparent';
-                                            e.target.style.background = 'transparent';
-                                          }}
+                                           onBlur={(e) => {
+                                             e.target.style.borderColor = 'transparent';
+                                             e.target.style.background = 'transparent';
+                                             if (!f.isCustomId && e.target.value.trim()) {
+                                               handleAutoSlugField(block.id, f.id, e.target.value, f.type);
+                                             }
+                                           }}
                                         />
                                       </div>
                                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0, marginTop: '2px' }}>
@@ -4286,6 +4309,25 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                             e.currentTarget.style.background = '#f8fafc';
                                           }}
                                         />
+                                      </div>
+                                    )}
+
+                                    {/* Date field preview (Single vs Range) */}
+                                    {f.type === 'date' && (
+                                      <div style={{ marginTop: '4px', width: '100%', display: 'flex', alignItems: 'center' }}>
+                                        {f.dateMode === 'range' ? (
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.74rem', color: '#64748b', background: '#f8fafc', padding: '3px 8px', borderRadius: '4px', border: '1px dashed #cbd5e1', width: '100%' }}>
+                                            <Calendar size={12} color="var(--primary)" />
+                                            <span>Từ: [Ngày/Tháng/Năm]</span>
+                                            <span style={{ color: '#cbd5e1' }}>~</span>
+                                            <span>Đến: [Ngày/Tháng/Năm]</span>
+                                          </div>
+                                        ) : (
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.74rem', color: '#64748b', background: '#f8fafc', padding: '3px 8px', borderRadius: '4px', border: '1px dashed #cbd5e1', width: '100%' }}>
+                                            <Calendar size={12} color="var(--primary)" />
+                                            <span>[Ngày/Tháng/Năm]</span>
+                                          </div>
+                                        )}
                                       </div>
                                     )}
 
@@ -7301,23 +7343,156 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.8rem' }}>
                 
-                {/* Field ID (Mã định danh trường) */}
+                {/* 1. Field Type (Loại trường - đưa lên đầu phân cấp) */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
+                  <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.78rem', minWidth: '40px' }}>Loại trường</label>
+                  <div style={{ flex: 1 }}>
+                    <FieldTypeDropdown
+                      disabled={isLocked}
+                      value={activeField.type}
+                      onChange={(newType) => handleChangeFieldType(activeBlockId!, activeFieldId!, newType)}
+                    />
+                  </div>
+                </div>
+
+                {/* 2. Date Mode: Single vs Range (Segmented Pill 1-chạm) */}
+                {activeField.type === 'date' && (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                    <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.75rem' }}>Chế độ ngày</label>
+                    <div style={{ display: 'inline-flex', background: '#f1f5f9', padding: '2px', borderRadius: '5px', border: '1px solid #cbd5e1', gap: '2px' }}>
+                      <button
+                        type="button"
+                        disabled={isLocked}
+                        onClick={() => handleUpdateField(activeBlockId!, activeFieldId!, { dateMode: 'single' })}
+                        style={{
+                          padding: '2px 8px',
+                          borderRadius: '3px',
+                          border: 'none',
+                          fontSize: '0.72rem',
+                          fontWeight: (activeField.dateMode || 'single') === 'single' ? 600 : 400,
+                          background: (activeField.dateMode || 'single') === 'single' ? 'var(--primary)' : 'transparent',
+                          color: (activeField.dateMode || 'single') === 'single' ? '#ffffff' : 'var(--text-secondary)',
+                          cursor: isLocked ? 'not-allowed' : 'pointer'
+                        }}
+                      >
+                        1 Ngày
+                      </button>
+                      <button
+                        type="button"
+                        disabled={isLocked}
+                        onClick={() => handleUpdateField(activeBlockId!, activeFieldId!, { dateMode: 'range' })}
+                        style={{
+                          padding: '2px 8px',
+                          borderRadius: '3px',
+                          border: 'none',
+                          fontSize: '0.72rem',
+                          fontWeight: activeField.dateMode === 'range' ? 600 : 400,
+                          background: activeField.dateMode === 'range' ? 'var(--primary)' : 'transparent',
+                          color: activeField.dateMode === 'range' ? '#ffffff' : 'var(--text-secondary)',
+                          cursor: isLocked ? 'not-allowed' : 'pointer'
+                        }}
+                      >
+                        Khoảng Từ - Đến
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* 3. Label */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Label</label>
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      <button
+                        type="button"
+                        title="In đậm (Ctrl+B)"
+                        disabled={isLocked}
+                        onClick={() => applyTextFormat(inspectorLabelRef.current, 'bold', activeField.checkItem, (val) => {
+                          handleUpdateField(activeBlockId!, activeFieldId!, { checkItem: val });
+                          if (!activeField.isCustomId) {
+                            handleAutoSlugField(activeBlockId!, activeFieldId!, val, activeField.type);
+                          }
+                        })}
+                        style={{ width: '22px', height: '22px', border: '1px solid #cbd5e1', borderRadius: '3px', background: '#ffffff', fontWeight: 'bold', fontSize: '0.75rem', cursor: isLocked ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      >
+                        B
+                      </button>
+                      <button
+                        type="button"
+                        title="In nghiêng (Ctrl+I)"
+                        disabled={isLocked}
+                        onClick={() => applyTextFormat(inspectorLabelRef.current, 'italic', activeField.checkItem, (val) => {
+                          handleUpdateField(activeBlockId!, activeFieldId!, { checkItem: val });
+                          if (!activeField.isCustomId) {
+                            handleAutoSlugField(activeBlockId!, activeFieldId!, val, activeField.type);
+                          }
+                        })}
+                        style={{ width: '22px', height: '22px', border: '1px solid #cbd5e1', borderRadius: '3px', background: '#ffffff', fontStyle: 'italic', fontSize: '0.75rem', cursor: isLocked ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      >
+                        I
+                      </button>
+                      <button
+                        type="button"
+                        title="Gạch chân (Ctrl+U)"
+                        disabled={isLocked}
+                        onClick={() => applyTextFormat(inspectorLabelRef.current, 'underline', activeField.checkItem, (val) => {
+                          handleUpdateField(activeBlockId!, activeFieldId!, { checkItem: val });
+                          if (!activeField.isCustomId) {
+                            handleAutoSlugField(activeBlockId!, activeFieldId!, val, activeField.type);
+                          }
+                        })}
+                        style={{ width: '22px', height: '22px', border: '1px solid #cbd5e1', borderRadius: '3px', background: '#ffffff', textDecoration: 'underline', fontSize: '0.75rem', cursor: isLocked ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      >
+                        U
+                      </button>
+                      <button
+                        type="button"
+                        title="Danh sách gạch đầu dòng (•)"
+                        disabled={isLocked}
+                        onClick={() => applyTextFormat(inspectorLabelRef.current, 'bullet', activeField.checkItem, (val) => {
+                          handleUpdateField(activeBlockId!, activeFieldId!, { checkItem: val });
+                          if (!activeField.isCustomId) {
+                            handleAutoSlugField(activeBlockId!, activeFieldId!, val, activeField.type);
+                          }
+                        })}
+                        style={{ width: '22px', height: '22px', border: '1px solid #cbd5e1', borderRadius: '3px', background: '#ffffff', fontSize: '0.85rem', cursor: isLocked ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      >
+                        •
+                      </button>
+                    </div>
+                  </div>
+                  <textarea
+                    ref={inspectorLabelRef}
+                    rows={activeField.type === 'label' ? 6 : 2}
+                    disabled={isLocked}
+                    value={activeField.checkItem}
+                    onKeyDown={(e) => handleFormatKeyDown(e, activeField.checkItem, (val) => {
+                      handleUpdateField(activeBlockId!, activeFieldId!, { checkItem: val });
+                      if (!activeField.isCustomId) {
+                        handleAutoSlugField(activeBlockId!, activeFieldId!, val, activeField.type);
+                      }
+                    })}
+                    onChange={(e) => handleUpdateField(activeBlockId!, activeFieldId!, { checkItem: e.target.value })}
+                    onBlur={(e) => {
+                      if (!activeField.isCustomId && e.target.value.trim()) {
+                        handleAutoSlugField(activeBlockId!, activeFieldId!, e.target.value, activeField.type);
+                      }
+                    }}
+                    style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', resize: 'vertical', fontSize: '0.8rem', fontFamily: 'inherit', lineHeight: 1.4 }}
+                  />
+                </div>
+
+                {/* 4. Field ID (Mã định danh kỹ thuật) */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.75rem' }}>
+                    <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.72rem' }}>
                       ID
                     </label>
                     <button
                       type="button"
-                      title="Tự động tạo lại ID sạch từ tiêu đề trường"
+                      title="Tự động đồng bộ lại ID sạch từ tiêu đề trường"
                       disabled={isLocked}
-                      onClick={() => {
-                        const otherIds = layoutBlocks
-                          .flatMap(b => (b.fields || []).map(f => f.id))
-                          .filter(id => id !== activeField.id);
-                        const autoSlug = generateSmartFieldSlug(activeField.checkItem, otherIds, activeField.type);
-                        handleUpdateField(activeBlockId!, activeFieldId!, { id: autoSlug });
-                      }}
+                      onClick={() => handleAutoSlugField(activeBlockId!, activeFieldId!, activeField.checkItem, activeField.type, true)}
                       style={{
                         display: 'inline-flex',
                         alignItems: 'center',
@@ -7340,82 +7515,17 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                     value={activeField.id}
                     onChange={(e) => {
                       const sanitized = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '');
-                      handleUpdateField(activeBlockId!, activeFieldId!, { id: sanitized });
+                      handleUpdateField(activeBlockId!, activeFieldId!, { id: sanitized, isCustomId: true });
                     }}
-                    placeholder="e.g. ten_doanh_nghiep"
+                    placeholder="e.g. thoi_han"
                     style={{
-                      padding: '0.35rem 0.5rem',
+                      padding: '0.3rem 0.5rem',
                       borderRadius: '4px',
                       border: '1px solid var(--neutral-border)',
                       fontFamily: 'monospace',
-                      fontSize: '0.78rem',
+                      fontSize: '0.75rem',
                       background: isLocked ? '#f8fafc' : '#ffffff'
                     }}
-                  />
-                </div>
-
-                {/* Field Type (Loại trường - đưa lên đầu phân cấp) */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
-                  <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.78rem', minWidth: '40px' }}>Loại trường</label>
-                  <div style={{ flex: 1 }}>
-                    <FieldTypeDropdown
-                      disabled={isLocked}
-                      value={activeField.type}
-                      onChange={(newType) => handleChangeFieldType(activeBlockId!, activeFieldId!, newType)}
-                    />
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Label</label>
-                    <div style={{ display: 'flex', gap: '4px' }}>
-                      <button
-                        type="button"
-                        title="In đậm (Ctrl+B)"
-                        disabled={isLocked}
-                        onClick={() => applyTextFormat(inspectorLabelRef.current, 'bold', activeField.checkItem, (val) => handleUpdateField(activeBlockId!, activeFieldId!, { checkItem: val }))}
-                        style={{ width: '22px', height: '22px', border: '1px solid #cbd5e1', borderRadius: '3px', background: '#ffffff', fontWeight: 'bold', fontSize: '0.75rem', cursor: isLocked ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                      >
-                        B
-                      </button>
-                      <button
-                        type="button"
-                        title="In nghiêng (Ctrl+I)"
-                        disabled={isLocked}
-                        onClick={() => applyTextFormat(inspectorLabelRef.current, 'italic', activeField.checkItem, (val) => handleUpdateField(activeBlockId!, activeFieldId!, { checkItem: val }))}
-                        style={{ width: '22px', height: '22px', border: '1px solid #cbd5e1', borderRadius: '3px', background: '#ffffff', fontStyle: 'italic', fontSize: '0.75rem', cursor: isLocked ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                      >
-                        I
-                      </button>
-                      <button
-                        type="button"
-                        title="Gạch chân (Ctrl+U)"
-                        disabled={isLocked}
-                        onClick={() => applyTextFormat(inspectorLabelRef.current, 'underline', activeField.checkItem, (val) => handleUpdateField(activeBlockId!, activeFieldId!, { checkItem: val }))}
-                        style={{ width: '22px', height: '22px', border: '1px solid #cbd5e1', borderRadius: '3px', background: '#ffffff', textDecoration: 'underline', fontSize: '0.75rem', cursor: isLocked ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                      >
-                        U
-                      </button>
-                      <button
-                        type="button"
-                        title="Danh sách gạch đầu dòng (•)"
-                        disabled={isLocked}
-                        onClick={() => applyTextFormat(inspectorLabelRef.current, 'bullet', activeField.checkItem, (val) => handleUpdateField(activeBlockId!, activeFieldId!, { checkItem: val }))}
-                        style={{ width: '22px', height: '22px', border: '1px solid #cbd5e1', borderRadius: '3px', background: '#ffffff', fontSize: '0.85rem', cursor: isLocked ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                      >
-                        •
-                      </button>
-                    </div>
-                  </div>
-                  <textarea
-                    ref={inspectorLabelRef}
-                    rows={activeField.type === 'label' ? 6 : 2}
-                    disabled={isLocked}
-                    value={activeField.checkItem}
-                    onKeyDown={(e) => handleFormatKeyDown(e, activeField.checkItem, (val) => handleUpdateField(activeBlockId!, activeFieldId!, { checkItem: val }))}
-                    onChange={(e) => handleUpdateField(activeBlockId!, activeFieldId!, { checkItem: e.target.value })}
-                    style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', resize: 'vertical', fontSize: '0.8rem', fontFamily: 'inherit', lineHeight: 1.4 }}
                   />
                 </div>
 
@@ -7889,17 +7999,44 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                 )}
 
                 {activeField.type === 'time' && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                    <label style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>Chế độ chọn giờ</label>
-                    <select
-                      disabled={isLocked}
-                      value={activeField.timeMode || 'single'}
-                      onChange={(e) => handleUpdateField(activeBlockId!, activeFieldId!, { timeMode: e.target.value as any })}
-                      style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', background: '#fff' }}
-                    >
-                      <option value="single">Một mốc giờ (Single)</option>
-                      <option value="dual">Khoảng Từ - Đến (Dual)</option>
-                    </select>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                    <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.75rem' }}>Chế độ giờ</label>
+                    <div style={{ display: 'inline-flex', background: '#f1f5f9', padding: '2px', borderRadius: '5px', border: '1px solid #cbd5e1', gap: '2px' }}>
+                      <button
+                        type="button"
+                        disabled={isLocked}
+                        onClick={() => handleUpdateField(activeBlockId!, activeFieldId!, { timeMode: 'single' })}
+                        style={{
+                          padding: '2px 8px',
+                          borderRadius: '3px',
+                          border: 'none',
+                          fontSize: '0.72rem',
+                          fontWeight: (activeField.timeMode || 'single') === 'single' ? 600 : 400,
+                          background: (activeField.timeMode || 'single') === 'single' ? 'var(--primary)' : 'transparent',
+                          color: (activeField.timeMode || 'single') === 'single' ? '#ffffff' : 'var(--text-secondary)',
+                          cursor: isLocked ? 'not-allowed' : 'pointer'
+                        }}
+                      >
+                        1 Giờ
+                      </button>
+                      <button
+                        type="button"
+                        disabled={isLocked}
+                        onClick={() => handleUpdateField(activeBlockId!, activeFieldId!, { timeMode: 'dual' })}
+                        style={{
+                          padding: '2px 8px',
+                          borderRadius: '3px',
+                          border: 'none',
+                          fontSize: '0.72rem',
+                          fontWeight: activeField.timeMode === 'dual' ? 600 : 400,
+                          background: activeField.timeMode === 'dual' ? 'var(--primary)' : 'transparent',
+                          color: activeField.timeMode === 'dual' ? '#ffffff' : 'var(--text-secondary)',
+                          cursor: isLocked ? 'not-allowed' : 'pointer'
+                        }}
+                      >
+                        Khoảng Từ - Đến
+                      </button>
+                    </div>
                   </div>
                 )}
 
