@@ -1,4 +1,4 @@
-import type { FormFieldISO, TitleFormatISO, LayoutBlockISO, RadioOption, ProcessStep, LinkedWorkStepInfo, Submission, TableColumnConfig } from '../types';
+import type { FormFieldISO, TitleFormatISO, LayoutBlockISO, RadioOption, ProcessStep, LinkedWorkStepInfo, Submission, TableColumnConfig, ColumnSummaryRowConfig, TableRowConfig } from '../types';
 
 /**
  * Automatically determines whether a checkbox or radio field should render using
@@ -1504,4 +1504,61 @@ export function formatIsoNumber(val: string | number | undefined | null): string
   const [, sign, intPart, decSep, decPart] = numMatch;
   const formattedInt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '\u00A0');
   return `${sign}${formattedInt}${decSep ? decSep + decPart : ''}`;
+}
+
+
+/**
+ * Determines whether a table column should have a summary (SUM) by default.
+ * Numeric columns represent quantities or monetary amounts, EXCEPT unit prices, rates, and indexes.
+ */
+export function isColumnSummableByDefault(col: { label?: string; type?: string }): boolean {
+  if (col.type !== 'number') return false;
+  const label = (col.label || '').toLowerCase();
+  // Exclude unit prices, rates, indexes, percentages
+  if (/(?:đơn\s*giá|đơn\s*gia|don\s*gia|unit\s*price|price|định\s*mức|dinh\s*muc|tỷ\s*lệ|ty\s*le|hệ\s*số|he\s*so|rate|ratio|percent|%)/i.test(label)) {
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Calculates summary value for a column in a table (sum, percentage, sum_all).
+ * Shared across FormBuilder, FormFiller, and PrintFilledForm.
+ */
+export function calculateTableColumnSummary(
+  col: TableColumnConfig,
+  row: ColumnSummaryRowConfig,
+  allSummaryRows: ColumnSummaryRowConfig[],
+  tableRows: TableRowConfig[],
+  getValue: (rowId: string, colId: string) => string | number | undefined
+): number {
+  if (row.type === 'sum') {
+    let sum = 0;
+    (tableRows || []).forEach((r) => {
+      if (r.isGroupHeader) return;
+      const raw = getValue(r.id, col.id);
+      if (raw === undefined || raw === null || raw === '') return;
+      const num = parseFloat(String(raw).replace(/[\s\u00A0,]/g, ''));
+      if (!isNaN(num)) sum += num;
+    });
+    return sum;
+  }
+  if (row.type === 'percentage') {
+    if (!row.percentageOfId) return 0;
+    const parentRow = allSummaryRows.find(r => r.id === row.percentageOfId);
+    if (!parentRow) return 0;
+    const parentVal = calculateTableColumnSummary(col, parentRow, allSummaryRows, tableRows, getValue);
+    return parentVal * ((row.percentageValue || 0) / 100);
+  }
+  if (row.type === 'sum_all') {
+    let sum = 0;
+    (row.sumRowIds || []).forEach(id => {
+      const targetRow = allSummaryRows.find(r => r.id === id);
+      if (targetRow) {
+        sum += calculateTableColumnSummary(col, targetRow, allSummaryRows, tableRows, getValue);
+      }
+    });
+    return sum;
+  }
+  return 0;
 }

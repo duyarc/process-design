@@ -69,7 +69,8 @@ import {
   getTableItemColumnId,
   clusterOptionsByGroup,
   parseChecklistValues,
-  formatIsoNumber
+  formatIsoNumber,
+  calculateTableColumnSummary
 } from '../utils/formUtils';
 import { renderFormattedText, stripMarkdownTokens } from '../utils/textFormatter';
 import { useAuth } from '../context/AuthContext';
@@ -812,26 +813,15 @@ function FormFillerInner({
     if (row.type === 'manual') {
       const cellKey = `${block.id}_summary_${col.id}_${row.id}`;
       const valStr = currentValues[cellKey] || '';
-      return parseFloat(valStr.replace(/,/g, '')) || 0;
+      return parseFloat(valStr.replace(/[\s\u00A0,]/g, '')) || 0;
     }
-    if (row.type === 'percentage') {
-      if (!row.percentageOfId) return 0;
-      const parentRow = (col.summaryRows || []).find((r: any) => r.id === row.percentageOfId);
-      if (!parentRow) return 0;
-      const parentVal = calculateSummaryValue(col, parentRow, block, currentValues);
-      return parentVal * ((row.percentageValue || 0) / 100);
-    }
-    if (row.type === 'sum_all') {
-      let sum = 0;
-      (row.sumRowIds || []).forEach((id: string) => {
-        const targetRow = (col.summaryRows || []).find((r: any) => r.id === id);
-        if (targetRow) {
-          sum += calculateSummaryValue(col, targetRow, block, currentValues);
-        }
-      });
-      return sum;
-    }
-    return 0;
+    return calculateTableColumnSummary(
+      col,
+      row,
+      col.summaryRows || [],
+      block.tableRows || [],
+      (rId, cId) => currentValues[`${block.id}_${rId}_${cId}`]
+    );
   };
 
   // Fetch process details
@@ -3540,18 +3530,20 @@ function FormFillerInner({
                         const firstSumColIdx = Math.min(...columnsWithSummaries.map(c => c.colIdx));
 
                         return (
-                          <tfoot style={{ borderTop: '2px solid var(--neutral-border)' }}>
+                          <tfoot style={{ borderTop: '2px solid #0f172a' }}>
                             {summaryTypes.map((sumType, idx) => {
+                              const isLastSummaryRow = idx === summaryTypes.length - 1;
+                              const rowBorderBottom = isLastSummaryRow ? '3px double #0f172a' : '1px solid var(--neutral-border)';
                               return (
                                 <tr key={sumType.id || idx} style={{ background: '#f8fafc', fontWeight: 'bold' }}>
                                   {firstSumColIdx > 0 && (
                                     <td colSpan={firstSumColIdx} style={{
                                       padding: '6px 8px',
                                       borderRight: '1px solid var(--neutral-border)',
-                                      borderBottom: '1px solid var(--neutral-border)',
+                                      borderBottom: rowBorderBottom,
                                       textAlign: 'right',
-                                      color: 'var(--text-secondary)',
-                                      fontSize: '0.8rem'
+                                      color: '#0f172a',
+                                      fontSize: '0.84rem'
                                     }}>
                                       {sumType.label}
                                     </td>
@@ -3559,7 +3551,7 @@ function FormFillerInner({
                                   {columns.slice(firstSumColIdx).map((col: any, offsetIdx: number) => {
                                     const actualColIdx = firstSumColIdx + offsetIdx;
                                     const colSumData = columnsWithSummaries.find(c => c.colIdx === actualColIdx);
-                                    const targetRow = colSumData ? (colSumData.rowMap.get(sumType.id) || Array.from(colSumData.rowMap.values()).find((r: any) => r.label === sumType.label)) : null;
+                                    const targetRow = colSumData ? (colSumData.rowMap.get(sumType.id) || Array.from(colSumData.rowMap.values()).find((r: any) => r.id === sumType.id || r.label === sumType.label)) : null;
                                     const isLabelColIfFirst = actualColIdx === 0 && firstSumColIdx === 0;
 
                                     if (!targetRow) {
@@ -3567,10 +3559,11 @@ function FormFillerInner({
                                         <td key={col.id} style={{
                                           padding: '6px 8px',
                                           borderRight: '1px solid var(--neutral-border)',
-                                          borderBottom: '1px solid var(--neutral-border)',
-                                          fontSize: '0.8rem'
+                                          borderBottom: rowBorderBottom,
+                                          fontSize: '0.8rem',
+                                          textAlign: 'right'
                                         }}>
-                                          {isLabelColIfFirst ? sumType.label : ''}
+                                          {isLabelColIfFirst ? sumType.label : '—'}
                                         </td>
                                       );
                                     }
@@ -3583,11 +3576,11 @@ function FormFillerInner({
                                       <td key={col.id} style={{
                                         padding: '6px 8px',
                                         borderRight: '1px solid var(--neutral-border)',
-                                        borderBottom: '1px solid var(--neutral-border)',
+                                        borderBottom: rowBorderBottom,
                                         textAlign: 'right',
-                                        color: 'var(--text-primary)'
+                                        color: '#0f172a'
                                       }}>
-                                        {isManual ? (
+                                        {isManual && !effectiveReadOnly ? (
                                           <input
                                             type="number"
                                             value={formValues[cellKey] || ''}
@@ -3596,7 +3589,24 @@ function FormFillerInner({
                                             style={{ width: '100px', padding: '0.2rem 0.35rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', textAlign: 'right' }}
                                           />
                                         ) : (
-                                          <span style={{ fontSize: '0.8rem' }}>{val.toLocaleString('vi-VN')}</span>
+                                          <div style={{
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            alignItems: 'flex-end',
+                                            justifyContent: 'center',
+                                            width: '100%',
+                                            lineHeight: 1.25,
+                                            fontVariantNumeric: 'tabular-nums'
+                                          }}>
+                                            <span style={{ fontWeight: 700, fontSize: '0.92rem', color: '#0f172a', letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>
+                                              {formatIsoNumber(val)}
+                                            </span>
+                                            {col.unit && (
+                                              <span style={{ fontWeight: 500, fontSize: '0.7rem', color: '#64748b', marginTop: '1px', whiteSpace: 'nowrap' }}>
+                                                {col.unit}
+                                              </span>
+                                            )}
+                                          </div>
                                         )}
                                       </td>
                                     );

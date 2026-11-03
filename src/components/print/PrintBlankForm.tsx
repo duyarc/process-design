@@ -1298,16 +1298,22 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                     return (
                       <tfoot>
                         {summaryTypes.map((sumType, idx) => {
+                          const isLastSummaryRow = idx === summaryTypes.length - 1;
+                          const rowBorderBottom = isLastSummaryRow 
+                            ? '3px double #0f172a' 
+                            : (bStyle === 'horizontal_only' ? '1.5px solid #0f172a' : '1px solid #cbd5e1');
+
                           return (
                             <tr key={sumType.id || idx} style={{ background: '#ffffff', fontWeight: 'var(--pw-weight-heavy)' }}>
                               {firstSumColIdx > 0 && (
                                 <td colSpan={firstSumColIdx} style={{
                                   border: cellBorder,
                                   borderTop: bStyle === 'horizontal_only' ? '1.5px solid #0f172a' : '1.5px solid #94a3b8',
-                                  borderBottom: bStyle === 'horizontal_only' ? '1.5px solid #0f172a' : '1px solid #cbd5e1',
+                                  borderBottom: rowBorderBottom,
                                   padding: '6px 10px',
                                   textAlign: 'right',
-                                  fontSize: '0.82rem',
+                                  fontSize: '0.84rem',
+                                  fontWeight: 'bold',
                                   color: '#0f172a'
                                 }}>
                                   {sumType.label}
@@ -1321,7 +1327,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                   <td key={col.id} style={{
                                     border: cellBorder,
                                     borderTop: bStyle === 'horizontal_only' ? '1.5px solid #0f172a' : '1.5px solid #94a3b8',
-                                    borderBottom: bStyle === 'horizontal_only' ? '1.5px solid #0f172a' : '1px solid #cbd5e1',
+                                    borderBottom: rowBorderBottom,
                                     padding: '6px 10px',
                                     textAlign: 'right',
                                     fontSize: '0.82rem',

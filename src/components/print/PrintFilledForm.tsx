@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import { Star } from 'lucide-react';
 import type { Submission, SubmissionFieldSnapshot, FormTemplateISO, TableColumnConfig } from '../../types';
 import { formatFormVersion, getColStyleWidth } from '../../types';
-import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock, getInfoGridTemplateColumns, isOtherValue, extractOtherText, formatOptionDisplay, getEffectiveCellOptions, parseGoogleMapsUrl, getChecklistColumns, resolveImageSrc, clusterOptionsByGroup, parseChecklistValues, formatDMS, formatIsoNumber } from '../../utils/formUtils';
+import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock, getInfoGridTemplateColumns, isOtherValue, extractOtherText, formatOptionDisplay, getEffectiveCellOptions, parseGoogleMapsUrl, getChecklistColumns, resolveImageSrc, clusterOptionsByGroup, parseChecklistValues, formatDMS, formatIsoNumber, calculateTableColumnSummary } from '../../utils/formUtils';
 import { renderFormattedText } from '../../utils/textFormatter';
 import { PrintDocumentStyles, PrintSectionHeader } from './printShared';
 import { MiniMapCanvas } from '../form/MiniMapCanvas';
@@ -1535,7 +1535,7 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                               </tbody>
                             ))
                           )}
-                          {/* Summary footer rows — labels from template, values blank (not stored in snapshot) */}
+                          {/* Summary footer rows — dynamically calculated or manual snapshot values */}
                           {(() => {
                             const columns = block.tableColumns || [];
                             const summaryTypes: { id: string; label: string }[] = [];
@@ -1543,48 +1543,88 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                             columns.forEach((col: any, colIdx: number) => {
                               if (col.type === 'number' && col.summaryRows && col.summaryRows.length > 0) {
                                 col.summaryRows.forEach((row: any) => {
-                                  if (!summaryTypes.some(s => s.label === row.label)) summaryTypes.push({ id: row.id, label: row.label || 'Cộng:' });
+                                  if (!summaryTypes.some(s => s.id === row.id || s.label === row.label)) {
+                                    summaryTypes.push({ id: row.id, label: row.label || 'Cộng:' });
+                                  }
                                 });
                                 columnsWithSummaries.push({ col, colIdx });
                               }
                             });
                             if (columnsWithSummaries.length === 0) return null;
                             const firstSumColIdx = Math.min(...columnsWithSummaries.map(c => c.colIdx));
+
                             return (
                               <tfoot>
-                                {summaryTypes.map((sumType, idx) => (
-                                  <tr key={sumType.id || idx} style={{ background: '#ffffff', fontWeight: 'var(--pw-weight-heavy)' }}>
-                                    {firstSumColIdx > 0 && (
-                                      <td colSpan={firstSumColIdx} style={{
-                                        border: cellBorder,
-                                        borderTop: bStyle === 'horizontal_only' ? '1.5px solid #0f172a' : '1.5px solid #94a3b8',
-                                        borderBottom: bStyle === 'horizontal_only' ? '1.5px solid #0f172a' : '1px solid #cbd5e1',
-                                        padding: '6px 10px',
-                                        textAlign: 'right',
-                                        fontSize: '0.82rem',
-                                        color: '#0f172a'
-                                      }}>
-                                        {sumType.label}
-                                      </td>
-                                    )}
-                                    {columns.slice(firstSumColIdx).map((col: any, offsetIdx: number) => {
-                                      const isLabelColIfFirst = firstSumColIdx + offsetIdx === 0 && firstSumColIdx === 0;
-                                      return (
-                                        <td key={col.id} style={{
+                                {summaryTypes.map((sumType, idx) => {
+                                  const isLastSummaryRow = idx === summaryTypes.length - 1;
+                                  const rowBorderBottom = isLastSummaryRow 
+                                    ? '3px double #0f172a' 
+                                    : (bStyle === 'horizontal_only' ? '1.5px solid #0f172a' : '1px solid #cbd5e1');
+
+                                  return (
+                                    <tr key={sumType.id || idx} style={{ background: '#ffffff', fontWeight: 'var(--pw-weight-heavy)' }}>
+                                      {firstSumColIdx > 0 && (
+                                        <td colSpan={firstSumColIdx} style={{
                                           border: cellBorder,
                                           borderTop: bStyle === 'horizontal_only' ? '1.5px solid #0f172a' : '1.5px solid #94a3b8',
-                                          borderBottom: bStyle === 'horizontal_only' ? '1.5px solid #0f172a' : '1px solid #cbd5e1',
+                                          borderBottom: rowBorderBottom,
                                           padding: '6px 10px',
                                           textAlign: 'right',
-                                          fontSize: '0.82rem',
+                                          fontSize: '0.84rem',
+                                          fontWeight: 'bold',
                                           color: '#0f172a'
                                         }}>
-                                          {isLabelColIfFirst ? sumType.label : ''}
+                                          {sumType.label}
                                         </td>
-                                      );
-                                    })}
-                                  </tr>
-                                ))}
+                                      )}
+                                      {columns.slice(firstSumColIdx).map((col: any, offsetIdx: number) => {
+                                        const actualColIdx = firstSumColIdx + offsetIdx;
+                                        const isLabelColIfFirst = actualColIdx === 0 && firstSumColIdx === 0;
+                                        const targetRow = (col.summaryRows || []).find((r: any) => r.id === sumType.id || r.label === sumType.label);
+                                        const sumVal = targetRow 
+                                          ? (targetRow.type === 'manual' 
+                                              ? parseFloat(getVal(`${block.id}_summary_${col.id}_${targetRow.id}`) || '0')
+                                              : calculateTableColumnSummary(col, targetRow, col.summaryRows || [], allRows, (rId, cId) => getVal(`${block.id}_${rId}_${cId}`)))
+                                          : null;
+
+                                        return (
+                                          <td key={col.id} style={{
+                                            border: cellBorder,
+                                            borderTop: bStyle === 'horizontal_only' ? '1.5px solid #0f172a' : '1.5px solid #94a3b8',
+                                            borderBottom: rowBorderBottom,
+                                            padding: '6px 10px',
+                                            textAlign: 'right',
+                                            fontSize: '0.82rem',
+                                            color: '#0f172a'
+                                          }}>
+                                            {isLabelColIfFirst ? (
+                                              sumType.label
+                                            ) : targetRow && sumVal !== null ? (
+                                              <div style={{
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                alignItems: 'flex-end',
+                                                justifyContent: 'center',
+                                                width: '100%',
+                                                lineHeight: 1.25,
+                                                fontVariantNumeric: 'tabular-nums'
+                                              }}>
+                                                <span style={{ fontWeight: 700, fontSize: '0.92rem', color: '#0f172a', letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>
+                                                  {formatIsoNumber(sumVal)}
+                                                </span>
+                                                {col.unit && (
+                                                  <span style={{ fontWeight: 500, fontSize: '0.7rem', color: '#64748b', marginTop: '1px', whiteSpace: 'nowrap' }}>
+                                                    {col.unit}
+                                                  </span>
+                                                )}
+                                              </div>
+                                            ) : '—'}
+                                          </td>
+                                        );
+                                      })}
+                                    </tr>
+                                  );
+                                })}
                               </tfoot>
                             );
                           })()}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import type { FormFieldISO, FormRevisionEntry, FormTemplateISO, LayoutBlockISO, RadioOption, MatrixConfigISO, TableColumnConfig, TableRowConfig, ColumnSummaryRowConfig, TitleFormatISO, SubtableColumn, BlockVisibilityCondition, LinkedWorkStepInfo } from '../types';
 import { formatFormVersion, getColStyleWidth } from '../types';
-import { sanitizeLabel, getEffectiveTitleFormat, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, isSeamlessTableBlock, getInfoGridTemplateColumns, snap2ColWidth, snap3ColWidths, INFO_GRID_2COL_PRESETS, generateSmartFieldSlug, getCheckboxGridTemplate, reorderOptionsArray, reorderArray, getEffectiveCellOptions as getEffectiveCellOptionsUtil, toFormSlug, getTableItemColumnId, clusterOptionsByGroup, reorderGroupsInOptions, reorderOptionWithGroup } from '../utils/formUtils';
+import { sanitizeLabel, getEffectiveTitleFormat, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, isSeamlessTableBlock, getInfoGridTemplateColumns, snap2ColWidth, snap3ColWidths, INFO_GRID_2COL_PRESETS, generateSmartFieldSlug, getCheckboxGridTemplate, reorderOptionsArray, reorderArray, getEffectiveCellOptions as getEffectiveCellOptionsUtil, toFormSlug, getTableItemColumnId, clusterOptionsByGroup, reorderGroupsInOptions, reorderOptionWithGroup, isColumnSummableByDefault, calculateTableColumnSummary, formatIsoNumber } from '../utils/formUtils';
 import { applyTextFormat, handleFormatKeyDown } from '../utils/textFormatter';
 import { 
   Plus, 
@@ -2179,6 +2179,133 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
         return { ...b, tableColumns: updatedCols };
       }
       return b;
+    }));
+  };
+
+  // Helper: Add a new Table Summary Row (at the bottom of the table)
+  const handleAddTableSummaryRow = (block: LayoutBlockISO) => {
+    const columns = block.tableColumns || [];
+    const existingSummaryIds: string[] = [];
+    columns.forEach(col => {
+      (col.summaryRows || []).forEach(r => {
+        if (!existingSummaryIds.includes(r.id)) existingSummaryIds.push(r.id);
+      });
+    });
+
+    const newId = `sum_${Date.now()}`;
+    let defaultLabel = 'Tổng cộng:';
+    if (existingSummaryIds.length === 1) {
+      defaultLabel = 'Thuế VAT (10%):';
+    } else if (existingSummaryIds.length >= 2) {
+      defaultLabel = 'Tổng thanh toán:';
+    }
+
+    const updatedCols = columns.map(col => {
+      if (col.type !== 'number') return col;
+      const isSummable = isColumnSummableByDefault(col);
+      if (!isSummable) return col;
+
+      let newRowConfig: ColumnSummaryRowConfig;
+      if (existingSummaryIds.length === 1) {
+        newRowConfig = {
+          id: newId,
+          label: defaultLabel,
+          type: 'percentage',
+          percentageValue: 10,
+          percentageOfId: existingSummaryIds[0]
+        };
+      } else if (existingSummaryIds.length >= 2) {
+        newRowConfig = {
+          id: newId,
+          label: defaultLabel,
+          type: 'sum_all',
+          sumRowIds: [...existingSummaryIds]
+        };
+      } else {
+        newRowConfig = {
+          id: newId,
+          label: defaultLabel,
+          type: 'sum'
+        };
+      }
+
+      return {
+        ...col,
+        summaryRows: [...(col.summaryRows || []), newRowConfig]
+      };
+    });
+
+    setLayoutBlocks(prev => prev.map(b => b.id === block.id ? { ...b, tableColumns: updatedCols } : b));
+  };
+
+  // Helper: Delete a Table Summary Row by its ID across all columns
+  const handleDeleteTableSummaryRow = (blockId: string, summaryId: string) => {
+    setLayoutBlocks(prev => prev.map(b => {
+      if (b.id !== blockId) return b;
+      const updatedCols = (b.tableColumns || []).map(col => {
+        if (!col.summaryRows) return col;
+        return {
+          ...col,
+          summaryRows: col.summaryRows.filter(r => r.id !== summaryId)
+        };
+      });
+      return { ...b, tableColumns: updatedCols };
+    }));
+  };
+
+  // Helper: Rename a Table Summary Row across all columns
+  const handleRenameTableSummaryRow = (blockId: string, summaryId: string, newLabel: string) => {
+    setLayoutBlocks(prev => prev.map(b => {
+      if (b.id !== blockId) return b;
+      const updatedCols = (b.tableColumns || []).map(col => {
+        if (!col.summaryRows) return col;
+        return {
+          ...col,
+          summaryRows: col.summaryRows.map(r => r.id === summaryId ? { ...r, label: newLabel } : r)
+        };
+      });
+      return { ...b, tableColumns: updatedCols };
+    }));
+  };
+
+  // Helper: Update a specific column's summary config for a specific summary row
+  const handleSetTableColumnSummaryConfig = (
+    blockId: string,
+    colId: string,
+    summaryId: string,
+    label: string,
+    type: 'sum' | 'percentage' | 'manual' | 'sum_all' | 'none',
+    extra?: Partial<ColumnSummaryRowConfig>
+  ) => {
+    setLayoutBlocks(prev => prev.map(b => {
+      if (b.id !== blockId) return b;
+      const updatedCols = (b.tableColumns || []).map(col => {
+        if (col.id !== colId) return col;
+        const currentRows = col.summaryRows || [];
+        if (type === 'none') {
+          return {
+            ...col,
+            summaryRows: currentRows.filter(r => r.id !== summaryId)
+          };
+        }
+        const existingIdx = currentRows.findIndex(r => r.id === summaryId);
+        let nextRows = [...currentRows];
+        const newEntry: ColumnSummaryRowConfig = {
+          id: summaryId,
+          label: label,
+          type: type as any,
+          percentageValue: extra?.percentageValue !== undefined ? extra.percentageValue : (type === 'percentage' ? 10 : undefined),
+          percentageOfId: extra?.percentageOfId !== undefined ? extra.percentageOfId : undefined,
+          sumRowIds: extra?.sumRowIds !== undefined ? extra.sumRowIds : undefined
+        };
+        if (existingIdx >= 0) {
+          nextRows[existingIdx] = { ...nextRows[existingIdx], ...newEntry };
+        } else {
+          nextRows.push(newEntry);
+        }
+        return { ...col, summaryRows: nextRows };
+      });
+      return { ...b, tableColumns: updatedCols };
     }));
   };
 
@@ -7149,43 +7276,12 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                 const summaryTypes: { id: string; label: string }[] = [];
                                 const columnsWithSummaries: { col: any; colIdx: number; rowMap: Map<string, any> }[] = [];
 
-                                const getDummySummaryVal = (col: any, row: any): number => {
-                                  const summaryRows = col.summaryRows || [];
-                                  if (row.type === 'sum') {
-                                    let sum = 0;
-                                    (block.tableRows || []).forEach((r: any) => {
-                                      const valStr = block.tableData?.[r.id]?.[col.id] || '';
-                                      const num = parseFloat(valStr.replace(/,/g, '')) || 0;
-                                      sum += num;
-                                    });
-                                    return sum;
-                                  }
-                                  if (row.type === 'percentage') {
-                                    if (!row.percentageOfId) return 0;
-                                    const parentRow = summaryRows.find((r: any) => r.id === row.percentageOfId);
-                                    if (!parentRow) return 0;
-                                    const parentVal = getDummySummaryVal(col, parentRow);
-                                    return parentVal * ((row.percentageValue || 0) / 100);
-                                  }
-                                  if (row.type === 'sum_all') {
-                                    let sum = 0;
-                                    (row.sumRowIds || []).forEach((id: string) => {
-                                      const targetRow = summaryRows.find((r: any) => r.id === id);
-                                      if (targetRow) {
-                                        sum += getDummySummaryVal(col, targetRow);
-                                      }
-                                    });
-                                    return sum;
-                                  }
-                                  return 0;
-                                };
-
                                 columns.forEach((col: any, colIdx: number) => {
                                   if (col.type === 'number' && col.summaryRows && col.summaryRows.length > 0) {
                                     const rowMap = new Map<string, any>();
                                     col.summaryRows.forEach((row: any) => {
                                       rowMap.set(row.id, row);
-                                      if (!summaryTypes.some(s => s.label === row.label)) {
+                                      if (!summaryTypes.some(s => s.id === row.id)) {
                                         summaryTypes.push({ id: row.id, label: row.label || 'Cộng:' });
                                       }
                                     });
@@ -7193,60 +7289,204 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                   }
                                 });
 
-                                if (columnsWithSummaries.length === 0) return null;
+                                if (summaryTypes.length === 0) return null;
 
-                                const firstSumColIdx = Math.min(...columnsWithSummaries.map(c => c.colIdx));
+                                const firstSumColIdx = columnsWithSummaries.length > 0 
+                                  ? Math.min(...columnsWithSummaries.map(c => c.colIdx))
+                                  : columns.findIndex(c => c.type === 'number');
+                                const effectiveFirstSumColIdx = firstSumColIdx >= 0 ? firstSumColIdx : 0;
 
                                 return (
-                                  <tfoot style={{ borderTop: '2px solid #94a3b8' }}>
+                                  <tfoot style={{ borderTop: '2px solid #0f172a' }}>
                                     {summaryTypes.map((sumType, idx) => {
+                                      const isLastSummaryRow = idx === summaryTypes.length - 1;
                                       return (
                                         <tr key={sumType.id || idx} style={{ background: '#f8fafc', fontWeight: 'bold' }}>
-                                          {firstSumColIdx > 0 && (
-                                            <td colSpan={firstSumColIdx} style={{
+                                          {effectiveFirstSumColIdx > 0 && (
+                                            <td colSpan={effectiveFirstSumColIdx} style={{
                                               padding: '6px 8px',
                                               borderRight: '1px solid #cbd5e1',
-                                              borderBottom: '1px solid #cbd5e1',
+                                              borderBottom: isLastSummaryRow ? '3px double #0f172a' : '1px solid #cbd5e1',
                                               textAlign: 'right',
                                               color: 'var(--text-secondary)',
-                                              fontSize: '0.8rem'
+                                              fontSize: '0.82rem'
                                             }}>
-                                              {sumType.label}
+                                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px' }}>
+                                                {!isLocked ? (
+                                                  <input
+                                                    type="text"
+                                                    value={sumType.label}
+                                                    onChange={(e) => handleRenameTableSummaryRow(block.id, sumType.id, e.target.value)}
+                                                    style={{
+                                                      border: 'none',
+                                                      borderBottom: '1px dashed #cbd5e1',
+                                                      background: 'transparent',
+                                                      textAlign: 'right',
+                                                      fontWeight: 'bold',
+                                                      color: '#0f172a',
+                                                      fontSize: '0.82rem',
+                                                      maxWidth: '180px',
+                                                      outline: 'none',
+                                                      padding: '1px 4px'
+                                                    }}
+                                                    placeholder="Nhãn hàng cộng..."
+                                                    title="Nhấp để sửa nhãn hàng cộng"
+                                                  />
+                                                ) : (
+                                                  <span>{sumType.label}</span>
+                                                )}
+                                                {!isLocked && (
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => handleDeleteTableSummaryRow(block.id, sumType.id)}
+                                                    style={{
+                                                      background: 'none',
+                                                      border: 'none',
+                                                      color: '#94a3b8',
+                                                      cursor: 'pointer',
+                                                      padding: '2px',
+                                                      display: 'inline-flex',
+                                                      alignItems: 'center',
+                                                      justifyContent: 'center',
+                                                      borderRadius: '3px'
+                                                    }}
+                                                    title="Xóa hàng cộng tổng này"
+                                                    onMouseEnter={(e) => e.currentTarget.style.color = '#ef4444'}
+                                                    onMouseLeave={(e) => e.currentTarget.style.color = '#94a3b8'}
+                                                  >
+                                                    <Trash2 size={13} />
+                                                  </button>
+                                                )}
+                                              </div>
                                             </td>
                                           )}
-                                          {columns.slice(firstSumColIdx).map((col: any, offsetIdx: number) => {
-                                            const actualColIdx = firstSumColIdx + offsetIdx;
+                                          {columns.slice(effectiveFirstSumColIdx).map((col: any, offsetIdx: number) => {
+                                            const actualColIdx = effectiveFirstSumColIdx + offsetIdx;
                                             const colSumData = columnsWithSummaries.find(c => c.colIdx === actualColIdx);
-                                            const targetRow = colSumData ? (colSumData.rowMap.get(sumType.id) || Array.from(colSumData.rowMap.values()).find((r: any) => r.label === sumType.label)) : null;
-                                            const isLabelColIfFirst = actualColIdx === 0 && firstSumColIdx === 0;
+                                            const targetRow = colSumData ? (colSumData.rowMap.get(sumType.id) || Array.from(colSumData.rowMap.values()).find((r: any) => r.id === sumType.id)) : null;
+                                            const isLabelColIfFirst = actualColIdx === 0 && effectiveFirstSumColIdx === 0;
 
                                             if (!targetRow) {
                                               return (
                                                 <td key={col.id} style={{
                                                   padding: '6px 8px',
                                                   borderRight: '1px solid #cbd5e1',
-                                                  borderBottom: '1px solid #cbd5e1',
-                                                  fontSize: '0.8rem'
+                                                  borderBottom: isLastSummaryRow ? '3px double #0f172a' : '1px solid #cbd5e1',
+                                                  fontSize: '0.8rem',
+                                                  textAlign: 'right'
                                                 }}>
-                                                  {isLabelColIfFirst ? sumType.label : ''}
+                                                  {isLabelColIfFirst ? (
+                                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px' }}>
+                                                      {!isLocked ? (
+                                                        <input
+                                                          type="text"
+                                                          value={sumType.label}
+                                                          onChange={(e) => handleRenameTableSummaryRow(block.id, sumType.id, e.target.value)}
+                                                          style={{
+                                                            border: 'none',
+                                                            borderBottom: '1px dashed #cbd5e1',
+                                                            background: 'transparent',
+                                                            textAlign: 'right',
+                                                            fontWeight: 'bold',
+                                                            color: '#0f172a',
+                                                            fontSize: '0.82rem',
+                                                            outline: 'none',
+                                                            padding: '1px 4px'
+                                                          }}
+                                                          placeholder="Nhãn hàng cộng..."
+                                                        />
+                                                      ) : (
+                                                        <span>{sumType.label}</span>
+                                                      )}
+                                                      {!isLocked && (
+                                                        <button
+                                                          type="button"
+                                                          onClick={() => handleDeleteTableSummaryRow(block.id, sumType.id)}
+                                                          style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '2px' }}
+                                                          title="Xóa hàng cộng tổng này"
+                                                        >
+                                                          <Trash2 size={13} />
+                                                        </button>
+                                                      )}
+                                                    </div>
+                                                  ) : (
+                                                    col.type === 'number' && !isLocked ? (
+                                                      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                                                        <button
+                                                          type="button"
+                                                          onClick={() => handleSetTableColumnSummaryConfig(block.id, col.id, sumType.id, sumType.label, 'sum')}
+                                                          style={{
+                                                            background: '#f8fafc',
+                                                            border: '1px dashed #cbd5e1',
+                                                            borderRadius: '3px',
+                                                            fontSize: '0.65rem',
+                                                            color: '#64748b',
+                                                            cursor: 'pointer',
+                                                            padding: '1px 6px',
+                                                            lineHeight: 1.3
+                                                          }}
+                                                          title={`Bấm để cộng cột ${col.label}`}
+                                                        >
+                                                          + ∑ Tổng
+                                                        </button>
+                                                      </div>
+                                                    ) : '—'
+                                                  )}
                                                 </td>
                                               );
                                             }
 
-                                            const dummyVal = getDummySummaryVal(col, targetRow);
+                                            const dummyVal = calculateTableColumnSummary(col, targetRow, col.summaryRows || [], block.tableRows || [], (rId, cId) => block.tableData?.[rId]?.[cId]);
                                             const isManual = targetRow.type === 'manual';
-                                            const displayStr = isManual ? '[Người điền tự nhập]' : dummyVal.toLocaleString('vi-VN');
+                                            const cellUnitVal = block.cellUnitMap?.[col.id] || col.unit || '';
 
                                             return (
                                               <td key={col.id} style={{
                                                 padding: '6px 8px',
                                                 borderRight: '1px solid #cbd5e1',
-                                                borderBottom: '1px solid #cbd5e1',
+                                                borderBottom: isLastSummaryRow ? '3px double #0f172a' : '1px solid #cbd5e1',
                                                 textAlign: 'right',
                                                 color: 'var(--text-primary)',
                                                 fontSize: '0.8rem'
                                               }}>
-                                                {displayStr}
+                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px', width: '100%' }}>
+                                                  {!isLocked && (
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                      <select
+                                                        value={targetRow.type}
+                                                        onChange={(e) => {
+                                                          const newType = e.target.value as any;
+                                                          handleSetTableColumnSummaryConfig(block.id, col.id, sumType.id, sumType.label, newType);
+                                                        }}
+                                                        style={{
+                                                          fontSize: '0.65rem',
+                                                          padding: '1px 3px',
+                                                          borderRadius: '3px',
+                                                          border: '1px solid #cbd5e1',
+                                                          background: '#ffffff',
+                                                          color: '#0f766e',
+                                                          fontWeight: 600,
+                                                          cursor: 'pointer'
+                                                        }}
+                                                        title="Đổi công thức tính cho cột này"
+                                                      >
+                                                        <option value="sum">∑ Tổng</option>
+                                                        <option value="percentage">% Tỷ lệ</option>
+                                                        <option value="manual">✍ Tự nhập</option>
+                                                        <option value="sum_all">∑ Hàng trên</option>
+                                                        <option value="none">— Bỏ cộng</option>
+                                                      </select>
+                                                    </div>
+                                                  )}
+                                                  <span style={{ fontWeight: 700, fontSize: '0.88rem', color: '#0f172a', fontVariantNumeric: 'tabular-nums' }}>
+                                                    {isManual ? '[Người điền tự nhập]' : formatIsoNumber(dummyVal)}
+                                                  </span>
+                                                  {cellUnitVal && (
+                                                    <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 500 }}>
+                                                      {cellUnitVal}
+                                                    </span>
+                                                  )}
+                                                </div>
                                               </td>
                                             );
                                           })}
@@ -7310,6 +7550,15 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                 style={{ padding: '0.25rem 0.5rem', fontSize: '0.7rem', background: '#f1f5f9', border: '1px dashed #94a3b8' }}
                               >
                                 + Hàng phân nhóm
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleAddTableSummaryRow(block)}
+                                className="btn btn-secondary btn-sm"
+                                style={{ padding: '0.25rem 0.5rem', fontSize: '0.7rem', background: '#f8fafc', border: '1px dashed #0d9488', color: '#0f766e' }}
+                                title="Thêm hàng cộng tổng ở chân bảng"
+                              >
+                                + Hàng cộng tổng
                               </button>
                             </div>
                           )}
