@@ -7401,6 +7401,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                             background: isHoveredRow ? '#f1f5f9' : '#f8fafc',
                                             fontWeight: 'bold',
                                             opacity: isDraggingThisRow ? 0.4 : 1,
+                                            height: '34px',
                                             transition: 'background 0.15s ease, opacity 0.15s ease'
                                           }}
                                         >
@@ -7661,6 +7662,15 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                             const isManualText = targetRow.type === 'manual_text';
                                             const isManualNumber = targetRow.type === 'manual_number' || targetRow.type === 'manual';
                                             const cellUnitVal = targetRow.unit || block.cellUnitMap?.[col.id] || col.unit || '';
+                                            const badgeIconText = (targetRow.type === 'manual_text')
+                                              ? 'Aa'
+                                              : (targetRow.type === 'manual_number' || targetRow.type === 'manual')
+                                                ? '123'
+                                                : targetRow.type === 'percentage'
+                                                  ? '%'
+                                                  : targetRow.type === 'multiply'
+                                                    ? '×'
+                                                    : '∑';
 
                                             return (
                                               <td key={col.id} style={{
@@ -7670,51 +7680,74 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                 borderBottom: rowBorderBottom,
                                                 textAlign: 'right',
                                                 color: 'var(--text-primary)',
-                                                fontSize: '0.8rem'
+                                                fontSize: '0.8rem',
+                                                verticalAlign: 'middle',
+                                                height: '34px',
+                                                boxSizing: 'border-box'
                                               }}>
-                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '1px', width: '100%' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px', width: '100%', height: '100%' }}>
                                                   {!isLocked && (
-                                                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                                                    <div
+                                                      style={{
+                                                        position: 'relative',
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        background: '#ffffff',
+                                                        border: '1px solid #cbd5e1',
+                                                        borderRadius: '3px',
+                                                        padding: '1px 4px',
+                                                        height: '20px',
+                                                        cursor: 'pointer',
+                                                        userSelect: 'none',
+                                                        flexShrink: 0
+                                                      }}
+                                                      title="Đổi công thức tính hoặc kiểu nhập cho ô này"
+                                                    >
+                                                      <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0f766e', marginRight: '2px', lineHeight: 1 }}>
+                                                        {badgeIconText}
+                                                      </span>
+                                                      <span style={{ fontSize: '0.52rem', color: '#94a3b8', lineHeight: 1 }}>▾</span>
                                                       <select
-                                                        value={targetRow.type}
+                                                        value={targetRow.type === 'sum_all' ? 'sum' : targetRow.type}
                                                         onChange={(e) => {
-                                                          const newType = e.target.value as any;
+                                                          let newType = e.target.value as any;
+                                                          if (newType === 'sum' && idx > 0) {
+                                                            newType = 'sum_all';
+                                                          }
                                                           handleSetTableColumnSummaryConfig(block.id, col.id, sumType.id, sumType.label, newType);
                                                         }}
                                                         style={{
-                                                          fontSize: '0.65rem',
-                                                          padding: '0 2px',
-                                                          borderRadius: '3px',
-                                                          border: 'none',
-                                                          background: 'transparent',
-                                                          color: '#0f766e',
-                                                          fontWeight: 600,
+                                                          position: 'absolute',
+                                                          inset: 0,
+                                                          opacity: 0,
                                                           cursor: 'pointer',
-                                                          outline: 'none'
+                                                          width: '100%',
+                                                          height: '100%',
+                                                          zIndex: 2
                                                         }}
-                                                        title="Đổi công thức tính cho cột này"
+                                                        title="Đổi công thức tính hoặc kiểu nhập cho ô này"
                                                       >
-                                                        <option value="sum">∑ Tổng ▾</option>
-                                                        <option value="manual_number">✍ Nhập số ▾</option>
-                                                        <option value="manual_text">✍ Nhập chữ ▾</option>
-                                                        <option value="multiply">✖ Phép nhân ▾</option>
-                                                        <option value="percentage">% Tỷ lệ ▾</option>
-                                                        <option value="sum_all">∑ Hàng trên ▾</option>
-                                                        <option value="none">— Bỏ cộng</option>
+                                                        <option value="sum">∑   Tổng</option>
+                                                        <option value="multiply">×   Phép nhân</option>
+                                                        <option value="percentage">%   Tỷ lệ</option>
+                                                        <option value="manual_number">123 Nhập số</option>
+                                                        <option value="manual_text">Aa  Nhập chữ</option>
+                                                        <option value="none">—   Bỏ qua</option>
                                                       </select>
                                                     </div>
                                                   )}
                                                   {isManualText ? (
-                                                    <span style={{ fontWeight: 600, fontSize: '0.82rem', color: '#64748b', fontStyle: 'italic' }}>
-                                                      {targetRow.manualPlaceholder ? `[${targetRow.manualPlaceholder}]` : '[Chữ: USD, EUR...]'}
+                                                    <span style={{ fontWeight: 600, fontSize: '0.82rem', color: '#64748b', fontStyle: 'italic', whiteSpace: 'nowrap' }}>
+                                                      {targetRow.manualPlaceholder ? `[${targetRow.manualPlaceholder}]` : '[USD, EUR...]'}
                                                     </span>
                                                   ) : (
-                                                    <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#0f172a', fontVariantNumeric: 'tabular-nums' }}>
-                                                      {isManualNumber ? (targetRow.manualPlaceholder ? `[${targetRow.manualPlaceholder}]` : '[Tự nhập số]') : formatIsoNumber(dummyVal)}
+                                                    <span style={{ fontWeight: 700, fontSize: '0.88rem', color: '#0f172a', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                                                      {isManualNumber ? (targetRow.manualPlaceholder ? `[${targetRow.manualPlaceholder}]` : '[0]') : formatIsoNumber(dummyVal)}
                                                     </span>
                                                   )}
                                                   {cellUnitVal && (
-                                                    <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 500 }}>
+                                                    <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 500, flexShrink: 0 }}>
                                                       {cellUnitVal}
                                                     </span>
                                                   )}
