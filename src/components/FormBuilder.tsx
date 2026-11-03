@@ -1434,6 +1434,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
   const [hoveredTableRowKey, setHoveredTableRowKey] = useState<string | null>(null);
   const [activeLineCountRowKey, setActiveLineCountRowKey] = useState<string | null>(null);
   const [activeCellKey, setActiveCellKey] = useState<string | null>(null);
+  const [activeUnitInputCellKey, setActiveUnitInputCellKey] = useState<string | null>(null);
 
   // Compute live snapshot & isSaved state (memoized to avoid JSON.stringify on every render)
   const currentSnapshot = useMemo(() => getFormSnapshot({
@@ -6985,11 +6986,16 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                         <span style={{ color: '#cbd5e1', fontSize: '0.7rem', display: 'block', textAlign: 'center', width: '100%' }}>Giờ</span>
                                                       ) : col.type === 'number' ? (() => {
                                                         const cellPhVal = block.cellPlaceholderMap?.[cellKey] !== undefined ? block.cellPlaceholderMap[cellKey] : '';
-                                                        const cellUnitVal = block.cellUnitMap?.[cellKey] !== undefined ? block.cellUnitMap[cellKey] : '';
-                                                        const effectiveUnit = cellUnitVal || col.unit || '';
+                                                        const cellUnitVal = block.cellUnitMap?.[cellKey];
+                                                        const colUnitVal = col.unit || '';
+                                                        const effectiveUnit = cellUnitVal !== undefined ? cellUnitVal : colUnitVal;
+                                                        const hasUnit = Boolean(effectiveUnit && effectiveUnit.trim());
+                                                        const isEditingUnit = activeUnitInputCellKey === cellKey;
+                                                        const showUnitAddon = hasUnit || isEditingUnit;
+
                                                         return (
                                                           <div 
-                                                            style={{ display: 'flex', width: '100%', alignItems: 'center' }}
+                                                            style={{ position: 'relative', display: 'flex', width: '100%', alignItems: 'center' }}
                                                             onClick={(e) => {
                                                               e.stopPropagation();
                                                               setActiveBlockId(block.id);
@@ -7022,9 +7028,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                                 color: cellPhVal ? '#0f172a' : '#94a3b8',
                                                                 background: '#f8fafc',
                                                                 border: '1px dashed #cbd5e1',
-                                                                borderRight: 'none',
-                                                                borderTopLeftRadius: '4px',
-                                                                borderBottomLeftRadius: '4px',
+                                                                borderRight: showUnitAddon ? 'none' : '1px dashed #cbd5e1',
+                                                                borderRadius: showUnitAddon ? '4px 0 0 4px' : '4px',
                                                                 outline: 'none',
                                                                 textAlign: col.align || 'right',
                                                                 boxSizing: 'border-box',
@@ -7039,50 +7044,149 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                                 e.currentTarget.style.background = '#f8fafc';
                                                               }}
                                                             />
-                                                            <input
-                                                              type="text"
-                                                              disabled={isLocked}
-                                                              value={cellUnitVal}
-                                                              onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                setActiveBlockId(block.id);
-                                                                setActiveCellKey(cellKey);
-                                                              }}
-                                                              onFocus={() => {
-                                                                setActiveBlockId(block.id);
-                                                                setActiveCellKey(cellKey);
-                                                              }}
-                                                              onChange={(e) => {
-                                                                handleUpdateTableCellUnit(block.id, row.id, col.id, e.target.value);
-                                                              }}
-                                                              placeholder={col.unit || 'ĐVT'}
-                                                              title="Đơn vị tính ô này (e.g. đơn, VNĐ, kg...)"
-                                                              style={{
-                                                                width: '56px',
-                                                                flexShrink: 0,
-                                                                padding: '2px 4px',
-                                                                fontSize: '0.72rem',
-                                                                fontWeight: effectiveUnit ? 600 : 400,
-                                                                fontStyle: effectiveUnit ? 'normal' : 'italic',
-                                                                textAlign: 'center',
-                                                                color: effectiveUnit ? 'var(--primary)' : '#94a3b8',
-                                                                background: effectiveUnit ? '#f0fdfa' : '#f1f5f9',
-                                                                border: `1px dashed ${effectiveUnit ? 'var(--primary)' : '#cbd5e1'}`,
-                                                                borderTopRightRadius: '4px',
-                                                                borderBottomRightRadius: '4px',
-                                                                outline: 'none',
-                                                                boxSizing: 'border-box',
-                                                                cursor: isLocked ? 'default' : 'text'
-                                                              }}
-                                                              onFocusCapture={(e) => {
-                                                                e.currentTarget.style.borderColor = 'var(--primary)';
-                                                                e.currentTarget.style.background = '#ffffff';
-                                                              }}
-                                                              onBlurCapture={(e) => {
-                                                                e.currentTarget.style.borderColor = effectiveUnit ? 'var(--primary)' : '#cbd5e1';
-                                                                e.currentTarget.style.background = effectiveUnit ? '#f0fdfa' : '#f1f5f9';
-                                                              }}
-                                                            />
+
+                                                            {/* Micro trigger: Bật ĐVT riêng khi ô chưa có ĐVT */}
+                                                            {!isLocked && !showUnitAddon && (isCellSelected || hoveredTableRowKey === rowKey) && (
+                                                              <button
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                  e.stopPropagation();
+                                                                  setActiveBlockId(block.id);
+                                                                  setActiveCellKey(cellKey);
+                                                                  setActiveUnitInputCellKey(cellKey);
+                                                                }}
+                                                                title="Thêm ĐVT riêng cho ô này (e.g. kg, °C...)"
+                                                                style={{
+                                                                  position: 'absolute',
+                                                                  right: '3px',
+                                                                  top: '50%',
+                                                                  transform: 'translateY(-50%)',
+                                                                  fontSize: '0.62rem',
+                                                                  fontWeight: 600,
+                                                                  color: '#64748b',
+                                                                  background: '#ffffff',
+                                                                  border: '1px dashed #94a3b8',
+                                                                  borderRadius: '3px',
+                                                                  padding: '0 4px',
+                                                                  height: '18px',
+                                                                  lineHeight: '16px',
+                                                                  cursor: 'pointer',
+                                                                  display: 'inline-flex',
+                                                                  alignItems: 'center',
+                                                                  gap: '2px',
+                                                                  opacity: 0.85,
+                                                                  transition: 'all 0.15s ease',
+                                                                  zIndex: 2
+                                                                }}
+                                                                onMouseEnter={(e) => {
+                                                                  e.currentTarget.style.opacity = '1';
+                                                                  e.currentTarget.style.color = 'var(--primary)';
+                                                                  e.currentTarget.style.borderColor = 'var(--primary)';
+                                                                  e.currentTarget.style.background = '#f0fdfa';
+                                                                }}
+                                                                onMouseLeave={(e) => {
+                                                                  e.currentTarget.style.opacity = '0.85';
+                                                                  e.currentTarget.style.color = '#64748b';
+                                                                  e.currentTarget.style.borderColor = '#94a3b8';
+                                                                  e.currentTarget.style.background = '#ffffff';
+                                                                }}
+                                                              >
+                                                                + ĐVT
+                                                              </button>
+                                                            )}
+
+                                                            {/* Ngăn ĐVT: Chỉ render khi có ĐVT hoặc đang chỉnh sửa ĐVT */}
+                                                            {showUnitAddon && (
+                                                              <div style={{ position: 'relative', width: '56px', flexShrink: 0, display: 'flex', alignItems: 'stretch' }}>
+                                                                <input
+                                                                  type="text"
+                                                                  autoFocus={isEditingUnit && !effectiveUnit}
+                                                                  disabled={isLocked}
+                                                                  value={effectiveUnit}
+                                                                  onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setActiveBlockId(block.id);
+                                                                    setActiveCellKey(cellKey);
+                                                                    setActiveUnitInputCellKey(cellKey);
+                                                                  }}
+                                                                  onFocus={() => {
+                                                                    setActiveBlockId(block.id);
+                                                                    setActiveCellKey(cellKey);
+                                                                    setActiveUnitInputCellKey(cellKey);
+                                                                  }}
+                                                                  onChange={(e) => {
+                                                                    handleUpdateTableCellUnit(block.id, row.id, col.id, e.target.value);
+                                                                  }}
+                                                                  onBlur={(e) => {
+                                                                    const val = e.target.value.trim();
+                                                                    if (!val) {
+                                                                      handleUpdateTableCellUnit(block.id, row.id, col.id, '');
+                                                                      if (activeUnitInputCellKey === cellKey) {
+                                                                        setActiveUnitInputCellKey(null);
+                                                                      }
+                                                                    }
+                                                                  }}
+                                                                  placeholder={col.unit || 'ĐVT'}
+                                                                  title="Đơn vị tính ô này (e.g. kg, °C, đ...). Để trống để tắt ĐVT."
+                                                                  style={{
+                                                                    width: '100%',
+                                                                    padding: effectiveUnit ? '2px 14px 2px 4px' : '2px 4px',
+                                                                    fontSize: '0.72rem',
+                                                                    fontWeight: effectiveUnit ? 600 : 400,
+                                                                    fontStyle: effectiveUnit ? 'normal' : 'italic',
+                                                                    textAlign: 'center',
+                                                                    color: effectiveUnit ? 'var(--primary)' : '#94a3b8',
+                                                                    background: effectiveUnit ? '#f0fdfa' : '#f1f5f9',
+                                                                    border: `1px dashed ${effectiveUnit ? 'var(--primary)' : '#cbd5e1'}`,
+                                                                    borderTopRightRadius: '4px',
+                                                                    borderBottomRightRadius: '4px',
+                                                                    outline: 'none',
+                                                                    boxSizing: 'border-box',
+                                                                    cursor: isLocked ? 'default' : 'text'
+                                                                  }}
+                                                                  onFocusCapture={(e) => {
+                                                                    e.currentTarget.style.borderColor = 'var(--primary)';
+                                                                    e.currentTarget.style.background = '#ffffff';
+                                                                  }}
+                                                                  onBlurCapture={(e) => {
+                                                                    e.currentTarget.style.borderColor = effectiveUnit ? 'var(--primary)' : '#cbd5e1';
+                                                                    e.currentTarget.style.background = effectiveUnit ? '#f0fdfa' : '#f1f5f9';
+                                                                  }}
+                                                                />
+                                                                {/* Nút micro xóa ĐVT 1-chạm */}
+                                                                {!isLocked && (Boolean(cellUnitVal) || (col.unit && activeCellKey === cellKey)) && (
+                                                                  <button
+                                                                    type="button"
+                                                                    onClick={(e) => {
+                                                                      e.stopPropagation();
+                                                                      handleUpdateTableCellUnit(block.id, row.id, col.id, '');
+                                                                      setActiveUnitInputCellKey(null);
+                                                                    }}
+                                                                    title="Tắt ĐVT ô này"
+                                                                    style={{
+                                                                      position: 'absolute',
+                                                                      right: '2px',
+                                                                      top: '50%',
+                                                                      transform: 'translateY(-50%)',
+                                                                      background: 'none',
+                                                                      border: 'none',
+                                                                      cursor: 'pointer',
+                                                                      padding: '0',
+                                                                      color: '#94a3b8',
+                                                                      display: 'flex',
+                                                                      alignItems: 'center',
+                                                                      justifyContent: 'center',
+                                                                      opacity: 0.6,
+                                                                      transition: 'opacity 0.15s ease'
+                                                                    }}
+                                                                    onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.color = '#ef4444'; }}
+                                                                    onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.6'; e.currentTarget.style.color = '#94a3b8'; }}
+                                                                  >
+                                                                    <X size={10} />
+                                                                  </button>
+                                                                )}
+                                                              </div>
+                                                            )}
                                                           </div>
                                                         );
                                                       })() : (

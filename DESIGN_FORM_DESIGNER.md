@@ -9,7 +9,7 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-11-03) — Zero Bracket Placeholder Mantra verified against source |
+| **Verified At Commit** | (2026-11-03) — In-Canvas On-Demand Unit for Number Table Cells verified against source |
 
 > **⚠️ Architectural note:** FormBuilder has no awareness of which process it belongs to. The `formName` prop is always identical to `formId`. See Section 6.1 and the Technical Debt table.
 
@@ -528,3 +528,4 @@ full diff of any entry below.
 | 2026-11-03 | **Table Summary Two-Zone Split Layout & Fixed Icon Anchoring (`FormBuilder`):** (1) In `FormBuilder.tsx`, upgraded table summary column cells to a Two-Zone Split layout (`justifyContent: 'space-between'`) with a dedicated 26px trigger pill anchored at the cell's left edge (`x = 0`), ensuring all icons across all rows in a column form a perfectly straight vertical line unaffected by text length. (2) Standardized all 6 formula/input types to single-character glyphs (`∑`, `×`, `%`, `#`, `T`, `—`) with uniform 26×20px geometry. (3) Formatted formula picker dropdown with monospace font (`Consolas`) and concise Vietnamese labels (`∑  Cộng`, `×  Nhân`, `%  Tỷ lệ`, `#  Nhập số`, `T  Nhập chữ`, `—  Bỏ qua`), ensuring zero character misalignment. (4) Converted micro-pill to a borderless Ghost button and eradicated developer debug square brackets `[ ... ]` in favor of natural italic placeholder styling. |
 | 2026-11-03 | **Table Summary # Number & T Text Label Harmonization (`FormBuilder`):** Harmonized formula picker options in `FormBuilder.tsx` to `#  Number` and `T  Text` (replacing verbose Vietnamese `Nhập số` and `Nhập chữ`), establishing clean semantic parity with 1-character glyphs `#` and `T`. |
 | 2026-11-03 | **Zero Bracket Placeholder Mantra & Canvas Preview Standardization (`FormBuilder`, `FormReferenceCanvas`):** Triệt tiêu 100% tàn dư ngoặc vuông debug `[ ]` khỏi toàn bộ placeholder và visual indicators trên Canvas (`INFO_GRID`, `TABLE`, `SUBTABLE`, `MATRIX_TABLE`). Chuẩn hóa typography sang text nghiêng tự nhiên (`Nhập chữ...`, `Nhập số...`, `Gõ placeholder...`, `ĐVT`, `Ngày`, `Giờ`, `0`), loại bỏ triệt để rác thị giác theo triết lý Subtraction Design Mantra. |
+| 2026-11-03 | **In-Canvas On-Demand Unit for Number Table Cells (`FormBuilder`):** Chuyển đổi cơ chế hiển thị đơn vị tính trong ô số của bảng sang mô hình On-Demand theo dữ liệu: khi ô/cột không có ĐVT (`!hasUnit`), render 1 ô input duy nhất rộng 100% kèm micro-trigger `+ ĐVT` mờ nhẹ khi hover/active (chấm dứt tình trạng bị ép chia đôi và cắt cụt chữ `Nhập `). Khi ô có ĐVT hoặc người dùng bấm `+ ĐVT`, hiển thị Input Group 2 ngăn kèm nút `✕` xóa nhanh 1-chạm tự động co về full-width. |
