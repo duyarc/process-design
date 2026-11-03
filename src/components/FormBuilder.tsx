@@ -7749,8 +7749,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                         <option value="sum">∑  Cộng</option>
                                                         <option value="multiply">×  Nhân</option>
                                                         <option value="percentage">%  Tỷ lệ</option>
-                                                        <option value="manual_number">#  Nhập số</option>
-                                                        <option value="manual_text">T  Nhập chữ</option>
+                                                        <option value="manual_number">#  Number</option>
+                                                        <option value="manual_text">T  Text</option>
                                                         <option value="none">—  Bỏ qua</option>
                                                       </select>
                                                     </div>
