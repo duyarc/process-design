@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import { Star } from 'lucide-react';
 import type { Submission, SubmissionFieldSnapshot, FormTemplateISO, TableColumnConfig } from '../../types';
 import { formatFormVersion, getColStyleWidth } from '../../types';
-import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock, getInfoGridTemplateColumns, isOtherValue, extractOtherText, formatOptionDisplay, getEffectiveCellOptions, parseGoogleMapsUrl, getChecklistColumns, resolveImageSrc, clusterOptionsByGroup, parseChecklistValues, formatDMS } from '../../utils/formUtils';
+import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock, getInfoGridTemplateColumns, isOtherValue, extractOtherText, formatOptionDisplay, getEffectiveCellOptions, parseGoogleMapsUrl, getChecklistColumns, resolveImageSrc, clusterOptionsByGroup, parseChecklistValues, formatDMS, formatIsoNumber } from '../../utils/formUtils';
 import { renderFormattedText } from '../../utils/textFormatter';
 import { PrintDocumentStyles, PrintSectionHeader } from './printShared';
 import { MiniMapCanvas } from '../form/MiniMapCanvas';
@@ -931,7 +931,7 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                 <div style={{ flex: isLongTextLabel ? undefined : 1, width: isLongTextLabel ? '100%' : undefined, borderBottom: '1px dotted #cbd5e1', minHeight: '16px', paddingBottom: '1px', fontWeight: 600, color: '#0f172a' }}>
                                   {displayVal ? (
                                     <span>
-                                      {renderFormattedText(displayVal)}
+                                      {renderFormattedText(f.type === 'number' ? formatIsoNumber(displayVal) : displayVal)}
                                       {f.type === 'number' && f.unit ? ` ${f.unit}` : ''}
                                     </span>
                                   ) : '\u00A0'}
@@ -1487,11 +1487,44 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                                lineHeight: 1.4
                                              }}>
                                                {effectiveText ? (
-                                                 <span>
-                                                   {renderFormattedText((col.type === 'select' || isOtherValue(effectiveText)) ? formatOptionDisplay(effectiveText, opts) : effectiveText)}
-                                                   {cellUnit && <span style={{ marginLeft: '4px', fontSize: '0.75rem', color: '#64748b', fontWeight: 500 }}>{cellUnit}</span>}
-                                                 </span>
-                                               ) : '\u00A0'}
+                                                  col.type === 'number' ? (
+                                                    <div style={{
+                                                      display: 'flex',
+                                                      flexDirection: 'column',
+                                                      alignItems: cellAlign === 'left' ? 'flex-start' : cellAlign === 'center' ? 'center' : 'flex-end',
+                                                      justifyContent: 'center',
+                                                      width: '100%',
+                                                      lineHeight: 1.25,
+                                                      fontVariantNumeric: 'tabular-nums'
+                                                    }}>
+                                                      <span style={{
+                                                        fontWeight: 700,
+                                                        fontSize: '0.92rem',
+                                                        color: '#0f172a',
+                                                        letterSpacing: '-0.01em',
+                                                        whiteSpace: 'nowrap'
+                                                      }}>
+                                                        {formatIsoNumber(effectiveText)}
+                                                      </span>
+                                                      {cellUnit && (
+                                                        <span style={{
+                                                          fontWeight: 500,
+                                                          fontSize: '0.7rem',
+                                                          color: '#64748b',
+                                                          marginTop: '1px',
+                                                          whiteSpace: 'nowrap'
+                                                        }}>
+                                                          {cellUnit}
+                                                        </span>
+                                                      )}
+                                                    </div>
+                                                  ) : (
+                                                    <span>
+                                                      {renderFormattedText((col.type === 'select' || isOtherValue(effectiveText)) ? formatOptionDisplay(effectiveText, opts) : effectiveText)}
+                                                      {cellUnit && <span style={{ marginLeft: '4px', fontSize: '0.75rem', color: '#64748b', fontWeight: 500 }}>{cellUnit}</span>}
+                                                    </span>
+                                                  )
+                                                ) : '\u00A0'}
                                              </div>
                                            </td>
                                          );

@@ -1484,3 +1484,24 @@ export function parseGoogleMapsUrl(rawUrl?: string): { lat?: number; lng?: numbe
 
   return null;
 }
+
+/**
+ * Formats a numeric string or number according to ISO 80000-1 / SI standard:
+ * Groups integer digits into sets of three separated by a non-breaking space (\u00A0).
+ * This standard is 100% neutral across both Vietnamese (which traditionally uses .)
+ * and International / US (which traditionally uses ,), completely avoiding ambiguity.
+ * Preserves decimal parts and negative signs if present.
+ * If value is non-numeric, already spaced, or empty, returns original string safely.
+ */
+export function formatIsoNumber(val: string | number | undefined | null): string {
+  if (val === undefined || val === null || val === '') return '';
+  const str = String(val).trim();
+  if (/\d\s+\d/.test(str)) return str;
+  const numMatch = str.match(/^(-?)(\d+)(?:([.,])(\d+))?$/);
+  if (!numMatch) {
+    return str;
+  }
+  const [, sign, intPart, decSep, decPart] = numMatch;
+  const formattedInt = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, '\u00A0');
+  return `${sign}${formattedInt}${decSep ? decSep + decPart : ''}`;
+}

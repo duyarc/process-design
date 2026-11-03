@@ -68,7 +68,8 @@ import {
   resolveImageSrc,
   getTableItemColumnId,
   clusterOptionsByGroup,
-  parseChecklistValues
+  parseChecklistValues,
+  formatIsoNumber
 } from '../utils/formUtils';
 import { renderFormattedText, stripMarkdownTokens } from '../utils/textFormatter';
 import { useAuth } from '../context/AuthContext';
@@ -3368,18 +3369,60 @@ function FormFillerInner({
                                       />
                                     ) : col.type === 'number' ? (() => {
                                       const cellUnit = block.cellUnitMap?.[`${row.id}_${col.id}`] || col.unit || '';
+                                      if (effectiveReadOnly) {
+                                        return (
+                                          <div style={{
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            alignItems: cellAlign === 'left' ? 'flex-start' : cellAlign === 'center' ? 'center' : 'flex-end',
+                                            justifyContent: 'center',
+                                            width: '100%',
+                                            lineHeight: 1.25,
+                                            padding: '2px 4px',
+                                            fontVariantNumeric: 'tabular-nums'
+                                          }}>
+                                            <span style={{
+                                              fontWeight: 700,
+                                              fontSize: '0.92rem',
+                                              color: '#0f172a',
+                                              letterSpacing: '-0.01em',
+                                              whiteSpace: 'nowrap'
+                                            }}>
+                                              {cellValue ? formatIsoNumber(cellValue) : '—'}
+                                            </span>
+                                            {cellUnit && (
+                                              <span style={{
+                                                fontWeight: 500,
+                                                fontSize: '0.7rem',
+                                                color: '#64748b',
+                                                marginTop: '1px',
+                                                whiteSpace: 'nowrap'
+                                              }}>
+                                                {cellUnit}
+                                              </span>
+                                            )}
+                                          </div>
+                                        );
+                                      }
                                       return (
-                                        <div style={{ display: 'flex', alignItems: 'center', width: '100%', gap: cellUnit ? '4px' : '0' }}>
-                                          <input 
-                                            type="number" 
-                                            value={cellValue} 
-                                            placeholder={stripMarkdownTokens(cellPlaceholder)}
-                                            onChange={(e) => handleTableCellChangeWithAutoAppend(block, row.id, col.id, e.target.value, thisGroupHeaderId)} 
-                                            style={{ flex: 1, minWidth: 0, padding: '0.35rem 0.45rem', fontSize: '0.8rem', border: '1px solid #e2e8f0', borderRadius: '4px', textAlign: 'right', backgroundColor: '#f8fafc' }}
-                                          />
-                                          {cellUnit && (
-                                            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 500, flexShrink: 0, whiteSpace: 'nowrap' }}>
-                                              {cellUnit}
+                                        <div style={{ display: 'flex', flexDirection: 'column', width: '100%', alignItems: 'flex-end' }}>
+                                          <div style={{ display: 'flex', alignItems: 'center', width: '100%', gap: cellUnit ? '4px' : '0' }}>
+                                            <input 
+                                              type="number" 
+                                              value={cellValue} 
+                                              placeholder={stripMarkdownTokens(cellPlaceholder)}
+                                              onChange={(e) => handleTableCellChangeWithAutoAppend(block, row.id, col.id, e.target.value, thisGroupHeaderId)} 
+                                              style={{ flex: 1, minWidth: 0, padding: '0.35rem 0.45rem', fontSize: '0.8rem', border: '1px solid #e2e8f0', borderRadius: '4px', textAlign: 'right', backgroundColor: '#f8fafc' }}
+                                            />
+                                            {cellUnit && (
+                                              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 500, flexShrink: 0, whiteSpace: 'nowrap' }}>
+                                                {cellUnit}
+                                              </span>
+                                            )}
+                                          </div>
+                                          {cellValue && String(cellValue).length >= 4 && /^-?\d+$/.test(String(cellValue)) && (
+                                            <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600, marginTop: '2px', fontVariantNumeric: 'tabular-nums' }}>
+                                              ≈ {formatIsoNumber(cellValue)}{cellUnit ? ` ${cellUnit}` : ''}
                                             </span>
                                           )}
                                         </div>
