@@ -4415,7 +4415,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                               setActiveFieldId(f.id);
                                             }}
                                             onChange={(e) => handleUpdateField(block.id, f.id, { placeholder: e.target.value })}
-                                            placeholder="[Dán link Google Maps hoặc toạ độ...]"
+                                            placeholder="Dán link Google Maps hoặc toạ độ..."
                                             style={{
                                               width: '100%',
                                               padding: '3px 6px 3px 22px',
@@ -4492,7 +4492,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                             setActiveFieldId(f.id);
                                           }}
                                           onChange={(e) => handleUpdateField(block.id, f.id, { placeholder: e.target.value })}
-                                          placeholder="[Gõ placeholder...]"
+                                          placeholder="Gõ placeholder..."
                                           style={{
                                             width: '100%',
                                             padding: '3px 6px',
@@ -4524,14 +4524,14 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                         {f.dateMode === 'range' ? (
                                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.74rem', color: '#64748b', background: '#f8fafc', padding: '3px 8px', borderRadius: '4px', border: '1px dashed #cbd5e1', width: '100%' }}>
                                             <Calendar size={12} color="var(--primary)" />
-                                            <span>Từ: [Ngày/Tháng/Năm]</span>
+                                            <span>Từ: Ngày/Tháng/Năm</span>
                                             <span style={{ color: '#cbd5e1' }}>~</span>
-                                            <span>Đến: [Ngày/Tháng/Năm]</span>
+                                            <span>Đến: Ngày/Tháng/Năm</span>
                                           </div>
                                         ) : (
                                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.74rem', color: '#64748b', background: '#f8fafc', padding: '3px 8px', borderRadius: '4px', border: '1px dashed #cbd5e1', width: '100%' }}>
                                             <Calendar size={12} color="var(--primary)" />
-                                            <span>[Ngày/Tháng/Năm]</span>
+                                            <span>Ngày/Tháng/Năm</span>
                                           </div>
                                         )}
                                       </div>
@@ -4550,7 +4550,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                             setActiveFieldId(f.id);
                                           }}
                                           onChange={(e) => handleUpdateField(block.id, f.id, { placeholder: e.target.value })}
-                                          placeholder="[Gõ placeholder...]"
+                                          placeholder="Gõ placeholder..."
                                           style={{
                                             flex: 1,
                                             minWidth: 0,
@@ -4586,7 +4586,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                             setActiveFieldId(f.id);
                                           }}
                                           onChange={(e) => handleUpdateField(block.id, f.id, { unit: e.target.value })}
-                                          placeholder="[ĐVT]"
+                                          placeholder="ĐVT"
                                           title="Đơn vị tính (e.g. kg, đ, mm, °C...)"
                                           style={{
                                             width: '62px',
@@ -5557,7 +5557,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                     }
                                                     return (
                                                       <td key={col.id} style={{ border: '1px solid #e2e8f0', padding: '4px 6px', height: '28px', color: '#94a3b8', fontStyle: 'italic', fontSize: '0.68rem', textAlign: cellAlign as any }}>
-                                                        {col.type === 'number' ? '[0]' : col.type === 'date' ? '[Ngày]' : col.type === 'time' ? '[Giờ]' : '[Nhập chữ]'}
+                                                        {col.type === 'number' ? '0' : col.type === 'date' ? 'Ngày' : col.type === 'time' ? 'Giờ' : 'Nhập chữ...'}
                                                       </td>
                                                     );
                                                   })}
@@ -5733,8 +5733,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                 </div>
                                               ) : f.type === 'time' ? (
                                                 f.timeMode === 'dual'
-                                                  ? <span style={{ color: 'var(--text-muted)', fontSize: '0.65rem' }}>([Từ] ~ [Đến])</span>
-                                                  : <span style={{ color: 'var(--text-muted)', fontSize: '0.65rem' }}>([Giờ])</span>
+                                                  ? <span style={{ color: 'var(--text-muted)', fontSize: '0.65rem' }}>(Từ ~ Đến)</span>
+                                                  : <span style={{ color: 'var(--text-muted)', fontSize: '0.65rem' }}>(Giờ)</span>
                                               ) : f.type === 'number' ? (
                                                 (f.minSpec !== undefined && f.maxSpec !== undefined)
                                                   ? <span style={{ color: 'var(--text-muted)', fontSize: '0.65rem' }}>({f.minSpec}-{f.maxSpec})</span>
@@ -5840,7 +5840,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                     {block.matrixConfig!.columns.map((_, cIdx) => (
                                       <td key={cIdx} style={{ padding: '4px', borderRight: '1px solid #cbd5e1', textAlign: 'right' }}>
                                         <div style={{ border: '1px dashed #cbd5e1', padding: '2px', background: '#f8fafc', color: '#94a3b8', fontSize: '0.65rem' }}>
-                                          [0]
+                                          0
                                         </div>
                                       </td>
                                     ))}
@@ -6932,7 +6932,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                            onChange={(e) => {
                                                              handleUpdateTableCellText(block.id, row.id, col.id, isPlaceholder, e.target.value);
                                                            }}
-                                                           placeholder={isPlaceholder ? "[Gõ placeholder...]" : "[Nhập chữ]"}
+                                                           placeholder={isPlaceholder ? "Gõ placeholder..." : "Nhập chữ..."}
                                                            style={{
                                                              gridArea: '1 / 1 / 2 / 2',
                                                              width: '100%',
@@ -6980,9 +6980,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                           <ChevronDown size={12} style={{ color: '#94a3b8' }} />
                                                         </div>
                                                       ) : col.type === 'date' ? (
-                                                        <span style={{ color: '#cbd5e1', fontSize: '0.7rem', display: 'block', textAlign: 'center', width: '100%' }}>[Ngày]</span>
+                                                        <span style={{ color: '#cbd5e1', fontSize: '0.7rem', display: 'block', textAlign: 'center', width: '100%' }}>Ngày</span>
                                                       ) : col.type === 'time' ? (
-                                                        <span style={{ color: '#cbd5e1', fontSize: '0.7rem', display: 'block', textAlign: 'center', width: '100%' }}>[Giờ]</span>
+                                                        <span style={{ color: '#cbd5e1', fontSize: '0.7rem', display: 'block', textAlign: 'center', width: '100%' }}>Giờ</span>
                                                       ) : col.type === 'number' ? (() => {
                                                         const cellPhVal = block.cellPlaceholderMap?.[cellKey] !== undefined ? block.cellPlaceholderMap[cellKey] : '';
                                                         const cellUnitVal = block.cellUnitMap?.[cellKey] !== undefined ? block.cellUnitMap[cellKey] : '';
@@ -7012,7 +7012,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                               onChange={(e) => {
                                                                 handleUpdateTableCellText(block.id, row.id, col.id, true, e.target.value);
                                                               }}
-                                                              placeholder={col.placeholder || '[Nhập số]'}
+                                                              placeholder={col.placeholder || 'Nhập số...'}
                                                               style={{
                                                                 flex: 1,
                                                                 minWidth: 0,
@@ -7055,7 +7055,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                               onChange={(e) => {
                                                                 handleUpdateTableCellUnit(block.id, row.id, col.id, e.target.value);
                                                               }}
-                                                              placeholder={col.unit ? `[${col.unit}]` : '[ĐVT]'}
+                                                              placeholder={col.unit || 'ĐVT'}
                                                               title="Đơn vị tính ô này (e.g. đơn, VNĐ, kg...)"
                                                               style={{
                                                                 width: '56px',
@@ -7086,7 +7086,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                           </div>
                                                         );
                                                       })() : (
-                                                        <span style={{ color: '#cbd5e1', fontSize: '0.7rem', display: 'block', textAlign: 'left', width: '100%' }}>[Nhập chữ]</span>
+                                                        <span style={{ color: '#cbd5e1', fontSize: '0.7rem', display: 'block', textAlign: 'left', width: '100%' }}>Nhập chữ...</span>
                                                       )}
                                                     </div>
                                                   )}
@@ -8234,7 +8234,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                       disabled={isLocked}
                       value={activeField.placeholder ?? ''}
                       onChange={(e) => handleUpdateField(activeBlockId!, activeFieldId!, { placeholder: e.target.value })}
-                      placeholder={activeField.type === 'location' ? "Dán link Google Maps hoặc toạ độ..." : "Ví dụ: [photo]"}
+                      placeholder={activeField.type === 'location' ? "Dán link Google Maps hoặc toạ độ..." : "Ví dụ: photo"}
                       style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', fontSize: '0.78rem' }}
                     />
                   </div>

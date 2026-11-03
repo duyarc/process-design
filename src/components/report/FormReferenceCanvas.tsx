@@ -138,7 +138,7 @@ export const FormReferenceCanvas: React.FC<FormReferenceCanvasProps> = ({
             borderRadius: '4px',
             boxSizing: 'border-box'
           }}>
-            {hasSubVal ? String(subVal) : (f.placeholder || '[Gõ placeholder...]')}
+            {hasSubVal ? String(subVal) : (f.placeholder || 'Gõ placeholder...')}
           </div>
         </div>
       );
@@ -159,7 +159,7 @@ export const FormReferenceCanvas: React.FC<FormReferenceCanvasProps> = ({
             borderRadius: '4px',
             boxSizing: 'border-box'
           }}>
-            {hasSubVal ? String(subVal) : (f.type === 'date' ? '[DD/MM/YYYY]' : f.timeMode === 'dual' ? '[Từ] ~ [Đến]' : '[HH:MM]')}
+            {hasSubVal ? String(subVal) : (f.type === 'date' ? 'DD/MM/YYYY' : f.timeMode === 'dual' ? 'Từ ~ Đến' : 'HH:MM')}
           </div>
         </div>
       );
@@ -311,7 +311,7 @@ export const FormReferenceCanvas: React.FC<FormReferenceCanvasProps> = ({
                 <tr key={rIdx}>
                   {cols.map((col: SubtableColumn) => {
                     const cellAlign = col.align || (col.type === 'number' ? 'right' : (col.type === 'date' || col.type === 'time' ? 'center' : 'left'));
-                    const val = col.type === 'static_text' ? (f.subtableStaticData?.[rIdx]?.[col.id] || '') : (col.type === 'number' ? '[0]' : col.type === 'date' ? '[Ngày]' : col.type === 'time' ? '[Giờ]' : '[Nhập chữ]');
+                    const val = col.type === 'static_text' ? (f.subtableStaticData?.[rIdx]?.[col.id] || '') : (col.type === 'number' ? '0' : col.type === 'date' ? 'Ngày' : col.type === 'time' ? 'Giờ' : 'Nhập chữ...');
                     return (
                       <td key={col.id} style={{ border: '1px solid #e2e8f0', padding: '4px 6px', height: '24px', color: col.type === 'static_text' ? '#0f172a' : '#94a3b8', fontStyle: col.type === 'static_text' ? 'normal' : 'italic', fontSize: '0.68rem', textAlign: cellAlign as any, fontWeight: col.type === 'static_text' ? 600 : 400 }}>
                         {val}
@@ -905,13 +905,13 @@ export const FormReferenceCanvas: React.FC<FormReferenceCanvasProps> = ({
                                   } else if (col.type === 'select') {
                                     content = <span style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '0.7rem' }}>-- Chọn --</span>;
                                   } else if (col.type === 'date') {
-                                    content = <span style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '0.7rem' }}>[Ngày]</span>;
+                                    content = <span style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '0.7rem' }}>Ngày</span>;
                                   } else if (col.type === 'time') {
-                                    content = <span style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '0.7rem' }}>[Giờ]</span>;
+                                    content = <span style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '0.7rem' }}>Giờ</span>;
                                   } else if (cellValue !== undefined && cellValue !== '') {
                                     content = <span style={{ color: '#0f172a' }}>{cellValue}</span>;
                                   } else if (col.type === 'number') {
-                                    content = <span style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '0.7rem' }}>[0]</span>;
+                                    content = <span style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '0.7rem' }}>0</span>;
                                   } else {
                                     content = <span style={{ color: '#cbd5e1', fontStyle: 'italic', fontSize: '0.7rem' }}>—</span>;
                                   }
@@ -1113,7 +1113,7 @@ export const FormReferenceCanvas: React.FC<FormReferenceCanvasProps> = ({
                             <td style={{ padding: '6px', borderRight: '1px solid #cbd5e1', textAlign: 'center', fontWeight: 'bold' }}>{rowIdx}</td>
                             {mc.columns.map((_, cIdx) => (
                               <td key={cIdx} style={{ padding: '4px', borderRight: '1px solid #cbd5e1', textAlign: 'right' }}>
-                                <div style={{ border: '1px dashed #cbd5e1', padding: '2px', background: '#f8fafc', color: '#94a3b8', fontSize: '0.65rem' }}>[0]</div>
+                                <div style={{ border: '1px dashed #cbd5e1', padding: '2px', background: '#f8fafc', color: '#94a3b8', fontSize: '0.65rem' }}>0</div>
                               </td>
                             ))}
                             {mc.showTotalColumn && <td style={{ padding: '4px', borderRight: '1px solid #cbd5e1', textAlign: 'right', background: '#f1f5f9', fontWeight: 'bold' }}>0</td>}
