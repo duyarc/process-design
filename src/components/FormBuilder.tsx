@@ -6257,7 +6257,6 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                     >
                                         {(block.tableColumns || []).map((col, cIdx) => {
                                           const isFirstCol = cIdx === 0;
-                                          const isLastCol = cIdx === (block.tableColumns || []).length - 1;
                                           const colWidth = getColStyleWidth(col.id, col.width, block.tableColumns || []);
                                           const cellKey = `${row.id}_${col.id}`;
                                           const cellOptions = getEffectiveCellOptions(block, row.id, col.id);
@@ -6920,205 +6919,220 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                   ))}
                                                 </>
                                              )}
-                                              {!isLocked && isLastCol && (hoveredTableRowKey === rowKey || activeLineCountRowKey === rowKey) && (
-                                                <div
-                                                  onClick={(e) => e.stopPropagation()}
-                                                  style={{
-                                                    position: 'absolute',
-                                                    right: '4px',
-                                                    top: '50%',
-                                                    transform: 'translateY(-50%)',
-                                                    zIndex: 25,
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    gap: '3px',
-                                                    background: '#ffffff',
-                                                    border: '1px solid #cbd5e1',
-                                                    borderRadius: '4px',
-                                                    padding: '2px 4px',
-                                                    boxShadow: '0 2px 8px rgba(0,0,0,0.12)'
-                                                  }}
-                                                >
-                                                  {/* Nút Pill chọn số dòng viết tay */}
-                                                  <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+                                               {col.id === itemColId && (
+                                                 <div style={{ padding: '2px 6px 4px 6px', textAlign: 'left' }} onClick={(e) => e.stopPropagation()}>
+                                                   {/* Micro Action Bar: [ 💡 ] [ ⊟ 1 ▾ ] [ 🗑️ ] */}
+                                                   <div style={{
+                                                     display: 'inline-flex',
+                                                     alignItems: 'center',
+                                                     gap: '4px',
+                                                     opacity: (!isLocked && (hoveredTableRowKey === rowKey || isCellSelected || activeLineCountRowKey === rowKey || row.guidance || lc > 1 || canvasExpandedGuidanceMap[row.id])) ? 1 : 0,
+                                                     pointerEvents: (!isLocked && (hoveredTableRowKey === rowKey || isCellSelected || activeLineCountRowKey === rowKey || row.guidance || lc > 1 || canvasExpandedGuidanceMap[row.id])) ? 'auto' : 'none',
+                                                     transition: 'opacity 0.15s ease'
+                                                   }}>
+                                                     {/* 1. Nút 💡 Hướng dẫn dòng */}
                                                      <button
                                                        type="button"
+                                                       disabled={isLocked}
                                                        onClick={(e) => {
                                                          e.stopPropagation();
-                                                         setActiveLineCountRowKey(prev => prev === rowKey ? null : rowKey);
+                                                         toggleCanvasGuidance(row.id);
                                                        }}
                                                        style={{
                                                          display: 'inline-flex',
                                                          alignItems: 'center',
-                                                         gap: '3px',
-                                                         padding: '2px 4px',
-                                                         fontSize: '0.68rem',
-                                                         fontWeight: lc > 1 ? 600 : 500,
-                                                         borderRadius: '3px',
-                                                         border: 'none',
-                                                         background: lc > 1 ? 'rgba(59, 130, 246, 0.1)' : activeLineCountRowKey === rowKey ? '#f1f5f9' : 'transparent',
-                                                         color: lc > 1 ? 'var(--primary)' : 'var(--text-secondary)',
-                                                         cursor: 'pointer',
-                                                         lineHeight: 1,
-                                                         transition: 'all 0.15s ease'
+                                                         justifyContent: 'center',
+                                                         width: '22px',
+                                                         height: '22px',
+                                                         borderRadius: '4px',
+                                                         background: canvasExpandedGuidanceMap[row.id] ? '#f0fdfa' : row.guidance ? '#f8fafc' : 'transparent',
+                                                         border: `1px ${row.guidance ? 'solid' : 'dashed'} ${canvasExpandedGuidanceMap[row.id] ? '#0d9488' : row.guidance ? '#cbd5e1' : '#94a3b8'}`,
+                                                         color: canvasExpandedGuidanceMap[row.id] ? '#0d9488' : row.guidance ? '#0f766e' : '#94a3b8',
+                                                         cursor: isLocked ? 'default' : 'pointer',
+                                                         fontSize: '0.75rem',
+                                                         transition: 'all 0.15s ease',
+                                                         flexShrink: 0,
+                                                         padding: 0
                                                        }}
-                                                       onMouseEnter={(e) => {
-                                                         if (lc <= 1 && activeLineCountRowKey !== rowKey) e.currentTarget.style.background = '#f1f5f9';
-                                                       }}
-                                                       onMouseLeave={(e) => {
-                                                         if (lc <= 1 && activeLineCountRowKey !== rowKey) e.currentTarget.style.background = 'transparent';
-                                                       }}
-                                                       title={`Số dòng kẻ viết tay: ${lc} dòng (Click để đổi)`}
+                                                       title={canvasExpandedGuidanceMap[row.id] ? "Thu gọn hướng dẫn" : row.guidance ? "Xem/sửa hướng dẫn dòng" : "Thêm hướng dẫn chi tiết cho dòng này"}
                                                      >
-                                                       <Rows2 size={11} strokeWidth={1.75} style={{ opacity: lc > 1 ? 1 : 0.7 }} />
-                                                       <span>{lc}</span>
-                                                       <ChevronDown size={8} strokeWidth={2} style={{ opacity: 0.6, marginLeft: '-1px' }} />
+                                                       <span style={{ fontSize: '0.8rem', lineHeight: 1, filter: row.guidance ? 'none' : 'grayscale(100%) opacity(0.6)' }}>💡</span>
                                                      </button>
 
-                                                    {/* Mini Popover nổi sang bên trái nút pill */}
-                                                    {activeLineCountRowKey === rowKey && (
-                                                      <>
-                                                        <div 
-                                                          style={{ position: 'fixed', inset: 0, zIndex: 998 }} 
-                                                          onClick={(e) => { e.stopPropagation(); setActiveLineCountRowKey(null); }} 
-                                                        />
-                                                        <div
-                                                          onClick={(e) => e.stopPropagation()}
-                                                          style={{
-                                                            position: 'absolute',
-                                                            right: 'calc(100% + 4px)',
-                                                            top: '50%',
-                                                            transform: 'translateY(-50%)',
-                                                            background: '#ffffff',
-                                                            border: '1px solid #cbd5e1',
-                                                            borderRadius: '5px',
-                                                            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-                                                            padding: '2px 4px',
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            gap: '2px',
-                                                            zIndex: 999,
-                                                            whiteSpace: 'nowrap'
-                                                          }}
-                                                        >
-                                                          <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', padding: '0 2px', userSelect: 'none' }}>
-                                                            Dòng:
-                                                          </span>
-                                                          {[1, 2, 3, 4, 5].map((n) => (
-                                                            <button
-                                                              key={n}
-                                                              type="button"
-                                                              onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                handleUpdateRowLineCount(block.id, row.id, n);
-                                                                setActiveLineCountRowKey(null);
-                                                              }}
-                                                              style={{
-                                                                width: '20px',
-                                                                height: '20px',
-                                                                display: 'flex',
-                                                                alignItems: 'center',
-                                                                justifyContent: 'center',
-                                                                borderRadius: '3px',
-                                                                border: 'none',
-                                                                fontSize: '0.7rem',
-                                                                fontWeight: n === lc ? 700 : 400,
-                                                                background: n === lc ? 'var(--primary)' : 'transparent',
-                                                                color: n === lc ? '#ffffff' : 'var(--text-primary)',
-                                                                cursor: 'pointer',
-                                                                transition: 'all 0.1s ease'
-                                                              }}
-                                                              onMouseEnter={(e) => {
-                                                                if (n !== lc) e.currentTarget.style.background = '#f1f5f9';
-                                                              }}
-                                                              onMouseLeave={(e) => {
-                                                                if (n !== lc) e.currentTarget.style.background = 'transparent';
-                                                              }}
-                                                            >
-                                                              {n}
-                                                            </button>
-                                                          ))}
-                                                        </div>
-                                                      </>
-                                                    )}
+                                                     {/* 2. Nút Pill chọn số dòng viết tay [ ⊟ 1 ▾ ] */}
+                                                     {!isLocked && (
+                                                       <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+                                                         <button
+                                                           type="button"
+                                                           onClick={(e) => {
+                                                             e.stopPropagation();
+                                                             setActiveLineCountRowKey(prev => prev === rowKey ? null : rowKey);
+                                                           }}
+                                                           style={{
+                                                             display: 'inline-flex',
+                                                             alignItems: 'center',
+                                                             gap: '3px',
+                                                             height: '22px',
+                                                             padding: '0 6px',
+                                                             fontSize: '0.7rem',
+                                                             fontWeight: lc > 1 ? 600 : 400,
+                                                             borderRadius: '4px',
+                                                             border: `1px solid ${lc > 1 ? 'var(--primary)' : '#cbd5e1'}`,
+                                                             background: lc > 1 ? 'rgba(59, 130, 246, 0.08)' : activeLineCountRowKey === rowKey ? '#f1f5f9' : '#ffffff',
+                                                             color: lc > 1 ? 'var(--primary)' : '#64748b',
+                                                             cursor: 'pointer',
+                                                             lineHeight: 1,
+                                                             transition: 'all 0.15s ease'
+                                                           }}
+                                                           title={`Số dòng kẻ viết tay: ${lc} dòng (Click để đổi)`}
+                                                         >
+                                                           <Rows2 size={11} strokeWidth={1.75} style={{ opacity: lc > 1 ? 1 : 0.7 }} />
+                                                           <span>{lc}</span>
+                                                           <ChevronDown size={8} strokeWidth={2} style={{ opacity: 0.6, marginLeft: '-1px' }} />
+                                                         </button>
+
+                                                         {/* Mini Popover chọn 1..5 dòng */}
+                                                         {activeLineCountRowKey === rowKey && (
+                                                           <>
+                                                             <div 
+                                                               style={{ position: 'fixed', inset: 0, zIndex: 998 }} 
+                                                               onClick={(e) => { e.stopPropagation(); setActiveLineCountRowKey(null); }} 
+                                                             />
+                                                             <div
+                                                               onClick={(e) => e.stopPropagation()}
+                                                               style={{
+                                                                 position: 'absolute',
+                                                                 left: 0,
+                                                                 top: 'calc(100% + 4px)',
+                                                                 background: '#ffffff',
+                                                                 border: '1px solid #cbd5e1',
+                                                                 borderRadius: '5px',
+                                                                 boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                                                                 padding: '2px 4px',
+                                                                 display: 'flex',
+                                                                 alignItems: 'center',
+                                                                 gap: '2px',
+                                                                 zIndex: 999,
+                                                                 whiteSpace: 'nowrap'
+                                                               }}
+                                                             >
+                                                               <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', padding: '0 2px', userSelect: 'none' }}>
+                                                                 Dòng:
+                                                               </span>
+                                                               {[1, 2, 3, 4, 5].map((n) => (
+                                                                 <button
+                                                                   key={n}
+                                                                   type="button"
+                                                                   onClick={(e) => {
+                                                                     e.stopPropagation();
+                                                                     handleUpdateRowLineCount(block.id, row.id, n);
+                                                                     setActiveLineCountRowKey(null);
+                                                                   }}
+                                                                   style={{
+                                                                     width: '20px',
+                                                                     height: '20px',
+                                                                     display: 'flex',
+                                                                     alignItems: 'center',
+                                                                     justifyContent: 'center',
+                                                                     borderRadius: '3px',
+                                                                     border: 'none',
+                                                                     fontSize: '0.7rem',
+                                                                     fontWeight: n === lc ? 700 : 400,
+                                                                     background: n === lc ? 'var(--primary)' : 'transparent',
+                                                                     color: n === lc ? '#ffffff' : 'var(--text-primary)',
+                                                                     cursor: 'pointer',
+                                                                     transition: 'all 0.1s ease'
+                                                                   }}
+                                                                   onMouseEnter={(e) => {
+                                                                     if (n !== lc) e.currentTarget.style.background = '#f1f5f9';
+                                                                   }}
+                                                                   onMouseLeave={(e) => {
+                                                                     if (n !== lc) e.currentTarget.style.background = 'transparent';
+                                                                   }}
+                                                                 >
+                                                                   {n}
+                                                                 </button>
+                                                               ))}
+                                                             </div>
+                                                           </>
+                                                         )}
+                                                       </div>
+                                                     )}
+
+                                                     {/* 3. Nút 🗑️ Xóa dòng */}
+                                                     {!isLocked && (
+                                                       <button
+                                                         type="button"
+                                                         onClick={(e) => {
+                                                           e.stopPropagation();
+                                                           setLayoutBlocks(prev => prev.map(b => {
+                                                             if (b.id === block.id) {
+                                                               const updatedRows = (b.tableRows || []).filter(r => r.id !== row.id);
+                                                               const updatedData = { ...b.tableData || {} };
+                                                               delete updatedData[row.id];
+                                                               const updatedPlaceholderMap = { ...b.cellPlaceholderMap || {} };
+                                                               Object.keys(updatedPlaceholderMap).forEach(k => {
+                                                                 if (k.startsWith(`${row.id}_`)) {
+                                                                   delete updatedPlaceholderMap[k];
+                                                                 }
+                                                               });
+                                                               const updatedUnitMap = { ...b.cellUnitMap || {} };
+                                                               Object.keys(updatedUnitMap).forEach(k => {
+                                                                 if (k.startsWith(`${row.id}_`)) {
+                                                                   delete updatedUnitMap[k];
+                                                                 }
+                                                               });
+                                                               return { ...b, tableRows: updatedRows, tableData: updatedData, cellPlaceholderMap: updatedPlaceholderMap, cellUnitMap: updatedUnitMap };
+                                                             }
+                                                             return b;
+                                                           }));
+                                                           setActiveLineCountRowKey(null);
+                                                           setHoveredTableRowKey(null);
+                                                         }}
+                                                         style={{
+                                                           display: 'inline-flex',
+                                                           alignItems: 'center',
+                                                           justifyContent: 'center',
+                                                           width: '22px',
+                                                           height: '22px',
+                                                           borderRadius: '4px',
+                                                           background: 'transparent',
+                                                           border: '1px solid transparent',
+                                                           color: '#94a3b8',
+                                                           cursor: 'pointer',
+                                                           padding: 0,
+                                                           transition: 'all 0.15s ease'
+                                                         }}
+                                                         onMouseEnter={(e) => {
+                                                           e.currentTarget.style.background = '#fee2e2';
+                                                           e.currentTarget.style.borderColor = '#fecaca';
+                                                           e.currentTarget.style.color = '#ef4444';
+                                                         }}
+                                                         onMouseLeave={(e) => {
+                                                           e.currentTarget.style.background = 'transparent';
+                                                           e.currentTarget.style.borderColor = 'transparent';
+                                                           e.currentTarget.style.color = '#94a3b8';
+                                                         }}
+                                                         title="Xóa dòng này"
+                                                       >
+                                                         <Trash2 size={12} />
+                                                       </button>
+                                                     )}
                                                    </div>
 
-                                                   <div style={{ width: '1px', height: '12px', background: '#e2e8f0', margin: '0 1px' }} />
-
-                                                   <button
-                                                     type="button"
-                                                     onClick={(e) => {
-                                                       e.stopPropagation();
-                                                       setLayoutBlocks(prev => prev.map(b => {
-                                                         if (b.id === block.id) {
-                                                           const updatedRows = (b.tableRows || []).filter(r => r.id !== row.id);
-                                                           const updatedData = { ...b.tableData || {} };
-                                                           delete updatedData[row.id];
-                                                           const updatedPlaceholderMap = { ...b.cellPlaceholderMap || {} };
-                                                           Object.keys(updatedPlaceholderMap).forEach(k => {
-                                                             if (k.startsWith(`${row.id}_`)) {
-                                                               delete updatedPlaceholderMap[k];
-                                                             }
-                                                           });
-                                                           return { ...b, tableRows: updatedRows, tableData: updatedData, cellPlaceholderMap: updatedPlaceholderMap };
-                                                         }
-                                                         return b;
-                                                       }));
-                                                       setActiveLineCountRowKey(null);
-                                                       setHoveredTableRowKey(null);
-                                                     }}
-                                                     style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '2px 4px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '3px', transition: 'all 0.1s ease' }}
-                                                     onMouseEnter={(e) => e.currentTarget.style.background = '#fee2e2'}
-                                                     onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                                                     title="Xóa dòng"
-                                                   >
-                                                     <Trash2 size={11} />
-                                                   </button>
+                                                   {/* Hộp soạn thảo hướng dẫn in-canvas */}
+                                                   {canvasExpandedGuidanceMap[row.id] && (
+                                                     <div style={{ marginTop: '4px' }}>
+                                                       <InCanvasGuidanceEditor
+                                                         guidance={row.guidance || ''}
+                                                         isLocked={isLocked}
+                                                         onUpdateGuidance={(val) => handleUpdateTableRowGuidance(block.id, row.id, val)}
+                                                         onClose={() => toggleCanvasGuidance(row.id)}
+                                                       />
+                                                     </div>
+                                                   )}
                                                  </div>
-                                              )}
-                                              {col.id === itemColId && (
-                                                <div style={{ padding: '0 6px 4px 6px', textAlign: 'left' }} onClick={(e) => e.stopPropagation()}>
-                                                  {/* Guidance Icon Button */}
-                                                  <button
-                                                    type="button"
-                                                    disabled={isLocked}
-                                                    onClick={(e) => {
-                                                      e.stopPropagation();
-                                                      toggleCanvasGuidance(row.id);
-                                                    }}
-                                                    style={{
-                                                      display: (row.guidance || isCellSelected || canvasExpandedGuidanceMap[row.id]) ? 'inline-flex' : 'none',
-                                                      alignItems: 'center',
-                                                      justifyContent: 'center',
-                                                      width: '22px',
-                                                      height: '22px',
-                                                      borderRadius: '4px',
-                                                      background: canvasExpandedGuidanceMap[row.id] ? '#f0fdfa' : row.guidance ? '#f8fafc' : 'transparent',
-                                                      border: `1px ${row.guidance ? 'solid' : 'dashed'} ${canvasExpandedGuidanceMap[row.id] ? '#0d9488' : row.guidance ? '#cbd5e1' : '#94a3b8'}`,
-                                                      color: canvasExpandedGuidanceMap[row.id] ? '#0d9488' : row.guidance ? '#0f766e' : '#94a3b8',
-                                                      cursor: isLocked ? 'default' : 'pointer',
-                                                      fontSize: '0.75rem',
-                                                      transition: 'all 0.15s ease',
-                                                      flexShrink: 0,
-                                                      padding: 0
-                                                    }}
-                                                    title={canvasExpandedGuidanceMap[row.id] ? "Thu gọn hướng dẫn" : row.guidance ? "Xem/sửa hướng dẫn dòng" : "Thêm hướng dẫn chi tiết cho dòng này"}
-                                                  >
-                                                    <span style={{ fontSize: '0.8rem', lineHeight: 1, filter: row.guidance ? 'none' : 'grayscale(100%) opacity(0.6)' }}>💡</span>
-                                                  </button>
-
-                                                  {canvasExpandedGuidanceMap[row.id] && (
-                                                    <div style={{ marginTop: '4px' }}>
-                                                      <InCanvasGuidanceEditor
-                                                        guidance={row.guidance || ''}
-                                                        isLocked={isLocked}
-                                                        onUpdateGuidance={(val) => handleUpdateTableRowGuidance(block.id, row.id, val)}
-                                                        onClose={() => toggleCanvasGuidance(row.id)}
-                                                      />
-                                                    </div>
-                                                  )}
-                                                </div>
-                                              )}
+                                               )}
                                             </td>
                                           );
                                         })}

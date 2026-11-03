@@ -1383,11 +1383,28 @@ export function resolveImageSrc(urlOrKey?: string, isPrintInline: boolean = fals
  */
 export function getTableItemColumnId(tableColumns?: TableColumnConfig[]): string | undefined {
   if (!tableColumns || tableColumns.length === 0) return undefined;
-  const match = tableColumns.find(c =>
-    ['col_item', 'item', 'name', 'content'].includes(c.id.toLowerCase()) || c.type === 'static_text'
-  );
-  if (match) return match.id;
-  if (tableColumns.length > 1) return tableColumns[1].id;
+
+  // 1. Explicit ID matches for item / criterion / content
+  const matchId = tableColumns.find(c => {
+    const idLower = c.id.toLowerCase();
+    return idLower.includes('item') || idLower.includes('name') || idLower.includes('content') || 
+           idLower.includes('tieuchi') || idLower.includes('hangmuc') || idLower.includes('noidung');
+  });
+  if (matchId) return matchId.id;
+
+  // 2. Look for static_text or text column that is NOT STT
+  const nonSttTextCol = tableColumns.find(c => {
+    const idLower = c.id.toLowerCase();
+    const isStt = idLower.includes('stt') || idLower === 'col_stt';
+    return !isStt && (c.type === 'static_text' || c.type === 'text');
+  });
+  if (nonSttTextCol) return nonSttTextCol.id;
+
+  // 3. Fallback: first column that is NOT a numerical/choice result column
+  const candidate = tableColumns.find(c => !['number', 'checkbox', 'radio', 'rating', 'likert_scale', 'select', 'date', 'time'].includes(c.type));
+  if (candidate) return candidate.id;
+
+  // 4. Ultimate fallback to first column
   return tableColumns[0].id;
 }
 
