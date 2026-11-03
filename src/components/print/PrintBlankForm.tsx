@@ -1275,7 +1275,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                     const totalCols = columns.length;
                     if (totalCols === 0) return null;
 
-                    const summaryTypes: { id: string; label: string }[] = [];
+                    const summaryTypes: { id: string; label: string; mergeLeadingEmpty?: boolean }[] = [];
                     const columnsWithSummaries: { col: any; colIdx: number; rowMap: Map<string, any> }[] = [];
 
                     columns.forEach((col, colIdx) => {
@@ -1283,8 +1283,8 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                         const rowMap = new Map<string, any>();
                         col.summaryRows.forEach((row: any) => {
                           rowMap.set(row.id, row);
-                          if (!summaryTypes.some(s => s.label === row.label)) {
-                            summaryTypes.push({ id: row.id, label: row.label || 'Cộng:' });
+                          if (!summaryTypes.some(s => s.id === row.id)) {
+                            summaryTypes.push({ id: row.id, label: row.label || 'Cộng:', mergeLeadingEmpty: row.mergeLeadingEmpty });
                           }
                         });
                         columnsWithSummaries.push({ col, colIdx, rowMap });
@@ -1294,22 +1294,31 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                     if (columnsWithSummaries.length === 0) return null;
 
                     const firstNumericColIdx = columns.findIndex((c: any) => c.type === 'number');
-                    const effectiveFirstSumColIdx = firstNumericColIdx >= 0 ? firstNumericColIdx : (columns.length > 1 ? 1 : 0);
+                    const fallbackColIdx = firstNumericColIdx >= 0 ? firstNumericColIdx : (columns.length > 1 ? 1 : 0);
 
                     return (
-                      <tfoot>
+                      <tfoot style={{ borderTop: bStyle === 'horizontal_only' ? '1.5px solid #0f172a' : bStyle === 'borderless' ? '1px solid #e2e8f0' : '1.5px solid #94a3b8' }}>
                         {summaryTypes.map((sumType, idx) => {
                           const isLastSummaryRow = idx === summaryTypes.length - 1;
                           const rowBorderBottom = isLastSummaryRow 
-                            ? '3px double #0f172a' 
-                            : (bStyle === 'horizontal_only' ? '1.5px solid #0f172a' : '1px solid #cbd5e1');
+                            ? (bStyle === 'horizontal_only' ? '1.5px solid #0f172a' : bStyle === 'borderless' ? '1px solid #e2e8f0' : '1.5px solid #94a3b8')
+                            : (bStyle === 'horizontal_only' ? '1px solid #e2e8f0' : '1px solid #cbd5e1');
+
+                          const isMergeEnabled = sumType.mergeLeadingEmpty !== false;
+                          const firstActiveColIdx = columns.findIndex((col: any) => {
+                            const targetRow = (col.summaryRows || []).find((r: any) => r.id === sumType.id || r.label === sumType.label);
+                            return targetRow && targetRow.type !== 'none';
+                          });
+                          const effectiveFirstSumColIdx = (isMergeEnabled && firstActiveColIdx >= 0)
+                            ? firstActiveColIdx
+                            : fallbackColIdx;
 
                           return (
                             <tr key={sumType.id || idx} style={{ background: '#ffffff', fontWeight: 'var(--pw-weight-heavy)' }}>
                               {effectiveFirstSumColIdx > 0 && (
                                 <td colSpan={effectiveFirstSumColIdx} style={{
                                   border: cellBorder,
-                                  borderTop: bStyle === 'horizontal_only' ? '1.5px solid #0f172a' : '1.5px solid #94a3b8',
+                                  borderTop: bStyle === 'horizontal_only' ? '1.5px solid #0f172a' : (bStyle === 'borderless' ? 'none' : '1.5px solid #94a3b8'),
                                   borderBottom: rowBorderBottom,
                                   padding: '6px 10px',
                                   textAlign: 'right',
@@ -1327,7 +1336,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                 return (
                                   <td key={col.id} style={{
                                     border: cellBorder,
-                                    borderTop: bStyle === 'horizontal_only' ? '1.5px solid #0f172a' : '1.5px solid #94a3b8',
+                                    borderTop: bStyle === 'horizontal_only' ? '1.5px solid #0f172a' : (bStyle === 'borderless' ? 'none' : '1.5px solid #94a3b8'),
                                     borderBottom: rowBorderBottom,
                                     padding: '6px 10px',
                                     textAlign: 'right',

@@ -173,6 +173,7 @@ export interface ColumnSummaryRowConfig {
   manualPlaceholder?: string;
   unit?: string;
   multiplyRowIds?: [string, string];
+  mergeLeadingEmpty?: boolean; // Mặc định true (hoặc undefined): tự động gộp các ô trống phía trước
 }
 
 export interface TableColumnConfig {

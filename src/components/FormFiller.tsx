@@ -3517,7 +3517,7 @@ function FormFillerInner({
                         const totalCols = columns.length;
                         if (totalCols === 0) return null;
 
-                        const summaryTypes: { id: string; label: string }[] = [];
+                        const summaryTypes: { id: string; label: string; mergeLeadingEmpty?: boolean }[] = [];
                         const columnsWithSummaries: { col: any; colIdx: number; rowMap: Map<string, any> }[] = [];
 
                         columns.forEach((col: any, colIdx: number) => {
@@ -3525,8 +3525,8 @@ function FormFillerInner({
                             const rowMap = new Map<string, any>();
                             col.summaryRows.forEach((row: any) => {
                               rowMap.set(row.id, row);
-                              if (!summaryTypes.some(s => s.label === row.label)) {
-                                summaryTypes.push({ id: row.id, label: row.label || 'Cộng:' });
+                              if (!summaryTypes.some(s => s.id === row.id)) {
+                                summaryTypes.push({ id: row.id, label: row.label || 'Cộng:', mergeLeadingEmpty: row.mergeLeadingEmpty });
                               }
                             });
                             columnsWithSummaries.push({ col, colIdx, rowMap });
@@ -3536,19 +3536,31 @@ function FormFillerInner({
                         if (columnsWithSummaries.length === 0) return null;
 
                         const firstNumericColIdx = columns.findIndex((c: any) => c.type === 'number');
-                        const effectiveFirstSumColIdx = firstNumericColIdx >= 0 ? firstNumericColIdx : (columns.length > 1 ? 1 : 0);
+                        const fallbackColIdx = firstNumericColIdx >= 0 ? firstNumericColIdx : (columns.length > 1 ? 1 : 0);
 
                         return (
-                          <tfoot style={{ borderTop: '2px solid #0f172a' }}>
+                          <tfoot style={{ borderTop: bStyle === 'horizontal_only' ? '1.5px solid #0f172a' : bStyle === 'borderless' ? '1px solid #e2e8f0' : '1.5px solid #94a3b8' }}>
                             {summaryTypes.map((sumType, idx) => {
                               const isLastSummaryRow = idx === summaryTypes.length - 1;
-                              const rowBorderBottom = isLastSummaryRow ? '3px double #0f172a' : '1px solid var(--neutral-border)';
+                              const rowBorderBottom = isLastSummaryRow 
+                                ? (bStyle === 'horizontal_only' ? '1.5px solid #0f172a' : bStyle === 'borderless' ? '1px solid #e2e8f0' : '1.5px solid #94a3b8')
+                                : (bStyle === 'horizontal_only' ? '1px solid #e2e8f0' : '1px solid var(--neutral-border)');
+
+                              const isMergeEnabled = sumType.mergeLeadingEmpty !== false;
+                              const firstActiveColIdx = columns.findIndex((col: any) => {
+                                const targetRow = (col.summaryRows || []).find((r: any) => r.id === sumType.id || r.label === sumType.label);
+                                return targetRow && targetRow.type !== 'none';
+                              });
+                              const effectiveFirstSumColIdx = (isMergeEnabled && firstActiveColIdx >= 0)
+                                ? firstActiveColIdx
+                                : fallbackColIdx;
+
                               return (
                                 <tr key={sumType.id || idx} style={{ background: '#f8fafc', fontWeight: 'bold' }}>
                                   {effectiveFirstSumColIdx > 0 && (
                                     <td colSpan={effectiveFirstSumColIdx} style={{
                                       padding: '6px 8px',
-                                      borderRight: '1px solid var(--neutral-border)',
+                                      borderRight: bStyle === 'grid' ? '1px solid var(--neutral-border)' : 'none',
                                       borderBottom: rowBorderBottom,
                                       textAlign: 'right',
                                       color: '#0f172a',
@@ -3567,7 +3579,7 @@ function FormFillerInner({
                                       return (
                                         <td key={col.id} style={{
                                           padding: '6px 8px',
-                                          borderRight: '1px solid var(--neutral-border)',
+                                          borderRight: bStyle === 'grid' ? '1px solid var(--neutral-border)' : 'none',
                                           borderBottom: rowBorderBottom,
                                           fontSize: '0.8rem',
                                           textAlign: 'right'
@@ -3585,7 +3597,7 @@ function FormFillerInner({
                                     return (
                                       <td key={col.id} style={{
                                         padding: '6px 8px',
-                                        borderRight: '1px solid var(--neutral-border)',
+                                        borderRight: bStyle === 'grid' ? '1px solid var(--neutral-border)' : 'none',
                                         borderBottom: rowBorderBottom,
                                         textAlign: 'right',
                                         color: '#0f172a'

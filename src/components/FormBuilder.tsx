@@ -23,6 +23,8 @@ import {
   GitBranch,
   Rows2,
   Columns2,
+  Columns3,
+  Split,
   Link,
   Link2Off,
   Eye,
@@ -2276,6 +2278,22 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
           return idxA - idxB;
         });
         return { ...col, summaryRows: sorted };
+      });
+      return { ...b, tableColumns: updatedCols };
+    }));
+  };
+
+  // Helper: Toggle merging leading empty cells for a Table Summary Row across all columns
+  const handleToggleMergeLeadingEmpty = (blockId: string, summaryId: string, currentMerged: boolean) => {
+    const newMerged = !currentMerged;
+    setLayoutBlocks(prev => prev.map(b => {
+      if (b.id !== blockId) return b;
+      const updatedCols = (b.tableColumns || []).map(col => {
+        if (!col.summaryRows) return col;
+        return {
+          ...col,
+          summaryRows: col.summaryRows.map(r => r.id === summaryId ? { ...r, mergeLeadingEmpty: newMerged } : r)
+        };
       });
       return { ...b, tableColumns: updatedCols };
     }));
@@ -7304,7 +7322,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                 const totalCols = columns.length;
                                 if (totalCols === 0) return null;
 
-                                const summaryTypes: { id: string; label: string }[] = [];
+                                const summaryTypes: { id: string; label: string; mergeLeadingEmpty?: boolean }[] = [];
                                 const columnsWithSummaries: { col: any; colIdx: number; rowMap: Map<string, any> }[] = [];
 
                                 columns.forEach((col: any, colIdx: number) => {
@@ -7313,7 +7331,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                     col.summaryRows.forEach((row: any) => {
                                       rowMap.set(row.id, row);
                                       if (!summaryTypes.some(s => s.id === row.id)) {
-                                        summaryTypes.push({ id: row.id, label: row.label || 'Cộng:' });
+                                        summaryTypes.push({ id: row.id, label: row.label || 'Cộng:', mergeLeadingEmpty: row.mergeLeadingEmpty });
                                       }
                                     });
                                     columnsWithSummaries.push({ col, colIdx, rowMap });
@@ -7323,10 +7341,10 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                 if (summaryTypes.length === 0) return null;
 
                                 const firstNumericColIdx = columns.findIndex(c => c.type === 'number');
-                                const effectiveFirstSumColIdx = firstNumericColIdx >= 0 ? firstNumericColIdx : (columns.length > 1 ? 1 : 0);
+                                const fallbackColIdx = firstNumericColIdx >= 0 ? firstNumericColIdx : (columns.length > 1 ? 1 : 0);
 
                                 return (
-                                  <tfoot style={{ borderTop: '2px solid #0f172a' }}>
+                                  <tfoot style={{ borderTop: bStyle === 'horizontal_only' ? '1.5px solid #0f172a' : bStyle === 'borderless' ? '1px solid #e2e8f0' : '1.5px solid #94a3b8' }}>
                                     {summaryTypes.map((sumType, idx) => {
                                       const isLastSummaryRow = idx === summaryTypes.length - 1;
                                       const rowKey = `${block.id}_${sumType.id}`;
@@ -7334,7 +7352,21 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                       const isDraggingThisRow = draggedSummaryRow?.blockId === block.id && draggedSummaryRow.summaryId === sumType.id;
                                       const isDragOverThisRow = dragOverSummaryRow?.blockId === block.id && dragOverSummaryRow.summaryId === sumType.id;
                                       const dragBorderTop = isDragOverThisRow && draggedSummaryRow && draggedSummaryRow.index > idx ? '2px solid var(--primary)' : undefined;
-                                      const dragBorderBottom = isDragOverThisRow && draggedSummaryRow && draggedSummaryRow.index < idx ? '2px solid var(--primary)' : (isLastSummaryRow ? '3px double #0f172a' : '1px solid #cbd5e1');
+                                      const rowBorderBottom = isDragOverThisRow && draggedSummaryRow && draggedSummaryRow.index < idx 
+                                        ? '2px solid var(--primary)' 
+                                        : (isLastSummaryRow 
+                                            ? (bStyle === 'horizontal_only' ? '1.5px solid #0f172a' : bStyle === 'borderless' ? '1px solid #e2e8f0' : '1.5px solid #94a3b8')
+                                            : (bStyle === 'horizontal_only' ? '1px solid #e2e8f0' : '1px solid #cbd5e1'));
+
+                                      const isMergeEnabled = sumType.mergeLeadingEmpty !== false;
+                                      const firstActiveColIdx = columns.findIndex((col: any) => {
+                                        const targetRow = (col.summaryRows || []).find((r: any) => r.id === sumType.id || r.label === sumType.label);
+                                        return targetRow && targetRow.type !== 'none';
+                                      });
+                                      const effectiveFirstSumColIdx = (isMergeEnabled && firstActiveColIdx >= 0)
+                                        ? firstActiveColIdx
+                                        : fallbackColIdx;
+                                      const canToggleMerge = firstActiveColIdx > fallbackColIdx || !isMergeEnabled;
 
                                       return (
                                         <tr
@@ -7377,9 +7409,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                               position: 'relative',
                                               padding: '6px 8px',
                                               paddingLeft: !isLocked ? '24px' : '8px',
-                                              borderRight: '1px solid #cbd5e1',
+                                              borderRight: bStyle === 'grid' ? '1px solid #cbd5e1' : 'none',
                                               borderTop: dragBorderTop,
-                                              borderBottom: dragBorderBottom,
+                                              borderBottom: rowBorderBottom,
                                               textAlign: 'right',
                                               color: 'var(--text-secondary)',
                                               fontSize: '0.82rem'
@@ -7416,6 +7448,33 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                 </div>
                                               )}
                                               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
+                                                {!isLocked && canToggleMerge && (
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => handleToggleMergeLeadingEmpty(block.id, sumType.id, isMergeEnabled)}
+                                                    style={{
+                                                      background: 'none',
+                                                      border: 'none',
+                                                      color: isMergeEnabled ? 'var(--primary)' : '#94a3b8',
+                                                      cursor: 'pointer',
+                                                      padding: '2px',
+                                                      display: 'inline-flex',
+                                                      alignItems: 'center',
+                                                      justifyContent: 'center',
+                                                      borderRadius: '3px',
+                                                      opacity: isHoveredRow ? 1 : 0,
+                                                      pointerEvents: isHoveredRow ? 'auto' : 'none',
+                                                      transition: 'opacity 0.15s ease, color 0.15s ease'
+                                                    }}
+                                                    title={isMergeEnabled 
+                                                      ? "Đang gộp các ô trống phía trước. Bấm để tách ô (thêm công thức vào cột trước)" 
+                                                      : "Bấm để gộp các ô trống phía trước vào ô nhãn"}
+                                                    onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary)'}
+                                                    onMouseLeave={(e) => e.currentTarget.style.color = isMergeEnabled ? 'var(--primary)' : '#94a3b8'}
+                                                  >
+                                                    {isMergeEnabled ? <Split size={12} /> : <Columns3 size={12} />}
+                                                  </button>
+                                                )}
                                                 {!isLocked ? (
                                                   <input
                                                     type="text"
@@ -7484,9 +7543,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                   style={{
                                                     position: 'relative',
                                                     padding: '6px 8px',
-                                                    borderRight: '1px solid #cbd5e1',
+                                                    borderRight: bStyle === 'grid' ? '1px solid #cbd5e1' : 'none',
                                                     borderTop: dragBorderTop,
-                                                    borderBottom: dragBorderBottom,
+                                                    borderBottom: rowBorderBottom,
                                                     fontSize: '0.8rem',
                                                     textAlign: 'right'
                                                   }}
@@ -7606,9 +7665,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                             return (
                                               <td key={col.id} style={{
                                                 padding: '4px 8px',
-                                                borderRight: '1px solid #cbd5e1',
+                                                borderRight: bStyle === 'grid' ? '1px solid #cbd5e1' : 'none',
                                                 borderTop: dragBorderTop,
-                                                borderBottom: dragBorderBottom,
+                                                borderBottom: rowBorderBottom,
                                                 textAlign: 'right',
                                                 color: 'var(--text-primary)',
                                                 fontSize: '0.8rem'
