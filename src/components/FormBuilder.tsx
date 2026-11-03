@@ -1138,6 +1138,11 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
   // Drag-and-drop state for reordering INFO_GRID fields on Canvas
   const [draggedGridField, setDraggedGridField] = useState<{ blockId: string; fieldId: string; index: number } | null>(null);
   const [dragOverGridField, setDragOverGridField] = useState<{ blockId: string; fieldId: string; index: number } | null>(null);
+  // Drag-and-drop state for reordering Table summary rows on Canvas
+  const [draggedSummaryRow, setDraggedSummaryRow] = useState<{ blockId: string; summaryId: string; index: number } | null>(null);
+  const [dragOverSummaryRow, setDragOverSummaryRow] = useState<{ blockId: string; summaryId: string; index: number } | null>(null);
+  const [hoveredSummaryRowKey, setHoveredSummaryRowKey] = useState<string | null>(null);
+  const [hoveredSummaryCellKey, setHoveredSummaryCellKey] = useState<string | null>(null);
   const inspectorLabelRef = useRef<HTMLTextAreaElement>(null);
   const sectionDescRef = useRef<HTMLTextAreaElement>(null);
   const inspectorGroupTitleRef = useRef<HTMLTextAreaElement>(null);
@@ -2248,6 +2253,29 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
           ...col,
           summaryRows: col.summaryRows.filter(r => r.id !== summaryId)
         };
+      });
+      return { ...b, tableColumns: updatedCols };
+    }));
+  };
+
+  // Helper: Reorder Table Summary Rows across all columns
+  const handleReorderTableSummaryRows = (blockId: string, fromIndex: number, toIndex: number, summaryTypes: { id: string }[]) => {
+    if (isLocked || fromIndex === toIndex) return;
+    if (fromIndex < 0 || fromIndex >= summaryTypes.length || toIndex < 0 || toIndex >= summaryTypes.length) return;
+
+    const newOrder = reorderArray(summaryTypes.map(s => s.id), fromIndex, toIndex);
+    const orderMap = new Map(newOrder.map((id, idx) => [id, idx]));
+
+    setLayoutBlocks(prev => prev.map(b => {
+      if (b.id !== blockId) return b;
+      const updatedCols = (b.tableColumns || []).map(col => {
+        if (!col.summaryRows || col.summaryRows.length <= 1) return col;
+        const sorted = [...col.summaryRows].sort((a, b) => {
+          const idxA = orderMap.get(a.id) ?? 999;
+          const idxB = orderMap.get(b.id) ?? 999;
+          return idxA - idxB;
+        });
+        return { ...col, summaryRows: sorted };
       });
       return { ...b, tableColumns: updatedCols };
     }));
@@ -7301,18 +7329,93 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                   <tfoot style={{ borderTop: '2px solid #0f172a' }}>
                                     {summaryTypes.map((sumType, idx) => {
                                       const isLastSummaryRow = idx === summaryTypes.length - 1;
+                                      const rowKey = `${block.id}_${sumType.id}`;
+                                      const isHoveredRow = hoveredSummaryRowKey === rowKey;
+                                      const isDraggingThisRow = draggedSummaryRow?.blockId === block.id && draggedSummaryRow.summaryId === sumType.id;
+                                      const isDragOverThisRow = dragOverSummaryRow?.blockId === block.id && dragOverSummaryRow.summaryId === sumType.id;
+                                      const dragBorderTop = isDragOverThisRow && draggedSummaryRow && draggedSummaryRow.index > idx ? '2px solid var(--primary)' : undefined;
+                                      const dragBorderBottom = isDragOverThisRow && draggedSummaryRow && draggedSummaryRow.index < idx ? '2px solid var(--primary)' : (isLastSummaryRow ? '3px double #0f172a' : '1px solid #cbd5e1');
+
                                       return (
-                                        <tr key={sumType.id || idx} style={{ background: '#f8fafc', fontWeight: 'bold' }}>
+                                        <tr
+                                          key={sumType.id || idx}
+                                          onDragOver={(e) => {
+                                            if (draggedSummaryRow?.blockId === block.id) {
+                                              e.preventDefault();
+                                              e.dataTransfer.dropEffect = 'move';
+                                            }
+                                          }}
+                                          onDragEnter={() => {
+                                            if (draggedSummaryRow?.blockId === block.id) {
+                                              setDragOverSummaryRow({ blockId: block.id, summaryId: sumType.id, index: idx });
+                                            }
+                                          }}
+                                          onDrop={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            if (draggedSummaryRow?.blockId === block.id && draggedSummaryRow.index !== idx) {
+                                              handleReorderTableSummaryRows(block.id, draggedSummaryRow.index, idx, summaryTypes);
+                                            }
+                                            setDraggedSummaryRow(null);
+                                            setDragOverSummaryRow(null);
+                                          }}
+                                          onDragEnd={() => {
+                                            setDraggedSummaryRow(null);
+                                            setDragOverSummaryRow(null);
+                                          }}
+                                          onMouseEnter={() => !isLocked && setHoveredSummaryRowKey(rowKey)}
+                                          onMouseLeave={() => setHoveredSummaryRowKey(null)}
+                                          style={{
+                                            background: isHoveredRow ? '#f1f5f9' : '#f8fafc',
+                                            fontWeight: 'bold',
+                                            opacity: isDraggingThisRow ? 0.4 : 1,
+                                            transition: 'background 0.15s ease, opacity 0.15s ease'
+                                          }}
+                                        >
                                           {effectiveFirstSumColIdx > 0 && (
                                             <td colSpan={effectiveFirstSumColIdx} style={{
+                                              position: 'relative',
                                               padding: '6px 8px',
+                                              paddingLeft: !isLocked ? '24px' : '8px',
                                               borderRight: '1px solid #cbd5e1',
-                                              borderBottom: isLastSummaryRow ? '3px double #0f172a' : '1px solid #cbd5e1',
+                                              borderTop: dragBorderTop,
+                                              borderBottom: dragBorderBottom,
                                               textAlign: 'right',
                                               color: 'var(--text-secondary)',
                                               fontSize: '0.82rem'
                                             }}>
-                                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px' }}>
+                                              {!isLocked && (isHoveredRow || isDraggingThisRow) && (
+                                                <div
+                                                  draggable={summaryTypes.length > 1}
+                                                  onDragStart={(e) => {
+                                                    e.stopPropagation();
+                                                    setDraggedSummaryRow({ blockId: block.id, summaryId: sumType.id, index: idx });
+                                                    e.dataTransfer.effectAllowed = 'move';
+                                                  }}
+                                                  style={{
+                                                    position: 'absolute',
+                                                    left: '4px',
+                                                    top: '50%',
+                                                    transform: 'translateY(-50%)',
+                                                    zIndex: 15,
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    cursor: summaryTypes.length > 1 ? 'grab' : 'default',
+                                                    color: '#64748b',
+                                                    background: '#ffffff',
+                                                    border: '1px solid #cbd5e1',
+                                                    borderRadius: '3px',
+                                                    padding: '2px',
+                                                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                                                    userSelect: 'none'
+                                                  }}
+                                                  title="Kéo để đổi thứ tự hàng chân bảng"
+                                                >
+                                                  <GripVertical size={12} style={{ pointerEvents: 'none' }} />
+                                                </div>
+                                              )}
+                                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
                                                 {!isLocked ? (
                                                   <input
                                                     type="text"
@@ -7320,15 +7423,15 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                     onChange={(e) => handleRenameTableSummaryRow(block.id, sumType.id, e.target.value)}
                                                     style={{
                                                       border: 'none',
-                                                      borderBottom: '1px dashed #cbd5e1',
+                                                      borderBottom: isHoveredRow ? '1px dashed #94a3b8' : '1px dashed transparent',
                                                       background: 'transparent',
                                                       textAlign: 'right',
                                                       fontWeight: 'bold',
                                                       color: '#0f172a',
                                                       fontSize: '0.82rem',
-                                                      maxWidth: '180px',
                                                       outline: 'none',
-                                                      padding: '1px 4px'
+                                                      padding: '1px 2px',
+                                                      transition: 'border-color 0.15s ease'
                                                     }}
                                                     placeholder="Nhãn hàng cộng..."
                                                     title="Nhấp để sửa nhãn hàng cộng"
@@ -7349,7 +7452,10 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                       display: 'inline-flex',
                                                       alignItems: 'center',
                                                       justifyContent: 'center',
-                                                      borderRadius: '3px'
+                                                      borderRadius: '3px',
+                                                      opacity: isHoveredRow ? 1 : 0,
+                                                      pointerEvents: isHoveredRow ? 'auto' : 'none',
+                                                      transition: 'opacity 0.15s ease'
                                                     }}
                                                     title="Xóa hàng cộng tổng này"
                                                     onMouseEnter={(e) => e.currentTarget.style.color = '#ef4444'}
@@ -7366,18 +7472,58 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                             const colSumData = columnsWithSummaries.find(c => c.colIdx === actualColIdx);
                                             const targetRow = colSumData ? (colSumData.rowMap.get(sumType.id) || Array.from(colSumData.rowMap.values()).find((r: any) => r.id === sumType.id)) : null;
                                             const isLabelColIfFirst = actualColIdx === 0 && effectiveFirstSumColIdx === 0;
+                                            const cellKey = `${block.id}_${sumType.id}_${col.id}`;
+                                            const isHoveredCell = hoveredSummaryCellKey === cellKey;
 
                                             if (!targetRow) {
                                               return (
-                                                <td key={col.id} style={{
-                                                  padding: '6px 8px',
-                                                  borderRight: '1px solid #cbd5e1',
-                                                  borderBottom: isLastSummaryRow ? '3px double #0f172a' : '1px solid #cbd5e1',
-                                                  fontSize: '0.8rem',
-                                                  textAlign: 'right'
-                                                }}>
+                                                <td
+                                                  key={col.id}
+                                                  onMouseEnter={() => !isLocked && setHoveredSummaryCellKey(cellKey)}
+                                                  onMouseLeave={() => setHoveredSummaryCellKey(null)}
+                                                  style={{
+                                                    position: 'relative',
+                                                    padding: '6px 8px',
+                                                    borderRight: '1px solid #cbd5e1',
+                                                    borderTop: dragBorderTop,
+                                                    borderBottom: dragBorderBottom,
+                                                    fontSize: '0.8rem',
+                                                    textAlign: 'right'
+                                                  }}
+                                                >
                                                   {isLabelColIfFirst ? (
-                                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
+                                                      {!isLocked && (isHoveredRow || isDraggingThisRow) && (
+                                                        <div
+                                                          draggable={summaryTypes.length > 1}
+                                                          onDragStart={(e) => {
+                                                            e.stopPropagation();
+                                                            setDraggedSummaryRow({ blockId: block.id, summaryId: sumType.id, index: idx });
+                                                            e.dataTransfer.effectAllowed = 'move';
+                                                          }}
+                                                          style={{
+                                                            position: 'absolute',
+                                                            left: '4px',
+                                                            top: '50%',
+                                                            transform: 'translateY(-50%)',
+                                                            zIndex: 15,
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            cursor: summaryTypes.length > 1 ? 'grab' : 'default',
+                                                            color: '#64748b',
+                                                            background: '#ffffff',
+                                                            border: '1px solid #cbd5e1',
+                                                            borderRadius: '3px',
+                                                            padding: '2px',
+                                                            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                                                            userSelect: 'none'
+                                                          }}
+                                                          title="Kéo để đổi thứ tự hàng chân bảng"
+                                                        >
+                                                          <GripVertical size={12} style={{ pointerEvents: 'none' }} />
+                                                        </div>
+                                                      )}
                                                       {!isLocked ? (
                                                         <input
                                                           type="text"
@@ -7385,14 +7531,14 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                           onChange={(e) => handleRenameTableSummaryRow(block.id, sumType.id, e.target.value)}
                                                           style={{
                                                             border: 'none',
-                                                            borderBottom: '1px dashed #cbd5e1',
+                                                            borderBottom: isHoveredRow ? '1px dashed #94a3b8' : '1px dashed transparent',
                                                             background: 'transparent',
                                                             textAlign: 'right',
                                                             fontWeight: 'bold',
                                                             color: '#0f172a',
                                                             fontSize: '0.82rem',
                                                             outline: 'none',
-                                                            padding: '1px 4px'
+                                                            padding: '1px 2px'
                                                           }}
                                                           placeholder="Nhãn hàng cộng..."
                                                         />
@@ -7403,7 +7549,15 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                         <button
                                                           type="button"
                                                           onClick={() => handleDeleteTableSummaryRow(block.id, sumType.id)}
-                                                          style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '2px' }}
+                                                          style={{
+                                                            background: 'none',
+                                                            border: 'none',
+                                                            color: '#94a3b8',
+                                                            cursor: 'pointer',
+                                                            padding: '2px',
+                                                            opacity: isHoveredRow ? 1 : 0,
+                                                            pointerEvents: isHoveredRow ? 'auto' : 'none'
+                                                          }}
                                                           title="Xóa hàng cộng tổng này"
                                                         >
                                                           <Trash2 size={13} />
@@ -7412,26 +7566,33 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                     </div>
                                                   ) : (
                                                     col.type === 'number' && !isLocked ? (
-                                                      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                                                        <button
-                                                          type="button"
-                                                          onClick={() => handleSetTableColumnSummaryConfig(block.id, col.id, sumType.id, sumType.label, 'sum')}
-                                                          style={{
-                                                            background: '#f8fafc',
-                                                            border: '1px dashed #cbd5e1',
-                                                            borderRadius: '3px',
-                                                            fontSize: '0.65rem',
-                                                            color: '#64748b',
-                                                            cursor: 'pointer',
-                                                            padding: '1px 6px',
-                                                            lineHeight: 1.3
-                                                          }}
-                                                          title={`Bấm để cộng cột ${col.label}`}
-                                                        >
-                                                          + ∑ Tổng
-                                                        </button>
+                                                      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', minHeight: '20px' }}>
+                                                        {isHoveredCell ? (
+                                                          <button
+                                                            type="button"
+                                                            onClick={() => handleSetTableColumnSummaryConfig(block.id, col.id, sumType.id, sumType.label, 'sum')}
+                                                            style={{
+                                                              background: '#ffffff',
+                                                              border: '1px dashed #0d9488',
+                                                              borderRadius: '3px',
+                                                              fontSize: '0.65rem',
+                                                              color: '#0f766e',
+                                                              fontWeight: 600,
+                                                              cursor: 'pointer',
+                                                              padding: '1px 5px',
+                                                              lineHeight: 1.2
+                                                            }}
+                                                            title={`Bấm để cộng cột ${col.label}`}
+                                                          >
+                                                            + ∑
+                                                          </button>
+                                                        ) : (
+                                                          <span style={{ color: '#cbd5e1', userSelect: 'none' }}>—</span>
+                                                        )}
                                                       </div>
-                                                    ) : '—'
+                                                    ) : (
+                                                      <span style={{ color: '#cbd5e1', userSelect: 'none' }}>—</span>
+                                                    )
                                                   )}
                                                 </td>
                                               );
@@ -7444,16 +7605,17 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
 
                                             return (
                                               <td key={col.id} style={{
-                                                padding: '6px 8px',
+                                                padding: '4px 8px',
                                                 borderRight: '1px solid #cbd5e1',
-                                                borderBottom: isLastSummaryRow ? '3px double #0f172a' : '1px solid #cbd5e1',
+                                                borderTop: dragBorderTop,
+                                                borderBottom: dragBorderBottom,
                                                 textAlign: 'right',
                                                 color: 'var(--text-primary)',
                                                 fontSize: '0.8rem'
                                               }}>
-                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px', width: '100%' }}>
+                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '1px', width: '100%' }}>
                                                   {!isLocked && (
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center' }}>
                                                       <select
                                                         value={targetRow.type}
                                                         onChange={(e) => {
@@ -7462,22 +7624,23 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                         }}
                                                         style={{
                                                           fontSize: '0.65rem',
-                                                          padding: '1px 3px',
+                                                          padding: '0 2px',
                                                           borderRadius: '3px',
-                                                          border: '1px solid #cbd5e1',
-                                                          background: '#ffffff',
+                                                          border: 'none',
+                                                          background: 'transparent',
                                                           color: '#0f766e',
                                                           fontWeight: 600,
-                                                          cursor: 'pointer'
+                                                          cursor: 'pointer',
+                                                          outline: 'none'
                                                         }}
                                                         title="Đổi công thức tính cho cột này"
                                                       >
-                                                        <option value="sum">∑ Tổng</option>
-                                                        <option value="manual_number">✍ Nhập số</option>
-                                                        <option value="manual_text">✍ Nhập chữ</option>
-                                                        <option value="multiply">✖ Phép nhân</option>
-                                                        <option value="percentage">% Tỷ lệ</option>
-                                                        <option value="sum_all">∑ Hàng trên</option>
+                                                        <option value="sum">∑ Tổng ▾</option>
+                                                        <option value="manual_number">✍ Nhập số ▾</option>
+                                                        <option value="manual_text">✍ Nhập chữ ▾</option>
+                                                        <option value="multiply">✖ Phép nhân ▾</option>
+                                                        <option value="percentage">% Tỷ lệ ▾</option>
+                                                        <option value="sum_all">∑ Hàng trên ▾</option>
                                                         <option value="none">— Bỏ cộng</option>
                                                       </select>
                                                     </div>
@@ -7487,7 +7650,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                       {targetRow.manualPlaceholder ? `[${targetRow.manualPlaceholder}]` : '[Chữ: USD, EUR...]'}
                                                     </span>
                                                   ) : (
-                                                    <span style={{ fontWeight: 700, fontSize: '0.88rem', color: '#0f172a', fontVariantNumeric: 'tabular-nums' }}>
+                                                    <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#0f172a', fontVariantNumeric: 'tabular-nums' }}>
                                                       {isManualNumber ? (targetRow.manualPlaceholder ? `[${targetRow.manualPlaceholder}]` : '[Tự nhập số]') : formatIsoNumber(dummyVal)}
                                                     </span>
                                                   )}
@@ -7565,7 +7728,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                 type="button"
                                 onClick={() => handleAddTableSummaryRow(block)}
                                 className="btn btn-secondary btn-sm"
-                                style={{ padding: '0.25rem 0.5rem', fontSize: '0.7rem', background: '#f8fafc', border: '1px dashed #0d9488', color: '#0f766e' }}
+                                style={{ padding: '0.25rem 0.5rem', fontSize: '0.7rem' }}
                                 title="Thêm hàng cộng tổng ở chân bảng"
                               >
                                 + Hàng cộng tổng
