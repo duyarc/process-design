@@ -1543,6 +1543,33 @@ export function calculateTableColumnSummary(
     });
     return sum;
   }
+  if (row.type === 'manual' || row.type === 'manual_number') {
+    const raw = getValue('__summary__', row.id);
+    if (raw === undefined || raw === null || raw === '') return 0;
+    const num = parseFloat(String(raw).replace(/[\s\u00A0,]/g, ''));
+    return isNaN(num) ? 0 : num;
+  }
+  if (row.type === 'manual_text') {
+    return 0;
+  }
+  if (row.type === 'multiply') {
+    if (!row.multiplyRowIds || row.multiplyRowIds.length < 2) {
+      const currentIdx = allSummaryRows.findIndex(r => r.id === row.id);
+      if (currentIdx >= 2) {
+        const valA = calculateTableColumnSummary(col, allSummaryRows[currentIdx - 2], allSummaryRows, tableRows, getValue);
+        const valB = calculateTableColumnSummary(col, allSummaryRows[currentIdx - 1], allSummaryRows, tableRows, getValue);
+        return valA * valB;
+      }
+      return 0;
+    }
+    const [idA, idB] = row.multiplyRowIds;
+    const rowA = allSummaryRows.find(r => r.id === idA);
+    const rowB = allSummaryRows.find(r => r.id === idB);
+    if (!rowA || !rowB) return 0;
+    const valA = calculateTableColumnSummary(col, rowA, allSummaryRows, tableRows, getValue);
+    const valB = calculateTableColumnSummary(col, rowB, allSummaryRows, tableRows, getValue);
+    return valA * valB;
+  }
   if (row.type === 'percentage') {
     if (!row.percentageOfId) return 0;
     const parentRow = allSummaryRows.find(r => r.id === row.percentageOfId);

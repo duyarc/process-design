@@ -2274,7 +2274,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     colId: string,
     summaryId: string,
     label: string,
-    type: 'sum' | 'percentage' | 'manual' | 'sum_all' | 'none',
+    type: 'sum' | 'percentage' | 'manual' | 'manual_number' | 'manual_text' | 'multiply' | 'sum_all' | 'none',
     extra?: Partial<ColumnSummaryRowConfig>
   ) => {
     setLayoutBlocks(prev => prev.map(b => {
@@ -2296,7 +2296,10 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
           type: type as any,
           percentageValue: extra?.percentageValue !== undefined ? extra.percentageValue : (type === 'percentage' ? 10 : undefined),
           percentageOfId: extra?.percentageOfId !== undefined ? extra.percentageOfId : undefined,
-          sumRowIds: extra?.sumRowIds !== undefined ? extra.sumRowIds : undefined
+          sumRowIds: extra?.sumRowIds !== undefined ? extra.sumRowIds : undefined,
+          manualPlaceholder: extra?.manualPlaceholder !== undefined ? extra.manualPlaceholder : undefined,
+          unit: extra?.unit !== undefined ? extra.unit : undefined,
+          multiplyRowIds: extra?.multiplyRowIds !== undefined ? extra.multiplyRowIds : undefined
         };
         if (existingIdx >= 0) {
           nextRows[existingIdx] = { ...nextRows[existingIdx], ...newEntry };
@@ -7291,10 +7294,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
 
                                 if (summaryTypes.length === 0) return null;
 
-                                const firstSumColIdx = columnsWithSummaries.length > 0 
-                                  ? Math.min(...columnsWithSummaries.map(c => c.colIdx))
-                                  : columns.findIndex(c => c.type === 'number');
-                                const effectiveFirstSumColIdx = firstSumColIdx >= 0 ? firstSumColIdx : 0;
+                                const firstNumericColIdx = columns.findIndex(c => c.type === 'number');
+                                const effectiveFirstSumColIdx = firstNumericColIdx >= 0 ? firstNumericColIdx : (columns.length > 1 ? 1 : 0);
 
                                 return (
                                   <tfoot style={{ borderTop: '2px solid #0f172a' }}>
@@ -7437,8 +7438,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                             }
 
                                             const dummyVal = calculateTableColumnSummary(col, targetRow, col.summaryRows || [], block.tableRows || [], (rId, cId) => block.tableData?.[rId]?.[cId]);
-                                            const isManual = targetRow.type === 'manual';
-                                            const cellUnitVal = block.cellUnitMap?.[col.id] || col.unit || '';
+                                            const isManualText = targetRow.type === 'manual_text';
+                                            const isManualNumber = targetRow.type === 'manual_number' || targetRow.type === 'manual';
+                                            const cellUnitVal = targetRow.unit || block.cellUnitMap?.[col.id] || col.unit || '';
 
                                             return (
                                               <td key={col.id} style={{
@@ -7471,16 +7473,24 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                         title="Đổi công thức tính cho cột này"
                                                       >
                                                         <option value="sum">∑ Tổng</option>
+                                                        <option value="manual_number">✍ Nhập số</option>
+                                                        <option value="manual_text">✍ Nhập chữ</option>
+                                                        <option value="multiply">✖ Phép nhân</option>
                                                         <option value="percentage">% Tỷ lệ</option>
-                                                        <option value="manual">✍ Tự nhập</option>
                                                         <option value="sum_all">∑ Hàng trên</option>
                                                         <option value="none">— Bỏ cộng</option>
                                                       </select>
                                                     </div>
                                                   )}
-                                                  <span style={{ fontWeight: 700, fontSize: '0.88rem', color: '#0f172a', fontVariantNumeric: 'tabular-nums' }}>
-                                                    {isManual ? '[Người điền tự nhập]' : formatIsoNumber(dummyVal)}
-                                                  </span>
+                                                  {isManualText ? (
+                                                    <span style={{ fontWeight: 600, fontSize: '0.82rem', color: '#64748b', fontStyle: 'italic' }}>
+                                                      {targetRow.manualPlaceholder ? `[${targetRow.manualPlaceholder}]` : '[Chữ: USD, EUR...]'}
+                                                    </span>
+                                                  ) : (
+                                                    <span style={{ fontWeight: 700, fontSize: '0.88rem', color: '#0f172a', fontVariantNumeric: 'tabular-nums' }}>
+                                                      {isManualNumber ? (targetRow.manualPlaceholder ? `[${targetRow.manualPlaceholder}]` : '[Tự nhập số]') : formatIsoNumber(dummyVal)}
+                                                    </span>
+                                                  )}
                                                   {cellUnitVal && (
                                                     <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 500 }}>
                                                       {cellUnitVal}
@@ -10466,11 +10476,100 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                             style={{ flex: 1, padding: '0.15rem 0.25rem', fontSize: '0.7rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
                                           >
                                             <option value="sum">Tổng cột (Sum)</option>
-                                            <option value="manual">Nhập thủ công</option>
+                                            <option value="manual_number">✍ Nhập số (Number)</option>
+                                            <option value="manual_text">✍ Nhập chữ (Text)</option>
+                                            <option value="multiply">✖ Phép nhân (A × B)</option>
                                             <option value="percentage">Phần trăm (%)</option>
                                             <option value="sum_all">Tổng hàng khác</option>
                                           </select>
                                         </div>
+
+                                        {(row.type === 'manual_text' || row.type === 'manual_number' || row.type === 'manual') && (
+                                          <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
+                                            <input
+                                              type="text"
+                                              disabled={isLocked}
+                                              placeholder={row.type === 'manual_text' ? 'Gợi ý (VD: USD, EUR...)' : 'Gợi ý (VD: Tỷ giá...)'}
+                                              value={row.manualPlaceholder || ''}
+                                              onChange={(e) => {
+                                                const nextRows = [...(col.summaryRows || [])];
+                                                nextRows[sIdx] = { ...nextRows[sIdx], manualPlaceholder: e.target.value };
+                                                handleUpdateTableColumn(activeBlock.id, col.id, { summaryRows: nextRows });
+                                              }}
+                                              style={{ flex: 1, padding: '0.15rem 0.25rem', fontSize: '0.7rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
+                                            />
+                                            {row.type !== 'manual_text' && (
+                                              <input
+                                                type="text"
+                                                disabled={isLocked}
+                                                placeholder="Đơn vị (VND/USD)"
+                                                value={row.unit || ''}
+                                                onChange={(e) => {
+                                                  const nextRows = [...(col.summaryRows || [])];
+                                                  nextRows[sIdx] = { ...nextRows[sIdx], unit: e.target.value };
+                                                  handleUpdateTableColumn(activeBlock.id, col.id, { summaryRows: nextRows });
+                                                }}
+                                                style={{ width: '85px', padding: '0.15rem 0.25rem', fontSize: '0.7rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
+                                              />
+                                            )}
+                                          </div>
+                                        )}
+
+                                        {row.type === 'multiply' && (
+                                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                                            <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
+                                              <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>Nhân:</span>
+                                              <select
+                                                disabled={isLocked}
+                                                value={row.multiplyRowIds?.[0] || ''}
+                                                onChange={(e) => {
+                                                  const nextRows = [...(col.summaryRows || [])];
+                                                  const currentIds = row.multiplyRowIds || ['', ''];
+                                                  nextRows[sIdx] = { ...nextRows[sIdx], multiplyRowIds: [e.target.value, currentIds[1]] };
+                                                  handleUpdateTableColumn(activeBlock.id, col.id, { summaryRows: nextRows });
+                                                }}
+                                                style={{ flex: 1, padding: '0.15rem 0.25rem', fontSize: '0.7rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
+                                              >
+                                                <option value="">(Tự động: Hàng trên - 2)</option>
+                                                {(col.summaryRows || []).slice(0, sIdx).map(r => (
+                                                  <option key={r.id} value={r.id}>{r.label || 'Không tên'}</option>
+                                                ))}
+                                              </select>
+                                              <span style={{ fontSize: '0.65rem' }}>×</span>
+                                              <select
+                                                disabled={isLocked}
+                                                value={row.multiplyRowIds?.[1] || ''}
+                                                onChange={(e) => {
+                                                  const nextRows = [...(col.summaryRows || [])];
+                                                  const currentIds = row.multiplyRowIds || ['', ''];
+                                                  nextRows[sIdx] = { ...nextRows[sIdx], multiplyRowIds: [currentIds[0], e.target.value] };
+                                                  handleUpdateTableColumn(activeBlock.id, col.id, { summaryRows: nextRows });
+                                                }}
+                                                style={{ flex: 1, padding: '0.15rem 0.25rem', fontSize: '0.7rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
+                                              >
+                                                <option value="">(Tự động: Hàng trên - 1)</option>
+                                                {(col.summaryRows || []).slice(0, sIdx).map(r => (
+                                                  <option key={r.id} value={r.id}>{r.label || 'Không tên'}</option>
+                                                ))}
+                                              </select>
+                                            </div>
+                                            <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
+                                              <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>Đơn vị:</span>
+                                              <input
+                                                type="text"
+                                                disabled={isLocked}
+                                                placeholder="Đơn vị kết quả (VD: VNĐ)"
+                                                value={row.unit || ''}
+                                                onChange={(e) => {
+                                                  const nextRows = [...(col.summaryRows || [])];
+                                                  nextRows[sIdx] = { ...nextRows[sIdx], unit: e.target.value };
+                                                  handleUpdateTableColumn(activeBlock.id, col.id, { summaryRows: nextRows });
+                                                }}
+                                                style={{ flex: 1, padding: '0.15rem 0.25rem', fontSize: '0.7rem', borderRadius: '4px', border: '1px solid var(--neutral-border)' }}
+                                              />
+                                            </div>
+                                          </div>
+                                        )}
 
                                         {row.type === 'percentage' && (
                                           <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>

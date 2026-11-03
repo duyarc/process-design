@@ -810,17 +810,25 @@ function FormFillerInner({
       });
       return sum;
     }
-    if (row.type === 'manual') {
+    if (row.type === 'manual' || row.type === 'manual_number') {
       const cellKey = `${block.id}_summary_${col.id}_${row.id}`;
       const valStr = currentValues[cellKey] || '';
       return parseFloat(valStr.replace(/[\s\u00A0,]/g, '')) || 0;
+    }
+    if (row.type === 'manual_text') {
+      return 0;
     }
     return calculateTableColumnSummary(
       col,
       row,
       col.summaryRows || [],
       block.tableRows || [],
-      (rId, cId) => currentValues[`${block.id}_${rId}_${cId}`]
+      (rId, cId) => {
+        if (rId === '__summary__') {
+          return currentValues[`${block.id}_summary_${col.id}_${cId}`];
+        }
+        return currentValues[`${block.id}_${rId}_${cId}`];
+      }
     );
   };
 
@@ -3527,7 +3535,8 @@ function FormFillerInner({
 
                         if (columnsWithSummaries.length === 0) return null;
 
-                        const firstSumColIdx = Math.min(...columnsWithSummaries.map(c => c.colIdx));
+                        const firstNumericColIdx = columns.findIndex((c: any) => c.type === 'number');
+                        const effectiveFirstSumColIdx = firstNumericColIdx >= 0 ? firstNumericColIdx : (columns.length > 1 ? 1 : 0);
 
                         return (
                           <tfoot style={{ borderTop: '2px solid #0f172a' }}>
@@ -3536,8 +3545,8 @@ function FormFillerInner({
                               const rowBorderBottom = isLastSummaryRow ? '3px double #0f172a' : '1px solid var(--neutral-border)';
                               return (
                                 <tr key={sumType.id || idx} style={{ background: '#f8fafc', fontWeight: 'bold' }}>
-                                  {firstSumColIdx > 0 && (
-                                    <td colSpan={firstSumColIdx} style={{
+                                  {effectiveFirstSumColIdx > 0 && (
+                                    <td colSpan={effectiveFirstSumColIdx} style={{
                                       padding: '6px 8px',
                                       borderRight: '1px solid var(--neutral-border)',
                                       borderBottom: rowBorderBottom,
@@ -3548,11 +3557,11 @@ function FormFillerInner({
                                       {sumType.label}
                                     </td>
                                   )}
-                                  {columns.slice(firstSumColIdx).map((col: any, offsetIdx: number) => {
-                                    const actualColIdx = firstSumColIdx + offsetIdx;
+                                  {columns.slice(effectiveFirstSumColIdx).map((col: any, offsetIdx: number) => {
+                                    const actualColIdx = effectiveFirstSumColIdx + offsetIdx;
                                     const colSumData = columnsWithSummaries.find(c => c.colIdx === actualColIdx);
                                     const targetRow = colSumData ? (colSumData.rowMap.get(sumType.id) || Array.from(colSumData.rowMap.values()).find((r: any) => r.id === sumType.id || r.label === sumType.label)) : null;
-                                    const isLabelColIfFirst = actualColIdx === 0 && firstSumColIdx === 0;
+                                    const isLabelColIfFirst = actualColIdx === 0 && effectiveFirstSumColIdx === 0;
 
                                     if (!targetRow) {
                                       return (
@@ -3569,8 +3578,9 @@ function FormFillerInner({
                                     }
 
                                     const cellKey = `${block.id}_summary_${col.id}_${targetRow.id}`;
-                                    const val = calculateSummaryValue(col, targetRow, block, formValues);
-                                    const isManual = targetRow.type === 'manual';
+                                    const isManualText = targetRow.type === 'manual_text';
+                                    const isManualNumber = targetRow.type === 'manual' || targetRow.type === 'manual_number';
+                                    const effectiveUnit = targetRow.unit || col.unit || '';
 
                                     return (
                                       <td key={col.id} style={{
@@ -3580,14 +3590,65 @@ function FormFillerInner({
                                         textAlign: 'right',
                                         color: '#0f172a'
                                       }}>
-                                        {isManual && !effectiveReadOnly ? (
-                                          <input
-                                            type="number"
-                                            value={formValues[cellKey] || ''}
-                                            onChange={(e) => setFormValues(prev => ({ ...prev, [cellKey]: e.target.value }))}
-                                            placeholder="Nhập..."
-                                            style={{ width: '100px', padding: '0.2rem 0.35rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', textAlign: 'right' }}
-                                          />
+                                        {isManualText ? (
+                                          !effectiveReadOnly ? (
+                                            <input
+                                              type="text"
+                                              value={formValues[cellKey] || ''}
+                                              onChange={(e) => setFormValues(prev => ({ ...prev, [cellKey]: e.target.value }))}
+                                              placeholder={targetRow.manualPlaceholder || 'USD, EUR...'}
+                                              style={{
+                                                width: '100%',
+                                                maxWidth: '120px',
+                                                padding: '0.2rem 0.35rem',
+                                                fontSize: '0.8rem',
+                                                border: '1px solid var(--neutral-border)',
+                                                borderRadius: '4px',
+                                                textAlign: 'right',
+                                                fontWeight: 600
+                                              }}
+                                            />
+                                          ) : (
+                                            <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#0f172a' }}>
+                                              {formValues[cellKey] || '—'}
+                                            </span>
+                                          )
+                                        ) : isManualNumber ? (
+                                          !effectiveReadOnly ? (
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
+                                              <input
+                                                type="number"
+                                                value={formValues[cellKey] || ''}
+                                                onChange={(e) => setFormValues(prev => ({ ...prev, [cellKey]: e.target.value }))}
+                                                placeholder={targetRow.manualPlaceholder || 'Nhập số...'}
+                                                style={{ width: '100px', padding: '0.2rem 0.35rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', textAlign: 'right' }}
+                                              />
+                                              {effectiveUnit && (
+                                                <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 500 }}>
+                                                  {effectiveUnit}
+                                                </span>
+                                              )}
+                                            </div>
+                                          ) : (
+                                            <div style={{
+                                              display: 'flex',
+                                              flexDirection: 'column',
+                                              alignItems: 'flex-end',
+                                              justifyContent: 'center',
+                                              width: '100%',
+                                              lineHeight: 1.25,
+                                              fontVariantNumeric: 'tabular-nums'
+                                            }}>
+                                              <span style={{ fontWeight: 700, fontSize: '0.92rem', color: '#0f172a', letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>
+                                                {formatIsoNumber(parseFloat(String(formValues[cellKey] || '0').replace(/[\s\u00A0,]/g, '')) || 0)}
+                                              </span>
+                                              {effectiveUnit && (
+                                                <span style={{ fontWeight: 500, fontSize: '0.7rem', color: '#64748b', marginTop: '1px', whiteSpace: 'nowrap' }}>
+                                                  {effectiveUnit}
+                                                </span>
+                                              )}
+                                            </div>
+                                          )
                                         ) : (
                                           <div style={{
                                             display: 'flex',
@@ -3599,11 +3660,11 @@ function FormFillerInner({
                                             fontVariantNumeric: 'tabular-nums'
                                           }}>
                                             <span style={{ fontWeight: 700, fontSize: '0.92rem', color: '#0f172a', letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>
-                                              {formatIsoNumber(val)}
+                                              {formatIsoNumber(calculateSummaryValue(col, targetRow, block, formValues))}
                                             </span>
-                                            {col.unit && (
+                                            {effectiveUnit && (
                                               <span style={{ fontWeight: 500, fontSize: '0.7rem', color: '#64748b', marginTop: '1px', whiteSpace: 'nowrap' }}>
-                                                {col.unit}
+                                                {effectiveUnit}
                                               </span>
                                             )}
                                           </div>

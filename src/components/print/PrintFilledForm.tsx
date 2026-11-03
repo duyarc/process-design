@@ -1551,7 +1551,8 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                               }
                             });
                             if (columnsWithSummaries.length === 0) return null;
-                            const firstSumColIdx = Math.min(...columnsWithSummaries.map(c => c.colIdx));
+                            const firstNumericColIdx = columns.findIndex((c: any) => c.type === 'number');
+                            const effectiveFirstSumColIdx = firstNumericColIdx >= 0 ? firstNumericColIdx : (columns.length > 1 ? 1 : 0);
 
                             return (
                               <tfoot>
@@ -1563,8 +1564,8 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
 
                                   return (
                                     <tr key={sumType.id || idx} style={{ background: '#ffffff', fontWeight: 'var(--pw-weight-heavy)' }}>
-                                      {firstSumColIdx > 0 && (
-                                        <td colSpan={firstSumColIdx} style={{
+                                      {effectiveFirstSumColIdx > 0 && (
+                                        <td colSpan={effectiveFirstSumColIdx} style={{
                                           border: cellBorder,
                                           borderTop: bStyle === 'horizontal_only' ? '1.5px solid #0f172a' : '1.5px solid #94a3b8',
                                           borderBottom: rowBorderBottom,
@@ -1577,15 +1578,13 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                           {sumType.label}
                                         </td>
                                       )}
-                                      {columns.slice(firstSumColIdx).map((col: any, offsetIdx: number) => {
-                                        const actualColIdx = firstSumColIdx + offsetIdx;
-                                        const isLabelColIfFirst = actualColIdx === 0 && firstSumColIdx === 0;
+                                      {columns.slice(effectiveFirstSumColIdx).map((col: any, offsetIdx: number) => {
+                                        const actualColIdx = effectiveFirstSumColIdx + offsetIdx;
+                                        const isLabelColIfFirst = actualColIdx === 0 && effectiveFirstSumColIdx === 0;
                                         const targetRow = (col.summaryRows || []).find((r: any) => r.id === sumType.id || r.label === sumType.label);
-                                        const sumVal = targetRow 
-                                          ? (targetRow.type === 'manual' 
-                                              ? parseFloat(getVal(`${block.id}_summary_${col.id}_${targetRow.id}`) || '0')
-                                              : calculateTableColumnSummary(col, targetRow, col.summaryRows || [], allRows, (rId, cId) => getVal(`${block.id}_${rId}_${cId}`)))
-                                          : null;
+                                        const isManualText = targetRow?.type === 'manual_text';
+                                        const isManualNumber = targetRow?.type === 'manual' || targetRow?.type === 'manual_number';
+                                        const effectiveUnit = targetRow?.unit || col.unit || '';
 
                                         return (
                                           <td key={col.id} style={{
@@ -1599,25 +1598,55 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                           }}>
                                             {isLabelColIfFirst ? (
                                               sumType.label
-                                            ) : targetRow && sumVal !== null ? (
-                                              <div style={{
-                                                display: 'flex',
-                                                flexDirection: 'column',
-                                                alignItems: 'flex-end',
-                                                justifyContent: 'center',
-                                                width: '100%',
-                                                lineHeight: 1.25,
-                                                fontVariantNumeric: 'tabular-nums'
-                                              }}>
-                                                <span style={{ fontWeight: 700, fontSize: '0.92rem', color: '#0f172a', letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>
-                                                  {formatIsoNumber(sumVal)}
+                                            ) : targetRow ? (
+                                              isManualText ? (
+                                                <span style={{ fontWeight: 700, fontSize: '0.9rem', color: '#0f172a' }}>
+                                                  {getVal(`${block.id}_summary_${col.id}_${targetRow.id}`) || '—'}
                                                 </span>
-                                                {col.unit && (
-                                                  <span style={{ fontWeight: 500, fontSize: '0.7rem', color: '#64748b', marginTop: '1px', whiteSpace: 'nowrap' }}>
-                                                    {col.unit}
+                                              ) : isManualNumber ? (
+                                                <div style={{
+                                                  display: 'flex',
+                                                  flexDirection: 'column',
+                                                  alignItems: 'flex-end',
+                                                  justifyContent: 'center',
+                                                  width: '100%',
+                                                  lineHeight: 1.25,
+                                                  fontVariantNumeric: 'tabular-nums'
+                                                }}>
+                                                  <span style={{ fontWeight: 700, fontSize: '0.92rem', color: '#0f172a', letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>
+                                                    {formatIsoNumber(parseFloat(getVal(`${block.id}_summary_${col.id}_${targetRow.id}`) || '0'))}
                                                   </span>
-                                                )}
-                                              </div>
+                                                  {effectiveUnit && (
+                                                    <span style={{ fontWeight: 500, fontSize: '0.7rem', color: '#64748b', marginTop: '1px', whiteSpace: 'nowrap' }}>
+                                                      {effectiveUnit}
+                                                    </span>
+                                                  )}
+                                                </div>
+                                              ) : (
+                                                <div style={{
+                                                  display: 'flex',
+                                                  flexDirection: 'column',
+                                                  alignItems: 'flex-end',
+                                                  justifyContent: 'center',
+                                                  width: '100%',
+                                                  lineHeight: 1.25,
+                                                  fontVariantNumeric: 'tabular-nums'
+                                                }}>
+                                                  <span style={{ fontWeight: 700, fontSize: '0.92rem', color: '#0f172a', letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>
+                                                    {formatIsoNumber(calculateTableColumnSummary(col, targetRow, col.summaryRows || [], allRows, (rId, cId) => {
+                                                      if (rId === '__summary__') {
+                                                        return getVal(`${block.id}_summary_${col.id}_${cId}`);
+                                                      }
+                                                      return getVal(`${block.id}_${rId}_${cId}`);
+                                                    }))}
+                                                  </span>
+                                                  {effectiveUnit && (
+                                                    <span style={{ fontWeight: 500, fontSize: '0.7rem', color: '#64748b', marginTop: '1px', whiteSpace: 'nowrap' }}>
+                                                      {effectiveUnit}
+                                                    </span>
+                                                  )}
+                                                </div>
+                                              )
                                             ) : '—'}
                                           </td>
                                         );

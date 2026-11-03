@@ -1293,7 +1293,8 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
 
                     if (columnsWithSummaries.length === 0) return null;
 
-                    const firstSumColIdx = Math.min(...columnsWithSummaries.map(c => c.colIdx));
+                    const firstNumericColIdx = columns.findIndex((c: any) => c.type === 'number');
+                    const effectiveFirstSumColIdx = firstNumericColIdx >= 0 ? firstNumericColIdx : (columns.length > 1 ? 1 : 0);
 
                     return (
                       <tfoot>
@@ -1305,8 +1306,8 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
 
                           return (
                             <tr key={sumType.id || idx} style={{ background: '#ffffff', fontWeight: 'var(--pw-weight-heavy)' }}>
-                              {firstSumColIdx > 0 && (
-                                <td colSpan={firstSumColIdx} style={{
+                              {effectiveFirstSumColIdx > 0 && (
+                                <td colSpan={effectiveFirstSumColIdx} style={{
                                   border: cellBorder,
                                   borderTop: bStyle === 'horizontal_only' ? '1.5px solid #0f172a' : '1.5px solid #94a3b8',
                                   borderBottom: rowBorderBottom,
@@ -1319,9 +1320,9 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                   {sumType.label}
                                 </td>
                               )}
-                              {columns.slice(firstSumColIdx).map((col, offsetIdx) => {
-                                const actualColIdx = firstSumColIdx + offsetIdx;
-                                const isLabelColIfFirst = actualColIdx === 0 && firstSumColIdx === 0;
+                              {columns.slice(effectiveFirstSumColIdx).map((col, offsetIdx) => {
+                                const actualColIdx = effectiveFirstSumColIdx + offsetIdx;
+                                const isLabelColIfFirst = actualColIdx === 0 && effectiveFirstSumColIdx === 0;
 
                                 return (
                                   <td key={col.id} style={{

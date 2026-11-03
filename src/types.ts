@@ -166,10 +166,13 @@ export interface MatrixConfigISO {
 export interface ColumnSummaryRowConfig {
   id: string;
   label: string;
-  type: 'sum' | 'manual' | 'percentage' | 'sum_all';
+  type: 'sum' | 'manual' | 'manual_number' | 'manual_text' | 'percentage' | 'multiply' | 'sum_all';
   percentageValue?: number;
   percentageOfId?: string;
   sumRowIds?: string[];
+  manualPlaceholder?: string;
+  unit?: string;
+  multiplyRowIds?: [string, string];
 }
 
 export interface TableColumnConfig {
