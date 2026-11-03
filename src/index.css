@@ -513,7 +513,8 @@ tr:last-child td {
   display: inline-block;
   width: 13px;
   height: 13px;
-  border: 1.5px solid #000000;
+  border: 1.2px solid #64748b;
+  border-radius: 2px;
   background: #ffffff;
   flex-shrink: 0;
 }
@@ -581,8 +582,8 @@ table.print-table--borderless tr {
 
 table.print-table--horizontal {
   border-collapse: collapse !important;
-  border-top: 1px solid #cbd5e1 !important;
-  border-bottom: none !important;
+  border-top: 1.5px solid #0f172a !important;
+  border-bottom: 1.5px solid #0f172a !important;
   border-left: none !important;
   border-right: none !important;
 }
@@ -591,14 +592,14 @@ table.print-table--horizontal th {
   border-top: none !important;
   border-left: none !important;
   border-right: none !important;
-  border-bottom: 1px solid #cbd5e1 !important;
+  border-bottom: 1.5px solid #0f172a !important;
 }
 
 table.print-table--horizontal td {
   border-top: none !important;
   border-left: none !important;
   border-right: none !important;
-  border-bottom: 1px solid #cbd5e1 !important;
+  border-bottom: 1px solid #e2e8f0 !important;
 }
 
 /* Table Border Styles: PDF Export Capture Mode (html2canvas) overrides */
@@ -611,8 +612,8 @@ table.print-table--horizontal td {
 
 .exporting-pdf-mode table.print-table.print-table--horizontal {
   border-collapse: collapse !important;
-  border-top: 1px solid #000000 !important;
-  border-bottom: none !important;
+  border-top: 1.5px solid #0f172a !important;
+  border-bottom: 1.5px solid #0f172a !important;
   border-left: none !important;
   border-right: none !important;
 }
@@ -621,14 +622,14 @@ table.print-table--horizontal td {
   border-top: none !important;
   border-left: none !important;
   border-right: none !important;
-  border-bottom: 1px solid #000000 !important;
+  border-bottom: 1.5px solid #0f172a !important;
 }
 
 .exporting-pdf-mode table.print-table.print-table--horizontal td {
   border-top: none !important;
   border-left: none !important;
   border-right: none !important;
-  border-bottom: 1px solid #000000 !important;
+  border-bottom: 1px solid #e2e8f0 !important;
 }
 
 /* Dashboard Forms Table Hover-to-Reveal Actions */

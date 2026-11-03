@@ -1097,10 +1097,14 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                   {block.type === 'TABLE' && (() => {
                     const bStyle = block.borderStyle || 'grid';
                     const titleFmt = getEffectiveTitleFormat(block);
-                    const tableBorder = bStyle === 'borderless' ? 'none' : bStyle === 'horizontal_only' ? 'none' : '1px solid #000000';
-                    const tableBorderTop = isSeamless ? 'none' : (bStyle === 'horizontal_only' ? '1px solid #000000' : undefined);
-                    const cellBorder = bStyle === 'borderless' ? 'none' : bStyle === 'horizontal_only' ? 'none' : '1px solid #000000';
-                    const cellBorderBottom = bStyle === 'horizontal_only' ? '1px solid #000000' : (bStyle === 'borderless' ? 'none' : '1px solid #000000');
+                    const tableBorder = bStyle === 'borderless' ? 'none' : bStyle === 'horizontal_only' ? 'none' : '1px solid #cbd5e1';
+                    const tableBorderTop = isSeamless ? 'none' : (bStyle === 'horizontal_only' ? '1.5px solid #0f172a' : undefined);
+                    const tableBorderBottom = bStyle === 'horizontal_only' ? '1.5px solid #0f172a' : undefined;
+                    const cellBorder = bStyle === 'borderless' ? 'none' : bStyle === 'horizontal_only' ? 'none' : '1px solid #f1f5f9';
+                    const cellBorderBottom = bStyle === 'borderless' ? 'none' : '1px solid #e2e8f0';
+                    const headerBorder = bStyle === 'borderless' ? 'none' : bStyle === 'horizontal_only' ? 'none' : '1px solid #e2e8f0';
+                    const headerBorderBottom = bStyle === 'borderless' ? 'none' : bStyle === 'horizontal_only' ? '1.5px solid #0f172a' : '1.5px solid #94a3b8';
+                    const headerBg = bStyle === 'borderless' || bStyle === 'horizontal_only' ? 'transparent' : '#f8fafc';
                     const tableCols: TableColumnConfig[] = block.tableColumns || [];
                     const allRows = reconstructTableRows(block, submission.formData || []);
 
@@ -1135,7 +1139,8 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                             tableLayout: 'fixed',
                             pageBreakInside: 'auto',
                             border: tableBorder,
-                            borderTop: tableBorderTop
+                            borderTop: tableBorderTop,
+                            borderBottom: tableBorderBottom
                           }}
                         >
                           <colgroup>
@@ -1146,7 +1151,7 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                           </colgroup>
                           {!block.hideHeader && (
                             <thead>
-                              <tr style={{ background: bStyle === 'borderless' ? 'transparent' : '#f1f5f9' }}>
+                              <tr style={{ background: headerBg }}>
                                 {tableCols.map(col => {
                                   const colWidth = getColStyleWidth(col.id, col.width, tableCols);
                                   const hasOptions = col.type === 'checkbox' && col.options && col.options.length > 0;
@@ -1155,11 +1160,11 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                     <th
                                       key={col.id}
                                       style={{
-                                        border: cellBorder,
-                                        borderBottom: cellBorderBottom,
-                                        padding: '6px',
-                                        background: bStyle === 'borderless' ? 'transparent' : '#f1f5f9',
-                                        fontWeight: 'var(--pw-weight-heavy)', fontSize: '0.82rem', color: '#000000',
+                                        border: headerBorder,
+                                        borderBottom: headerBorderBottom,
+                                        padding: '8px 10px',
+                                        background: headerBg,
+                                        fontWeight: 600, fontSize: '0.82rem', color: '#0f172a',
                                         textAlign: cellAlign as any,
                                         width: colWidth
                                       }}
@@ -1504,10 +1509,34 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                               <tfoot>
                                 {summaryTypes.map((sumType, idx) => (
                                   <tr key={sumType.id || idx} style={{ background: '#ffffff', fontWeight: 'var(--pw-weight-heavy)' }}>
-                                    {firstSumColIdx > 0 && <td colSpan={firstSumColIdx} style={{ border: '1px solid #000000', padding: '5px 8px', textAlign: 'right', fontSize: '0.82rem' }}>{sumType.label}</td>}
+                                    {firstSumColIdx > 0 && (
+                                      <td colSpan={firstSumColIdx} style={{
+                                        border: cellBorder,
+                                        borderTop: bStyle === 'horizontal_only' ? '1.5px solid #0f172a' : '1.5px solid #94a3b8',
+                                        borderBottom: bStyle === 'horizontal_only' ? '1.5px solid #0f172a' : '1px solid #cbd5e1',
+                                        padding: '6px 10px',
+                                        textAlign: 'right',
+                                        fontSize: '0.82rem',
+                                        color: '#0f172a'
+                                      }}>
+                                        {sumType.label}
+                                      </td>
+                                    )}
                                     {columns.slice(firstSumColIdx).map((col: any, offsetIdx: number) => {
                                       const isLabelColIfFirst = firstSumColIdx + offsetIdx === 0 && firstSumColIdx === 0;
-                                      return <td key={col.id} style={{ border: '1px solid #000000', padding: '5px 8px', textAlign: 'right', fontSize: '0.82rem' }}>{isLabelColIfFirst ? sumType.label : ''}</td>;
+                                      return (
+                                        <td key={col.id} style={{
+                                          border: cellBorder,
+                                          borderTop: bStyle === 'horizontal_only' ? '1.5px solid #0f172a' : '1.5px solid #94a3b8',
+                                          borderBottom: bStyle === 'horizontal_only' ? '1.5px solid #0f172a' : '1px solid #cbd5e1',
+                                          padding: '6px 10px',
+                                          textAlign: 'right',
+                                          fontSize: '0.82rem',
+                                          color: '#0f172a'
+                                        }}>
+                                          {isLabelColIfFirst ? sumType.label : ''}
+                                        </td>
+                                      );
                                     })}
                                   </tr>
                                 ))}

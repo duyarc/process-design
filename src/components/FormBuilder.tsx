@@ -8518,34 +8518,99 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                    activeBlock.type === 'SIGN' ? 'Signatures Properties' :
                    activeBlock.type === 'TITLE' ? 'Form Header Properties' : 'Block Properties'}
                 </h3>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                  <button 
-                    type="button" 
-                    disabled={isLocked || activeBlock.type === 'TITLE'}
-                    onClick={() => handleCloneBlock(activeBlockId!)}
-                    style={{ border: 'none', background: 'none', color: (isLocked || activeBlock.type === 'TITLE') ? 'var(--text-muted)' : 'var(--text-secondary)', cursor: (isLocked || activeBlock.type === 'TITLE') ? 'not-allowed' : 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}
-                    title="Nhân bản khối này (Ctrl+D)"
-                  >
-                    <Copy size={14} />
-                  </button>
-                  <button 
-                    type="button" 
-                    disabled={isLocked}
-                    onClick={() => handleDeleteBlock(activeBlockId!)}
-                    style={{ border: 'none', background: 'none', color: isLocked ? 'var(--text-muted)' : 'var(--danger)', cursor: isLocked ? 'not-allowed' : 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}
-                    title="Xóa khối"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
+                {activeBlock.type === 'TABLE' ? (
+                  <div style={{ display: 'inline-flex', background: '#f1f5f9', padding: '2px', borderRadius: '5px', border: '1px solid #cbd5e1', gap: '2px' }}>
+                    <button
+                      type="button"
+                      disabled={isLocked}
+                      onClick={() => handleUpdateBlockBorderStyle(activeBlock.id, 'grid')}
+                      style={{
+                        padding: '1px 5px',
+                        borderRadius: '3px',
+                        border: 'none',
+                        background: (activeBlock.borderStyle || 'grid') === 'grid' ? 'var(--primary)' : 'transparent',
+                        color: (activeBlock.borderStyle || 'grid') === 'grid' ? '#ffffff' : 'var(--text-secondary)',
+                        cursor: isLocked ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        lineHeight: '16px'
+                      }}
+                      title="Lưới mềm hiện đại (Executive Soft Grid)"
+                    >
+                      <Grid size={12} />
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isLocked}
+                      onClick={() => handleUpdateBlockBorderStyle(activeBlock.id, 'horizontal_only')}
+                      style={{
+                        padding: '1px 5px',
+                        borderRadius: '3px',
+                        border: 'none',
+                        background: activeBlock.borderStyle === 'horizontal_only' ? 'var(--primary)' : 'transparent',
+                        color: activeBlock.borderStyle === 'horizontal_only' ? '#ffffff' : 'var(--text-secondary)',
+                        cursor: isLocked ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        lineHeight: '16px'
+                      }}
+                      title="Tối giản ngang (Editorial Minimalist)"
+                    >
+                      <Rows2 size={12} />
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isLocked}
+                      onClick={() => handleUpdateBlockBorderStyle(activeBlock.id, 'borderless')}
+                      style={{
+                        padding: '1px 5px',
+                        borderRadius: '3px',
+                        border: 'none',
+                        background: activeBlock.borderStyle === 'borderless' ? 'var(--primary)' : 'transparent',
+                        color: activeBlock.borderStyle === 'borderless' ? '#ffffff' : 'var(--text-secondary)',
+                        cursor: isLocked ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        lineHeight: '16px'
+                      }}
+                      title="Không viền (Borderless)"
+                    >
+                      <SquareDashed size={12} />
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    <button 
+                      type="button" 
+                      disabled={isLocked || activeBlock.type === 'TITLE'}
+                      onClick={() => handleCloneBlock(activeBlockId!)}
+                      style={{ border: 'none', background: 'none', color: (isLocked || activeBlock.type === 'TITLE') ? 'var(--text-muted)' : 'var(--text-secondary)', cursor: (isLocked || activeBlock.type === 'TITLE') ? 'not-allowed' : 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}
+                      title="Nhân bản khối này (Ctrl+D)"
+                    >
+                      <Copy size={14} />
+                    </button>
+                    <button 
+                      type="button" 
+                      disabled={isLocked}
+                      onClick={() => handleDeleteBlock(activeBlockId!)}
+                      style={{ border: 'none', background: 'none', color: isLocked ? 'var(--text-muted)' : 'var(--danger)', cursor: isLocked ? 'not-allowed' : 'pointer', padding: '2px', display: 'flex', alignItems: 'center' }}
+                      title="Xóa khối"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.8rem' }}>
-                {(activeBlock.type === 'SECTION_LABEL' || activeBlock.type === 'TABLE') && (
+                {activeBlock.type === 'SECTION_LABEL' && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.75rem' }}>
-                        {activeBlock.type === 'TABLE' ? 'Hướng dẫn chung khối bảng (Guidance)' : 'Description'}
+                        Description
                       </label>
                       <div style={{ display: 'flex', gap: '4px' }}>
                         <button
@@ -8584,7 +8649,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                       value={activeBlock.description || ''}
                       onKeyDown={(e) => handleFormatKeyDown(e, activeBlock.description || '', (val) => handleUpdateBlockDescription(activeBlockId!, val))}
                       onChange={(e) => handleUpdateBlockDescription(activeBlockId!, e.target.value)}
-                      placeholder={activeBlock.type === 'TABLE' ? "Nhập hướng dẫn chung cho khối bảng..." : "Nhập mô tả hoặc hướng dẫn danh mục..."}
+                      placeholder="Nhập mô tả hoặc hướng dẫn danh mục..."
                       style={{ padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', fontSize: '0.8rem', resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.4 }}
                     />
                   </div>
@@ -9807,12 +9872,11 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                 </div>
                               )}
                               {(col.type === 'text' || col.type === 'number') && (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', marginTop: '0.2rem', padding: '0.4rem', borderTop: '1px dashed var(--neutral-border)' }}>
-                                  <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Placeholder mặc định (toàn cột):</label>
+                                <div style={{ marginTop: '0.25rem', paddingTop: '0.25rem', borderTop: '1px dashed var(--neutral-border)' }}>
                                   <input
                                     type="text"
                                     disabled={isLocked}
-                                    placeholder="Gợi ý mờ cho cả cột..."
+                                    placeholder="Gợi ý mờ cho cả cột (placeholder)..."
                                     value={col.placeholder || ''}
                                     onChange={(e) => handleUpdateTableColumn(activeBlock.id, col.id, { placeholder: e.target.value })}
                                     style={{ width: '100%', padding: '0.2rem 0.35rem', fontSize: '0.72rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', background: '#ffffff', boxSizing: 'border-box' }}
