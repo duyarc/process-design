@@ -647,12 +647,24 @@ function writeFormsOffline(forms) {
 // GET /api/forms - List all form versions (each row is a distinct (form_id, version) snapshot)
 app.get('/api/forms', async (req, res) => {
   try {
+    const isList = req.query.fields === 'list';
+    if (isList) {
+      res.set('Cache-Control', 'public, max-age=5, stale-while-revalidate=30');
+    }
     if (dbPool) {
-      // Returns all rows — frontend groups by form_id and picks the latest version as needed
-      const result = await dbPool.query('SELECT * FROM forms ORDER BY form_id ASC, version ASC');
+      // Returns all rows (or metadata-only rows if fields=list) — frontend groups by form_id and picks the latest version
+      const sql = isList
+        ? `SELECT form_id, form_name, form_title, status, version, effective_date, page_size, is_public, default_focus_mode, created_at, updated_at
+           FROM forms ORDER BY form_id ASC, version ASC`
+        : 'SELECT * FROM forms ORDER BY form_id ASC, version ASC';
+      const result = await dbPool.query(sql);
       res.json(result.rows);
     } else {
-      res.json(readFormsOffline());
+      const forms = readFormsOffline();
+      if (isList) {
+        return res.json(forms.map(({ layout_blocks, revision_history, ...rest }) => rest));
+      }
+      res.json(forms);
     }
   } catch (err) {
     console.error(err);
@@ -1498,9 +1510,16 @@ app.get('/api/processes/check-id', async (req, res) => {
 // GET /api/processes - List all processes
 app.get('/api/processes', async (req, res) => {
   try {
+    const isList = req.query.fields === 'list';
+    if (isList) {
+      res.set('Cache-Control', 'public, max-age=5, stale-while-revalidate=30');
+    }
     if (dbPool) {
+      const procQuery = isList
+        ? 'SELECT id, title, description, version, "lastUpdated", "parentProcessId", status, "workflowFormsData", steps, "sopSignoffs" FROM processes'
+        : 'SELECT * FROM processes';
       const [result, formsRes] = await Promise.all([
-        dbPool.query('SELECT * FROM processes'),
+        dbPool.query(procQuery),
         dbPool.query('SELECT * FROM process_forms')
       ]);
       

@@ -137,8 +137,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
         setLoading(true);
       }
       const [procRes, formsRes, repRes] = await Promise.all([
-        fetch('/api/processes'),
-        fetch('/api/forms'),
+        fetch('/api/processes?fields=list'),
+        fetch('/api/forms?fields=list'),
         fetch('/api/reports')
       ]);
 
@@ -241,114 +241,124 @@ export const Dashboard: React.FC<DashboardProps> = ({
     return repMatches || stepMatches || fieldMatches;
   });
 
-  // Group allForms by form_id
-  const formsGroupedById: Record<string, any[]> = {};
-  allForms.forEach(f => {
-    if (!formsGroupedById[f.form_id]) {
-      formsGroupedById[f.form_id] = [];
-    }
-    formsGroupedById[f.form_id].push(f);
-  });
-
-  // Group allForms by form_id and get unique list of forms with selected or latest version records
-  const latestFormsMap = new Map();
-  Object.entries(formsGroupedById).forEach(([formId, versionsList]) => {
-    const sorted = [...versionsList].sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
-    const chosenVersion = selectedFormVersions[formId];
-    const matched = chosenVersion 
-      ? sorted.find(f => f.version === chosenVersion) 
-      : sorted[0];
-    latestFormsMap.set(formId, matched || sorted[0]);
-  });
-
-  const formsList: any[] = [];
-  latestFormsMap.forEach((formRecord, formId) => {
-    const linkedProcs = processes.filter(proc => {
-      const parentId = proc.parentProcessId || proc.id;
-      const allVersions = groups[parentId] || [];
-      const rep = getRepresentative(allVersions);
-      
-      if (proc.id !== rep.id || rep.status === 'Retired') {
-        return false;
+  // ─── Forms Tab: Group allForms by form_id (Memoized) ───
+  const formsGroupedById: Record<string, any[]> = useMemo(() => {
+    const grouped: Record<string, any[]> = {};
+    allForms.forEach(f => {
+      const fId = f.form_id || f.formId;
+      if (!grouped[fId]) {
+        grouped[fId] = [];
       }
+      grouped[fId].push(f);
+    });
+    return grouped;
+  }, [allForms]);
 
-      return allVersions.some(p => {
+  // ─── Precompute active representative processes and their set of linked form IDs (Memoized) ───
+  const activeProcsWithFormIds = useMemo(() => {
+    return Object.entries(groups).map(([, allVersions]) => {
+      const rep = getRepresentative(allVersions);
+      if (rep.status === 'Retired') return null;
+
+      const linkedFormIds = new Set<string>();
+      allVersions.forEach(p => {
         const wfd = p.workflowFormsData
           ? (typeof p.workflowFormsData === 'string' ? JSON.parse(p.workflowFormsData) : p.workflowFormsData)
           : null;
         const steps = p.steps
           ? (typeof p.steps === 'string' ? JSON.parse(p.steps) : p.steps)
           : null;
-        
-        const hasInWfd = wfd && Object.values(wfd).some((fdata: any) => fdata.formId === formId);
-        const hasInSteps = steps && steps.some((s: any) => s.producesForm && (s.formNames || []).includes(formId));
-        return hasInWfd || hasInSteps;
+
+        if (wfd && typeof wfd === 'object') {
+          Object.values(wfd).forEach((fdata: any) => {
+            if (fdata?.formId) linkedFormIds.add(fdata.formId);
+          });
+        }
+        if (Array.isArray(steps)) {
+          steps.forEach((s: any) => {
+            if (s?.producesForm && Array.isArray(s.formNames)) {
+              s.formNames.forEach((fId: string) => linkedFormIds.add(fId));
+            }
+          });
+        }
       });
-    });
 
-    const formTitle = formRecord.form_title || formRecord.form_name || formId;
-    const blocksCount = typeof formRecord.layout_blocks === 'string'
-      ? JSON.parse(formRecord.layout_blocks).length
-      : (formRecord.layout_blocks?.length || 0);
+      return {
+        id: rep.id,
+        title: rep.title,
+        linkedFormIds
+      };
+    }).filter(Boolean) as Array<{ id: string; title: string; linkedFormIds: Set<string> }>;
+  }, [groups]);
 
-    const blockTypesList = (typeof formRecord.layout_blocks === 'string'
-      ? JSON.parse(formRecord.layout_blocks)
-      : (formRecord.layout_blocks || [])).map((b: any) => {
-        if (b.type === 'TITLE') return 'Title';
-        if (b.type === 'INFO_GRID') return 'Info Grid';
-        if (b.type === 'CHECKLIST_TABLE') return 'Table';
-        if (b.type === 'MATRIX_TABLE') return 'Matrix Table';
-        if (b.type === 'SIGN') return 'Sign';
-        return b.type;
-      }) || [];
-    const blockTypes = Array.from(new Set(blockTypesList)).join(', ');
-
-    const linkedProcesses = linkedProcs.map(p => ({ id: p.id, title: p.title }));
-
-    formsList.push({
-      formName: formId,
-      formTitle: formTitle,
-      formId: formId,
-      version: formRecord.version || 'v1.0',
-      status: formRecord.status || 'DRAFT',
-      blocksCount,
-      blockTypes,
-      linkedProcesses,
-      rawRecord: formRecord
-    });
-  });
-
-  // Sort formsList descending by latest update timestamp (updated_at)
+  // Helper to extract timestamp for form sorting (reused across formsList and processFormGroups)
   const getFormTimestamp = (form: any) => {
     const dateVal = form.rawRecord?.updated_at || form.rawRecord?.updatedAt || 0;
     return dateVal ? new Date(dateVal).getTime() : 0;
   };
 
-  formsList.sort((a, b) => {
-    const diff = getFormTimestamp(b) - getFormTimestamp(a);
-    if (diff !== 0) return diff;
-    return a.formTitle.localeCompare(b.formTitle);
-  });
+  // ─── Build latest unique forms list with linked processes (Memoized) ───
+  const formsList = useMemo(() => {
+    const latestFormsMap = new Map();
+    Object.entries(formsGroupedById).forEach(([formId, versionsList]) => {
+      const sorted = [...versionsList].sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+      const chosenVersion = selectedFormVersions[formId];
+      const matched = chosenVersion 
+        ? sorted.find(f => f.version === chosenVersion) 
+        : sorted[0];
+      latestFormsMap.set(formId, matched || sorted[0]);
+    });
 
-  const q = searchQuery.toLowerCase();
-  const filteredFormsList = formsList.filter(form => {
-    // 1. Process filter
-    if (formProcessFilter !== 'ALL') {
-      if (formProcessFilter === 'unlinked') {
-        if (form.linkedProcesses.length > 0) return false;
-      } else {
-        if (!form.linkedProcesses.some((lp: any) => lp.id === formProcessFilter)) return false;
+    const list: any[] = [];
+    latestFormsMap.forEach((formRecord, formId) => {
+      const linkedProcesses = activeProcsWithFormIds
+        .filter(p => p.linkedFormIds.has(formId))
+        .map(p => ({ id: p.id, title: p.title }));
+
+      const formTitle = formRecord.form_title || formRecord.form_name || formId;
+
+      list.push({
+        formName: formId,
+        formTitle: formTitle,
+        formId: formId,
+        version: formRecord.version || 'v1.0',
+        status: formRecord.status || 'DRAFT',
+        linkedProcesses,
+        rawRecord: formRecord
+      });
+    });
+
+    list.sort((a, b) => {
+      const diff = getFormTimestamp(b) - getFormTimestamp(a);
+      if (diff !== 0) return diff;
+      return a.formTitle.localeCompare(b.formTitle);
+    });
+
+    return list;
+  }, [formsGroupedById, selectedFormVersions, activeProcsWithFormIds]);
+
+  // ─── Filter formsList by search query & process filter (Memoized) ───
+  const filteredFormsList = useMemo(() => {
+    const q = searchQuery.toLowerCase();
+    return formsList.filter(form => {
+      // 1. Process filter
+      if (formProcessFilter !== 'ALL') {
+        if (formProcessFilter === 'unlinked') {
+          if (form.linkedProcesses.length > 0) return false;
+        } else {
+          if (!form.linkedProcesses.some((lp: any) => lp.id === formProcessFilter)) return false;
+        }
       }
-    }
-    // 2. Search query text
-    if (q) {
-      const match = form.formTitle.toLowerCase().includes(q) || 
-                    form.formId.toLowerCase().includes(q) || 
-                    form.linkedProcesses.some((lp: any) => lp.title.toLowerCase().includes(q));
-      if (!match) return false;
-    }
-    return true;
-  });
+      // 2. Search query text
+      if (q) {
+        const match = form.formTitle.toLowerCase().includes(q) || 
+                      form.formId.toLowerCase().includes(q) || 
+                      form.linkedProcesses.some((lp: any) => lp.title.toLowerCase().includes(q));
+        if (!match) return false;
+      }
+      return true;
+    });
+  }, [formsList, formProcessFilter, searchQuery]);
 
   const processFormGroups = useMemo(() => {
     const activeProcs = Object.entries(groups).map(([parentId, allVersions]) => {
@@ -1034,17 +1044,23 @@ export const Dashboard: React.FC<DashboardProps> = ({
       ) : viewMode === 'forms' ? (
         (() => {
         const handleFillAction = (form: any) => {
+          const hasLayout = form.rawRecord?.layout_blocks && (
+            Array.isArray(form.rawRecord.layout_blocks)
+              ? form.rawRecord.layout_blocks.length > 0
+              : form.rawRecord.layout_blocks !== '[]'
+          );
+          const tplToPass = hasLayout ? form.rawRecord : undefined;
           if (form.linkedProcesses.length > 1) {
             setProcessSelectDialog({ form, action: 'fill' });
           } else if (form.linkedProcesses.length === 1) {
             if (onOpenFormFiller) {
-              onOpenFormFiller(form.linkedProcesses[0].id, form.formName, form.rawRecord);
+              onOpenFormFiller(form.linkedProcesses[0].id, form.formName, tplToPass);
             } else {
               onSelectProcess(form.linkedProcesses[0].id);
             }
           } else {
             if (onOpenFormFiller) {
-              onOpenFormFiller('unlinked', form.formName, form.rawRecord);
+              onOpenFormFiller('unlinked', form.formName, tplToPass);
             } else {
               onSelectProcess('unlinked');
             }
