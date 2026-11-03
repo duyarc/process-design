@@ -1092,6 +1092,20 @@ export function duplicateFormTemplate(
       });
     }
 
+    const newCellUnitMap: { [cellKey: string]: string } = {};
+    if (block.cellUnitMap) {
+      Object.entries(block.cellUnitMap).forEach(([oldCellKey, u]) => {
+        let mappedKey = oldCellKey;
+        for (const [oldRId, newRId] of rowIdMap.entries()) {
+          if (oldCellKey.startsWith(oldRId + '_')) {
+            mappedKey = newRId + oldCellKey.slice(oldRId.length);
+            break;
+          }
+        }
+        newCellUnitMap[mappedKey] = u;
+      });
+    }
+
     return {
       ...block,
       id: newBlockId,
@@ -1099,7 +1113,8 @@ export function duplicateFormTemplate(
       tableRows: newTableRows,
       tableData: newTableData,
       cellOptionsMap: newCellOptionsMap,
-      cellPlaceholderMap: newCellPlaceholderMap
+      cellPlaceholderMap: newCellPlaceholderMap,
+      cellUnitMap: newCellUnitMap
     };
   });
 

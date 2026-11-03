@@ -2433,14 +2433,24 @@ setFormValues(prev => ({ ...prev, [field.id]: stringifySubtableValue(newRows) })
                                                      onChange={(e) => setFormValues(prev => ({ ...prev, [cellKey]: e.target.value }))} 
                                                      style={{ width: '100%', padding: '0.35rem 0.45rem', fontSize: '0.8rem', border: '1px solid #e2e8f0', borderRadius: '4px', textAlign: 'center', backgroundColor: '#f8fafc' }}
                                                    />
-                                                 ) : col.type === 'number' ? (
-                                                   <input 
-                                                     type="number" 
-                                                     value={cellValue} 
-                                                     onChange={(e) => setFormValues(prev => ({ ...prev, [cellKey]: e.target.value }))} 
-                                                     style={{ width: '100%', padding: '0.35rem 0.45rem', fontSize: '0.8rem', border: '1px solid #e2e8f0', borderRadius: '4px', textAlign: 'right', backgroundColor: '#f8fafc' }}
-                                                   />
-                                                 ) : (
+                                                 ) : col.type === 'number' ? (() => {
+                                                   const cellUnit = block.cellUnitMap?.[`${row.id}_${col.id}`] || col.unit || '';
+                                                   return (
+                                                     <div style={{ display: 'flex', alignItems: 'center', width: '100%', gap: cellUnit ? '4px' : '0' }}>
+                                                       <input 
+                                                         type="number" 
+                                                         value={cellValue} 
+                                                         onChange={(e) => setFormValues(prev => ({ ...prev, [cellKey]: e.target.value }))} 
+                                                         style={{ flex: 1, minWidth: 0, padding: '0.35rem 0.45rem', fontSize: '0.8rem', border: '1px solid #e2e8f0', borderRadius: '4px', textAlign: 'right', backgroundColor: '#f8fafc' }}
+                                                       />
+                                                       {cellUnit && (
+                                                         <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 500, flexShrink: 0, whiteSpace: 'nowrap' }}>
+                                                           {cellUnit}
+                                                         </span>
+                                                       )}
+                                                     </div>
+                                                   );
+                                                 })() : (
                                                    <input 
                                                      type="text" 
                                                      value={cellValue} 

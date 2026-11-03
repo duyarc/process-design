@@ -3366,15 +3366,25 @@ function FormFillerInner({
                                         onChange={(e) => handleTableCellChangeWithAutoAppend(block, row.id, col.id, e.target.value, thisGroupHeaderId)} 
                                         style={{ width: '100%', padding: '0.35rem 0.45rem', fontSize: '0.8rem', border: '1px solid #e2e8f0', borderRadius: '4px', textAlign: 'center', backgroundColor: '#f8fafc' }}
                                       />
-                                    ) : col.type === 'number' ? (
-                                      <input 
-                                        type="number" 
-                                        value={cellValue} 
-                                        placeholder={stripMarkdownTokens(cellPlaceholder)}
-                                        onChange={(e) => handleTableCellChangeWithAutoAppend(block, row.id, col.id, e.target.value, thisGroupHeaderId)} 
-                                        style={{ width: '100%', padding: '0.35rem 0.45rem', fontSize: '0.8rem', border: '1px solid #e2e8f0', borderRadius: '4px', textAlign: 'right', backgroundColor: '#f8fafc' }}
-                                      />
-                                    ) : (
+                                    ) : col.type === 'number' ? (() => {
+                                      const cellUnit = block.cellUnitMap?.[`${row.id}_${col.id}`] || col.unit || '';
+                                      return (
+                                        <div style={{ display: 'flex', alignItems: 'center', width: '100%', gap: cellUnit ? '4px' : '0' }}>
+                                          <input 
+                                            type="number" 
+                                            value={cellValue} 
+                                            placeholder={stripMarkdownTokens(cellPlaceholder)}
+                                            onChange={(e) => handleTableCellChangeWithAutoAppend(block, row.id, col.id, e.target.value, thisGroupHeaderId)} 
+                                            style={{ flex: 1, minWidth: 0, padding: '0.35rem 0.45rem', fontSize: '0.8rem', border: '1px solid #e2e8f0', borderRadius: '4px', textAlign: 'right', backgroundColor: '#f8fafc' }}
+                                          />
+                                          {cellUnit && (
+                                            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 500, flexShrink: 0, whiteSpace: 'nowrap' }}>
+                                              {cellUnit}
+                                            </span>
+                                          )}
+                                        </div>
+                                      );
+                                    })() : (
                                       <AutoResizingTextarea 
                                         value={cellValue} 
                                         placeholder={cellPlaceholder}

@@ -1460,35 +1460,41 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                           }
                                         }
 
-                                        // 5. TEXT / STATIC_TEXT / NUMBER / DEFAULT
-                                        return (
-                                          <td
-                                            key={col.id}
-                                            style={{
-                                              border: cellBorder,
-                                              borderBottom: cellBorderBottom,
-                                              padding: '4px 6px',
-                                              fontSize: '0.82rem',
-                                              verticalAlign: 'middle',
-                                              textAlign: cellAlign as any,
-                                              width: colWidth,
-                                              maxWidth: colWidth,
-                                              boxSizing: 'border-box'
-                                            }}
-                                          >
-                                            <div style={{
-                                              minHeight: `${minCellHeight}px`,
-                                              display: 'flex',
-                                              alignItems: 'center',
-                                              justifyContent: cellAlign === 'right' ? 'flex-end' : cellAlign === 'center' ? 'center' : 'flex-start',
-                                              whiteSpace: 'pre-wrap',
-                                              wordBreak: 'break-word',
-                                              lineHeight: 1.4
-                                            }}>
-                                              {effectiveText ? renderFormattedText((col.type === 'select' || isOtherValue(effectiveText)) ? formatOptionDisplay(effectiveText, opts) : effectiveText) : '\u00A0'}
-                                            </div>
-                                          </td>
-                                        );
+                                         // 5. TEXT / STATIC_TEXT / NUMBER / DEFAULT
+                                         const cellUnit = col.type === 'number' ? (block.cellUnitMap?.[`${row.id}_${col.id}`] || col.unit || '') : '';
+                                         return (
+                                           <td
+                                             key={col.id}
+                                             style={{
+                                               border: cellBorder,
+                                               borderBottom: cellBorderBottom,
+                                               padding: '4px 6px',
+                                               fontSize: '0.82rem',
+                                               verticalAlign: 'middle',
+                                               textAlign: cellAlign as any,
+                                               width: colWidth,
+                                               maxWidth: colWidth,
+                                               boxSizing: 'border-box'
+                                             }}
+                                           >
+                                             <div style={{
+                                               minHeight: `${minCellHeight}px`,
+                                               display: 'flex',
+                                               alignItems: 'center',
+                                               justifyContent: cellAlign === 'right' ? 'flex-end' : cellAlign === 'center' ? 'center' : 'flex-start',
+                                               whiteSpace: 'pre-wrap',
+                                               wordBreak: 'break-word',
+                                               lineHeight: 1.4
+                                             }}>
+                                               {effectiveText ? (
+                                                 <span>
+                                                   {renderFormattedText((col.type === 'select' || isOtherValue(effectiveText)) ? formatOptionDisplay(effectiveText, opts) : effectiveText)}
+                                                   {cellUnit && <span style={{ marginLeft: '4px', fontSize: '0.75rem', color: '#64748b', fontWeight: 500 }}>{cellUnit}</span>}
+                                                 </span>
+                                               ) : '\u00A0'}
+                                             </div>
+                                           </td>
+                                         );
                                       })}
                                     </tr>
                                   );

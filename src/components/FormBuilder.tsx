@@ -1858,6 +1858,20 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
       });
     }
 
+    const newCellUnitMap: { [cellKey: string]: string } = {};
+    if (sourceBlock.cellUnitMap) {
+      Object.entries(sourceBlock.cellUnitMap).forEach(([oldCellKey, u]) => {
+        let mappedKey = oldCellKey;
+        for (const [oldRId, newRId] of rowIdMap.entries()) {
+          if (oldCellKey.startsWith(oldRId + '_')) {
+            mappedKey = newRId + oldCellKey.slice(oldRId.length);
+            break;
+          }
+        }
+        newCellUnitMap[mappedKey] = u;
+      });
+    }
+
     const newCols = sourceBlock.tableColumns ? sourceBlock.tableColumns.map(c => ({
       ...c,
       options: c.options ? [...c.options] : undefined,
@@ -1879,6 +1893,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
       tableData: sourceBlock.type === 'TABLE' ? newTableData : sourceBlock.tableData,
       cellOptionsMap: sourceBlock.type === 'TABLE' ? newCellOptionsMap : sourceBlock.cellOptionsMap,
       cellPlaceholderMap: sourceBlock.type === 'TABLE' ? newCellPlaceholderMap : sourceBlock.cellPlaceholderMap,
+      cellUnitMap: sourceBlock.type === 'TABLE' ? newCellUnitMap : sourceBlock.cellUnitMap,
       matrixConfig: sourceBlock.type === 'MATRIX_TABLE' ? newMatrixConfig : sourceBlock.matrixConfig
     };
 
@@ -2139,6 +2154,21 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
         }
         return { ...b, tableData: updatedData };
       }
+    }));
+  };
+
+  // Helper: Update cell unit in a TABLE block (stored in cellUnitMap)
+  const handleUpdateTableCellUnit = (blockId: string, rowId: string, colId: string, val: string) => {
+    const cellKey = `${rowId}_${colId}`;
+    setLayoutBlocks(prev => prev.map(b => {
+      if (b.id !== blockId) return b;
+      const updatedMap = { ...(b.cellUnitMap || {}) };
+      if (val === '') {
+        delete updatedMap[cellKey];
+      } else {
+        updatedMap[cellKey] = val;
+      }
+      return { ...b, cellUnitMap: updatedMap };
     }));
   };
 
@@ -6778,9 +6808,109 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                         <span style={{ color: '#cbd5e1', fontSize: '0.7rem', display: 'block', textAlign: 'center', width: '100%' }}>[Ngày]</span>
                                                       ) : col.type === 'time' ? (
                                                         <span style={{ color: '#cbd5e1', fontSize: '0.7rem', display: 'block', textAlign: 'center', width: '100%' }}>[Giờ]</span>
-                                                      ) : col.type === 'number' ? (
-                                                        <span style={{ color: '#cbd5e1', fontSize: '0.7rem', display: 'block', textAlign: 'right', width: '100%' }}>[Nhập số]</span>
-                                                      ) : (
+                                                      ) : col.type === 'number' ? (() => {
+                                                        const cellPhVal = block.cellPlaceholderMap?.[cellKey] !== undefined ? block.cellPlaceholderMap[cellKey] : '';
+                                                        const cellUnitVal = block.cellUnitMap?.[cellKey] !== undefined ? block.cellUnitMap[cellKey] : '';
+                                                        const effectiveUnit = cellUnitVal || col.unit || '';
+                                                        return (
+                                                          <div 
+                                                            style={{ display: 'flex', width: '100%', alignItems: 'center' }}
+                                                            onClick={(e) => {
+                                                              e.stopPropagation();
+                                                              setActiveBlockId(block.id);
+                                                              setActiveCellKey(cellKey);
+                                                            }}
+                                                          >
+                                                            <input
+                                                              type="text"
+                                                              disabled={isLocked}
+                                                              value={cellPhVal}
+                                                              onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setActiveBlockId(block.id);
+                                                                setActiveCellKey(cellKey);
+                                                              }}
+                                                              onFocus={() => {
+                                                                setActiveBlockId(block.id);
+                                                                setActiveCellKey(cellKey);
+                                                              }}
+                                                              onChange={(e) => {
+                                                                handleUpdateTableCellText(block.id, row.id, col.id, true, e.target.value);
+                                                              }}
+                                                              placeholder={col.placeholder || '[Nhập số]'}
+                                                              style={{
+                                                                flex: 1,
+                                                                minWidth: 0,
+                                                                padding: '2px 6px',
+                                                                fontSize: '0.75rem',
+                                                                fontStyle: cellPhVal ? 'normal' : 'italic',
+                                                                color: cellPhVal ? '#0f172a' : '#94a3b8',
+                                                                background: '#f8fafc',
+                                                                border: '1px dashed #cbd5e1',
+                                                                borderRight: 'none',
+                                                                borderTopLeftRadius: '4px',
+                                                                borderBottomLeftRadius: '4px',
+                                                                outline: 'none',
+                                                                textAlign: col.align || 'right',
+                                                                boxSizing: 'border-box',
+                                                                cursor: isLocked ? 'default' : 'text'
+                                                              }}
+                                                              onFocusCapture={(e) => {
+                                                                e.currentTarget.style.borderColor = 'var(--primary)';
+                                                                e.currentTarget.style.background = '#ffffff';
+                                                              }}
+                                                              onBlurCapture={(e) => {
+                                                                e.currentTarget.style.borderColor = '#cbd5e1';
+                                                                e.currentTarget.style.background = '#f8fafc';
+                                                              }}
+                                                            />
+                                                            <input
+                                                              type="text"
+                                                              disabled={isLocked}
+                                                              value={cellUnitVal}
+                                                              onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setActiveBlockId(block.id);
+                                                                setActiveCellKey(cellKey);
+                                                              }}
+                                                              onFocus={() => {
+                                                                setActiveBlockId(block.id);
+                                                                setActiveCellKey(cellKey);
+                                                              }}
+                                                              onChange={(e) => {
+                                                                handleUpdateTableCellUnit(block.id, row.id, col.id, e.target.value);
+                                                              }}
+                                                              placeholder={col.unit ? `[${col.unit}]` : '[ĐVT]'}
+                                                              title="Đơn vị tính ô này (e.g. đơn, VNĐ, kg...)"
+                                                              style={{
+                                                                width: '56px',
+                                                                flexShrink: 0,
+                                                                padding: '2px 4px',
+                                                                fontSize: '0.72rem',
+                                                                fontWeight: effectiveUnit ? 600 : 400,
+                                                                fontStyle: effectiveUnit ? 'normal' : 'italic',
+                                                                textAlign: 'center',
+                                                                color: effectiveUnit ? 'var(--primary)' : '#94a3b8',
+                                                                background: effectiveUnit ? '#f0fdfa' : '#f1f5f9',
+                                                                border: `1px dashed ${effectiveUnit ? 'var(--primary)' : '#cbd5e1'}`,
+                                                                borderTopRightRadius: '4px',
+                                                                borderBottomRightRadius: '4px',
+                                                                outline: 'none',
+                                                                boxSizing: 'border-box',
+                                                                cursor: isLocked ? 'default' : 'text'
+                                                              }}
+                                                              onFocusCapture={(e) => {
+                                                                e.currentTarget.style.borderColor = 'var(--primary)';
+                                                                e.currentTarget.style.background = '#ffffff';
+                                                              }}
+                                                              onBlurCapture={(e) => {
+                                                                e.currentTarget.style.borderColor = effectiveUnit ? 'var(--primary)' : '#cbd5e1';
+                                                                e.currentTarget.style.background = effectiveUnit ? '#f0fdfa' : '#f1f5f9';
+                                                              }}
+                                                            />
+                                                          </div>
+                                                        );
+                                                      })() : (
                                                         <span style={{ color: '#cbd5e1', fontSize: '0.7rem', display: 'block', textAlign: 'left', width: '100%' }}>[Nhập chữ]</span>
                                                       )}
                                                     </div>
@@ -10009,15 +10139,26 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                 </div>
                               )}
                               {(col.type === 'text' || col.type === 'number') && (
-                                <div style={{ marginTop: '0.25rem', paddingTop: '0.25rem', borderTop: '1px dashed var(--neutral-border)' }}>
+                                <div style={{ marginTop: '0.25rem', paddingTop: '0.25rem', borderTop: '1px dashed var(--neutral-border)', display: 'flex', gap: '4px' }}>
                                   <input
                                     type="text"
                                     disabled={isLocked}
                                     placeholder="Gợi ý mờ cho cả cột (placeholder)..."
                                     value={col.placeholder || ''}
                                     onChange={(e) => handleUpdateTableColumn(activeBlock.id, col.id, { placeholder: e.target.value })}
-                                    style={{ width: '100%', padding: '0.2rem 0.35rem', fontSize: '0.72rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', background: '#ffffff', boxSizing: 'border-box' }}
+                                    style={{ flex: 1, minWidth: 0, padding: '0.2rem 0.35rem', fontSize: '0.72rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', background: '#ffffff', boxSizing: 'border-box' }}
                                   />
+                                  {col.type === 'number' && (
+                                    <input
+                                      type="text"
+                                      disabled={isLocked}
+                                      placeholder="ĐVT chung..."
+                                      title="Đơn vị tính mặc định toàn cột (e.g. kg, VNĐ...)"
+                                      value={col.unit || ''}
+                                      onChange={(e) => handleUpdateTableColumn(activeBlock.id, col.id, { unit: e.target.value })}
+                                      style={{ width: '70px', flexShrink: 0, padding: '0.2rem 0.35rem', fontSize: '0.72rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', background: col.unit ? '#f0fdfa' : '#ffffff', color: col.unit ? 'var(--primary)' : 'inherit', fontWeight: col.unit ? 600 : 400, textAlign: 'center', boxSizing: 'border-box' }}
+                                    />
+                                  )}
                                 </div>
                               )}
                               {col.type === 'number' && (

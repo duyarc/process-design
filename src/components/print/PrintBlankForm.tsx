@@ -1246,6 +1246,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                               }
 
                               // text / number (default)
+                              const cellUnit = col.type === 'number' ? (block.cellUnitMap?.[`${row.id}_${col.id}`] || col.unit || '') : '';
                               return (
                                 <td
                                   key={col.id}
@@ -1253,8 +1254,14 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                   data-field-id={cellFieldId}
                                   data-field-type={col.type || 'text'}
                                   data-field-name={displayTitle}
-                                  style={{ border: cellBorder, borderBottom: cellBorderBottom, padding: '4px 6px', height: `${28 * lc}px`, verticalAlign: 'top', width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}
-                                />
+                                  style={{ border: cellBorder, borderBottom: cellBorderBottom, padding: '4px 6px', height: `${28 * lc}px`, verticalAlign: cellUnit ? 'middle' : 'top', width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}
+                                >
+                                  {cellUnit && (
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', height: '100%' }}>
+                                      <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 500 }}>{cellUnit}</span>
+                                    </div>
+                                  )}
+                                </td>
                               );
                             })}
                           </tr>
