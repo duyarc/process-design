@@ -7663,14 +7663,22 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                             const isManualNumber = targetRow.type === 'manual_number' || targetRow.type === 'manual';
                                             const cellUnitVal = targetRow.unit || block.cellUnitMap?.[col.id] || col.unit || '';
                                             const badgeIconText = (targetRow.type === 'manual_text')
-                                              ? 'Aa'
+                                              ? 'T'
                                               : (targetRow.type === 'manual_number' || targetRow.type === 'manual')
-                                                ? '123'
+                                                ? '#'
                                                 : targetRow.type === 'percentage'
                                                   ? '%'
                                                   : targetRow.type === 'multiply'
                                                     ? '×'
-                                                    : '∑';
+                                                    : targetRow.type === 'none'
+                                                      ? '—'
+                                                      : '∑';
+
+                                            const badgeColor = targetRow.type === 'none'
+                                              ? '#94a3b8'
+                                              : (targetRow.type === 'manual_text' || targetRow.type === 'manual_number' || targetRow.type === 'manual')
+                                                ? '#475569'
+                                                : '#0f766e';
 
                                             return (
                                               <td key={col.id} style={{
@@ -7685,7 +7693,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                 height: '34px',
                                                 boxSizing: 'border-box'
                                               }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px', width: '100%', height: '100%' }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', width: '100%', height: '100%' }}>
                                                   {!isLocked && (
                                                     <div
                                                       style={{
@@ -7693,21 +7701,30 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                         display: 'inline-flex',
                                                         alignItems: 'center',
                                                         justifyContent: 'center',
-                                                        background: '#ffffff',
-                                                        border: '1px solid #cbd5e1',
+                                                        background: 'transparent',
+                                                        border: '1px solid transparent',
                                                         borderRadius: '3px',
-                                                        padding: '1px 4px',
+                                                        width: '26px',
                                                         height: '20px',
                                                         cursor: 'pointer',
                                                         userSelect: 'none',
-                                                        flexShrink: 0
+                                                        flexShrink: 0,
+                                                        transition: 'background 0.15s ease, border-color 0.15s ease'
+                                                      }}
+                                                      onMouseEnter={(e) => {
+                                                        e.currentTarget.style.background = '#ffffff';
+                                                        e.currentTarget.style.borderColor = '#cbd5e1';
+                                                      }}
+                                                      onMouseLeave={(e) => {
+                                                        e.currentTarget.style.background = 'transparent';
+                                                        e.currentTarget.style.borderColor = 'transparent';
                                                       }}
                                                       title="Đổi công thức tính hoặc kiểu nhập cho ô này"
                                                     >
-                                                      <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#0f766e', marginRight: '2px', lineHeight: 1 }}>
+                                                      <span style={{ fontFamily: 'Consolas, "Segoe UI Mono", monospace', fontSize: '0.74rem', fontWeight: 700, color: badgeColor, marginRight: '1px', lineHeight: 1 }}>
                                                         {badgeIconText}
                                                       </span>
-                                                      <span style={{ fontSize: '0.52rem', color: '#94a3b8', lineHeight: 1 }}>▾</span>
+                                                      <span style={{ fontSize: '0.48rem', color: '#94a3b8', lineHeight: 1 }}>▾</span>
                                                       <select
                                                         value={targetRow.type === 'sum_all' ? 'sum' : targetRow.type}
                                                         onChange={(e) => {
@@ -7724,33 +7741,53 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                           cursor: 'pointer',
                                                           width: '100%',
                                                           height: '100%',
-                                                          zIndex: 2
+                                                          zIndex: 2,
+                                                          fontFamily: 'Consolas, "Segoe UI Mono", monospace'
                                                         }}
                                                         title="Đổi công thức tính hoặc kiểu nhập cho ô này"
                                                       >
-                                                        <option value="sum">∑   Tổng</option>
-                                                        <option value="multiply">×   Phép nhân</option>
-                                                        <option value="percentage">%   Tỷ lệ</option>
-                                                        <option value="manual_number">123 Nhập số</option>
-                                                        <option value="manual_text">Aa  Nhập chữ</option>
-                                                        <option value="none">—   Bỏ qua</option>
+                                                        <option value="sum">∑  Cộng</option>
+                                                        <option value="multiply">×  Nhân</option>
+                                                        <option value="percentage">%  Tỷ lệ</option>
+                                                        <option value="manual_number">#  Nhập số</option>
+                                                        <option value="manual_text">T  Nhập chữ</option>
+                                                        <option value="none">—  Bỏ qua</option>
                                                       </select>
                                                     </div>
                                                   )}
-                                                  {isManualText ? (
-                                                    <span style={{ fontWeight: 600, fontSize: '0.82rem', color: '#64748b', fontStyle: 'italic', whiteSpace: 'nowrap' }}>
-                                                      {targetRow.manualPlaceholder ? `[${targetRow.manualPlaceholder}]` : '[USD, EUR...]'}
-                                                    </span>
-                                                  ) : (
-                                                    <span style={{ fontWeight: 700, fontSize: '0.88rem', color: '#0f172a', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
-                                                      {isManualNumber ? (targetRow.manualPlaceholder ? `[${targetRow.manualPlaceholder}]` : '[0]') : formatIsoNumber(dummyVal)}
-                                                    </span>
-                                                  )}
-                                                  {cellUnitVal && (
-                                                    <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 500, flexShrink: 0 }}>
-                                                      {cellUnitVal}
-                                                    </span>
-                                                  )}
+                                                  <div style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'flex-end',
+                                                    gap: '4px',
+                                                    flex: 1,
+                                                    overflow: 'hidden',
+                                                    textAlign: 'right'
+                                                  }}>
+                                                    {targetRow.type === 'none' ? null : isManualText ? (
+                                                      <span style={{ fontWeight: 500, fontSize: '0.82rem', color: '#94a3b8', fontStyle: 'italic', whiteSpace: 'nowrap' }}>
+                                                        {targetRow.manualPlaceholder || 'USD, EUR...'}
+                                                      </span>
+                                                    ) : (
+                                                      <span style={{
+                                                        fontWeight: 700,
+                                                        fontSize: '0.88rem',
+                                                        color: isManualNumber ? '#64748b' : '#0f172a',
+                                                        fontVariantNumeric: 'tabular-nums',
+                                                        whiteSpace: 'nowrap'
+                                                      }}>
+                                                        {isManualNumber
+                                                          ? (targetRow.manualPlaceholder || '0')
+                                                          : formatIsoNumber(dummyVal)
+                                                        }
+                                                      </span>
+                                                    )}
+                                                    {cellUnitVal && targetRow.type !== 'none' && (
+                                                      <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 500, flexShrink: 0 }}>
+                                                        {cellUnitVal}
+                                                      </span>
+                                                    )}
+                                                  </div>
                                                 </div>
                                               </td>
                                             );
