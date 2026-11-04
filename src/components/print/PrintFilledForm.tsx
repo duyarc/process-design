@@ -1608,51 +1608,62 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                                   {getVal(`${block.id}_summary_${col.id}_${targetRow.id}`) || '—'}
                                                 </span>
                                               ) : isManualNumber ? (
-                                                <div style={{
-                                                  display: 'flex',
-                                                  flexDirection: 'column',
-                                                  alignItems: 'flex-end',
-                                                  justifyContent: 'center',
-                                                  width: '100%',
-                                                  lineHeight: 1.25,
-                                                  fontVariantNumeric: 'tabular-nums'
-                                                }}>
-                                                  <span style={{ fontWeight: 700, fontSize: '0.92rem', color: '#0f172a', letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>
-                                                    {formatIsoNumber(parseFloat(getVal(`${block.id}_summary_${col.id}_${targetRow.id}`) || '0'))}
-                                                  </span>
-                                                  {effectiveUnit && (
-                                                    <span style={{ fontWeight: 500, fontSize: '0.7rem', color: '#64748b', marginTop: '1px', whiteSpace: 'nowrap' }}>
-                                                      {effectiveUnit}
-                                                    </span>
-                                                  )}
-                                                </div>
+                                                (() => {
+                                                  const manualValStr = getVal(`${block.id}_summary_${col.id}_${targetRow.id}`);
+                                                  const hasManualVal = manualValStr !== undefined && manualValStr !== null && String(manualValStr).trim() !== '';
+                                                  return (
+                                                    <div style={{
+                                                      display: 'flex',
+                                                      flexDirection: 'column',
+                                                      alignItems: 'flex-end',
+                                                      justifyContent: 'center',
+                                                      width: '100%',
+                                                      lineHeight: 1.25,
+                                                      fontVariantNumeric: 'tabular-nums'
+                                                    }}>
+                                                      <span style={{ fontWeight: 700, fontSize: '0.92rem', color: '#0f172a', letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>
+                                                        {hasManualVal ? formatIsoNumber(parseFloat(String(manualValStr).replace(/[\s\u00A0,]/g, '')) || 0) : '—'}
+                                                      </span>
+                                                      {effectiveUnit && hasManualVal && (
+                                                        <span style={{ fontWeight: 500, fontSize: '0.7rem', color: '#64748b', marginTop: '1px', whiteSpace: 'nowrap' }}>
+                                                          {effectiveUnit}
+                                                        </span>
+                                                      )}
+                                                    </div>
+                                                  );
+                                                })()
                                               ) : (
-                                                <div style={{
-                                                  display: 'flex',
-                                                  flexDirection: 'column',
-                                                  alignItems: 'flex-end',
-                                                  justifyContent: 'center',
-                                                  width: '100%',
-                                                  lineHeight: 1.25,
-                                                  fontVariantNumeric: 'tabular-nums'
-                                                }}>
-                                                  <span style={{ fontWeight: 700, fontSize: '0.92rem', color: '#0f172a', letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>
-                                                    {formatIsoNumber(calculateTableColumnSummary(col, targetRow, col.summaryRows || [], allRows, (rId, cId) => {
-                                                      if (rId === '__summary__') {
-                                                        return getVal(`${block.id}_summary_${col.id}_${cId}`);
-                                                      }
-                                                      if (rId === '__footer_field__') {
-                                                        return getVal(`${block.id}_${cId}`) || getVal(cId);
-                                                      }
-                                                      return getVal(`${block.id}_${rId}_${cId}`);
-                                                    }))}
-                                                  </span>
-                                                  {effectiveUnit && (
-                                                    <span style={{ fontWeight: 500, fontSize: '0.7rem', color: '#64748b', marginTop: '1px', whiteSpace: 'nowrap' }}>
-                                                      {effectiveUnit}
-                                                    </span>
-                                                  )}
-                                                </div>
+                                                (() => {
+                                                  const calculatedVal = calculateTableColumnSummary(col, targetRow, col.summaryRows || [], allRows, (rId, cId) => {
+                                                    if (rId === '__summary__') {
+                                                      return getVal(`${block.id}_summary_${col.id}_${cId}`);
+                                                    }
+                                                    if (rId === '__footer_field__') {
+                                                      return getVal(`${block.id}_${cId}`) || getVal(cId);
+                                                    }
+                                                    return getVal(`${block.id}_${rId}_${cId}`);
+                                                  });
+                                                  return (
+                                                    <div style={{
+                                                      display: 'flex',
+                                                      flexDirection: 'column',
+                                                      alignItems: 'flex-end',
+                                                      justifyContent: 'center',
+                                                      width: '100%',
+                                                      lineHeight: 1.25,
+                                                      fontVariantNumeric: 'tabular-nums'
+                                                    }}>
+                                                      <span style={{ fontWeight: 700, fontSize: '0.92rem', color: '#0f172a', letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>
+                                                        {calculatedVal !== null ? formatIsoNumber(calculatedVal) : '—'}
+                                                      </span>
+                                                      {effectiveUnit && calculatedVal !== null && (
+                                                        <span style={{ fontWeight: 500, fontSize: '0.7rem', color: '#64748b', marginTop: '1px', whiteSpace: 'nowrap' }}>
+                                                          {effectiveUnit}
+                                                        </span>
+                                                      )}
+                                                    </div>
+                                                  );
+                                                })()
                                               )
                                             ) : '—'}
                                           </td>

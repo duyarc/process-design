@@ -511,11 +511,11 @@ export default function TableSummaryFooter({
                         }}>
                           {isManualNumber
                             ? (targetRow.manualPlaceholder || '0')
-                            : formatIsoNumber(dummyVal)
+                            : (dummyVal !== null ? formatIsoNumber(dummyVal) : '—')
                           }
                         </span>
                       )}
-                      {cellUnitVal && targetRow.type !== 'none' && (
+                      {cellUnitVal && targetRow.type !== 'none' && dummyVal !== null && (
                         <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 500, flexShrink: 0 }}>
                           {cellUnitVal}
                         </span>

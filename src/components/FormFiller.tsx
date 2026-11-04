@@ -812,25 +812,7 @@ function FormFillerInner({
     row: any,
     block: any,
     currentValues: { [key: string]: string }
-  ): number => {
-    if (row.type === 'sum') {
-      let sum = 0;
-      (block.tableRows || []).forEach((r: any) => {
-        const cellKey = `${block.id}_${r.id}_${col.id}`;
-        const valStr = currentValues[cellKey] || '';
-        const num = parseFloat(valStr.replace(/[\s\u00A0,]/g, '')) || 0;
-        sum += num;
-      });
-      return sum;
-    }
-    if (row.type === 'manual' || row.type === 'manual_number') {
-      const cellKey = `${block.id}_summary_${col.id}_${row.id}`;
-      const valStr = currentValues[cellKey] || '';
-      return parseFloat(valStr.replace(/[\s\u00A0,]/g, '')) || 0;
-    }
-    if (row.type === 'manual_text') {
-      return 0;
-    }
+  ): number | null => {
     return calculateTableColumnSummary(
       col,
       row,
@@ -1288,7 +1270,7 @@ function FormFillerInner({
                 locationCode: 'N/A',
                 targetRange: 'Tính toán chân bảng',
                 reactionProtocol: '',
-                value: String(val),
+                value: val !== null ? String(val) : '',
                 status: 'PASS'
               });
             });
@@ -3729,7 +3711,33 @@ function FormFillerInner({
                                                 </span>
                                               )}
                                             </div>
-                                          ) : (
+                                          ) : (() => {
+                                            const rawVal = formValues[cellKey];
+                                            const hasManualVal = rawVal !== undefined && rawVal !== null && String(rawVal).trim() !== '';
+                                            return (
+                                              <div style={{
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                alignItems: 'flex-end',
+                                                justifyContent: 'center',
+                                                width: '100%',
+                                                lineHeight: 1.25,
+                                                fontVariantNumeric: 'tabular-nums'
+                                              }}>
+                                                <span style={{ fontWeight: 700, fontSize: '0.92rem', color: '#0f172a', letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>
+                                                  {hasManualVal ? formatIsoNumber(parseFloat(String(rawVal).replace(/[\s\u00A0,]/g, '')) || 0) : '—'}
+                                                </span>
+                                                {effectiveUnit && hasManualVal && (
+                                                  <span style={{ fontWeight: 500, fontSize: '0.7rem', color: '#64748b', marginTop: '1px', whiteSpace: 'nowrap' }}>
+                                                    {effectiveUnit}
+                                                  </span>
+                                                )}
+                                              </div>
+                                            );
+                                          })()
+                                        ) : (() => {
+                                          const sumVal = calculateSummaryValue(col, targetRow, block, formValues);
+                                          return (
                                             <div style={{
                                               display: 'flex',
                                               flexDirection: 'column',
@@ -3740,35 +3748,16 @@ function FormFillerInner({
                                               fontVariantNumeric: 'tabular-nums'
                                             }}>
                                               <span style={{ fontWeight: 700, fontSize: '0.92rem', color: '#0f172a', letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>
-                                                {formatIsoNumber(parseFloat(String(formValues[cellKey] || '0').replace(/[\s\u00A0,]/g, '')) || 0)}
+                                                {sumVal !== null ? formatIsoNumber(sumVal) : '—'}
                                               </span>
-                                              {effectiveUnit && (
+                                              {effectiveUnit && sumVal !== null && (
                                                 <span style={{ fontWeight: 500, fontSize: '0.7rem', color: '#64748b', marginTop: '1px', whiteSpace: 'nowrap' }}>
                                                   {effectiveUnit}
                                                 </span>
                                               )}
                                             </div>
-                                          )
-                                        ) : (
-                                          <div style={{
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                            alignItems: 'flex-end',
-                                            justifyContent: 'center',
-                                            width: '100%',
-                                            lineHeight: 1.25,
-                                            fontVariantNumeric: 'tabular-nums'
-                                          }}>
-                                            <span style={{ fontWeight: 700, fontSize: '0.92rem', color: '#0f172a', letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>
-                                              {formatIsoNumber(calculateSummaryValue(col, targetRow, block, formValues))}
-                                            </span>
-                                            {effectiveUnit && (
-                                              <span style={{ fontWeight: 500, fontSize: '0.7rem', color: '#64748b', marginTop: '1px', whiteSpace: 'nowrap' }}>
-                                                {effectiveUnit}
-                                              </span>
-                                            )}
-                                          </div>
-                                        )}
+                                          );
+                                        })()}
                                       </td>
                                     );
                                   })}
