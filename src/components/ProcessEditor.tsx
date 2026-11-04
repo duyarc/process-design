@@ -677,9 +677,10 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
   const fetchProcess = async (id: string) => {
     try {
       setLoading(true);
-      // Fetch latest forms list and processes in parallel with lean list mode
-      const [formsRes, res] = await Promise.all([
+      // Fetch latest forms list, authoritative single process, and lean processes list in parallel
+      const [formsRes, procRes, listRes] = await Promise.all([
         fetch('/api/forms?fields=list'),
+        fetch(`/api/processes/${encodeURIComponent(id)}`),
         fetch('/api/processes?fields=list')
       ]);
 
@@ -689,9 +690,14 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
         setAllForms(formsList);
       }
 
-      if (!res.ok) throw new Error('Failed to fetch');
-      const list: Process[] = await res.json();
-      const proc = list.find(p => p.id === id);
+      const list: Process[] = listRes.ok ? await listRes.json() : [];
+      let proc: Process | null = null;
+      if (procRes.ok) {
+        proc = await procRes.json();
+      } else {
+        proc = list.find(p => p.id === id) || null;
+      }
+
       if (proc) {
         setTitle(proc.title);
         setDescription(proc.description);
@@ -699,7 +705,22 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
         setStatus(proc.status || 'Active');
         setParentProcessId(proc.parentProcessId || proc.id);
         setProcessCode(proc.parentProcessId || proc.id);
-        const loadedRoles = proc.roles && proc.roles.length > 0 ? proc.roles : ['Operator'];
+
+        // Derive active roles: prune unused fallback 'Operator' and merge any step roles missing from proc.roles
+        const stepRoles = Array.from(new Set(proc.steps?.map((s: any) => s.role).filter(Boolean) || []));
+        let loadedRoles: string[] = [];
+        if (proc.roles && Array.isArray(proc.roles) && proc.roles.length > 0) {
+          loadedRoles = proc.roles.filter((r: string) => r !== 'Operator' || stepRoles.includes('Operator'));
+        }
+        if (loadedRoles.length === 0) {
+          loadedRoles = stepRoles.length > 0 ? stepRoles : ['Operator'];
+        } else {
+          stepRoles.forEach((sr: string) => {
+            if (!loadedRoles.includes(sr)) {
+              loadedRoles.push(sr);
+            }
+          });
+        }
         setRoles(loadedRoles);
 
         // Normalize legacy form names to formId linkage

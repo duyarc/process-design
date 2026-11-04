@@ -69,8 +69,11 @@ export function generateBPMNXML(
   const C = DEFAULT_LAYOUT_CONSTANTS;
 
   // Resolve unique roles (merge configured roles with roles actually used in steps)
+  // Prune fallback 'Operator' if not actually assigned to any step and other active roles exist
+  const stepRoles = new Set(steps.map((s) => s.role).filter(Boolean));
+  const filteredRoles = processRoles.filter((r) => r !== 'Operator' || stepRoles.has('Operator') || stepRoles.size === 0);
   const uniqueRoles = Array.from(
-    new Set([...processRoles, ...steps.map((s) => s.role || 'Operator')])
+    new Set([...filteredRoles, ...steps.map((s) => s.role || 'Operator')])
   ).filter(Boolean);
   if (uniqueRoles.length === 0) uniqueRoles.push('Operator');
 

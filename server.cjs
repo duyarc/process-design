@@ -1531,7 +1531,7 @@ app.get('/api/processes', async (req, res) => {
     }
     if (dbPool) {
       const procQuery = isList
-        ? 'SELECT id, title, description, version, "lastUpdated", "parentProcessId", status, "workflowFormsData", steps, "sopSignoffs" FROM processes'
+        ? 'SELECT id, title, description, version, "lastUpdated", "parentProcessId", status, roles, "workflowFormsData", steps, "sopSignoffs", "formFields" FROM processes'
         : 'SELECT * FROM processes';
       const [result, formsRes] = await Promise.all([
         dbPool.query(procQuery),

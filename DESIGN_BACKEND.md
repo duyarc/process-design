@@ -9,7 +9,7 @@
 | **Module Name** | Backend & Persistence |
 | **Status** | Active Development |
 | **Document Version** | 1.3 |
-| **Verified At Commit** | (2026-11-04) — GET /api/forms/resolve/*identifier formTemplate payload attachment verified against source |
+| **Verified At Commit** | (2026-11-04) — GET /api/processes?fields=list roles & formFields selection verified against source |
 
 ### Quick File Index
 
@@ -312,3 +312,4 @@ Architectural changes only — schema, endpoints, invariants. UI polish lives in
 | 2026-11-03 | CURRENT | **Lean List Query Mode & Edge Cache Headers (`server.cjs`):** (1) Added `?fields=list` query support to `GET /api/forms`, selecting only metadata columns (`form_id, form_name, form_title, status, version, effective_date, page_size, is_public, default_focus_mode, created_at, updated_at`) and omitting multi-megabyte `layout_blocks` and `revision_history` JSONB blobs (~95% payload reduction). (2) Added `?fields=list` support to `GET /api/processes`, omitting heavy `formFields` and `roles` JSONB. (3) Added `Cache-Control: public, max-age=5, stale-while-revalidate=30` headers to list responses. |
 
 | 2026-11-04 | `CURRENT` | **Form Resolve Payload Attachment (`server.cjs`):** Enhanced `GET /api/forms/resolve/*identifier` across all 3 lookup tiers (`process_forms`, `processes.workflowFormsData`, and `forms` standalone / offline) to return full `formTemplate` JSON payload alongside metadata, eliminating subsequent sequential round-trips from clients opening short links. |
+| 2026-11-04 | `CURRENT` | **Process List Roles & FormFields Restoration (`server.cjs`):** Restored `roles` and `formFields` to the `SELECT` query of `GET /api/processes?fields=list`, ensuring frontend accurately receives declared roles and prevents defaulting to fallback `['Operator']`. |
