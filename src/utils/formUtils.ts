@@ -1613,3 +1613,76 @@ export function calculateTableColumnSummary(
   }
   return 0;
 }
+
+export interface TableSummaryType {
+  id: string;
+  label: string;
+  mergeLeadingEmpty?: boolean;
+  footerFields?: FormFieldISO[];
+}
+
+export interface TableSummaryExtraction {
+  summaryTypes: TableSummaryType[];
+  columnsWithSummaries: { col: any; colIdx: number; rowMap: Map<string, any> }[];
+  fallbackColIdx: number;
+}
+
+/**
+ * Pure utility to build unified summary types and column mappings across Builder, Filler, and Print components.
+ */
+export function buildTableSummaryTypes(
+  columns: any[],
+  options?: { dedupeByLabel?: boolean }
+): TableSummaryExtraction {
+  const totalCols = (columns || []).length;
+  if (totalCols === 0) {
+    return { summaryTypes: [], columnsWithSummaries: [], fallbackColIdx: 0 };
+  }
+
+  const summaryTypes: TableSummaryType[] = [];
+  const columnsWithSummaries: { col: any; colIdx: number; rowMap: Map<string, any> }[] = [];
+
+  columns.forEach((col: any, colIdx: number) => {
+    if (col.type === 'number' && col.summaryRows && col.summaryRows.length > 0) {
+      const rowMap = new Map<string, any>();
+      col.summaryRows.forEach((row: any) => {
+        rowMap.set(row.id, row);
+        const exists = options?.dedupeByLabel
+          ? summaryTypes.some(s => s.id === row.id || s.label === row.label)
+          : summaryTypes.some(s => s.id === row.id);
+        if (!exists) {
+          summaryTypes.push({
+            id: row.id,
+            label: row.label || 'Cộng:',
+            mergeLeadingEmpty: row.mergeLeadingEmpty,
+            footerFields: row.footerFields,
+          });
+        }
+      });
+      columnsWithSummaries.push({ col, colIdx, rowMap });
+    }
+  });
+
+  const firstNumericColIdx = columns.findIndex((c: any) => c.type === 'number');
+  const fallbackColIdx = firstNumericColIdx >= 0 ? firstNumericColIdx : (columns.length > 1 ? 1 : 0);
+
+  return { summaryTypes, columnsWithSummaries, fallbackColIdx };
+}
+
+/**
+ * Calculates effective leading column span for table summary footer rows.
+ */
+export function getEffectiveFirstSumColIdx(
+  columns: any[],
+  sumType: TableSummaryType,
+  fallbackColIdx: number
+): number {
+  const isMergeEnabled = sumType.mergeLeadingEmpty !== false;
+  const firstActiveColIdx = columns.findIndex((col: any) => {
+    const targetRow = (col.summaryRows || []).find((r: any) => r.id === sumType.id || r.label === sumType.label);
+    return targetRow && targetRow.type !== 'none';
+  });
+  return (isMergeEnabled && firstActiveColIdx >= 0)
+    ? firstActiveColIdx
+    : fallbackColIdx;
+}

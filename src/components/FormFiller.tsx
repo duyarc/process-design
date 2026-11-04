@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, Component } from 'react';
-import type { Process, FormTemplateISO, ReportTemplateISO, SubmissionFieldSnapshot, Submission, BlockVisibilityCondition, FormFieldISO } from '../types';
+import type { Process, FormTemplateISO, ReportTemplateISO, SubmissionFieldSnapshot, Submission, BlockVisibilityCondition } from '../types';
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
@@ -70,7 +70,9 @@ import {
   clusterOptionsByGroup,
   parseChecklistValues,
   formatIsoNumber,
-  calculateTableColumnSummary
+  calculateTableColumnSummary,
+  buildTableSummaryTypes,
+  getEffectiveFirstSumColIdx
 } from '../utils/formUtils';
 import { renderFormattedText, stripMarkdownTokens } from '../utils/textFormatter';
 import { useAuth } from '../context/AuthContext';
@@ -3517,29 +3519,8 @@ function FormFillerInner({
                       </tbody>
                       {(() => {
                         const columns = block.tableColumns || [];
-                        const totalCols = columns.length;
-                        if (totalCols === 0) return null;
-
-                        const summaryTypes: { id: string; label: string; mergeLeadingEmpty?: boolean; footerFields?: FormFieldISO[] }[] = [];
-                        const columnsWithSummaries: { col: any; colIdx: number; rowMap: Map<string, any> }[] = [];
-
-                        columns.forEach((col: any, colIdx: number) => {
-                          if (col.type === 'number' && col.summaryRows && col.summaryRows.length > 0) {
-                            const rowMap = new Map<string, any>();
-                            col.summaryRows.forEach((row: any) => {
-                              rowMap.set(row.id, row);
-                              if (!summaryTypes.some(s => s.id === row.id)) {
-                                summaryTypes.push({ id: row.id, label: row.label || 'Cộng:', mergeLeadingEmpty: row.mergeLeadingEmpty, footerFields: row.footerFields });
-                              }
-                            });
-                            columnsWithSummaries.push({ col, colIdx, rowMap });
-                          }
-                        });
-
-                        if (columnsWithSummaries.length === 0) return null;
-
-                        const firstNumericColIdx = columns.findIndex((c: any) => c.type === 'number');
-                        const fallbackColIdx = firstNumericColIdx >= 0 ? firstNumericColIdx : (columns.length > 1 ? 1 : 0);
+                        const { summaryTypes, columnsWithSummaries, fallbackColIdx } = buildTableSummaryTypes(columns);
+                        if (summaryTypes.length === 0) return null;
 
                         return (
                           <tfoot style={{ borderTop: bStyle === 'horizontal_only' ? '1.5px solid #0f172a' : bStyle === 'borderless' ? '1px solid #e2e8f0' : '1.5px solid #94a3b8' }}>
@@ -3549,14 +3530,7 @@ function FormFillerInner({
                                 ? (bStyle === 'horizontal_only' ? '1.5px solid #0f172a' : bStyle === 'borderless' ? '1px solid #e2e8f0' : '1.5px solid #94a3b8')
                                 : (bStyle === 'horizontal_only' ? '1px solid #e2e8f0' : '1px solid var(--neutral-border)');
 
-                              const isMergeEnabled = sumType.mergeLeadingEmpty !== false;
-                              const firstActiveColIdx = columns.findIndex((col: any) => {
-                                const targetRow = (col.summaryRows || []).find((r: any) => r.id === sumType.id || r.label === sumType.label);
-                                return targetRow && targetRow.type !== 'none';
-                              });
-                              const effectiveFirstSumColIdx = (isMergeEnabled && firstActiveColIdx >= 0)
-                                ? firstActiveColIdx
-                                : fallbackColIdx;
+                              const effectiveFirstSumColIdx = getEffectiveFirstSumColIdx(columns, sumType, fallbackColIdx);
 
                               return (
                                 <tr key={sumType.id || idx} style={{ background: '#f8fafc', fontWeight: 'bold' }}>
