@@ -61,7 +61,7 @@ Mỗi interface dùng chung có **đúng một** tài liệu chủ:
 
 ### 5. Quy tắc An toàn khi Sửa mã (Safe Patching Invariants)
 - **5.1 Đọc trước khi viết replacement (Rule 12.1):** Luôn `view_file` đúng vùng cần sửa và copy chính xác whitespace/indentation. CẤM viết `TargetContent` từ trí nhớ.
-- **5.2 Ưu tiên `replace_file_content` gốc (Rule 12.2):** Chỉ dùng Python script khi target string trùng lặp nhiều nơi hoặc cần regex. Khi dùng Python, ưu tiên `content.replace(exact_old, exact_new, 1)`, cấm index slicing.
+- **5.2 An toàn Chuỗi & Cấm Index Slicing (Rule 12.2):** Khi dùng script Node.js/Python để patch file, BẮT BUỘC dùng `content.replace(exact_target, replacement, 1)` với xử lý chuẩn hóa dòng CRLF (`.replace(/\r?\n/g, '\r\n')`). TUYỆT ĐỐI CẤM dùng `lines.slice(start, end)` hoặc line-number index slicing trên Windows vì nguy cơ lệch dòng do CRLF/comment làm cắt cụt code xung quanh gây hỏng cú pháp.
 - **5.3 Giới hạn Chunk Patch < 50 dòng (Rule 12.6):** Trên file monolith lớn (>2.000 dòng), mỗi lần thay thế KHÔNG ĐƯỢC VƯỢT QUÁ 50 dòng code, luôn bao gồm tối thiểu 3 dòng context độc nhất trước và sau.
 - **5.4 Kiểm tra TypeScript tức thì sau mỗi file (Rule 12.3):** Sau khi sửa xong mỗi file `.ts`/`.tsx`, BẮT BUỘC chạy ngay `npx tsc --noEmit`. Lỗi phát sinh phải sửa dứt điểm ngay tại file đó trước khi sang file tiếp theo.
 - **5.5 Không chạy Python inline chứa JSX (Rule 12.4):** Khi script chứa `()`, `=>`, `{}`, `<>`, cấm chạy `python -c "..."` trên PowerShell. Bắt buộc lưu ra file `.py` tạm rồi thực thi.
@@ -70,47 +70,44 @@ Mỗi interface dùng chung có **đúng một** tài liệu chủ:
 
 ## PHẦN III: QUY TRÌNH 2 GIAI ĐOẠN & ATOMIC SINGLE COMMIT (WORKFLOW)
 
-### 6. Quy trình Lập Kế hoạch & Thực thi 2 Giai đoạn (Two-Stage Planning)
+### 6. Quy trình Phân luồng Thực thi Tinh gọn (Lean Execution Protocol)
 
 ```mermaid
 flowchart TD
-    A["Giai đoạn 1: Kế hoạch Kiến trúc Sơ bộ"] -->|User duyệt Proceed| B["Giai đoạn 2: Chi tiết hóa Blueprint Nội bộ"]
-    B -->|Tự động chuyển tiếp| C["Giai đoạn 3: Thực thi Hàng loạt & 1 Commit Duy nhất"]
+    Task["Yêu cầu công việc mới"] --> Check{"Phân loại phạm vi & ngữ cảnh?"}
+    Check -->|Micro-task hoặc Đã chốt PA trong chat| Fast["Luồng Tinh gọn (Fast-Track)"]
+    Check -->|Macro-task / Kiến trúc / Đa module| Standard["Luồng Chuẩn (Standard Track)"]
+    
+    Fast -->|Thực thi thẳng| Exec["Thực thi Mã nguồn & npx tsc"]
+    Standard --> Plan["Giai đoạn 1: Kế hoạch Kiến trúc Sơ bộ"]
+    Plan -->|User bấm Proceed| DirectExec["Thực thi Trực tiếp (Bỏ Double Drafting)"]
+    DirectExec --> Exec
+    
+    Exec --> Build["npm run build (1 lần duy nhất)"]
+    Build --> Commit["Guarded Atomic Single Commit"]
 ```
 
-#### Giai đoạn 1: Kế hoạch Kiến trúc Sơ bộ (Trước khi nhận `Proceed`)
-- **Mục tiêu:** Cung cấp bức tranh tổng quan để Người dùng (The Thinker) duyệt nhanh định hướng kiến trúc & thẩm định phản biện giao diện.
-- **Nội dung `implementation_plan.md`:**
-  - Tóm tắt vấn đề & Nguyên nhân gốc (Root Cause).
-  - Danh sách file ảnh hưởng (`[MODIFY]`, `[NEW]`, `[DELETE]`).
-  - Hướng tiếp cận logic, breaking change, schema impact.
-  - **Phản biện UI/UX & ASCII Wireframe (BẮT BUỘC khi có thêm mới/chỉnh sửa UI):**
-    1. *Bảng Thẩm định Phản biện Phần tử UI (Bộ 3 câu hỏi chất vấn cốt tử: Purpose & Essentiality, Chống Over-engineering, Natural Affordance):*
-       | Phần tử UI | Mục đích sử dụng thực tế | Điểm thiết yếu (/10) | Quyết định phản biện |
-       |---|---|---|---|
-       | Tên khối/nút/trường | Người dùng dùng để làm gì? | 1 - 10 | Giữ lại / Loại bỏ / Gộp vào [X] |
-       *(Mọi phần tử có Điểm thiết yếu < 7/10 BẮT BUỘC đưa vào diện loại bỏ hoặc gộp).*
-    2. *ASCII Wireframe Đối chiếu Trực quan 2 Phiên bản:* Thay thế hoàn toàn mockup UI bằng ASCII Wireframe 2 phiên bản (Bản Hiện tại vs. Bản Dự kiến Chỉnh sửa / Before vs. After) tuân thủ 4 Tiêu chuẩn Thiết kế Tối giản.
-  - Kế hoạch kiểm chứng (Verification Plan).
-- **RÀNG BUỘC CỨNG (NEVER):** **TUYỆT ĐỐI CẤM viết các đoạn code thay thế dài dòng** ở giai đoạn này để tránh kéo dài thời gian review và gây nhiễu định hướng.
-- **Hành động:** Đặt `RequestFeedback: true` và dừng lại chờ Người dùng bấm `Proceed`.
+#### 6.1 Luồng Tinh gọn (Fast-Track — Thực thi tức thì)
+- **Điều kiện kích hoạt:** 
+  1. *Micro-task:* Tinh chỉnh UI vi mô, sửa lỗi nhỏ, refactor cục bộ (< 50 dòng code, 1–2 file).
+  2. *Đã chốt phương án:* Khi Người dùng đã chọn và chốt rõ phương án cụ thể ngay trong chat (ví dụ: Agent phản biện đưa ra PA1, PA2; Người dùng nhắn *"fix theo phương án 1"* hoặc chỉ định rõ *"đổi nút X sang Y"*).
+- **Hành vi thực thi (Zero Overhead):**
+  - **TUYỆT ĐỐI KHÔNG tạo artifact `implementation_plan.md`** để tránh ép Người dùng bấm Proceed lần 2 thừa thãi (Double Confirmation).
+  - Agent đọc `SESSION_LOG.md` để phòng ngừa bẫy cũ, tiến hành sửa mã nguồn trực tiếp, chạy `npx tsc --noEmit` sau mỗi file, chạy `npm run build` ở bước cuối cùng, cập nhật tài liệu thiết kế và commit ngay.
 
-#### Giai đoạn 2: Chi tiết hóa Blueprint Nội bộ (Ngay sau khi nhận `Proceed`)
-- **Mục tiêu:** Chuẩn bị sẵn sàng 100% code blocks, rà soát dead-code và unused variables trước khi chạm vào mã nguồn thực tế.
-- **Hành động bắt buộc (TUYỆT ĐỐI KHÔNG sửa code ngay):**
-  1. Đọc `SESSION_LOG.md` (mục Bài học Tích lũy) đối chiếu các file cần sửa.
-  2. Đọc chính xác các vùng mã nguồn thực tế bằng `view_file`.
-  3. Soạn Exact Code Blocks hoàn chỉnh (import, hook, logic, JSX).
-  4. Cập nhật blueprint vào `implementation_plan.md` với **`RequestFeedback: false`**.
-- **Chuyển tiếp tự động:** Ngay sau khi lưu blueprint, tự động chuyển thẳng sang Giai đoạn 3 mà **KHÔNG dừng lại hỏi Người dùng lần 2** (trừ trường hợp phát sinh breaking change ngoài dự kiến).
-
-#### Giai đoạn 3: Thực thi Hàng loạt một lượt (Batch Execution)
-1. Chỉnh sửa tuần tự các file mã nguồn theo đúng blueprint (tuân thủ Rule Chunk < 50 dòng).
-2. Chạy `npx tsc --noEmit` sau mỗi file; chạy `npm run build` ở bước cuối xác nhận Vite bundle pass 100%.
-3. Cập nhật tài liệu thiết kế module tương ứng (`DESIGN_*.md`).
-4. Cập nhật `SESSION_LOG.md` (khi và chỉ khi gặp bẫy/lỗi kỹ thuật mới): Bổ sung giải pháp phòng ngừa vào ## Bài học Tích lũy (nếu phiên suôn sẻ không có lỗi mới, KHÔNG chạm vào file này). Triệt tiêu việc ghi nhật ký phiên thủ công (vai trò này do git log và Conventional Commits đảm nhận).
-5. Chạy đúng **1 lần commit & push nguyên tử duy nhất** theo Mục 7 (khi hoàn tất sprint bàn giao).
-6. **BƯỚC CUỐI CÙNG (Chỉ dẫn Nghiệm thu):** Tự động kiểm tra môi trường và thông báo cho Người dùng nên kiểm tra trên Local hay Online theo quy chuẩn Mục 8.
+#### 6.2 Luồng Chuẩn (Standard Track — Kế hoạch & Thực thi Trực tiếp)
+- **Điều kiện kích hoạt:** Thay đổi schema Database, tái cấu trúc đa module (≥ 3 file), thêm sub-system lớn (> 150 dòng JSX), hoặc tính năng mới cần lấy ý kiến The Thinker về định hướng kiến trúc.
+- **Bước 1: Kế hoạch Kiến trúc Sơ bộ (Trước khi nhận `Proceed`):**
+  - Trình bày tóm tắt: Root cause, Danh sách file ảnh hưởng (`[MODIFY]`, `[NEW]`, `[DELETE]`), Hướng tiếp cận logic, Bảng Thẩm định Phản biện Phần tử UI & ASCII Wireframe Đối chiếu Trước/Sau.
+  - **RÀNG BUỘC CỨNG (NEVER):** TUYỆT ĐỐI CẤM viết các đoạn code thay thế dài dòng ở giai đoạn này.
+  - Đặt `RequestFeedback: true` và dừng lại chờ Người dùng duyệt `Proceed`.
+- **Bước 2: Thực thi Trực tiếp & 1 Commit Duy nhất (Sau khi nhận `Proceed`):**
+  - **BÃI BỎ HOÀN TOÀN việc viết lại exact code blocks vào markdown (Triệt tiêu Double Drafting):** Người dùng không đọc lại code trong markdown sau khi đã duyệt Proceed. Agent TUYỆT ĐỐI KHÔNG mất thời gian stream code lặp lại vào `implementation_plan.md`.
+  - Agent đọc `SESSION_LOG.md`, đọc mã nguồn thực tế và **sửa thẳng vào file code** theo đúng nguyên tắc Chunk < 50 dòng.
+  - Chạy `npx tsc --noEmit` sau mỗi file; chạy `npm run build` ở bước cuối xác nhận Vite bundle pass 100%.
+  - Cập nhật tài liệu thiết kế module tương ứng (`DESIGN_*.md`).
+  - Chạy đúng **1 lần commit & push nguyên tử duy nhất** theo Mục 7.
+  - Thông báo nghiệm thu rõ ràng (Local hay Online) theo Mục 8.
 
 ### 7. Quy trình Native Git Push Chuẩn (Guarded Atomic Single Commit)
 - **Ràng buộc bất biến:** Toàn bộ Code + Tài liệu thiết kế + `SESSION_LOG.md` PHẢI được gộp vào **ĐÚNG 1 COMMIT DUY NHẤT**. Tuyệt đối CẤM tạo commit thứ hai sau khi push để triệt tiêu việc kích hoạt deploy dư thừa trên Vercel / CI.
