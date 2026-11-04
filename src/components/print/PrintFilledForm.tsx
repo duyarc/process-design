@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import ReactDOM from 'react-dom';
 import { Star } from 'lucide-react';
-import type { Submission, SubmissionFieldSnapshot, FormTemplateISO, TableColumnConfig } from '../../types';
+import type { Submission, SubmissionFieldSnapshot, FormTemplateISO, TableColumnConfig, FormFieldISO } from '../../types';
 import { formatFormVersion, getColStyleWidth } from '../../types';
 import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock, getInfoGridTemplateColumns, isOtherValue, extractOtherText, formatOptionDisplay, getEffectiveCellOptions, parseGoogleMapsUrl, getChecklistColumns, resolveImageSrc, clusterOptionsByGroup, parseChecklistValues, formatDMS, formatIsoNumber, calculateTableColumnSummary } from '../../utils/formUtils';
 import { renderFormattedText } from '../../utils/textFormatter';
@@ -1538,13 +1538,13 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                           {/* Summary footer rows — dynamically calculated or manual snapshot values */}
                           {(() => {
                             const columns = block.tableColumns || [];
-                            const summaryTypes: { id: string; label: string; mergeLeadingEmpty?: boolean }[] = [];
+                            const summaryTypes: { id: string; label: string; mergeLeadingEmpty?: boolean; footerFields?: FormFieldISO[] }[] = [];
                             const columnsWithSummaries: { col: any; colIdx: number }[] = [];
                             columns.forEach((col: any, colIdx: number) => {
                               if (col.type === 'number' && col.summaryRows && col.summaryRows.length > 0) {
                                 col.summaryRows.forEach((row: any) => {
                                   if (!summaryTypes.some(s => s.id === row.id || s.label === row.label)) {
-                                    summaryTypes.push({ id: row.id, label: row.label || 'Cộng:', mergeLeadingEmpty: row.mergeLeadingEmpty });
+                                    summaryTypes.push({ id: row.id, label: row.label || 'Cộng:', mergeLeadingEmpty: row.mergeLeadingEmpty, footerFields: row.footerFields });
                                   }
                                 });
                                 columnsWithSummaries.push({ col, colIdx });
@@ -1579,12 +1579,27 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                           borderTop: bStyle === 'horizontal_only' ? '1.5px solid #0f172a' : (bStyle === 'borderless' ? 'none' : '1.5px solid #94a3b8'),
                                           borderBottom: rowBorderBottom,
                                           padding: '6px 10px',
-                                          textAlign: 'right',
                                           fontSize: '0.84rem',
                                           fontWeight: 'bold',
                                           color: '#0f172a'
                                         }}>
-                                          {sumType.label}
+                                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontWeight: 600, fontSize: '0.78rem', color: '#334155' }}>
+                                              {(sumType.footerFields || []).map((f: any) => {
+                                                const fieldKey = `${block.id}_${f.id}`;
+                                                const val = getVal(fieldKey) || getVal(f.id);
+                                                return (
+                                                  <span key={f.id} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                                    <span style={{ color: '#64748b', fontWeight: 500 }}>{f.checkItem || f.label}:</span>
+                                                    <span>{val || '—'}</span>
+                                                  </span>
+                                                );
+                                              })}
+                                            </div>
+                                            <div style={{ whiteSpace: 'nowrap', textAlign: 'right' }}>
+                                              {sumType.label}
+                                            </div>
+                                          </div>
                                         </td>
                                       )}
                                       {columns.slice(effectiveFirstSumColIdx).map((col: any, offsetIdx: number) => {
@@ -1645,6 +1660,9 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                                     {formatIsoNumber(calculateTableColumnSummary(col, targetRow, col.summaryRows || [], allRows, (rId, cId) => {
                                                       if (rId === '__summary__') {
                                                         return getVal(`${block.id}_summary_${col.id}_${cId}`);
+                                                      }
+                                                      if (rId === '__footer_field__') {
+                                                        return getVal(`${block.id}_${cId}`) || getVal(cId);
                                                       }
                                                       return getVal(`${block.id}_${rId}_${cId}`);
                                                     }))}

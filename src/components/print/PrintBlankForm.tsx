@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import type { FormTemplateISO } from '../../types';
+import type { FormTemplateISO, FormFieldISO } from '../../types';
 import { getColStyleWidth } from '../../types';
 import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock, getInfoGridTemplateColumns, getEffectiveCellOptions, getChecklistColumns, groupTableRowsForPrint, resolveImageSrc, getTableItemColumnId, clusterOptionsByGroup } from '../../utils/formUtils';
 import { renderFormattedText } from '../../utils/textFormatter';
@@ -1275,7 +1275,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                     const totalCols = columns.length;
                     if (totalCols === 0) return null;
 
-                    const summaryTypes: { id: string; label: string; mergeLeadingEmpty?: boolean }[] = [];
+                    const summaryTypes: { id: string; label: string; mergeLeadingEmpty?: boolean; footerFields?: FormFieldISO[] }[] = [];
                     const columnsWithSummaries: { col: any; colIdx: number; rowMap: Map<string, any> }[] = [];
 
                     columns.forEach((col, colIdx) => {
@@ -1284,7 +1284,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                         col.summaryRows.forEach((row: any) => {
                           rowMap.set(row.id, row);
                           if (!summaryTypes.some(s => s.id === row.id)) {
-                            summaryTypes.push({ id: row.id, label: row.label || 'Cộng:', mergeLeadingEmpty: row.mergeLeadingEmpty });
+                            summaryTypes.push({ id: row.id, label: row.label || 'Cộng:', mergeLeadingEmpty: row.mergeLeadingEmpty, footerFields: row.footerFields });
                           }
                         });
                         columnsWithSummaries.push({ col, colIdx, rowMap });
@@ -1321,12 +1321,23 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                   borderTop: bStyle === 'horizontal_only' ? '1.5px solid #0f172a' : (bStyle === 'borderless' ? 'none' : '1.5px solid #94a3b8'),
                                   borderBottom: rowBorderBottom,
                                   padding: '6px 10px',
-                                  textAlign: 'right',
                                   fontSize: '0.84rem',
                                   fontWeight: 'bold',
                                   color: '#0f172a'
                                 }}>
-                                  {sumType.label}
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontWeight: 'normal', fontSize: '0.78rem' }}>
+                                      {(sumType.footerFields || []).map((f: any) => (
+                                        <span key={f.id} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                          <span>{f.checkItem || f.label}:</span>
+                                          <span style={{ borderBottom: '1px dotted #94a3b8', minWidth: '45px', display: 'inline-block' }}>&nbsp;</span>
+                                        </span>
+                                      ))}
+                                    </div>
+                                    <div style={{ whiteSpace: 'nowrap', textAlign: 'right' }}>
+                                      {sumType.label}
+                                    </div>
+                                  </div>
                                 </td>
                               )}
                               {columns.slice(effectiveFirstSumColIdx).map((col, offsetIdx) => {

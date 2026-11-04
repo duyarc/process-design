@@ -174,6 +174,8 @@ export interface ColumnSummaryRowConfig {
   unit?: string;
   multiplyRowIds?: [string, string];
   mergeLeadingEmpty?: boolean; // Mặc định true (hoặc undefined): tự động gộp các ô trống phía trước
+  footerFields?: FormFieldISO[]; // Danh sách các trường điền nhúng vào khoảng trắng bên trái của dòng chân bảng
+  multiplyFieldId?: string; // Tùy chọn nhân với 1 footer field (ví dụ: trường Tỷ giá)
 }
 
 export interface TableColumnConfig {

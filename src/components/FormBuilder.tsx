@@ -1435,6 +1435,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
   const [activeLineCountRowKey, setActiveLineCountRowKey] = useState<string | null>(null);
   const [activeCellKey, setActiveCellKey] = useState<string | null>(null);
   const [activeUnitInputCellKey, setActiveUnitInputCellKey] = useState<string | null>(null);
+  const [activeAddFooterFieldSummaryId, setActiveAddFooterFieldSummaryId] = useState<string | null>(null);
 
   // Compute live snapshot & isSaved state (memoized to avoid JSON.stringify on every render)
   const currentSnapshot = useMemo(() => getFormSnapshot({
@@ -2309,6 +2310,88 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
         return {
           ...col,
           summaryRows: col.summaryRows.map(r => r.id === summaryId ? { ...r, label: newLabel } : r)
+        };
+      });
+      return { ...b, tableColumns: updatedCols };
+    }));
+  };
+
+  // Helper: Add a Footer Field into a Table Summary Row
+  const handleAddFooterField = (blockId: string, summaryId: string, type: 'text' | 'select' | 'number' | 'date') => {
+    const newFieldId = type === 'select' ? `curr_${Date.now()}` : type === 'number' ? `rate_${Date.now()}` : `ff_${Date.now()}`;
+    const defaultLabel = type === 'select' ? 'Tiền tệ' : type === 'number' ? 'Tỷ giá' : type === 'date' ? 'Ngày' : 'Ghi chú';
+    const defaultPh = type === 'number' ? '25,450' : type === 'select' ? 'USD' : '...';
+    const defaultOptions: RadioOption[] = type === 'select' ? [
+      { label: 'USD', value: 'USD' },
+      { label: 'EUR', value: 'EUR' },
+      { label: 'VNĐ', value: 'VND' }
+    ] : [];
+
+    const newField: FormFieldISO = {
+      id: newFieldId,
+      type: type as any,
+      checkItem: defaultLabel,
+      placeholder: defaultPh,
+      locationCode: '',
+      reactionProtocol: '',
+      options: defaultOptions
+    };
+
+    setLayoutBlocks(prev => prev.map(b => {
+      if (b.id !== blockId) return b;
+      const updatedCols = (b.tableColumns || []).map(col => {
+        if (!col.summaryRows) return col;
+        return {
+          ...col,
+          summaryRows: col.summaryRows.map(r => {
+            if (r.id !== summaryId) return r;
+            const currentFields = r.footerFields || [];
+            return { ...r, footerFields: [...currentFields, newField] };
+          })
+        };
+      });
+      return { ...b, tableColumns: updatedCols };
+    }));
+  };
+
+  // Helper: Update a Footer Field in a Table Summary Row
+  const handleUpdateFooterField = (blockId: string, summaryId: string, fieldId: string, updates: Partial<FormFieldISO>) => {
+    setLayoutBlocks(prev => prev.map(b => {
+      if (b.id !== blockId) return b;
+      const updatedCols = (b.tableColumns || []).map(col => {
+        if (!col.summaryRows) return col;
+        return {
+          ...col,
+          summaryRows: col.summaryRows.map(r => {
+            if (r.id !== summaryId) return r;
+            const currentFields = r.footerFields || [];
+            return {
+              ...r,
+              footerFields: currentFields.map(f => f.id === fieldId ? { ...f, ...updates } : f)
+            };
+          })
+        };
+      });
+      return { ...b, tableColumns: updatedCols };
+    }));
+  };
+
+  // Helper: Delete a Footer Field from a Table Summary Row
+  const handleDeleteFooterField = (blockId: string, summaryId: string, fieldId: string) => {
+    setLayoutBlocks(prev => prev.map(b => {
+      if (b.id !== blockId) return b;
+      const updatedCols = (b.tableColumns || []).map(col => {
+        if (!col.summaryRows) return col;
+        return {
+          ...col,
+          summaryRows: col.summaryRows.map(r => {
+            if (r.id !== summaryId) return r;
+            const currentFields = r.footerFields || [];
+            return {
+              ...r,
+              footerFields: currentFields.filter(f => f.id !== fieldId)
+            };
+          })
         };
       });
       return { ...b, tableColumns: updatedCols };
@@ -7426,7 +7509,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                 const totalCols = columns.length;
                                 if (totalCols === 0) return null;
 
-                                const summaryTypes: { id: string; label: string; mergeLeadingEmpty?: boolean }[] = [];
+                                const summaryTypes: { id: string; label: string; mergeLeadingEmpty?: boolean; footerFields?: FormFieldISO[] }[] = [];
                                 const columnsWithSummaries: { col: any; colIdx: number; rowMap: Map<string, any> }[] = [];
 
                                 columns.forEach((col: any, colIdx: number) => {
@@ -7435,7 +7518,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                     col.summaryRows.forEach((row: any) => {
                                       rowMap.set(row.id, row);
                                       if (!summaryTypes.some(s => s.id === row.id)) {
-                                        summaryTypes.push({ id: row.id, label: row.label || 'Cộng:', mergeLeadingEmpty: row.mergeLeadingEmpty });
+                                        summaryTypes.push({ id: row.id, label: row.label || 'Cộng:', mergeLeadingEmpty: row.mergeLeadingEmpty, footerFields: row.footerFields });
                                       }
                                     });
                                     columnsWithSummaries.push({ col, colIdx, rowMap });
@@ -7552,84 +7635,327 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                   <GripVertical size={12} style={{ pointerEvents: 'none' }} />
                                                 </div>
                                               )}
-                                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
-                                                {!isLocked && canToggleMerge && (
-                                                  <button
-                                                    type="button"
-                                                    onClick={() => handleToggleMergeLeadingEmpty(block.id, sumType.id, isMergeEnabled)}
-                                                    style={{
-                                                      background: 'none',
-                                                      border: 'none',
-                                                      color: isMergeEnabled ? 'var(--primary)' : '#94a3b8',
-                                                      cursor: 'pointer',
-                                                      padding: '2px',
-                                                      display: 'inline-flex',
-                                                      alignItems: 'center',
-                                                      justifyContent: 'center',
-                                                      borderRadius: '3px',
-                                                      opacity: isHoveredRow ? 1 : 0,
-                                                      pointerEvents: isHoveredRow ? 'auto' : 'none',
-                                                      transition: 'opacity 0.15s ease, color 0.15s ease'
-                                                    }}
-                                                    title={isMergeEnabled 
-                                                      ? "Đang gộp các ô trống phía trước. Bấm để tách ô (thêm công thức vào cột trước)" 
-                                                      : "Bấm để gộp các ô trống phía trước vào ô nhãn"}
-                                                    onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary)'}
-                                                    onMouseLeave={(e) => e.currentTarget.style.color = isMergeEnabled ? 'var(--primary)' : '#94a3b8'}
-                                                  >
-                                                    {isMergeEnabled ? <Split size={12} /> : <Columns3 size={12} />}
-                                                  </button>
-                                                )}
-                                                {!isLocked ? (
-                                                  <input
-                                                    type="text"
-                                                    value={sumType.label}
-                                                    onChange={(e) => handleRenameTableSummaryRow(block.id, sumType.id, e.target.value)}
-                                                    style={{
-                                                      border: 'none',
-                                                      borderBottom: isHoveredRow ? '1px dashed #94a3b8' : '1px dashed transparent',
-                                                      background: 'transparent',
-                                                      textAlign: 'right',
-                                                      fontWeight: 'bold',
-                                                      color: '#0f172a',
-                                                      fontSize: '0.82rem',
-                                                      outline: 'none',
-                                                      padding: '1px 2px',
-                                                      transition: 'border-color 0.15s ease'
-                                                    }}
-                                                    placeholder="Nhãn hàng cộng..."
-                                                    title="Nhấp để sửa nhãn hàng cộng"
-                                                  />
-                                                ) : (
-                                                  <span>{sumType.label}</span>
-                                                )}
-                                                {!isLocked && (
-                                                  <button
-                                                    type="button"
-                                                    onClick={() => handleDeleteTableSummaryRow(block.id, sumType.id)}
-                                                    style={{
-                                                      background: 'none',
-                                                      border: 'none',
-                                                      color: '#94a3b8',
-                                                      cursor: 'pointer',
-                                                      padding: '2px',
-                                                      display: 'inline-flex',
-                                                      alignItems: 'center',
-                                                      justifyContent: 'center',
-                                                      borderRadius: '3px',
-                                                      opacity: isHoveredRow ? 1 : 0,
-                                                      pointerEvents: isHoveredRow ? 'auto' : 'none',
-                                                      transition: 'opacity 0.15s ease'
-                                                    }}
-                                                    title="Xóa hàng cộng tổng này"
-                                                    onMouseEnter={(e) => e.currentTarget.style.color = '#ef4444'}
-                                                    onMouseLeave={(e) => e.currentTarget.style.color = '#94a3b8'}
-                                                  >
-                                                    <Trash2 size={13} />
-                                                  </button>
-                                                )}
-                                              </div>
-                                            </td>
+                                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', width: '100%' }}>
+                                                {/* Vùng trái: Khay chứa Footer Fields (Tiền tệ, Tỷ giá...) */}
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }} onClick={(e) => e.stopPropagation()}>
+                                                  {(sumType.footerFields || []).map((f: FormFieldISO) => (
+                                                    <div 
+                                                      key={f.id} 
+                                                      style={{
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        gap: '4px',
+                                                        background: '#ffffff',
+                                                        padding: '2px 6px',
+                                                        borderRadius: '4px',
+                                                        border: '1px solid #cbd5e1',
+                                                        fontSize: '0.75rem',
+                                                        boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+                                                      }}
+                                                    >
+                                                      {/* Nhãn trường: Cho phép sửa trực tiếp */}
+                                                      {!isLocked ? (
+                                                        <input
+                                                          type="text"
+                                                          value={f.checkItem || (f as any).label || ''}
+                                                          onChange={(e) => handleUpdateFooterField(block.id, sumType.id, f.id, { checkItem: e.target.value })}
+                                                          style={{
+                                                            width: `${Math.max(45, (f.checkItem || (f as any).label || 'Tên').length * 8 + 6)}px`,
+                                                            border: 'none',
+                                                            background: 'transparent',
+                                                            outline: 'none',
+                                                            fontWeight: 600,
+                                                            color: '#475569',
+                                                            fontSize: '0.75rem',
+                                                            padding: '0 2px'
+                                                          }}
+                                                          placeholder="Tên trường..."
+                                                        />
+                                                      ) : (
+                                                        <span style={{ fontWeight: 600, color: '#475569' }}>{f.checkItem || (f as any).label}:</span>
+                                                      )}
+                                                      <span style={{ color: '#94a3b8' }}>:</span>
+
+                                                      {/* Control hiển thị / nhập placeholder */}
+                                                      {f.type === 'select' ? (
+                                                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+                                                          {!isLocked ? (
+                                                            <input
+                                                              type="text"
+                                                              value={(f.options || []).map(o => o.label).join(', ')}
+                                                              onChange={(e) => {
+                                                                const rawOpts = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
+                                                                const newOpts = rawOpts.map(s => ({ label: s, value: s }));
+                                                                handleUpdateFooterField(block.id, sumType.id, f.id, { options: newOpts });
+                                                              }}
+                                                              title="Các lựa chọn (phân cách bằng dấu phẩy, e.g. USD, EUR, VNĐ)"
+                                                              placeholder="USD, EUR, VNĐ"
+                                                              style={{
+                                                                width: '90px',
+                                                                padding: '1px 4px',
+                                                                fontSize: '0.72rem',
+                                                                fontStyle: 'italic',
+                                                                border: '1px dashed #cbd5e1',
+                                                                borderRadius: '3px',
+                                                                background: '#f8fafc',
+                                                                color: 'var(--primary)',
+                                                                fontWeight: 600,
+                                                                outline: 'none'
+                                                              }}
+                                                            />
+                                                          ) : (
+                                                            <span style={{ fontWeight: 600, color: 'var(--primary)' }}>
+                                                              {f.options?.[0]?.label || 'USD'}
+                                                            </span>
+                                                          )}
+                                                          <ChevronDown size={11} style={{ color: '#94a3b8' }} />
+                                                        </div>
+                                                      ) : (
+                                                        <input
+                                                          type="text"
+                                                          disabled={isLocked}
+                                                          value={f.placeholder || ''}
+                                                          onChange={(e) => handleUpdateFooterField(block.id, sumType.id, f.id, { placeholder: e.target.value })}
+                                                          placeholder={f.type === 'number' ? '25,450' : f.type === 'date' ? 'Ngày' : 'Gợi ý...'}
+                                                          style={{
+                                                            width: f.type === 'number' ? '65px' : '80px',
+                                                            padding: '1px 4px',
+                                                            fontSize: '0.72rem',
+                                                            fontStyle: 'italic',
+                                                            textAlign: f.type === 'number' ? 'right' : 'left',
+                                                            border: '1px dashed #cbd5e1',
+                                                            borderRadius: '3px',
+                                                            background: '#f8fafc',
+                                                            color: '#0f172a',
+                                                            outline: 'none'
+                                                          }}
+                                                        />
+                                                      )}
+
+                                                      {/* Nút xóa trường ✕ */}
+                                                      {!isLocked && (
+                                                        <button
+                                                          type="button"
+                                                          onClick={() => handleDeleteFooterField(block.id, sumType.id, f.id)}
+                                                          title="Xóa trường này"
+                                                          style={{
+                                                            background: 'none',
+                                                            border: 'none',
+                                                            cursor: 'pointer',
+                                                            padding: '1px',
+                                                            color: '#94a3b8',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            justifyContent: 'center',
+                                                            borderRadius: '2px',
+                                                            marginLeft: '2px'
+                                                          }}
+                                                          onMouseEnter={(e) => { e.currentTarget.style.color = '#ef4444'; }}
+                                                          onMouseLeave={(e) => { e.currentTarget.style.color = '#94a3b8'; }}
+                                                        >
+                                                          <X size={11} />
+                                                        </button>
+                                                      )}
+                                                    </div>
+                                                  ))}
+
+                                                  {/* Nút + Thêm trường chân bảng */}
+                                                  {!isLocked && (
+                                                    <div style={{ position: 'relative' }}>
+                                                      <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                          e.stopPropagation();
+                                                          setActiveAddFooterFieldSummaryId(activeAddFooterFieldSummaryId === sumType.id ? null : sumType.id);
+                                                        }}
+                                                        style={{
+                                                          display: 'inline-flex',
+                                                          alignItems: 'center',
+                                                          gap: '3px',
+                                                          fontSize: '0.68rem',
+                                                          fontWeight: 600,
+                                                          color: activeAddFooterFieldSummaryId === sumType.id ? 'var(--primary)' : '#64748b',
+                                                          background: activeAddFooterFieldSummaryId === sumType.id ? '#f0fdfa' : '#ffffff',
+                                                          border: `1px dashed ${activeAddFooterFieldSummaryId === sumType.id ? 'var(--primary)' : '#94a3b8'}`,
+                                                          borderRadius: '3px',
+                                                          padding: '2px 6px',
+                                                          cursor: 'pointer',
+                                                          opacity: (isHoveredRow || activeAddFooterFieldSummaryId === sumType.id || (sumType.footerFields || []).length > 0) ? 1 : 0.4,
+                                                          transition: 'all 0.15s ease'
+                                                        }}
+                                                        onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.color = 'var(--primary)'; e.currentTarget.style.borderColor = 'var(--primary)'; }}
+                                                        onMouseLeave={(e) => {
+                                                          if (activeAddFooterFieldSummaryId !== sumType.id) {
+                                                            e.currentTarget.style.color = '#64748b';
+                                                            e.currentTarget.style.borderColor = '#94a3b8';
+                                                          }
+                                                        }}
+                                                        title="Thêm trường nhập liệu vào chân bảng (Tiền tệ, Tỷ giá...)"
+                                                      >
+                                                        <Plus size={10} /> Trường
+                                                      </button>
+
+                                                      {/* Popover chọn loại trường */}
+                                                      {activeAddFooterFieldSummaryId === sumType.id && (
+                                                        <div
+                                                          style={{
+                                                            position: 'absolute',
+                                                            left: 0,
+                                                            bottom: '100%',
+                                                            marginBottom: '4px',
+                                                            background: '#ffffff',
+                                                            border: '1px solid #cbd5e1',
+                                                            borderRadius: '6px',
+                                                            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                                                            padding: '4px',
+                                                            display: 'flex',
+                                                            flexDirection: 'column',
+                                                            gap: '2px',
+                                                            zIndex: 35,
+                                                            minWidth: '150px'
+                                                          }}
+                                                          onClick={(e) => e.stopPropagation()}
+                                                        >
+                                                          <div style={{ fontSize: '0.65rem', fontWeight: 700, color: '#94a3b8', padding: '2px 6px', textTransform: 'uppercase' }}>
+                                                            Chọn loại trường
+                                                          </div>
+                                                          <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                              handleAddFooterField(block.id, sumType.id, 'select');
+                                                              setActiveAddFooterFieldSummaryId(null);
+                                                            }}
+                                                            style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 6px', fontSize: '0.72rem', background: 'none', border: 'none', borderRadius: '3px', cursor: 'pointer', textAlign: 'left', color: '#0f172a' }}
+                                                            onMouseEnter={(e) => e.currentTarget.style.background = '#f1f5f9'}
+                                                            onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+                                                          >
+                                                            <span style={{ fontWeight: 'bold', color: 'var(--primary)', width: '16px' }}>▼</span>
+                                                            <span>Tiền tệ (Dropdown)</span>
+                                                          </button>
+                                                          <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                              handleAddFooterField(block.id, sumType.id, 'number');
+                                                              setActiveAddFooterFieldSummaryId(null);
+                                                            }}
+                                                            style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 6px', fontSize: '0.72rem', background: 'none', border: 'none', borderRadius: '3px', cursor: 'pointer', textAlign: 'left', color: '#0f172a' }}
+                                                            onMouseEnter={(e) => e.currentTarget.style.background = '#f1f5f9'}
+                                                            onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+                                                          >
+                                                            <span style={{ fontWeight: 'bold', color: 'var(--primary)', width: '16px' }}>#</span>
+                                                            <span>Tỷ giá (Số)</span>
+                                                          </button>
+                                                          <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                              handleAddFooterField(block.id, sumType.id, 'text');
+                                                              setActiveAddFooterFieldSummaryId(null);
+                                                            }}
+                                                            style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 6px', fontSize: '0.72rem', background: 'none', border: 'none', borderRadius: '3px', cursor: 'pointer', textAlign: 'left', color: '#0f172a' }}
+                                                            onMouseEnter={(e) => e.currentTarget.style.background = '#f1f5f9'}
+                                                            onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+                                                          >
+                                                            <span style={{ fontWeight: 'bold', color: 'var(--primary)', width: '16px' }}>T</span>
+                                                            <span>Chữ tự do (Text)</span>
+                                                          </button>
+                                                          <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                              handleAddFooterField(block.id, sumType.id, 'date');
+                                                              setActiveAddFooterFieldSummaryId(null);
+                                                            }}
+                                                            style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 6px', fontSize: '0.72rem', background: 'none', border: 'none', borderRadius: '3px', cursor: 'pointer', textAlign: 'left', color: '#0f172a' }}
+                                                            onMouseEnter={(e) => e.currentTarget.style.background = '#f1f5f9'}
+                                                            onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+                                                          >
+                                                            <Calendar size={12} style={{ color: 'var(--primary)' }} />
+                                                            <span>Ngày chốt tỷ giá</span>
+                                                          </button>
+                                                        </div>
+                                                      )}
+                                                    </div>
+                                                  )}
+                                                </div>
+
+                                                {/* Vùng phải: Nút tách/gộp & Nhãn hàng cộng */}
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                                                  {!isLocked && canToggleMerge && (
+                                                    <button
+                                                      type="button"
+                                                      onClick={() => handleToggleMergeLeadingEmpty(block.id, sumType.id, isMergeEnabled)}
+                                                      style={{
+                                                        background: 'none',
+                                                        border: 'none',
+                                                        color: isMergeEnabled ? 'var(--primary)' : '#94a3b8',
+                                                        cursor: 'pointer',
+                                                        padding: '2px',
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        borderRadius: '3px',
+                                                        opacity: isHoveredRow ? 1 : 0,
+                                                        pointerEvents: isHoveredRow ? 'auto' : 'none',
+                                                        transition: 'opacity 0.15s ease, color 0.15s ease'
+                                                      }}
+                                                      title={isMergeEnabled 
+                                                        ? "Đang gộp các ô trống phía trước. Bấm để tách ô (thêm công thức vào cột trước)" 
+                                                        : "Bấm để gộp các ô trống phía trước vào ô nhãn"}
+                                                      onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary)'}
+                                                      onMouseLeave={(e) => e.currentTarget.style.color = isMergeEnabled ? 'var(--primary)' : '#94a3b8'}
+                                                    >
+                                                      {isMergeEnabled ? <Split size={12} /> : <Columns3 size={12} />}
+                                                    </button>
+                                                  )}
+                                                  {!isLocked ? (
+                                                    <input
+                                                      type="text"
+                                                      value={sumType.label}
+                                                      onChange={(e) => handleRenameTableSummaryRow(block.id, sumType.id, e.target.value)}
+                                                      style={{
+                                                        border: 'none',
+                                                        borderBottom: isHoveredRow ? '1px dashed #94a3b8' : '1px dashed transparent',
+                                                        background: 'transparent',
+                                                        textAlign: 'right',
+                                                        fontWeight: 'bold',
+                                                        color: '#0f172a',
+                                                        fontSize: '0.82rem',
+                                                        outline: 'none',
+                                                        padding: '1px 2px',
+                                                        transition: 'border-color 0.15s ease'
+                                                      }}
+                                                      placeholder="Nhãn hàng cộng..."
+                                                      title="Nhấp để sửa nhãn hàng cộng"
+                                                    />
+                                                  ) : (
+                                                    <span>{sumType.label}</span>
+                                                  )}
+                                                  {!isLocked && (
+                                                    <button
+                                                      type="button"
+                                                      onClick={() => handleDeleteTableSummaryRow(block.id, sumType.id)}
+                                                      style={{
+                                                        background: 'none',
+                                                        border: 'none',
+                                                        color: '#94a3b8',
+                                                        cursor: 'pointer',
+                                                        padding: '2px',
+                                                        display: 'inline-flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        borderRadius: '3px',
+                                                        opacity: isHoveredRow ? 1 : 0,
+                                                        pointerEvents: isHoveredRow ? 'auto' : 'none',
+                                                        transition: 'opacity 0.15s ease'
+                                                      }}
+                                                      title="Xóa hàng cộng tổng này"
+                                                      onMouseEnter={(e) => e.currentTarget.style.color = '#ef4444'}
+                                                      onMouseLeave={(e) => e.currentTarget.style.color = '#94a3b8'}
+                                                    >
+                                                      <Trash2 size={13} />
+                                                    </button>
+                                                  )}
+                                                </div>
+                                              </div>                                            </td>
                                           )}
                                           {columns.slice(effectiveFirstSumColIdx).map((col: any, offsetIdx: number) => {
                                             const actualColIdx = effectiveFirstSumColIdx + offsetIdx;
@@ -7762,7 +8088,18 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                               );
                                             }
 
-                                            const dummyVal = calculateTableColumnSummary(col, targetRow, col.summaryRows || [], block.tableRows || [], (rId, cId) => block.tableData?.[rId]?.[cId]);
+                                            const dummyVal = calculateTableColumnSummary(col, targetRow, col.summaryRows || [], block.tableRows || [], (rId, cId) => {
+                                                if (rId === '__footer_field__') {
+                                                  const allFooterFields = (block.tableColumns || []).flatMap((c: any) => (c.summaryRows || []).flatMap((r: any) => r.footerFields || []));
+                                                  const ff = allFooterFields.find((f: any) => f.id === cId);
+                                                  if (ff) {
+                                                    const ph = ff.placeholder ? parseFloat(String(ff.placeholder).replace(/[\s\u00A0,]/g, '')) : 0;
+                                                    return !isNaN(ph) && ph > 0 ? ph : 1;
+                                                  }
+                                                  return 1;
+                                                }
+                                                return block.tableData?.[rId]?.[cId];
+                                              });
                                             const isManualText = targetRow.type === 'manual_text';
                                             const isManualNumber = targetRow.type === 'manual_number' || targetRow.type === 'manual';
                                             const cellUnitVal = targetRow.unit || block.cellUnitMap?.[col.id] || col.unit || '';

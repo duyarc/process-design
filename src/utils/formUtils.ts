@@ -1553,8 +1553,32 @@ export function calculateTableColumnSummary(
     return 0;
   }
   if (row.type === 'multiply') {
+    // 1. Nếu có multiplyFieldId rõ ràng (liên kết với 1 footer field, ví dụ Tỷ giá)
+    if (row.multiplyFieldId) {
+      const fieldValRaw = getValue('__footer_field__', row.multiplyFieldId);
+      const fieldVal = typeof fieldValRaw === 'number' ? fieldValRaw : parseFloat(String(fieldValRaw || '').replace(/[\s\u00A0,]/g, '')) || 0;
+      const baseRowId = row.multiplyRowIds?.[0] || allSummaryRows[0]?.id;
+      const baseRow = allSummaryRows.find(r => r.id === baseRowId) || allSummaryRows[0];
+      const baseVal = baseRow ? calculateTableColumnSummary(col, baseRow, allSummaryRows, tableRows, getValue) : 0;
+      return baseVal * fieldVal;
+    }
+
+    // 2. Tự động kiểm tra nếu có trường số chân bảng (footerField kiểu number) ở các dòng summary phía trên
+    const currentIdx = allSummaryRows.findIndex(r => r.id === row.id);
+    const priorRows = currentIdx > 0 ? allSummaryRows.slice(0, currentIdx) : allSummaryRows;
+    const rateField = priorRows.flatMap(r => r.footerFields || []).find(f => f.type === 'number');
+    
+    if (rateField) {
+      const fieldValRaw = getValue('__footer_field__', rateField.id);
+      const fieldVal = typeof fieldValRaw === 'number' ? fieldValRaw : parseFloat(String(fieldValRaw || '').replace(/[\s\u00A0,]/g, '')) || 0;
+      if (fieldVal > 0) {
+        const baseRow = currentIdx > 0 ? allSummaryRows[currentIdx - 1] : allSummaryRows[0];
+        const baseVal = baseRow ? calculateTableColumnSummary(col, baseRow, allSummaryRows, tableRows, getValue) : 0;
+        return baseVal * fieldVal;
+      }
+    }
+
     if (!row.multiplyRowIds || row.multiplyRowIds.length < 2) {
-      const currentIdx = allSummaryRows.findIndex(r => r.id === row.id);
       if (currentIdx >= 2) {
         const valA = calculateTableColumnSummary(col, allSummaryRows[currentIdx - 2], allSummaryRows, tableRows, getValue);
         const valB = calculateTableColumnSummary(col, allSummaryRows[currentIdx - 1], allSummaryRows, tableRows, getValue);
