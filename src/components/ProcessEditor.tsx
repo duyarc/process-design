@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import type { Process, ProcessStep, FormField, FormDesignerField, SOPSignOff, SOPSignOffs } from '../types';
-import { Save, Plus, Trash2, ArrowUp, ArrowDown, Edit2, Eye, Printer, GitBranch, XCircle, Shield, Calendar, RotateCcw, ArrowLeft, FileText, X } from 'lucide-react';
+import { Save, Plus, Trash2, ArrowUp, ArrowDown, Edit2, Eye, Printer, GitBranch, XCircle, Shield, Calendar, RotateCcw, ArrowLeft, FileText, X, GripVertical } from 'lucide-react';
 import FormBuilder from './FormBuilder';
 import PrintBlankForm from './print/PrintBlankForm';
 import ConfirmModal from './common/ConfirmModal';
@@ -246,6 +246,8 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
   const [editingRoleIndex, setEditingRoleIndex] = useState<number | null>(null);
   const [editingRoleText, setEditingRoleText] = useState<string>('');
   const [roleError, setRoleError] = useState<string>('');
+  const [draggedRoleIndex, setDraggedRoleIndex] = useState<number | null>(null);
+  const [dragOverRoleIndex, setDragOverRoleIndex] = useState<number | null>(null);
   const [stepFormPickerIndex, setStepFormPickerIndex] = useState<number | null>(null);
   const [roleDeleteWarning, setRoleDeleteWarning] = useState<{ isOpen: boolean; message: string }>({
     isOpen: false,
@@ -520,6 +522,14 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
   const handleCancelRenameRole = () => {
     setEditingRoleIndex(null);
     setRoleError('');
+  };
+
+  const handleReorderRoles = (fromIndex: number, toIndex: number) => {
+    if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0 || fromIndex >= roles.length || toIndex >= roles.length) return;
+    const newRoles = [...roles];
+    const [moved] = newRoles.splice(fromIndex, 1);
+    newRoles.splice(toIndex, 0, moved);
+    setRoles(newRoles);
   };
 
   const handleDeleteRole = (roleToDelete: string) => {
@@ -1656,9 +1666,16 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
             </div>
 
             <div className="form-group" style={{ marginBottom: '1.5rem', borderTop: '1px dashed var(--neutral-border)', paddingTop: '1.5rem' }}>
-              <label className="form-label" style={{ fontWeight: 600, fontSize: '0.875rem', marginBottom: '0.5rem', display: 'block' }}>
-                Involved Roles*
-              </label>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                <label className="form-label" style={{ fontWeight: 600, fontSize: '0.875rem', margin: 0 }}>
+                  Involved Roles*
+                </label>
+                {!isReadOnly && roles.length > 1 && (
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', userSelect: 'none' }}>
+                    Kéo thả để sắp xếp thứ tự swimlane
+                  </span>
+                )}
+              </div>
               <div 
                 style={{ 
                   display: 'flex', 
@@ -1724,34 +1741,86 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                     );
                   }
 
+                  const isDragging = draggedRoleIndex === idx;
+                  const isDragOver = dragOverRoleIndex === idx && draggedRoleIndex !== idx;
+
                   return (
                     <span 
                       key={role} 
                       className="badge" 
+                      draggable={!isReadOnly && editingRoleIndex === null}
+                      onDragStart={(e) => {
+                        if (isReadOnly || editingRoleIndex !== null) return;
+                        setDraggedRoleIndex(idx);
+                        e.dataTransfer.effectAllowed = 'move';
+                        e.dataTransfer.setData('text/plain', String(idx));
+                      }}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = 'move';
+                        if (dragOverRoleIndex !== idx) {
+                          setDragOverRoleIndex(idx);
+                        }
+                      }}
+                      onDragLeave={() => {
+                        if (dragOverRoleIndex === idx) {
+                          setDragOverRoleIndex(null);
+                        }
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        if (draggedRoleIndex !== null && draggedRoleIndex !== idx) {
+                          handleReorderRoles(draggedRoleIndex, idx);
+                        }
+                        setDraggedRoleIndex(null);
+                        setDragOverRoleIndex(null);
+                      }}
+                      onDragEnd={() => {
+                        setDraggedRoleIndex(null);
+                        setDragOverRoleIndex(null);
+                      }}
+                      title={!isReadOnly ? "Kéo thả để đổi thứ tự swimlane | Nhấp để đổi tên" : undefined}
                       style={{ 
-                        backgroundColor: 'var(--primary)', 
+                        backgroundColor: isDragOver ? '#0f766e' : 'var(--primary)', 
                         color: '#ffffff', 
-                        padding: '0.25rem 0.55rem', 
+                        padding: '0.25rem 0.5rem', 
                         display: 'inline-flex', 
                         alignItems: 'center', 
-                        gap: '0.35rem',
+                        gap: '0.3rem',
                         textTransform: 'none',
                         fontWeight: 500,
                         fontSize: '0.8rem',
                         borderRadius: '4px',
-                        boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                        boxShadow: isDragOver ? '0 0 0 2px #0d9488' : '0 1px 2px rgba(0,0,0,0.05)',
+                        opacity: isDragging ? 0.45 : 1,
+                        cursor: !isReadOnly ? 'grab' : 'default',
+                        userSelect: 'none',
+                        transition: 'opacity 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease'
                       }}
                     >
+                      {!isReadOnly && (
+                        <span 
+                          style={{ 
+                            display: 'inline-flex', 
+                            alignItems: 'center', 
+                            opacity: 0.65, 
+                            cursor: 'grab',
+                            pointerEvents: 'none' 
+                          }}
+                        >
+                          <GripVertical size={12} />
+                        </span>
+                      )}
                       <span 
                         onClick={() => !isReadOnly && handleStartRenameRole(role, idx)}
-                        title={!isReadOnly ? "Nhấp để đổi tên vai trò" : undefined}
-                        style={{ cursor: !isReadOnly ? 'pointer' : 'default', userSelect: 'none' }}
+                        style={{ cursor: !isReadOnly ? 'pointer' : 'default' }}
                       >
                         {role}
                       </span>
                       {!isReadOnly && (
                         <button 
                           type="button" 
+                          onMouseDown={(e) => e.stopPropagation()}
                           onClick={() => handleStartRenameRole(role, idx)}
                           title="Đổi tên vai trò"
                           style={{ 
@@ -1772,6 +1841,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                       {!isReadOnly && (
                         <button 
                           type="button" 
+                          onMouseDown={(e) => e.stopPropagation()}
                           onClick={() => handleDeleteRole(role)}
                           title="Xóa vai trò"
                           style={{ 
