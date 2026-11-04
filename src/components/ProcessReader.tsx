@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import type { Process, SubmissionFieldSnapshot } from '../types';
 import { formatFormVersion, getColStyleWidth } from '../types';
-import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock, getInfoGridTemplateColumns, getEffectiveCellOptions, clusterOptionsByGroup, parseChecklistValues, formatIsoNumber } from '../utils/formUtils';
+import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock, getInfoGridTemplateColumns, getEffectiveCellOptions, clusterOptionsByGroup, parseChecklistValues } from '../utils/formUtils';
+import { FormattedNumberInput } from './form/FormattedNumberInput';
 import { renderFormattedText } from '../utils/textFormatter';
 import { useAuth } from '../context/AuthContext';
 import { Printer, Edit2, Camera, AlertTriangle, X, PenTool, GitBranch, Eye, ArrowLeft, Trash2, Star } from 'lucide-react';
@@ -2436,23 +2437,15 @@ setFormValues(prev => ({ ...prev, [field.id]: stringifySubtableValue(newRows) })
                                                  ) : col.type === 'number' ? (() => {
                                                    const cellUnit = block.cellUnitMap?.[`${row.id}_${col.id}`] || col.unit || '';
                                                    return (
-                                                     <div style={{ display: 'flex', flexDirection: 'column', width: '100%', alignItems: 'flex-end' }}>
-                                                       <div style={{ display: 'flex', alignItems: 'center', width: '100%', gap: cellUnit ? '4px' : '0' }}>
-                                                         <input 
-                                                           type="number" 
-                                                           value={cellValue} 
-                                                           onChange={(e) => setFormValues(prev => ({ ...prev, [cellKey]: e.target.value }))} 
-                                                           style={{ flex: 1, minWidth: 0, padding: '0.35rem 0.45rem', fontSize: '0.8rem', border: '1px solid #e2e8f0', borderRadius: '4px', textAlign: 'right', backgroundColor: '#f8fafc' }}
-                                                         />
-                                                         {cellUnit && (
-                                                           <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 500, flexShrink: 0, whiteSpace: 'nowrap' }}>
-                                                             {cellUnit}
-                                                           </span>
-                                                         )}
-                                                       </div>
-                                                       {cellValue && String(cellValue).length >= 4 && /^-?\d+$/.test(String(cellValue)) && (
-                                                         <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600, marginTop: '2px', fontVariantNumeric: 'tabular-nums' }}>
-                                                           ≈ {formatIsoNumber(cellValue)}{cellUnit ? ` ${cellUnit}` : ''}
+                                                     <div style={{ display: 'flex', alignItems: 'center', width: '100%', gap: cellUnit ? '4px' : '0' }}>
+                                                       <FormattedNumberInput 
+                                                         value={cellValue} 
+                                                         onChange={(val) => setFormValues(prev => ({ ...prev, [cellKey]: val }))} 
+                                                         style={{ flex: 1, minWidth: 0, padding: '0.35rem 0.45rem', fontSize: '0.8rem', border: '1px solid #e2e8f0', borderRadius: '4px', textAlign: 'right', backgroundColor: '#f8fafc' }}
+                                                       />
+                                                       {cellUnit && (
+                                                         <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 500, flexShrink: 0, whiteSpace: 'nowrap' }}>
+                                                           {cellUnit}
                                                          </span>
                                                        )}
                                                      </div>

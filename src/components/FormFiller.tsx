@@ -80,6 +80,7 @@ import { renderFormattedText, stripMarkdownTokens } from '../utils/textFormatter
 import { useAuth } from '../context/AuthContext';
 import { LocationInputFiller } from './form/LocationInputFiller';
 import { PhotoFieldFiller } from './form/PhotoFieldFiller';
+import { FormattedNumberInput } from './form/FormattedNumberInput';
 
 const PrintFilledForm = lazy(() => import('./print/PrintFilledForm'));
 const PrintBlankForm = lazy(() => import('./print/PrintBlankForm'));
@@ -818,7 +819,7 @@ function FormFillerInner({
       (block.tableRows || []).forEach((r: any) => {
         const cellKey = `${block.id}_${r.id}_${col.id}`;
         const valStr = currentValues[cellKey] || '';
-        const num = parseFloat(valStr.replace(/,/g, '')) || 0;
+        const num = parseFloat(valStr.replace(/[\s\u00A0,]/g, '')) || 0;
         sum += num;
       });
       return sum;
@@ -3432,24 +3433,16 @@ function FormFillerInner({
                                         );
                                       }
                                       return (
-                                        <div style={{ display: 'flex', flexDirection: 'column', width: '100%', alignItems: 'flex-end' }}>
-                                          <div style={{ display: 'flex', alignItems: 'center', width: '100%', gap: cellUnit ? '4px' : '0' }}>
-                                            <input 
-                                              type="number" 
-                                              value={cellValue} 
-                                              placeholder={stripMarkdownTokens(cellPlaceholder)}
-                                              onChange={(e) => handleTableCellChangeWithAutoAppend(block, row.id, col.id, e.target.value, thisGroupHeaderId)} 
-                                              style={{ flex: 1, minWidth: 0, padding: '0.35rem 0.45rem', fontSize: '0.8rem', border: '1px solid #e2e8f0', borderRadius: '4px', textAlign: 'right', backgroundColor: '#f8fafc' }}
-                                            />
-                                            {cellUnit && (
-                                              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 500, flexShrink: 0, whiteSpace: 'nowrap' }}>
-                                                {cellUnit}
-                                              </span>
-                                            )}
-                                          </div>
-                                          {cellValue && String(cellValue).length >= 4 && /^-?\d+$/.test(String(cellValue)) && (
-                                            <span style={{ fontSize: '0.68rem', color: '#64748b', fontWeight: 600, marginTop: '2px', fontVariantNumeric: 'tabular-nums' }}>
-                                              ≈ {formatIsoNumber(cellValue)}{cellUnit ? ` ${cellUnit}` : ''}
+                                        <div style={{ display: 'flex', alignItems: 'center', width: '100%', gap: cellUnit ? '4px' : '0' }}>
+                                          <FormattedNumberInput 
+                                            value={cellValue} 
+                                            placeholder={stripMarkdownTokens(cellPlaceholder)}
+                                            onChange={(val) => handleTableCellChangeWithAutoAppend(block, row.id, col.id, val, thisGroupHeaderId)} 
+                                            style={{ flex: 1, minWidth: 0, padding: '0.35rem 0.45rem', fontSize: '0.8rem', border: '1px solid #e2e8f0', borderRadius: '4px', textAlign: 'right', backgroundColor: '#f8fafc' }}
+                                          />
+                                          {cellUnit && (
+                                            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 500, flexShrink: 0, whiteSpace: 'nowrap' }}>
+                                              {cellUnit}
                                             </span>
                                           )}
                                         </div>
