@@ -9,7 +9,7 @@
 | **Module Name** | Backend & Persistence |
 | **Status** | Active Development |
 | **Document Version** | 1.3 |
-| **Verified At Commit** | (2026-11-03) — Lean list query mode ?fields=list on /api/forms & /api/processes with edge cache headers verified against source |
+| **Verified At Commit** | (2026-11-04) — GET /api/forms/resolve/*identifier formTemplate payload attachment verified against source |
 
 ### Quick File Index
 
@@ -310,3 +310,5 @@ Architectural changes only — schema, endpoints, invariants. UI polish lives in
 | 2026-10-27 | `CURRENT` | **Synchronous Submission Photo Deletion & Orphaned Media GC (`server.cjs`):** (1) Updated `DELETE /api/submissions/:id` to inspect `media_urls` and `form_data` and purge all associated physical image objects from Cloudflare R2 bucket. (2) Added `POST /api/storage/delete-media` for single-photo client-side removal. (3) Added `GET /api/storage/orphaned-media` and `POST /api/storage/cleanup-orphaned` to scan and clean R2 objects older than 2 hours not referenced in any DB tables. (4) Added smart opportunistic background GC trigger in `GET /api/storage/quota-status` (runs every 24h or when usage > 80%). |
 | 2026-10-29 | `CURRENT` | **Form ID Rename Cascade (`server.cjs`):** Enhanced `POST /api/forms` when `oldFormId && oldFormId !== formId` to cascade rename across: (1) `process_forms` (updates `form_id` and `form_name`), (2) `report_templates` (`linked_form_id`), (3) `submissions` (`form_id`), and (4) `processes` (atomically rewrites JSONB `steps` and `workflowFormsData`), preventing orphaned linkages when renaming forms. |
 | 2026-11-03 | CURRENT | **Lean List Query Mode & Edge Cache Headers (`server.cjs`):** (1) Added `?fields=list` query support to `GET /api/forms`, selecting only metadata columns (`form_id, form_name, form_title, status, version, effective_date, page_size, is_public, default_focus_mode, created_at, updated_at`) and omitting multi-megabyte `layout_blocks` and `revision_history` JSONB blobs (~95% payload reduction). (2) Added `?fields=list` support to `GET /api/processes`, omitting heavy `formFields` and `roles` JSONB. (3) Added `Cache-Control: public, max-age=5, stale-while-revalidate=30` headers to list responses. |
+
+| 2026-11-04 | `CURRENT` | **Form Resolve Payload Attachment (`server.cjs`):** Enhanced `GET /api/forms/resolve/*identifier` across all 3 lookup tiers (`process_forms`, `processes.workflowFormsData`, and `forms` standalone / offline) to return full `formTemplate` JSON payload alongside metadata, eliminating subsequent sequential round-trips from clients opening short links. |

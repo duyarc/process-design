@@ -794,6 +794,17 @@ app.get('/api/forms/resolve/*identifier', async (req, res) => {
       );
 
       if (matchedPf) {
+        let formRecord = null;
+        try {
+          const fRes = await dbPool.query(
+            'SELECT * FROM forms WHERE form_id = $1 OR form_name = $1 OR LOWER(form_id) = LOWER($1) OR LOWER(form_name) = LOWER($1) ORDER BY updated_at DESC LIMIT 1',
+            [matchedPf.form_id || matchedPf.form_name]
+          );
+          if (fRes.rows.length > 0) {
+            formRecord = fRes.rows[0];
+          }
+        } catch (_) {}
+
         return res.json({
           exists: true,
           processId: matchedPf.process_id,
@@ -801,7 +812,8 @@ app.get('/api/forms/resolve/*identifier', async (req, res) => {
           formTitle: matchedPf.form_name,
           version: matchedPf.form_version || 'v0.1',
           status: 'ACTIVE',
-          isPublic: true
+          isPublic: true,
+          formTemplate: formRecord
         });
       }
 
@@ -825,7 +837,8 @@ app.get('/api/forms/resolve/*identifier', async (req, res) => {
               formTitle: fData.formTitle || fKey,
               version: fData.version || 'v0.1',
               status: fData.status || 'DRAFT',
-              isPublic: true
+              isPublic: true,
+              formTemplate: fData
             });
           }
         }
@@ -847,7 +860,8 @@ app.get('/api/forms/resolve/*identifier', async (req, res) => {
           formTitle: matchedForm.form_title || matchedForm.form_name || matchedForm.form_id,
           version: matchedForm.version || 'v0.1',
           status: matchedForm.status || 'DRAFT',
-          isPublic: true
+          isPublic: true,
+          formTemplate: matchedForm
         });
       }
 
@@ -868,7 +882,8 @@ app.get('/api/forms/resolve/*identifier', async (req, res) => {
           formTitle: form.form_title || form.form_name || form.form_id,
           version: form.version || 'v0.1',
           status: form.status || 'DRAFT',
-          isPublic: true
+          isPublic: true,
+          formTemplate: form
         });
       }
       return res.status(404).json({ exists: false, error: 'Form not found' });

@@ -1,16 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { Dashboard } from './components/Dashboard';
-import { ProcessEditor } from './components/ProcessEditor';
-import { ProcessReader } from './components/ProcessReader';
 import FormFiller from './components/FormFiller';
-import SubmissionViewer from './components/SubmissionViewer';
-import UserManagement from './components/UserManagement';
 import LoginPage from './components/LoginPage';
-import ReportBuilder from './components/ReportBuilder';
-import FormReport from './components/FormReport';
 import { BookOpen, Users, LogOut, ChevronDown } from 'lucide-react';
+
+// Lazy-loaded heavy modules (Process Designer with BPMN/Mermaid, Report Builder, Management)
+const ProcessEditor = lazy(() => import('./components/ProcessEditor').then(m => ({ default: m.ProcessEditor })));
+const ProcessReader = lazy(() => import('./components/ProcessReader').then(m => ({ default: m.ProcessReader })));
+const SubmissionViewer = lazy(() => import('./components/SubmissionViewer'));
+const UserManagement = lazy(() => import('./components/UserManagement'));
+const ReportBuilder = lazy(() => import('./components/ReportBuilder'));
+const FormReport = lazy(() => import('./components/FormReport'));
+
+const ModuleLoadingFallback: React.FC = () => (
+  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+    <div style={{ display: 'inline-block', width: '22px', height: '22px', border: '2.5px solid var(--neutral-border, #e2e8f0)', borderTopColor: 'var(--primary, #0f766e)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', marginRight: '10px' }} />
+    <span>Đang tải mô-đun...</span>
+  </div>
+);
 
 // ─────────────────────────────────────────────────────────────
 // Page type union
@@ -121,6 +130,9 @@ const MainApp: React.FC = () => {
               setResolvedShortForm({ processId: data.processId, formName: data.formName });
               setSelectedProcessId(data.processId);
               setSelectedFormName(data.formName);
+              if (data.formTemplate) {
+                setPreloadedFormTemplate(data.formTemplate);
+              }
               setPage('fill-form');
             }
           })
@@ -228,6 +240,7 @@ const MainApp: React.FC = () => {
             onBack={() => { window.location.href = '/'; }}
             isPublicGuestMode={true}
             isShortLinkFlow={true}
+            preloadedFormTemplate={preloadedFormTemplate || undefined}
           />
         </div>
       );
@@ -235,13 +248,15 @@ const MainApp: React.FC = () => {
     if (page === 'submission-viewer' && viewerSubmissionId && selectedFormName) {
       return (
         <div className="app-container" style={{ minHeight: '100vh', background: 'var(--neutral-bg)', padding: '2rem 1rem' }}>
-          <SubmissionViewer
-            formName={selectedFormName}
-            submissionId={viewerSubmissionId}
-            initialEditMode={viewerEditMode}
-            initialTab={viewerInitialTab}
-            onBack={() => { window.location.href = `/f/${encodeURIComponent(selectedFormName)}`; }}
-          />
+          <Suspense fallback={<ModuleLoadingFallback />}>
+            <SubmissionViewer
+              formName={selectedFormName}
+              submissionId={viewerSubmissionId}
+              initialEditMode={viewerEditMode}
+              initialTab={viewerInitialTab}
+              onBack={() => { window.location.href = `/f/${encodeURIComponent(selectedFormName)}`; }}
+            />
+          </Suspense>
         </div>
       );
     }
@@ -405,40 +420,44 @@ const MainApp: React.FC = () => {
           />
         )}
         {page === 'editor' && (
-          <ProcessEditor
-            processId={selectedProcessId}
-            onCancel={() => {
-              setPage(prevPage);
-              setInitialEditorTab(undefined);
-              setInitialFormToBuild(null);
-            }}
-            onSaveSuccess={handleSaveSuccess}
-            onOpenDraft={(id) => {
-              // After creating a new draft, open its editor directly
-              setSelectedProcessId(id);
-              setInitialEditorTab('versions');
-              setInitialFormToBuild(null);
-              // page stays 'editor', React re-renders with new processId
-            }}
-            initialTab={initialEditorTab}
-            initialFormToBuild={initialFormToBuild}
-            onClearInitialEditOpts={() => {
-              setInitialEditorTab(undefined);
-              setInitialFormToBuild(null);
-            }}
-            exitOnCloseForm={prevPage === 'dashboard'}
-          />
+          <Suspense fallback={<ModuleLoadingFallback />}>
+            <ProcessEditor
+              processId={selectedProcessId}
+              onCancel={() => {
+                setPage(prevPage);
+                setInitialEditorTab(undefined);
+                setInitialFormToBuild(null);
+              }}
+              onSaveSuccess={handleSaveSuccess}
+              onOpenDraft={(id) => {
+                // After creating a new draft, open its editor directly
+                setSelectedProcessId(id);
+                setInitialEditorTab('versions');
+                setInitialFormToBuild(null);
+                // page stays 'editor', React re-renders with new processId
+              }}
+              initialTab={initialEditorTab}
+              initialFormToBuild={initialFormToBuild}
+              onClearInitialEditOpts={() => {
+                setInitialEditorTab(undefined);
+                setInitialFormToBuild(null);
+              }}
+              exitOnCloseForm={prevPage === 'dashboard'}
+            />
+          </Suspense>
         )}
         {page === 'reader' && (
-          <ProcessReader
-            processId={selectedProcessId!}
-            onBack={() => { setPage('dashboard'); setInitialPrintFormName(null); setTriggerProcessPrint(false); }}
-            onEdit={handleEditProcess}
-            initialPrintFormName={initialPrintFormName}
-            onClearPrintForm={() => { setInitialPrintFormName(null); setTriggerProcessPrint(false); }}
-            onSwitchVersion={(id) => setSelectedProcessId(id)}
-            initialTriggerPrint={triggerProcessPrint}
-          />
+          <Suspense fallback={<ModuleLoadingFallback />}>
+            <ProcessReader
+              processId={selectedProcessId!}
+              onBack={() => { setPage('dashboard'); setInitialPrintFormName(null); setTriggerProcessPrint(false); }}
+              onEdit={handleEditProcess}
+              initialPrintFormName={initialPrintFormName}
+              onClearPrintForm={() => { setInitialPrintFormName(null); setTriggerProcessPrint(false); }}
+              onSwitchVersion={(id) => setSelectedProcessId(id)}
+              initialTriggerPrint={triggerProcessPrint}
+            />
+          </Suspense>
         )}
         {page === 'fill-form' && (
           <FormFiller
@@ -459,23 +478,25 @@ const MainApp: React.FC = () => {
           />
         )}
         {page === 'submission-viewer' && viewerSubmissionId && selectedFormName && (
-          <SubmissionViewer
-            formName={selectedFormName}
-            submissionId={viewerSubmissionId}
-            initialEditMode={viewerEditMode}
-            initialTab={viewerInitialTab}
-            onBack={() => {
-              setPage('dashboard');
-              setViewerSubmissionId(null);
-            }}
-          />
+          <Suspense fallback={<ModuleLoadingFallback />}>
+            <SubmissionViewer
+              formName={selectedFormName}
+              submissionId={viewerSubmissionId}
+              initialEditMode={viewerEditMode}
+              initialTab={viewerInitialTab}
+              onBack={() => {
+                setPage('dashboard');
+                setViewerSubmissionId(null);
+              }}
+            />
+          </Suspense>
         )}
 
 
         {/* Route Guard: only render UserManagement if user has manage_users permission */}
         {page === 'user-management' && (
           hasPermission('manage_users')
-            ? <UserManagement onBack={() => setPage(prevPage)} />
+            ? <Suspense fallback={<ModuleLoadingFallback />}><UserManagement onBack={() => setPage(prevPage)} /></Suspense>
             : <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
                 Bạn không có quyền truy cập trang này.
               </div>
@@ -484,26 +505,30 @@ const MainApp: React.FC = () => {
 
       {/* Report Builder Fullscreen Authoring Shell */}
       {reportBuilderState.isOpen && (
-        <ReportBuilder
-          initialFormId={reportBuilderState.formId}
-          initialReportId={reportBuilderState.reportId}
-          onSave={(saved) => {
-            setToastMessage(`Đã lưu mẫu báo cáo ${saved.reportId} (${saved.version})`);
-          }}
-          onClose={() => setReportBuilderState({ isOpen: false })}
-        />
+        <Suspense fallback={<ModuleLoadingFallback />}>
+          <ReportBuilder
+            initialFormId={reportBuilderState.formId}
+            initialReportId={reportBuilderState.reportId}
+            onSave={(saved) => {
+              setToastMessage(`Đã lưu mẫu báo cáo ${saved.reportId} (${saved.version})`);
+            }}
+            onClose={() => setReportBuilderState({ isOpen: false })}
+          />
+        </Suspense>
       )}
 
       {/* Form Report Single Submission Record Viewer */}
       {formReportState.isOpen && formReportState.submissionId && (
-        <FormReport
-          submissionId={formReportState.submissionId}
-          onClose={() => setFormReportState({ isOpen: false })}
-          onOpenBuilder={(formId) => {
-            setFormReportState({ isOpen: false });
-            setReportBuilderState({ isOpen: true, formId });
-          }}
-        />
+        <Suspense fallback={<ModuleLoadingFallback />}>
+          <FormReport
+            submissionId={formReportState.submissionId}
+            onClose={() => setFormReportState({ isOpen: false })}
+            onOpenBuilder={(formId) => {
+              setFormReportState({ isOpen: false });
+              setReportBuilderState({ isOpen: true, formId });
+            }}
+          />
+        </Suspense>
       )}
 
       {/* Floating Toast Notification Banner */}

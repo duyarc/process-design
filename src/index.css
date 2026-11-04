@@ -508,6 +508,12 @@ tr:last-child td {
   }
 }
 
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 /* AcroForm Option Controls: Normal view & Paper printing (window.print()) */
 .acro-option-icon {
   display: inline-block;

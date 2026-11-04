@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, Component } from 'react';
+import React, { useState, useEffect, useRef, useMemo, Component, Suspense, lazy } from 'react';
 import type { Process, FormTemplateISO, ReportTemplateISO, SubmissionFieldSnapshot, Submission, BlockVisibilityCondition } from '../types';
 
 interface ErrorBoundaryProps {
@@ -9,7 +9,8 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
-// #region HELPER_COMPONENTS — FormErrorBoundary, reconstructTableRows
+// #region HELPER_COMPONENTS — FormErrorBoundary, reconstructTableRows
+
 class FormErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
@@ -77,11 +78,12 @@ import {
 } from '../utils/formUtils';
 import { renderFormattedText, stripMarkdownTokens } from '../utils/textFormatter';
 import { useAuth } from '../context/AuthContext';
-import PrintFilledForm from './print/PrintFilledForm';
-import PrintBlankForm from './print/PrintBlankForm';
 import { LocationInputFiller } from './form/LocationInputFiller';
 import { PhotoFieldFiller } from './form/PhotoFieldFiller';
-import FormReport from './FormReport';
+
+const PrintFilledForm = lazy(() => import('./print/PrintFilledForm'));
+const PrintBlankForm = lazy(() => import('./print/PrintBlankForm'));
+const FormReport = lazy(() => import('./FormReport'));
 import { 
   ArrowLeft, 
   CheckCircle2, 
@@ -355,10 +357,12 @@ const buildVirtualProcess = (
   };
 };
 
-// #endregion HELPER_COMPONENTS
+// #endregion HELPER_COMPONENTS
+
 function FormFillerInner({ 
   processId, 
-// #region STATE_HOOKS — useState, useEffect, auto-save, data loading (FormFillerInner)
+// #region STATE_HOOKS — useState, useEffect, auto-save, data loading (FormFillerInner)
+
   formName, 
   onBack, 
   onSubmitSuccess,
@@ -467,9 +471,11 @@ function FormFillerInner({
     }
   }, [initialSubmissionTab]);
 
-// #endregion STATE_HOOKS
+// #endregion STATE_HOOKS
+
   const handleCancelEdit = () => {
-// #region HANDLERS — handleCancelEdit → handlePrintWYSIWYG
+// #region HANDLERS — handleCancelEdit → handlePrintWYSIWYG
+
     if (initialSubmission && process && rawFormTemplate) {
       const restoredValues: { [fieldId: string]: string } = {};
       const restoredReactions: { [fieldId: string]: string } = {};
@@ -1584,27 +1590,32 @@ function FormFillerInner({
     };
     setPrintCurrentSubmission(draftSub);
   };
-// #endregion HANDLERS
+// #endregion HANDLERS
+
 
   // Print draft current filled form overlay
   if (printCurrentSubmission && formTemplate) {
     return (
-      <PrintFilledForm
-        submission={printCurrentSubmission}
-        formTemplate={formTemplate}
-        onClose={() => setPrintCurrentSubmission(null)}
-      />
+      <Suspense fallback={null}>
+        <PrintFilledForm
+          submission={printCurrentSubmission}
+          formTemplate={formTemplate}
+          onClose={() => setPrintCurrentSubmission(null)}
+        />
+      </Suspense>
     );
   }
 
   // Print blank questionnaire (with or without guidance overlay)
   if (printBlankConfig) {
     return (
-      <PrintBlankForm
-        template={printBlankConfig.template}
-        includeGuidance={printBlankConfig.includeGuidance}
-        onClose={() => setPrintBlankConfig(null)}
-      />
+      <Suspense fallback={null}>
+        <PrintBlankForm
+          template={printBlankConfig.template}
+          includeGuidance={printBlankConfig.includeGuidance}
+          onClose={() => setPrintBlankConfig(null)}
+        />
+      </Suspense>
     );
   }
 
@@ -1786,7 +1797,8 @@ function FormFillerInner({
               )}
 
               {/* 2. INFO GRID BLOCK */}
-// #region CANVAS_INFOGRID — Info Grid block fields rendering
+// #region CANVAS_INFOGRID — Info Grid block fields rendering
+
               {block.type === 'INFO_GRID' && (
                 <div style={{
                   display: 'grid',
@@ -1860,6 +1872,7 @@ function FormFillerInner({
                           {resolvedSrc ? (
                             <img
                               src={resolvedSrc}
+                              loading="lazy"
                               alt={field.imageCaption || field.checkItem || 'Reference image'}
                               onClick={() => setLightboxImage({ src: resolvedSrc, caption: field.imageCaption || field.checkItem })}
                               style={imgStyle}
@@ -2882,9 +2895,11 @@ function FormFillerInner({
                 </div>
               )}
 
-// #endregion CANVAS_INFOGRID
+// #endregion CANVAS_INFOGRID
+
               {/* 3.1 DYNAMIC TABLE BLOCK */}
-// #region CANVAS_TABLE — Dynamic Table block rendering (columns, rows, summary footer, tfoot)
+// #region CANVAS_TABLE — Dynamic Table block rendering (columns, rows, summary footer, tfoot)
+
               {block.type === 'TABLE' && (() => {
                 const bStyle = block.borderStyle || 'grid';
                 const hasGuidance = !!(block.description || block.guidance);
@@ -3852,7 +3867,8 @@ function FormFillerInner({
                 </div>
               )}
 
-// #endregion CANVAS_TABLE
+// #endregion CANVAS_TABLE
+
               {/* 5. SIGN BLOCK — Interactive Click-to-Sign */}
               {block.type === 'SIGN' && (
                 <div style={{
@@ -4427,16 +4443,18 @@ function FormFillerInner({
 
       {/* Main Canvas: Form Paper Card OR Report Card depending on submissionTab */}
       {submissionTab === 'report' && initialSubmission ? (
-        <FormReport
-          submissionId={initialSubmission.id}
-          isEmbedded={true}
-          triggerPrint={triggerReportPrint}
-          onPrintHandled={() => setTriggerReportPrint(false)}
-          onOpenBuilder={onOpenReportBuilder}
-          initialSubmission={initialSubmission}
-          initialFormTemplate={rawFormTemplate || undefined}
-          initialReportTemplate={prefetchedReportTemplate || undefined}
-        />
+        <Suspense fallback={<div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>Đang tải báo cáo...</div>}>
+          <FormReport
+            submissionId={initialSubmission.id}
+            isEmbedded={true}
+            triggerPrint={triggerReportPrint}
+            onPrintHandled={() => setTriggerReportPrint(false)}
+            onOpenBuilder={onOpenReportBuilder}
+            initialSubmission={initialSubmission}
+            initialFormTemplate={rawFormTemplate || undefined}
+            initialReportTemplate={prefetchedReportTemplate || undefined}
+          />
+        </Suspense>
       ) : (
       <fieldset disabled={effectiveReadOnly} style={{ border: 'none', padding: 0, margin: 0, minWidth: 0 }}>
             <div className="paper-card" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '0px' }}>
