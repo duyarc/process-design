@@ -9,7 +9,7 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-11-04) — Table summary row deletion recursion guard & reference pruning verified against source |
+| **Verified At Commit** | (2026-11-04) — Defensive layoutBlocks guard in PrintBlankForm preventing unhandled TypeError crash |
 
 > **⚠️ Architectural note:** FormBuilder has no awareness of which process it belongs to. The `formName` prop is always identical to `formId`. See Section 6.1 and the Technical Debt table.
 
@@ -538,3 +538,4 @@ full diff of any entry below.
 | 2026-11-04 | **Table Summary Row Deletion Recursion Guard & Reference Pruning (`formUtils`, `FormBuilder`):** (1) In `src/utils/formUtils.ts` (`calculateTableColumnSummary`), fixed critical bug where deleting a parent summary row left dependent rows (`multiply`, `percentage`, `sum_all`) falling back to `allSummaryRows[0]` (self-referencing), triggering `RangeError: Maximum call stack size exceeded` and blank screen crash. Added O(1) cycle detection (`visitedIds = new Set<string>()`) and strictly prohibited self-references (`r.id !== row.id`). (2) In `FormBuilder.tsx` (`handleDeleteTableSummaryRow`), automatically pruned references to the deleted summary row from `percentageOfId`, `multiplyRowIds`, and `sumRowIds`. |
 | 2026-11-04 | **Table Summary Footer Border Harmonization (`TableSummaryFooter`, `PrintBlankForm`):** Eradicated discordant dark black (#0f172a) and 1.5px solid #94a3b8 borders from table footer summary rows. Synchronized table bottom border to match standard neutral tokens: grid uses 1px solid #cbd5e1 (seamlessly closing the table frame), horizontal_only uses 1.5px solid #cbd5e1, and borderless uses none. |
 | 2026-11-04 | `CURRENT` | **FormBuilder Lazy Logo Fetching (`FormBuilder.tsx`):** Guarded `GET /api/storage/logos` with `if (!showLogoGallery) return;`, eliminating automatic Cloudflare R2 S3 scan and database checks when opening FormBuilder. Logos are now fetched strictly on-demand when user opens the logo gallery modal. |
+| 2026-11-04 | `CURRENT` | **PrintBlankForm Defensive Block Normalization (`PrintBlankForm.tsx`):** Normalized `template?.layoutBlocks` with `React.useMemo` and safe array check (`Array.isArray(raw) ? raw : JSON.parse(...)`). Prevents uncaught `TypeError: Cannot read properties of undefined (reading 'find')` when printing templates that lack `layoutBlocks`, rendering a clean fallback state instead of unmounting the component tree into a blank white screen. |

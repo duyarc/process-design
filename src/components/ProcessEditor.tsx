@@ -278,6 +278,55 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
 
   const [processCode, setProcessCode] = useState('');
   const [printTemplateData, setPrintTemplateData] = useState<any | null>(null);
+  const [printingFormId, setPrintingFormId] = useState<string | null>(null);
+
+  const handlePrintForm = async (targetFormId: string, formData: any, liveForm: any) => {
+    if (!targetFormId) return;
+    try {
+      setPrintingFormId(targetFormId);
+      let fullForm = liveForm;
+      // If layout_blocks is missing (e.g. from lean query fields=list), fetch authoritative full record
+      if (!fullForm?.layout_blocks) {
+        const res = await fetch(`/api/forms/${encodeURIComponent(targetFormId)}`);
+        if (res.ok) {
+          fullForm = await res.json();
+        }
+      }
+
+      const rawBlocks = fullForm?.layout_blocks || formData?.layoutBlocks;
+      const layoutBlocks = Array.isArray(rawBlocks)
+        ? rawBlocks
+        : typeof rawBlocks === 'string'
+        ? JSON.parse(rawBlocks || '[]')
+        : [];
+
+      const rawRevisions = fullForm?.revision_history || formData?.revisionHistory;
+      const revisionHistory = Array.isArray(rawRevisions)
+        ? rawRevisions
+        : typeof rawRevisions === 'string'
+        ? JSON.parse(rawRevisions || '[]')
+        : [];
+
+      const fullTemplate = {
+        ...formData,
+        formId: targetFormId || formData?.formId || fullForm?.form_id || fullForm?.form_name,
+        formTitle: fullForm?.form_title || fullForm?.form_name || formData?.formTitle || targetFormId,
+        layoutBlocks,
+        revisionHistory,
+        version: fullForm?.version || formData?.version || 'V0.1',
+        status: fullForm?.status || formData?.status || 'DRAFT',
+        effectiveDate: fullForm?.effective_date || (formData as any)?.effectiveDate,
+        updatedAt: fullForm?.updated_at || (formData as any)?.updatedAt,
+        pageSize: fullForm?.page_size || formData?.pageSize || 'A4'
+      };
+
+      setPrintTemplateData(fullTemplate);
+    } catch (err) {
+      console.error('Failed to load form template for printing:', err);
+    } finally {
+      setPrintingFormId(null);
+    }
+  };
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [version, setVersion] = useState('1');
@@ -3376,22 +3425,10 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                                   boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
                                   margin: 0
                                 }}
-                                onClick={() => {
-                                  const fullTemplate = {
-                                    ...formData,
-                                    formId: formId || formData?.formId || liveForm?.form_id || liveForm?.form_name,
-                                    formTitle: liveForm?.form_title || liveForm?.form_name || formData?.formTitle || formId,
-                                    layoutBlocks: liveForm ? (typeof liveForm.layout_blocks === 'string' ? JSON.parse(liveForm.layout_blocks) : liveForm.layout_blocks) : (formData?.layoutBlocks || []),
-                                    revisionHistory: liveForm ? (typeof liveForm.revision_history === 'string' ? JSON.parse(liveForm.revision_history) : liveForm.revision_history) : (formData?.revisionHistory || []),
-                                    version: liveForm ? liveForm.version : (formData?.version || 'V0.1'),
-                                    status: liveForm ? liveForm.status : (formData?.status || 'DRAFT'),
-                                    effectiveDate: liveForm?.effective_date || (formData as any)?.effectiveDate,
-                                    updatedAt: liveForm?.updated_at || (formData as any)?.updatedAt
-                                  };
-                                  setPrintTemplateData(fullTemplate as any);
-                                }}
+                                disabled={printingFormId === formId}
+                                onClick={() => handlePrintForm(formId, formData, liveForm)}
                               >
-                                <Printer size={12} /> Print
+                                <Printer size={12} /> {printingFormId === formId ? 'Đang tải...' : 'Print'}
                               </button>
                             )}
 

@@ -9,7 +9,7 @@
 | **Module Name** | Process Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-11-04) — Page-aware predecessor source resolution in gridLayout.ts eliminating phantom page-spill |
+| **Verified At Commit** | (2026-11-04) — On-demand full template fetching on Print button in ProcessEditor & ProcessReader |
 
 > **⚠️ Note:** Several architectural facts here are not obvious from the code — see Sections 4.5, 6.2, and 7.
 
@@ -557,3 +557,4 @@ full diff of any entry below.
 | 2026-11-04 | `CURRENT` | **Document Shape 4-Way Priority & Clearance Guard (`documentPlacer.ts`):** Restructured auto-placement candidate priority to Top-Center (1) → Middle-Left (2) → Middle-Right (3) → Below-Center (4). Extended `hasEdgeCollision` to validate label bounding boxes. Added left-border boundary guard (`x >= 155`) preventing shapes from bleeding into the role title header. Eliminates swimlane bottom-border overflow by selecting Middle-Left when top & right are occupied. |
 | 2026-11-04 | `CURRENT` | **BPMN Layout Engine Topological Order & Link/Document Guards (`gridLayout.ts`, `linkEvents.ts`, `documentPlacer.ts`, `bpmnXmlGenerator.ts`):** (1) Integrated Kahn's stable topological sort (`topologicalSortSteps`) with forward row invariant (`row(child) >= row(parent)`), eliminating backwards cross-page sequence flow arrows. (2) Deduplicated Link Catch events by `targetId` and positioned Link Throw events at source step's lane instead of target lane. (3) Enforced lane-aware candidate priority (Left/Right first for non-top lanes) and strict bottom-boundary guard for bottom-most lane, preventing document shapes from piercing page dividers or bleeding across swimlanes. |
 | 2026-11-04 | `CURRENT` | **Page-Aware Multi-Source Layout Resolution (`gridLayout.ts`):** When converging steps receive flows across different rows (e.g. Page 1 & Page 2), precedence for `primarySourceIdx` and column progression is now strictly given to predecessors on the target row (`sourceRow === targetRow`). Predecessors from previous pages (which enter via Link Catch events at column 0) no longer leak their old column index into the current page, eliminating artificial column-overflow and phantom page-spill (Page 3 completely pruned). |
+| 2026-11-04 | `CURRENT` | **ProcessEditor & ProcessReader On-Demand Print Fetching (`ProcessEditor.tsx`, `ProcessReader.tsx`):** Updated the Print action in the Form tab of ProcessEditor and ProcessReader to detect lean metadata records (`!fullForm?.layout_blocks`) and fetch the authoritative full form record via `/api/forms/:id` on-demand with a loading state (`Đang tải...`). Guarantees `layoutBlocks` are fully hydrated before opening `PrintBlankForm`. |

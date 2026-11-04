@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import type { FormTemplateISO } from '../../types';
+import type { FormTemplateISO, LayoutBlockISO } from '../../types';
 import { getColStyleWidth } from '../../types';
 import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock, getInfoGridTemplateColumns, getEffectiveCellOptions, getChecklistColumns, groupTableRowsForPrint, resolveImageSrc, getTableItemColumnId, clusterOptionsByGroup, buildTableSummaryTypes, getEffectiveFirstSumColIdx } from '../../utils/formUtils';
 import { renderFormattedText } from '../../utils/textFormatter';
@@ -50,7 +50,20 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
   const pageSize = template.pageSize || (template as any).page_size || 'A4';
   const isA5 = pageSize === 'A5_LANDSCAPE';
 
-  const titleBlock = template.layoutBlocks.find(b => b.type === 'TITLE');
+  const rawBlocks = template?.layoutBlocks;
+  const layoutBlocks: LayoutBlockISO[] = React.useMemo(() => {
+    if (Array.isArray(rawBlocks)) return rawBlocks;
+    if (typeof rawBlocks === 'string') {
+      try {
+        return JSON.parse(rawBlocks || '[]');
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  }, [rawBlocks]);
+
+  const titleBlock = layoutBlocks.find(b => b?.type === 'TITLE');
   const { logoUrl, imgLoaded, setImgLoaded } = usePrintLogo(titleBlock?.logo);
 
   const hasAutoExportedRef = React.useRef(false);
@@ -178,8 +191,13 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
           <tr>
             <td>
               {/* Dynamic Blocks Rendering */}
-              {template.layoutBlocks && template.layoutBlocks.map((block, index) => {
-                const prevBlock = index > 0 ? template.layoutBlocks[index - 1] : undefined;
+              {layoutBlocks && layoutBlocks.length === 0 && (
+                <div style={{ padding: '2.5rem', textAlign: 'center', color: '#64748b', fontSize: '0.9rem' }}>
+                  Biểu mẫu chưa có nội dung hoặc đang được tải...
+                </div>
+              )}
+              {layoutBlocks && layoutBlocks.map((block, index) => {
+                const prevBlock = index > 0 ? layoutBlocks[index - 1] : undefined;
                 const isSeamless = isSeamlessTableBlock(block, prevBlock);
         return (
           <div key={block.id} className={`print-block${block.type === 'SECTION_LABEL' ? ' print-block--section' : ''}${isSeamless ? ' print-block--seamless-table' : ''} ${block.type !== 'CHECKLIST_TABLE' && block.type !== 'INFO_GRID' && block.type !== 'TABLE' ? 'print-block-avoid' : ''}`}>

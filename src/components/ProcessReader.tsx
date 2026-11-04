@@ -1012,22 +1012,45 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                                     <button
                                       type="button"
                                       title="Print"
-                                      onClick={() => {
-                                        if (formData && liveForm) {
-                                          const fullTemplate = {
-                                            ...formData,
-                                            formId: formData?.formId || liveForm.form_id || liveForm.form_name,
-                                            formTitle: liveForm.form_title || liveForm.form_name || formData?.formTitle,
-                                            layoutBlocks: typeof liveForm.layout_blocks === 'string' ? JSON.parse(liveForm.layout_blocks) : liveForm.layout_blocks,
-                                            revisionHistory: typeof liveForm.revision_history === 'string' ? JSON.parse(liveForm.revision_history) : liveForm.revision_history,
-                                            version: liveForm.version,
-                                            status: liveForm.status,
-                                            effectiveDate: liveForm.effective_date || (formData as any)?.effectiveDate,
-                                            updatedAt: liveForm.updated_at || (formData as any)?.updatedAt
-                                          };
-                                          setPrintTemplateData(fullTemplate as any);
-                                        }
-                                      }}
+                                      onClick={async () => {
+                                         if (formData && liveForm) {
+                                           let fullForm = liveForm;
+                                           const targetFormId = formData?.formId || liveForm.form_id || liveForm.form_name;
+                                           if (!fullForm.layout_blocks && targetFormId) {
+                                             try {
+                                               const res = await fetch(`/api/forms/${encodeURIComponent(targetFormId)}`);
+                                               if (res.ok) fullForm = await res.json();
+                                             } catch (e) {
+                                               console.error('Failed to load full form for print:', e);
+                                             }
+                                           }
+                                           const rawBlocks = fullForm?.layout_blocks || formData?.layoutBlocks;
+                                           const layoutBlocks = Array.isArray(rawBlocks)
+                                             ? rawBlocks
+                                             : typeof rawBlocks === 'string'
+                                             ? JSON.parse(rawBlocks || '[]')
+                                             : [];
+                                           const rawRevisions = fullForm?.revision_history || formData?.revisionHistory;
+                                           const revisionHistory = Array.isArray(rawRevisions)
+                                             ? rawRevisions
+                                             : typeof rawRevisions === 'string'
+                                             ? JSON.parse(rawRevisions || '[]')
+                                             : [];
+                                           const fullTemplate = {
+                                             ...formData,
+                                             formId: targetFormId,
+                                             formTitle: fullForm.form_title || fullForm.form_name || formData?.formTitle || targetFormId,
+                                             layoutBlocks,
+                                             revisionHistory,
+                                             version: fullForm.version || formData?.version || 'V0.1',
+                                             status: fullForm.status || formData?.status || 'DRAFT',
+                                             effectiveDate: fullForm.effective_date || (formData as any)?.effectiveDate,
+                                             updatedAt: fullForm.updated_at || (formData as any)?.updatedAt,
+                                             pageSize: fullForm.page_size || (formData as any)?.pageSize || 'A4'
+                                           };
+                                           setPrintTemplateData(fullTemplate as any);
+                                         }
+                                       }}
                                       style={{ 
                                         display: 'flex',
                                         alignItems: 'center',
