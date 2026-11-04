@@ -362,8 +362,6 @@ const buildVirtualProcess = (
 
 function FormFillerInner({ 
   processId, 
-// #region STATE_HOOKS — useState, useEffect, auto-save, data loading (FormFillerInner)
-
   formName, 
   onBack, 
   onSubmitSuccess,
@@ -380,6 +378,7 @@ function FormFillerInner({
   initialSubmissionTab,
   onOpenReportBuilder
 }: FormFillerProps) {
+// #region STATE_HOOKS — useState, useEffect, auto-save, data loading (FormFillerInner)
   // ── Synchronous SWR Cache-First Instant Paint ──
   const initialCache = useMemo(() => {
     if (preloadedFormTemplate) {
@@ -472,8 +471,8 @@ function FormFillerInner({
     }
   }, [initialSubmissionTab]);
 
-// #endregion STATE_HOOKS
 
+// #endregion STATE_HOOKS
   const handleCancelEdit = () => {
 // #region HANDLERS — handleCancelEdit → handlePrintWYSIWYG
 
@@ -1798,7 +1797,6 @@ function FormFillerInner({
               )}
 
               {/* 2. INFO GRID BLOCK */}
-// #region CANVAS_INFOGRID — Info Grid block fields rendering
 
               {block.type === 'INFO_GRID' && (
                 <div style={{
@@ -2896,10 +2894,8 @@ function FormFillerInner({
                 </div>
               )}
 
-// #endregion CANVAS_INFOGRID
 
               {/* 3.1 DYNAMIC TABLE BLOCK */}
-// #region CANVAS_TABLE — Dynamic Table block rendering (columns, rows, summary footer, tfoot)
 
               {block.type === 'TABLE' && (() => {
                 const bStyle = block.borderStyle || 'grid';
@@ -3860,7 +3856,6 @@ function FormFillerInner({
                 </div>
               )}
 
-// #endregion CANVAS_TABLE
 
               {/* 5. SIGN BLOCK — Interactive Click-to-Sign */}
               {block.type === 'SIGN' && (

@@ -86,7 +86,8 @@ interface FormBuilderProps {
 
 
 
-// #region HELPER_COMPONENTS — generateFormChangeSummary, InfoGridSteppedSplitter, FieldTypeDropdown, InCanvasTitleHeader
+// #region HELPER_COMPONENTS — generateFormChangeSummary, InfoGridSteppedSplitter, FieldTypeDropdown, InCanvasTitleHeader
+
 const generateFormChangeSummary = (
   initialBlocks?: LayoutBlockISO[],
   currentBlocks?: LayoutBlockISO[],
@@ -1099,9 +1100,11 @@ function InCanvasTitleHeader({
   );
 }
 
-// #endregion HELPER_COMPONENTS
+// #endregion HELPER_COMPONENTS
+
 export default function FormBuilder({ formName, initialData, onSave, onClose, linkedProcessId, linkedProcessTitle, linkedWorkSteps, onUnlinkFromProcess }: FormBuilderProps) {
-// #region STATE_HOOKS — 59 useState, useRef, useEffect, computed values
+// #region STATE_HOOKS — 59 useState, useRef, useEffect, computed values
+
   const { currentUser } = useAuth();
   // 1. Core Layout State
   const [formId, setFormId] = useState(initialData?.formId || `FM-${formName.toUpperCase().replace(/[^A-Z0-9]/g, '-')}-001`);
@@ -1155,9 +1158,11 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
       [fieldId]: !prev[fieldId]
     }));
   };
-// #endregion STATE_HOOKS
+// #endregion STATE_HOOKS
 
-// #region HANDLERS — 61 handler functions (handleToggleAllGuidance → handleMinorChange)
+
+// #region HANDLERS — 61 handler functions (handleToggleAllGuidance → handleMinorChange)
+
   const handleToggleAllGuidance = () => {
     if (isAllGuidanceExpanded) {
       setCanvasExpandedGuidanceMap({});
@@ -3248,7 +3253,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     setVersion(`v${major}.${newMinor}`);
   };
 
-// #endregion HANDLERS
+// #endregion HANDLERS
+
   return (
     <div style={{
       position: 'fixed',
@@ -3981,7 +3987,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                         )
                       )}
 
-// #region CANVAS_INFOGRID — Info Grid block canvas rendering (field loops, drag, sub-components)
+
                       {/* 2. INFO GRID BLOCK */}
                       {block.type === 'INFO_GRID' && (() => {
                         return (
@@ -5717,9 +5723,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                           </div>
                         );
                       })()}
-// #endregion CANVAS_INFOGRID
 
-// #region CANVAS_TABLE — Checklist + Matrix + Dynamic Table canvas rendering (includes tfoot via TableSummaryFooter)
+
+
                       {/* 3. CHECKLIST TABLE BLOCK */}
                       {block.type === 'CHECKLIST_TABLE' && (() => {
                         return (
@@ -7588,9 +7594,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                         </div>
                       );
                     })()}
-// #endregion CANVAS_TABLE
 
-// #region CANVAS_SIGN — Signature block canvas rendering
+
+
                       {/* 4. SIGN BLOCK */}
                       {block.type === 'SIGN' && (() => {
                         return (
@@ -7697,9 +7703,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
             </div>
           </div>
         </div>
-// #endregion CANVAS_SIGN
 
-// #region RIGHT_PANEL_FIELD_PROPS — Field Properties inspector (selected field in activeBlock)
+
+
         {/* RIGHT PANEL: Properties Configuration Panel */}
         <div style={{ background: '#ffffff', borderLeft: '1px solid var(--neutral-border)', padding: '1rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           
@@ -9064,9 +9070,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                 )}
               </div>
             </div>
-// #endregion RIGHT_PANEL_FIELD_PROPS
+
           ) : activeBlock ? (
-// #region RIGHT_PANEL_BLOCK_PROPS — Block Properties inspector (TABLE / INFO_GRID / CHECKLIST / MATRIX / SIGN / SECTION_LABEL)
+
             /* BLOCK PROPERTIES */
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
@@ -11086,9 +11092,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                 })()}
               </div>
             </div>
-// #endregion RIGHT_PANEL_BLOCK_PROPS
+
           ) : (
-// #region RIGHT_PANEL_FORM_PROPS — General Form Properties (pageSize, version, linked process, revision history, modals)
+
             /* GENERAL FORM PROPERTIES */
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
@@ -12252,5 +12258,5 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
       />
     </div>
   );
-// #endregion RIGHT_PANEL_FORM_PROPS
+
 }
