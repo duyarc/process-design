@@ -26,23 +26,62 @@ export interface GridLayoutResult {
 }
 
 /**
- * Compute the grid (row, col) assignment for every ProcessStep and derive
- * the initial set of sequence flows before link-event synthesis.
+ * Maps each step to incoming source step IDs based on gateway branches and nextStepIds.
  */
-export function computeGridLayout(
+function buildIncomingStepMap(steps: ProcessStep[]): Map<string, string[]> {
+  const map = new Map<string, string[]>();
+  steps.forEach((step, idx) => {
+    if (step.bpmnShape === 'exclusive-gateway') {
+      const yesId = step.branchYesTargetId || (idx < steps.length - 1 ? steps[idx + 1].id : null);
+      if (yesId) {
+        if (!map.has(yesId)) map.set(yesId, []);
+        map.get(yesId)!.push(step.id);
+      }
+      const noId = step.branchNoTargetId || (idx < steps.length - 1 ? steps[idx + 1].id : null);
+      if (noId) {
+        if (!map.has(noId)) map.set(noId, []);
+        map.get(noId)!.push(step.id);
+      }
+    } else if (step.bpmnShape !== 'end-event' && step.bpmnShape !== 'message-end-event') {
+      const targetIds = (step.nextStepIds && step.nextStepIds.length > 0)
+        ? step.nextStepIds
+        : (step.nextStepId ? [step.nextStepId] : (idx < steps.length - 1 ? [steps[idx + 1].id] : []));
+      targetIds.forEach((tid) => {
+        if (tid) {
+          if (!map.has(tid)) map.set(tid, []);
+          map.get(tid)!.push(step.id);
+        }
+      });
+    }
+  });
+  return map;
+}
+
+/**
+ * Assigns (row, col) grid coordinates for each step in execution order,
+ * taking into account graph predecessor sources for branched workflows.
+ */
+export function assignStepGridPositions(
   steps: ProcessStep[],
-  uniqueRoles: string[],
-  _constants?: Partial<LayoutConstants>
-): GridLayoutResult {
+  uniqueRoles: string[] = []
+): { stepRows: number[]; stepCols: number[]; numRows: number } {
+  if (steps.length === 0) {
+    return { stepRows: [], stepCols: [], numRows: 1 };
+  }
+
   const stepRows: number[] = [];
   const stepCols: number[] = [];
   const lastColInRow: { [row: number]: { [role: string]: number } } = {};
+  const stepIdToIdx = new Map<string, number>();
 
   const effectiveRoles = uniqueRoles && uniqueRoles.length > 0
     ? uniqueRoles
     : Array.from(new Set(steps.map((s) => s.role || 'Operator')));
 
+  const incomingMap = buildIncomingStepMap(steps);
+
   steps.forEach((step, idx) => {
+    stepIdToIdx.set(step.id, idx);
     const role = step.role || 'Operator';
 
     if (idx === 0) {
@@ -52,13 +91,28 @@ export function computeGridLayout(
       return;
     }
 
-    const prevRow = stepRows[idx - 1];
-    const prevRole = steps[idx - 1].role || 'Operator';
-    const prevCol = stepCols[idx - 1];
+    const incomingIds = incomingMap.get(step.id) || [];
+    const validSources = incomingIds
+      .map((id) => stepIdToIdx.get(id))
+      .filter((sIdx): sIdx is number => sIdx !== undefined && sIdx < idx);
+
+    let primarySourceIdx = idx - 1;
+    if (validSources.length > 0) {
+      validSources.sort((a, b) => {
+        const reqA = stepCols[a] + (steps[a].role === role ? 1 : 0);
+        const reqB = stepCols[b] + (steps[b].role === role ? 1 : 0);
+        return reqB - reqA;
+      });
+      primarySourceIdx = validSources[0];
+    }
+
+    const prevRow = stepRows[primarySourceIdx];
+    const prevRole = steps[primarySourceIdx].role || 'Operator';
+    const prevCol = stepCols[primarySourceIdx];
+    const prevStep = steps[primarySourceIdx];
 
     // Force horizontal increment when either adjacent step is a gateway
     let forceIncrement = false;
-    const prevStep = steps[idx - 1];
     if (
       step.bpmnShape === 'exclusive-gateway' ||
       prevStep.bpmnShape === 'exclusive-gateway'
@@ -109,6 +163,19 @@ export function computeGridLayout(
   });
 
   const numRows = steps.length > 0 ? Math.max(...stepRows) + 1 : 1;
+  return { stepRows, stepCols, numRows };
+}
+
+/**
+ * Compute the grid (row, col) assignment for every ProcessStep and derive
+ * the initial set of sequence flows before link-event synthesis.
+ */
+export function computeGridLayout(
+  steps: ProcessStep[],
+  uniqueRoles: string[],
+  _constants?: Partial<LayoutConstants>
+): GridLayoutResult {
+  const { stepRows, stepCols, numRows } = assignStepGridPositions(steps, uniqueRoles);
 
   // Build step layout nodes
   const layoutNodes: LayoutNode[] = steps.map((step, idx) => ({
@@ -189,72 +256,5 @@ export function computeGridLayout(
  * getNumRows() export in bpmnXmlGenerator.ts without importing the full result).
  */
 export function computeNumRows(steps: ProcessStep[], uniqueRoles: string[] = []): number {
-  if (steps.length === 0) return 1;
-  const stepRows: number[] = [];
-  const stepCols: number[] = [];
-  const lastColInRow: { [row: number]: { [role: string]: number } } = {};
-
-  const effectiveRoles = uniqueRoles && uniqueRoles.length > 0
-    ? uniqueRoles
-    : Array.from(new Set(steps.map((s) => s.role || 'Operator')));
-
-  steps.forEach((step, idx) => {
-    const role = step.role || 'Operator';
-    if (idx === 0) {
-      stepRows.push(0);
-      stepCols.push(0);
-      lastColInRow[0] = { [role]: 0 };
-      return;
-    }
-    const prevRow = stepRows[idx - 1];
-    const prevRole = steps[idx - 1].role || 'Operator';
-    const prevCol = stepCols[idx - 1];
-    const prevStep = steps[idx - 1];
-
-    let forceIncrement = false;
-    if (
-      step.bpmnShape === 'exclusive-gateway' ||
-      prevStep.bpmnShape === 'exclusive-gateway'
-    ) {
-      forceIncrement = true;
-    }
-
-    let col: number;
-    if (role === prevRole || forceIncrement) {
-      const lastColForRole = lastColInRow[prevRow]?.[role] ?? -1;
-      col = Math.max(prevCol + 1, lastColForRole + 1);
-    } else {
-      const lastColForRole = lastColInRow[prevRow]?.[role] ?? -1;
-      col = Math.max(prevCol, lastColForRole + 1);
-      if (col === prevCol && effectiveRoles.length > 0 && prevCol + 1 < COLS_PER_ROW) {
-        const r1 = effectiveRoles.indexOf(prevRole);
-        const r2 = effectiveRoles.indexOf(role);
-        if (r1 !== -1 && r2 !== -1) {
-          const minR = Math.min(r1, r2);
-          const maxR = Math.max(r1, r2);
-          for (let rIdx = minR + 1; rIdx < maxR; rIdx++) {
-            const midRole = effectiveRoles[rIdx];
-            if (lastColInRow[prevRow]?.[midRole] === col) {
-              col = prevCol + 1;
-              break;
-            }
-          }
-        }
-      }
-    }
-    if (col >= COLS_PER_ROW) {
-      const newRow = prevRow + 1;
-      stepRows.push(newRow);
-      stepCols.push(1);
-      if (!lastColInRow[newRow]) lastColInRow[newRow] = {};
-      lastColInRow[newRow][role] = 1;
-    } else {
-      stepRows.push(prevRow);
-      stepCols.push(col);
-      if (!lastColInRow[prevRow]) lastColInRow[prevRow] = {};
-      lastColInRow[prevRow][role] = col;
-    }
-  });
-
-  return Math.max(...stepRows) + 1;
+  return assignStepGridPositions(steps, uniqueRoles).numRows;
 }
