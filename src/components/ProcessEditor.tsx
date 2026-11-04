@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import type { Process, ProcessStep, FormField, FormDesignerField, SOPSignOff, SOPSignOffs } from '../types';
-import { Save, Plus, Trash2, ArrowUp, ArrowDown, Edit2, Eye, Printer, GitBranch, XCircle, Shield, Calendar, RotateCcw, ArrowLeft, FileText, X, GripVertical } from 'lucide-react';
+import { Save, Plus, Trash2, Edit2, Eye, Printer, GitBranch, XCircle, Shield, Calendar, RotateCcw, ArrowLeft, FileText, X, GripVertical } from 'lucide-react';
 import FormBuilder from './FormBuilder';
 import PrintBlankForm from './print/PrintBlankForm';
 import ConfirmModal from './common/ConfirmModal';
@@ -12,6 +12,27 @@ import { useAuth } from '../context/AuthContext';
 import { BpmnViewerComponent } from './BpmnViewerComponent';
 import { BpmnModelerComponent } from './BpmnModelerComponent';
 import type { BpmnModelerRef } from './BpmnModelerComponent';
+
+const TASK_COLOR_PALETTE = [
+  { id: 'white',  bg: '#ffffff', border: '#cbd5e1', left: '#0d9488' },
+  { id: 'yellow', bg: '#fef3c7', border: '#f59e0b', left: '#d97706' },
+  { id: 'red',    bg: '#fee2e2', border: '#ef4444', left: '#dc2626' },
+  { id: 'blue',   bg: '#e0f2fe', border: '#0284c7', left: '#0284c7' },
+  { id: 'green',  bg: '#dcfce7', border: '#10b981', left: '#059669' },
+  { id: 'purple', bg: '#f3e8ff', border: '#a855f7', left: '#9333ea' }
+];
+
+const getStepLeftBorderColor = (step: ProcessStep): string => {
+  if (step.bpmnShape === 'start-event') return '#10b981';
+  if (step.bpmnShape === 'subprocess') return '#6366f1';
+  if (step.bpmnShape === 'exclusive-gateway') return '#f59e0b';
+  if (step.bpmnShape === 'end-event' || step.bpmnShape === 'message-end-event') return '#ef4444';
+  if (step.color) {
+    const p = TASK_COLOR_PALETTE.find(c => c.bg === step.color);
+    if (p) return p.left;
+  }
+  return '#10a3a3';
+};
 
 const enforceStepShapes = (stepsList: ProcessStep[]): ProcessStep[] => {
   if (stepsList.length === 0) return stepsList;
@@ -30,12 +51,23 @@ const enforceStepShapes = (stepsList: ProcessStep[]): ProcessStep[] => {
     const nextSeqId = idx < stepsList.length - 1 ? stepsList[idx + 1].id : undefined;
     
     let nextStepId = step.nextStepId;
+    let nextStepIds = step.nextStepIds;
     if (shape !== 'end-event' && shape !== 'message-end-event') {
-      if (!nextStepId || !ids.has(nextStepId)) {
-        nextStepId = nextSeqId;
+      if (nextStepIds && nextStepIds.length > 0) {
+        nextStepIds = nextStepIds.filter(tid => ids.has(tid));
+        if (nextStepIds.length === 0) {
+          nextStepIds = nextSeqId ? [nextSeqId] : undefined;
+        }
+        nextStepId = nextStepIds ? nextStepIds[0] : undefined;
+      } else {
+        if (!nextStepId || !ids.has(nextStepId)) {
+          nextStepId = nextSeqId;
+        }
+        nextStepIds = nextStepId ? [nextStepId] : (nextSeqId ? [nextSeqId] : undefined);
       }
     } else {
       nextStepId = undefined;
+      nextStepIds = undefined;
     }
 
     let branchYesLabel = step.branchYesLabel;
@@ -69,11 +101,14 @@ const enforceStepShapes = (stepsList: ProcessStep[]): ProcessStep[] => {
     }
 
     let subProcessId = shape === 'subprocess' ? step.subProcessId : undefined;
+    let color = (shape === 'task' || shape === 'subprocess') ? step.color : undefined;
     
     return { 
       ...step, 
       bpmnShape: shape, 
       nextStepId,
+      nextStepIds,
+      color,
       branchYesLabel, 
       branchYesTargetId,
       branchNoLabel, 
@@ -92,18 +127,27 @@ const updateSequentialConnections = (oldSteps: ProcessStep[], newSteps: ProcessS
 
   return newSteps.map((step, idx) => {
     const oldIdx = oldIndexMap.get(step.id);
+    const nextSeqId = idx < newSteps.length - 1 ? newSteps[idx + 1].id : undefined;
+
     if (oldIdx === undefined) {
       return {
         ...step,
-        nextStepId: idx < newSteps.length - 1 ? newSteps[idx + 1].id : undefined
+        nextStepId: nextSeqId,
+        nextStepIds: nextSeqId ? [nextSeqId] : []
       };
     }
 
-    const wasSequential = oldIdx < oldSteps.length - 1 && oldSteps[oldIdx].nextStepId === oldSteps[oldIdx + 1].id;
-    if (wasSequential || !step.nextStepId) {
+    const oldStep = oldSteps[oldIdx];
+    const oldNextSeqId = oldIdx < oldSteps.length - 1 ? oldSteps[oldIdx + 1].id : undefined;
+    const wasSequential = (oldStep.nextStepIds && oldStep.nextStepIds.length === 1 && oldStep.nextStepIds[0] === oldNextSeqId)
+      || (!oldStep.nextStepIds && oldStep.nextStepId === oldNextSeqId)
+      || (!oldStep.nextStepId && (!oldStep.nextStepIds || oldStep.nextStepIds.length === 0));
+
+    if (wasSequential) {
       return {
         ...step,
-        nextStepId: idx < newSteps.length - 1 ? newSteps[idx + 1].id : undefined
+        nextStepId: nextSeqId,
+        nextStepIds: nextSeqId ? [nextSeqId] : []
       };
     }
 
@@ -256,6 +300,10 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
   const [steps, setSteps] = useState<ProcessStep[]>([]);
   /** Bypass race condition: handleSave đọc ref này thay vì state nếu có giá trị */
   const pendingStepsRef = useRef<ProcessStep[] | null>(null);
+  const [draggedStepIndex, setDraggedStepIndex] = useState<number | null>(null);
+  const [dragOverStepIndex, setDragOverStepIndex] = useState<number | null>(null);
+  const [openColorPickerIndex, setOpenColorPickerIndex] = useState<number | null>(null);
+  const [openConnectPickerIndex, setOpenConnectPickerIndex] = useState<number | null>(null);
   const [formFields, setFormFields] = useState<FormField[]>([]);
   const [sopSignoffs, setSopSignoffs] = useState<SOPSignOffs>({
     author: { name: '', title: '' },
@@ -316,6 +364,20 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
       onClearInitialEditOpts();
     }
   }, [initialTab, initialFormToBuild]);
+
+  // Close color swatch and connect popovers on outside click
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+      if (!target.closest('[data-popover="color"]') && !target.closest('[data-popover="connect"]')) {
+        setOpenColorPickerIndex(null);
+        setOpenConnectPickerIndex(null);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
 
   // Debounce diagram updates to prevent flickering when typing step action commands
   useEffect(() => {
@@ -953,7 +1015,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
     });
   };
 
-  const handleStepChange = (index: number, field: keyof ProcessStep, value: string | boolean) => {
+  const handleStepChange = <K extends keyof ProcessStep>(index: number, field: K, value: ProcessStep[K]) => {
     setSteps(prev => {
       const updated = [...prev];
       updated[index] = { ...updated[index], [field]: value };
@@ -961,21 +1023,17 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
     });
   };
 
-  const moveStep = (index: number, direction: 'up' | 'down') => {
-    if (direction === 'up' && index === 0) return;
-    if (direction === 'down' && index === steps.length - 1) return;
-
-    const targetIndex = direction === 'up' ? index - 1 : index + 1;
-    const minIdx = Math.min(index, targetIndex);
+  const reorderStep = (fromIndex: number, toIndex: number) => {
+    if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0 || fromIndex >= steps.length || toIndex >= steps.length) return;
+    const minIdx = Math.min(fromIndex, toIndex);
 
     setSteps(prev => {
       const oldSteps = [...prev];
-      const swapped = [...prev];
-      const temp = swapped[index];
-      swapped[index] = swapped[targetIndex];
-      swapped[targetIndex] = temp;
+      const reordered = [...prev];
+      const [moved] = reordered.splice(fromIndex, 1);
+      reordered.splice(toIndex, 0, moved);
 
-      const connected = updateSequentialConnections(oldSteps, swapped);
+      const connected = updateSequentialConnections(oldSteps, reordered);
 
       const resetStepIds = new Set<string>();
       const updated = connected.map((step, idx) => {
@@ -2461,7 +2519,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
             {/* Header Row */}
             <div style={{ 
               display: 'grid', 
-              gridTemplateColumns: '50px 1fr 180px 150px 180px 120px', 
+              gridTemplateColumns: '55px 1fr 170px 175px 240px 45px', 
               background: '#f8fafc', 
               border: '1px solid #cbd5e1',
               borderRadius: '6px', 
@@ -2478,53 +2536,90 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
               <div>#</div>
               <div>Action Command*</div>
               <div>Responsible Role</div>
-              <div>Shape</div>
+              <div>Shape & Color</div>
               <div>Connects to</div>
-              <div style={{ textAlign: 'center' }}>Actions</div>
+              <div style={{ textAlign: 'center' }}>Act</div>
             </div>
 
             {/* Rows list */}
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               {steps.map((step, index) => {
                 const isGateway = step.bpmnShape === 'exclusive-gateway';
-                const hasFormOption = step.bpmnShape === 'task' || !step.bpmnShape;
+                const hasFormOption = step.bpmnShape === 'task' || !step.bpmnShape || step.bpmnShape === 'subprocess';
                 const isStart = step.bpmnShape === 'start-event';
-
-                let borderLeftColor = '#10a3a3'; // Default task (Teal)
-                if (step.bpmnShape === 'start-event') {
-                  borderLeftColor = '#10b981'; // Start (Emerald Green)
-                } else if (step.bpmnShape === 'subprocess') {
-                  borderLeftColor = '#6366f1'; // Subprocess (Indigo)
-                } else if (step.bpmnShape === 'exclusive-gateway') {
-                  borderLeftColor = '#f59e0b'; // Gateway (Amber Gold)
-                } else if (step.bpmnShape === 'end-event' || step.bpmnShape === 'message-end-event') {
-                  borderLeftColor = '#ef4444'; // End (Rose/Red)
-                }
+                const borderLeftColor = getStepLeftBorderColor(step);
 
                 return (
                   <React.Fragment key={step.id}>
                     {/* Individual Step Card */}
-                    <div style={{
-                      border: '1px solid #cbd5e1',
-                      borderLeft: `3.5px solid ${borderLeftColor}`,
-                      borderRadius: '6px',
-                      background: '#ffffff',
-                      marginBottom: '0.5rem',
-                      overflow: 'hidden',
-                      boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
-                    }}>
+                    <div 
+                      draggable={!isReadOnly}
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData('text/plain', index.toString());
+                        e.dataTransfer.effectAllowed = 'move';
+                        setDraggedStepIndex(index);
+                      }}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = 'move';
+                        if (dragOverStepIndex !== index) setDragOverStepIndex(index);
+                      }}
+                      onDragLeave={(e) => {
+                        if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+                        if (dragOverStepIndex === index) setDragOverStepIndex(null);
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        const fromIdx = parseInt(e.dataTransfer.getData('text/plain'), 10);
+                        if (!isNaN(fromIdx) && fromIdx !== index) {
+                          reorderStep(fromIdx, index);
+                        }
+                        setDraggedStepIndex(null);
+                        setDragOverStepIndex(null);
+                      }}
+                      onDragEnd={() => {
+                        setDraggedStepIndex(null);
+                        setDragOverStepIndex(null);
+                      }}
+                      style={{
+                        border: '1px solid #cbd5e1',
+                        borderLeft: `4px solid ${borderLeftColor}`,
+                        borderTop: dragOverStepIndex === index ? '2.5px solid var(--primary)' : '1px solid #cbd5e1',
+                        borderRadius: '6px',
+                        background: step.color || '#ffffff',
+                        marginBottom: '0.5rem',
+                        overflow: 'visible',
+                        opacity: draggedStepIndex === index ? 0.35 : 1,
+                        transform: dragOverStepIndex === index ? 'translateY(1px)' : 'none',
+                        boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+                        position: 'relative'
+                      }}
+                    >
                       {/* Main Row */}
                       <div style={{ 
                         display: 'grid', 
-                        gridTemplateColumns: '50px 1fr 180px 150px 180px 120px', 
+                        gridTemplateColumns: '55px 1fr 170px 175px 240px 45px', 
                         padding: '0.4rem 0.75rem',
                         alignItems: 'center',
-                        background: '#ffffff',
+                        background: 'transparent',
                         gap: '0.5rem'
                       }} className="step-table-row">
-                        {/* Step Number */}
-                        <div style={{ fontWeight: 500, color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                          #{index + 1}
+                        {/* Step Number & Drag Handle */}
+                        <div 
+                          style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '0.2rem', 
+                            fontWeight: 600, 
+                            color: 'var(--text-muted)', 
+                            fontSize: '0.85rem',
+                            cursor: !isReadOnly ? 'grab' : 'default',
+                            userSelect: 'none'
+                          }}
+                          title={!isReadOnly ? "Kéo để sắp xếp lại vị trí" : undefined}
+                        >
+                          {!isReadOnly && <GripVertical size={13} style={{ color: '#94a3b8', flexShrink: 0 }} />}
+                          <span>#{index + 1}</span>
                         </div>
 
                         {/* Action Command Input */}
@@ -2660,17 +2755,23 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                           </select>
                         </div>
 
-                        {/* BPMN Shape Select */}
-                        <div>
+                        {/* BPMN Shape & Minimalist Color Swatch */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', position: 'relative' }}>
                           {index === 0 ? (
-                            <div style={{ padding: '0.35rem 0.5rem', background: '#f1f5f9', border: '1px solid var(--neutral-border)', borderRadius: '4px', fontWeight: 500, fontSize: '0.85rem', color: 'var(--text-secondary)', textAlign: 'center' }}>
+                            <div style={{ flex: 1, padding: '0.35rem 0.5rem', background: '#f1f5f9', border: '1px solid var(--neutral-border)', borderRadius: '4px', fontWeight: 500, fontSize: '0.85rem', color: 'var(--text-secondary)', textAlign: 'center' }}>
                               Start
                             </div>
                           ) : (
                             <select
                               value={step.bpmnShape || 'task'}
-                              onChange={(e) => handleStepChange(index, 'bpmnShape', e.target.value)}
-                              style={{ padding: '0.35rem 1.5rem 0.35rem 0.5rem', fontSize: '0.85rem', width: '100%', margin: 0 }}
+                              onChange={(e) => {
+                                const newShape = e.target.value as ProcessStep['bpmnShape'];
+                                handleStepChange(index, 'bpmnShape', newShape);
+                                if (newShape !== 'task' && newShape !== 'subprocess') {
+                                  handleStepChange(index, 'color', undefined);
+                                }
+                              }}
+                              style={{ padding: '0.35rem 1.25rem 0.35rem 0.5rem', fontSize: '0.85rem', flex: 1, margin: 0 }}
                             >
                               <option value="task">Task</option>
                               <option value="subprocess">Quy trình con (Subprocess)</option>
@@ -2679,25 +2780,253 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                               <option value="message-end-event">Message End</option>
                             </select>
                           )}
+
+                          {/* Minimalist Color Swatch (Only for Task / Subprocess) */}
+                          {hasFormOption && index !== 0 && (
+                            <div style={{ position: 'relative', flexShrink: 0 }} data-popover="color">
+                              <button
+                                type="button"
+                                disabled={isReadOnly}
+                                onClick={() => {
+                                  setOpenColorPickerIndex(openColorPickerIndex === index ? null : index);
+                                  setOpenConnectPickerIndex(null);
+                                }}
+                                title="Đổi màu nền task"
+                                style={{
+                                  width: '18px',
+                                  height: '18px',
+                                  borderRadius: '9999px',
+                                  backgroundColor: step.color || '#ffffff',
+                                  border: `1.5px solid ${step.color ? borderLeftColor : '#cbd5e1'}`,
+                                  cursor: !isReadOnly ? 'pointer' : 'default',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  padding: 0
+                                }}
+                              />
+
+                              {openColorPickerIndex === index && (
+                                <div
+                                  style={{
+                                    position: 'absolute',
+                                    bottom: '100%',
+                                    left: 0,
+                                    marginBottom: '6px',
+                                    zIndex: 50,
+                                    background: '#ffffff',
+                                    border: '1px solid #cbd5e1',
+                                    borderRadius: '8px',
+                                    padding: '6px',
+                                    boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '6px'
+                                  }}
+                                >
+                                  {TASK_COLOR_PALETTE.map(c => {
+                                    const isSelected = (!step.color && c.id === 'white') || step.color === c.bg;
+                                    return (
+                                      <button
+                                        key={c.id}
+                                        type="button"
+                                        onClick={() => {
+                                          handleStepChange(index, 'color', c.bg === '#ffffff' ? undefined : c.bg);
+                                          setOpenColorPickerIndex(null);
+                                        }}
+                                        style={{
+                                          width: '18px',
+                                          height: '18px',
+                                          borderRadius: '9999px',
+                                          backgroundColor: c.bg,
+                                          border: `1.5px solid ${c.border}`,
+                                          cursor: 'pointer',
+                                          outline: isSelected ? '2px solid var(--primary)' : 'none',
+                                          outlineOffset: '1px',
+                                          padding: 0,
+                                          transform: isSelected ? 'scale(1.15)' : 'none'
+                                        }}
+                                      />
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
 
-                        {/* Connects to Step Select */}
-                        <div>
-                          {(isStart || step.bpmnShape === 'task' || step.bpmnShape === 'subprocess' || !step.bpmnShape) ? (
-                            <select
-                              value={step.nextStepId || ''}
-                              onChange={(e) => handleStepChange(index, 'nextStepId', e.target.value)}
-                              style={{ padding: '0.35rem 1.5rem 0.35rem 0.5rem', fontSize: '0.85rem', width: '100%', margin: 0 }}
-                            >
-                              {steps.map((s, sIdx) => (
-                                s.id !== step.id && (
-                                  <option key={s.id} value={s.id}>
-                                    #{sIdx + 1}: {s.bpmnShape === 'start-event' ? 'Start' : (s.bpmnShape === 'end-event' || s.bpmnShape === 'message-end-event') ? 'End' : (s.action ? (s.action.slice(0, 20) + (s.action.length > 20 ? '...' : '')) : `Untitled (${s.bpmnShape || 'task'})`)}
-                                  </option>
-                                )
-                              ))}
-                            </select>
-                          ) : isGateway ? (
+                        {/* Connects to Step Select / Multi-target Capsule Chips */}
+                        <div style={{ position: 'relative' }}>
+                          {(isStart || step.bpmnShape === 'task' || step.bpmnShape === 'subprocess' || !step.bpmnShape) ? (() => {
+                            const currentTargetIds: string[] = (step.nextStepIds && step.nextStepIds.length > 0)
+                              ? step.nextStepIds
+                              : (step.nextStepId ? [step.nextStepId] : []);
+
+                            return (
+                              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.25rem', minHeight: '26px' }}>
+                                {currentTargetIds.map(tId => {
+                                  const tStep = steps.find(s => s.id === tId);
+                                  const tIdx = steps.findIndex(s => s.id === tId);
+                                  const labelText = tStep 
+                                    ? `#${tIdx + 1} ${tStep.bpmnShape === 'start-event' ? 'Start' : (tStep.bpmnShape === 'end-event' || tStep.bpmnShape === 'message-end-event') ? 'End' : (tStep.action ? (tStep.action.slice(0, 14) + (tStep.action.length > 14 ? '…' : '')) : (tStep.bpmnShape || 'Step'))}`
+                                    : tId;
+
+                                  return (
+                                    <span
+                                      key={tId}
+                                      style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '0.2rem',
+                                        background: '#ffffff',
+                                        border: '1px solid #cbd5e1',
+                                        borderRadius: '4px',
+                                        padding: '1px 5px',
+                                        fontSize: '0.725rem',
+                                        color: 'var(--text-primary)',
+                                        fontWeight: 500,
+                                        lineHeight: 1.2,
+                                        boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
+                                      }}
+                                    >
+                                      <span>{labelText}</span>
+                                      {!isReadOnly && (
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            const updatedIds = currentTargetIds.filter(id => id !== tId);
+                                            handleStepChange(index, 'nextStepIds', updatedIds);
+                                            handleStepChange(index, 'nextStepId', updatedIds[0] || undefined);
+                                          }}
+                                          style={{
+                                            border: 'none',
+                                            background: 'transparent',
+                                            padding: 0,
+                                            cursor: 'pointer',
+                                            color: 'var(--text-muted)',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            marginLeft: '2px'
+                                          }}
+                                          onMouseEnter={(e) => { e.currentTarget.style.color = '#ef4444'; }}
+                                          onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-muted)'; }}
+                                        >
+                                          <X size={11} />
+                                        </button>
+                                      )}
+                                    </span>
+                                  );
+                                })}
+
+                                {!isReadOnly && (
+                                  <div style={{ position: 'relative', display: 'inline-block' }} data-popover="connect">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setOpenConnectPickerIndex(openConnectPickerIndex === index ? null : index);
+                                        setOpenColorPickerIndex(null);
+                                      }}
+                                      title="Nối thêm bước kế tiếp"
+                                      style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        width: '20px',
+                                        height: '20px',
+                                        borderRadius: '4px',
+                                        border: '1px dashed #cbd5e1',
+                                        background: '#ffffff',
+                                        color: 'var(--text-secondary)',
+                                        cursor: 'pointer',
+                                        fontSize: '0.75rem',
+                                        fontWeight: 600,
+                                        lineHeight: 1
+                                      }}
+                                      onMouseEnter={(e) => {
+                                        e.currentTarget.style.borderColor = 'var(--primary)';
+                                        e.currentTarget.style.color = 'var(--primary)';
+                                      }}
+                                      onMouseLeave={(e) => {
+                                        e.currentTarget.style.borderColor = '#cbd5e1';
+                                        e.currentTarget.style.color = 'var(--text-secondary)';
+                                      }}
+                                    >
+                                      +
+                                    </button>
+
+                                    {openConnectPickerIndex === index && (
+                                      <div
+                                        style={{
+                                          position: 'absolute',
+                                          top: '100%',
+                                          left: 0,
+                                          marginTop: '4px',
+                                          zIndex: 50,
+                                          background: '#ffffff',
+                                          border: '1px solid #cbd5e1',
+                                          borderRadius: '6px',
+                                          padding: '4px',
+                                          boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+                                          width: '210px',
+                                          maxHeight: '190px',
+                                          overflowY: 'auto'
+                                        }}
+                                      >
+                                        {steps
+                                          .filter(s => s.id !== step.id && !currentTargetIds.includes(s.id))
+                                          .map(s => {
+                                            const sIdx = steps.findIndex(x => x.id === s.id);
+                                            const sLabel = `#${sIdx + 1}: ${s.bpmnShape === 'start-event' ? 'Start' : (s.bpmnShape === 'end-event' || s.bpmnShape === 'message-end-event') ? 'End' : (s.action ? (s.action.slice(0, 18) + (s.action.length > 18 ? '…' : '')) : (s.bpmnShape || 'Step'))}`;
+                                            return (
+                                              <button
+                                                key={s.id}
+                                                type="button"
+                                                onClick={() => {
+                                                  const updatedIds = [...currentTargetIds, s.id];
+                                                  handleStepChange(index, 'nextStepIds', updatedIds);
+                                                  handleStepChange(index, 'nextStepId', updatedIds[0]);
+                                                  setOpenConnectPickerIndex(null);
+                                                }}
+                                                style={{
+                                                  width: '100%',
+                                                  textAlign: 'left',
+                                                  padding: '4px 6px',
+                                                  borderRadius: '4px',
+                                                  border: 'none',
+                                                  background: 'transparent',
+                                                  fontSize: '0.75rem',
+                                                  color: 'var(--text-primary)',
+                                                  cursor: 'pointer',
+                                                  display: 'block',
+                                                  whiteSpace: 'nowrap',
+                                                  overflow: 'hidden',
+                                                  textOverflow: 'ellipsis'
+                                                }}
+                                                onMouseEnter={(e) => {
+                                                  e.currentTarget.style.backgroundColor = '#f0fdfa';
+                                                  e.currentTarget.style.color = '#0f766e';
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                  e.currentTarget.style.backgroundColor = 'transparent';
+                                                  e.currentTarget.style.color = 'var(--text-primary)';
+                                                }}
+                                              >
+                                                {sLabel}
+                                              </button>
+                                            );
+                                          })}
+                                        {steps.filter(s => s.id !== step.id && !currentTargetIds.includes(s.id)).length === 0 && (
+                                          <div style={{ padding: '6px', fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', fontStyle: 'italic' }}>
+                                            Đã nối tất cả các bước
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })() : isGateway ? (
                             <div style={{ fontSize: '0.75rem', fontStyle: 'italic', color: 'var(--text-secondary)', textAlign: 'center' }}>
                               Configured in branches
                             </div>
@@ -2709,15 +3038,15 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                         </div>
 
                         {/* Action Buttons Column */}
-                        <div style={{ display: 'flex', gap: '0.25rem', justifyContent: 'center' }}>
-                          <button className="btn btn-secondary btn-sm" style={{ padding: '0.25rem 0.35rem', margin: 0 }} disabled={index === 0 || isReadOnly} onClick={() => moveStep(index, 'up')}>
-                            <ArrowUp size={13} />
-                          </button>
-                          <button className="btn btn-secondary btn-sm" style={{ padding: '0.25rem 0.35rem', margin: 0 }} disabled={index === steps.length - 1 || isReadOnly} onClick={() => moveStep(index, 'down')}>
-                            <ArrowDown size={13} />
-                          </button>
-                          {!isReadOnly && (
-                            <button className="step-delete-btn" style={{ padding: '0.25rem 0.35rem', margin: 0, cursor: 'pointer' }} onClick={() => handleRemoveStep(index)}>
+                        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                          {!isReadOnly && index !== 0 && (
+                            <button
+                              type="button"
+                              className="step-delete-btn"
+                              style={{ padding: '0.25rem 0.35rem', margin: 0, cursor: 'pointer' }}
+                              onClick={() => handleRemoveStep(index)}
+                              title="Xóa bước này"
+                            >
                               <Trash2 size={13} />
                             </button>
                           )}

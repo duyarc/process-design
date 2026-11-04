@@ -9,7 +9,7 @@
 | **Module Name** | Process Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-11-04) — Sequence flow obstacle avoidance & column lane occupancy verified against source |
+| **Verified At Commit** | (2026-11-04) — Drag-to-reorder, multi-target flows, and task color palette verified against source |
 
 > **⚠️ Note:** Several architectural facts here are not obvious from the code — see Sections 4.5, 6.2, and 7.
 
@@ -552,3 +552,4 @@ full diff of any entry below.
 | 2026-11-04 | `CURRENT` | **Involved Roles Drag-to-Reorder (`ProcessEditor.tsx`):** Added HTML5 Drag & Drop reordering to the role chip container with visual drag handles (`GripVertical`), drop target highlight, and live BPMN swimlane re-rendering on order change. |
 | 2026-11-04 | `CURRENT` | **Roles Loading & Ghost Operator Pruning:** (1) Restored `roles` and `formFields` in `/api/processes?fields=list` query in `server.cjs`. (2) Updated `fetchProcess` in `ProcessEditor.tsx` to fetch exact single process `/api/processes/:id`. (3) Pruned unused default `Operator` role and auto-merged active step roles into `roles` state and `bpmnXmlGenerator.ts`. |
 | 2026-11-04 | `CURRENT` | **BPMN Sequence Flow Obstacle Avoidance (`edgeRouter.ts` & `gridLayout.ts`):** (1) In Strategy 2 (vertical-aligned), replaced invalid page row-index comparison with geometric bounding-box collision detection against `nodePositions`. Detours via right-side gutter (`maxRight + 55px`) around intermediate action blocks. (2) In `gridLayout.ts`, added intermediate lane occupancy check to advance sequential steps to next column when space permits (`prevCol + 1 < COLS_PER_ROW`). (3) Synchronized `computeNumRows` and `getNumRows` to accept `uniqueRoles`. |
+| 2026-11-04 | `CURRENT` | **Workflow Step Table Ergonomics & Multi-flow Routing (`ProcessEditor.tsx`, `types.ts`, `gridLayout.ts`, `bpmnXmlGenerator.ts`):** (1) Integrated HTML5 Drag-to-Reorder via `GripVertical` handle at column `#`, pruned legacy `moveStep` and `ArrowUp`/`ArrowDown` icons. (2) Added multi-flow connections via `nextStepIds?: string[]` and Capsule Chips UI with popover step picker in `CONNECTS TO`. (3) Added minimalist 6-dot pastel color swatch picker for Task/Activity with synchronized BPMN shape coloring (`bioc:fill` / `bioc:stroke`). |

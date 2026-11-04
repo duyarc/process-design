@@ -5,6 +5,8 @@ export interface ProcessStep {
   bpmnShape?: 'task' | 'subprocess' | 'exclusive-gateway' | 'start-event' | 'end-event' | 'message-end-event';
   subProcessId?: string;
   nextStepId?: string;
+  nextStepIds?: string[];
+  color?: string;
   branchYesLabel?: string;
   branchYesTargetId?: string;
   branchNoLabel?: string;
