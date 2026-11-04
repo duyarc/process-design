@@ -87,7 +87,27 @@ function getCandidates(
   const staggerOffset = (idx - (numForms - 1) / 2) * 60;
 
   return [
-    // Candidate 1: Middle-Right (Default)
+    // Candidate 1: Top-Center (Ưu tiên 1: TRÊN)
+    // Connector goes from top-center of task to bottom-center of document.
+    {
+      x: tx + tw / 2 - DOC_W / 2 + staggerOffset,
+      y: ty - 60,
+      labelX: (tx + tw / 2 + staggerOffset) - labelW / 2,
+      labelY: ty - 60 - labelH - 2,
+      waypointFrom: { x: tx + tw / 2, y: ty },
+      waypointTo: { x: tx + tw / 2 + staggerOffset, y: ty - 10 }
+    },
+    // Candidate 2: Middle-Left (Ưu tiên 2: TRÁI)
+    // Connector goes from middle-left of task to middle-right of document.
+    {
+      x: tx - DOC_W - 24 - idx * 50,
+      y: ty + th / 2 - DOC_H / 2,
+      labelX: (tx - DOC_W - 24 - idx * 50 + DOC_W / 2) - labelW / 2,
+      labelY: ty + th / 2 - DOC_H / 2 - labelH - 2,
+      waypointFrom: { x: tx, y: ty + th / 2 },
+      waypointTo: { x: tx - 24 - idx * 50, y: ty + th / 2 }
+    },
+    // Candidate 3: Middle-Right (Ưu tiên 3: PHẢI)
     // Document center Y aligned horizontally with task center Y.
     // Connector goes from middle-right of task to middle-left of document.
     {
@@ -98,17 +118,7 @@ function getCandidates(
       waypointFrom: { x: tx + tw, y: ty + th / 2 },
       waypointTo: { x: tx + tw + 24 + idx * 50, y: ty + th / 2 }
     },
-    // Candidate 2: Top-Center (Original position fallback)
-    // Connector goes from top-center of task to bottom-center of document.
-    {
-      x: tx + tw / 2 - DOC_W / 2 + staggerOffset,
-      y: ty - 60,
-      labelX: (tx + tw / 2 + staggerOffset) - labelW / 2,
-      labelY: ty - 60 - labelH - 2,
-      waypointFrom: { x: tx + tw / 2, y: ty },
-      waypointTo: { x: tx + tw / 2 + staggerOffset, y: ty - 10 }
-    },
-    // Candidate 3: Below-Center
+    // Candidate 4: Below-Center (Ưu tiên 4: DƯỚI)
     // Connector goes from bottom-center of task to top-center of document.
     {
       x: tx + tw / 2 - DOC_W / 2 + staggerOffset,
@@ -117,16 +127,6 @@ function getCandidates(
       labelY: ty + th + 40 - labelH - 2,
       waypointFrom: { x: tx + tw / 2, y: ty + th },
       waypointTo: { x: tx + tw / 2 + staggerOffset, y: ty + th + 40 }
-    },
-    // Candidate 4: Middle-Left
-    // Connector goes from middle-left of task to middle-right of document.
-    {
-      x: tx - DOC_W - 24 - idx * 50,
-      y: ty + th / 2 - DOC_H / 2,
-      labelX: (tx - DOC_W - 24 - idx * 50 + DOC_W / 2) - labelW / 2,
-      labelY: ty + th / 2 - DOC_H / 2 - labelH - 2,
-      waypointFrom: { x: tx, y: ty + th / 2 },
-      waypointTo: { x: tx - 24 - idx * 50, y: ty + th / 2 }
     }
   ];
 }
@@ -199,13 +199,17 @@ function segmentIntersectsRect(
 }
 
 /**
- * Test whether a document shape placed at (doX, doY) would be intersected
+ * Test whether a document shape placed at (doX, doY) or its label would be intersected
  * by any edge segment in allEdgeSegments.
  */
 function hasEdgeCollision(
   doX: number,
   doY: number,
-  allEdgeSegments: EdgeSegment[]
+  allEdgeSegments: EdgeSegment[],
+  labelX?: number,
+  labelY?: number,
+  labelW?: number,
+  labelH?: number
 ): boolean {
   for (const seg of allEdgeSegments) {
     if (segmentIntersectsRect(
@@ -214,6 +218,15 @@ function hasEdgeCollision(
       COLLISION_MARGIN
     )) {
       return true;
+    }
+    if (labelX !== undefined && labelY !== undefined && labelW !== undefined && labelH !== undefined) {
+      if (segmentIntersectsRect(
+        seg.x1, seg.y1, seg.x2, seg.y2,
+        labelX, labelY, labelW, labelH,
+        2
+      )) {
+        return true;
+      }
     }
   }
   return false;
@@ -356,7 +369,7 @@ export function placeDocuments(
 
     // ── Auto position: try candidates for ALL auto-placed forms of this step ──
     if (autoForms.length > 0) {
-      let chosenCandidateIndex = 0; // default fallback (Middle-Right)
+      let chosenCandidateIndex = 0; // default fallback (Top-Center)
       const numForms = forms.length;
 
       for (let cIdx = 0; cIdx < 4; cIdx++) {
@@ -374,8 +387,15 @@ export function placeDocuments(
           );
 
           const cand = candidates[cIdx];
+
+          // Boundary check for Middle-Left: ensure shape & label do not bleed into left lane header (x = 150)
+          if (cIdx === 1 && (cand.x < 155 || cand.labelX < 155)) {
+            candidateGroupIsValid = false;
+            break;
+          }
+
           if (
-            hasEdgeCollision(cand.x, cand.y, allEdgeSegments) ||
+            hasEdgeCollision(cand.x, cand.y, allEdgeSegments, cand.labelX, cand.labelY, item.textW, item.labelH) ||
             hasTaskCollision(cand.x, cand.y, node.id, nodePositions)
           ) {
             candidateGroupIsValid = false;
