@@ -160,7 +160,7 @@ interface ProcessEditorProps {
   onCancel: () => void;
   onSaveSuccess: (id: string) => void;
   onOpenDraft?: (id: string) => void;
-  initialTab?: 'description' | 'workflow' | 'form' | 'versions';
+  initialTab?: 'general' | 'description' | 'workflow' | 'form' | 'versions';
   initialFormToBuild?: string | null;
   onClearInitialEditOpts?: () => void;
   exitOnCloseForm?: boolean;
@@ -184,9 +184,9 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
     return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
   };
   const modelerRef = useRef<BpmnModelerRef | null>(null);
-  const [activeTab, setActiveTab] = useState<'description' | 'workflow' | 'form' | 'versions'>('description');
+  const [activeTab, setActiveTab] = useState<'general' | 'workflow' | 'form'>('general');
 
-  const handleTabChange = (newTab: 'description' | 'workflow' | 'form' | 'versions') => {
+  const handleTabChange = (newTab: 'general' | 'workflow' | 'form') => {
     if (activeTab === 'workflow' && bpmnViewMode === 'custom' && modelerRef.current) {
       try {
         const { positions, waypoints } = modelerRef.current.getPositions();
@@ -404,7 +404,11 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
   // Handle initial tab / form builder redirection
   useEffect(() => {
     if (initialTab) {
-      setActiveTab(initialTab);
+      if (initialTab === 'description' || initialTab === 'versions' || initialTab === 'general') {
+        setActiveTab('general');
+      } else {
+        setActiveTab(initialTab as 'workflow' | 'form');
+      }
     }
     if (initialFormToBuild) {
       handleOpenFormBuilder(initialFormToBuild);
@@ -1706,12 +1710,11 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
             >
               <ArrowLeft size={14} />
             </button>
-            {(['description', 'workflow', 'form', 'versions'] as const).map((tab) => {
+            {(['general', 'workflow', 'form'] as const).map((tab) => {
               const tabLabels: Record<string, string> = {
-                description: 'Description',
+                general: 'General',
                 workflow: `Workflow (${steps.length})`,
-                form: `Form (${workflowForms.length})`,
-                versions: 'Versions'
+                form: `Form (${workflowForms.length})`
               };
               return (
                 <button
@@ -1734,7 +1737,6 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                     borderTop: 'none'
                   }}
                 >
-                  {tab === 'versions' && <GitBranch size={13} />}
                   {tabLabels[tab]}
                 </button>
               );
@@ -1769,35 +1771,78 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
           </div>
         </div>
 
-        {/* TAB 1: DESCRIPTION */}
-        {activeTab === 'description' && (
-          <fieldset style={{ border: 'none', padding: 0, margin: 0 }} disabled={isReadOnly}>
-            <div className="paper-card accent-teal">
-            <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-              <label className="form-label">Process Title*</label>
-              <input
-                type="text"
-                placeholder="e.g. Cleaning-in-Place (CIP) Fermentation Tank"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-              />
-            </div>
+        {/* TAB 1: GENERAL (UNIFIED PROFILE, STATUS & LIFECYCLE) */}
+        {activeTab === 'general' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            <fieldset style={{ border: 'none', padding: 0, margin: 0 }} disabled={isReadOnly}>
+              <div className="paper-card" style={{ border: '1px solid var(--neutral-border)', borderRadius: '8px', padding: '1.25rem 1.5rem', background: '#ffffff', boxShadow: 'var(--shadow-sm)', marginBottom: 0 }}>
+                {/* ID* (30%) & Title* (70%) */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(200px, 260px) 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label className="form-label" style={{ fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>ID*</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 3S-OEM"
+                      value={processCode}
+                      onChange={(e) => setProcessCode(e.target.value)}
+                      disabled={status !== 'Draft' || isReadOnly}
+                      style={{
+                        fontFamily: 'monospace',
+                        fontSize: '0.85rem',
+                        padding: '0.6rem 0.85rem',
+                        borderRadius: 'var(--component-radius)',
+                        border: '1px solid #d1d5db',
+                        width: '100%',
+                        boxSizing: 'border-box',
+                        backgroundColor: (status !== 'Draft' || isReadOnly) ? '#f1f5f9' : '#ffffff'
+                      }}
+                    />
+                  </div>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label className="form-label" style={{ fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Title*</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Cleaning-in-Place (CIP) Fermentation Tank"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      style={{
+                        fontSize: '0.95rem',
+                        fontWeight: 600,
+                        padding: '0.6rem 0.85rem',
+                        borderRadius: 'var(--component-radius)',
+                        border: '1px solid #d1d5db',
+                        width: '100%',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+                </div>
 
-            <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-              <label className="form-label">Process Description</label>
-              <textarea
-                rows={3}
-                placeholder="Summarize the core goal of this workflow and when it should be executed..."
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-              />
-            </div>
+                <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+                  <label className="form-label" style={{ fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Description</label>
+                  <textarea
+                    rows={3}
+                    placeholder="Summarize the core goal of this workflow and when it should be executed..."
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '0.6rem 0.85rem',
+                      fontFamily: 'inherit',
+                      fontSize: '0.9rem',
+                      background: '#ffffff',
+                      border: '1px solid #d1d5db',
+                      borderRadius: 'var(--component-radius)',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
 
-            <div className="form-group" style={{ marginBottom: '1.5rem', borderTop: '1px dashed var(--neutral-border)', paddingTop: '1.5rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <label className="form-label" style={{ fontWeight: 600, fontSize: '0.875rem', margin: 0 }}>
-                  Involved Roles*
-                </label>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+                    <label className="form-label" style={{ fontSize: '0.78rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', margin: 0 }}>
+                      Roles*
+                    </label>
                 {!isReadOnly && roles.length > 1 && (
                   <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', userSelect: 'none' }}>
                     Kéo thả để sắp xếp thứ tự swimlane
@@ -2030,13 +2075,8 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
             </div>
 
 
-          </div>
-          </fieldset>
-        )}
-
-        {/* TAB 4: VERSIONS */}
-        {activeTab === 'versions' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              </div>
+            </fieldset>
 
             {/* Section A: Version Card + Lifecycle Actions */}             {/* Gộp toàn bộ thành một Toolbar ngang duy nhất */}
              <div style={{
@@ -2299,15 +2339,13 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                </div>
              </div>
 
-            {/* Section B+C: Sign-off Setup + Version History (merged) */}
+            {/* Section B+C: Sign-off Setup + Version History */}
             <div style={{
               backgroundColor: 'var(--neutral-card)',
               border: '1px solid var(--neutral-border)',
-              borderLeft: '4px solid var(--primary)',
-              borderRadius: 'var(--card-radius)',
-              padding: '1rem',
+              borderRadius: '8px',
+              padding: '1.25rem 1.5rem',
               boxShadow: 'var(--shadow-sm)',
-              marginBottom: '1.5rem',
               position: 'relative',
               overflow: 'hidden'
             }}>
@@ -2395,45 +2433,6 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
 
               {/* Divider */}
               <div style={{ borderTop: '1px solid var(--neutral-border)', margin: '0.85rem 0 0.7rem' }} />
-
-              {/* Process Code / ID input field */}
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.75rem',
-                marginBottom: '1rem',
-                padding: '0 0.25rem'
-              }}>
-                <label style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  fontSize: '0.8rem',
-                  fontWeight: 600,
-                  color: 'var(--text-primary)',
-                  whiteSpace: 'nowrap',
-                  margin: 0
-                }}>
-                  Process ID:
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. shipping_process"
-                  value={processCode}
-                  onChange={(e) => setProcessCode(e.target.value)}
-                  disabled={status !== 'Draft' || isReadOnly}
-                  style={{
-                    fontFamily: 'monospace',
-                    fontSize: '0.85rem',
-                    padding: '0.35rem 0.5rem',
-                    borderRadius: '4px',
-                    border: '1px solid var(--neutral-border)',
-                    flex: '1',
-                    maxWidth: '350px',
-                    boxSizing: 'border-box',
-                    backgroundColor: (status !== 'Draft' || isReadOnly) ? '#f1f5f9' : '#ffffff'
-                  }}
-                />
-              </div>
 
               {/* Version History — inline */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.55rem' }}>

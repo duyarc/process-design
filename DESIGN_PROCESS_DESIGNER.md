@@ -9,7 +9,7 @@
 | **Module Name** | Process Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-11-04) — ProcessReader minimalist redesign: Approvals card pruned, version badge hidden, full-width forms list with FilePlus & Edit2 |
+| **Verified At Commit** | (2026-11-04) — ProcessEditor unified General tab: merged Description & Versions, side-by-side ID & Title, pruned "Process" prefix, flattened paper-cards |
 
 > **⚠️ Note:** Several architectural facts here are not obvious from the code — see Sections 4.5, 6.2, and 7.
 
@@ -551,3 +551,4 @@ full diff of any entry below.
 | 2026-11-04 | `CURRENT` | **Page-Aware Multi-Source Layout Resolution (`gridLayout.ts`):** When converging steps receive flows across different rows (e.g. Page 1 & Page 2), precedence for `primarySourceIdx` and column progression is now strictly given to predecessors on the target row (`sourceRow === targetRow`). Predecessors from previous pages (which enter via Link Catch events at column 0) no longer leak their old column index into the current page, eliminating artificial column-overflow and phantom page-spill (Page 3 completely pruned). |
 | 2026-11-04 | `CURRENT` | **ProcessEditor & ProcessReader On-Demand Print Fetching (`ProcessEditor.tsx`, `ProcessReader.tsx`):** Updated the Print action in the Form tab of ProcessEditor and ProcessReader to detect lean metadata records (`!fullForm?.layout_blocks`) and fetch the authoritative full form record via `/api/forms/:id` on-demand with a loading state (`Đang tải...`). Guarantees `layoutBlocks` are fully hydrated before opening `PrintBlankForm`. |
 | 2026-11-04 | CURRENT | **ProcessReader Minimalist Redesign & Approvals Prune (`ProcessReader.tsx`):** (1) Completely pruned administrative Approvals card and dead-code `approvalRows`. (2) Hid version selector dropdown and draft status badges from header and form rows to eliminate visual noise. (3) Re-architected Attached Forms section to full-width minimalist paper card with unified `FilePlus` (teal) and `Edit2` (neutral) actions matching homepage Forms tab. |
+| 2026-11-04 | CURRENT | **ProcessEditor Unified General Tab (`ProcessEditor.tsx`, `App.tsx`):** (1) Merged legacy `Description` and `Versions` tabs into a single unified `General` tab, reducing tabs from 4 to 3 (`General`, `Workflow`, `Form`). (2) Positioned `ID*` (30%) and `Title*` (70%) side-by-side on row 1 of Card 1. (3) Pruned redundant `"Process"` prefix across field labels (`ID*`, `Title*`, `Description`, `Roles*`). (4) Preserved 100% lifecycle action toolbar (`Draft → Submit → Review → Activate`) directly below Card 1. (5) Pruned duplicate Process ID input in Card 2 and standardized to minimalist `.paper-card` styling. |

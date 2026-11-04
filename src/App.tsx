@@ -43,7 +43,7 @@ const MainApp: React.FC = () => {
   const [initialPrintFormName, setInitialPrintFormName] = useState<string | null>(null);
   const [triggerProcessPrint, setTriggerProcessPrint] = useState(false);
   const [dashboardViewMode, setDashboardViewMode] = useState<'processes' | 'forms' | 'submissions' | 'reports' | 'guide'>('processes');
-  const [initialEditorTab, setInitialEditorTab] = useState<'description' | 'workflow' | 'form' | 'versions' | undefined>(undefined);
+  const [initialEditorTab, setInitialEditorTab] = useState<'general' | 'description' | 'workflow' | 'form' | 'versions' | undefined>(undefined);
   const [initialFormToBuild, setInitialFormToBuild] = useState<string | null>(null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -173,7 +173,7 @@ const MainApp: React.FC = () => {
     setPage('fill-form');
   };
 
-  const handleEditProcess = (id: string | null, tab?: 'description' | 'workflow' | 'form', formName?: string | null) => {
+  const handleEditProcess = (id: string | null, tab?: 'general' | 'description' | 'workflow' | 'form' | 'versions', formName?: string | null) => {
     setPrevPage(page);
     setSelectedProcessId(id);
     setInitialEditorTab(tab);
@@ -432,7 +432,7 @@ const MainApp: React.FC = () => {
               onOpenDraft={(id) => {
                 // After creating a new draft, open its editor directly
                 setSelectedProcessId(id);
-                setInitialEditorTab('versions');
+                setInitialEditorTab('general');
                 setInitialFormToBuild(null);
                 // page stays 'editor', React re-renders with new processId
               }}
