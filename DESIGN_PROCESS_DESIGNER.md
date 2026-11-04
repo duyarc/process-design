@@ -9,7 +9,7 @@
 | **Module Name** | Process Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-11-04) — Lean list query ?fields=list on /api/forms & /api/processes/:id fetch verified against source |
+| **Verified At Commit** | (2026-11-04) — BPMN diagram DataObjectReference displays human-readable formTitle with formsData lookup verified against source |
 
 > **⚠️ Note:** Several architectural facts here are not obvious from the code — see Sections 4.5, 6.2, and 7.
 
@@ -268,7 +268,7 @@ Legacy process records used human-readable form names (e.g. `"Inspection Sheet"`
 ### Pipeline Overview
 
 ```
-generateBPMNXML(steps, title, roles, rowFilter?)
+generateBPMNXML(steps, title, roles, rowFilter?, formsData?)
   │
   ├── [Module 1] gridLayout.ts       → stepRows[], stepCols[], layoutNodes[], originalFlows[]
   │        Assigns each ProcessStep to a (row, col) cell.
@@ -335,7 +335,7 @@ Tried in order by `documentPlacer.ts` until a collision-free position is found:
 | Export | Signature | Consumers |
 |---|---|---|
 | `getNumRows` | `(steps: ProcessStep[]) → number` | `ProcessEditor.tsx` |
-| `generateBPMNXML` | `(steps, title, roles, rowFilter?) → string` | `ProcessEditor.tsx`, `ProcessReader.tsx`, `BpmnViewerComponent.tsx` |
+| `generateBPMNXML` | `(steps, title, roles, rowFilter?, formsData?) → string` | `ProcessEditor.tsx`, `ProcessReader.tsx`, `BpmnViewerComponent.tsx` |
 
 ---
 
@@ -548,3 +548,4 @@ full diff of any entry below.
 | 2026-11-02 | `CURRENT` | **Workstep Form Selection Refactor:** Replaced stacked native `<select>` dropdowns and double `window.prompt()` with inline Form Chips (`[📄 FormID ×]`), click-to-edit link, and searchable `StepFormPickerModal` with real-time ID duplication validation. |
 
 | 2026-11-04 | `CURRENT` | **ProcessEditor Lean Forms Query & Single Process Lookup (`ProcessEditor.tsx`):** (1) Updated `fetchFormsList` and `fetchProcess` to request `/api/forms?fields=list`, omitting multi-MB `layout_blocks` of unrelated forms and cutting network payload by ~80-90%. (2) Replaced full processes scan with `/api/processes?fields=list` for sibling version discovery. |
+| 2026-11-04 | `CURRENT` | **BPMN Form Title Labeling:** Updated `generateBPMNXML` and `placeDocuments` to accept `formsData` lookup. Document shapes (`DataObjectReference`) now display human-readable `formTitle` (with fallback to `formId`), auto-wrapping 2 lines (`labelW: 110-130px`, `labelH: 34px`) and truncating at 40 chars to prevent swimlane overflow. Connected in `ProcessEditor.tsx` and `ProcessReader.tsx`. |

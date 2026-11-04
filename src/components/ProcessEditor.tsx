@@ -317,7 +317,23 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
 
   // Debounce diagram updates to prevent flickering when typing step action commands
   useEffect(() => {
-    const xml = generateBPMNXML(steps, title || 'Untitled Process', roles || []);
+    // Build combined lookup map from allForms and workflowFormsData for human-readable BPMN labels
+    const formsLookup: Record<string, { formTitle?: string; formName?: string }> = {};
+    allForms.forEach((f: any) => {
+      const fid = f.form_id || f.id;
+      if (fid) {
+        formsLookup[fid] = { formTitle: f.form_title || f.title || f.name };
+      }
+    });
+    Object.entries(workflowFormsData).forEach(([fid, val]: [string, any]) => {
+      formsLookup[fid] = {
+        ...formsLookup[fid],
+        formTitle: val?.formTitle || val?.form_title || formsLookup[fid]?.formTitle,
+        formName: val?.formName || formsLookup[fid]?.formName
+      };
+    });
+
+    const xml = generateBPMNXML(steps, title || 'Untitled Process', roles || [], undefined, formsLookup);
     
     // If it's the first time generating XML, apply it immediately to avoid mount delay
     setDebouncedXml(prev => {
@@ -332,7 +348,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
     }, 500);
     
     return () => clearTimeout(timer);
-  }, [steps, title, roles]);
+  }, [steps, title, roles, workflowFormsData, allForms]);
 
   const isReadOnly = status !== 'Draft';
 

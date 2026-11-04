@@ -36,6 +36,41 @@ interface PositionCandidate {
 }
 
 /**
+ * Resolves human-readable form title from formsData lookup.
+ * Falls back to raw formId if not found or empty.
+ */
+export function getFormDisplayName(formId: string, formsData?: Record<string, any>): string {
+  if (!formId) return 'Completed Form';
+  if (formsData) {
+    const fd = formsData[formId];
+    if (fd) {
+      const name = fd.formTitle || fd.form_title || fd.title || fd.formName;
+      if (name && typeof name === 'string' && name.trim()) {
+        return name.trim();
+      }
+    }
+    const found = Object.values(formsData).find((f: any) => f && (f.formId === formId || f.form_id === formId || f.id === formId));
+    if (found) {
+      const name = found.formTitle || found.form_title || found.title || found.formName;
+      if (name && typeof name === 'string' && name.trim()) {
+        return name.trim();
+      }
+    }
+  }
+  return formId;
+}
+
+/**
+ * Truncates overly long form titles for BPMN label to prevent diagram overflow.
+ */
+export function formatBPMNFormLabel(name: string): string {
+  if (name.length > 40) {
+    return name.slice(0, 37) + '...';
+  }
+  return name;
+}
+
+/**
  * Generate candidate positions and associated routing details relative to the
  * task node bounds (tx, ty, tw, th).
  */
@@ -46,7 +81,8 @@ function getCandidates(
   th: number,
   idx: number,
   numForms: number,
-  labelW: number
+  labelW: number,
+  labelH: number = 24
 ): PositionCandidate[] {
   const staggerOffset = (idx - (numForms - 1) / 2) * 60;
 
@@ -58,7 +94,7 @@ function getCandidates(
       x: tx + tw + 24 + idx * 50,
       y: ty + th / 2 - DOC_H / 2,
       labelX: (tx + tw + 24 + idx * 50 + DOC_W / 2) - labelW / 2,
-      labelY: ty + th / 2 - DOC_H / 2 - 18,
+      labelY: ty + th / 2 - DOC_H / 2 - labelH - 2,
       waypointFrom: { x: tx + tw, y: ty + th / 2 },
       waypointTo: { x: tx + tw + 24 + idx * 50, y: ty + th / 2 }
     },
@@ -68,7 +104,7 @@ function getCandidates(
       x: tx + tw / 2 - DOC_W / 2 + staggerOffset,
       y: ty - 60,
       labelX: (tx + tw / 2 + staggerOffset) - labelW / 2,
-      labelY: ty - 60 - 18,
+      labelY: ty - 60 - labelH - 2,
       waypointFrom: { x: tx + tw / 2, y: ty },
       waypointTo: { x: tx + tw / 2 + staggerOffset, y: ty - 10 }
     },
@@ -78,7 +114,7 @@ function getCandidates(
       x: tx + tw / 2 - DOC_W / 2 + staggerOffset,
       y: ty + th + 40,
       labelX: (tx + tw / 2 + staggerOffset) - labelW / 2,
-      labelY: ty + th + 40 - 18,
+      labelY: ty + th + 40 - labelH - 2,
       waypointFrom: { x: tx + tw / 2, y: ty + th },
       waypointTo: { x: tx + tw / 2 + staggerOffset, y: ty + th + 40 }
     },
@@ -88,7 +124,7 @@ function getCandidates(
       x: tx - DOC_W - 24 - idx * 50,
       y: ty + th / 2 - DOC_H / 2,
       labelX: (tx - DOC_W - 24 - idx * 50 + DOC_W / 2) - labelW / 2,
-      labelY: ty + th / 2 - DOC_H / 2 - 18,
+      labelY: ty + th / 2 - DOC_H / 2 - labelH - 2,
       waypointFrom: { x: tx, y: ty + th / 2 },
       waypointTo: { x: tx - 24 - idx * 50, y: ty + th / 2 }
     }
@@ -230,7 +266,8 @@ export function placeDocuments(
   nodePositions: Map<string, Rect>,
   allEdgeSegments: EdgeSegment[],
   rowFilter?: number,
-  rowOffset?: number
+  rowOffset?: number,
+  formsData?: Record<string, any>
 ): DocumentPlacement[] {
   const placements: DocumentPlacement[] = [];
 
@@ -251,10 +288,15 @@ export function placeDocuments(
         ? [node.stepRef.formName]
         : ['Completed Form'];
 
-    const labelBoxes: { x: number; y: number; w: number }[] = [];
+    // ── Separate manual custom layouts from auto-positioned layouts ──
+    const autoForms: { formName: string; idx: number; textW: number; labelH: number }[] = [];
 
     forms.forEach((formName, idx) => {
-      // ── Custom (manual) position: skip collision detection ─────────────
+      const fullDisplayName = getFormDisplayName(formName, formsData);
+      const displayName = formatBPMNFormLabel(fullDisplayName);
+      const textW = Math.min(120, Math.max(70, Math.round(displayName.length * 5.8)));
+      const defaultLabelH = displayName.length > 15 ? 32 : 24;
+
       if (node.stepRef?.formLayouts && node.stepRef.formLayouts[formName]) {
         const fl = node.stepRef.formLayouts[formName];
         let doX = fl.x;
@@ -270,13 +312,13 @@ export function placeDocuments(
           if (rowFilter !== undefined && rowOffset !== undefined) {
             labelY -= rowFilter * rowOffset;
           }
-          labelW = fl.labelW ?? 100;
-          labelH = fl.labelH ?? 24;
+          labelW = fl.labelW ?? textW;
+          labelH = fl.labelH ?? defaultLabelH;
         } else {
-          labelX = doX - 32;
-          labelY = doY - 18;
-          labelW = 100;
-          labelH = 24;
+          labelW = textW;
+          labelH = defaultLabelH;
+          labelX = doX + DOC_W / 2 - labelW / 2;
+          labelY = doY - labelH - 2;
         }
 
         const fromX = fromPos.x + fromPos.width / 2;
@@ -295,97 +337,87 @@ export function placeDocuments(
         }
 
         placements.push({
-          nodeId: node.id, formName, idx,
-          x: Math.round(doX), y: Math.round(doY),
-          labelX: Math.round(labelX), labelY: Math.round(labelY),
-          labelW, labelH,
-          waypointFrom, waypointTo,
+          nodeId: node.id,
+          formName,
+          idx,
+          x: Math.round(doX),
+          y: Math.round(doY),
+          labelX: Math.round(labelX),
+          labelY: Math.round(labelY),
+          labelW,
+          labelH,
+          waypointFrom,
+          waypointTo,
         });
-        return;
+      } else {
+        autoForms.push({ formName, idx, textW, labelH: defaultLabelH });
       }
+    });
 
-      // ── Auto position: try candidates for ALL forms of this step together ──
-      // This ensures if the first form falls back to Top-Center, all subsequent
-      // forms are also placed at Top-Center (preventing layout splitting/clipping).
+    // ── Auto position: try candidates for ALL auto-placed forms of this step ──
+    if (autoForms.length > 0) {
       let chosenCandidateIndex = 0; // default fallback (Middle-Right)
       const numForms = forms.length;
 
-      // Loop through each of the 4 candidate indices (0: right, 1: top, 2: below, 3: left)
       for (let cIdx = 0; cIdx < 4; cIdx++) {
         let candidateGroupIsValid = true;
-
-        // Verify if this candidate index is valid for ALL forms in this step
-        for (let idx = 0; idx < numForms; idx++) {
-          const formName = forms[idx];
-          const textW = Math.min(100, Math.max(50, formName.length * 7));
+        for (const item of autoForms) {
           const candidates = getCandidates(
             fromPos.x,
             fromPos.y,
             fromPos.width,
             fromPos.height,
-            idx,
+            item.idx,
             numForms,
-            textW
+            item.textW,
+            item.labelH
           );
 
           const cand = candidates[cIdx];
-          
-          // Check collision with sequence flows OR other task shapes
           if (
             hasEdgeCollision(cand.x, cand.y, allEdgeSegments) ||
             hasTaskCollision(cand.x, cand.y, node.id, nodePositions)
           ) {
             candidateGroupIsValid = false;
-            break; // Try next candidate index
+            break;
           }
         }
 
         if (candidateGroupIsValid) {
           chosenCandidateIndex = cIdx;
-          break; // Found a valid placement direction for the whole group!
+          break;
         }
       }
 
-      // Now place all forms of this step using the chosen candidate index
-      forms.forEach((formName, idx) => {
-        const textW = Math.min(100, Math.max(50, formName.length * 7));
+      autoForms.forEach((item) => {
         const candidates = getCandidates(
           fromPos.x,
           fromPos.y,
           fromPos.width,
           fromPos.height,
-          idx,
+          item.idx,
           numForms,
-          textW
+          item.textW,
+          item.labelH
         );
 
         const cand = candidates[chosenCandidateIndex];
-
-        let doY = cand.y;
-        let labelY = cand.labelY;
-        let wFrom = cand.waypointFrom;
-        let wMid = cand.waypointMid;
-        let wTo = cand.waypointTo;
-
-
-        labelBoxes.push({ x: cand.labelX, y: labelY, w: textW });
-
         placements.push({
           nodeId: node.id,
-          formName,
-          idx,
+          formName: item.formName,
+          idx: item.idx,
           x: Math.round(cand.x),
-          y: Math.round(doY),
+          y: Math.round(cand.y),
           labelX: Math.round(cand.labelX),
-          labelY: Math.round(labelY),
-          labelW: textW,
-          labelH: 24,
-          waypointFrom: { x: Math.round(wFrom.x), y: Math.round(wFrom.y) },
-          waypointMid: wMid ? { x: Math.round(wMid.x), y: Math.round(wMid.y) } : undefined,
-          waypointTo: { x: Math.round(wTo.x), y: Math.round(wTo.y) }
+          labelY: Math.round(cand.labelY),
+          labelW: item.textW,
+          labelH: item.labelH,
+          waypointFrom: { x: Math.round(cand.waypointFrom.x), y: Math.round(cand.waypointFrom.y) },
+          waypointMid: cand.waypointMid ? { x: Math.round(cand.waypointMid.x), y: Math.round(cand.waypointMid.y) } : undefined,
+          waypointTo: { x: Math.round(cand.waypointTo.x), y: Math.round(cand.waypointTo.y) }
         });
       });
-    });
+    }
   });
 
   return placements;

@@ -19,7 +19,7 @@ import { computeGridLayout, computeNumRows } from './layout/gridLayout';
 import { synthesizeLinkEvents }         from './layout/linkEvents';
 import { computeNodePositions, computeMaxRightEdge } from './layout/nodePositioner';
 import { routeEdges }                   from './layout/edgeRouter';
-import { placeDocuments }               from './layout/documentPlacer';
+import { placeDocuments, getFormDisplayName, formatBPMNFormLabel } from './layout/documentPlacer';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // XML helpers
@@ -56,12 +56,14 @@ export function getNumRows(steps: ProcessStep[]): number {
  * @param processTitle Pool / collaboration title
  * @param processRoles Ordered list of role lane names
  * @param rowFilter    If set, only render the specified page row (0-indexed)
+ * @param formsData    Optional lookup map for human-readable form titles
  */
 export function generateBPMNXML(
   steps: ProcessStep[],
   processTitle: string,
   processRoles: string[],
-  rowFilter?: number
+  rowFilter?: number,
+  formsData?: Record<string, any>
 ): string {
   const title = escapeXml(processTitle || 'Process Flow');
   const C = DEFAULT_LAYOUT_CONSTANTS;
@@ -110,7 +112,7 @@ export function generateBPMNXML(
 
   // ── Phase 5: Document placement (collision-aware) ──────────────────────────
   const docPlacements = placeDocuments(
-    renderNodes, nodePositions, allEdgeSegments, rowFilter, rowOffset
+    renderNodes, nodePositions, allEdgeSegments, rowFilter, rowOffset, formsData
   );
 
   // Index document placements by nodeId+idx for fast lookup during XML render
@@ -267,7 +269,9 @@ export function generateBPMNXML(
         : ['Completed Form'];
 
     forms.forEach((formName, idx) => {
-      const escapedFormName = escapeXml(formName);
+      const fullDisplayName = getFormDisplayName(formName, formsData);
+      const displayName = formatBPMNFormLabel(fullDisplayName);
+      const escapedFormName = escapeXml(displayName);
       xml += `
     <bpmn:dataObjectReference id="DataObjectRef_${node.id}_${idx}" name="${escapedFormName}" dataObjectRef="DataObject_${node.id}_${idx}" />
     <bpmn:dataObject id="DataObject_${node.id}_${idx}" />

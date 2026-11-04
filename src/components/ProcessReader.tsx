@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import type { Process, SubmissionFieldSnapshot } from '../types';
 import { formatFormVersion, getColStyleWidth } from '../types';
 import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock, getInfoGridTemplateColumns, getEffectiveCellOptions, clusterOptionsByGroup, parseChecklistValues } from '../utils/formUtils';
@@ -73,6 +73,28 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
   const [printTemplateData, setPrintTemplateData] = useState<any | null>(null);
   const [isDirectPrint, setIsDirectPrint] = useState(false);
   const [allForms, setAllForms] = useState<any[]>([]);
+
+  const formsLookup = useMemo(() => {
+    const lookup: Record<string, { formTitle?: string; formName?: string }> = {};
+    if (allForms && Array.isArray(allForms)) {
+      allForms.forEach((f: any) => {
+        const fid = f.form_id || f.id;
+        if (fid) {
+          lookup[fid] = { formTitle: f.form_title || f.title || f.name };
+        }
+      });
+    }
+    if (process?.workflowFormsData) {
+      Object.entries(process.workflowFormsData).forEach(([fid, val]: [string, any]) => {
+        lookup[fid] = {
+          ...lookup[fid],
+          formTitle: val?.formTitle || val?.form_title || lookup[fid]?.formTitle,
+          formName: val?.formName || lookup[fid]?.formName
+        };
+      });
+    }
+    return lookup;
+  }, [allForms, process?.workflowFormsData]);
 
   const fetchFormsList = async () => {
     try {
@@ -790,7 +812,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
 
       {/* Process Swimlane Flowchart */}
       {Array.from({ length: process ? getNumRows(process.steps) : 1 }).map((_, r) => {
-        const rowXml = generateBPMNXML(process.steps, process.title, process.roles || [], r);
+        const rowXml = generateBPMNXML(process.steps, process.title, process.roles || [], r, formsLookup);
         return (
           <div 
             key={r} 
