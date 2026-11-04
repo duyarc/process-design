@@ -115,7 +115,7 @@ export function generateBPMNXML(
 
   // ── Phase 5: Document placement (collision-aware) ──────────────────────────
   const docPlacements = placeDocuments(
-    renderNodes, nodePositions, allEdgeSegments, rowFilter, rowOffset, formsData
+    renderNodes, nodePositions, allEdgeSegments, rowFilter, rowOffset, formsData, uniqueRoles
   );
 
   // Index document placements by nodeId+idx for fast lookup during XML render

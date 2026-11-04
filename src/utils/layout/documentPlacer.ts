@@ -82,53 +82,52 @@ function getCandidates(
   idx: number,
   numForms: number,
   labelW: number,
-  labelH: number = 24
+  labelH: number = 24,
+  isTopLane: boolean = false
 ): PositionCandidate[] {
   const staggerOffset = (idx - (numForms - 1) / 2) * 60;
 
-  return [
-    // Candidate 1: Top-Center (Ưu tiên 1: TRÊN)
-    // Connector goes from top-center of task to bottom-center of document.
-    {
-      x: tx + tw / 2 - DOC_W / 2 + staggerOffset,
-      y: ty - 60,
-      labelX: (tx + tw / 2 + staggerOffset) - labelW / 2,
-      labelY: ty - 60 - labelH - 2,
-      waypointFrom: { x: tx + tw / 2, y: ty },
-      waypointTo: { x: tx + tw / 2 + staggerOffset, y: ty - 10 }
-    },
-    // Candidate 2: Middle-Left (Ưu tiên 2: TRÁI)
-    // Connector goes from middle-left of task to middle-right of document.
-    {
-      x: tx - DOC_W - 24 - idx * 50,
-      y: ty + th / 2 - DOC_H / 2,
-      labelX: (tx - DOC_W - 24 - idx * 50 + DOC_W / 2) - labelW / 2,
-      labelY: ty + th / 2 - DOC_H / 2 - labelH - 2,
-      waypointFrom: { x: tx, y: ty + th / 2 },
-      waypointTo: { x: tx - 24 - idx * 50, y: ty + th / 2 }
-    },
-    // Candidate 3: Middle-Right (Ưu tiên 3: PHẢI)
-    // Document center Y aligned horizontally with task center Y.
-    // Connector goes from middle-right of task to middle-left of document.
-    {
-      x: tx + tw + 24 + idx * 50,
-      y: ty + th / 2 - DOC_H / 2,
-      labelX: (tx + tw + 24 + idx * 50 + DOC_W / 2) - labelW / 2,
-      labelY: ty + th / 2 - DOC_H / 2 - labelH - 2,
-      waypointFrom: { x: tx + tw, y: ty + th / 2 },
-      waypointTo: { x: tx + tw + 24 + idx * 50, y: ty + th / 2 }
-    },
-    // Candidate 4: Below-Center (Ưu tiên 4: DƯỚI)
-    // Connector goes from bottom-center of task to top-center of document.
-    {
-      x: tx + tw / 2 - DOC_W / 2 + staggerOffset,
-      y: ty + th + 40,
-      labelX: (tx + tw / 2 + staggerOffset) - labelW / 2,
-      labelY: ty + th + 40 - labelH - 2,
-      waypointFrom: { x: tx + tw / 2, y: ty + th },
-      waypointTo: { x: tx + tw / 2 + staggerOffset, y: ty + th + 40 }
-    }
-  ];
+  const topCand: PositionCandidate = {
+    x: tx + tw / 2 - DOC_W / 2 + staggerOffset,
+    y: ty - 60,
+    labelX: (tx + tw / 2 + staggerOffset) - labelW / 2,
+    labelY: ty - 60 - labelH - 2,
+    waypointFrom: { x: tx + tw / 2, y: ty },
+    waypointTo: { x: tx + tw / 2 + staggerOffset, y: ty - 10 }
+  };
+
+  const leftCand: PositionCandidate = {
+    x: tx - DOC_W - 24 - idx * 50,
+    y: ty + th / 2 - DOC_H / 2,
+    labelX: (tx - DOC_W - 24 - idx * 50 + DOC_W / 2) - labelW / 2,
+    labelY: ty + th / 2 - DOC_H / 2 - labelH - 2,
+    waypointFrom: { x: tx, y: ty + th / 2 },
+    waypointTo: { x: tx - 24 - idx * 50, y: ty + th / 2 }
+  };
+
+  const rightCand: PositionCandidate = {
+    x: tx + tw + 24 + idx * 50,
+    y: ty + th / 2 - DOC_H / 2,
+    labelX: (tx + tw + 24 + idx * 50 + DOC_W / 2) - labelW / 2,
+    labelY: ty + th / 2 - DOC_H / 2 - labelH - 2,
+    waypointFrom: { x: tx + tw, y: ty + th / 2 },
+    waypointTo: { x: tx + tw + 24 + idx * 50, y: ty + th / 2 }
+  };
+
+  const bottomCand: PositionCandidate = {
+    x: tx + tw / 2 - DOC_W / 2 + staggerOffset,
+    y: ty + th + 40,
+    labelX: (tx + tw / 2 + staggerOffset) - labelW / 2,
+    labelY: ty + th + 40 - labelH - 2,
+    waypointFrom: { x: tx + tw / 2, y: ty + th },
+    waypointTo: { x: tx + tw / 2 + staggerOffset, y: ty + th + 40 }
+  };
+
+  // For Top Lane (Lane 0): Top is above the pool in the margin -> Top-Center is Priority 1!
+  // For other lanes: Left and Right stay 100% inside the swimlane without bleeding into the lane above -> Left/Right first!
+  return isTopLane
+    ? [topCand, leftCand, rightCand, bottomCand]
+    : [leftCand, rightCand, topCand, bottomCand];
 }
 
 
@@ -280,7 +279,8 @@ export function placeDocuments(
   allEdgeSegments: EdgeSegment[],
   rowFilter?: number,
   rowOffset?: number,
-  formsData?: Record<string, any>
+  formsData?: Record<string, any>,
+  uniqueRoles?: string[]
 ): DocumentPlacement[] {
   const placements: DocumentPlacement[] = [];
 
@@ -369,7 +369,11 @@ export function placeDocuments(
 
     // ── Auto position: try candidates for ALL auto-placed forms of this step ──
     if (autoForms.length > 0) {
-      let chosenCandidateIndex = 0; // default fallback (Top-Center)
+      const roleIdx = uniqueRoles ? uniqueRoles.indexOf(node.role) : -1;
+      const isTopLane = roleIdx === 0;
+      const isBottomLane = uniqueRoles && uniqueRoles.length > 0 ? roleIdx === uniqueRoles.length - 1 : false;
+
+      let chosenCandidateIndex = 0; // default fallback
       const numForms = forms.length;
 
       for (let cIdx = 0; cIdx < 4; cIdx++) {
@@ -383,17 +387,26 @@ export function placeDocuments(
             item.idx,
             numForms,
             item.textW,
-            item.labelH
+            item.labelH,
+            isTopLane
           );
 
           const cand = candidates[cIdx];
 
-          // Boundary check for Middle-Left: ensure shape & label do not bleed into left lane header (x = 150)
-          if (cIdx === 1 && (cand.x < 155 || cand.labelX < 155)) {
+          // 1. Boundary check: ensure shape & label do not bleed into left lane header (x = 150)
+          if (cand.x < 155 || cand.labelX < 155) {
             candidateGroupIsValid = false;
             break;
           }
 
+          // 2. Bottom boundary: if isBottomLane and candidate is placed below the task, strictly forbid
+          // to prevent penetrating the bottom page divider line
+          if (isBottomLane && cand.y > fromPos.y + fromPos.height) {
+            candidateGroupIsValid = false;
+            break;
+          }
+
+          // 3. Collision with edges or neighboring tasks
           if (
             hasEdgeCollision(cand.x, cand.y, allEdgeSegments, cand.labelX, cand.labelY, item.textW, item.labelH) ||
             hasTaskCollision(cand.x, cand.y, node.id, nodePositions)
@@ -418,7 +431,8 @@ export function placeDocuments(
           item.idx,
           numForms,
           item.textW,
-          item.labelH
+          item.labelH,
+          isTopLane
         );
 
         const cand = candidates[chosenCandidateIndex];

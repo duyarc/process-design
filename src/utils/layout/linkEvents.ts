@@ -44,6 +44,7 @@ export function synthesizeLinkEvents(
   const finalFlows: CalculatedFlow[] = [];
   const linkNodes: LayoutNode[] = [];
   let linkCounter = 0;
+  const catchMap = new Map<string, { catchId: string; linkName: string }>();
 
   originalFlows.forEach((flow) => {
     const sourceIdx = steps.findIndex((s) => s.id === flow.sourceId);
@@ -61,53 +62,61 @@ export function synthesizeLinkEvents(
     if (rowA === rowB) {
       // Same row — pass through unchanged
       finalFlows.push(flow);
-    } else if (rowA < rowB) {
-      // Forward cross-row: synthesise link event pair
-      linkCounter++;
-      const linkName = getLinkLabel(linkCounter);
+    } else {
+      // Cross-row flow (forward or inter-page loop): synthesise link event pair
+      // Deduplicate Catch events: if multiple flows from rowA target the same step on rowB,
+      // they share a single Catch event with the same link label.
+      const catchKey = `${rowA}_to_${rowB}_${flow.targetId}`;
+      let catchInfo = catchMap.get(catchKey);
 
+      if (!catchInfo) {
+        linkCounter++;
+        const linkName = getLinkLabel(linkCounter);
+        const catchId = `LinkCatch_${rowA}_to_${flow.targetId}`;
+
+        // Catch Event: placed at col 0 of rowB, in TARGET step's role lane
+        linkNodes.push({
+          id: catchId,
+          type: 'link-catch',
+          bpmnShape: 'intermediate-catch-event',
+          role: steps[targetIdx].role || 'Operator',
+          action: linkName,
+          row: rowB,
+          col: 0,
+          linkName,
+        });
+
+        // Synthetic flow from Catch event to target step
+        finalFlows.push({
+          id: `Flow_catch_to_${flow.targetId}`,
+          sourceId: catchId,
+          targetId: flow.targetId,
+        });
+
+        catchInfo = { catchId, linkName };
+        catchMap.set(catchKey, catchInfo);
+      }
+
+      // Throw Event: placed at col 6 of rowA, in SOURCE step's role lane
       const throwId = `LinkThrow_${flow.sourceId}_to_${flow.targetId}`;
-      const catchId = `LinkCatch_${flow.sourceId}_to_${flow.targetId}`;
-
-      // Throw Event: placed at col 6 (rightmost) of rowA, in target step's role lane
       linkNodes.push({
         id: throwId,
         type: 'link-throw',
         bpmnShape: 'intermediate-throw-event',
-        role: steps[targetIdx].role || 'Operator',
-        action: linkName,
+        role: steps[sourceIdx].role || 'Operator',
+        action: catchInfo.linkName,
         row: rowA,
         col: 6,
-        linkName,
+        linkName: catchInfo.linkName,
       });
 
-      // Catch Event: placed at col 0 of rowB (reserved for catch events), in target step's role lane
-      linkNodes.push({
-        id: catchId,
-        type: 'link-catch',
-        bpmnShape: 'intermediate-catch-event',
-        role: steps[targetIdx].role || 'Operator',
-        action: linkName,
-        row: rowB,
-        col: 0,
-        linkName,
-      });
-
-      // Split the original flow into two synthetic flows
+      // Synthetic flow from source step to Throw event
       finalFlows.push({
         id: `${flow.id}_to_throw`,
         sourceId: flow.sourceId,
         targetId: throwId,
         label: flow.label,
       });
-      finalFlows.push({
-        id: `Flow_catch_to_${flow.targetId}`,
-        sourceId: catchId,
-        targetId: flow.targetId,
-      });
-    } else {
-      // Backward loop (rowA > rowB): keep physical curved line, no synthesis
-      finalFlows.push(flow);
     }
   });
 

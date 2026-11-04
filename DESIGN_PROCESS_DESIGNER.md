@@ -9,7 +9,7 @@
 | **Module Name** | Process Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-11-04) — Document shape 4-way priority (Top -> Left -> Right -> Bottom) & boundary guard in documentPlacer.ts |
+| **Verified At Commit** | (2026-11-04) — Topological sort, inter-page link deduplication, and lane boundary guards in layout engine |
 
 > **⚠️ Note:** Several architectural facts here are not obvious from the code — see Sections 4.5, 6.2, and 7.
 
@@ -555,3 +555,4 @@ full diff of any entry below.
 | 2026-11-04 | `CURRENT` | **Workflow Step Table Ergonomics & Multi-flow Routing (`ProcessEditor.tsx`, `types.ts`, `gridLayout.ts`, `bpmnXmlGenerator.ts`):** (1) Integrated HTML5 Drag-to-Reorder via `GripVertical` handle at column `#`, pruned legacy `moveStep` and `ArrowUp`/`ArrowDown` icons. (2) Added multi-flow connections via `nextStepIds?: string[]` and Capsule Chips UI with popover step picker in `CONNECTS TO`. (3) Added minimalist 6-dot pastel color swatch picker for Task/Activity with synchronized BPMN shape coloring (`bioc:fill` / `bioc:stroke`). |
 | 2026-11-04 | `CURRENT` | **Graph-Aware Column Autolayout (`gridLayout.ts`):** Replaced simplistic array-predecessor column placement with `buildIncomingStepMap` and `assignStepGridPositions`. Steps now calculate their column position from their actual graph incoming sources (`sIdx < idx`), eliminating artificial lane gaps in multi-branch workflows while preventing backward loops. Unified `computeNumRows` and `computeGridLayout`. |
 | 2026-11-04 | `CURRENT` | **Document Shape 4-Way Priority & Clearance Guard (`documentPlacer.ts`):** Restructured auto-placement candidate priority to Top-Center (1) → Middle-Left (2) → Middle-Right (3) → Below-Center (4). Extended `hasEdgeCollision` to validate label bounding boxes. Added left-border boundary guard (`x >= 155`) preventing shapes from bleeding into the role title header. Eliminates swimlane bottom-border overflow by selecting Middle-Left when top & right are occupied. |
+| 2026-11-04 | `CURRENT` | **BPMN Layout Engine Topological Order & Link/Document Guards (`gridLayout.ts`, `linkEvents.ts`, `documentPlacer.ts`, `bpmnXmlGenerator.ts`):** (1) Integrated Kahn's stable topological sort (`topologicalSortSteps`) with forward row invariant (`row(child) >= row(parent)`), eliminating backwards cross-page sequence flow arrows. (2) Deduplicated Link Catch events by `targetId` and positioned Link Throw events at source step's lane instead of target lane. (3) Enforced lane-aware candidate priority (Left/Right first for non-top lanes) and strict bottom-boundary guard for bottom-most lane, preventing document shapes from piercing page dividers or bleeding across swimlanes. |

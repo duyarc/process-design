@@ -58,6 +58,82 @@ function buildIncomingStepMap(steps: ProcessStep[]): Map<string, string[]> {
 }
 
 /**
+ * Topologically sorts workflow steps to guarantee predecessors are positioned before successors,
+ * preventing cross-page backward loops when steps are out-of-order in the array.
+ */
+export function topologicalSortSteps(steps: ProcessStep[]): ProcessStep[] {
+  if (steps.length <= 1) return [...steps];
+
+  const incomingMap = new Map<string, Set<string>>();
+  const outgoingMap = new Map<string, Set<string>>();
+  const stepMap = new Map<string, ProcessStep>();
+
+  steps.forEach((s) => {
+    stepMap.set(s.id, s);
+    incomingMap.set(s.id, new Set());
+    outgoingMap.set(s.id, new Set());
+  });
+
+  steps.forEach((step, idx) => {
+    let targets: string[] = [];
+    if (step.bpmnShape === 'exclusive-gateway') {
+      if (step.branchYesTargetId) targets.push(step.branchYesTargetId);
+      if (step.branchNoTargetId) targets.push(step.branchNoTargetId);
+    } else if (step.bpmnShape !== 'end-event' && step.bpmnShape !== 'message-end-event') {
+      targets = (step.nextStepIds && step.nextStepIds.length > 0)
+        ? step.nextStepIds
+        : (step.nextStepId ? [step.nextStepId] : (idx < steps.length - 1 ? [steps[idx + 1].id] : []));
+    }
+
+    targets.forEach((tid) => {
+      if (tid && stepMap.has(tid) && tid !== step.id) {
+        outgoingMap.get(step.id)!.add(tid);
+        incomingMap.get(tid)!.add(step.id);
+      }
+    });
+  });
+
+  const inDegree = new Map<string, number>();
+  steps.forEach((s) => {
+    inDegree.set(s.id, incomingMap.get(s.id)!.size);
+  });
+
+  const queue = steps.filter((s) => inDegree.get(s.id) === 0).map((s) => s.id);
+  const sorted: ProcessStep[] = [];
+  const visited = new Set<string>();
+
+  while (queue.length > 0) {
+    queue.sort((a, b) => {
+      const idxA = steps.findIndex((s) => s.id === a);
+      const idxB = steps.findIndex((s) => s.id === b);
+      return idxA - idxB;
+    });
+
+    const currId = queue.shift()!;
+    if (visited.has(currId)) continue;
+    visited.add(currId);
+    sorted.push(stepMap.get(currId)!);
+
+    outgoingMap.get(currId)!.forEach((nextId) => {
+      const deg = inDegree.get(nextId)! - 1;
+      inDegree.set(nextId, deg);
+      if (deg === 0) {
+        queue.push(nextId);
+      }
+    });
+  }
+
+  // Preserve any remaining steps (unlinked or cycle nodes) in original order
+  steps.forEach((s) => {
+    if (!visited.has(s.id)) {
+      sorted.push(s);
+    }
+  });
+
+  return sorted;
+}
+
+/**
  * Assigns (row, col) grid coordinates for each step in execution order,
  * taking into account graph predecessor sources for branched workflows.
  */
@@ -69,8 +145,10 @@ export function assignStepGridPositions(
     return { stepRows: [], stepCols: [], numRows: 1 };
   }
 
-  const stepRows: number[] = [];
-  const stepCols: number[] = [];
+  // Pre-sort steps in topological order so forward predecessors are always positioned before successors
+  const sortedSteps = topologicalSortSteps(steps);
+
+  const posMap = new Map<string, { row: number; col: number }>();
   const lastColInRow: { [row: number]: { [role: string]: number } } = {};
   const stepIdToIdx = new Map<string, number>();
 
@@ -78,15 +156,14 @@ export function assignStepGridPositions(
     ? uniqueRoles
     : Array.from(new Set(steps.map((s) => s.role || 'Operator')));
 
-  const incomingMap = buildIncomingStepMap(steps);
+  const incomingMap = buildIncomingStepMap(sortedSteps);
 
-  steps.forEach((step, idx) => {
+  sortedSteps.forEach((step, idx) => {
     stepIdToIdx.set(step.id, idx);
     const role = step.role || 'Operator';
 
     if (idx === 0) {
-      stepRows.push(0);
-      stepCols.push(0);
+      posMap.set(step.id, { row: 0, col: 0 });
       lastColInRow[0] = { [role]: 0 };
       return;
     }
@@ -99,17 +176,21 @@ export function assignStepGridPositions(
     let primarySourceIdx = idx - 1;
     if (validSources.length > 0) {
       validSources.sort((a, b) => {
-        const reqA = stepCols[a] + (steps[a].role === role ? 1 : 0);
-        const reqB = stepCols[b] + (steps[b].role === role ? 1 : 0);
+        const colA = posMap.get(sortedSteps[a].id)?.col ?? 0;
+        const colB = posMap.get(sortedSteps[b].id)?.col ?? 0;
+        const reqA = colA + (sortedSteps[a].role === role ? 1 : 0);
+        const reqB = colB + (sortedSteps[b].role === role ? 1 : 0);
         return reqB - reqA;
       });
       primarySourceIdx = validSources[0];
     }
 
-    const prevRow = stepRows[primarySourceIdx];
-    const prevRole = steps[primarySourceIdx].role || 'Operator';
-    const prevCol = stepCols[primarySourceIdx];
-    const prevStep = steps[primarySourceIdx];
+    const sourceRows = validSources.map((sIdx) => posMap.get(sortedSteps[sIdx].id)?.row ?? 0);
+    const primaryRow = posMap.get(sortedSteps[primarySourceIdx].id)?.row ?? 0;
+    const prevRow = sourceRows.length > 0 ? Math.max(...sourceRows, primaryRow) : primaryRow;
+    const prevCol = posMap.get(sortedSteps[primarySourceIdx].id)?.col ?? 0;
+    const prevRole = sortedSteps[primarySourceIdx].role || 'Operator';
+    const prevStep = sortedSteps[primarySourceIdx];
 
     // Force horizontal increment when either adjacent step is a gateway
     let forceIncrement = false;
@@ -150,18 +231,19 @@ export function assignStepGridPositions(
     if (col >= COLS_PER_ROW) {
       // Wrap to a new page row; column 0 is reserved for the Catch Link Event
       const newRow = prevRow + 1;
-      stepRows.push(newRow);
-      stepCols.push(1);
+      posMap.set(step.id, { row: newRow, col: 1 });
       if (!lastColInRow[newRow]) lastColInRow[newRow] = {};
       lastColInRow[newRow][role] = 1;
     } else {
-      stepRows.push(prevRow);
-      stepCols.push(col);
+      posMap.set(step.id, { row: prevRow, col });
       if (!lastColInRow[prevRow]) lastColInRow[prevRow] = {};
       lastColInRow[prevRow][role] = col;
     }
   });
 
+  // Map positions back to original steps array order to preserve parallel arrays
+  const stepRows = steps.map((s) => posMap.get(s.id)?.row ?? 0);
+  const stepCols = steps.map((s) => posMap.get(s.id)?.col ?? 0);
   const numRows = steps.length > 0 ? Math.max(...stepRows) + 1 : 1;
   return { stepRows, stepCols, numRows };
 }
