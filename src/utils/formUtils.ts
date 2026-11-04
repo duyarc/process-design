@@ -1530,8 +1530,15 @@ export function calculateTableColumnSummary(
   row: ColumnSummaryRowConfig,
   allSummaryRows: ColumnSummaryRowConfig[],
   tableRows: TableRowConfig[],
-  getValue: (rowId: string, colId: string) => string | number | undefined
+  getValue: (rowId: string, colId: string) => string | number | undefined,
+  visitedIds = new Set<string>()
 ): number | null {
+  if (!row || !row.id || visitedIds.has(row.id)) {
+    return null; // Cycle detected or invalid row, prevent infinite recursion!
+  }
+  const nextVisited = new Set(visitedIds);
+  nextVisited.add(row.id);
+
   if (row.type === 'sum') {
     let sum = 0;
     let hasValue = false;
@@ -1562,24 +1569,28 @@ export function calculateTableColumnSummary(
       const fieldValRaw = getValue('__footer_field__', row.multiplyFieldId);
       const fieldVal = typeof fieldValRaw === 'number' ? fieldValRaw : parseFloat(String(fieldValRaw || '').replace(/[\s\u00A0,]/g, '')) || 0;
       if (fieldVal <= 0) return null;
-      const baseRowId = row.multiplyRowIds?.[0] || allSummaryRows[0]?.id;
-      const baseRow = allSummaryRows.find(r => r.id === baseRowId) || allSummaryRows[0];
-      const baseVal = baseRow ? calculateTableColumnSummary(col, baseRow, allSummaryRows, tableRows, getValue) : null;
+      // Must find a DIFFERENT base row, never self
+      const baseRowId = row.multiplyRowIds?.[0];
+      const baseRow = (baseRowId ? allSummaryRows.find(r => r.id === baseRowId && r.id !== row.id) : null)
+        || allSummaryRows.find(r => r.id !== row.id);
+      if (!baseRow) return null;
+      const baseVal = calculateTableColumnSummary(col, baseRow, allSummaryRows, tableRows, getValue, nextVisited);
       if (baseVal === null) return null;
       return baseVal * fieldVal;
     }
 
     // 2. Tự động kiểm tra nếu có trường số chân bảng (footerField kiểu number) ở các dòng summary phía trên
     const currentIdx = allSummaryRows.findIndex(r => r.id === row.id);
-    const priorRows = currentIdx > 0 ? allSummaryRows.slice(0, currentIdx) : allSummaryRows;
+    const priorRows = currentIdx > 0 ? allSummaryRows.slice(0, currentIdx) : [];
     const rateField = priorRows.flatMap(r => r.footerFields || []).find(f => f.type === 'number');
     
     if (rateField) {
       const fieldValRaw = getValue('__footer_field__', rateField.id);
       const fieldVal = typeof fieldValRaw === 'number' ? fieldValRaw : parseFloat(String(fieldValRaw || '').replace(/[\s\u00A0,]/g, '')) || 0;
       if (fieldVal > 0) {
-        const baseRow = currentIdx > 0 ? allSummaryRows[currentIdx - 1] : allSummaryRows[0];
-        const baseVal = baseRow ? calculateTableColumnSummary(col, baseRow, allSummaryRows, tableRows, getValue) : null;
+        const baseRow = currentIdx > 0 ? allSummaryRows[currentIdx - 1] : null;
+        if (!baseRow || baseRow.id === row.id) return null;
+        const baseVal = calculateTableColumnSummary(col, baseRow, allSummaryRows, tableRows, getValue, nextVisited);
         if (baseVal === null) return null;
         return baseVal * fieldVal;
       }
@@ -1588,27 +1599,28 @@ export function calculateTableColumnSummary(
 
     if (!row.multiplyRowIds || row.multiplyRowIds.length < 2) {
       if (currentIdx >= 2) {
-        const valA = calculateTableColumnSummary(col, allSummaryRows[currentIdx - 2], allSummaryRows, tableRows, getValue);
-        const valB = calculateTableColumnSummary(col, allSummaryRows[currentIdx - 1], allSummaryRows, tableRows, getValue);
+        const valA = calculateTableColumnSummary(col, allSummaryRows[currentIdx - 2], allSummaryRows, tableRows, getValue, nextVisited);
+        const valB = calculateTableColumnSummary(col, allSummaryRows[currentIdx - 1], allSummaryRows, tableRows, getValue, nextVisited);
         if (valA === null || valB === null) return null;
         return valA * valB;
       }
       return null;
     }
     const [idA, idB] = row.multiplyRowIds;
-    const rowA = allSummaryRows.find(r => r.id === idA);
-    const rowB = allSummaryRows.find(r => r.id === idB);
+    if (idA === row.id || idB === row.id) return null;
+    const rowA = allSummaryRows.find(r => r.id === idA && r.id !== row.id);
+    const rowB = allSummaryRows.find(r => r.id === idB && r.id !== row.id);
     if (!rowA || !rowB) return null;
-    const valA = calculateTableColumnSummary(col, rowA, allSummaryRows, tableRows, getValue);
-    const valB = calculateTableColumnSummary(col, rowB, allSummaryRows, tableRows, getValue);
+    const valA = calculateTableColumnSummary(col, rowA, allSummaryRows, tableRows, getValue, nextVisited);
+    const valB = calculateTableColumnSummary(col, rowB, allSummaryRows, tableRows, getValue, nextVisited);
     if (valA === null || valB === null) return null;
     return valA * valB;
   }
   if (row.type === 'percentage') {
-    if (!row.percentageOfId) return null;
-    const parentRow = allSummaryRows.find(r => r.id === row.percentageOfId);
+    if (!row.percentageOfId || row.percentageOfId === row.id) return null;
+    const parentRow = allSummaryRows.find(r => r.id === row.percentageOfId && r.id !== row.id);
     if (!parentRow) return null;
-    const parentVal = calculateTableColumnSummary(col, parentRow, allSummaryRows, tableRows, getValue);
+    const parentVal = calculateTableColumnSummary(col, parentRow, allSummaryRows, tableRows, getValue, nextVisited);
     if (parentVal === null) return null;
     return parentVal * ((row.percentageValue || 0) / 100);
   }
@@ -1616,9 +1628,10 @@ export function calculateTableColumnSummary(
     let sum = 0;
     let hasValue = false;
     (row.sumRowIds || []).forEach(id => {
-      const targetRow = allSummaryRows.find(r => r.id === id);
+      if (id === row.id) return;
+      const targetRow = allSummaryRows.find(r => r.id === id && r.id !== row.id);
       if (targetRow) {
-        const val = calculateTableColumnSummary(col, targetRow, allSummaryRows, tableRows, getValue);
+        const val = calculateTableColumnSummary(col, targetRow, allSummaryRows, tableRows, getValue, nextVisited);
         if (val !== null) {
           sum += val;
           hasValue = true;

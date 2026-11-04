@@ -2259,7 +2259,21 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
         if (!col.summaryRows) return col;
         return {
           ...col,
-          summaryRows: col.summaryRows.filter(r => r.id !== summaryId)
+          summaryRows: col.summaryRows
+            .filter(r => r.id !== summaryId)
+            .map(r => {
+              let updated = { ...r };
+              if (updated.percentageOfId === summaryId) {
+                updated.percentageOfId = undefined;
+              }
+              if (updated.multiplyRowIds && updated.multiplyRowIds.includes(summaryId)) {
+                updated.multiplyRowIds = undefined;
+              }
+              if (updated.sumRowIds) {
+                updated.sumRowIds = updated.sumRowIds.filter(id => id !== summaryId);
+              }
+              return updated;
+            })
         };
       });
       return { ...b, tableColumns: updatedCols };
