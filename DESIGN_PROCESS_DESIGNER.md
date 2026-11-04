@@ -9,7 +9,7 @@
 | **Module Name** | Process Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-11-04) — On-demand full template fetching on Print button in ProcessEditor & ProcessReader |
+| **Verified At Commit** | (2026-11-04) — ProcessReader minimalist redesign: Approvals card pruned, version badge hidden, full-width forms list with FilePlus & Edit2 |
 
 > **⚠️ Note:** Several architectural facts here are not obvious from the code — see Sections 4.5, 6.2, and 7.
 
@@ -529,14 +529,6 @@ full diff of any entry below.
 
 | Date | Commit | Change |
 |---|---|---|
-| 2026-07-14 | `e02e99d` | **Invariants documented (Section 4.5):** `workflowFormsData` cleanup happens only in `handleSave`; the `process_forms` junction table and derived `workflowForms` list; `normalizeProcessFormsData()` legacy key migration; and the `handleSave` stale-`steps` race fixed via `pendingStepsRef`. |
-| 2026-07-20 | `02aa7a9` | **Refactor:** `bpmnXmlGenerator.ts` split from a ~1,000-line monolith into 5 sub-modules under `src/utils/layout/` (`gridLayout`, `linkEvents`, `nodePositioner`, `edgeRouter`, `documentPlacer`). Public API (`getNumRows`, `generateBPMNXML`) unchanged. Section 4.6 added. |
-| 2026-07-29 | `9a6bb9a` | **BPMN Export Toolset:** (1) Added `src/utils/bpmnExportUtils.ts` providing `copyBpmnToClipboard` (PNG with opaque white background `#ffffff` at 2x High-DPI 300 DPI for 1-Click `Ctrl+V` MS Word paste) and `downloadBpmnVectorFile` (raw `.svg` vector export). (2) Updated `BpmnViewerComponent.tsx` and `BpmnModelerComponent.tsx` with concise `[ 📋 Copy ]` and `[ 📥 Download ]` action buttons and Toast notifications. |
-| 2026-07-20 | `02aa7a9` | **Layout algorithm:** document shapes now try 6 candidate positions and pick the first that does not intersect any sequence-flow edge segment (4px clearance). Manually dragged shapes bypass the check. Fixes connectors cutting through document shapes. |
-| 2026-07-20 | `0529624` | Document shapes default to middle-right of their task shape with a straight horizontal connector to the document's middle-left; labels stay above the shape. Touches `types.ts`, `documentPlacer.ts`, `bpmnXmlGenerator.ts`. |
-| 2026-07-20 | `d2c7104` | Candidate position synced across all forms of a single step, preventing overlaps with other task nodes. |
-| 2026-07-20 | `11118db` | **Bug fix:** removed double subtraction of `rowFilter * rowOffset` in the `documentPlacer` auto path — auto positions are computed from already-shifted task positions, so subtracting again floated document shapes into blank page gaps. |
-| 2026-07-20 | `071c395` | **Bug fix:** BpmnViewerComponent now counts actual unique row values in the XML rather than max row index, preventing spurious page-divider dashed lines at y=0 on single-page views. |
 | 2026-07-23 | `4f741e4` | **Schema change:** retired the `frequency` property — removed initialization in ProcessEditor and the Frequency column and badge from ProcessReader. |
 | 2026-07-23 | `88d96bd` | SOP PDF filenames standardized to Digital 5S rules via `to5SFileName()`, producing `SOP_[Normalized_Title]`. |
 | 2026-07-18 | `24d0ea5` | Process description preserves newlines in ProcessReader via `whiteSpace: 'pre-line'`. |
@@ -558,3 +550,4 @@ full diff of any entry below.
 | 2026-11-04 | `CURRENT` | **BPMN Layout Engine Topological Order & Link/Document Guards (`gridLayout.ts`, `linkEvents.ts`, `documentPlacer.ts`, `bpmnXmlGenerator.ts`):** (1) Integrated Kahn's stable topological sort (`topologicalSortSteps`) with forward row invariant (`row(child) >= row(parent)`), eliminating backwards cross-page sequence flow arrows. (2) Deduplicated Link Catch events by `targetId` and positioned Link Throw events at source step's lane instead of target lane. (3) Enforced lane-aware candidate priority (Left/Right first for non-top lanes) and strict bottom-boundary guard for bottom-most lane, preventing document shapes from piercing page dividers or bleeding across swimlanes. |
 | 2026-11-04 | `CURRENT` | **Page-Aware Multi-Source Layout Resolution (`gridLayout.ts`):** When converging steps receive flows across different rows (e.g. Page 1 & Page 2), precedence for `primarySourceIdx` and column progression is now strictly given to predecessors on the target row (`sourceRow === targetRow`). Predecessors from previous pages (which enter via Link Catch events at column 0) no longer leak their old column index into the current page, eliminating artificial column-overflow and phantom page-spill (Page 3 completely pruned). |
 | 2026-11-04 | `CURRENT` | **ProcessEditor & ProcessReader On-Demand Print Fetching (`ProcessEditor.tsx`, `ProcessReader.tsx`):** Updated the Print action in the Form tab of ProcessEditor and ProcessReader to detect lean metadata records (`!fullForm?.layout_blocks`) and fetch the authoritative full form record via `/api/forms/:id` on-demand with a loading state (`Đang tải...`). Guarantees `layoutBlocks` are fully hydrated before opening `PrintBlankForm`. |
+| 2026-11-04 | CURRENT | **ProcessReader Minimalist Redesign & Approvals Prune (`ProcessReader.tsx`):** (1) Completely pruned administrative Approvals card and dead-code `approvalRows`. (2) Hid version selector dropdown and draft status badges from header and form rows to eliminate visual noise. (3) Re-architected Attached Forms section to full-width minimalist paper card with unified `FilePlus` (teal) and `Edit2` (neutral) actions matching homepage Forms tab. |

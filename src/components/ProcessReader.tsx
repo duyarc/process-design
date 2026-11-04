@@ -5,7 +5,7 @@ import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, canTableOptionsFi
 import { FormattedNumberInput } from './form/FormattedNumberInput';
 import { renderFormattedText } from '../utils/textFormatter';
 import { useAuth } from '../context/AuthContext';
-import { Printer, Edit2, Camera, AlertTriangle, X, PenTool, GitBranch, Eye, ArrowLeft, Trash2, Star } from 'lucide-react';
+import { Printer, Edit2, Camera, AlertTriangle, X, GitBranch, Eye, ArrowLeft, Trash2, Star, FilePlus } from 'lucide-react';
 
 const parseSubtableValue = (val: string): Record<string, string>[] => {
   try { return JSON.parse(val || '[]'); } catch { return []; }
@@ -493,50 +493,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
   });
   const workflowForms = workflowFormsList;
 
-  // Compute sign-off rows for approvals
-  const signoffs = process.sopSignoffs || {};
-  const reviewers = signoffs.reviewers || [];
-  const authorisers = signoffs.authorisers || [];
 
-  const approvalRows: { role: string; name: string; title: string }[] = [];
-  
-  approvalRows.push({
-    role: 'Author',
-    name: signoffs.author?.name || '',
-    title: signoffs.author?.title || '',
-  });
-
-  if (reviewers.length > 0) {
-    reviewers.forEach((r, idx) => {
-      approvalRows.push({
-        role: `Reviewer ${reviewers.length > 1 ? `#${idx + 1}` : ''}`,
-        name: r.name || '',
-        title: r.title || '',
-      });
-    });
-  } else {
-    approvalRows.push({
-      role: 'Reviewer',
-      name: '',
-      title: '',
-    });
-  }
-
-  if (authorisers.length > 0) {
-    authorisers.forEach((a, idx) => {
-      approvalRows.push({
-        role: `Authoriser ${authorisers.length > 1 ? `#${idx + 1}` : ''}`,
-        name: a.name || '',
-        title: a.title || '',
-      });
-    });
-  } else {
-    approvalRows.push({
-      role: 'Authoriser',
-      name: '',
-      title: '',
-    });
-  }
 
   if (printTemplateData) {
     return (
@@ -604,12 +561,12 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
         .sop-details-columns-grid {
           display: grid;
           grid-template-columns: 1fr;
-          gap: 0.5rem;
+          gap: 1rem;
           margin-top: 0;
         }
         @media (min-width: 1024px) {
           .sop-details-columns-grid {
-            grid-template-columns: 1.15fr 0.85fr;
+            grid-template-columns: 1fr;
           }
         }
         .sop-print-card {
@@ -618,7 +575,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
         @media print {
           .sop-details-columns-grid {
             display: grid !important;
-            grid-template-columns: 1.15fr 0.85fr !important;
+            grid-template-columns: 1fr !important;
             gap: 1.5rem !important;
             page-break-inside: avoid !important;
             break-inside: avoid !important;
@@ -725,55 +682,53 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
             )}
           </div>
           <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0, alignItems: 'center', flexWrap: 'wrap' }}>
-            <div style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              padding: '0.25rem 0.6rem',
-              fontSize: '0.78rem',
-              borderRadius: '6px',
-              border: '1px solid var(--neutral-border)',
-              background: '#ffffff',
-              color: 'var(--text-primary)',
-              fontWeight: 600
-            }}>
-              <GitBranch size={13} style={{ marginRight: '0.3rem', color: 'var(--text-secondary)' }} />
-              <select
-                className="no-print"
-                value={process.id}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  if (onSwitchVersion) {
-                    onSwitchVersion(val);
-                  }
-                }}
-                style={{
-                  border: 'none',
-                  background: 'transparent',
-                  padding: 0,
-                  margin: 0,
-                  width: 'auto',
-                  fontSize: '0.78rem',
-                  fontWeight: 600,
-                  color: 'var(--text-primary)',
-                  cursor: 'pointer',
-                  outline: 'none',
-                  boxShadow: 'none'
-                }}
-              >
-                {(allVersions.length > 0 ? allVersions : [process]).map(v => {
-                  return (
+            {allVersions.length > 1 && (
+              <div className="no-print" style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                padding: '0.25rem 0.6rem',
+                fontSize: '0.78rem',
+                borderRadius: '6px',
+                border: '1px solid var(--neutral-border)',
+                background: '#ffffff',
+                color: 'var(--text-secondary)',
+                fontWeight: 600
+              }}>
+                <GitBranch size={13} style={{ marginRight: '0.3rem', color: 'var(--text-secondary)' }} />
+                <select
+                  value={process.id}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (onSwitchVersion) {
+                      onSwitchVersion(val);
+                    }
+                  }}
+                  style={{
+                    border: 'none',
+                    background: 'transparent',
+                    padding: 0,
+                    margin: 0,
+                    width: 'auto',
+                    fontSize: '0.78rem',
+                    fontWeight: 600,
+                    color: 'var(--text-primary)',
+                    cursor: 'pointer',
+                    outline: 'none',
+                    boxShadow: 'none'
+                  }}
+                >
+                  {allVersions.map(v => (
                     <option key={v.id} value={v.id}>
                       {getFormattedVersionString(v)}
                     </option>
-                  );
-                })}
-              </select>
-              <span className="print-only" style={{ fontSize: '0.78rem', fontWeight: 600 }}>
-                {getFormattedVersionString(process)}
-              </span>
-            </div>
-
-            <span className="badge" style={{ backgroundColor: colors.bg, color: colors.text, border: `1px solid ${colors.border}`, textTransform: 'uppercase', fontSize: '0.68rem', fontWeight: 700, padding: '0.15rem 0.45rem', borderRadius: '4px', margin: 0 }}>
+                  ))}
+                </select>
+              </div>
+            )}
+            <span className="print-only" style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>
+              {getFormattedVersionString(process)}
+            </span>
+            <span className="print-only badge" style={{ backgroundColor: colors.bg, color: colors.text, border: `1px solid ${colors.border}`, textTransform: 'uppercase', fontSize: '0.68rem', fontWeight: 700, padding: '0.15rem 0.45rem', borderRadius: '4px', margin: 0 }}>
               {status}
             </span>
             
@@ -833,11 +788,28 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
           {/* Document Details & Quality Controls (Printed after Flowchart) */}
           <div className="sop-details-container" style={{ marginTop: 0 }}>
             <div className="sop-details-columns-grid">
-              {/* Card 2: Attached Forms */}
-              <div className="paper-card sop-print-card" style={{ borderLeft: '4px solid var(--primary)', padding: '0.85rem 1rem' }}>
-                <h3 style={{ margin: '0 0 0.6rem 0', fontSize: '0.9rem', color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 700, borderBottom: '1px solid var(--neutral-border)', paddingBottom: '0.4rem' }}>
-                  FORMS
-                </h3>
+              {/* Card: Attached Forms (Full Width) */}
+              <div className="paper-card sop-print-card full-width" style={{ border: '1px solid var(--neutral-border)', borderRadius: '8px', padding: '1rem 1.25rem', background: '#ffffff', boxShadow: 'var(--shadow-sm)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0 0 0.75rem 0', paddingBottom: '0.5rem', borderBottom: '1px solid var(--neutral-border)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <h3 style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 700 }}>
+                      BIỂU MẪU ĐI KÈM
+                    </h3>
+                    {workflowForms.length > 0 && (
+                      <span style={{
+                        background: '#f1f5f9',
+                        color: '#475569',
+                        fontSize: '0.72rem',
+                        fontWeight: 700,
+                        padding: '0.1rem 0.45rem',
+                        borderRadius: '999px',
+                        border: '1px solid #e2e8f0'
+                      }}>
+                        {workflowForms.length}
+                      </span>
+                    )}
+                  </div>
+                </div>
 
                 {workflowForms.length === 0 ? (
                   <div style={{ padding: '1.5rem', border: '1px dashed var(--neutral-border)', borderRadius: '6px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
@@ -858,11 +830,9 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                         .filter(f => f.form_id === formId)
                         .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())[0];
                       const hasDigitalForm = !!formId;
-                      const liveVersion = liveForm ? liveForm.version : (formData.version || '');
                       const liveLayoutBlocks = liveForm ? (typeof liveForm.layout_blocks === 'string' ? JSON.parse(liveForm.layout_blocks) : liveForm.layout_blocks) : null;
                       const hasLayoutBlocks = liveLayoutBlocks && liveLayoutBlocks.length > 0;
                       const displayName = formData.formTitle || (liveForm?.form_title || liveForm?.form_name) || formId;
-
                       const hasPdf = !!formData.pdfName;
 
                       return (
@@ -870,207 +840,160 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                           display: 'flex',
                           justifyContent: 'space-between',
                           alignItems: 'center',
-                          padding: '0.45rem 0.65rem',
+                          padding: '0.65rem 1rem',
                           background: '#ffffff',
                           borderBottom: idx < workflowForms.length - 1 ? '1px solid var(--neutral-border)' : 'none',
-                          fontSize: '0.78rem'
+                          fontSize: '0.85rem'
                         }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0, marginRight: '1rem', flexWrap: 'nowrap' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0, marginRight: '1rem' }}>
                             {/* Form ID Badge */}
                             <span style={{
-                              fontSize: '0.7rem',
+                              fontSize: '0.75rem',
                               fontWeight: 700,
                               color: '#475569',
                               background: '#f1f5f9',
                               border: '1px solid #e2e8f0',
-                              padding: '0.1rem 0.4rem',
-                              borderRadius: '4px',
+                              padding: '0.18rem 0.5rem',
+                              borderRadius: '5px',
                               fontFamily: 'monospace',
                               whiteSpace: 'nowrap',
                               flexShrink: 0
                             }}>{formId}</span>
 
-                            {/* Version Badge (only for digital forms) */}
-                            {!formData.pdfName && (() => {
-                              const cleanVersion = formatFormVersion(liveVersion, liveForm?.status, liveForm?.effective_date, liveForm?.updated_at);
-                              if (!cleanVersion) return null;
-                              return (
-                                <span style={{
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '0.25rem',
-                                  fontSize: '0.7rem',
-                                  fontWeight: 600,
-                                  color: 'var(--text-primary)',
-                                  background: '#ffffff',
-                                  border: '1px solid var(--neutral-border)',
-                                  padding: '0.1rem 0.4rem',
-                                  borderRadius: '4px',
-                                  whiteSpace: 'nowrap',
-                                  flexShrink: 0
-                                }}>
-                                  <GitBranch size={11} style={{ color: 'var(--text-secondary)' }} />
-                                  {cleanVersion}
-                                </span>
-                              );
-                            })()}
-
-                            {/* Status Badge (only for digital forms) */}
-                            {!formData.pdfName && (() => {
-                              const formStatus = (liveForm?.status || formData.status || 'DRAFT').toUpperCase();
-                              const getStatusStyles = (status: string) => {
-                                switch (status) {
-                                  case 'ACTIVE':
-                                    return { color: '#047857', bg: '#ecfdf5', border: '#a7f3d0' };
-                                  case 'PENDING REVIEW':
-                                  case 'PENDING_REVIEW':
-                                    return { color: '#1d4ed8', bg: '#eff6ff', border: '#bfdbfe' };
-                                  case 'DRAFT':
-                                  default:
-                                    return { color: '#b45309', bg: '#fffbeb', border: '#fde68a' };
-                                }
-                              };
-                              const statusStyle = getStatusStyles(formStatus);
-                              return (
-                                <span style={{
-                                  fontSize: '0.62rem',
-                                  fontWeight: 700,
-                                  letterSpacing: '0.5px',
-                                  color: statusStyle.color,
-                                  background: statusStyle.bg,
-                                  border: `1px solid ${statusStyle.border}`,
-                                  padding: '0.05rem 0.3rem',
-                                  borderRadius: '4px',
-                                  whiteSpace: 'nowrap',
-                                  textTransform: 'uppercase',
-                                  flexShrink: 0
-                                }}>
-                                  {formStatus}
-                                </span>
-                              );
-                            })()}
-
-                            <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.8rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{displayName}</span>
+                            {/* Form Title */}
+                            <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.875rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {displayName}
+                            </span>
                             {formData.pdfName && (
-                              <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>• {formData.pdfName}</span>
+                              <span style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                • {formData.pdfName}
+                              </span>
                             )}
                           </div>
-                          <div className="no-print" style={{ display: 'flex', gap: '0.4rem', flexShrink: 0 }}>
+
+                          {/* 2 Main Actions (Fill & Edit) + Optional Print (Matching Homepage) */}
+                          <div className="no-print" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexShrink: 0 }}>
                             {hasDigitalForm && (
                               <>
-                                {hasPermission('design_document') && (
+                                {/* Action 1: Fill Form (FilePlus teal) */}
+                                {hasLayoutBlocks && (
                                   <button
                                     type="button"
-                                    title="Design"
-                                    onClick={() => onEdit(processId, 'form', formId)}
+                                    title="Điền biểu mẫu (Fill Form)"
+                                    onClick={() => setActiveFormToFill(formId)}
                                     style={{ 
-                                      display: 'flex',
+                                      display: 'inline-flex',
                                       alignItems: 'center',
                                       justifyContent: 'center',
-                                      height: '28px',
-                                      width: '28px',
+                                      height: '32px',
+                                      width: '32px',
                                       padding: 0,
-                                      color: 'var(--text-primary)', 
                                       background: '#ffffff',
                                       border: '1px solid var(--neutral-border)', 
-                                      borderRadius: '6px',
+                                      borderRadius: '8px',
                                       cursor: 'pointer',
                                       transition: 'all 0.15s ease',
+                                      boxShadow: 'var(--shadow-sm)',
                                       margin: 0 
                                     }}
                                     className="hover-card-bg"
                                   >
-                                    <Edit2 size={13} style={{ color: 'var(--text-primary)' }} />
+                                    <FilePlus size={16} style={{ color: 'var(--primary)' }} />
                                   </button>
                                 )}
 
+                                {/* Action 2: Edit Template (Edit2 neutral) */}
+                                {hasPermission('design_document') && (
+                                  <button
+                                    type="button"
+                                    title="Chỉnh sửa thiết kế (Edit Template)"
+                                    onClick={() => onEdit(processId, 'form', formId)}
+                                    style={{ 
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      height: '32px',
+                                      width: '32px',
+                                      padding: 0,
+                                      color: 'var(--text-primary)', 
+                                      background: '#ffffff',
+                                      border: '1px solid var(--neutral-border)', 
+                                      borderRadius: '8px',
+                                      cursor: 'pointer',
+                                      transition: 'all 0.15s ease',
+                                      boxShadow: 'var(--shadow-sm)',
+                                      margin: 0 
+                                    }}
+                                    className="hover-card-bg"
+                                  >
+                                    <Edit2 size={16} style={{ color: '#334155' }} />
+                                  </button>
+                                )}
+
+                                {/* Action 3: Print Blank Form */}
                                 {hasLayoutBlocks && (
-                                  <>
-                                    <button
-                                      type="button"
-                                      title="Fill"
-                                      onClick={() => setActiveFormToFill(formId)}
-                                      style={{ 
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        height: '28px',
-                                        width: '28px',
-                                        padding: 0,
-                                        color: 'var(--text-primary)', 
-                                        background: '#ffffff',
-                                        border: '1px solid var(--neutral-border)', 
-                                        borderRadius: '6px',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.15s ease',
-                                        margin: 0 
-                                      }}
-                                      className="hover-card-bg"
-                                    >
-                                      <PenTool size={13} style={{ color: 'var(--text-primary)' }} />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      title="Print"
-                                      onClick={async () => {
-                                         if (formData && liveForm) {
-                                           let fullForm = liveForm;
-                                           const targetFormId = formData?.formId || liveForm.form_id || liveForm.form_name;
-                                           if (!fullForm.layout_blocks && targetFormId) {
-                                             try {
-                                               const res = await fetch(`/api/forms/${encodeURIComponent(targetFormId)}`);
-                                               if (res.ok) fullForm = await res.json();
-                                             } catch (e) {
-                                               console.error('Failed to load full form for print:', e);
-                                             }
-                                           }
-                                           const rawBlocks = fullForm?.layout_blocks || formData?.layoutBlocks;
-                                           const layoutBlocks = Array.isArray(rawBlocks)
-                                             ? rawBlocks
-                                             : typeof rawBlocks === 'string'
-                                             ? JSON.parse(rawBlocks || '[]')
-                                             : [];
-                                           const rawRevisions = fullForm?.revision_history || formData?.revisionHistory;
-                                           const revisionHistory = Array.isArray(rawRevisions)
-                                             ? rawRevisions
-                                             : typeof rawRevisions === 'string'
-                                             ? JSON.parse(rawRevisions || '[]')
-                                             : [];
-                                           const fullTemplate = {
-                                             ...formData,
-                                             formId: targetFormId,
-                                             formTitle: fullForm.form_title || fullForm.form_name || formData?.formTitle || targetFormId,
-                                             layoutBlocks,
-                                             revisionHistory,
-                                             version: fullForm.version || formData?.version || 'V0.1',
-                                             status: fullForm.status || formData?.status || 'DRAFT',
-                                             effectiveDate: fullForm.effective_date || (formData as any)?.effectiveDate,
-                                             updatedAt: fullForm.updated_at || (formData as any)?.updatedAt,
-                                             pageSize: fullForm.page_size || (formData as any)?.pageSize || 'A4'
-                                           };
-                                           setPrintTemplateData(fullTemplate as any);
-                                         }
-                                       }}
-                                      style={{ 
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        height: '28px',
-                                        width: '28px',
-                                        padding: 0,
-                                        color: 'var(--text-primary)', 
-                                        background: '#ffffff',
-                                        border: '1px solid var(--neutral-border)', 
-                                        borderRadius: '6px',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.15s ease',
-                                        margin: 0 
-                                      }}
-                                      className="hover-card-bg"
-                                    >
-                                      <Printer size={13} style={{ color: 'var(--text-primary)' }} />
-                                    </button>
-                                  </>
+                                  <button
+                                    type="button"
+                                    title="In biểu mẫu trắng (Print Blank)"
+                                    onClick={async () => {
+                                      if (formData && liveForm) {
+                                        let fullForm = liveForm;
+                                        const targetFormId = formData?.formId || liveForm.form_id || liveForm.form_name;
+                                        if (!fullForm.layout_blocks && targetFormId) {
+                                          try {
+                                            const res = await fetch(`/api/forms/${encodeURIComponent(targetFormId)}`);
+                                            if (res.ok) fullForm = await res.json();
+                                          } catch (e) {
+                                            console.error('Failed to load full form for print:', e);
+                                          }
+                                        }
+                                        const rawBlocks = fullForm?.layout_blocks || formData?.layoutBlocks;
+                                        const layoutBlocks = Array.isArray(rawBlocks)
+                                          ? rawBlocks
+                                          : typeof rawBlocks === 'string'
+                                          ? JSON.parse(rawBlocks || '[]')
+                                          : [];
+                                        const rawRevisions = fullForm?.revision_history || formData?.revisionHistory;
+                                        const revisionHistory = Array.isArray(rawRevisions)
+                                          ? rawRevisions
+                                          : typeof rawRevisions === 'string'
+                                          ? JSON.parse(rawRevisions || '[]')
+                                          : [];
+                                        const fullTemplate = {
+                                          ...formData,
+                                          formId: targetFormId,
+                                          formTitle: fullForm.form_title || fullForm.form_name || formData?.formTitle || targetFormId,
+                                          layoutBlocks,
+                                          revisionHistory,
+                                          version: fullForm.version || formData?.version || 'V0.1',
+                                          status: fullForm.status || formData?.status || 'DRAFT',
+                                          effectiveDate: fullForm.effective_date || (formData as any)?.effectiveDate,
+                                          updatedAt: fullForm.updated_at || (formData as any)?.updatedAt,
+                                          pageSize: fullForm.page_size || (formData as any)?.pageSize || 'A4'
+                                        };
+                                        setPrintTemplateData(fullTemplate as any);
+                                      }
+                                    }}
+                                    style={{ 
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      height: '32px',
+                                      width: '32px',
+                                      padding: 0,
+                                      color: '#64748b', 
+                                      background: '#ffffff',
+                                      border: '1px solid var(--neutral-border)', 
+                                      borderRadius: '8px',
+                                      cursor: 'pointer',
+                                      transition: 'all 0.15s ease',
+                                      boxShadow: 'var(--shadow-sm)',
+                                      margin: 0 
+                                    }}
+                                    className="hover-card-bg"
+                                  >
+                                    <Printer size={15} style={{ color: '#64748b' }} />
+                                  </button>
                                 )}
                               </>
                             )}
@@ -1081,7 +1004,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                                 className="btn btn-secondary btn-sm"
                                 title={formData.pdfName}
                                 onClick={() => handleDownloadPdf(formData.pdfKey!)}
-                                style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', margin: 0 }}
+                                style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', margin: 0, borderRadius: '8px', height: '32px' }}
                               >
                                 PDF
                               </button>
@@ -1094,48 +1017,11 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                 )}
               </div>
 
-              {/* Card 1: Document Control & Approvals */}
-              <div className="paper-card sop-print-card" style={{ borderLeft: '4px solid var(--primary)', padding: '0.85rem 1rem' }}>
-                <h3 style={{ margin: '0 0 0.6rem 0', fontSize: '0.9rem', color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 700, borderBottom: '1px solid var(--neutral-border)', paddingBottom: '0.4rem' }}>
-                  APPROVALS
-                </h3>
-                
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '0.25rem' }}>
-                    <thead>
-                      <tr style={{ background: '#f9fafb' }}>
-                        <th style={{ padding: '0.3rem 0.4rem', textAlign: 'left', fontWeight: 600, fontSize: '0.72rem', borderBottom: '1px solid var(--neutral-border)' }}>Role</th>
-                        <th style={{ padding: '0.3rem 0.4rem', textAlign: 'left', fontWeight: 600, fontSize: '0.72rem', borderBottom: '1px solid var(--neutral-border)' }}>Name</th>
-                        <th style={{ padding: '0.3rem 0.4rem', textAlign: 'left', fontWeight: 600, fontSize: '0.72rem', borderBottom: '1px solid var(--neutral-border)' }}>Title</th>
-                        <th style={{ padding: '0.3rem 0.4rem', textAlign: 'left', fontWeight: 600, fontSize: '0.72rem', borderBottom: '1px solid var(--neutral-border)' }}>Signature / Date</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {approvalRows.map((row, idx) => (
-                        <tr key={idx} style={{ borderBottom: '1px solid var(--neutral-border)' }}>
-                          <td style={{ padding: '0.3rem 0.4rem', fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-primary)' }}>{row.role}</td>
-                          <td style={{ padding: '0.3rem 0.4rem', fontSize: '0.72rem', color: row.name ? 'var(--text-primary)' : 'var(--text-muted)' }}>
-                            {row.name}
-                          </td>
-                          <td style={{ padding: '0.3rem 0.4rem', fontSize: '0.72rem', color: row.title ? 'var(--text-primary)' : 'var(--text-muted)' }}>
-                            {row.title}
-                          </td>
-                          <td style={{ padding: '0.3rem 0.4rem', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                            <span className="print-only" style={{ color: '#888' }}>Sign: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Date: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
-                            <span className="no-print" style={{ fontStyle: 'italic', fontSize: '0.7rem' }}>Pending sign-off</span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
             </div>
 
             {/* Card 3: Quality Checksheet Parameters (Full Width Table) */}
             {process.formFields && process.formFields.length > 0 && (
-              <div className="paper-card sop-print-card full-width" style={{ borderLeft: '4px solid var(--primary)' }}>
+              <div className="paper-card sop-print-card full-width" style={{ border: '1px solid var(--neutral-border)', borderRadius: '8px', padding: '1rem 1.25rem', background: '#ffffff', boxShadow: 'var(--shadow-sm)' }}>
                 <h3 style={{ margin: '0 0 1rem 0', fontSize: '1rem', color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 700, borderBottom: '1px solid var(--neutral-border)', paddingBottom: '0.5rem' }}>
                   Quality Checksheet Parameters
                 </h3>
