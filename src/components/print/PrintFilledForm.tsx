@@ -1571,7 +1571,7 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                                 return (
                                                   <span key={f.id} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                                                     <span style={{ color: '#64748b', fontWeight: 500 }}>{f.checkItem || f.label}:</span>
-                                                    <span>{val || '—'}</span>
+                                                    <span>{f.type === 'number' && val ? formatIsoNumber(val) : (val || '—')}</span>
                                                   </span>
                                                 );
                                               })}

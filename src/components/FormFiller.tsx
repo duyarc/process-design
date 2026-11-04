@@ -1294,6 +1294,28 @@ function FormFillerInner({
             });
           }
         });
+
+        // Collect footer fields values (e.g. Tiền tệ, Tỷ giá)
+        const { summaryTypes } = buildTableSummaryTypes(block.tableColumns || [], { dedupeByLabel: true });
+        const processedFooterFieldIds = new Set<string>();
+        summaryTypes.forEach(sRow => {
+          (sRow.footerFields || []).forEach((f: any) => {
+            if (processedFooterFieldIds.has(f.id)) return;
+            processedFooterFieldIds.add(f.id);
+            const key = `${block.id}_${f.id}`;
+            const defaultVal = f.type === 'select' ? (f.options?.[0]?.value ?? '') : '';
+            const val = formValues[key] !== undefined ? formValues[key] : defaultVal;
+            snapshots.push({
+              id: key,
+              checkItem: `Chân bảng: ${f.checkItem || f.label || f.id}`,
+              locationCode: 'N/A',
+              targetRange: 'Trường phụ chân bảng',
+              reactionProtocol: '',
+              value: String(val ?? ''),
+              status: 'PASS'
+            });
+          });
+        });
       }
     });
 
@@ -3585,17 +3607,15 @@ function FormFillerInner({
                                                     ))}
                                                   </select>
                                                 ) : f.type === 'number' ? (
-                                                  <input
-                                                    type="text"
+                                                  <FormattedNumberInput
                                                     disabled={effectiveReadOnly}
                                                     value={val}
-                                                    onChange={(e) => {
-                                                      const raw = e.target.value.replace(/[^0-9.,]/g, '');
-                                                      setFormValues(prev => ({ ...prev, [fieldKey]: raw }));
+                                                    onChange={(clean) => {
+                                                      setFormValues(prev => ({ ...prev, [fieldKey]: clean }));
                                                     }}
-                                                    placeholder={f.placeholder || '25,450'}
+                                                    placeholder={stripMarkdownTokens(f.placeholder) || '25 450'}
                                                     style={{
-                                                      width: '75px',
+                                                      width: '85px',
                                                       padding: '2px 6px',
                                                       fontSize: '0.78rem',
                                                       borderRadius: '4px',
