@@ -9,6 +9,7 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
+// #region HELPER_COMPONENTS — FormErrorBoundary, reconstructTableRows
 class FormErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
@@ -354,8 +355,10 @@ const buildVirtualProcess = (
   };
 };
 
+// #endregion HELPER_COMPONENTS
 function FormFillerInner({ 
   processId, 
+// #region STATE_HOOKS — useState, useEffect, auto-save, data loading (FormFillerInner)
   formName, 
   onBack, 
   onSubmitSuccess,
@@ -464,7 +467,9 @@ function FormFillerInner({
     }
   }, [initialSubmissionTab]);
 
+// #endregion STATE_HOOKS
   const handleCancelEdit = () => {
+// #region HANDLERS — handleCancelEdit → handlePrintWYSIWYG
     if (initialSubmission && process && rawFormTemplate) {
       const restoredValues: { [fieldId: string]: string } = {};
       const restoredReactions: { [fieldId: string]: string } = {};
@@ -1579,6 +1584,7 @@ function FormFillerInner({
     };
     setPrintCurrentSubmission(draftSub);
   };
+// #endregion HANDLERS
 
   // Print draft current filled form overlay
   if (printCurrentSubmission && formTemplate) {
@@ -1780,6 +1786,7 @@ function FormFillerInner({
               )}
 
               {/* 2. INFO GRID BLOCK */}
+// #region CANVAS_INFOGRID — Info Grid block fields rendering
               {block.type === 'INFO_GRID' && (
                 <div style={{
                   display: 'grid',
@@ -2875,7 +2882,9 @@ function FormFillerInner({
                 </div>
               )}
 
+// #endregion CANVAS_INFOGRID
               {/* 3.1 DYNAMIC TABLE BLOCK */}
+// #region CANVAS_TABLE — Dynamic Table block rendering (columns, rows, summary footer, tfoot)
               {block.type === 'TABLE' && (() => {
                 const bStyle = block.borderStyle || 'grid';
                 const hasGuidance = !!(block.description || block.guidance);
@@ -3843,6 +3852,7 @@ function FormFillerInner({
                 </div>
               )}
 
+// #endregion CANVAS_TABLE
               {/* 5. SIGN BLOCK — Interactive Click-to-Sign */}
               {block.type === 'SIGN' && (
                 <div style={{
