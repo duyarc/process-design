@@ -50,7 +50,7 @@ export default function TableSummaryFooter({
   if (summaryTypes.length === 0) return null;
 
   return (
-    <tfoot style={{ borderTop: bStyle === 'horizontal_only' ? '1.5px solid #0f172a' : bStyle === 'borderless' ? '1px solid #e2e8f0' : '1.5px solid #94a3b8' }}>
+    <tfoot style={{ borderTop: bStyle === 'horizontal_only' ? '1.5px solid #cbd5e1' : bStyle === 'borderless' ? 'none' : '1px solid #cbd5e1' }}>
       {summaryTypes.map((sumType, idx) => {
         const isLastSummaryRow = idx === summaryTypes.length - 1;
         const rowKey = `${block.id}_${sumType.id}`;
@@ -61,8 +61,8 @@ export default function TableSummaryFooter({
         const rowBorderBottom = isDragOverThisRow && draggedSummaryRow && draggedSummaryRow.index < idx 
           ? '2px solid var(--primary)' 
           : (isLastSummaryRow 
-              ? (bStyle === 'horizontal_only' ? '1.5px solid #0f172a' : bStyle === 'borderless' ? '1px solid #e2e8f0' : '1.5px solid #94a3b8')
-              : (bStyle === 'horizontal_only' ? '1px solid #e2e8f0' : '1px solid #cbd5e1'));
+              ? (bStyle === 'horizontal_only' ? '1.5px solid #cbd5e1' : bStyle === 'borderless' ? 'none' : '1px solid #cbd5e1')
+              : (bStyle === 'horizontal_only' ? '1px solid #e2e8f0' : bStyle === 'borderless' ? 'none' : '1px solid #cbd5e1'));
 
         const isMergeEnabled = sumType.mergeLeadingEmpty !== false;
         const firstActiveColIdx = columns.findIndex((col: any) => {

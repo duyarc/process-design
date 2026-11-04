@@ -3540,12 +3540,12 @@ function FormFillerInner({
                         if (summaryTypes.length === 0) return null;
 
                         return (
-                          <tfoot style={{ borderTop: bStyle === 'horizontal_only' ? '1.5px solid #0f172a' : bStyle === 'borderless' ? '1px solid #e2e8f0' : '1.5px solid #94a3b8' }}>
+                          <tfoot style={{ borderTop: bStyle === 'horizontal_only' ? '1.5px solid #cbd5e1' : bStyle === 'borderless' ? 'none' : '1px solid var(--neutral-border)' }}>
                             {summaryTypes.map((sumType, idx) => {
                               const isLastSummaryRow = idx === summaryTypes.length - 1;
                               const rowBorderBottom = isLastSummaryRow 
-                                ? (bStyle === 'horizontal_only' ? '2.5px double #0f172a' : bStyle === 'borderless' ? '2px solid #0f172a' : '2.5px double #0f172a')
-                                : (bStyle === 'horizontal_only' ? '1px solid #e2e8f0' : '1px solid var(--neutral-border)');
+                                ? (bStyle === 'horizontal_only' ? '1.5px solid #cbd5e1' : bStyle === 'borderless' ? 'none' : '1px solid var(--neutral-border)')
+                                : (bStyle === 'horizontal_only' ? '1px solid #e2e8f0' : bStyle === 'borderless' ? 'none' : '1px solid var(--neutral-border)');
 
                               const effectiveFirstSumColIdx = getEffectiveFirstSumColIdx(columns, sumType, fallbackColIdx);
 

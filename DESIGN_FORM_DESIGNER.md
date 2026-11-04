@@ -9,7 +9,7 @@
 | **Module Name** | Form Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-11-04) — Lazy loading of Cloudflare R2 /api/storage/logos on gallery open verified against source |
+| **Verified At Commit** | (2026-11-04) — Table summary footer bottom border synchronized with neutral tokens (#cbd5e1) verified against source |
 
 > **⚠️ Architectural note:** FormBuilder has no awareness of which process it belongs to. The `formName` prop is always identical to `formId`. See Section 6.1 and the Technical Debt table.
 
@@ -535,4 +535,5 @@ full diff of any entry below.
 | 2026-11-04 | **Table Summary Pure Utility Extraction (`formUtils`, `PrintBlankForm`):** Unified summary extraction in `PrintBlankForm.tsx` using `buildTableSummaryTypes` and `getEffectiveFirstSumColIdx` from `formUtils.ts`, pruning duplicate footer grouping logic and unused imports. |
 | 2026-11-04 | **TABLE Summary Footer De-monolith (`FormBuilder`, `TableSummaryFooter`, `FooterFieldsTray`):** Extracted the canvas `tfoot` (~730 lines) from `FormBuilder.tsx` into `form/table/TableSummaryFooter.tsx` and the Footer Fields tray into `form/table/FooterFieldsTray.tsx`. UI-only state (`draggedSummaryRow`, `dragOverSummaryRow`, `hoveredSummaryRowKey`, `hoveredSummaryCellKey`, `activeAddFooterFieldSummaryId`) moved into the sub-component; `layoutBlocks`-mutating handlers (`handleReorderTableSummaryRows`, `handleToggleMergeLeadingEmpty`, `handleRenameTableSummaryRow`, `handleDeleteTableSummaryRow`, `handleSetTableColumnSummaryConfig`, `handleAddFooterField`, `handleUpdateFooterField`, `handleDeleteFooterField`) remain in `FormBuilder` and are passed as props. Summary grouping uses `buildTableSummaryTypes`. No behavior change. |
 
+| 2026-11-04 | **Table Summary Footer Border Harmonization (`TableSummaryFooter`, `PrintBlankForm`):** Eradicated discordant dark black (#0f172a) and 1.5px solid #94a3b8 borders from table footer summary rows. Synchronized table bottom border to match standard neutral tokens: grid uses 1px solid #cbd5e1 (seamlessly closing the table frame), horizontal_only uses 1.5px solid #cbd5e1, and borderless uses none. |
 | 2026-11-04 | `CURRENT` | **FormBuilder Lazy Logo Fetching (`FormBuilder.tsx`):** Guarded `GET /api/storage/logos` with `if (!showLogoGallery) return;`, eliminating automatic Cloudflare R2 S3 scan and database checks when opening FormBuilder. Logos are now fetched strictly on-demand when user opens the logo gallery modal. |

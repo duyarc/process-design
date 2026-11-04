@@ -1104,12 +1104,12 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                     const bStyle = block.borderStyle || 'grid';
                     const titleFmt = getEffectiveTitleFormat(block);
                     const tableBorder = bStyle === 'borderless' ? 'none' : bStyle === 'horizontal_only' ? 'none' : '1px solid #cbd5e1';
-                    const tableBorderTop = isSeamless ? 'none' : (bStyle === 'horizontal_only' ? '1.5px solid #0f172a' : undefined);
-                    const tableBorderBottom = bStyle === 'horizontal_only' ? '1.5px solid #0f172a' : undefined;
+                    const tableBorderTop = isSeamless ? 'none' : (bStyle === 'horizontal_only' ? '1.5px solid #cbd5e1' : undefined);
+                    const tableBorderBottom = bStyle === 'horizontal_only' ? '1.5px solid #cbd5e1' : undefined;
                     const cellBorder = bStyle === 'borderless' ? 'none' : bStyle === 'horizontal_only' ? 'none' : '1px solid #f1f5f9';
                     const cellBorderBottom = bStyle === 'borderless' ? 'none' : '1px solid #e2e8f0';
                     const headerBorder = bStyle === 'borderless' ? 'none' : bStyle === 'horizontal_only' ? 'none' : '1px solid #e2e8f0';
-                    const headerBorderBottom = bStyle === 'borderless' ? 'none' : bStyle === 'horizontal_only' ? '1.5px solid #0f172a' : '1.5px solid #94a3b8';
+                    const headerBorderBottom = bStyle === 'borderless' ? 'none' : bStyle === 'horizontal_only' ? '1.5px solid #cbd5e1' : '1px solid #cbd5e1';
                     const headerBg = bStyle === 'borderless' || bStyle === 'horizontal_only' ? 'transparent' : '#f8fafc';
                     const tableCols: TableColumnConfig[] = block.tableColumns || [];
                     const allRows = reconstructTableRows(block, submission.formData || []);
@@ -1542,12 +1542,12 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                             if (summaryTypes.length === 0) return null;
 
                             return (
-                              <tfoot style={{ borderTop: bStyle === 'horizontal_only' ? '1.5px solid #0f172a' : bStyle === 'borderless' ? '1px solid #e2e8f0' : '1.5px solid #94a3b8' }}>
+                              <tfoot style={{ borderTop: bStyle === 'horizontal_only' ? '1.5px solid #cbd5e1' : bStyle === 'borderless' ? 'none' : '1px solid #cbd5e1' }}>
                                 {summaryTypes.map((sumType, idx) => {
                                   const isLastSummaryRow = idx === summaryTypes.length - 1;
                                   const rowBorderBottom = isLastSummaryRow 
-                                    ? (bStyle === 'horizontal_only' ? '2.5px double #0f172a' : bStyle === 'borderless' ? '2px solid #0f172a' : '2.5px double #0f172a')
-                                    : (bStyle === 'horizontal_only' ? '1px solid #e2e8f0' : '1px solid #cbd5e1');
+                                    ? (bStyle === 'horizontal_only' ? '1.5px solid #cbd5e1' : bStyle === 'borderless' ? 'none' : '1px solid #cbd5e1')
+                                    : (bStyle === 'horizontal_only' ? '1px solid #e2e8f0' : bStyle === 'borderless' ? 'none' : '1px solid #cbd5e1');
 
                                   const effectiveFirstSumColIdx = getEffectiveFirstSumColIdx(columns, sumType, fallbackColIdx);
 
@@ -1556,7 +1556,7 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                       {effectiveFirstSumColIdx > 0 && (
                                         <td colSpan={effectiveFirstSumColIdx} style={{
                                           border: cellBorder,
-                                          borderTop: bStyle === 'horizontal_only' ? '1.5px solid #0f172a' : (bStyle === 'borderless' ? 'none' : '1.5px solid #94a3b8'),
+                                          borderTop: idx === 0 ? (bStyle === 'horizontal_only' ? '1.5px solid #cbd5e1' : bStyle === 'borderless' ? 'none' : '1px solid #cbd5e1') : undefined,
                                           borderBottom: rowBorderBottom,
                                           padding: '6px 10px',
                                           fontSize: '0.84rem',
@@ -1613,7 +1613,7 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                         return (
                                           <td key={col.id} style={{
                                             border: cellBorder,
-                                            borderTop: bStyle === 'horizontal_only' ? '1.5px solid #0f172a' : (bStyle === 'borderless' ? 'none' : '1.5px solid #94a3b8'),
+                                            borderTop: idx === 0 ? (bStyle === 'horizontal_only' ? '1.5px solid #cbd5e1' : bStyle === 'borderless' ? 'none' : '1px solid #cbd5e1') : undefined,
                                             borderBottom: rowBorderBottom,
                                             padding: '6px 10px',
                                             textAlign: 'right',
