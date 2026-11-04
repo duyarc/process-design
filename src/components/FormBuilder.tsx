@@ -1477,11 +1477,17 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
   const [logoUrl, setLogoUrl] = useState<string>('');
   const [isLogoUploading, setIsLogoUploading] = useState(false);
   const [existingLogos, setExistingLogos] = useState<{ key: string, isUsed: boolean }[]>([]);
+  const [showLogoGallery, setShowLogoGallery] = useState(false);
+  const [showInspectorImageGallery, setShowInspectorImageGallery] = useState(false);
+  const [blockToDelete, setBlockToDelete] = useState<LayoutBlockISO | null>(null);
+  const [resolvedLogos, setResolvedLogos] = useState<{[key: string]: string}>({});
 
   const titleBlock = layoutBlocks.find(b => b.type === 'TITLE');
   const titleBlockLogo = titleBlock?.logo;
 
+  // Lazy fetch logos: only query Cloudflare R2 when the user actually opens the logo gallery modal
   useEffect(() => {
+    if (!showLogoGallery) return;
     fetch('/api/storage/logos')
       .then(res => res.json())
       .then(data => {
@@ -1490,12 +1496,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
         }
       })
       .catch(err => console.error('Error fetching existing logos:', err));
-  }, [titleBlockLogo]);
-
-  const [showLogoGallery, setShowLogoGallery] = useState(false);
-  const [showInspectorImageGallery, setShowInspectorImageGallery] = useState(false);
-  const [blockToDelete, setBlockToDelete] = useState<LayoutBlockISO | null>(null);
-  const [resolvedLogos, setResolvedLogos] = useState<{[key: string]: string}>({});
+  }, [showLogoGallery]);
 
   // Copy section states
   const [showCopyModal, setShowCopyModal] = useState(false);

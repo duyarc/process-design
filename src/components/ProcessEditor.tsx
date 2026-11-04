@@ -292,7 +292,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
 
   const fetchFormsList = async () => {
     try {
-      const res = await fetch('/api/forms');
+      const res = await fetch('/api/forms?fields=list');
       if (res.ok) {
         const data = await res.json();
         setAllForms(data);
@@ -651,10 +651,10 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
   const fetchProcess = async (id: string) => {
     try {
       setLoading(true);
-      // Fetch latest forms list and processes in parallel
+      // Fetch latest forms list and processes in parallel with lean list mode
       const [formsRes, res] = await Promise.all([
-        fetch('/api/forms'),
-        fetch('/api/processes')
+        fetch('/api/forms?fields=list'),
+        fetch('/api/processes?fields=list')
       ]);
 
       let formsList: any[] = [];

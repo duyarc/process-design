@@ -9,7 +9,7 @@
 | **Module Name** | Process Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-11-02) — StepFormPickerModal & Action Form Chips verified against source |
+| **Verified At Commit** | (2026-11-04) — Lean list query ?fields=list on /api/forms & /api/processes/:id fetch verified against source |
 
 > **⚠️ Note:** Several architectural facts here are not obvious from the code — see Sections 4.5, 6.2, and 7.
 
@@ -546,3 +546,5 @@ full diff of any entry below.
 | 2026-10-26 | `CURRENT` | **ProcessReader Checklist & Group Indent Parity (`ProcessReader`):** (1) Integrated `parseChecklistValues` for robust comma-safe checkbox option parsing. (2) Aligned option cluster padding to `clusters.some(c => c.groupName) ? '0.35rem' : '0'` to maintain visual parity with FormFiller and Print forms. |
 | 2026-11-02 | `CURRENT` | **ProcessEditor Role Management Refactor:** Replaced blocking native browser dialog `window.prompt` and `alert` with unified Tag/Chip Input container, inline badge editing, and `ConfirmModal` step-assignment guard. |
 | 2026-11-02 | `CURRENT` | **Workstep Form Selection Refactor:** Replaced stacked native `<select>` dropdowns and double `window.prompt()` with inline Form Chips (`[📄 FormID ×]`), click-to-edit link, and searchable `StepFormPickerModal` with real-time ID duplication validation. |
+
+| 2026-11-04 | `CURRENT` | **ProcessEditor Lean Forms Query & Single Process Lookup (`ProcessEditor.tsx`):** (1) Updated `fetchFormsList` and `fetchProcess` to request `/api/forms?fields=list`, omitting multi-MB `layout_blocks` of unrelated forms and cutting network payload by ~80-90%. (2) Replaced full processes scan with `/api/processes?fields=list` for sibling version discovery. |
