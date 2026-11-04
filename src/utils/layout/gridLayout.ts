@@ -173,36 +173,56 @@ export function assignStepGridPositions(
       .map((id) => stepIdToIdx.get(id))
       .filter((sIdx): sIdx is number => sIdx !== undefined && sIdx < idx);
 
+    // 1. Determine minimum target row based on all predecessors (forward row invariant)
+    const sourceRows = validSources.map((sIdx) => posMap.get(sortedSteps[sIdx].id)?.row ?? 0);
+    const fallbackRow = idx > 0 ? (posMap.get(sortedSteps[idx - 1].id)?.row ?? 0) : 0;
+    const targetRow = sourceRows.length > 0 ? Math.max(...sourceRows) : fallbackRow;
+
+    // 2. Identify sources on targetRow (predecessors on earlier rows arrive via Link Events at col 0)
+    const sameRowSources = validSources.filter(
+      (sIdx) => (posMap.get(sortedSteps[sIdx].id)?.row ?? 0) === targetRow
+    );
+
     let primarySourceIdx = idx - 1;
-    if (validSources.length > 0) {
-      validSources.sort((a, b) => {
+    const prevRow = targetRow;
+    let prevCol = 0;
+    let prevRole = '';
+    let forceIncrement = false;
+
+    if (sameRowSources.length > 0) {
+      sameRowSources.sort((a, b) => {
         const colA = posMap.get(sortedSteps[a].id)?.col ?? 0;
         const colB = posMap.get(sortedSteps[b].id)?.col ?? 0;
         const reqA = colA + (sortedSteps[a].role === role ? 1 : 0);
         const reqB = colB + (sortedSteps[b].role === role ? 1 : 0);
         return reqB - reqA;
       });
-      primarySourceIdx = validSources[0];
-    }
-
-    const sourceRows = validSources.map((sIdx) => posMap.get(sortedSteps[sIdx].id)?.row ?? 0);
-    const primaryRow = posMap.get(sortedSteps[primarySourceIdx].id)?.row ?? 0;
-    const prevRow = sourceRows.length > 0 ? Math.max(...sourceRows, primaryRow) : primaryRow;
-    const prevCol = posMap.get(sortedSteps[primarySourceIdx].id)?.col ?? 0;
-    const prevRole = sortedSteps[primarySourceIdx].role || 'Operator';
-    const prevStep = sortedSteps[primarySourceIdx];
-
-    // Force horizontal increment when either adjacent step is a gateway
-    let forceIncrement = false;
-    if (
-      step.bpmnShape === 'exclusive-gateway' ||
-      prevStep.bpmnShape === 'exclusive-gateway'
-    ) {
-      forceIncrement = true;
+      primarySourceIdx = sameRowSources[0];
+      prevCol = posMap.get(sortedSteps[primarySourceIdx].id)?.col ?? 0;
+      prevRole = sortedSteps[primarySourceIdx].role || 'Operator';
+      const prevStep = sortedSteps[primarySourceIdx];
+      if (
+        step.bpmnShape === 'exclusive-gateway' ||
+        prevStep.bpmnShape === 'exclusive-gateway'
+      ) {
+        forceIncrement = true;
+      }
+    } else if (validSources.length > 0) {
+      // All predecessors are on earlier rows; this step enters targetRow via a Catch Link Event at col 0
+      prevCol = 0;
+      prevRole = '';
+    } else {
+      // Unlinked step, fallback to predecessor in array
+      primarySourceIdx = idx - 1;
+      prevCol = posMap.get(sortedSteps[primarySourceIdx].id)?.col ?? 0;
+      prevRole = sortedSteps[primarySourceIdx].role || 'Operator';
     }
 
     let col: number;
-    if (role === prevRole || forceIncrement) {
+    if (!prevRole || prevCol === 0) {
+      const lastColForRole = lastColInRow[prevRow]?.[role] ?? -1;
+      col = Math.max(1, lastColForRole + 1);
+    } else if (role === prevRole || forceIncrement) {
       const lastColForRole = lastColInRow[prevRow]?.[role] ?? -1;
       col = Math.max(prevCol + 1, lastColForRole + 1);
     } else {
