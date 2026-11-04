@@ -1280,7 +1280,7 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                         {summaryTypes.map((sumType, idx) => {
                           const isLastSummaryRow = idx === summaryTypes.length - 1;
                           const rowBorderBottom = isLastSummaryRow 
-                            ? (bStyle === 'horizontal_only' ? '1.5px solid #0f172a' : bStyle === 'borderless' ? '1px solid #e2e8f0' : '1.5px solid #94a3b8')
+                            ? (bStyle === 'horizontal_only' ? '2.5px double #0f172a' : bStyle === 'borderless' ? '2px solid #0f172a' : '2.5px double #0f172a')
                             : (bStyle === 'horizontal_only' ? '1px solid #e2e8f0' : '1px solid #cbd5e1');
 
                           const effectiveFirstSumColIdx = getEffectiveFirstSumColIdx(columns, sumType, fallbackColIdx);
@@ -1298,15 +1298,31 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                   color: '#0f172a'
                                 }}>
                                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontWeight: 'normal', fontSize: '0.78rem' }}>
-                                      {(sumType.footerFields || []).map((f: any) => (
-                                        <span key={f.id} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                          <span>{f.checkItem || f.label}:</span>
-                                          <span style={{ borderBottom: '1px dotted #94a3b8', minWidth: '45px', display: 'inline-block' }}>&nbsp;</span>
-                                        </span>
-                                      ))}
-                                    </div>
-                                    <div style={{ whiteSpace: 'nowrap', textAlign: 'right' }}>
+                                    {(sumType.footerFields && sumType.footerFields.length > 0) ? (
+                                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '16px', fontSize: '0.78rem' }}>
+                                        {(sumType.footerFields || []).map((f: any) => {
+                                          const boxWidth = f.type === 'select' ? '50px' : f.type === 'number' ? '70px' : '85px';
+                                          return (
+                                            <span key={f.id} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                                              <span style={{ fontWeight: 600, color: '#334155' }}>{f.checkItem || f.label}:</span>
+                                              <span style={{
+                                                border: '1px solid #94a3b8',
+                                                borderRadius: '3px',
+                                                background: '#fafafa',
+                                                height: '20px',
+                                                width: boxWidth,
+                                                display: 'inline-block',
+                                                verticalAlign: 'middle'
+                                              }} />
+                                              {f.unit && (
+                                                <span style={{ fontSize: '0.7rem', color: '#64748b' }}>{f.unit}</span>
+                                              )}
+                                            </span>
+                                          );
+                                        })}
+                                      </div>
+                                    ) : <div />}
+                                    <div style={{ whiteSpace: 'nowrap', textAlign: 'right', fontWeight: 700, color: isLastSummaryRow ? '#0f172a' : '#475569' }}>
                                       {sumType.label}
                                     </div>
                                   </div>

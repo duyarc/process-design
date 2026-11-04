@@ -1546,7 +1546,7 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                 {summaryTypes.map((sumType, idx) => {
                                   const isLastSummaryRow = idx === summaryTypes.length - 1;
                                   const rowBorderBottom = isLastSummaryRow 
-                                    ? (bStyle === 'horizontal_only' ? '1.5px solid #0f172a' : bStyle === 'borderless' ? '1px solid #e2e8f0' : '1.5px solid #94a3b8')
+                                    ? (bStyle === 'horizontal_only' ? '2.5px double #0f172a' : bStyle === 'borderless' ? '2px solid #0f172a' : '2.5px double #0f172a')
                                     : (bStyle === 'horizontal_only' ? '1px solid #e2e8f0' : '1px solid #cbd5e1');
 
                                   const effectiveFirstSumColIdx = getEffectiveFirstSumColIdx(columns, sumType, fallbackColIdx);
@@ -1564,19 +1564,39 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                           color: '#0f172a'
                                         }}>
                                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontWeight: 600, fontSize: '0.78rem', color: '#334155' }}>
-                                              {(sumType.footerFields || []).map((f: any) => {
-                                                const fieldKey = `${block.id}_${f.id}`;
-                                                const val = getVal(fieldKey) || getVal(f.id);
-                                                return (
-                                                  <span key={f.id} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                                    <span style={{ color: '#64748b', fontWeight: 500 }}>{f.checkItem || f.label}:</span>
-                                                    <span>{f.type === 'number' && val ? formatIsoNumber(val) : (val || '—')}</span>
-                                                  </span>
-                                                );
-                                              })}
-                                            </div>
-                                            <div style={{ whiteSpace: 'nowrap', textAlign: 'right' }}>
+                                            {(sumType.footerFields && sumType.footerFields.length > 0) ? (
+                                              <div style={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '10px',
+                                                padding: '2px 8px',
+                                                background: '#f1f5f9',
+                                                border: '1px solid #cbd5e1',
+                                                borderRadius: '4px',
+                                                fontSize: '0.76rem',
+                                                fontWeight: 600,
+                                                color: '#334155'
+                                              }}>
+                                                {(sumType.footerFields || []).map((f: any, fIdx: number) => {
+                                                  const fieldKey = `${block.id}_${f.id}`;
+                                                  const val = getVal(fieldKey) || getVal(f.id);
+                                                  const formattedVal = f.type === 'number' && val ? formatIsoNumber(val) : (val || '—');
+                                                  return (
+                                                    <React.Fragment key={f.id}>
+                                                      {fIdx > 0 && (
+                                                        <span style={{ color: '#cbd5e1' }}>•</span>
+                                                      )}
+                                                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                                        <span style={{ color: '#475569', fontWeight: 500 }}>{f.checkItem || f.label}:</span>
+                                                        <strong style={{ color: '#0f172a' }}>{formattedVal}</strong>
+                                                        {f.unit && <span style={{ fontSize: '0.7rem', color: '#64748b' }}>{f.unit}</span>}
+                                                      </span>
+                                                    </React.Fragment>
+                                                  );
+                                                })}
+                                              </div>
+                                            ) : <div />}
+                                            <div style={{ whiteSpace: 'nowrap', textAlign: 'right', fontWeight: 700, color: isLastSummaryRow ? '#0f172a' : '#475569' }}>
                                               {sumType.label}
                                             </div>
                                           </div>
@@ -1653,7 +1673,13 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                                       lineHeight: 1.25,
                                                       fontVariantNumeric: 'tabular-nums'
                                                     }}>
-                                                      <span style={{ fontWeight: 700, fontSize: '0.92rem', color: '#0f172a', letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>
+                                                      <span style={{
+                                                        fontWeight: 700,
+                                                        fontSize: isLastSummaryRow ? '0.96rem' : '0.92rem',
+                                                        color: isLastSummaryRow ? '#0f766e' : '#0f172a',
+                                                        letterSpacing: '-0.01em',
+                                                        whiteSpace: 'nowrap'
+                                                      }}>
                                                         {calculatedVal !== null ? formatIsoNumber(calculatedVal) : '—'}
                                                       </span>
                                                       {effectiveUnit && calculatedVal !== null && (

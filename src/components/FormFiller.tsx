@@ -3544,7 +3544,7 @@ function FormFillerInner({
                             {summaryTypes.map((sumType, idx) => {
                               const isLastSummaryRow = idx === summaryTypes.length - 1;
                               const rowBorderBottom = isLastSummaryRow 
-                                ? (bStyle === 'horizontal_only' ? '1.5px solid #0f172a' : bStyle === 'borderless' ? '1px solid #e2e8f0' : '1.5px solid #94a3b8')
+                                ? (bStyle === 'horizontal_only' ? '2.5px double #0f172a' : bStyle === 'borderless' ? '2px solid #0f172a' : '2.5px double #0f172a')
                                 : (bStyle === 'horizontal_only' ? '1px solid #e2e8f0' : '1px solid var(--neutral-border)');
 
                               const effectiveFirstSumColIdx = getEffectiveFirstSumColIdx(columns, sumType, fallbackColIdx);
@@ -3560,80 +3560,105 @@ function FormFillerInner({
                                       fontSize: '0.84rem'
                                     }}>
                                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', width: '100%' }}>
-                                        {/* Vùng trái: Render Footer Fields */}
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                                          {(sumType.footerFields || []).map((f: any) => {
-                                            const fieldKey = `${block.id}_${f.id}`;
-                                            const val = formValues[fieldKey] !== undefined ? formValues[fieldKey] : (f.type === 'select' ? (f.options?.[0]?.value ?? '') : '');
-                                            return (
-                                              <div key={f.id} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem' }}>
-                                                <span style={{ fontWeight: 600, color: '#475569', whiteSpace: 'nowrap' }}>{f.checkItem || f.label}:</span>
-                                                {f.type === 'select' ? (
-                                                  <select
-                                                    disabled={effectiveReadOnly}
-                                                    value={val}
-                                                    onChange={(e) => setFormValues(prev => ({ ...prev, [fieldKey]: e.target.value }))}
-                                                    style={{
-                                                      padding: '2px 6px',
-                                                      fontSize: '0.78rem',
-                                                      borderRadius: '4px',
-                                                      border: '1px solid var(--neutral-border)',
-                                                      background: '#ffffff',
-                                                      fontWeight: 600,
-                                                      color: '#0f172a',
-                                                      outline: 'none'
-                                                    }}
-                                                  >
-                                                    {(f.options || []).map((opt: any) => (
-                                                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                                                    ))}
-                                                  </select>
-                                                ) : f.type === 'number' ? (
-                                                  <FormattedNumberInput
-                                                    disabled={effectiveReadOnly}
-                                                    value={val}
-                                                    onChange={(clean) => {
-                                                      setFormValues(prev => ({ ...prev, [fieldKey]: clean }));
-                                                    }}
-                                                    placeholder={stripMarkdownTokens(f.placeholder) || '25 450'}
-                                                    style={{
-                                                      width: '85px',
-                                                      padding: '2px 6px',
-                                                      fontSize: '0.78rem',
-                                                      borderRadius: '4px',
-                                                      border: '1px solid var(--neutral-border)',
-                                                      background: '#ffffff',
-                                                      textAlign: 'right',
-                                                      fontWeight: 600,
-                                                      color: '#0f172a',
-                                                      outline: 'none'
-                                                    }}
-                                                  />
-                                                ) : (
-                                                  <input
-                                                    type="text"
-                                                    disabled={effectiveReadOnly}
-                                                    value={val}
-                                                    onChange={(e) => setFormValues(prev => ({ ...prev, [fieldKey]: e.target.value }))}
-                                                    placeholder={f.placeholder || '...'}
-                                                    style={{
-                                                      width: '100px',
-                                                      padding: '2px 6px',
-                                                      fontSize: '0.78rem',
-                                                      borderRadius: '4px',
-                                                      border: '1px solid var(--neutral-border)',
-                                                      background: '#ffffff',
-                                                      fontWeight: 500,
-                                                      color: '#0f172a',
-                                                      outline: 'none'
-                                                    }}
-                                                  />
-                                                )}
-                                              </div>
-                                            );
-                                          })}
-                                        </div>
-                                        <div style={{ whiteSpace: 'nowrap', fontWeight: 'bold' }}>
+                                        {/* Vùng trái: Render Footer Fields (Modern Parameter Card) */}
+                                        {(sumType.footerFields && sumType.footerFields.length > 0) ? (
+                                          <div style={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '12px',
+                                            background: '#f8fafc',
+                                            border: '1px solid #e2e8f0',
+                                            borderRadius: '6px',
+                                            padding: '3px 10px',
+                                            flexWrap: 'wrap'
+                                          }}>
+                                            {(sumType.footerFields || []).map((f: any, fIdx: number) => {
+                                              const fieldKey = `${block.id}_${f.id}`;
+                                              const val = formValues[fieldKey] !== undefined ? formValues[fieldKey] : (f.type === 'select' ? (f.options?.[0]?.value ?? '') : '');
+                                              return (
+                                                <React.Fragment key={f.id}>
+                                                  {fIdx > 0 && (
+                                                    <div style={{ width: '1px', height: '16px', background: '#cbd5e1' }} />
+                                                  )}
+                                                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem' }}>
+                                                    <span style={{ fontWeight: 600, color: '#475569', whiteSpace: 'nowrap' }}>{f.checkItem || f.label}:</span>
+                                                    {f.type === 'select' ? (
+                                                      <select
+                                                        disabled={effectiveReadOnly}
+                                                        value={val}
+                                                        onChange={(e) => setFormValues(prev => ({ ...prev, [fieldKey]: e.target.value }))}
+                                                        style={{
+                                                          padding: '2px 8px',
+                                                          fontSize: '0.78rem',
+                                                          borderRadius: '4px',
+                                                          border: '1px solid #cbd5e1',
+                                                          background: '#ffffff',
+                                                          fontWeight: 700,
+                                                          color: '#0f172a',
+                                                          outline: 'none',
+                                                          height: '26px',
+                                                          cursor: 'pointer'
+                                                        }}
+                                                      >
+                                                        {(f.options || []).map((opt: any) => (
+                                                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                                        ))}
+                                                      </select>
+                                                    ) : f.type === 'number' ? (
+                                                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                                                        <FormattedNumberInput
+                                                          disabled={effectiveReadOnly}
+                                                          value={val}
+                                                          onChange={(clean) => {
+                                                            setFormValues(prev => ({ ...prev, [fieldKey]: clean }));
+                                                          }}
+                                                          placeholder={stripMarkdownTokens(f.placeholder) || '25 450'}
+                                                          style={{
+                                                            width: '80px',
+                                                            height: '26px',
+                                                            padding: '2px 8px',
+                                                            fontSize: '0.78rem',
+                                                            borderRadius: '4px',
+                                                            border: '1px solid #cbd5e1',
+                                                            background: '#ffffff',
+                                                            textAlign: 'right',
+                                                            fontWeight: 700,
+                                                            color: '#0f172a',
+                                                            outline: 'none'
+                                                          }}
+                                                        />
+                                                        {f.unit && (
+                                                          <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 500 }}>{f.unit}</span>
+                                                        )}
+                                                      </div>
+                                                    ) : (
+                                                      <input
+                                                        type="text"
+                                                        disabled={effectiveReadOnly}
+                                                        value={val}
+                                                        onChange={(e) => setFormValues(prev => ({ ...prev, [fieldKey]: e.target.value }))}
+                                                        placeholder={f.placeholder || '...'}
+                                                        style={{
+                                                          width: '95px',
+                                                          height: '26px',
+                                                          padding: '2px 8px',
+                                                          fontSize: '0.78rem',
+                                                          borderRadius: '4px',
+                                                          border: '1px solid #cbd5e1',
+                                                          background: '#ffffff',
+                                                          fontWeight: 600,
+                                                          color: '#0f172a',
+                                                          outline: 'none'
+                                                        }}
+                                                      />
+                                                    )}
+                                                  </div>
+                                                </React.Fragment>
+                                              );
+                                            })}
+                                          </div>
+                                        ) : <div />}
+                                        <div style={{ whiteSpace: 'nowrap', textAlign: 'right', fontWeight: 700, color: isLastSummaryRow ? '#0f172a' : '#475569' }}>
                                           {sumType.label}
                                         </div>
                                       </div>
@@ -3747,7 +3772,13 @@ function FormFillerInner({
                                               lineHeight: 1.25,
                                               fontVariantNumeric: 'tabular-nums'
                                             }}>
-                                              <span style={{ fontWeight: 700, fontSize: '0.92rem', color: '#0f172a', letterSpacing: '-0.01em', whiteSpace: 'nowrap' }}>
+                                              <span style={{
+                                                fontWeight: 700,
+                                                fontSize: isLastSummaryRow ? '0.96rem' : '0.92rem',
+                                                color: isLastSummaryRow ? '#0f766e' : '#0f172a',
+                                                letterSpacing: '-0.01em',
+                                                whiteSpace: 'nowrap'
+                                              }}>
                                                 {sumVal !== null ? formatIsoNumber(sumVal) : '—'}
                                               </span>
                                               {effectiveUnit && sumVal !== null && (
