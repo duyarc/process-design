@@ -93,32 +93,41 @@ export function routeEdges(
           { x: endX, y: endY },
         ];
       } else if (Math.abs(fromCenterX - toCenterX) < 35) {
-        // Strategy 2: vertical-aligned
-        let hasCollision = false;
-        if (fromNode && toNode) {
-          const minRow = Math.min(fromNode.row, toNode.row);
-          const maxRow = Math.max(fromNode.row, toNode.row);
-          hasCollision = allNodes.some(
-            (node) =>
-              node.type === 'step' &&
-              node.id !== fromNode.id &&
-              node.id !== toNode.id &&
-              node.col === fromNode.col &&
-              node.row > minRow &&
-              node.row < maxRow
-          );
-        }
+        // Strategy 2: vertical-aligned (with physical bounding-box obstacle detection)
+        const commonX = Math.round((fromCenterX + toCenterX) / 2);
+        const minY = Math.min(fromPos.y, toPos.y);
+        const maxY = Math.max(fromPos.y + fromPos.height, toPos.y + toPos.height);
 
-        if (hasCollision) {
-          const gutterX = Math.max(fromPos.x + fromPos.width, toPos.x + toPos.width) + 30;
+        const collidingRects: Rect[] = [];
+        nodePositions.forEach((rect, id) => {
+          if (id === flow.sourceId || id === flow.targetId) return;
+          const nodeCenterY = rect.y + rect.height / 2;
+          const margin = 10;
+          if (
+            commonX >= rect.x - margin &&
+            commonX <= rect.x + rect.width + margin &&
+            nodeCenterY >= minY &&
+            nodeCenterY <= maxY
+          ) {
+            collidingRects.push(rect);
+          }
+        });
+
+        if (collidingRects.length > 0) {
+          const maxRight = Math.max(
+            fromPos.x + fromPos.width,
+            toPos.x + toPos.width,
+            ...collidingRects.map((r) => r.x + r.width)
+          );
+          // +55px clearance ensures routing safely bypasses obstacles and attached document shapes
+          const gutterX = maxRight + 55;
           waypoints = [
-            { x: fromPos.x + fromPos.width, y: fromPos.y + fromPos.height / 2 },
-            { x: gutterX, y: fromPos.y + fromPos.height / 2 },
-            { x: gutterX, y: toPos.y + toPos.height / 2 },
-            { x: toPos.x + toPos.width, y: toPos.y + toPos.height / 2 },
+            { x: fromPos.x + fromPos.width, y: Math.round(fromPos.y + fromPos.height / 2) },
+            { x: gutterX, y: Math.round(fromPos.y + fromPos.height / 2) },
+            { x: gutterX, y: Math.round(toPos.y + toPos.height / 2) },
+            { x: toPos.x + toPos.width, y: Math.round(toPos.y + toPos.height / 2) },
           ];
         } else {
-          const commonX = Math.round((fromCenterX + toCenterX) / 2);
           let sY = fromPos.y + fromPos.height / 2;
           let eY = toPos.y + toPos.height / 2;
           if (fromPos.y + fromPos.height <= toPos.y) {
@@ -130,9 +139,9 @@ export function routeEdges(
           }
           const midY = Math.round((sY + eY) / 2);
           waypoints = [
-            { x: commonX, y: sY },
-            { x: commonX, y: midY },
-            { x: commonX, y: eY },
+            { x: commonX, y: Math.round(sY) },
+            { x: commonX, y: Math.round(midY) },
+            { x: commonX, y: Math.round(eY) },
           ];
         }
       } else if (fromPos.x + fromPos.width <= toPos.x) {

@@ -811,7 +811,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
       </div>
 
       {/* Process Swimlane Flowchart */}
-      {Array.from({ length: process ? getNumRows(process.steps) : 1 }).map((_, r) => {
+      {Array.from({ length: process ? getNumRows(process.steps, process.roles) : 1 }).map((_, r) => {
         const rowXml = generateBPMNXML(process.steps, process.title, process.roles || [], r, formsLookup);
         return (
           <div 

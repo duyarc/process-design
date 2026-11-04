@@ -44,8 +44,8 @@ function escapeXml(unsafe: string): string {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Returns the number of page rows needed to display all steps. */
-export function getNumRows(steps: ProcessStep[]): number {
-  return computeNumRows(steps);
+export function getNumRows(steps: ProcessStep[], processRoles?: string[]): number {
+  return computeNumRows(steps, processRoles);
 }
 
 /**
