@@ -2415,8 +2415,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
   // Helper: Add a Footer Field into a Table Summary Row
   const handleAddFooterField = (blockId: string, summaryId: string, type: 'text' | 'select' | 'number' | 'date') => {
     const newFieldId = type === 'select' ? `curr_${Date.now()}` : type === 'number' ? `rate_${Date.now()}` : `ff_${Date.now()}`;
-    const defaultLabel = type === 'select' ? 'Tiền tệ' : type === 'number' ? 'Tỷ giá' : type === 'date' ? 'Ngày' : 'Ghi chú';
-    const defaultPh = type === 'number' ? '25,450' : type === 'select' ? 'USD' : '...';
+    const defaultLabel = type === 'select' ? 'Tiền tệ' : type === 'number' ? 'Số' : type === 'date' ? 'Ngày' : 'Chữ';
+    const defaultPh = type === 'number' ? '0' : type === 'select' ? 'USD' : '...';
     const defaultOptions: RadioOption[] = type === 'select' ? [
       { label: 'USD', value: 'USD' },
       { label: 'EUR', value: 'EUR' },

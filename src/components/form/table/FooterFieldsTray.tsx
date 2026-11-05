@@ -235,7 +235,7 @@ export default function FooterFieldsTray({
                     onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
                   >
                     <span style={{ fontWeight: 'bold', color: 'var(--primary)', width: '16px' }}>#</span>
-                    <span>Tỷ giá (Số)</span>
+                    <span>Số</span>
                   </button>
                   <button
                     type="button"
@@ -248,7 +248,7 @@ export default function FooterFieldsTray({
                     onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
                   >
                     <span style={{ fontWeight: 'bold', color: 'var(--primary)', width: '16px' }}>T</span>
-                    <span>Chữ tự do (Text)</span>
+                    <span>Chữ</span>
                   </button>
                   <button
                     type="button"
@@ -261,7 +261,7 @@ export default function FooterFieldsTray({
                     onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
                   >
                     <Calendar size={12} style={{ color: 'var(--primary)' }} />
-                    <span>Ngày chốt tỷ giá</span>
+                    <span>Ngày</span>
                   </button>
                 </div>
               )}
