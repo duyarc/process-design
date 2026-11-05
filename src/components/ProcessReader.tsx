@@ -100,6 +100,86 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
     return lookup;
   }, [allForms, process?.workflowFormsData]);
 
+  // Calculate workflow output forms
+  const workflowForms = useMemo(() => {
+    const list: string[] = [];
+    (process?.steps || []).forEach((s: any) => {
+      if (s.bpmnShape === 'task' && s.producesForm) {
+        const names = s.formNames && s.formNames.length > 0
+          ? s.formNames.map((n: string) => n.trim()).filter(Boolean)
+          : (s.formName ? [s.formName.trim()] : []);
+        names.forEach((name: string) => {
+          if (!list.includes(name)) {
+            list.push(name);
+          }
+        });
+      }
+    });
+    return list;
+  }, [process?.steps]);
+
+  const modalAttachedForms: AttachedFormShareItem[] = useMemo(() => {
+    const list: AttachedFormShareItem[] = [];
+    workflowForms.forEach(fid => {
+      const formData = (process?.workflowFormsData || {})[fid] || {};
+      const liveForm = allForms.find(f => (f.form_id === fid || f.form_name === fid));
+      const fTitle = formData.formTitle || (liveForm?.form_title || liveForm?.form_name) || fid;
+      const isPub = liveForm ? (liveForm.is_public !== false && liveForm.public_permission !== 'internal') : (formData.isPublic ?? false);
+      const perm = (liveForm?.public_permission || formData.publicPermission || (isPub ? 'fill' : 'internal')) === 'view' ? 'view' : 'fill';
+      list.push({
+        formId: fid,
+        formTitle: fTitle,
+        formSlug: toFormSlug(fTitle) || fid,
+        isPublic: isPub,
+        publicPermission: perm
+      });
+    });
+    return list;
+  }, [workflowForms, process?.workflowFormsData, allForms]);
+
+  const handleSaveShareSettings = async (newIsPublic: boolean, updatedForms: AttachedFormShareItem[]) => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/processes/' + encodeURIComponent(processId) + '/share', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: 'Bearer ' + token } : {})
+        },
+        body: JSON.stringify({
+          isPublic: newIsPublic,
+          formPermissions: updatedForms.map(f => ({
+            formId: f.formId,
+            isPublic: f.isPublic,
+            publicPermission: f.publicPermission
+          }))
+        })
+      });
+      if (!res.ok) throw new Error('Failed to save share settings');
+      if (process) {
+        setProcess({ ...process, is_public: newIsPublic, isPublic: newIsPublic });
+      }
+      setAllForms(prev => {
+        const formMap = new Map(updatedForms.map(uf => [uf.formId, uf]));
+        return prev.map(f => {
+          const fid = f.form_id || f.form_name;
+          const updated = formMap.get(fid);
+          if (updated) {
+            return {
+              ...f,
+              is_public: updated.isPublic,
+              public_permission: updated.publicPermission
+            };
+          }
+          return f;
+        });
+      });
+    } catch (err) {
+      console.error(err);
+      throw err;
+    }
+  };
+
   const fetchFormsList = async () => {
     try {
       const res = await fetch('/api/forms');
@@ -494,83 +574,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
     }
   };
 
-  // Calculate workflow output forms
-  const workflowFormsList: string[] = [];
-  (process.steps || []).forEach((s: any) => {
-    if (s.bpmnShape === 'task' && s.producesForm) {
-      const names = s.formNames && s.formNames.length > 0
-        ? s.formNames.map((n: string) => n.trim()).filter(Boolean)
-        : (s.formName ? [s.formName.trim()] : []);
-      names.forEach((name: string) => {
-        if (!workflowFormsList.includes(name)) {
-          workflowFormsList.push(name);
-        }
-      });
-    }
-  });
-  const workflowForms = workflowFormsList;
 
-  const modalAttachedForms: AttachedFormShareItem[] = useMemo(() => {
-    const list: AttachedFormShareItem[] = [];
-    workflowForms.forEach(fid => {
-      const formData = (process?.workflowFormsData || {})[fid] || {};
-      const liveForm = allForms.find(f => (f.form_id === fid || f.form_name === fid));
-      const fTitle = formData.formTitle || (liveForm?.form_title || liveForm?.form_name) || fid;
-      const isPub = liveForm ? (liveForm.is_public !== false && liveForm.public_permission !== 'internal') : (formData.isPublic ?? false);
-      const perm = (liveForm?.public_permission || formData.publicPermission || (isPub ? 'fill' : 'internal')) === 'view' ? 'view' : 'fill';
-      list.push({
-        formId: fid,
-        formTitle: fTitle,
-        formSlug: toFormSlug(fTitle) || fid,
-        isPublic: isPub,
-        publicPermission: perm
-      });
-    });
-    return list;
-  }, [workflowForms, process?.workflowFormsData, allForms]);
-
-  const handleSaveShareSettings = async (newIsPublic: boolean, updatedForms: AttachedFormShareItem[]) => {
-    try {
-      const token = localStorage.getItem('token');
-      const res = await fetch('/api/processes/' + encodeURIComponent(processId) + '/share', {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: 'Bearer ' + token } : {})
-        },
-        body: JSON.stringify({
-          isPublic: newIsPublic,
-          formPermissions: updatedForms.map(f => ({
-            formId: f.formId,
-            isPublic: f.isPublic,
-            publicPermission: f.publicPermission
-          }))
-        })
-      });
-      if (!res.ok) throw new Error('Failed to save share settings');
-      if (process) {
-        setProcess({ ...process, is_public: newIsPublic, isPublic: newIsPublic });
-      }
-      setAllForms(prev => {
-        const formMap = new Map(updatedForms.map(uf => [uf.formId, uf]));
-        return prev.map(f => {
-          const fid = f.form_id || f.form_name;
-          const updated = formMap.get(fid);
-          if (updated) {
-            return {
-              ...f,
-              is_public: updated.isPublic,
-              public_permission: updated.publicPermission
-            };
-          }
-          return f;
-        });
-      });
-    } catch (err) {
-      console.error(err);
-      throw err;
-    }
-  };
 
 
 
