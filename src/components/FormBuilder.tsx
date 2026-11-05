@@ -53,6 +53,7 @@ import InCanvasImageField from './form/InCanvasImageField';
 import InCanvasColSpanToggle from './form/InCanvasColSpanToggle';
 import ImageGalleryModal from './form/ImageGalleryModal';
 import TableSummaryFooter from './form/table/TableSummaryFooter';
+import CopySectionModal from './form/CopySectionModal';
 import { useAuth } from '../context/AuthContext';
 
 interface FormBuilderProps {
@@ -1502,8 +1503,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
   const [showCopyModal, setShowCopyModal] = useState(false);
   const [allProcesses, setAllProcesses] = useState<any[]>([]);
   const [allFormsData, setAllFormsData] = useState<any[]>([]);
-  const [selectedFormKey, setSelectedFormKey] = useState<string>(''); // format: "processId:formName"
-  const [selectedBlockId, setSelectedBlockId] = useState<string>('');
+
 
   useEffect(() => {
     if (showCopyModal && (allProcesses.length === 0 || allFormsData.length === 0)) {
@@ -1772,7 +1772,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     // Regenerate unique IDs for all fields in the block to prevent collisions
     const existingIds = layoutBlocks.flatMap(b => (b.fields || []).map(f => f.id));
     const generatedIds = [...existingIds];
-    const newFields = sourceBlock.fields.map(field => {
+    const newFields = (sourceBlock.fields || []).map(field => {
       const newFieldId = generateSmartFieldSlug(field.checkItem, generatedIds, field.type);
       generatedIds.push(newFieldId);
       return {
@@ -1781,10 +1781,84 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
       };
     });
 
+    // For TABLE and CHECKLIST_TABLE blocks, regenerate unique row IDs and remap tableData, cellOptionsMap, cellPlaceholderMap, cellUnitMap
+    let newRows = sourceBlock.tableRows;
+    let newTableData = sourceBlock.tableData;
+    let newCellOptionsMap = sourceBlock.cellOptionsMap;
+    let newCellPlaceholderMap = sourceBlock.cellPlaceholderMap;
+    let newCellUnitMap = sourceBlock.cellUnitMap;
+
+    if (sourceBlock.type === 'TABLE' || sourceBlock.type === 'CHECKLIST_TABLE') {
+      const rowIdMap = new Map<string, string>();
+      newRows = (sourceBlock.tableRows || []).map(row => {
+        const newRowId = `row_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+        rowIdMap.set(row.id, newRowId);
+        return {
+          ...row,
+          id: newRowId
+        };
+      });
+
+      if (sourceBlock.tableData) {
+        newTableData = {};
+        Object.entries(sourceBlock.tableData).forEach(([oldRowId, rowVals]) => {
+          const mappedRowId = rowIdMap.get(oldRowId) || oldRowId;
+          newTableData![mappedRowId] = { ...rowVals };
+        });
+      }
+
+      if (sourceBlock.cellOptionsMap) {
+        newCellOptionsMap = {};
+        Object.entries(sourceBlock.cellOptionsMap).forEach(([oldCellKey, opts]) => {
+          let mappedKey = oldCellKey;
+          for (const [oldRId, newRId] of rowIdMap.entries()) {
+            if (oldCellKey.startsWith(oldRId + '_')) {
+              mappedKey = newRId + oldCellKey.slice(oldRId.length);
+              break;
+            }
+          }
+          newCellOptionsMap![mappedKey] = [...opts];
+        });
+      }
+
+      if (sourceBlock.cellPlaceholderMap) {
+        newCellPlaceholderMap = {};
+        Object.entries(sourceBlock.cellPlaceholderMap).forEach(([oldCellKey, ph]) => {
+          let mappedKey = oldCellKey;
+          for (const [oldRId, newRId] of rowIdMap.entries()) {
+            if (oldCellKey.startsWith(oldRId + '_')) {
+              mappedKey = newRId + oldCellKey.slice(oldRId.length);
+              break;
+            }
+          }
+          newCellPlaceholderMap![mappedKey] = ph;
+        });
+      }
+
+      if (sourceBlock.cellUnitMap) {
+        newCellUnitMap = {};
+        Object.entries(sourceBlock.cellUnitMap).forEach(([oldCellKey, u]) => {
+          let mappedKey = oldCellKey;
+          for (const [oldRId, newRId] of rowIdMap.entries()) {
+            if (oldCellKey.startsWith(oldRId + '_')) {
+              mappedKey = newRId + oldCellKey.slice(oldRId.length);
+              break;
+            }
+          }
+          newCellUnitMap![mappedKey] = u;
+        });
+      }
+    }
+
     const newBlock: LayoutBlockISO = {
       ...sourceBlock,
       id: newBlockId,
-      fields: newFields
+      fields: newFields,
+      tableRows: newRows,
+      tableData: newTableData,
+      cellOptionsMap: newCellOptionsMap,
+      cellPlaceholderMap: newCellPlaceholderMap,
+      cellUnitMap: newCellUnitMap
     };
 
     // Insert after current activeBlockId if present, else append
@@ -3455,8 +3529,6 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
           <button 
             type="button" 
             onClick={() => {
-              setSelectedFormKey('');
-              setSelectedBlockId('');
               setShowCopyModal(true);
             }}
             disabled={isLocked}
@@ -11816,293 +11888,18 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
           </div>
         )}
       {/* 5. COPY SECTION FROM FORM MODAL */}
-      {showCopyModal && (() => {
-        interface FormOptionItem {
-          key: string;
-          processId: string;
-          processTitle: string;
-          formId: string;
-          formTitle: string;
-          formName: string;
-          updatedAt: string;
-          blocks: LayoutBlockISO[];
-          isSameProcess: boolean;
-          isUnlinked: boolean;
-        }
+      <CopySectionModal
+        isOpen={showCopyModal}
+        onClose={() => setShowCopyModal(false)}
+        currentFormId={formId}
+        currentFormTitle={formTitle}
+        currentFormName={formName}
+        linkedProcessId={linkedProcessId || initialData?.formId}
+        allProcesses={allProcesses}
+        allFormsData={allFormsData}
+        onCopyBlock={handleExecuteCopy}
+      />
 
-        const availableFormsMap = new Map<string, FormOptionItem>();
-        const currentProcId = linkedProcessId || initialData?.formId || '';
-
-        // 1. Collect forms embedded in allProcesses
-        allProcesses.forEach(proc => {
-          const isSameProc = proc.id === currentProcId;
-          if (proc.workflowFormsData) {
-            const wfd = typeof proc.workflowFormsData === 'string' ? JSON.parse(proc.workflowFormsData) : proc.workflowFormsData;
-            Object.entries(wfd).forEach(([fName, formData]: [string, any]) => {
-              if (!formData || !Array.isArray(formData.layoutBlocks) || formData.layoutBlocks.length === 0) return;
-              
-              const key = `${proc.id}:${fName}`;
-              const fTitle = formData.formTitle || formData.form_title || fName;
-              const fId = formData.formId || formData.form_id || fName;
-
-              // Skip current form being edited
-              if (isSameProc && (fId === formId || fTitle === formTitle || fName === formName)) {
-                return;
-              }
-
-              availableFormsMap.set(key, {
-                key,
-                processId: proc.id,
-                processTitle: proc.title || 'Quy trình',
-                formId: fId,
-                formTitle: fTitle,
-                formName: fName,
-                updatedAt: formData.updatedAt || proc.lastUpdated || formData.updated_at || '',
-                blocks: formData.layoutBlocks,
-                isSameProcess: isSameProc,
-                isUnlinked: false
-              });
-            });
-          }
-        });
-
-        // 2. Collect standalone forms from allFormsData
-        allFormsData.forEach(form => {
-          const blocks = typeof form.layout_blocks === 'string' ? JSON.parse(form.layout_blocks) : (form.layout_blocks || []);
-          if (!Array.isArray(blocks) || blocks.length === 0) return;
-
-          const fTitle = form.form_title || form.form_name || form.form_id;
-          const fId = form.form_id || form.form_name;
-          const fName = form.form_name || form.form_id;
-          const key = `form_db:${form.id || fId}`;
-
-          // Skip current form
-          if (fId === formId || fTitle === formTitle || fName === formName) return;
-
-          // Check if form is already in availableFormsMap
-          const alreadyExists = Array.from(availableFormsMap.values()).some(existing => existing.formId === fId && existing.formTitle === fTitle);
-          if (!alreadyExists) {
-            availableFormsMap.set(key, {
-              key,
-              processId: 'unlinked',
-              processTitle: 'Biểu mẫu tự do',
-              formId: fId,
-              formTitle: fTitle,
-              formName: fName,
-              updatedAt: form.updated_at || form.updatedAt || '',
-              blocks: blocks,
-              isSameProcess: false,
-              isUnlinked: true
-            });
-          }
-        });
-
-        const availableForms = Array.from(availableFormsMap.values());
-
-        // Sort into 3 predictive UX categories descending by updatedAt
-        const getTs = (item: FormOptionItem) => item.updatedAt ? new Date(item.updatedAt).getTime() : 0;
-
-        const sameProcessForms = availableForms
-          .filter(f => f.isSameProcess)
-          .sort((a, b) => getTs(b) - getTs(a));
-
-        const otherProcessForms = availableForms
-          .filter(f => !f.isSameProcess && !f.isUnlinked)
-          .sort((a, b) => getTs(b) - getTs(a));
-
-        const unlinkedForms = availableForms
-          .filter(f => f.isUnlinked)
-          .sort((a, b) => getTs(b) - getTs(a));
-
-        const selectedForm = availableForms.find(f => f.key === selectedFormKey);
-        const selectedBlock = selectedForm?.blocks.find(b => b.id === selectedBlockId);
-
-        return (
-          <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0,0,0,0.5)',
-            zIndex: 1000,
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center'
-          }}>
-            <div style={{
-              background: '#ffffff',
-              borderRadius: '8px',
-              width: '90%',
-              maxWidth: '500px',
-              maxHeight: '85vh',
-              padding: '1.5rem',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '1rem',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--neutral-border)', paddingBottom: '0.5rem' }}>
-                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>Copy Section from Form</h3>
-                <button 
-                  type="button" 
-                  onClick={() => setShowCopyModal(false)}
-                  style={{ border: 'none', background: 'none', fontSize: '1.25rem', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center' }}
-                >
-                  <X size={18} />
-                </button>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>1. Select Source Form</label>
-                <select 
-                  value={selectedFormKey} 
-                  onChange={(e) => {
-                    setSelectedFormKey(e.target.value);
-                    setSelectedBlockId('');
-                  }}
-                  style={{ width: '100%', padding: '0.45rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', fontSize: '0.8rem', outline: 'none' }}
-                >
-                  <option value="">-- Choose a Form --</option>
-                  {sameProcessForms.length > 0 && (
-                    <optgroup label={`📌 Form trong cùng quy trình (${sameProcessForms[0]?.processTitle || 'Quy trình hiện tại'})`}>
-                      {sameProcessForms.map(f => (
-                        <option key={f.key} value={f.key}>
-                          {f.formTitle} {f.formId && f.formId !== f.formTitle ? `(${f.formId})` : ''}
-                        </option>
-                      ))}
-                    </optgroup>
-                  )}
-                  {otherProcessForms.length > 0 && (
-                    <optgroup label="🕒 Form các quy trình khác (Mới cập nhật gần đây)">
-                      {otherProcessForms.map(f => {
-                        let dateStr = '';
-                        if (f.updatedAt) {
-                          try { dateStr = ` — ${new Date(f.updatedAt).toLocaleDateString('vi-VN')}`; } catch {}
-                        }
-                        return (
-                          <option key={f.key} value={f.key}>
-                            {f.processTitle} › {f.formTitle} {f.formId && f.formId !== f.formTitle ? `(${f.formId})` : ''}{dateStr}
-                          </option>
-                        );
-                      })}
-                    </optgroup>
-                  )}
-                  {unlinkedForms.length > 0 && (
-                    <optgroup label="📄 Biểu mẫu tự do (Chưa liên kết)">
-                      {unlinkedForms.map(f => {
-                        let dateStr = '';
-                        if (f.updatedAt) {
-                          try { dateStr = ` — ${new Date(f.updatedAt).toLocaleDateString('vi-VN')}`; } catch {}
-                        }
-                        return (
-                          <option key={f.key} value={f.key}>
-                            {f.formTitle} {f.formId && f.formId !== f.formTitle ? `(${f.formId})` : ''}{dateStr}
-                          </option>
-                        );
-                      })}
-                    </optgroup>
-                  )}
-                </select>
-              </div>
-
-              {selectedForm && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                  <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>2. Select Section to Copy</label>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', maxHeight: '150px', overflowY: 'auto', border: '1px solid var(--neutral-border)', borderRadius: '4px', padding: '0.35rem' }}>
-                    {selectedForm.blocks.map(block => (
-                      <div 
-                        key={block.id}
-                        onClick={() => setSelectedBlockId(block.id)}
-                        style={{
-                          padding: '0.45rem 0.6rem',
-                          fontSize: '0.75rem',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          background: selectedBlockId === block.id ? '#f0fdf4' : '#f8fafc',
-                          border: `1px solid ${selectedBlockId === block.id ? '#10b981' : 'transparent'}`,
-                          color: selectedBlockId === block.id ? '#15803d' : 'var(--text-primary)',
-                          fontWeight: selectedBlockId === block.id ? 600 : 400,
-                          transition: 'all 0.15s'
-                        }}
-                      >
-                        {block.title || `Unnamed Section (${block.type})`}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {selectedBlock && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                  <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>3. Section Preview</label>
-                  <div style={{ 
-                    padding: '0.75rem', 
-                    background: '#f8fafc', 
-                    border: '1px solid var(--neutral-border)', 
-                    borderRadius: '6px', 
-                    fontSize: '0.75rem' 
-                  }}>
-                    <div style={{ fontWeight: 600, marginBottom: '0.45rem', color: '#334155' }}>
-                      {selectedBlock.title || 'Untitled Section'} ({selectedBlock.type})
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', maxHeight: '110px', overflowY: 'auto', padding: '0.1rem' }}>
-                      {selectedBlock.fields.length === 0 ? (
-                        <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>No fields in this section.</span>
-                      ) : (
-                        selectedBlock.fields.map(field => (
-                          <div key={field.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.25rem 0.5rem', background: '#ffffff', borderRadius: '4px', border: '1px solid #e2e8f0', fontSize: '0.7rem' }}>
-                            <span style={{ fontWeight: 500 }}>{field.checkItem || '(Blank Label)'}</span>
-                            <span style={{ color: '#64748b', fontSize: '0.65rem', textTransform: 'uppercase' }}>{field.type}</span>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.5rem', borderTop: '1px solid var(--neutral-border)', paddingTop: '0.75rem' }}>
-                <button 
-                  type="button"
-                  onClick={() => setShowCopyModal(false)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: '#64748b',
-                    padding: '6px 12px',
-                    fontSize: '0.8rem',
-                    fontWeight: 500,
-                    cursor: 'pointer'
-                  }}
-                >
-                  Cancel
-                </button>
-                <button 
-                  type="button"
-                  disabled={!selectedBlock}
-                  onClick={() => handleExecuteCopy(selectedBlock!)}
-                  style={{
-                    background: selectedBlock ? '#0f172a' : '#94a3b8',
-                    border: `1px solid ${selectedBlock ? '#0f172a' : '#94a3b8'}`,
-                    color: '#ffffff',
-                    padding: '6px 16px',
-                    borderRadius: '4px',
-                    fontSize: '0.8rem',
-                    fontWeight: 500,
-                    cursor: selectedBlock ? 'pointer' : 'not-allowed',
-                    transition: 'background-color 0.2s'
-                  }}
-                  onMouseEnter={(e) => { if (selectedBlock) e.currentTarget.style.background = '#1e293b'; }}
-                  onMouseLeave={(e) => { if (selectedBlock) e.currentTarget.style.background = '#0f172a'; }}
-                >
-                  Copy Section
-                </button>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
       {showLogoGallery && (
         <div style={{
           position: 'fixed',
