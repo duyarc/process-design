@@ -493,7 +493,18 @@ export const ShareProcessModal: React.FC<ShareProcessModalProps> = ({
           <button
             type="button"
             className="btn btn-primary btn-sm"
-            onClick={onClose}
+            onClick={async () => {
+              try {
+                setSaving(true);
+                await onSaveShareSettings(isPublic, formsList);
+                onClose();
+              } catch (e) {
+                console.error(e);
+                onClose();
+              } finally {
+                setSaving(false);
+              }
+            }}
             disabled={saving}
             style={{ fontSize: '0.75rem', padding: '0.35rem 0.85rem' }}
           >

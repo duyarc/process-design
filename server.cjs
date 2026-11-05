@@ -1683,28 +1683,49 @@ app.patch('/api/processes/:id/share', async (req, res) => {
         await dbPool.query('UPDATE processes SET is_public = $1 WHERE id = $2', [isPublic, id]);
       }
 
-      // formPermissions: { [formId]: { isPublic: boolean, publicPermission: 'fill' | 'view' } }
-      if (formPermissions && typeof formPermissions === 'object') {
-        for (const [fId, perm] of Object.entries(formPermissions)) {
-          if (perm && typeof perm.isPublic === 'boolean') {
-            const pPerm = perm.publicPermission || 'fill';
-            await dbPool.query(
-              'UPDATE forms SET is_public = $1, public_permission = $2, updated_at = NOW() WHERE form_id = $3 OR form_name = $3',
-              [perm.isPublic, pPerm, fId]
-            );
+      if (formPermissions) {
+        const permList = Array.isArray(formPermissions)
+          ? formPermissions
+          : Object.entries(formPermissions).map(([k, v]) => ({ formId: k, ...v }));
 
-            // Cascade to processes.workflowFormsData if key exists
-            const procRes = await dbPool.query('SELECT "workflowFormsData" FROM processes WHERE id = $1', [id]);
-            if (procRes.rows.length > 0) {
-              const wfd = procRes.rows[0].workflowFormsData || {};
-              if (wfd[fId]) {
-                wfd[fId].isPublic = perm.isPublic;
-                wfd[fId].publicPermission = pPerm;
-                await dbPool.query('UPDATE processes SET "workflowFormsData" = $1 WHERE id = $2', [JSON.stringify(wfd), id]);
-              }
+        const procRes = await dbPool.query('SELECT "workflowFormsData" FROM processes WHERE id = $1', [id]);
+        let wfd = {};
+        if (procRes.rows.length > 0) {
+          const rawWfd = procRes.rows[0].workflowFormsData;
+          wfd = typeof rawWfd === 'string' ? JSON.parse(rawWfd || '{}') : (rawWfd || {});
+        }
+
+        for (const item of permList) {
+          const fId = item.formId;
+          if (!fId) continue;
+          const isPub = item.isPublic === true;
+          const pPerm = item.publicPermission || (isPub ? 'fill' : 'internal');
+
+          await dbPool.query(
+            'UPDATE forms SET is_public = $1, public_permission = $2, updated_at = NOW() WHERE form_id = $3 OR form_name = $3 OR form_title = $3',
+            [isPub, pPerm, fId]
+          );
+
+          try {
+            await dbPool.query(
+              'UPDATE process_forms SET updated_at = NOW() WHERE (form_id = $1 OR form_name = $1) AND process_id = $2',
+              [fId, id]
+            );
+          } catch (_) {}
+
+          for (const [key, val] of Object.entries(wfd)) {
+            if (key === fId || (val && (val.formId === fId || val.formTitle === fId))) {
+              val.isPublic = isPub;
+              val.publicPermission = pPerm;
             }
           }
+          if (wfd[fId]) {
+            wfd[fId].isPublic = isPub;
+            wfd[fId].publicPermission = pPerm;
+          }
         }
+
+        await dbPool.query('UPDATE processes SET "workflowFormsData" = $1 WHERE id = $2', [JSON.stringify(wfd), id]);
       }
 
       return res.json({ success: true, isPublic });

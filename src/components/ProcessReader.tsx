@@ -122,9 +122,9 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
     const list: AttachedFormShareItem[] = [];
     workflowForms.forEach(fid => {
       const formData = (process?.workflowFormsData || {})[fid] || {};
-      const liveForm = allForms.find(f => (f.form_id === fid || f.form_name === fid));
+      const liveForm = allForms.find(f => (f.form_id === fid || f.form_name === fid || f.form_title === fid || (formData.formId && f.form_id === formData.formId)));
       const fTitle = formData.formTitle || (liveForm?.form_title || liveForm?.form_name) || fid;
-      const isPub = liveForm ? (liveForm.is_public !== false && liveForm.public_permission !== 'internal') : (formData.isPublic ?? false);
+      const isPub = liveForm ? (liveForm.is_public === true && liveForm.public_permission !== 'internal') : (formData?.isPublic === true);
       const perm = (liveForm?.public_permission || formData.publicPermission || (isPub ? 'fill' : 'internal')) === 'view' ? 'view' : 'fill';
       list.push({
         formId: fid,
@@ -157,13 +157,23 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
       });
       if (!res.ok) throw new Error('Failed to save share settings');
       if (process) {
-        setProcess({ ...process, is_public: newIsPublic, isPublic: newIsPublic });
+        const updatedWfd = { ...(process.workflowFormsData || {}) };
+        updatedForms.forEach(uf => {
+          if (updatedWfd[uf.formId]) {
+            updatedWfd[uf.formId] = {
+              ...updatedWfd[uf.formId],
+              isPublic: uf.isPublic,
+              publicPermission: uf.publicPermission
+            };
+          }
+        });
+        setProcess({ ...process, is_public: newIsPublic, isPublic: newIsPublic, workflowFormsData: updatedWfd });
       }
       setAllForms(prev => {
         const formMap = new Map(updatedForms.map(uf => [uf.formId, uf]));
         return prev.map(f => {
           const fid = f.form_id || f.form_name;
-          const updated = formMap.get(fid);
+          const updated = formMap.get(fid) || (f.form_title ? formMap.get(f.form_title) : null);
           if (updated) {
             return {
               ...f,
@@ -929,14 +939,12 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                     {workflowForms.map((formId, idx) => {
                       const formData = (process.workflowFormsData || {})[formId] || {};
                       const liveForm = allForms
-                        .filter(f => f.form_id === formId)
+                        .filter(f => f.form_id === formId || f.form_name === formId || f.form_title === formId || (formData.formId && f.form_id === formData.formId))
                         .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())[0];
                       const hasDigitalForm = !!formId;
-                      const liveLayoutBlocks = liveForm ? (typeof liveForm.layout_blocks === 'string' ? JSON.parse(liveForm.layout_blocks) : liveForm.layout_blocks) : null;
-                      const hasLayoutBlocks = liveLayoutBlocks && liveLayoutBlocks.length > 0;
                       const displayName = formData.formTitle || (liveForm?.form_title || liveForm?.form_name) || formId;
                       const hasPdf = !!formData.pdfName;
-                      const isFormPublic = liveForm ? (liveForm.is_public !== false && liveForm.public_permission !== 'internal') : (formData?.isPublic ?? false);
+                      const isFormPublic = liveForm ? (liveForm.is_public === true && liveForm.public_permission !== 'internal') : (formData?.isPublic === true);
                       const formPerm = liveForm?.public_permission || formData?.publicPermission || (isFormPublic ? 'fill' : 'internal');
                       const isInternal = isSharedView && (!isFormPublic || formPerm === 'internal');
                       const isViewOnly = isSharedView && formPerm === 'view';
@@ -986,7 +994,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                                   <span style={{ fontSize: '0.72rem', color: '#64748b', background: '#f1f5f9', border: '1px solid #e2e8f0', padding: '0.2rem 0.5rem', borderRadius: '4px', fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
                                     🔒 Nội bộ
                                   </span>
-                                ) : hasLayoutBlocks && (
+                                ) : (
                                   <button
                                     type="button"
                                     title={isViewOnly ? "Xem biểu mẫu (Chỉ xem)" : "Điền biểu mẫu (Fill Form)"}
@@ -1051,7 +1059,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                                 )}
 
                                 {/* Action 3: Print Blank Form */}
-                                {!isInternal && hasLayoutBlocks && (
+                                {!isInternal && (
                                   <button
                                     type="button"
                                     title="In biểu mẫu trắng (Print Blank)"
