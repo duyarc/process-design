@@ -1525,31 +1525,27 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                                          const eDate = parts[1] || '';
                                          return (
                                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', width: '100%' }}>
-                                             <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                                               <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginBottom: '1px' }}>Từ</span>
-                                               <input
-                                                 type="date"
-                                                 value={sDate}
-                                                 onChange={(e) => {
-                                                   const val = e.target.value;
-                                                   setFormValues(prev => ({ ...prev, [field.id]: `${val} - ${eDate}` }));
-                                                 }}
-                                                 style={inputStyle}
-                                               />
-                                             </div>
-                                             <span style={{ marginTop: '12px', color: '#cbd5e1' }}>~</span>
-                                             <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                                               <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginBottom: '1px' }}>Đến</span>
-                                               <input
-                                                 type="date"
-                                                 value={eDate}
-                                                 onChange={(e) => {
-                                                   const val = e.target.value;
-                                                   setFormValues(prev => ({ ...prev, [field.id]: `${sDate} - ${val}` }));
-                                                 }}
-                                                 style={inputStyle}
-                                               />
-                                             </div>
+                                             <input
+                                               type="date"
+                                               value={sDate}
+                                               title="Từ ngày"
+                                               onChange={(e) => {
+                                                 const val = e.target.value;
+                                                 setFormValues(prev => ({ ...prev, [field.id]: `${val} - ${eDate}` }));
+                                               }}
+                                               style={{ ...inputStyle, flex: 1, minWidth: 0 }}
+                                             />
+                                             <span style={{ color: '#94a3b8', fontSize: '0.85rem', fontWeight: 600, flexShrink: 0 }}>~</span>
+                                             <input
+                                               type="date"
+                                               value={eDate}
+                                               title="Đến ngày"
+                                               onChange={(e) => {
+                                                 const val = e.target.value;
+                                                 setFormValues(prev => ({ ...prev, [field.id]: `${sDate} - ${val}` }));
+                                               }}
+                                               style={{ ...inputStyle, flex: 1, minWidth: 0 }}
+                                             />
                                            </div>
                                          );
                                        })() : (
@@ -1568,31 +1564,27 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                                         const eTime = parts[1] || '';
                                         return (
                                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', width: '100%' }}>
-                                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                                              <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginBottom: '1px' }}>Từ</span>
-                                              <input 
-                                                type="time" 
-                                                value={sTime} 
-                                                onChange={(e) => {
-                                                  const val = e.target.value;
-                                                  setFormValues(prev => ({ ...prev, [field.id]: `${val} - ${eTime}` }));
-                                                }}
-                                                style={inputStyle}
-                                              />
-                                            </div>
-                                            <span style={{ marginTop: '10px', color: '#cbd5e1' }}>~</span>
-                                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                                              <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginBottom: '1px' }}>Đến</span>
-                                              <input 
-                                                type="time" 
-                                                value={eTime} 
-                                                onChange={(e) => {
-                                                  const val = e.target.value;
-                                                  setFormValues(prev => ({ ...prev, [field.id]: `${sTime} - ${val}` }));
-                                                }}
-                                                style={inputStyle}
-                                              />
-                                            </div>
+                                            <input 
+                                              type="time" 
+                                              value={sTime} 
+                                              title="Từ giờ"
+                                              onChange={(e) => {
+                                                const val = e.target.value;
+                                                setFormValues(prev => ({ ...prev, [field.id]: `${val} - ${eTime}` }));
+                                              }}
+                                              style={{ ...inputStyle, flex: 1, minWidth: 0 }}
+                                            />
+                                            <span style={{ color: '#94a3b8', fontSize: '0.85rem', fontWeight: 600, flexShrink: 0 }}>~</span>
+                                            <input 
+                                              type="time" 
+                                              value={eTime} 
+                                              title="Đến giờ"
+                                              onChange={(e) => {
+                                                const val = e.target.value;
+                                                setFormValues(prev => ({ ...prev, [field.id]: `${sTime} - ${val}` }));
+                                              }}
+                                              style={{ ...inputStyle, flex: 1, minWidth: 0 }}
+                                            />
                                           </div>
                                         );
                                       })() : (
@@ -2091,31 +2083,27 @@ setFormValues(prev => ({ ...prev, [field.id]: stringifySubtableValue(newRows) })
                                            const eTime = parts[1] || '';
                                            return (
                                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', width: '100%' }}>
-                                               <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                                                 <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginBottom: '1px' }}>Từ</span>
-                                                 <input 
-                                                   type="time" 
-                                                   value={sTime} 
-                                                   onChange={(e) => {
-                                                     const val = e.target.value;
-                                                     setFormValues(prev => ({ ...prev, [field.id]: `${val} - ${eTime}` }));
-                                                   }}
-                                                   style={{ padding: '0.4rem 0.5rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', width: '100%', height: '34px' }}
-                                                 />
-                                               </div>
-                                               <span style={{ marginTop: '10px', color: '#cbd5e1' }}>~</span>
-                                               <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                                                 <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginBottom: '1px' }}>Đến</span>
-                                                 <input 
-                                                   type="time" 
-                                                   value={eTime} 
-                                                   onChange={(e) => {
-                                                     const val = e.target.value;
-                                                     setFormValues(prev => ({ ...prev, [field.id]: `${sTime} - ${val}` }));
-                                                   }}
-                                                   style={{ padding: '0.4rem 0.5rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', width: '100%', height: '34px' }}
-                                                 />
-                                               </div>
+                                               <input 
+                                                 type="time" 
+                                                 value={sTime} 
+                                                 title="Từ giờ"
+                                                 onChange={(e) => {
+                                                   const val = e.target.value;
+                                                   setFormValues(prev => ({ ...prev, [field.id]: `${val} - ${eTime}` }));
+                                                 }}
+                                                 style={{ padding: '0.4rem 0.5rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', width: '100%', height: '34px', flex: 1, minWidth: 0 }}
+                                               />
+                                               <span style={{ color: '#94a3b8', fontSize: '0.85rem', fontWeight: 600, flexShrink: 0 }}>~</span>
+                                               <input 
+                                                 type="time" 
+                                                 value={eTime} 
+                                                 title="Đến giờ"
+                                                 onChange={(e) => {
+                                                   const val = e.target.value;
+                                                   setFormValues(prev => ({ ...prev, [field.id]: `${sTime} - ${val}` }));
+                                                 }}
+                                                 style={{ padding: '0.4rem 0.5rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px', width: '100%', height: '34px', flex: 1, minWidth: 0 }}
+                                               />
                                              </div>
                                            );
                                          })() : (
