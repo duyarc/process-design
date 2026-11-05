@@ -173,6 +173,7 @@ export interface ColumnSummaryRowConfig {
   percentageValue?: number;
   percentageOfId?: string;
   sumRowIds?: string[];
+  sumRowOperators?: { [rowId: string]: '+' | '-' };
   manualPlaceholder?: string;
   unit?: string;
   multiplyRowIds?: [string, string];

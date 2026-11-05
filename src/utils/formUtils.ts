@@ -1633,7 +1633,12 @@ export function calculateTableColumnSummary(
       if (targetRow) {
         const val = calculateTableColumnSummary(col, targetRow, allSummaryRows, tableRows, getValue, nextVisited);
         if (val !== null) {
-          sum += val;
+          const op = (row.sumRowOperators && row.sumRowOperators[id]) === '-' ? '-' : '+';
+          if (op === '-') {
+            sum -= val;
+          } else {
+            sum += val;
+          }
           hasValue = true;
         }
       }

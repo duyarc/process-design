@@ -2346,6 +2346,10 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
               if (updated.sumRowIds) {
                 updated.sumRowIds = updated.sumRowIds.filter(id => id !== summaryId);
               }
+              if (updated.sumRowOperators && updated.sumRowOperators[summaryId]) {
+                const { [summaryId]: _, ...restOps } = updated.sumRowOperators;
+                updated.sumRowOperators = restOps;
+              }
               return updated;
             })
         };
@@ -2519,6 +2523,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
           percentageValue: extra?.percentageValue !== undefined ? extra.percentageValue : (type === 'percentage' ? 10 : undefined),
           percentageOfId: extra?.percentageOfId !== undefined ? extra.percentageOfId : undefined,
           sumRowIds: extra?.sumRowIds !== undefined ? extra.sumRowIds : undefined,
+          sumRowOperators: extra?.sumRowOperators !== undefined ? extra.sumRowOperators : (existingIdx >= 0 ? currentRows[existingIdx].sumRowOperators : undefined),
           manualPlaceholder: extra?.manualPlaceholder !== undefined ? extra.manualPlaceholder : undefined,
           unit: extra?.unit !== undefined ? extra.unit : undefined,
           multiplyRowIds: extra?.multiplyRowIds !== undefined ? extra.multiplyRowIds : undefined
@@ -10951,31 +10956,86 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                         )}
 
                                         {row.type === 'sum_all' && (
-                                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-                                            <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Chọn hàng cộng/trừ:</span>
+                                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                            <span style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Chọn hàng cộng/trừ:</span>
                                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
                                               {(col.summaryRows || []).slice(0, sIdx).map(r => {
                                                 const isIncluded = (row.sumRowIds || []).includes(r.id);
+                                                const op = (row.sumRowOperators && row.sumRowOperators[r.id]) === '-' ? '-' : '+';
                                                 return (
-                                                  <label key={r.id} style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.65rem', cursor: 'pointer' }}>
-                                                    <input
-                                                      type="checkbox"
-                                                      disabled={isLocked}
-                                                      checked={isIncluded}
-                                                      onChange={(e) => {
-                                                        const nextRows = [...(col.summaryRows || [])];
-                                                        let nextSumRowIds = [...(row.sumRowIds || [])];
-                                                        if (e.target.checked) {
-                                                          nextSumRowIds.push(r.id);
-                                                        } else {
-                                                          nextSumRowIds = nextSumRowIds.filter(id => id !== r.id);
-                                                        }
-                                                        nextRows[sIdx] = { ...nextRows[sIdx], sumRowIds: nextSumRowIds };
-                                                        handleUpdateTableColumn(activeBlock.id, col.id, { summaryRows: nextRows });
-                                                      }}
-                                                    />
-                                                    {r.label || 'Không tên'}
-                                                  </label>
+                                                  <div
+                                                    key={r.id}
+                                                    style={{
+                                                      display: 'inline-flex',
+                                                      alignItems: 'center',
+                                                      gap: '4px',
+                                                      fontSize: '0.68rem',
+                                                      padding: '2px 5px',
+                                                      borderRadius: '4px',
+                                                      background: isIncluded ? (op === '-' ? '#fff1f2' : '#f1f5f9') : 'transparent',
+                                                      border: isIncluded ? (op === '-' ? '1px solid #fecdd3' : '1px solid #cbd5e1') : '1px solid transparent',
+                                                      transition: 'all 0.15s ease'
+                                                    }}
+                                                  >
+                                                    <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer', margin: 0 }}>
+                                                      <input
+                                                        type="checkbox"
+                                                        disabled={isLocked}
+                                                        checked={isIncluded}
+                                                        onChange={(e) => {
+                                                          const nextRows = [...(col.summaryRows || [])];
+                                                          let nextSumRowIds = [...(row.sumRowIds || [])];
+                                                          const nextOperators = { ...(row.sumRowOperators || {}) };
+                                                          if (e.target.checked) {
+                                                            nextSumRowIds.push(r.id);
+                                                            if (!nextOperators[r.id]) {
+                                                              nextOperators[r.id] = '+';
+                                                            }
+                                                          } else {
+                                                            nextSumRowIds = nextSumRowIds.filter(id => id !== r.id);
+                                                            delete nextOperators[r.id];
+                                                          }
+                                                          nextRows[sIdx] = { ...nextRows[sIdx], sumRowIds: nextSumRowIds, sumRowOperators: nextOperators };
+                                                          handleUpdateTableColumn(activeBlock.id, col.id, { summaryRows: nextRows });
+                                                        }}
+                                                      />
+                                                      <span style={{ fontWeight: isIncluded ? 600 : 400, color: isIncluded ? (op === '-' ? '#991b1b' : 'var(--text-primary)') : 'var(--text-secondary)' }}>
+                                                        {r.label || 'Không tên'}
+                                                      </span>
+                                                    </label>
+
+                                                    {isIncluded && !isLocked && (
+                                                      <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                          const nextRows = [...(col.summaryRows || [])];
+                                                          const nextOperators = { ...(row.sumRowOperators || {}) };
+                                                          nextOperators[r.id] = op === '-' ? '+' : '-';
+                                                          nextRows[sIdx] = { ...nextRows[sIdx], sumRowOperators: nextOperators };
+                                                          handleUpdateTableColumn(activeBlock.id, col.id, { summaryRows: nextRows });
+                                                        }}
+                                                        title={op === '-' ? 'Đang là phép trừ (−). Bấm để chuyển sang cộng (+)' : 'Đang là phép cộng (+). Bấm để chuyển sang trừ (−)'}
+                                                        style={{
+                                                          display: 'inline-flex',
+                                                          alignItems: 'center',
+                                                          justifyContent: 'center',
+                                                          width: '18px',
+                                                          height: '18px',
+                                                          padding: 0,
+                                                          fontSize: '0.75rem',
+                                                          fontWeight: 800,
+                                                          borderRadius: '3px',
+                                                          border: op === '-' ? '1px solid #f87171' : '1px solid #94a3b8',
+                                                          background: op === '-' ? '#ef4444' : '#ffffff',
+                                                          color: op === '-' ? '#ffffff' : '#334155',
+                                                          cursor: 'pointer',
+                                                          lineHeight: 1
+                                                        }}
+                                                      >
+                                                        {op === '-' ? '−' : '+'}
+                                                      </button>
+                                                    )}
+                                                  </div>
                                                 );
                                               })}
                                             </div>
