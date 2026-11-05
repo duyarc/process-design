@@ -1339,19 +1339,21 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                                     {(sumType.footerFields && sumType.footerFields.length > 0) ? (
                                       <div style={{ display: 'inline-flex', alignItems: 'center', gap: '16px', fontSize: '0.78rem' }}>
                                         {(sumType.footerFields || []).map((f: any) => {
-                                          const boxWidth = f.type === 'select' ? '50px' : f.type === 'number' ? '70px' : '85px';
+                                          const blankWidth = f.type === 'select' ? '45px' : f.type === 'number' ? '60px' : '75px';
                                           return (
                                             <span key={f.id} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                                               <span style={{ fontWeight: 600, color: '#334155' }}>{f.checkItem || f.label}:</span>
-                                              <span style={{
-                                                border: '1px solid #94a3b8',
-                                                borderRadius: '3px',
-                                                background: '#fafafa',
-                                                height: '20px',
-                                                width: boxWidth,
-                                                display: 'inline-block',
-                                                verticalAlign: 'middle'
-                                              }} />
+                                              <span
+                                                data-acroform-field="true"
+                                                data-field-id={`${block.id}_${f.id}`}
+                                                data-field-type={f.type || 'text'}
+                                                data-field-name={`${block.title || 'Bảng'} - ${f.checkItem || f.label}`}
+                                                style={{
+                                                  width: blankWidth,
+                                                  display: 'inline-block',
+                                                  height: '14px'
+                                                }}
+                                              />
                                               {f.unit && (
                                                 <span style={{ fontSize: '0.7rem', color: '#64748b' }}>{f.unit}</span>
                                               )}

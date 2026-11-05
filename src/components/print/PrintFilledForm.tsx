@@ -1532,12 +1532,8 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                               <div style={{
                                                 display: 'inline-flex',
                                                 alignItems: 'center',
-                                                gap: '10px',
-                                                padding: '2px 8px',
-                                                background: '#f1f5f9',
-                                                border: '1px solid #cbd5e1',
-                                                borderRadius: '4px',
-                                                fontSize: '0.76rem',
+                                                gap: '12px',
+                                                fontSize: '0.78rem',
                                                 fontWeight: 600,
                                                 color: '#334155'
                                               }}>
