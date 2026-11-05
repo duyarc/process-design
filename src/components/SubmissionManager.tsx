@@ -24,6 +24,7 @@ import PrintFilledForm from './print/PrintFilledForm';
 import ConfirmModal from './common/ConfirmModal';
 import FormFiller from './FormFiller';
 import DashboardToolbar from './common/DashboardToolbar';
+import { toFormSlug } from '../utils/formUtils';
 
 interface SubmissionManagerProps {
   onBack?: () => void;
@@ -149,7 +150,8 @@ export default function SubmissionManager({
 
   // Copy shareable link to form
   const handleShareLink = (group: FormGroup) => {
-    const shareUrl = `${window.location.origin}/?page=fill&processId=${group.processId}&formName=${encodeURIComponent(group.formId)}`;
+    const slug = toFormSlug(group.formTitle) || group.formId;
+    const shareUrl = `${window.location.origin}/f/${slug}`;
     navigator.clipboard.writeText(shareUrl)
       .then(() => {
         setToast({ message: 'Đã sao chép liên kết biểu mẫu vào clipboard!', type: 'success' });

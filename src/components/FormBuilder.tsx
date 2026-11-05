@@ -66,6 +66,7 @@ interface FormBuilderProps {
     updatedAt?: string;
     pageSize?: 'A4' | 'A5_LANDSCAPE';
     isPublic?: boolean;
+    publicPermission?: 'fill' | 'view';
     defaultFocusMode?: boolean;
     layoutBlocks?: LayoutBlockISO[];
     revisionHistory?: FormRevisionEntry[];
@@ -1120,6 +1121,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
   const [isPublic, setIsPublic] = useState<boolean>(
     initialData?.isPublic ?? (initialData as any)?.is_public ?? false
   );
+  const [publicPermission, setPublicPermission] = useState<'fill' | 'view'>(
+    (initialData as any)?.publicPermission || (initialData as any)?.public_permission || 'fill'
+  );
   const [defaultFocusMode, setDefaultFocusMode] = useState<boolean>(
     initialData?.defaultFocusMode ?? (initialData as any)?.default_focus_mode ?? false
   );
@@ -1349,6 +1353,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
         version: activeVersion,
         pageSize,
         isPublic,
+        publicPermission,
         defaultFocusMode,
         effectiveDate: activeStatus === 'ACTIVE' ? (opts.effectiveDateOverride || effectiveDate) : null,
         layoutBlocks: syncedBlocks,
@@ -1397,6 +1402,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
             status: activeStatus,
             page_size: pageSize,
             is_public: isPublic,
+            public_permission: publicPermission,
+            publicPermission: publicPermission,
             default_focus_mode: defaultFocusMode,
             defaultFocusMode: defaultFocusMode,
             layout_blocks: updatedBlocks,
@@ -3011,6 +3018,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
         status: 'ACTIVE',
         pageSize,
         isPublic,
+        publicPermission,
         defaultFocusMode
       });
 
@@ -3280,6 +3288,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
         status,
         pageSize,
         isPublic,
+        publicPermission,
         defaultFocusMode
       });
       setLastSavedSnapshot(currentSnapshot);
@@ -11545,78 +11554,133 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                     </button>
                   </div>
 
-                  {/* Public link Toggle */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <label 
-                      onClick={() => !isLocked && setIsPublic(prev => !prev)}
-                      style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.75rem', margin: 0, cursor: isLocked ? 'not-allowed' : 'pointer', userSelect: 'none' }}
-                    >
-                      Public link
-                    </label>
+                </div>
+
+                {/* 3-Way Segmented Access Control & Invariant URL Box */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginTop: '0.35rem' }}>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.5px', margin: 0 }}>
+                    Quyền truy cập liên kết
+                  </label>
+
+                  <div style={{
+                    display: 'flex',
+                    background: '#f1f5f9',
+                    border: '1px solid var(--neutral-border)',
+                    borderRadius: '6px',
+                    padding: '2px',
+                    gap: '2px',
+                    width: '100%'
+                  }}>
                     <button
                       type="button"
                       disabled={isLocked}
-                      onClick={() => setIsPublic(prev => !prev)}
+                      onClick={() => !isLocked && setIsPublic(false)}
                       style={{
-                        width: '32px',
-                        height: '18px',
-                        borderRadius: '9px',
-                        background: isPublic ? 'var(--primary)' : '#cbd5e1',
+                        flex: 1,
                         border: 'none',
+                        background: !isPublic ? '#ffffff' : 'transparent',
+                        color: !isPublic ? '#475569' : 'var(--text-secondary)',
+                        fontWeight: !isPublic ? 700 : 500,
+                        fontSize: '0.72rem',
+                        padding: '0.35rem 0.2rem',
+                        borderRadius: '4px',
                         cursor: isLocked ? 'not-allowed' : 'pointer',
-                        position: 'relative',
-                        padding: '2px',
-                        display: 'flex',
+                        boxShadow: !isPublic ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                        display: 'inline-flex',
                         alignItems: 'center',
-                        transition: 'background-color 0.2s ease',
-                        outline: 'none'
+                        justifyContent: 'center',
+                        gap: '0.2rem',
+                        transition: 'all 0.15s ease'
                       }}
-                      title={isPublic ? 'Public link đang Bật (Click để Tắt)' : 'Public link đang Tắt (Click để Bật)'}
                     >
-                      <span
-                        style={{
-                          width: '14px',
-                          height: '14px',
-                          borderRadius: '50%',
-                          background: '#ffffff',
-                          boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
-                          transform: isPublic ? 'translateX(14px)' : 'translateX(0px)',
-                          transition: 'transform 0.2s ease',
-                          display: 'block'
-                        }}
-                      />
+                      🔒 Nội bộ
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isLocked}
+                      onClick={() => {
+                        if (!isLocked) {
+                          setIsPublic(true);
+                          setPublicPermission('view');
+                        }
+                      }}
+                      style={{
+                        flex: 1,
+                        border: 'none',
+                        background: (isPublic && publicPermission === 'view') ? '#ffffff' : 'transparent',
+                        color: (isPublic && publicPermission === 'view') ? '#0284c7' : 'var(--text-secondary)',
+                        fontWeight: (isPublic && publicPermission === 'view') ? 700 : 500,
+                        fontSize: '0.72rem',
+                        padding: '0.35rem 0.2rem',
+                        borderRadius: '4px',
+                        cursor: isLocked ? 'not-allowed' : 'pointer',
+                        boxShadow: (isPublic && publicPermission === 'view') ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.2rem',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      👁️ Chỉ xem
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isLocked}
+                      onClick={() => {
+                        if (!isLocked) {
+                          setIsPublic(true);
+                          setPublicPermission('fill');
+                        }
+                      }}
+                      style={{
+                        flex: 1,
+                        border: 'none',
+                        background: (isPublic && publicPermission === 'fill') ? '#ffffff' : 'transparent',
+                        color: (isPublic && publicPermission === 'fill') ? 'var(--primary)' : 'var(--text-secondary)',
+                        fontWeight: (isPublic && publicPermission === 'fill') ? 700 : 500,
+                        fontSize: '0.72rem',
+                        padding: '0.35rem 0.2rem',
+                        borderRadius: '4px',
+                        cursor: isLocked ? 'not-allowed' : 'pointer',
+                        boxShadow: (isPublic && publicPermission === 'fill') ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.2rem',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      📝 Cho điền
                     </button>
                   </div>
-                </div>
 
-                {/* Direct Link & Copy Row (Always Available!) */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.25rem' }}>
+                  {/* Direct Link & Copy Box — Invariant /f/:slug URL */}
                   <div style={{
                     display: 'flex',
                     alignItems: 'stretch',
                     borderRadius: '6px',
                     border: '1px solid var(--neutral-border)',
                     background: '#ffffff',
-                    overflow: 'hidden'
+                    overflow: 'hidden',
+                    marginTop: '0.2rem'
                   }}>
                     <input
                       type="text"
                       readOnly
                       value={(() => {
                         const baseUrl = window.location.origin;
-                        if (isPublic) {
-                          const slug = toFormSlug(formTitle) || formId;
-                          return `${baseUrl}/f/${slug}`;
-                        }
-                        return `${baseUrl}/?form=${encodeURIComponent(formTitle || formId)}`;
+                        const slug = toFormSlug(formTitle) || formId;
+                        return `${baseUrl}/f/${slug}`;
                       })()}
                       style={{
                         flex: 1,
                         padding: '0.35rem 0.5rem',
                         fontSize: '0.72rem',
+                        fontFamily: 'monospace',
                         border: 'none',
                         background: 'transparent',
-                        color: isPublic ? '#0f766e' : '#475569',
+                        color: isPublic ? 'var(--text-primary)' : 'var(--text-muted)',
                         outline: 'none'
                       }}
                     />
@@ -11624,13 +11688,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                       type="button"
                       onClick={() => {
                         const baseUrl = window.location.origin;
-                        let link = '';
-                        if (isPublic) {
-                          const slug = toFormSlug(formTitle) || formId;
-                          link = `${baseUrl}/f/${slug}`;
-                        } else {
-                          link = `${baseUrl}/?form=${encodeURIComponent(formTitle || formId)}`;
-                        }
+                        const slug = toFormSlug(formTitle) || formId;
+                        const link = `${baseUrl}/f/${slug}`;
                         navigator.clipboard.writeText(link);
                         setCopiedLink(true);
                         setTimeout(() => setCopiedLink(false), 2000);
@@ -11654,9 +11713,6 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                       <span>{copiedLink ? 'Đã chép!' : 'Copy'}</span>
                     </button>
                   </div>
-                  <span style={{ fontSize: '0.7rem', color: isPublic ? '#0d9488' : '#94a3b8' }}>
-                    {isPublic ? '🌐 Link công khai (khách điền trực tiếp)' : '🔒 Link nội bộ (yêu cầu đăng nhập)'}
-                  </span>
                 </div>
               </div>
             </div>

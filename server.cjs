@@ -186,8 +186,10 @@ const INITIALIZE_SCHEMA_QUERY = `
 
   ALTER TABLE forms ADD COLUMN IF NOT EXISTS page_size TEXT DEFAULT 'A4';
   ALTER TABLE forms ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT false;
+  ALTER TABLE forms ADD COLUMN IF NOT EXISTS public_permission TEXT DEFAULT 'fill';
   ALTER TABLE forms ADD COLUMN IF NOT EXISTS default_focus_mode BOOLEAN DEFAULT false;
   ALTER TABLE submissions ADD COLUMN IF NOT EXISTS access_token TEXT DEFAULT NULL;
+  ALTER TABLE processes ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT false;
 `;
 
 // ─── Sample Data for Fresh Seed ──────────────────────────────────────────────
@@ -373,9 +375,11 @@ async function initDatabase() {
     
     console.log('Database schema verified/created.');
 
-    // MIGRATION: Add effective_date column if it doesn't exist
+    // MIGRATION: Add effective_date, public_permission and is_public columns
     await client.query(`
       ALTER TABLE forms ADD COLUMN IF NOT EXISTS effective_date DATE;
+      ALTER TABLE forms ADD COLUMN IF NOT EXISTS public_permission TEXT DEFAULT 'fill';
+      ALTER TABLE processes ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT false;
     `).catch(() => {});
 
     // MIGRATION: Backfill effective_date from embedded date in version string
@@ -654,7 +658,7 @@ app.get('/api/forms', async (req, res) => {
     if (dbPool) {
       // Returns all rows (or metadata-only rows if fields=list) — frontend groups by form_id and picks the latest version
       const sql = isList
-        ? `SELECT form_id, form_name, form_title, status, version, effective_date, page_size, is_public, default_focus_mode, created_at, updated_at
+        ? `SELECT form_id, form_name, form_title, status, version, effective_date, page_size, is_public, public_permission, default_focus_mode, created_at, updated_at
            FROM forms ORDER BY form_id ASC, version ASC`
         : 'SELECT * FROM forms ORDER BY form_id ASC, version ASC';
       const result = await dbPool.query(sql);
@@ -805,6 +809,8 @@ app.get('/api/forms/resolve/*identifier', async (req, res) => {
           }
         } catch (_) {}
 
+        const formIsPublic = formRecord ? (formRecord.is_public !== false && formRecord.public_permission !== 'internal') : true;
+        const formPerm = formRecord?.public_permission || (formIsPublic ? 'fill' : 'internal');
         return res.json({
           exists: true,
           processId: matchedPf.process_id,
@@ -812,7 +818,8 @@ app.get('/api/forms/resolve/*identifier', async (req, res) => {
           formTitle: matchedPf.form_name,
           version: matchedPf.form_version || 'v0.1',
           status: 'ACTIVE',
-          isPublic: true,
+          isPublic: formIsPublic,
+          publicPermission: formPerm,
           formTemplate: formRecord
         });
       }
@@ -830,6 +837,8 @@ app.get('/api/forms/resolve/*identifier', async (req, res) => {
             (fData.formId && (fData.formId.toLowerCase() === identifier.toLowerCase() || toSlug(fData.formId) === targetSlug)) ||
             (fData.formTitle && (fData.formTitle.toLowerCase() === identifier.toLowerCase() || toSlug(fData.formTitle) === targetSlug))
           ) {
+            const formIsPublic = fData.is_public !== false && fData.isPublic !== false && fData.public_permission !== 'internal' && fData.publicPermission !== 'internal';
+            const formPerm = fData.public_permission || fData.publicPermission || (formIsPublic ? 'fill' : 'internal');
             return res.json({
               exists: true,
               processId: row.id,
@@ -837,7 +846,8 @@ app.get('/api/forms/resolve/*identifier', async (req, res) => {
               formTitle: fData.formTitle || fKey,
               version: fData.version || 'v0.1',
               status: fData.status || 'DRAFT',
-              isPublic: true,
+              isPublic: formIsPublic,
+              publicPermission: formPerm,
               formTemplate: fData
             });
           }
@@ -853,6 +863,8 @@ app.get('/api/forms/resolve/*identifier', async (req, res) => {
       );
 
       if (matchedForm) {
+        const formIsPublic = matchedForm.is_public !== false && matchedForm.public_permission !== 'internal';
+        const formPerm = matchedForm.public_permission || (formIsPublic ? 'fill' : 'internal');
         return res.json({
           exists: true,
           processId: 'unlinked',
@@ -860,7 +872,8 @@ app.get('/api/forms/resolve/*identifier', async (req, res) => {
           formTitle: matchedForm.form_title || matchedForm.form_name || matchedForm.form_id,
           version: matchedForm.version || 'v0.1',
           status: matchedForm.status || 'DRAFT',
-          isPublic: true,
+          isPublic: formIsPublic,
+          publicPermission: formPerm,
           formTemplate: matchedForm
         });
       }
@@ -875,6 +888,8 @@ app.get('/api/forms/resolve/*identifier', async (req, res) => {
         (f.form_title && (f.form_title.toLowerCase() === identifier.toLowerCase() || toSlug(f.form_title) === targetSlug))
       );
       if (form) {
+        const formIsPublic = form.is_public !== false && form.public_permission !== 'internal';
+        const formPerm = form.public_permission || (formIsPublic ? 'fill' : 'internal');
         return res.json({
           exists: true,
           processId: 'unlinked',
@@ -882,7 +897,8 @@ app.get('/api/forms/resolve/*identifier', async (req, res) => {
           formTitle: form.form_title || form.form_name || form.form_id,
           version: form.version || 'v0.1',
           status: form.status || 'DRAFT',
-          isPublic: true,
+          isPublic: formIsPublic,
+          publicPermission: formPerm,
           formTemplate: form
         });
       }
@@ -988,6 +1004,7 @@ app.post('/api/forms', async (req, res) => {
     const ver = version || 'v0.1';
     const pSize = pageSize || 'A4';
     const isPublic = req.body.isPublic ?? req.body.is_public ?? false;
+    const publicPermission = req.body.publicPermission || req.body.public_permission || 'fill';
     const defaultFocusMode = req.body.defaultFocusMode ?? req.body.default_focus_mode ?? false;
 
     if (dbPool) {
@@ -1078,8 +1095,8 @@ app.post('/api/forms', async (req, res) => {
       // Upsert using composite PK (form_id, version) — each version is an independent snapshot
       const query = `
         INSERT INTO forms (
-          form_id, form_name, form_title, status, version, effective_date, layout_blocks, revision_history, pdf_name, pdf_key, pdf_size, page_size, is_public, default_focus_mode, updated_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW())
+          form_id, form_name, form_title, status, version, effective_date, layout_blocks, revision_history, pdf_name, pdf_key, pdf_size, page_size, is_public, public_permission, default_focus_mode, updated_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW())
         ON CONFLICT (form_id, version) DO UPDATE SET
           form_name = EXCLUDED.form_name,
           form_title = EXCLUDED.form_title,
@@ -1092,11 +1109,12 @@ app.post('/api/forms', async (req, res) => {
           pdf_size = EXCLUDED.pdf_size,
           page_size = EXCLUDED.page_size,
           is_public = EXCLUDED.is_public,
+          public_permission = EXCLUDED.public_permission,
           default_focus_mode = EXCLUDED.default_focus_mode,
           updated_at = NOW()
-        RETURNING form_id, form_name, form_title, status, version, effective_date, page_size, is_public, default_focus_mode, pdf_name, pdf_key, pdf_size, created_at, updated_at
+        RETURNING form_id, form_name, form_title, status, version, effective_date, page_size, is_public, public_permission, default_focus_mode, pdf_name, pdf_key, pdf_size, created_at, updated_at
       `;
-      const values = [formId, formName, formTitle || formName, status || 'DRAFT', ver, effectiveDate || null, blocks, history, pdfName || null, pdfKey || null, pdfSize || 0, pSize, isPublic, defaultFocusMode];
+      const values = [formId, formName, formTitle || formName, status || 'DRAFT', ver, effectiveDate || null, blocks, history, pdfName || null, pdfKey || null, pdfSize || 0, pSize, isPublic, publicPermission, defaultFocusMode];
       const result = await dbPool.query(query, values);
 
       // Fanout updated revision_history to ALL other rows of the same form_id
@@ -1577,6 +1595,125 @@ app.get('/api/processes', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to read processes database' });
+  }
+});
+
+// GET /api/processes/resolve/*identifier - Public: Resolve process by ID or Slug
+app.get('/api/processes/resolve/*identifier', async (req, res) => {
+  try {
+    const rawParam = Array.isArray(req.params.identifier) ? req.params.identifier[0] : req.params.identifier;
+    const identifier = decodeURIComponent(rawParam).trim();
+    if (!identifier) {
+      return res.status(400).json({ error: 'Missing identifier' });
+    }
+    const targetSlug = toSlug(identifier);
+
+    if (dbPool) {
+      const procRes = await dbPool.query('SELECT * FROM processes');
+      const matched = procRes.rows.find(p => 
+        (p.id && (p.id.toLowerCase() === identifier.toLowerCase() || toSlug(p.id) === targetSlug)) ||
+        (p.title && toSlug(p.title) === targetSlug)
+      );
+
+      if (!matched) {
+        return res.status(404).json({ error: 'Process not found' });
+      }
+
+      const isPublic = matched.is_public === true;
+      const authHeader = req.headers.authorization;
+      let isUserLoggedIn = false;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        try {
+          const token = authHeader.split(' ')[1];
+          jwt.verify(token, JWT_SECRET);
+          isUserLoggedIn = true;
+        } catch (_) {}
+      }
+      if (!isPublic && !isUserLoggedIn) {
+        return res.status(403).json({ error: 'Quy trình này đang ở chế độ riêng tư nội bộ.', isPrivate: true, processId: matched.id });
+      }
+
+      const [formsRelRes, formsTblRes] = await Promise.all([
+        dbPool.query('SELECT * FROM process_forms WHERE process_id = $1', [matched.id]),
+        dbPool.query('SELECT form_id, form_name, form_title, status, version, effective_date, page_size, is_public, public_permission, updated_at FROM forms ORDER BY updated_at DESC')
+      ]);
+
+      const dbFormsData = matched.workflowFormsData || {};
+      const mergedFormsData = { ...dbFormsData };
+
+      for (const formRow of formsRelRes.rows) {
+        mergedFormsData[formRow.form_name] = {
+          ...(mergedFormsData[formRow.form_name] || {}),
+          formId: formRow.form_id || undefined,
+          formVersion: formRow.form_version || 'v0.1'
+        };
+      }
+
+      return res.json({
+        exists: true,
+        process: {
+          ...matched,
+          workflowFormsData: mergedFormsData
+        },
+        allForms: formsTblRes.rows
+      });
+    } else {
+      const processes = await readProcessesFromCSV();
+      const matched = processes.find(p => 
+        (p.id && (p.id.toLowerCase() === identifier.toLowerCase() || toSlug(p.id) === targetSlug)) ||
+        (p.title && toSlug(p.title) === targetSlug)
+      );
+      if (!matched) return res.status(404).json({ error: 'Process not found' });
+      return res.json({ exists: true, process: matched, allForms: [] });
+    }
+  } catch (err) {
+    console.error('Error resolving process:', err);
+    res.status(500).json({ error: 'Failed to resolve process' });
+  }
+});
+
+// PATCH /api/processes/:id/share - Protected: Update share settings for process and bulk update attached forms
+app.patch('/api/processes/:id/share', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isPublic, formPermissions } = req.body;
+
+    if (dbPool) {
+      if (typeof isPublic === 'boolean') {
+        await dbPool.query('UPDATE processes SET is_public = $1 WHERE id = $2', [isPublic, id]);
+      }
+
+      // formPermissions: { [formId]: { isPublic: boolean, publicPermission: 'fill' | 'view' } }
+      if (formPermissions && typeof formPermissions === 'object') {
+        for (const [fId, perm] of Object.entries(formPermissions)) {
+          if (perm && typeof perm.isPublic === 'boolean') {
+            const pPerm = perm.publicPermission || 'fill';
+            await dbPool.query(
+              'UPDATE forms SET is_public = $1, public_permission = $2, updated_at = NOW() WHERE form_id = $3 OR form_name = $3',
+              [perm.isPublic, pPerm, fId]
+            );
+
+            // Cascade to processes.workflowFormsData if key exists
+            const procRes = await dbPool.query('SELECT "workflowFormsData" FROM processes WHERE id = $1', [id]);
+            if (procRes.rows.length > 0) {
+              const wfd = procRes.rows[0].workflowFormsData || {};
+              if (wfd[fId]) {
+                wfd[fId].isPublic = perm.isPublic;
+                wfd[fId].publicPermission = pPerm;
+                await dbPool.query('UPDATE processes SET "workflowFormsData" = $1 WHERE id = $2', [JSON.stringify(wfd), id]);
+              }
+            }
+          }
+        }
+      }
+
+      return res.json({ success: true, isPublic });
+    } else {
+      res.json({ success: true, isPublic });
+    }
+  } catch (err) {
+    console.error('Error updating process share settings:', err);
+    res.status(500).json({ error: 'Failed to update share settings' });
   }
 });
 

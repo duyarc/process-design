@@ -86,6 +86,7 @@ const PrintFilledForm = lazy(() => import('./print/PrintFilledForm'));
 const PrintBlankForm = lazy(() => import('./print/PrintBlankForm'));
 const FormReport = lazy(() => import('./FormReport'));
 import { 
+  Eye,
   ArrowLeft, 
   CheckCircle2, 
   X, 
@@ -312,6 +313,7 @@ const buildVirtualProcess = (
     status: formRecord.status || 'DRAFT',
     pageSize: formRecord.page_size || formRecord.pageSize || 'A4',
     isPublic: formRecord.is_public ?? formRecord.isPublic ?? false,
+    publicPermission: formRecord.public_permission ?? formRecord.publicPermission ?? 'fill',
     defaultFocusMode: formRecord.default_focus_mode ?? formRecord.defaultFocusMode ?? false,
     layoutBlocks
   };
@@ -449,7 +451,18 @@ function FormFillerInner({
   const canAdminEdit = currentUser?.role_id === 'admin' || currentUser?.role_id === 'supervisor';
   const canAmend = canAdminEdit || Boolean((canEditSubmission ?? true) && !initialSubmission?.supervisorSignoff);
   const [isEditModeActive, setIsEditModeActive] = useState<boolean>(Boolean(initialEditMode && canAmend));
-  const effectiveReadOnly = Boolean(readOnly && !isEditModeActive);
+  const fromProcessParam = useMemo(() => {
+    return new URLSearchParams(window.location.search).get('fromProcess');
+  }, []);
+  const handleBackNavigation = () => {
+    if (fromProcessParam) {
+      window.location.href = '/p/' + encodeURIComponent(fromProcessParam);
+    } else if (onBack) {
+      onBack();
+    } else {
+      window.location.href = '/';
+    }
+  };
   const [submissionTab, setSubmissionTab] = useState<'form' | 'report'>(initialSubmissionTab || 'form');
   const [copiedShareLink, setCopiedShareLink] = useState(false);
   const [triggerReportPrint, setTriggerReportPrint] = useState(false);
@@ -576,6 +589,12 @@ function FormFillerInner({
     }
     return null;
   }, [process?.workflowFormsData, formName]);
+
+  const isPublicViewOnly = Boolean(
+    (isPublicGuestMode || !currentUser) &&
+    (rawFormTemplate?.publicPermission === 'view' || (rawFormTemplate as any)?.public_permission === 'view')
+  );
+  const effectiveReadOnly = Boolean((readOnly || isPublicViewOnly) && !isEditModeActive);
 
   const currentShareUrl = (() => {
     if (!initialSubmission) return '';
@@ -4485,11 +4504,17 @@ function FormFillerInner({
       ) : (
         /* Standalone Header for regular form filling */
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'nowrap', gap: '0.5rem', width: '100%' }}>
-          <div style={{ flexShrink: 0 }}>
-            {!isPublicGuestMode && (
-              <button className="btn btn-secondary btn-sm" onClick={onBack} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.25rem 0.5rem' }}>
+          <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            {(!isPublicGuestMode || Boolean(fromProcessParam)) && (
+              <button className="btn btn-secondary btn-sm" onClick={handleBackNavigation} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.25rem 0.5rem' }}>
                 <ArrowLeft size={14} /> Back
               </button>
+            )}
+            {isPublicViewOnly && (
+              <span style={{ fontSize: '0.78rem', color: '#64748b', background: '#f1f5f9', padding: '0.25rem 0.55rem', borderRadius: '4px', fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                <Eye size={12} />
+                <span>Chỉ xem</span>
+              </span>
             )}
           </div>
 
@@ -4912,11 +4937,11 @@ function FormFillerInner({
                 <ArrowLeft size={14} />
                 <span>Hủy bỏ</span>
               </button>
-            ) : onBack ? (
+            ) : (onBack || fromProcessParam) ? (
               <button 
                 type="button" 
                 className="btn btn-secondary" 
-                onClick={onBack}
+                onClick={handleBackNavigation}
                 disabled={submitting}
                 style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}
               >

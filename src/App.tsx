@@ -76,8 +76,10 @@ const MainApp: React.FC = () => {
 
   // Public / Short Link State
   const [resolvedShortForm, setResolvedShortForm] = useState<{ processId: string; formName: string } | null>(null);
+  const [isSharedProcessGuest, setIsSharedProcessGuest] = useState<boolean>(false);
+  const [sharedProcessError, setSharedProcessError] = useState<string | null>(null);
   const [shortLinkLoading, setShortLinkLoading] = useState<boolean>(() => {
-    return window.location.pathname.startsWith('/f/') || /^\/[sr]\//.test(window.location.pathname);
+    return window.location.pathname.startsWith('/f/') || window.location.pathname.startsWith('/p/') || /^\/[sr]\//.test(window.location.pathname);
   });
 
   // Detect and resolve shareable form links (Clean path /f/:identifier, /f/:formName/s/:submissionId, or legacy query params)
@@ -98,6 +100,38 @@ const MainApp: React.FC = () => {
       setPage('submission-viewer');
       setShortLinkLoading(false);
       return;
+    }
+
+    if (pathname.startsWith('/p/')) {
+      const rawIdentifier = pathname.replace(/^\/p\//, '').trim();
+      if (rawIdentifier) {
+        const token = localStorage.getItem('token');
+        fetch(`/api/processes/resolve/${encodeURIComponent(rawIdentifier)}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
+        })
+          .then(res => {
+            if (res.status === 403) {
+              setSharedProcessError('Quy trình này đang ở chế độ riêng tư nội bộ.');
+              throw new Error('Private process');
+            }
+            if (!res.ok) throw new Error('Process not found');
+            return res.json();
+          })
+          .then(data => {
+            if (data.exists && data.process) {
+              setSelectedProcessId(data.process.id);
+              setIsSharedProcessGuest(true);
+              setPage('reader');
+            }
+          })
+          .catch(err => {
+            console.error('Error resolving shared process link:', err);
+          })
+          .finally(() => {
+            setShortLinkLoading(false);
+          });
+        return;
+      }
     }
 
     if (pathname.startsWith('/f/')) {
@@ -127,6 +161,11 @@ const MainApp: React.FC = () => {
           })
           .then(data => {
             if (data.exists) {
+              if (data.isPublic === false || data.publicPermission === 'internal') {
+                if (!localStorage.getItem('token')) {
+                  return;
+                }
+              }
               setResolvedShortForm({ processId: data.processId, formName: data.formName });
               setSelectedProcessId(data.processId);
               setSelectedFormName(data.formName);
@@ -231,6 +270,35 @@ const MainApp: React.FC = () => {
 
   // If not logged in: check if accessing public form link (Guest mode) or redirect to LoginPage
   if (!currentUser) {
+    if (page === 'reader' && isSharedProcessGuest && selectedProcessId) {
+      return (
+        <div className="app-container" style={{ minHeight: '100vh', background: 'var(--neutral-bg)' }}>
+          <Suspense fallback={<ModuleLoadingFallback />}>
+            <ProcessReader
+              processId={selectedProcessId}
+              isSharedView={true}
+              onBack={() => { window.location.href = '/'; }}
+              onEdit={() => {}}
+            />
+          </Suspense>
+        </div>
+      );
+    }
+    if (sharedProcessError) {
+      return (
+        <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--neutral-bg)', padding: '2rem', textAlign: 'center' }}>
+          <div style={{ fontSize: '1.2rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
+            {sharedProcessError}
+          </div>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', marginBottom: '1.5rem' }}>
+            Vui lòng đăng nhập với tài khoản nội bộ để xem quy trình.
+          </p>
+          <button className="btn btn-primary" onClick={() => { window.location.href = '/'; }}>
+            Đăng nhập
+          </button>
+        </div>
+      );
+    }
     if (isShortPathGuestFill && resolvedShortForm) {
       return (
         <div className="app-container" style={{ minHeight: '100vh', background: 'var(--neutral-bg)', padding: '2rem 1rem' }}>

@@ -80,6 +80,8 @@ export interface Process {
   steps: ProcessStep[];
   formFields: FormField[];
   sopSignoffs?: SOPSignOffs;
+  is_public?: boolean;
+  isPublic?: boolean;
   workflowFormsData?: {
     [formName: string]: {
       pdfName?: string;
@@ -91,6 +93,10 @@ export interface Process {
       formTitle?: string;
       version?: string; // vX.Y (YYYY-MM-DD)
       status?: 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
+      isPublic?: boolean;
+      publicPermission?: 'fill' | 'view';
+      is_public?: boolean;
+      public_permission?: 'fill' | 'view';
       layoutBlocks?: LayoutBlockISO[];
       revisionHistory?: FormRevisionEntry[];
     }
@@ -272,6 +278,9 @@ export interface FormTemplateISO {
   updatedAt?: string; // ISO timestamp or simple date, set on save
   pageSize?: 'A4' | 'A5_LANDSCAPE';
   isPublic?: boolean;
+  publicPermission?: 'fill' | 'view';
+  is_public?: boolean;
+  public_permission?: 'fill' | 'view';
   defaultFocusMode?: boolean;
   layoutBlocks: LayoutBlockISO[];
   revisionHistory: FormRevisionEntry[];

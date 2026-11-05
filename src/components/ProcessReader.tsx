@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import type { Process, SubmissionFieldSnapshot } from '../types';
 import { formatFormVersion, getColStyleWidth } from '../types';
-import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock, getInfoGridTemplateColumns, getEffectiveCellOptions, clusterOptionsByGroup, parseChecklistValues } from '../utils/formUtils';
+import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock, getInfoGridTemplateColumns, getEffectiveCellOptions, clusterOptionsByGroup, parseChecklistValues, toFormSlug } from '../utils/formUtils';
 import { FormattedNumberInput } from './form/FormattedNumberInput';
 import { renderFormattedText } from '../utils/textFormatter';
 import { useAuth } from '../context/AuthContext';
-import { Printer, Edit2, Camera, AlertTriangle, X, GitBranch, Eye, ArrowLeft, Trash2, Star, FilePlus } from 'lucide-react';
+import { Printer, Edit2, Camera, AlertTriangle, X, GitBranch, Eye, ArrowLeft, Trash2, Star, FilePlus, Share2 } from 'lucide-react';
+import { ShareProcessModal, type AttachedFormShareItem } from './common/ShareProcessModal';
 
 const parseSubtableValue = (val: string): Record<string, string>[] => {
   try { return JSON.parse(val || '[]'); } catch { return []; }
@@ -25,6 +26,7 @@ interface ProcessReaderProps {
   onClearPrintForm?: () => void;
   onSwitchVersion?: (id: string) => void;
   initialTriggerPrint?: boolean;
+  isSharedView?: boolean;
 }
 
 const statusColors: { [key: string]: { bg: string, text: string, border: string } } = {
@@ -42,9 +44,11 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
   initialPrintFormName, 
   onClearPrintForm,
   onSwitchVersion,
-  initialTriggerPrint
+  initialTriggerPrint,
+  isSharedView = false
 }) => {
   const [process, setProcess] = useState<Process | null>(null);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [allVersions, setAllVersions] = useState<Process[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -353,29 +357,42 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
   const fetchProcess = async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/processes');
-      if (!res.ok) throw new Error('Failed to fetch');
-      const list: Process[] = await res.json();
-      const found = list.find(p => p.id === processId);
-      if (found) {
-        setProcess(found);
-        
-        // Find sibling versions
-        const pid = found.parentProcessId || found.id;
-        const siblings = list.filter(p => p.parentProcessId === pid || p.id === pid);
-        siblings.sort((a, b) => {
-          const aVer = parseFloat(a.version.replace(/[^0-9.]/g, '')) || 0;
-          const bVer = parseFloat(b.version.replace(/[^0-9.]/g, '')) || 0;
-          return bVer - aVer;
-        });
-        setAllVersions(siblings);
+      if (isSharedView) {
+        const res = await fetch('/api/processes/resolve/' + encodeURIComponent(processId));
+        if (!res.ok) throw new Error('Failed to fetch process');
+        const data = await res.json();
+        if (data.exists && data.process) {
+          setProcess(data.process);
+          setAllVersions([data.process]);
+          if (data.allForms) {
+            setAllForms(data.allForms);
+          }
+        } else {
+          onBack();
+        }
       } else {
-        alert('Không tìm thấy quy trình. Bạn sẽ được chuyển hướng về Dashboard.');
-        onBack();
+        const res = await fetch('/api/processes');
+        if (!res.ok) throw new Error('Failed to fetch');
+        const list: Process[] = await res.json();
+        const found = list.find(p => p.id === processId);
+        if (found) {
+          setProcess(found);
+          
+          // Find sibling versions
+          const pid = found.parentProcessId || found.id;
+          const siblings = list.filter(p => p.parentProcessId === pid || p.id === pid);
+          siblings.sort((a, b) => {
+            const aVer = parseFloat(a.version.replace(/[^0-9.]/g, '')) || 0;
+            const bVer = parseFloat(b.version.replace(/[^0-9.]/g, '')) || 0;
+            return bVer - aVer;
+          });
+          setAllVersions(siblings);
+        } else {
+          onBack();
+        }
       }
     } catch (err) {
       console.error(err);
-      alert('Error fetching process details.');
     } finally {
       setLoading(false);
     }
@@ -492,6 +509,68 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
     }
   });
   const workflowForms = workflowFormsList;
+
+  const modalAttachedForms: AttachedFormShareItem[] = useMemo(() => {
+    const list: AttachedFormShareItem[] = [];
+    workflowForms.forEach(fid => {
+      const formData = (process?.workflowFormsData || {})[fid] || {};
+      const liveForm = allForms.find(f => (f.form_id === fid || f.form_name === fid));
+      const fTitle = formData.formTitle || (liveForm?.form_title || liveForm?.form_name) || fid;
+      const isPub = liveForm ? (liveForm.is_public !== false && liveForm.public_permission !== 'internal') : (formData.isPublic ?? false);
+      const perm = (liveForm?.public_permission || formData.publicPermission || (isPub ? 'fill' : 'internal')) === 'view' ? 'view' : 'fill';
+      list.push({
+        formId: fid,
+        formTitle: fTitle,
+        formSlug: toFormSlug(fTitle) || fid,
+        isPublic: isPub,
+        publicPermission: perm
+      });
+    });
+    return list;
+  }, [workflowForms, process?.workflowFormsData, allForms]);
+
+  const handleSaveShareSettings = async (newIsPublic: boolean, updatedForms: AttachedFormShareItem[]) => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/processes/' + encodeURIComponent(processId) + '/share', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: 'Bearer ' + token } : {})
+        },
+        body: JSON.stringify({
+          isPublic: newIsPublic,
+          formPermissions: updatedForms.map(f => ({
+            formId: f.formId,
+            isPublic: f.isPublic,
+            publicPermission: f.publicPermission
+          }))
+        })
+      });
+      if (!res.ok) throw new Error('Failed to save share settings');
+      if (process) {
+        setProcess({ ...process, is_public: newIsPublic, isPublic: newIsPublic });
+      }
+      setAllForms(prev => {
+        const formMap = new Map(updatedForms.map(uf => [uf.formId, uf]));
+        return prev.map(f => {
+          const fid = f.form_id || f.form_name;
+          const updated = formMap.get(fid);
+          if (updated) {
+            return {
+              ...f,
+              is_public: updated.isPublic,
+              public_permission: updated.publicPermission
+            };
+          }
+          return f;
+        });
+      });
+    } catch (err) {
+      console.error(err);
+      throw err;
+    }
+  };
 
 
 
@@ -674,6 +753,11 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                 flexShrink: 0
               }}>{process.id}</span>
               <span>{process.title}</span>
+              {isSharedView && (
+                <span style={{ fontSize: '0.72rem', color: '#0d9488', background: '#f0fdfa', border: '1px solid #ccfbf1', padding: '0.15rem 0.45rem', borderRadius: '4px', fontWeight: 600, verticalAlign: 'middle' }}>
+                  🌐 Bản công khai
+                </span>
+              )}
             </h1>
             {process.description && process.description.trim() && (
               <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: 0, whiteSpace: 'pre-line' }}>
@@ -732,24 +816,38 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
               {status}
             </span>
             
-            {status === 'Draft' && hasPermission('design_document') ? (
+            {!isSharedView && (
+              status === 'Draft' && hasPermission('design_document') ? (
+                <button
+                  className="btn btn-secondary btn-sm no-print"
+                  style={{ margin: 0, display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', padding: '0.25rem 0.6rem' }}
+                  onClick={() => onEdit(process.id)}
+                >
+                  <Edit2 size={13} />
+                  Edit
+                </button>
+              ) : (
+                <button
+                  className="btn btn-secondary btn-sm no-print"
+                  style={{ margin: 0, display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', padding: '0.25rem 0.6rem' }}
+                  onClick={() => onEdit(process.id)}
+                  title="Xem cấu hình quy trình"
+                >
+                  <Eye size={13} />
+                  View
+                </button>
+              )
+            )}
+
+            {!isSharedView && (
               <button
                 className="btn btn-secondary btn-sm no-print"
                 style={{ margin: 0, display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', padding: '0.25rem 0.6rem' }}
-                onClick={() => onEdit(process.id)}
+                onClick={() => setIsShareModalOpen(true)}
+                title="Chia sẻ quy trình và biểu mẫu đính kèm"
               >
-                <Edit2 size={13} />
-                Edit
-              </button>
-            ) : (
-              <button
-                className="btn btn-secondary btn-sm no-print"
-                style={{ margin: 0, display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.78rem', padding: '0.25rem 0.6rem' }}
-                onClick={() => onEdit(process.id)}
-                title="Xem cấu hình quy trình"
-              >
-                <Eye size={13} />
-                View
+                <Share2 size={13} />
+                Chia sẻ
               </button>
             )}
 
@@ -834,6 +932,10 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                       const hasLayoutBlocks = liveLayoutBlocks && liveLayoutBlocks.length > 0;
                       const displayName = formData.formTitle || (liveForm?.form_title || liveForm?.form_name) || formId;
                       const hasPdf = !!formData.pdfName;
+                      const isFormPublic = liveForm ? (liveForm.is_public !== false && liveForm.public_permission !== 'internal') : (formData?.isPublic ?? false);
+                      const formPerm = liveForm?.public_permission || formData?.publicPermission || (isFormPublic ? 'fill' : 'internal');
+                      const isInternal = isSharedView && (!isFormPublic || formPerm === 'internal');
+                      const isViewOnly = isSharedView && formPerm === 'view';
 
                       return (
                         <div key={formId} style={{
@@ -875,12 +977,22 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                           <div className="no-print" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexShrink: 0 }}>
                             {hasDigitalForm && (
                               <>
-                                {/* Action 1: Fill Form (FilePlus teal) */}
-                                {hasLayoutBlocks && (
+                                {/* Action 1: Fill / View Form */}
+                                {isInternal ? (
+                                  <span style={{ fontSize: '0.72rem', color: '#64748b', background: '#f1f5f9', border: '1px solid #e2e8f0', padding: '0.2rem 0.5rem', borderRadius: '4px', fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                                    🔒 Nội bộ
+                                  </span>
+                                ) : hasLayoutBlocks && (
                                   <button
                                     type="button"
-                                    title="Điền biểu mẫu (Fill Form)"
-                                    onClick={() => setActiveFormToFill(formId)}
+                                    title={isViewOnly ? "Xem biểu mẫu (Chỉ xem)" : "Điền biểu mẫu (Fill Form)"}
+                                    onClick={() => {
+                                      if (isSharedView) {
+                                        window.location.href = '/f/' + (toFormSlug(displayName) || formId) + '?fromProcess=' + encodeURIComponent(process.id);
+                                      } else {
+                                        setActiveFormToFill(formId);
+                                      }
+                                    }}
                                     style={{ 
                                       display: 'inline-flex',
                                       alignItems: 'center',
@@ -898,12 +1010,16 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                                     }}
                                     className="hover-card-bg"
                                   >
-                                    <FilePlus size={16} style={{ color: 'var(--primary)' }} />
+                                    {isViewOnly ? (
+                                      <Eye size={16} style={{ color: '#0d9488' }} />
+                                    ) : (
+                                      <FilePlus size={16} style={{ color: 'var(--primary)' }} />
+                                    )}
                                   </button>
                                 )}
 
                                 {/* Action 2: Edit Template (Edit2 neutral) */}
-                                {hasPermission('design_document') && (
+                                {!isSharedView && hasPermission('design_document') && (
                                   <button
                                     type="button"
                                     title="Chỉnh sửa thiết kế (Edit Template)"
@@ -931,7 +1047,7 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                                 )}
 
                                 {/* Action 3: Print Blank Form */}
-                                {hasLayoutBlocks && (
+                                {!isInternal && hasLayoutBlocks && (
                                   <button
                                     type="button"
                                     title="In biểu mẫu trắng (Print Blank)"
@@ -2728,6 +2844,17 @@ setFormValues(prev => ({ ...prev, [field.id]: stringifySubtableValue(newRows) })
             })()}
           </div>
         </div>
+      )}
+      {isShareModalOpen && process && (
+        <ShareProcessModal
+          isOpen={isShareModalOpen}
+          onClose={() => setIsShareModalOpen(false)}
+          processId={process.id}
+          processTitle={process.title}
+          initialIsPublic={process.is_public === true || (process as any).isPublic === true}
+          attachedForms={modalAttachedForms}
+          onSaveShareSettings={handleSaveShareSettings}
+        />
       )}
     </div>
   );
