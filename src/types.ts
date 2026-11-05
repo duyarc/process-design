@@ -106,6 +106,7 @@ export interface SubtableColumn {
   placeholder?: string;
   ratingScale?: 3 | 5;
   options?: RadioOption[];
+  dateMode?: 'single' | 'range';
 }
 
 export interface FormFieldISO {

@@ -837,7 +837,11 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                             if (col.type === 'static_text') {
                                               return <td key={col.id} style={{ border: '1px solid #cbd5e1', padding: '4px 6px', height: '28px', textAlign: cAlign as any, fontWeight: 'var(--pw-weight-regular)', fontSize: '0.8rem', color: '#0f172a' }}>{f.subtableStaticData?.[rowIdx]?.[col.id] || ''}</td>;
                                             }
-                                            const cellVal = row[col.id] ?? '';
+                                            let cellVal = row[col.id] ?? '';
+                                            if (col.type === 'date' && col.dateMode === 'range' && cellVal && cellVal.includes(' - ')) {
+                                              const [s, e] = cellVal.split(' - ');
+                                              cellVal = `Từ ${s || '...'} đến ${e || '...'}`;
+                                            }
                                             return <td key={col.id} style={{ border: '1px solid #cbd5e1', padding: '4px 6px', height: '28px', fontSize: '0.8rem', textAlign: cAlign as any }}>{cellVal}</td>;
                                           })}
                                         </tr>
@@ -1518,12 +1522,19 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
                                                         </span>
                                                       )}
                                                     </div>
-                                                  ) : (
-                                                    <span>
-                                                      {renderFormattedText((col.type === 'select' || isOtherValue(effectiveText)) ? formatOptionDisplay(effectiveText, opts) : effectiveText)}
-                                                      {cellUnit && <span style={{ marginLeft: '4px', fontSize: '0.75rem', color: '#64748b', fontWeight: 500 }}>{cellUnit}</span>}
-                                                    </span>
-                                                  )
+                                                    ) : (() => {
+                                                      let displayCellVal = effectiveText;
+                                                      if (col.type === 'date' && col.dateMode === 'range' && effectiveText && effectiveText.includes(' - ')) {
+                                                        const [s, e] = effectiveText.split(' - ');
+                                                        displayCellVal = `Từ ${s || '...'} đến ${e || '...'}`;
+                                                      }
+                                                      return (
+                                                        <span>
+                                                          {renderFormattedText((col.type === 'select' || isOtherValue(displayCellVal)) ? formatOptionDisplay(displayCellVal, opts) : displayCellVal)}
+                                                          {cellUnit && <span style={{ marginLeft: '4px', fontSize: '0.75rem', color: '#64748b', fontWeight: 500 }}>{cellUnit}</span>}
+                                                        </span>
+                                                      );
+                                                    })()
                                                 ) : '\u00A0'}
                                              </div>
                                            </td>

@@ -1626,6 +1626,38 @@ setFormValues(prev => ({ ...prev, [field.id]: stringifySubtableValue(newRows) })
                                                         );
                                                       }
                                                       const cellAlign = col.type === 'number' ? 'right' : col.type === 'date' || col.type === 'time' ? 'center' : 'left';
+                                                      if (col.type === 'date' && col.dateMode === 'range') {
+                                                        const parts = (row[col.id] || '').split(' - ');
+                                                        const sDate = parts[0] || '';
+                                                        const eDate = parts[1] || '';
+                                                        return (
+                                                          <td key={col.id} style={{ border: '1px solid #e2e8f0', padding: '2px' }}>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '2px', padding: '2px 4px', background: '#f8fafc' }}>
+                                                              <input
+                                                                type="date"
+                                                                value={sDate}
+                                                                onChange={(e) => {
+                                                                  const val = e.target.value;
+                                                                  const newRows = rows.map((r, i) => i === rowIdx ? { ...r, [col.id]: `${val} - ${eDate}` } : r);
+                                                                  updateRows(newRows);
+                                                                }}
+                                                                style={{ flex: 1, minWidth: 0, border: 'none', background: 'transparent', fontSize: '0.75rem', textAlign: 'center', outline: 'none' }}
+                                                              />
+                                                              <span style={{ color: '#94a3b8', fontSize: '0.75rem' }}>~</span>
+                                                              <input
+                                                                type="date"
+                                                                value={eDate}
+                                                                onChange={(e) => {
+                                                                  const val = e.target.value;
+                                                                  const newRows = rows.map((r, i) => i === rowIdx ? { ...r, [col.id]: `${sDate} - ${val}` } : r);
+                                                                  updateRows(newRows);
+                                                                }}
+                                                                style={{ flex: 1, minWidth: 0, border: 'none', background: 'transparent', fontSize: '0.75rem', textAlign: 'center', outline: 'none' }}
+                                                              />
+                                                            </div>
+                                                          </td>
+                                                        );
+                                                      }
                                                       return (
                                                         <td key={col.id} style={{ border: '1px solid #e2e8f0', padding: '2px' }}>
                                                           <input
@@ -2352,12 +2384,41 @@ setFormValues(prev => ({ ...prev, [field.id]: stringifySubtableValue(newRows) })
                                                     </select>
                                                   </div>
                                                 ) : col.type === 'date' ? (
-                                                   <input 
-                                                     type="date" 
-                                                     value={cellValue} 
-                                                     onChange={(e) => setFormValues(prev => ({ ...prev, [cellKey]: e.target.value }))} 
-                                                     style={{ width: '100%', padding: '0.35rem 0.45rem', fontSize: '0.8rem', border: '1px solid #e2e8f0', borderRadius: '4px', textAlign: 'center', backgroundColor: '#f8fafc' }}
-                                                   />
+                                                   col.dateMode === 'range' ? (() => {
+                                                     const parts = (cellValue || '').split(' - ');
+                                                     const sDate = parts[0] || '';
+                                                     const eDate = parts[1] || '';
+                                                     return (
+                                                       <div style={{ display: 'flex', alignItems: 'center', gap: '3px', width: '100%', minWidth: 0 }}>
+                                                         <input
+                                                           type="date"
+                                                           value={sDate}
+                                                           onChange={(e) => {
+                                                             const val = e.target.value;
+                                                             setFormValues(prev => ({ ...prev, [cellKey]: `${val} - ${eDate}` }));
+                                                           }}
+                                                           style={{ flex: 1, minWidth: 0, padding: '0.3rem 0.2rem', fontSize: '0.75rem', border: '1px solid #e2e8f0', borderRadius: '4px', textAlign: 'center', backgroundColor: '#f8fafc' }}
+                                                         />
+                                                         <span style={{ color: '#94a3b8', fontSize: '0.75rem', flexShrink: 0 }}>~</span>
+                                                         <input
+                                                           type="date"
+                                                           value={eDate}
+                                                           onChange={(e) => {
+                                                             const val = e.target.value;
+                                                             setFormValues(prev => ({ ...prev, [cellKey]: `${sDate} - ${val}` }));
+                                                           }}
+                                                           style={{ flex: 1, minWidth: 0, padding: '0.3rem 0.2rem', fontSize: '0.75rem', border: '1px solid #e2e8f0', borderRadius: '4px', textAlign: 'center', backgroundColor: '#f8fafc' }}
+                                                         />
+                                                       </div>
+                                                     );
+                                                   })() : (
+                                                     <input 
+                                                       type="date" 
+                                                       value={cellValue} 
+                                                       onChange={(e) => setFormValues(prev => ({ ...prev, [cellKey]: e.target.value }))} 
+                                                       style={{ width: '100%', padding: '0.35rem 0.45rem', fontSize: '0.8rem', border: '1px solid #e2e8f0', borderRadius: '4px', textAlign: 'center', backgroundColor: '#f8fafc' }}
+                                                     />
+                                                   )
                                                  ) : col.type === 'time' ? (
                                                    <input 
                                                      type="time" 

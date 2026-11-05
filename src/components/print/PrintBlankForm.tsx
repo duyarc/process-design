@@ -1063,6 +1063,26 @@ export default function PrintBlankForm({ template, onClose, exportMode = false, 
                               }
 
                               if (col.type === 'date') {
+                                if (col.dateMode === 'range') {
+                                  return (
+                                    <td key={col.id} style={{ border: cellBorder, borderBottom: cellBorderBottom, padding: '4px 6px', fontSize: '0.78rem', verticalAlign: 'top', height: `${28 * lc}px`, textAlign: 'center', width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
+                                      <div style={{ fontSize: '0.72rem', color: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px', flexWrap: 'nowrap' }}>
+                                        <span>Từ</span>
+                                        <span data-acroform-field="true" data-field-id={`${cellFieldId}_start_dd`} data-field-type="date_part" style={{ width: '18px', display: 'inline-block', height: '12px' }} />
+                                        /
+                                        <span data-acroform-field="true" data-field-id={`${cellFieldId}_start_mm`} data-field-type="date_part" style={{ width: '18px', display: 'inline-block', height: '12px' }} />
+                                        /
+                                        <span data-acroform-field="true" data-field-id={`${cellFieldId}_start_yyyy`} data-field-type="date_part" style={{ width: '30px', display: 'inline-block', height: '12px' }} />
+                                        <span style={{ margin: '0 2px' }}>đến</span>
+                                        <span data-acroform-field="true" data-field-id={`${cellFieldId}_end_dd`} data-field-type="date_part" style={{ width: '18px', display: 'inline-block', height: '12px' }} />
+                                        /
+                                        <span data-acroform-field="true" data-field-id={`${cellFieldId}_end_mm`} data-field-type="date_part" style={{ width: '18px', display: 'inline-block', height: '12px' }} />
+                                        /
+                                        <span data-acroform-field="true" data-field-id={`${cellFieldId}_end_yyyy`} data-field-type="date_part" style={{ width: '30px', display: 'inline-block', height: '12px' }} />
+                                      </div>
+                                    </td>
+                                  );
+                                }
                                 return (
                                   <td key={col.id} style={{ border: cellBorder, borderBottom: cellBorderBottom, padding: '4px 6px', fontSize: '0.8rem', verticalAlign: 'top', height: `${28 * lc}px`, textAlign: 'center', width: colWidth, maxWidth: colWidth, boxSizing: 'border-box' }}>
                                     <div style={{ fontSize: '0.78rem', color: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>

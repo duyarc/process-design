@@ -5662,7 +5662,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                     }
                                                     return (
                                                       <td key={col.id} style={{ border: '1px solid #e2e8f0', padding: '4px 6px', height: '28px', color: '#94a3b8', fontStyle: 'italic', fontSize: '0.68rem', textAlign: cellAlign as any }}>
-                                                        {col.type === 'number' ? '0' : col.type === 'date' ? 'Ngày' : col.type === 'time' ? 'Giờ' : 'Nhập chữ...'}
+                                                        {col.type === 'number' ? '0' : col.type === 'date' ? (col.dateMode === 'range' ? 'Từ ngày ~ Đến ngày' : 'Ngày') : col.type === 'time' ? 'Giờ' : 'Nhập chữ...'}
                                                       </td>
                                                     );
                                                   })}
@@ -7087,7 +7087,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                                           <ChevronDown size={12} style={{ color: '#94a3b8' }} />
                                                         </div>
                                                       ) : col.type === 'date' ? (
-                                                        <span style={{ color: '#cbd5e1', fontSize: '0.7rem', display: 'block', textAlign: 'center', width: '100%' }}>Ngày</span>
+                                                        <span style={{ color: '#cbd5e1', fontSize: '0.7rem', display: 'block', textAlign: 'center', width: '100%' }}>
+                                                          {col.dateMode === 'range' ? 'Từ ngày ~ Đến ngày' : 'Ngày'}
+                                                        </span>
                                                       ) : col.type === 'time' ? (
                                                         <span style={{ color: '#cbd5e1', fontSize: '0.7rem', display: 'block', textAlign: 'center', width: '100%' }}>Giờ</span>
                                                       ) : col.type === 'number' ? (() => {
@@ -9589,6 +9591,48 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                   />
                                 </div>
 
+                              {col.type === 'date' && !isLockedCol && (
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginTop: '0.2rem', padding: '0.3rem 0.4rem', borderTop: '1px dashed var(--neutral-border)' }}>
+                                  <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.72rem' }}>Chế độ ngày</label>
+                                  <div style={{ display: 'inline-flex', background: '#f1f5f9', padding: '2px', borderRadius: '5px', border: '1px solid #cbd5e1', gap: '2px' }}>
+                                    <button
+                                      type="button"
+                                      disabled={isLocked}
+                                      onClick={() => handleUpdateTableColumn(activeBlock.id, col.id, { dateMode: 'single' })}
+                                      style={{
+                                        padding: '2px 8px',
+                                        borderRadius: '3px',
+                                        border: 'none',
+                                        fontSize: '0.7rem',
+                                        fontWeight: (col.dateMode || 'single') === 'single' ? 600 : 400,
+                                        background: (col.dateMode || 'single') === 'single' ? 'var(--primary)' : 'transparent',
+                                        color: (col.dateMode || 'single') === 'single' ? '#ffffff' : 'var(--text-secondary)',
+                                        cursor: isLocked ? 'not-allowed' : 'pointer'
+                                      }}
+                                    >
+                                      1 Ngày
+                                    </button>
+                                    <button
+                                      type="button"
+                                      disabled={isLocked}
+                                      onClick={() => handleUpdateTableColumn(activeBlock.id, col.id, { dateMode: 'range' })}
+                                      style={{
+                                        padding: '2px 8px',
+                                        borderRadius: '3px',
+                                        border: 'none',
+                                        fontSize: '0.7rem',
+                                        fontWeight: col.dateMode === 'range' ? 600 : 400,
+                                        background: col.dateMode === 'range' ? 'var(--primary)' : 'transparent',
+                                        color: col.dateMode === 'range' ? '#ffffff' : 'var(--text-secondary)',
+                                        cursor: isLocked ? 'not-allowed' : 'pointer'
+                                      }}
+                                    >
+                                      Khoảng Từ - Đến
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+
                               {col.type === 'checkbox' && !isLockedCol && (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', marginTop: '0.2rem', padding: '0.4rem', borderTop: '1px dashed var(--neutral-border)' }}>
                                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
@@ -10202,6 +10246,49 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                   style={{ flex: 0.6, padding: '0.2rem 0.3rem', fontSize: '0.75rem', borderRadius: '4px', border: '1px solid var(--neutral-border)', backgroundColor: isLast ? '#f1f5f9' : '#ffffff', color: isLast ? '#64748b' : 'inherit', cursor: isLast ? 'not-allowed' : 'text' }}
                                 />
                               </div>
+
+                              {col.type === 'date' && !isLocked && (
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginTop: '0.2rem', padding: '0.3rem 0.4rem', borderTop: '1px dashed var(--neutral-border)' }}>
+                                  <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.72rem' }}>Chế độ ngày</label>
+                                  <div style={{ display: 'inline-flex', background: '#f1f5f9', padding: '2px', borderRadius: '5px', border: '1px solid #cbd5e1', gap: '2px' }}>
+                                    <button
+                                      type="button"
+                                      disabled={isLocked}
+                                      onClick={() => handleUpdateTableColumn(activeBlock.id, col.id, { dateMode: 'single' })}
+                                      style={{
+                                        padding: '2px 8px',
+                                        borderRadius: '3px',
+                                        border: 'none',
+                                        fontSize: '0.7rem',
+                                        fontWeight: (col.dateMode || 'single') === 'single' ? 600 : 400,
+                                        background: (col.dateMode || 'single') === 'single' ? 'var(--primary)' : 'transparent',
+                                        color: (col.dateMode || 'single') === 'single' ? '#ffffff' : 'var(--text-secondary)',
+                                        cursor: isLocked ? 'not-allowed' : 'pointer'
+                                      }}
+                                    >
+                                      1 Ngày
+                                    </button>
+                                    <button
+                                      type="button"
+                                      disabled={isLocked}
+                                      onClick={() => handleUpdateTableColumn(activeBlock.id, col.id, { dateMode: 'range' })}
+                                      style={{
+                                        padding: '2px 8px',
+                                        borderRadius: '3px',
+                                        border: 'none',
+                                        fontSize: '0.7rem',
+                                        fontWeight: col.dateMode === 'range' ? 600 : 400,
+                                        background: col.dateMode === 'range' ? 'var(--primary)' : 'transparent',
+                                        color: col.dateMode === 'range' ? '#ffffff' : 'var(--text-secondary)',
+                                        cursor: isLocked ? 'not-allowed' : 'pointer'
+                                      }}
+                                    >
+                                      Khoảng Từ - Đến
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+
                               {col.type === 'rating' && (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', marginTop: '0.2rem', padding: '0.4rem', borderTop: '1px dashed var(--neutral-border)' }}>
                                   <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Thang điểm (Rating Scale)</label>
