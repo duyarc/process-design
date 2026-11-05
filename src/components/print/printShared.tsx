@@ -153,19 +153,94 @@ export function PrintTitleBlock({
   block,
   logoUrl,
   onImgSettled,
-  dateValueNode
+  dateValueNode,
+  recordNumberValueNode
 }: {
   block: LayoutBlockISO | ReportBlockConfig | any;
   logoUrl: string;
   onImgSettled?: () => void;
   dateValueNode?: React.ReactNode;
+  recordNumberValueNode?: React.ReactNode;
 }) {
+  const hasRecordNumber = Boolean(block.showRecordNumber);
+  const hasDate = Boolean(block.showDate);
+  const recordLabel = block.recordNumberLabel || 'Số';
+  const dateLabel = block.dateLabel || 'Ngày';
+  const position = block.datePosition || 'A';
+
   const defaultDateBlank = (
     <span style={{ marginLeft: '6px', color: '#475569', letterSpacing: '2px' }}>
       &nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;
     </span>
   );
+  const defaultRecordBlank = (
+    <span
+      data-acroform-field="true"
+      data-field-id="__record_number__"
+      data-field-type="text"
+      data-field-name="Số hồ sơ"
+      style={{ borderBottom: '1px dotted #94a3b8', minWidth: '70px', display: 'inline-block', height: '14px', marginLeft: '6px' }}
+    >
+      &nbsp;
+    </span>
+  );
+
   const dateNode = dateValueNode ?? defaultDateBlank;
+  const recordNode = recordNumberValueNode ?? defaultRecordBlank;
+
+  const renderTopRightCluster = (hasRecordNumber || hasDate) && position === 'A' && (
+    <div style={{
+      fontSize: '0.82rem',
+      whiteSpace: 'nowrap',
+      textAlign: 'right',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '2px',
+      alignSelf: 'flex-start',
+      paddingTop: '2px'
+    }}>
+      {hasRecordNumber && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+          <span style={{ fontWeight: 'var(--pw-weight-medium)', color: '#334155' }}>{recordLabel}</span>
+          {recordNode}
+        </div>
+      )}
+      {hasDate && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+          <span style={{ fontWeight: 'var(--pw-weight-medium)', color: '#334155' }}>{dateLabel}</span>
+          {dateNode}
+        </div>
+      )}
+    </div>
+  );
+
+  const renderCenterDuo = (hasRecordNumber || hasDate) && position === 'B' && (
+    <div style={{
+      marginTop: '6px',
+      fontSize: '0.82rem',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '8px',
+      flexWrap: 'wrap'
+    }}>
+      {hasRecordNumber && (
+        <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+          <span style={{ fontWeight: 'var(--pw-weight-medium)', color: '#334155' }}>{recordLabel}</span>
+          {recordNode}
+        </span>
+      )}
+      {hasRecordNumber && hasDate && (
+        <span style={{ color: '#cbd5e1' }}>•</span>
+      )}
+      {hasDate && (
+        <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+          <span style={{ fontWeight: 'var(--pw-weight-medium)', color: '#334155' }}>{dateLabel}</span>
+          {dateNode}
+        </span>
+      )}
+    </div>
+  );
 
   if (block.logo) {
     return (
@@ -198,15 +273,11 @@ export function PrintTitleBlock({
           <p style={{ margin: 0, fontSize: '0.85rem', fontStyle: 'italic', color: '#475569' }}>
             {block.description || ''}
           </p>
-          {block.showDate && (block.datePosition ?? 'B') === 'B' && (
-            <div style={{ marginTop: '6px', fontSize: '0.85rem', textAlign: 'center' }}>
-              <span style={{ fontWeight: 'var(--pw-weight-regular)' }}>Ngày</span> {dateNode}
-            </div>
-          )}
+          {renderCenterDuo}
         </div>
-        {block.showDate && block.datePosition === 'A' && (
-          <div style={{ fontSize: '0.85rem', whiteSpace: 'nowrap', marginLeft: '10px', alignSelf: 'flex-start', paddingTop: '4px' }}>
-            <span style={{ fontWeight: 'var(--pw-weight-regular)' }}>Ngày</span> {dateNode}
+        {renderTopRightCluster && (
+          <div style={{ marginLeft: '10px' }}>
+            {renderTopRightCluster}
           </div>
         )}
       </div>
@@ -219,9 +290,9 @@ export function PrintTitleBlock({
       textAlign: 'center',
       position: 'relative'
     }}>
-      {block.showDate && block.datePosition === 'A' && (
-        <div style={{ position: 'absolute', right: 0, top: '10px', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
-          <span style={{ fontWeight: 'var(--pw-weight-regular)' }}>Ngày</span> {dateNode}
+      {renderTopRightCluster && (
+        <div style={{ position: 'absolute', right: 0, top: '8px' }}>
+          {renderTopRightCluster}
         </div>
       )}
       <h1 style={{ margin: '0 0 4px 0', fontSize: '1.35rem', fontWeight: 'var(--pw-weight-banner)', textTransform: 'uppercase', color: '#0d9488' }}>
@@ -230,11 +301,7 @@ export function PrintTitleBlock({
       <p style={{ margin: 0, fontSize: '0.85rem', fontStyle: 'italic', color: '#475569' }}>
         {block.description || ''}
       </p>
-      {block.showDate && (block.datePosition ?? 'B') === 'B' && (
-        <div style={{ marginTop: '6px', fontSize: '0.85rem', textAlign: 'center' }}>
-          <span style={{ fontWeight: 'var(--pw-weight-regular)' }}>Ngày</span> {dateNode}
-        </div>
-      )}
+      {renderCenterDuo}
     </div>
   );
 }

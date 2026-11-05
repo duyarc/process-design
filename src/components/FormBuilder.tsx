@@ -4009,8 +4009,67 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                       )}
 
                       {/* 1. TITLE BLOCK */}
-                      {block.type === 'TITLE' && (
-                        block.logo ? (
+                      {block.type === 'TITLE' && (() => {
+                        const hasRecordNumber = Boolean(block.showRecordNumber);
+                        const hasDate = Boolean(block.showDate);
+                        const recordLabel = block.recordNumberLabel || 'Số';
+                        const dateLabel = block.dateLabel || 'Ngày';
+                        const position = block.datePosition || 'A';
+
+                        const renderTopRight = (hasRecordNumber || hasDate) && position === 'A' && (
+                          <div style={{
+                            fontSize: '0.78rem',
+                            color: 'var(--text-secondary)',
+                            whiteSpace: 'nowrap',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'flex-end',
+                            gap: '3px',
+                            lineHeight: 1.3
+                          }}>
+                            {hasRecordNumber && (
+                              <div>
+                                <span style={{ fontWeight: 600 }}>{recordLabel}:</span>{' '}
+                                <span style={{ fontFamily: 'monospace', color: 'var(--text-muted)' }}>261105-01</span>
+                              </div>
+                            )}
+                            {hasDate && (
+                              <div>
+                                <span style={{ fontWeight: 600 }}>{dateLabel}:</span>{' '}
+                                <span style={{ color: 'var(--text-muted)', letterSpacing: '1px' }}>&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                              </div>
+                            )}
+                          </div>
+                        );
+
+                        const renderCenterDuo = (hasRecordNumber || hasDate) && position === 'B' && (
+                          <div style={{
+                            marginTop: '4px',
+                            fontSize: '0.78rem',
+                            color: 'var(--text-secondary)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '8px',
+                            lineHeight: 1.3
+                          }}>
+                            {hasRecordNumber && (
+                              <span>
+                                <span style={{ fontWeight: 600 }}>{recordLabel}:</span>{' '}
+                                <span style={{ fontFamily: 'monospace', color: 'var(--text-muted)' }}>261105-01</span>
+                              </span>
+                            )}
+                            {hasRecordNumber && hasDate && <span style={{ color: 'var(--neutral-border)' }}>•</span>}
+                            {hasDate && (
+                              <span>
+                                <span style={{ fontWeight: 600 }}>{dateLabel}:</span>{' '}
+                                <span style={{ color: 'var(--text-muted)', letterSpacing: '1px' }}>&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                              </span>
+                            )}
+                          </div>
+                        );
+
+                        return block.logo ? (
                           <div style={{
                             padding: '10px 0',
                             display: 'flex',
@@ -4035,15 +4094,11 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                               <p style={{ margin: 0, fontSize: '0.8rem', fontStyle: 'italic', color: 'var(--text-secondary)' }}>
                                 {block.description || '(mô tả ngắn kiểm tra)'}
                               </p>
-                              {block.showDate && (block.datePosition ?? 'B') === 'B' && (
-                                <div style={{ marginTop: '4px', fontSize: '0.78rem', color: 'var(--text-secondary)', textAlign: 'center' }}>
-                                  <span style={{ fontWeight: 600 }}>Ngày</span> <span style={{ marginLeft: '6px', color: 'var(--text-muted)', letterSpacing: '2px' }}>&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;</span>
-                                </div>
-                              )}
+                              {renderCenterDuo}
                             </div>
-                            {block.showDate && block.datePosition === 'A' && (
-                              <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap', marginLeft: '10px', alignSelf: 'flex-start', paddingTop: '4px' }}>
-                                <span style={{ fontWeight: 600 }}>Ngày</span> <span style={{ marginLeft: '6px', color: 'var(--text-muted)', letterSpacing: '2px' }}>&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                            {renderTopRight && (
+                              <div style={{ marginLeft: '10px', alignSelf: 'flex-start', paddingTop: '4px' }}>
+                                {renderTopRight}
                               </div>
                             )}
                           </div>
@@ -4054,9 +4109,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                             marginBottom: '10px',
                             position: 'relative'
                           }}>
-                            {block.showDate && block.datePosition === 'A' && (
-                              <div style={{ position: 'absolute', right: 0, top: '10px', fontSize: '0.78rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-                                <span style={{ fontWeight: 600 }}>Ngày</span> <span style={{ marginLeft: '6px', color: 'var(--text-muted)', letterSpacing: '2px' }}>&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                            {renderTopRight && (
+                              <div style={{ position: 'absolute', right: 0, top: '10px' }}>
+                                {renderTopRight}
                               </div>
                             )}
                             <h1 style={{ margin: '0 0 4px 0', fontSize: '1.25rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-primary)' }}>
@@ -4065,14 +4120,10 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                             <p style={{ margin: 0, fontSize: '0.8rem', fontStyle: 'italic', color: 'var(--text-secondary)' }}>
                               {block.description || '(mô tả ngắn kiểm tra)'}
                             </p>
-                            {block.showDate && (block.datePosition ?? 'B') === 'B' && (
-                              <div style={{ marginTop: '4px', fontSize: '0.78rem', color: 'var(--text-secondary)', textAlign: 'center' }}>
-                                <span style={{ fontWeight: 600 }}>Ngày</span> <span style={{ marginLeft: '6px', color: 'var(--text-muted)', letterSpacing: '2px' }}>&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;</span>
-                              </div>
-                            )}
+                            {renderCenterDuo}
                           </div>
-                        )
-                      )}
+                        );
+                      })()}
 
 
                       {/* 2. INFO GRID BLOCK */}
@@ -9422,39 +9473,135 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                       />
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--neutral-border)', paddingTop: '0.75rem', marginTop: '0.25rem' }}>
-                      <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer' }}>
-                        <input
-                          type="checkbox"
-                          disabled={isLocked}
-                          checked={!!activeBlock.showDate}
-                          onChange={(e) => {
-                            const val = e.target.checked;
-                            setLayoutBlocks(prev => prev.map(b => b.id === activeBlock.id ? { ...b, showDate: val, datePosition: b.datePosition || 'B' } : b));
-                          }}
-                        />
-                        Hiển thị ô "Ngày"
-                      </label>
-                      {activeBlock.showDate && (
-                        <div style={{ display: 'flex', border: '1px solid var(--neutral-border)', borderRadius: '4px', overflow: 'hidden' }}>
-                          <button
-                            type="button"
+                    <div style={{ borderTop: '1px solid var(--neutral-border)', paddingTop: '0.75rem', marginTop: '0.25rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        Thông tin hồ sơ
+                      </div>
+
+                      {/* Số hồ sơ */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                        <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer' }}>
+                          <input
+                            type="checkbox"
                             disabled={isLocked}
-                            onClick={() => setLayoutBlocks(prev => prev.map(b => b.id === activeBlock.id ? { ...b, datePosition: 'A' } : b))}
-                            style={{ padding: '3px 6px', background: activeBlock.datePosition === 'A' ? '#cbd5e1' : '#ffffff', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                            title="Bên phải tiêu đề"
-                          >
-                            <AlignRight size={13} style={{ color: activeBlock.datePosition === 'A' ? 'var(--text-primary)' : 'var(--text-muted)' }} />
-                          </button>
-                          <button
-                            type="button"
+                            checked={!!activeBlock.showRecordNumber}
+                            onChange={(e) => {
+                              const val = e.target.checked;
+                              setLayoutBlocks(prev => prev.map(b => b.id === activeBlock.id ? {
+                                ...b,
+                                showRecordNumber: val,
+                                datePosition: b.datePosition || 'A',
+                                recordNumberLabel: b.recordNumberLabel || 'Số'
+                              } : b));
+                            }}
+                          />
+                          Số hồ sơ
+                        </label>
+                        {activeBlock.showRecordNumber && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                            <span>Nhãn:</span>
+                            <input
+                              type="text"
+                              disabled={isLocked}
+                              value={activeBlock.recordNumberLabel ?? 'Số'}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setLayoutBlocks(prev => prev.map(b => b.id === activeBlock.id ? { ...b, recordNumberLabel: val } : b));
+                              }}
+                              placeholder="Số"
+                              style={{ width: '65px', padding: '2px 5px', fontSize: '0.75rem', borderRadius: '3px', border: '1px solid var(--neutral-border)' }}
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Ngày lập */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                        <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer' }}>
+                          <input
+                            type="checkbox"
                             disabled={isLocked}
-                            onClick={() => setLayoutBlocks(prev => prev.map(b => b.id === activeBlock.id ? { ...b, datePosition: 'B' } : b))}
-                            style={{ padding: '3px 6px', background: (activeBlock.datePosition || 'B') === 'B' ? '#cbd5e1' : '#ffffff', borderLeft: '1px solid var(--neutral-border)', borderTop: 'none', borderRight: 'none', borderBottom: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                            title="Dưới mô tả (Giữa)"
-                          >
-                            <AlignCenter size={13} style={{ color: (activeBlock.datePosition || 'B') === 'B' ? 'var(--text-primary)' : 'var(--text-muted)' }} />
-                          </button>
+                            checked={!!activeBlock.showDate}
+                            onChange={(e) => {
+                              const val = e.target.checked;
+                              setLayoutBlocks(prev => prev.map(b => b.id === activeBlock.id ? {
+                                ...b,
+                                showDate: val,
+                                datePosition: b.datePosition || 'A',
+                                dateLabel: b.dateLabel || 'Ngày'
+                              } : b));
+                            }}
+                          />
+                          Ngày lập
+                        </label>
+                        {activeBlock.showDate && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                            <span>Nhãn:</span>
+                            <input
+                              type="text"
+                              disabled={isLocked}
+                              value={activeBlock.dateLabel ?? 'Ngày'}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setLayoutBlocks(prev => prev.map(b => b.id === activeBlock.id ? { ...b, dateLabel: val } : b));
+                              }}
+                              placeholder="Ngày"
+                              style={{ width: '65px', padding: '2px 5px', fontSize: '0.75rem', borderRadius: '3px', border: '1px solid var(--neutral-border)' }}
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Vị trí hiển thị (Segmented Pill) */}
+                      {(activeBlock.showRecordNumber || activeBlock.showDate) && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', marginTop: '0.2rem' }}>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Vị trí hiển thị:</span>
+                          <div style={{
+                            display: 'flex',
+                            padding: '2px',
+                            backgroundColor: '#f1f5f9',
+                            borderRadius: '6px',
+                            border: '1px solid var(--neutral-border)'
+                          }}>
+                            <button
+                              type="button"
+                              disabled={isLocked}
+                              onClick={() => setLayoutBlocks(prev => prev.map(b => b.id === activeBlock.id ? { ...b, datePosition: 'A' } : b))}
+                              style={{
+                                flex: 1,
+                                padding: '4px 6px',
+                                fontSize: '0.75rem',
+                                fontWeight: 600,
+                                borderRadius: '4px',
+                                border: 'none',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease',
+                                backgroundColor: (activeBlock.datePosition || 'A') === 'A' ? 'var(--primary)' : 'transparent',
+                                color: (activeBlock.datePosition || 'A') === 'A' ? '#ffffff' : 'var(--text-secondary)'
+                              }}
+                            >
+                              Góc phải (A)
+                            </button>
+                            <button
+                              type="button"
+                              disabled={isLocked}
+                              onClick={() => setLayoutBlocks(prev => prev.map(b => b.id === activeBlock.id ? { ...b, datePosition: 'B' } : b))}
+                              style={{
+                                flex: 1,
+                                padding: '4px 6px',
+                                fontSize: '0.75rem',
+                                fontWeight: 600,
+                                borderRadius: '4px',
+                                border: 'none',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease',
+                                backgroundColor: activeBlock.datePosition === 'B' ? 'var(--primary)' : 'transparent',
+                                color: activeBlock.datePosition === 'B' ? '#ffffff' : 'var(--text-secondary)'
+                              }}
+                            >
+                              Dưới tiêu đề (B)
+                            </button>
+                          </div>
                         </div>
                       )}
                     </div>

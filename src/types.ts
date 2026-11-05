@@ -254,6 +254,9 @@ export interface LayoutBlockISO {
   cellUnitMap?: { [cellKey: string]: string };
   showDate?: boolean;
   datePosition?: 'A' | 'B';
+  showRecordNumber?: boolean;
+  recordNumberLabel?: string;
+  dateLabel?: string;
   hideSTT?: boolean;
   hideHeader?: boolean;
   visibilityCondition?: BlockVisibilityCondition;
@@ -494,6 +497,9 @@ export interface ReportBlockConfig {
   logo?: string;                        // For TITLE block
   showDate?: boolean;                   // For TITLE block
   datePosition?: 'A' | 'B';             // 'A' (top-right) or 'B' (bottom-center)
+  showRecordNumber?: boolean;           // For TITLE block
+  recordNumberLabel?: string;
+  dateLabel?: string;
   boundFieldIds?: string[];             // Form field IDs included in this block
   chartItems?: ReportChartItemConfig[]; // Radar / Bar chart items inside INFO_GRID
   ruleOverrides?: Record<string, ReportFieldRuleOverride>; // Field ID -> Custom Rules

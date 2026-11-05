@@ -5,7 +5,7 @@ import type { Submission, SubmissionFieldSnapshot, FormTemplateISO, TableColumnC
 import { formatFormVersion, getColStyleWidth } from '../../types';
 import { sanitizeLabel, getEffectiveTitleFormat, to5SFileName, getAutoCheckboxLayoutMode, hasLongOptions, canTableOptionsFitInline, getCheckboxGridTemplate, isSeamlessTableBlock, getInfoGridTemplateColumns, isOtherValue, extractOtherText, formatOptionDisplay, getEffectiveCellOptions, parseGoogleMapsUrl, getChecklistColumns, resolveImageSrc, clusterOptionsByGroup, parseChecklistValues, formatDMS, formatIsoNumber, calculateTableColumnSummary, buildTableSummaryTypes, getEffectiveFirstSumColIdx } from '../../utils/formUtils';
 import { renderFormattedText } from '../../utils/textFormatter';
-import { PrintDocumentStyles, PrintSectionHeader } from './printShared';
+import { PrintDocumentStyles, PrintSectionHeader, PrintTitleBlock } from './printShared';
 import { MiniMapCanvas } from '../form/MiniMapCanvas';
 
 // ─── Filled-mode Helpers ─────────────────────────────────────────────────────
@@ -441,69 +441,22 @@ export default function PrintFilledForm({ submission, formTemplate: propTemplate
 
                   {/* ── TITLE ── (static layout — no fill data) */}
                   {block.type === 'TITLE' && (
-                    block.logo ? (
-                      <div style={{ padding: '10px 0', display: 'flex', alignItems: 'center', position: 'relative' }}>
-                        {logoUrl && (
-                          <div style={{ marginRight: '20px', display: 'flex', alignItems: 'center', height: '65px' }}>
-                            <img
-                              src={logoUrl} alt="Logo"
-                              style={{ maxHeight: '65px', maxWidth: '260px', objectFit: 'contain' }}
-                              onLoad={() => setImgLoaded(true)}
-                              onError={() => setImgLoaded(true)}
-                            />
-                          </div>
-                        )}
-                        <div style={{ textAlign: 'center', flex: 1 }}>
-                          <h1 style={{ margin: '0 0 2px 0', fontSize: '1.35rem', fontWeight: 'var(--pw-weight-banner)', textTransform: 'uppercase' }}>
-                            {block.title}
-                          </h1>
-                          <p style={{ margin: 0, fontSize: '0.85rem', fontStyle: 'italic', color: '#475569' }}>{block.description || ''}</p>
-                          {block.showDate && (block.datePosition ?? 'B') === 'B' && (
-                            <div style={{ marginTop: '6px', fontSize: '0.85rem', textAlign: 'center' }}>
-                              <span style={{ fontWeight: 'var(--pw-weight-regular)' }}>Ngày</span>{' '}
-                              <span style={{ marginLeft: '6px', fontWeight: 600 }}>
-                                {submission.submittedAt
-                                  ? new Date(submission.submittedAt).toLocaleDateString('vi-VN')
-                                  : <span style={{ color: '#94a3b8', letterSpacing: '2px' }}>&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;</span>}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                        {block.showDate && block.datePosition === 'A' && (
-                          <div style={{ fontSize: '0.85rem', whiteSpace: 'nowrap', marginLeft: '10px', alignSelf: 'flex-start', paddingTop: '4px' }}>
-                            <span style={{ fontWeight: 'var(--pw-weight-regular)' }}>Ngày</span>{' '}
-                            <span style={{ marginLeft: '6px', fontWeight: 600 }}>
-                              {submission.submittedAt ? new Date(submission.submittedAt).toLocaleDateString('vi-VN') : ''}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div style={{ padding: '10px 0', textAlign: 'center', position: 'relative' }}>
-                        {block.showDate && block.datePosition === 'A' && (
-                          <div style={{ position: 'absolute', right: 0, top: '10px', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
-                            <span>Ngày</span>{' '}
-                            <span style={{ marginLeft: '6px', fontWeight: 600 }}>
-                              {submission.submittedAt ? new Date(submission.submittedAt).toLocaleDateString('vi-VN') : ''}
-                            </span>
-                          </div>
-                        )}
-                        <h1 style={{ margin: '0 0 4px 0', fontSize: '1.35rem', fontWeight: 'var(--pw-weight-banner)', textTransform: 'uppercase', color: '#0d9488' }}>
-                          {block.title}
-                        </h1>
-                        <p style={{ margin: 0, fontSize: '0.85rem', fontStyle: 'italic', color: '#475569' }}>{block.description || ''}</p>
-                        {block.showDate && (block.datePosition ?? 'B') === 'B' && (
-                          <div style={{ marginTop: '6px', fontSize: '0.85rem' }}>
-                            <span>Ngày</span>{' '}
-                            <span style={{ marginLeft: '6px', fontWeight: 600 }}>
-                              {submission.submittedAt ? new Date(submission.submittedAt).toLocaleDateString('vi-VN') : ''}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    )
+                    <PrintTitleBlock
+                      block={block}
+                      logoUrl={logoUrl}
+                      onImgSettled={() => setImgLoaded(true)}
+                      recordNumberValueNode={
+                        <span style={{ marginLeft: '6px', fontWeight: 700, fontFamily: 'monospace' }}>
+                          {submission.id || ''}
+                        </span>
+                      }
+                      dateValueNode={
+                        <span style={{ marginLeft: '6px', fontWeight: 600 }}>
+                          {submission.submittedAt ? new Date(submission.submittedAt).toLocaleDateString('vi-VN') : ''}
+                        </span>
+                      }
+                    />
                   )}
-
                   {/* ── INFO_GRID — with filled values ── */}
                   {block.type === 'INFO_GRID' && (() => {
                     const titleFmt = getEffectiveTitleFormat(block);

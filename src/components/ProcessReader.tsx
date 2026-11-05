@@ -1265,14 +1265,80 @@ export const ProcessReader: React.FC<ProcessReaderProps> = ({
                           )}
 
                           {/* 1. TITLE BLOCK */}
-                          {block.type === 'TITLE' && (
-                            <div style={{ textAlign: 'center', padding: '0.5rem 0' }}>
-                              <h1 style={{ fontSize: '1.2rem', fontWeight: 800, margin: '0 0 0.25rem 0', textTransform: 'uppercase' }}>{block.title}</h1>
-                              <p style={{ fontSize: '0.8rem', fontStyle: 'italic', color: 'var(--text-secondary)' }}>
-                                {block.fields[0]?.checkItem}
-                              </p>
-                            </div>
-                          )}
+                          {block.type === 'TITLE' && (() => {
+                            const hasRecordNumber = Boolean(block.showRecordNumber);
+                            const hasDate = Boolean(block.showDate);
+                            const recordLabel = block.recordNumberLabel || 'Số';
+                            const dateLabel = block.dateLabel || 'Ngày';
+                            const position = block.datePosition || 'A';
+
+                            const renderTopRightCluster = (hasRecordNumber || hasDate) && position === 'A' && (
+                              <div style={{
+                                position: 'absolute',
+                                right: 0,
+                                top: '0.5rem',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'flex-end',
+                                gap: '3px',
+                                fontSize: '0.8rem',
+                                color: 'var(--text-secondary)',
+                                lineHeight: 1.3
+                              }}>
+                                {hasRecordNumber && (
+                                  <div>
+                                    <span style={{ fontWeight: 600 }}>{recordLabel}:</span>{' '}
+                                    <span style={{ fontFamily: 'monospace', color: 'var(--text-muted)' }}>261105-01</span>
+                                  </div>
+                                )}
+                                {hasDate && (
+                                  <div>
+                                    <span style={{ fontWeight: 600 }}>{dateLabel}:</span>{' '}
+                                    <span style={{ color: 'var(--text-muted)', letterSpacing: '1px' }}>&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                                  </div>
+                                )}
+                              </div>
+                            );
+
+                            const renderCenterDuo = (hasRecordNumber || hasDate) && position === 'B' && (
+                              <div style={{
+                                marginTop: '0.4rem',
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                gap: '8px',
+                                fontSize: '0.8rem',
+                                color: 'var(--text-secondary)',
+                                lineHeight: 1.3,
+                                flexWrap: 'wrap'
+                              }}>
+                                {hasRecordNumber && (
+                                  <span>
+                                    <span style={{ fontWeight: 600 }}>{recordLabel}:</span>{' '}
+                                    <span style={{ fontFamily: 'monospace', color: 'var(--text-muted)' }}>261105-01</span>
+                                  </span>
+                                )}
+                                {hasRecordNumber && hasDate && <span style={{ color: 'var(--neutral-border)' }}>•</span>}
+                                {hasDate && (
+                                  <span>
+                                    <span style={{ fontWeight: 600 }}>{dateLabel}:</span>{' '}
+                                    <span style={{ color: 'var(--text-muted)', letterSpacing: '1px' }}>&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                                  </span>
+                                )}
+                              </div>
+                            );
+
+                            return (
+                              <div style={{ textAlign: 'center', padding: '0.5rem 0', position: 'relative' }}>
+                                {renderTopRightCluster}
+                                <h1 style={{ fontSize: '1.2rem', fontWeight: 800, margin: '0 0 0.25rem 0', textTransform: 'uppercase' }}>{block.title}</h1>
+                                <p style={{ fontSize: '0.8rem', fontStyle: 'italic', color: 'var(--text-secondary)', margin: 0 }}>
+                                  {block.fields[0]?.checkItem}
+                                </p>
+                                {renderCenterDuo}
+                              </div>
+                            );
+                          })()}
 
                           {/* 2. INFO GRID BLOCK */}
                           {block.type === 'INFO_GRID' && (

@@ -378,7 +378,8 @@ function FormFillerInner({
   initialSubmissionTab,
   onOpenReportBuilder
 }: FormFillerProps) {
-// #region STATE_HOOKS — useState, useEffect, auto-save, data loading (FormFillerInner)
+// #region STATE_HOOKS — useState, useEffect, auto-save, data loading (FormFillerInner)
+
   // ── Synchronous SWR Cache-First Instant Paint ──
   const initialCache = useMemo(() => {
     if (preloadedFormTemplate) {
@@ -472,7 +473,8 @@ function FormFillerInner({
   }, [initialSubmissionTab]);
 
 
-// #endregion STATE_HOOKS
+// #endregion STATE_HOOKS
+
   const handleCancelEdit = () => {
 // #region HANDLERS — handleCancelEdit → handlePrintWYSIWYG
 
@@ -1769,36 +1771,102 @@ function FormFillerInner({
               )}
 
               {/* 1. TITLE BLOCK */}
-              {block.type === 'TITLE' && (
-                <div style={{ textAlign: 'center', padding: '0.5rem 0', position: 'relative' }}>
-                  {block.showDate && block.datePosition === 'A' && (
-                    <div style={{ position: 'absolute', right: 0, top: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.82rem' }}>
-                      <span style={{ fontWeight: 600 }}>Ngày</span>
-                      <input
-                        type="date"
-                        value={formValues['__title_date__'] || ''}
-                        onChange={(e) => setFormValues(prev => ({ ...prev, '__title_date__': e.target.value }))}
-                        style={{ padding: '0.2rem 0.4rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px' }}
-                      />
-                    </div>
-                  )}
-                  <h1 style={{ fontSize: '1.25rem', fontWeight: 800, margin: '0 0 0.25rem 0', textTransform: 'uppercase' }}>{block.title}</h1>
-                  <p style={{ fontSize: '0.82rem', fontStyle: 'italic', color: 'var(--text-secondary)', margin: 0 }}>
-                    {(block.fields || [])[0]?.checkItem}
-                  </p>
-                  {block.showDate && (block.datePosition ?? 'B') === 'B' && (
-                    <div style={{ marginTop: '0.5rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.35rem', fontSize: '0.82rem' }}>
-                      <span style={{ fontWeight: 600 }}>Ngày</span>
-                      <input
-                        type="date"
-                        value={formValues['__title_date__'] || ''}
-                        onChange={(e) => setFormValues(prev => ({ ...prev, '__title_date__': e.target.value }))}
-                        style={{ padding: '0.2rem 0.4rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px' }}
-                      />
-                    </div>
-                  )}
-                </div>
-              )}
+              {block.type === 'TITLE' && (() => {
+                const hasRecordNumber = Boolean(block.showRecordNumber);
+                const hasDate = Boolean(block.showDate);
+                const recordLabel = block.recordNumberLabel || 'Số';
+                const dateLabel = block.dateLabel || 'Ngày';
+                const position = block.datePosition || 'A';
+                const currentRecordId = initialSubmission?.id || editSubmissionId;
+
+                const recordValueDisplay = currentRecordId ? (
+                  <span style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--text-primary)' }}>
+                    {currentRecordId}
+                  </span>
+                ) : (
+                  <span style={{ fontStyle: 'italic', color: 'var(--text-muted)', fontSize: '0.78rem' }}>
+                    [Tự động tạo khi lưu]
+                  </span>
+                );
+
+                const dateValueDisplay = readOnly ? (
+                  <span style={{ fontWeight: 500, color: 'var(--text-primary)' }}>
+                    {formValues['__title_date__'] ? new Date(formValues['__title_date__']).toLocaleDateString('vi-VN') : '—'}
+                  </span>
+                ) : (
+                  <input
+                    type="date"
+                    value={formValues['__title_date__'] || ''}
+                    onChange={(e) => setFormValues(prev => ({ ...prev, '__title_date__': e.target.value }))}
+                    style={{ padding: '0.2rem 0.4rem', fontSize: '0.8rem', border: '1px solid var(--neutral-border)', borderRadius: '4px' }}
+                  />
+                );
+
+                const renderTopRightCluster = (hasRecordNumber || hasDate) && position === 'A' && (
+                  <div style={{
+                    position: 'absolute',
+                    right: 0,
+                    top: '0.5rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'flex-end',
+                    gap: '4px',
+                    fontSize: '0.82rem',
+                    lineHeight: 1.3
+                  }}>
+                    {hasRecordNumber && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                        <span style={{ fontWeight: 600 }}>{recordLabel}:</span>
+                        {recordValueDisplay}
+                      </div>
+                    )}
+                    {hasDate && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                        <span style={{ fontWeight: 600 }}>{dateLabel}:</span>
+                        {dateValueDisplay}
+                      </div>
+                    )}
+                  </div>
+                );
+
+                const renderCenterDuo = (hasRecordNumber || hasDate) && position === 'B' && (
+                  <div style={{
+                    marginTop: '0.5rem',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    gap: '8px',
+                    fontSize: '0.82rem',
+                    lineHeight: 1.3,
+                    flexWrap: 'wrap'
+                  }}>
+                    {hasRecordNumber && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                        <span style={{ fontWeight: 600 }}>{recordLabel}:</span>
+                        {recordValueDisplay}
+                      </div>
+                    )}
+                    {hasRecordNumber && hasDate && <span style={{ color: 'var(--neutral-border)' }}>•</span>}
+                    {hasDate && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                        <span style={{ fontWeight: 600 }}>{dateLabel}:</span>
+                        {dateValueDisplay}
+                      </div>
+                    )}
+                  </div>
+                );
+
+                return (
+                  <div style={{ textAlign: 'center', padding: '0.5rem 0', position: 'relative' }}>
+                    {renderTopRightCluster}
+                    <h1 style={{ fontSize: '1.25rem', fontWeight: 800, margin: '0 0 0.25rem 0', textTransform: 'uppercase' }}>{block.title}</h1>
+                    <p style={{ fontSize: '0.82rem', fontStyle: 'italic', color: 'var(--text-secondary)', margin: 0 }}>
+                      {(block.fields || [])[0]?.checkItem}
+                    </p>
+                    {renderCenterDuo}
+                  </div>
+                );
+              })()}
 
               {/* 2. INFO GRID BLOCK */}
 
