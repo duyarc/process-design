@@ -9,7 +9,7 @@
 | **Module Name** | Process Designer |
 | **Status** | Active Development |
 | **Document Version** | 1.0 |
-| **Verified At Commit** | (2026-11-05) — ProcessReader public link /p/:slug, 2-way share modal, invariant /f/:slug routing verified against source |
+| **Verified At Commit** | (2026-11-06) — Form filling unified to FormFiller canvas, legacy modal and 1,895 lines dead code pruned in ProcessReader |
 
 > **⚠️ Note:** Several architectural facts here are not obvious from the code — see Sections 4.5, 6.2, and 7.
 
@@ -539,3 +539,4 @@ full diff of any entry below.
 | 2026-11-04 | CURRENT | **ProcessReader Minimalist Redesign & Approvals Prune (`ProcessReader.tsx`):** Pruned administrative Approvals card, hid draft noise, unified Attached Forms paper card. |
 | 2026-11-04 | CURRENT | **ProcessEditor Unified General Tab (`ProcessEditor.tsx`, `App.tsx`):** Merged Description and Versions into General tab; side-by-side ID and Title; pruned redundant 'Process' prefixes. |
 | 2026-11-05 | CURRENT | **Process Sharing Management & Attached Forms Perms (`ProcessReader.tsx`, `ShareProcessModal.tsx`, `App.tsx`):** (1) Integrated `ShareProcessModal` on ProcessReader header with 2-way sync of process and attached forms sharing. (2) Added `/p/:identifier` public view route in `App.tsx` rendering guest ProcessReader without edit/settings controls. (3) Enforced clean slug-invariant navigation to `/f/:slug?fromProcess=:id` for attached forms, supporting view-only (Eye) and fill (FilePlus) modes with direct back navigation. |
+| 2026-11-06 | CURRENT | **Unified Form-Filling Canvas & Legacy Modal Prune (ProcessReader.tsx, App.tsx):** Eliminated divergent legacy popup form filler modal from ProcessReader.tsx (-1,895 lines dead code). Unified 100% of form-filling interactions across internal logged-in staff (onOpenFormFiller) and external public guests (/f/:slug?fromProcess=:id) to the full-page A4 FormFiller canvas, with seamless two-way back navigation to ProcessReader. |

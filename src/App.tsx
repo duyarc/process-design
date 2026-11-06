@@ -520,6 +520,7 @@ const MainApp: React.FC = () => {
               processId={selectedProcessId!}
               onBack={() => { setPage('dashboard'); setInitialPrintFormName(null); setTriggerProcessPrint(false); }}
               onEdit={handleEditProcess}
+              onOpenFormFiller={handleOpenFormFiller}
               initialPrintFormName={initialPrintFormName}
               onClearPrintForm={() => { setInitialPrintFormName(null); setTriggerProcessPrint(false); }}
               onSwitchVersion={(id) => setSelectedProcessId(id)}
@@ -540,8 +541,12 @@ const MainApp: React.FC = () => {
               setPage('dashboard');
             }}
             onBack={() => {
-              setDashboardViewMode(prevPage === 'dashboard' ? dashboardViewMode : 'submissions');
-              setPage('dashboard');
+              if (prevPage === 'reader') {
+                setPage('reader');
+              } else {
+                setDashboardViewMode(prevPage === 'dashboard' ? dashboardViewMode : 'submissions');
+                setPage('dashboard');
+              }
             }}
           />
         )}
