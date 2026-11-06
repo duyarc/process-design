@@ -471,16 +471,18 @@ export function renderReportField(
     alignSelf: field?.type === 'photo' ? 'stretch' : 'start',
   };
 
-  const labelNode = !isLabelHidden && cleanLabel ? (
+  const labelNode = !isLabelHidden ? (
     <span style={{
       fontSize: '0.72rem',
       fontWeight: 600,
       color: 'var(--text-secondary, #475569)',
       textTransform: 'uppercase',
       letterSpacing: '0.02em',
-      lineHeight: 1.2
+      lineHeight: 1.2,
+      minHeight: '1.2em',
+      userSelect: cleanLabel ? 'auto' : 'none'
     }}>
-      {renderFormattedText(cleanLabel)}
+      {cleanLabel ? renderFormattedText(cleanLabel) : '\u00A0'}
     </span>
   ) : null;
 

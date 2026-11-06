@@ -2012,6 +2012,7 @@ function FormFillerInner({
                     }
 
                     const isExpanded = !!expandedGuidanceMap[field.id];
+                    const cleanLabel = sanitizeLabel(field.checkItem);
                     return (
                       <div 
                         key={field.id} 
@@ -2035,12 +2036,14 @@ function FormFillerInner({
                               whiteSpace: 'pre-wrap', 
                               wordBreak: 'break-word', 
                               lineHeight: 1.4,
+                              minHeight: '1.4em',
                               margin: 0,
                               flex: 1,
-                              cursor: field.guidance ? 'pointer' : 'default'
+                              cursor: field.guidance ? 'pointer' : 'default',
+                              userSelect: cleanLabel ? 'auto' : 'none'
                             }}
                           >
-                            {renderFormattedText(sanitizeLabel(field.checkItem))}
+                            {cleanLabel ? renderFormattedText(cleanLabel) : '\u00A0'}
                           </label>
                           {field.guidance && (
                             <button
