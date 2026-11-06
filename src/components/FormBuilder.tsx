@@ -68,6 +68,7 @@ interface FormBuilderProps {
     isPublic?: boolean;
     publicPermission?: 'fill' | 'view';
     defaultFocusMode?: boolean;
+    defaultGuidanceExpanded?: boolean;
     layoutBlocks?: LayoutBlockISO[];
     revisionHistory?: FormRevisionEntry[];
   };
@@ -503,6 +504,7 @@ export const getFormSnapshot = (data: {
   pageSize: string;
   isPublic?: boolean;
   defaultFocusMode?: boolean;
+  defaultGuidanceExpanded?: boolean;
   effectiveDate?: string;
   layoutBlocks: LayoutBlockISO[];
   revisionHistory: FormRevisionEntry[];
@@ -515,6 +517,7 @@ export const getFormSnapshot = (data: {
     pageSize: data.pageSize,
     isPublic: data.isPublic ?? false,
     defaultFocusMode: data.defaultFocusMode ?? false,
+    defaultGuidanceExpanded: data.defaultGuidanceExpanded ?? false,
     effectiveDate: data.effectiveDate,
     layoutBlocks: data.layoutBlocks,
     revisionHistory: data.revisionHistory
@@ -1127,6 +1130,9 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
   const [defaultFocusMode, setDefaultFocusMode] = useState<boolean>(
     initialData?.defaultFocusMode ?? (initialData as any)?.default_focus_mode ?? false
   );
+  const [defaultGuidanceExpanded, setDefaultGuidanceExpanded] = useState<boolean>(
+    initialData?.defaultGuidanceExpanded ?? (initialData as any)?.default_guidance_expanded ?? false
+  );
   const [copiedLink, setCopiedLink] = useState(false);
   
   // Default blocks if none provided
@@ -1153,9 +1159,27 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
   const inspectorLabelRef = useRef<HTMLTextAreaElement>(null);
   const sectionDescRef = useRef<HTMLTextAreaElement>(null);
   const inspectorGroupTitleRef = useRef<HTMLTextAreaElement>(null);
-  const [canvasExpandedGuidanceMap, setCanvasExpandedGuidanceMap] = useState<Record<string, boolean>>({});
+  const [canvasExpandedGuidanceMap, setCanvasExpandedGuidanceMap] = useState<Record<string, boolean>>(() => {
+    const initDefault = initialData?.defaultGuidanceExpanded ?? (initialData as any)?.default_guidance_expanded ?? false;
+    if (initDefault && initialData?.layoutBlocks) {
+      const nextMap: Record<string, boolean> = {};
+      initialData.layoutBlocks.forEach(b => {
+        if (b.description || b.guidance) nextMap[b.id] = true;
+        (b.fields || []).forEach(f => {
+          if (f.guidance) nextMap[f.id] = true;
+        });
+        (b.tableRows || []).forEach(r => {
+          if (r.guidance) nextMap[r.id] = true;
+        });
+      });
+      return nextMap;
+    }
+    return {};
+  });
   const [canvasLabelPreviewMap, setCanvasLabelPreviewMap] = useState<Record<string, boolean>>({});
-  const [isAllGuidanceExpanded, setIsAllGuidanceExpanded] = useState<boolean>(false);
+  const [isAllGuidanceExpanded, setIsAllGuidanceExpanded] = useState<boolean>(
+    initialData?.defaultGuidanceExpanded ?? (initialData as any)?.default_guidance_expanded ?? false
+  );
 
   const toggleCanvasGuidance = (fieldId: string) => {
     setCanvasExpandedGuidanceMap(prev => ({
@@ -1169,9 +1193,11 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
 // #region HANDLERS — 61 handler functions (handleToggleAllGuidance → handleMinorChange)
 
   const handleToggleAllGuidance = () => {
-    if (isAllGuidanceExpanded) {
+    const nextState = !isAllGuidanceExpanded;
+    setIsAllGuidanceExpanded(nextState);
+    setDefaultGuidanceExpanded(nextState);
+    if (!nextState) {
       setCanvasExpandedGuidanceMap({});
-      setIsAllGuidanceExpanded(false);
     } else {
       const nextMap: Record<string, boolean> = {};
       (layoutBlocks || []).forEach(b => {
@@ -1190,7 +1216,6 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
         });
       });
       setCanvasExpandedGuidanceMap(nextMap);
-      setIsAllGuidanceExpanded(true);
     }
   };
 
@@ -1206,6 +1231,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
       pageSize: initialData?.pageSize || (initialData as any)?.page_size || 'A4',
       isPublic: initialData?.isPublic ?? (initialData as any)?.is_public ?? false,
       defaultFocusMode: initialData?.defaultFocusMode ?? (initialData as any)?.default_focus_mode ?? false,
+      defaultGuidanceExpanded: initialData?.defaultGuidanceExpanded ?? (initialData as any)?.default_guidance_expanded ?? false,
       effectiveDate: (initialData as any)?.effectiveDate || (initialData as any)?.effective_date,
       layoutBlocks: initialData?.layoutBlocks || defaultBlocks,
       revisionHistory: initialData?.revisionHistory || []
@@ -1273,6 +1299,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
             const targetPageSize = data.page_size || data.pageSize || 'A4';
             const targetIsPublic = data.is_public ?? data.isPublic ?? false;
             const targetDefaultFocusMode = data.default_focus_mode ?? data.defaultFocusMode ?? false;
+            const targetDefaultGuidanceExpanded = data.default_guidance_expanded ?? data.defaultGuidanceExpanded ?? false;
             const targetBlocks = data.layout_blocks
               ? (typeof data.layout_blocks === 'string' ? JSON.parse(data.layout_blocks) : data.layout_blocks)
               : [];
@@ -1287,6 +1314,23 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
             setPageSize(targetPageSize);
             setIsPublic(targetIsPublic);
             setDefaultFocusMode(targetDefaultFocusMode);
+            setDefaultGuidanceExpanded(targetDefaultGuidanceExpanded);
+            setIsAllGuidanceExpanded(targetDefaultGuidanceExpanded);
+            if (targetDefaultGuidanceExpanded && targetBlocks.length > 0) {
+              const nextMap: Record<string, boolean> = {};
+              targetBlocks.forEach((b: any) => {
+                if (b.description || b.guidance) nextMap[b.id] = true;
+                (b.fields || []).forEach((f: any) => {
+                  if (f.guidance) nextMap[f.id] = true;
+                });
+                (b.tableRows || []).forEach((r: any) => {
+                  if (r.guidance) nextMap[r.id] = true;
+                });
+              });
+              setCanvasExpandedGuidanceMap(nextMap);
+            } else {
+              setCanvasExpandedGuidanceMap({});
+            }
             setLayoutBlocks(targetBlocks);
 
             let targetHistory: FormRevisionEntry[] = [];
@@ -1303,6 +1347,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
               pageSize: targetPageSize,
               isPublic: targetIsPublic,
               defaultFocusMode: targetDefaultFocusMode,
+              defaultGuidanceExpanded: targetDefaultGuidanceExpanded,
               effectiveDate: targetEffectiveDate,
               layoutBlocks: targetBlocks,
               revisionHistory: targetHistory
@@ -1355,6 +1400,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
         isPublic,
         publicPermission,
         defaultFocusMode,
+        defaultGuidanceExpanded,
         effectiveDate: activeStatus === 'ACTIVE' ? (opts.effectiveDateOverride || effectiveDate) : null,
         layoutBlocks: syncedBlocks,
         revisionHistory: activeHistory,
@@ -1406,6 +1452,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
             publicPermission: publicPermission,
             default_focus_mode: defaultFocusMode,
             defaultFocusMode: defaultFocusMode,
+            default_guidance_expanded: defaultGuidanceExpanded,
+            defaultGuidanceExpanded: defaultGuidanceExpanded,
             layout_blocks: updatedBlocks,
             layoutBlocks: updatedBlocks,
             updated_at: new Date().toISOString()
@@ -1457,10 +1505,11 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     pageSize,
     isPublic,
     defaultFocusMode,
+    defaultGuidanceExpanded,
     effectiveDate: status === 'ACTIVE' ? effectiveDate : undefined,
     layoutBlocks,
     revisionHistory
-  }), [formId, formTitle, version, status, pageSize, isPublic, defaultFocusMode, effectiveDate, layoutBlocks, revisionHistory]);
+  }), [formId, formTitle, version, status, pageSize, isPublic, defaultFocusMode, defaultGuidanceExpanded, effectiveDate, layoutBlocks, revisionHistory]);
   const isSaved = lastSavedSnapshot !== '' && lastSavedSnapshot === currentSnapshot;
 
   useEffect(() => {
@@ -3019,7 +3068,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
         pageSize,
         isPublic,
         publicPermission,
-        defaultFocusMode
+        defaultFocusMode,
+        defaultGuidanceExpanded
       });
 
       setPublishedVersionModal(newActiveVersion);
@@ -3289,7 +3339,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
         pageSize,
         isPublic,
         publicPermission,
-        defaultFocusMode
+        defaultFocusMode,
+        defaultGuidanceExpanded
       });
       setLastSavedSnapshot(currentSnapshot);
     } catch (err) {
@@ -3633,7 +3684,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
             onMouseLeave={(e) => {
               e.currentTarget.style.background = isAllGuidanceExpanded ? '#f0fdfa' : 'none';
             }}
-            title={isAllGuidanceExpanded ? "Thu gọn toàn bộ hướng dẫn (In/PDF bản sạch)" : "Mở rộng toàn bộ hướng dẫn (In/PDF kèm hướng dẫn)"}
+            title={isAllGuidanceExpanded ? "Mặc định mở hướng dẫn khi vào form (Click để đổi sang Mặc định thu gọn)" : "Mặc định thu gọn hướng dẫn khi vào form (Click để đổi sang Mặc định mở)"}
           >
             <span style={{ fontSize: '0.8rem', lineHeight: 1, filter: isAllGuidanceExpanded ? 'none' : 'grayscale(100%) opacity(0.7)' }}>💡</span>
             <span>Hướng dẫn</span>
@@ -3661,6 +3712,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                 pageSize,
                 isPublic,
                 defaultFocusMode,
+                defaultGuidanceExpanded,
                 effectiveDate: status === 'ACTIVE' ? (effectiveDate || (initialData as any)?.effectiveDate || (initialData as any)?.effective_date) : undefined,
                 updatedAt: initialData?.updatedAt || (initialData as any)?.updated_at || new Date().toISOString(),
                 layoutBlocks,
@@ -11509,7 +11561,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                   />
                 </div>
 
-                {/* 1-Line 2-Toggle Row: Focus mode & Public link (Minimalist style matching Table Header toggle) */}
+                {/* 1-Line 2-Toggle Row: Focus mode & Mở hướng dẫn mặc định */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.25rem 0', marginTop: '0.25rem' }}>
                   {/* Focus mode Toggle */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -11554,6 +11606,48 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                     </button>
                   </div>
 
+                  {/* Guidance Default Toggle */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <label 
+                      onClick={() => !isLocked && handleToggleAllGuidance()}
+                      style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.75rem', margin: 0, cursor: isLocked ? 'not-allowed' : 'pointer', userSelect: 'none' }}
+                    >
+                      Mở hướng dẫn
+                    </label>
+                    <button
+                      type="button"
+                      disabled={isLocked}
+                      onClick={() => handleToggleAllGuidance()}
+                      style={{
+                        width: '32px',
+                        height: '18px',
+                        borderRadius: '9px',
+                        background: isAllGuidanceExpanded ? 'var(--primary)' : '#cbd5e1',
+                        border: 'none',
+                        cursor: isLocked ? 'not-allowed' : 'pointer',
+                        position: 'relative',
+                        padding: '2px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        transition: 'background-color 0.2s ease',
+                        outline: 'none'
+                      }}
+                      title={isAllGuidanceExpanded ? 'Mặc định mở hướng dẫn đang Bật (Click để Tắt)' : 'Mặc định mở hướng dẫn đang Tắt (Click để Bật)'}
+                    >
+                      <span
+                        style={{
+                          width: '14px',
+                          height: '14px',
+                          borderRadius: '50%',
+                          background: '#ffffff',
+                          boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                          transform: isAllGuidanceExpanded ? 'translateX(14px)' : 'translateX(0px)',
+                          transition: 'transform 0.2s ease',
+                          display: 'block'
+                        }}
+                      />
+                    </button>
+                  </div>
                 </div>
 
                 {/* 3-Way Segmented Access Control & Invariant URL Box */}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, Component, Suspense, lazy } from 'react';
-import type { Process, FormTemplateISO, ReportTemplateISO, SubmissionFieldSnapshot, Submission, BlockVisibilityCondition } from '../types';
+import type { Process, FormTemplateISO, LayoutBlockISO, ReportTemplateISO, SubmissionFieldSnapshot, Submission, BlockVisibilityCondition } from '../types';
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
@@ -112,6 +112,27 @@ const parseSubtableValue = (val: string): Record<string, string>[] => {
   try { return JSON.parse(val || '[]'); } catch { return []; }
 };
 const stringifySubtableValue = (rows: Record<string, string>[]): string => JSON.stringify(rows);
+
+const buildAllGuidanceMap = (blocks?: LayoutBlockISO[]): Record<string, boolean> => {
+  const nextMap: Record<string, boolean> = {};
+  (blocks || []).forEach((b: any) => {
+    if (b.description || b.guidance) {
+      nextMap[b.id] = true;
+    }
+    (b.fields || []).forEach((f: any) => {
+      if (f.guidance) {
+        nextMap[f.id] = true;
+      }
+    });
+    (b.tableRows || []).forEach((r: any) => {
+      if (r.guidance) {
+        nextMap[`${b.id}_${r.id}`] = true;
+        nextMap[r.id] = true;
+      }
+    });
+  });
+  return nextMap;
+};
 
 /**
  * Tái cấu trúc danh sách dòng của khối TABLE từ snapshot formData của submission.
@@ -315,6 +336,7 @@ const buildVirtualProcess = (
     isPublic: formRecord.is_public ?? formRecord.isPublic ?? false,
     publicPermission: formRecord.public_permission ?? formRecord.publicPermission ?? 'fill',
     defaultFocusMode: formRecord.default_focus_mode ?? formRecord.defaultFocusMode ?? false,
+    defaultGuidanceExpanded: formRecord.default_guidance_expanded ?? formRecord.defaultGuidanceExpanded ?? false,
     layoutBlocks
   };
 
@@ -439,9 +461,18 @@ function FormFillerInner({
 
   const [printCurrentSubmission, setPrintCurrentSubmission] = useState<Submission | null>(null);
   const [printBlankConfig, setPrintBlankConfig] = useState<{ template: FormTemplateISO; includeGuidance: boolean } | null>(null);
-  const [expandedGuidanceMap, setExpandedGuidanceMap] = useState<Record<string, boolean>>({});
-  const [isAllGuidanceExpanded, setIsAllGuidanceExpanded] = useState<boolean>(false);
+  const userInteractedGuidanceRef = useRef(false);
+  const [isAllGuidanceExpanded, setIsAllGuidanceExpanded] = useState<boolean>(() => {
+    const initTpl = preloadedFormTemplate || (initialCache.process?.workflowFormsData?.[formName] as FormTemplateISO | undefined);
+    return initTpl?.defaultGuidanceExpanded === true || (initTpl as any)?.default_guidance_expanded === true;
+  });
+  const [expandedGuidanceMap, setExpandedGuidanceMap] = useState<Record<string, boolean>>(() => {
+    const initTpl = preloadedFormTemplate || (initialCache.process?.workflowFormsData?.[formName] as FormTemplateISO | undefined);
+    const isDefault = initTpl?.defaultGuidanceExpanded === true || (initTpl as any)?.default_guidance_expanded === true;
+    return isDefault && initTpl?.layoutBlocks ? buildAllGuidanceMap(initTpl.layoutBlocks) : {};
+  });
   const toggleGuidance = (fieldId: string) => {
+    userInteractedGuidanceRef.current = true;
     setExpandedGuidanceMap(prev => ({ ...prev, [fieldId]: !prev[fieldId] }));
   };
   const [submitResult, setSubmitResult] = useState<{ id: string } | null>(null);
@@ -653,6 +684,18 @@ function FormFillerInner({
     if (rawFormTemplate && !userInteractedViewModeRef.current) {
       const isDefaultFocus = rawFormTemplate.defaultFocusMode === true || (rawFormTemplate as any)?.default_focus_mode === true;
       setViewMode(isDefaultFocus ? 'focus' : 'all');
+    }
+  }, [rawFormTemplate]);
+
+  useEffect(() => {
+    if (rawFormTemplate && !userInteractedGuidanceRef.current) {
+      const isDefaultGuidance = rawFormTemplate.defaultGuidanceExpanded === true || (rawFormTemplate as any)?.default_guidance_expanded === true;
+      setIsAllGuidanceExpanded(isDefaultGuidance);
+      if (isDefaultGuidance && rawFormTemplate.layoutBlocks) {
+        setExpandedGuidanceMap(buildAllGuidanceMap(rawFormTemplate.layoutBlocks));
+      } else {
+        setExpandedGuidanceMap({});
+      }
     }
   }, [rawFormTemplate]);
 
@@ -950,27 +993,13 @@ function FormFillerInner({
   const formTemplate = (process.workflowFormsData[formName] || rawFormTemplate) as FormTemplateISO;
 
   const handleToggleAllGuidance = () => {
+    userInteractedGuidanceRef.current = true;
     if (isAllGuidanceExpanded) {
       setExpandedGuidanceMap({});
       setIsAllGuidanceExpanded(false);
     } else {
-      const nextMap: Record<string, boolean> = {};
       const tpl = rawFormTemplate || formTemplate;
-      (tpl?.layoutBlocks || []).forEach(b => {
-        if (b.description || b.guidance) {
-          nextMap[b.id] = true;
-        }
-        (b.fields || []).forEach(f => {
-          if (f.guidance) {
-            nextMap[f.id] = true;
-          }
-        });
-        (b.tableRows || []).forEach(r => {
-          if (r.guidance) {
-            nextMap[`${b.id}_${r.id}`] = true;
-          }
-        });
-      });
+      const nextMap = buildAllGuidanceMap(tpl?.layoutBlocks);
       setExpandedGuidanceMap(nextMap);
       setIsAllGuidanceExpanded(true);
     }

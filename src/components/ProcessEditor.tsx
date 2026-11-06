@@ -1462,7 +1462,8 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
           status: matchedForm?.status || 'DRAFT',
           pageSize: matchedForm?.page_size || 'A4',
           isPublic: matchedForm?.is_public ?? false,
-          defaultFocusMode: matchedForm?.default_focus_mode ?? false
+          defaultFocusMode: matchedForm?.default_focus_mode ?? false,
+          defaultGuidanceExpanded: matchedForm?.default_guidance_expanded ?? false
         };
       }
     });
@@ -3546,6 +3547,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                 pageSize: live.page_size || 'A4',
                 isPublic: live.is_public ?? false,
                 defaultFocusMode: live.default_focus_mode ?? false,
+                defaultGuidanceExpanded: live.default_guidance_expanded ?? false,
                 layoutBlocks: typeof live.layout_blocks === 'string'
                   ? JSON.parse(live.layout_blocks)
                   : (live.layout_blocks || []),
@@ -3611,6 +3613,7 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                 page_size: savedFormData.pageSize,
                 is_public: savedFormData.isPublic,
                 default_focus_mode: savedFormData.defaultFocusMode,
+                default_guidance_expanded: savedFormData.defaultGuidanceExpanded,
                 updated_at: new Date().toISOString()
               };
               const filtered = isRenamed ? prev.filter(f => f.form_id !== oldFormId && f.formId !== oldFormId && f.form_name !== oldFormId) : prev;
@@ -3641,6 +3644,8 @@ export const ProcessEditor: React.FC<ProcessEditorProps> = ({
                   is_public: savedFormData.isPublic,
                   default_focus_mode: savedFormData.defaultFocusMode,
                   defaultFocusMode: savedFormData.defaultFocusMode,
+                  default_guidance_expanded: savedFormData.defaultGuidanceExpanded,
+                  defaultGuidanceExpanded: savedFormData.defaultGuidanceExpanded,
                   updated_at: new Date().toISOString()
                 };
                 if (idx >= 0) {

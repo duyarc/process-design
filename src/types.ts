@@ -282,6 +282,8 @@ export interface FormTemplateISO {
   is_public?: boolean;
   public_permission?: 'fill' | 'view';
   defaultFocusMode?: boolean;
+  defaultGuidanceExpanded?: boolean;
+  default_guidance_expanded?: boolean;
   layoutBlocks: LayoutBlockISO[];
   revisionHistory: FormRevisionEntry[];
 }

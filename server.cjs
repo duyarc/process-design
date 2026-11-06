@@ -188,6 +188,7 @@ const INITIALIZE_SCHEMA_QUERY = `
   ALTER TABLE forms ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT false;
   ALTER TABLE forms ADD COLUMN IF NOT EXISTS public_permission TEXT DEFAULT 'fill';
   ALTER TABLE forms ADD COLUMN IF NOT EXISTS default_focus_mode BOOLEAN DEFAULT false;
+  ALTER TABLE forms ADD COLUMN IF NOT EXISTS default_guidance_expanded BOOLEAN DEFAULT false;
   ALTER TABLE submissions ADD COLUMN IF NOT EXISTS access_token TEXT DEFAULT NULL;
   ALTER TABLE processes ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT false;
 `;
@@ -658,7 +659,7 @@ app.get('/api/forms', async (req, res) => {
     if (dbPool) {
       // Returns all rows (or metadata-only rows if fields=list) — frontend groups by form_id and picks the latest version
       const sql = isList
-        ? `SELECT form_id, form_name, form_title, status, version, effective_date, page_size, is_public, public_permission, default_focus_mode, created_at, updated_at
+        ? `SELECT form_id, form_name, form_title, status, version, effective_date, page_size, is_public, public_permission, default_focus_mode, default_guidance_expanded, created_at, updated_at
            FROM forms ORDER BY form_id ASC, version ASC`
         : 'SELECT * FROM forms ORDER BY form_id ASC, version ASC';
       const result = await dbPool.query(sql);
@@ -1006,6 +1007,7 @@ app.post('/api/forms', async (req, res) => {
     const isPublic = req.body.isPublic ?? req.body.is_public ?? false;
     const publicPermission = req.body.publicPermission || req.body.public_permission || 'fill';
     const defaultFocusMode = req.body.defaultFocusMode ?? req.body.default_focus_mode ?? false;
+    const defaultGuidanceExpanded = req.body.defaultGuidanceExpanded ?? req.body.default_guidance_expanded ?? false;
 
     if (dbPool) {
       // If Form ID changed and it was a draft, delete the old draft record and cascade rename
@@ -1095,8 +1097,8 @@ app.post('/api/forms', async (req, res) => {
       // Upsert using composite PK (form_id, version) — each version is an independent snapshot
       const query = `
         INSERT INTO forms (
-          form_id, form_name, form_title, status, version, effective_date, layout_blocks, revision_history, pdf_name, pdf_key, pdf_size, page_size, is_public, public_permission, default_focus_mode, updated_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW())
+          form_id, form_name, form_title, status, version, effective_date, layout_blocks, revision_history, pdf_name, pdf_key, pdf_size, page_size, is_public, public_permission, default_focus_mode, default_guidance_expanded, updated_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, NOW())
         ON CONFLICT (form_id, version) DO UPDATE SET
           form_name = EXCLUDED.form_name,
           form_title = EXCLUDED.form_title,
@@ -1111,10 +1113,11 @@ app.post('/api/forms', async (req, res) => {
           is_public = EXCLUDED.is_public,
           public_permission = EXCLUDED.public_permission,
           default_focus_mode = EXCLUDED.default_focus_mode,
+          default_guidance_expanded = EXCLUDED.default_guidance_expanded,
           updated_at = NOW()
-        RETURNING form_id, form_name, form_title, status, version, effective_date, page_size, is_public, public_permission, default_focus_mode, pdf_name, pdf_key, pdf_size, created_at, updated_at
+        RETURNING form_id, form_name, form_title, status, version, effective_date, page_size, is_public, public_permission, default_focus_mode, default_guidance_expanded, pdf_name, pdf_key, pdf_size, created_at, updated_at
       `;
-      const values = [formId, formName, formTitle || formName, status || 'DRAFT', ver, effectiveDate || null, blocks, history, pdfName || null, pdfKey || null, pdfSize || 0, pSize, isPublic, publicPermission, defaultFocusMode];
+      const values = [formId, formName, formTitle || formName, status || 'DRAFT', ver, effectiveDate || null, blocks, history, pdfName || null, pdfKey || null, pdfSize || 0, pSize, isPublic, publicPermission, defaultFocusMode, defaultGuidanceExpanded];
       const result = await dbPool.query(query, values);
 
       // Fanout updated revision_history to ALL other rows of the same form_id
@@ -1151,6 +1154,8 @@ app.post('/api/forms', async (req, res) => {
         page_size: pSize,
         is_public: isPublic,
         default_focus_mode: defaultFocusMode,
+        default_guidance_expanded: defaultGuidanceExpanded,
+        defaultGuidanceExpanded: defaultGuidanceExpanded,
         updated_at: new Date().toISOString()
       };
       if (existingIdx >= 0) {
@@ -3123,7 +3128,7 @@ app.get('/api/submissions/view/:id', async (req, res) => {
       `SELECT s.id, s.process_id, s.form_id, s.form_version, s.operator_id,
               s.status, s.submitted_at, s.form_data, s.media_urls, s.supervisor_signoff,
               f.form_name, f.form_title, f.layout_blocks, f.page_size, f.is_public,
-              f.default_focus_mode, f.version AS form_current_version
+              f.default_focus_mode, f.default_guidance_expanded, f.version AS form_current_version
        FROM submissions s
        LEFT JOIN forms f ON (f.form_id = s.form_id OR f.form_name = s.form_id)
          AND f.version = s.form_version
@@ -3182,7 +3187,9 @@ app.get('/api/submissions/view/:id', async (req, res) => {
         layout_blocks: typeof row.layout_blocks === 'string' ? JSON.parse(row.layout_blocks) : row.layout_blocks,
         page_size: row.page_size || 'A4',
         is_public: row.is_public ?? false,
-        default_focus_mode: row.default_focus_mode ?? false
+        default_focus_mode: row.default_focus_mode ?? false,
+        default_guidance_expanded: row.default_guidance_expanded ?? false,
+        defaultGuidanceExpanded: row.default_guidance_expanded ?? false
       };
     }
 

@@ -1015,6 +1015,7 @@ export function duplicateFormTemplate(
   pageSize: string;
   isPublic: boolean;
   defaultFocusMode: boolean;
+  defaultGuidanceExpanded: boolean;
   effectiveDate: null;
   layoutBlocks: LayoutBlockISO[];
   revisionHistory: any[];
@@ -1139,6 +1140,7 @@ export function duplicateFormTemplate(
     pageSize: sourceForm.page_size || sourceForm.pageSize || 'A4',
     isPublic: sourceForm.is_public ?? sourceForm.isPublic ?? false,
     defaultFocusMode: sourceForm.default_focus_mode ?? sourceForm.defaultFocusMode ?? false,
+    defaultGuidanceExpanded: sourceForm.default_guidance_expanded ?? sourceForm.defaultGuidanceExpanded ?? false,
     effectiveDate: null,
     layoutBlocks: clonedBlocks,
     revisionHistory: [

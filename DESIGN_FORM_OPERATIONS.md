@@ -8,7 +8,7 @@
 |---|---|
 | **Module Name** | Form Operations |
 | **Status** | Active Development |
-| **Verified At Commit** | (2026-11-05) — Date and time range inline input alignment without stacked sub-labels verified against source |
+| **Verified At Commit** | (2026-11-06) — Initial guidance expansion from defaultGuidanceExpanded with userInteractedGuidanceRef guard verified against source |
 
 ### Quick File Index
 
@@ -460,3 +460,4 @@ UI/styling history lives in `git log`. Capped at ~15 entries; older rows are dro
 | 2026-11-05 | `CURRENT` | **Table Summary Parameters Boxless Print Styling (`PrintBlankForm`, `PrintFilledForm`):** (1) In `PrintBlankForm.tsx`, completely eradicated rectangular bounding boxes (`border: 1px solid #94a3b8`, `background: #fafafa`, `height: 20px`) and underline decorations around footer fields (`Tiền tệ`, `Tỷ giá`), leaving natural clean blank space inside the table cell with AcroForm scanner compatibility. (2) In `PrintFilledForm.tsx`, eliminated the parameter chip wrapper box (`border: 1px solid #cbd5e1`, `background: #f1f5f9`), rendering parameters as pure inline text with subtle bullet separators. |
 | 2026-11-05 | `CURRENT` | **Title Block Record Number & Date Display Parity (`FormFiller`, `ProcessReader`, `PrintFilledForm`):** (1) In `FormFiller.tsx`, enhanced TITLE block rendering to display `initialSubmission?.id || editSubmissionId` (or italic `[Tự động tạo khi lưu]` when creating new records) and date picker / formatted text at Position A (top-right) or Position B (centered under description). (2) In `ProcessReader.tsx`, integrated identical layout handling for SOP preview. (3) In `PrintFilledForm.tsx`, printed stored record numbers and submission dates via `PrintTitleBlock`. |
 | 2026-11-04 | `CURRENT` | **Table Summary Footer Border Harmonization (`FormFiller`, `PrintFilledForm`, `PrintBlankForm`):** Completely eradicated discordant accounting double bottom border (`2.5px double #0f172a` / `2px solid #0f172a`) from summary rows across FormFiller and print views. Harmonized table footer borders to match Design System: grid uses `1px solid var(--neutral-border)` / `#cbd5e1` (matching the outer table border), horizontal_only uses `1.5px solid #cbd5e1`, and borderless uses `none`. Fixed redundant top borders on print summary row cells. |
+| 2026-11-06 | `CURRENT` | **Default Guidance State Consumption (`FormFiller.tsx`):** Initialized `isAllGuidanceExpanded` and `expandedGuidanceMap` synchronously from `defaultGuidanceExpanded`; guarded subsequent SWR revalidation with `userInteractedGuidanceRef`. |
