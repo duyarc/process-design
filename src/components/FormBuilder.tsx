@@ -8,6 +8,8 @@ import {
   Trash2, 
   ArrowUp, 
   ArrowDown, 
+  ArrowLeft,
+  ArrowRight, 
   FileText, 
   Hash, 
   Calendar, 
@@ -1755,17 +1757,20 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
   };
 
   // 2. Block Handlers
-  const handleAddBlock = (type: 'TITLE' | 'INFO_GRID' | 'CHECKLIST_TABLE' | 'MATRIX_TABLE' | 'SIGN' | 'TABLE' | 'SECTION_LABEL', columns: 1 | 2 | 3 = 1) => {
+  const handleAddBlock = (type: 'TITLE' | 'INFO_GRID' | 'CHECKLIST_TABLE' | 'MATRIX_TABLE' | 'SIGN' | 'TABLE' | 'SECTION_LABEL', columns: 1 | 2 | 3 | 4 = 1) => {
     if (isLocked) return;
     const newBlock: LayoutBlockISO = {
       id: `b_${type.toLowerCase()}_${Date.now()}`,
       type,
-      columns,
+      columns: type === 'SIGN' ? 2 : columns,
       title: type === 'TITLE' ? formTitle : type === 'INFO_GRID' ? 'Thông tin chung' : type === 'CHECKLIST_TABLE' ? 'Bảng kiểm tra' : type === 'MATRIX_TABLE' ? 'Bảng kiểm đếm số lượng' : type === 'TABLE' ? 'Bảng biểu mẫu động' : type === 'SECTION_LABEL' ? 'Tiêu đề danh mục' : 'Ký nhận',
       description: type === 'SECTION_LABEL' ? '' : undefined,
       titleFormat: type === 'SECTION_LABEL' ? 'H1' : undefined,
       sectionFormat: undefined,
-      fields: [],
+      fields: type === 'SIGN' ? [
+        { id: `f_sign_${Date.now()}_1`, type: 'signature', checkItem: 'Người lập biểu', reactionProtocol: 'Ký và ghi rõ họ tên', locationCode: 'SIGN-1' },
+        { id: `f_sign_${Date.now()}_2`, type: 'signature', checkItem: 'Người phê duyệt', reactionProtocol: 'Ký và ghi rõ họ tên', locationCode: 'SIGN-2' }
+      ] : [],
       columnLabels: type === 'CHECKLIST_TABLE' ? {
         stt: 'STT',
         item: 'Tiêu chí',
@@ -2089,7 +2094,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
     if (block?.type === 'TITLE') setFormTitle(newTitle);
   };
 
-  const handleUpdateBlockColumns = (blockId: string, cols: 1 | 2 | 3) => {
+  const handleUpdateBlockColumns = (blockId: string, cols: 1 | 2 | 3 | 4) => {
     setLayoutBlocks(prev => prev.map(b => {
       if (b.id !== blockId) return b;
       let defaultWidths: number[] | undefined;
@@ -2097,6 +2102,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
         defaultWidths = b.columnWidths && b.columnWidths.length === 2 ? b.columnWidths : [50, 50];
       } else if (cols === 3) {
         defaultWidths = b.columnWidths && b.columnWidths.length === 3 ? b.columnWidths : [33, 34, 33];
+      } else if (cols === 4) {
+        defaultWidths = b.columnWidths && b.columnWidths.length === 4 ? b.columnWidths : [25, 25, 25, 25];
       } else {
         defaultWidths = undefined;
       }
@@ -2704,8 +2711,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
   const handleAddField = (blockId: string, type: FormFieldISO['type']) => {
     if (isLocked) return;
     
-    const labelPrefix = type === 'radio' || type === 'checkbox' ? 'Kiểm tra ' : type === 'number' ? 'Đo thông số ' : type === 'time' ? 'Thời gian ' : type === 'subtable' ? 'Bảng ' : 'Thông tin ';
-    const defaultCheckItem = `${labelPrefix}mới`;
+    const labelPrefix = type === 'signature' ? 'Người ký ' : type === 'radio' || type === 'checkbox' ? 'Kiểm tra ' : type === 'number' ? 'Đo thông số ' : type === 'time' ? 'Thời gian ' : type === 'subtable' ? 'Bảng ' : 'Thông tin ';
+    const defaultCheckItem = type === 'signature' ? 'Người ký' : `${labelPrefix}mới`;
     const existingIds = layoutBlocks.flatMap(b => (b.fields || []).map(f => f.id));
     const newFieldId = generateSmartFieldSlug(defaultCheckItem, existingIds, type);
 
@@ -7831,70 +7838,257 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                 setActiveFieldId(null);
                               }}
                             />
-                          <div style={{
-                            display: 'grid',
-                            gridTemplateColumns: `repeat(${block.columns}, 1fr)`,
-                            gap: '1rem'
-                          }}>
-                            {block.fields.map(f => {
-                              const isFieldSelected = activeFieldId === f.id;
-                              return (
-                                <div 
-                                  key={f.id}
+                          {block.fields.length === 0 ? (
+                            !isLocked && (
+                              <div
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleAddField(block.id, 'signature');
+                                }}
+                                style={{
+                                  border: '1px dashed #cbd5e1',
+                                  borderRadius: '6px',
+                                  padding: '1.25rem 1rem',
+                                  textAlign: 'center',
+                                  background: '#f8fafc',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: '6px',
+                                  color: 'var(--text-muted)',
+                                  transition: 'all 0.15s ease'
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.borderColor = 'var(--primary)';
+                                  e.currentTarget.style.color = 'var(--primary)';
+                                  e.currentTarget.style.background = 'rgba(13, 148, 136, 0.04)';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.borderColor = '#cbd5e1';
+                                  e.currentTarget.style.color = 'var(--text-muted)';
+                                  e.currentTarget.style.background = '#f8fafc';
+                                }}
+                                title="Thêm ô chữ ký đầu tiên"
+                              >
+                                <Plus size={16} />
+                                <span style={{ fontSize: '0.78rem', fontWeight: 600 }}>+ Thêm chữ ký đầu tiên</span>
+                              </div>
+                            )
+                          ) : (
+                            <div style={{
+                              display: 'grid',
+                              gridTemplateColumns: `repeat(${block.columns || 2}, 1fr)`,
+                              gap: '0.75rem'
+                            }}>
+                              {block.fields.map((f, fIdx) => {
+                                const isFieldSelected = activeFieldId === f.id;
+                                return (
+                                  <div 
+                                    key={f.id}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setActiveBlockId(block.id);
+                                      setActiveFieldId(f.id);
+                                    }}
+                                    style={{
+                                      border: isFieldSelected ? '2px solid var(--primary)' : '1px solid #cbd5e1',
+                                      borderRadius: '6px',
+                                      padding: '0.65rem 0.5rem',
+                                      textAlign: 'center',
+                                      background: isFieldSelected ? 'rgba(16, 163, 163, 0.04)' : '#f8fafc',
+                                      position: 'relative',
+                                      display: 'flex',
+                                      flexDirection: 'column',
+                                      justifyContent: 'space-between',
+                                      minHeight: '120px',
+                                      transition: 'all 0.15s ease'
+                                    }}
+                                  >
+                                    {/* Action buttons: Move Left, Move Right, Delete */}
+                                    {isFieldSelected && !isLocked && (
+                                      <div style={{ position: 'absolute', right: '4px', top: '4px', display: 'flex', gap: '3px', zIndex: 2 }}>
+                                        <button
+                                          type="button"
+                                          disabled={fIdx === 0}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleMoveField(block.id, f.id, 'up');
+                                          }}
+                                          style={{
+                                            background: '#ffffff',
+                                            border: '1px solid #cbd5e1',
+                                            borderRadius: '3px',
+                                            padding: '2px 4px',
+                                            cursor: fIdx === 0 ? 'not-allowed' : 'pointer',
+                                            opacity: fIdx === 0 ? 0.35 : 1,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            color: 'var(--text-secondary)'
+                                          }}
+                                          title="Di chuyển sang trái"
+                                        >
+                                          <ArrowLeft size={10} />
+                                        </button>
+                                        <button
+                                          type="button"
+                                          disabled={fIdx === block.fields.length - 1}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleMoveField(block.id, f.id, 'down');
+                                          }}
+                                          style={{
+                                            background: '#ffffff',
+                                            border: '1px solid #cbd5e1',
+                                            borderRadius: '3px',
+                                            padding: '2px 4px',
+                                            cursor: fIdx === block.fields.length - 1 ? 'not-allowed' : 'pointer',
+                                            opacity: fIdx === block.fields.length - 1 ? 0.35 : 1,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            color: 'var(--text-secondary)'
+                                          }}
+                                          title="Di chuyển sang phải"
+                                        >
+                                          <ArrowRight size={10} />
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleDeleteField(block.id, f.id);
+                                          }}
+                                          style={{
+                                            background: '#ffffff',
+                                            border: '1px solid #fca5a5',
+                                            borderRadius: '3px',
+                                            padding: '2px 4px',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            color: '#dc2626'
+                                          }}
+                                          title="Xóa ô chữ ký này"
+                                        >
+                                          <X size={10} />
+                                        </button>
+                                      </div>
+                                    )}
+
+                                    {/* Role Title (Inline Editable) */}
+                                    <div style={{ marginBottom: '2px' }}>
+                                      <input
+                                        type="text"
+                                        disabled={isLocked}
+                                        value={f.checkItem}
+                                        onClick={(e) => e.stopPropagation()}
+                                        onChange={(e) => handleUpdateField(block.id, f.id, { checkItem: e.target.value })}
+                                        onBlur={(e) => {
+                                          if (!f.isCustomId) {
+                                            handleAutoSlugField(block.id, f.id, e.target.value, f.type);
+                                          }
+                                        }}
+                                        style={{
+                                          width: '90%',
+                                          fontSize: '0.8rem',
+                                          fontWeight: 700,
+                                          color: 'var(--text-primary)',
+                                          textAlign: 'center',
+                                          background: isFieldSelected ? '#ffffff' : 'transparent',
+                                          border: isFieldSelected ? '1px solid #cbd5e1' : '1px solid transparent',
+                                          borderRadius: '3px',
+                                          padding: '1px 4px',
+                                          outline: 'none'
+                                        }}
+                                        placeholder="Chức danh / Vai trò"
+                                        title="Click để sửa chức danh người ký"
+                                      />
+                                    </div>
+
+                                    {/* Action Protocol / Hint */}
+                                    <div style={{ marginBottom: '8px' }}>
+                                      <input
+                                        type="text"
+                                        disabled={isLocked}
+                                        value={f.reactionProtocol || ''}
+                                        onClick={(e) => e.stopPropagation()}
+                                        onChange={(e) => handleUpdateField(block.id, f.id, { reactionProtocol: e.target.value })}
+                                        style={{
+                                          width: '85%',
+                                          fontSize: '0.67rem',
+                                          fontStyle: 'italic',
+                                          color: 'var(--text-muted)',
+                                          textAlign: 'center',
+                                          background: 'transparent',
+                                          border: isFieldSelected ? '1px dashed #e2e8f0' : '1px solid transparent',
+                                          borderRadius: '3px',
+                                          padding: '1px 4px',
+                                          outline: 'none'
+                                        }}
+                                        placeholder="(Ký và ghi rõ họ tên)"
+                                        title="Click để sửa lời nhắc ký"
+                                      />
+                                    </div>
+
+                                    {/* Reserved Signature Space */}
+                                    <div style={{ height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                      <span style={{ fontSize: '0.65rem', color: '#94a3b8', fontStyle: 'italic', opacity: 0.6 }}>
+                                        [Vùng ký]
+                                      </span>
+                                    </div>
+
+                                    {/* Signer Full Name placeholder line */}
+                                    <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', borderTop: '1px dotted #cbd5e1', paddingTop: '4px', width: '80%', margin: '0 auto' }}>
+                                      Họ và tên
+                                    </div>
+                                  </div>
+                                );
+                              })}
+
+                              {/* In-Grid Ghost Slot for Adding More Signatures (Option 1 + 3 Hover-Reveal) */}
+                              {!isLocked && (isBlockSelected || hoveredBlockId === block.id) && (
+                                <div
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    setActiveBlockId(block.id);
-                                    setActiveFieldId(f.id);
+                                    handleAddField(block.id, 'signature');
                                   }}
                                   style={{
-                                    border: isFieldSelected ? '2px solid var(--primary)' : '1px solid #cbd5e1',
-                                    borderRadius: '4px',
-                                    padding: '0.5rem',
-                                    textAlign: 'center',
-                                    background: isFieldSelected ? 'rgba(16, 163, 163, 0.05)' : '#f8fafc',
-                                    position: 'relative'
+                                    border: '1px dashed #cbd5e1',
+                                    borderRadius: '6px',
+                                    padding: '0.65rem 0.5rem',
+                                    fontSize: '0.74rem',
+                                    fontWeight: 500,
+                                    color: 'var(--text-muted)',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '4px',
+                                    minHeight: '120px',
+                                    background: 'rgba(248, 250, 252, 0.5)',
+                                    transition: 'all 0.15s ease',
+                                    userSelect: 'none'
                                   }}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.borderColor = 'var(--primary)';
+                                    e.currentTarget.style.color = 'var(--primary)';
+                                    e.currentTarget.style.background = 'rgba(13, 148, 136, 0.06)';
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.borderColor = '#cbd5e1';
+                                    e.currentTarget.style.color = 'var(--text-muted)';
+                                    e.currentTarget.style.background = 'rgba(248, 250, 252, 0.5)';
+                                  }}
+                                  title="Thêm người ký mới"
                                 >
-                                  {isFieldSelected && !isLocked && (
-                                    <div style={{ position: 'absolute', right: '4px', top: '4px', display: 'flex', gap: '2px' }}>
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleMoveField(block.id, f.id, 'up');
-                                        }}
-                                        style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '3px', padding: '1px 2px', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--text-secondary)' }}
-                                        title="Di chuyển sang trái / lên"
-                                      >
-                                        <ArrowUp size={10} />
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleMoveField(block.id, f.id, 'down');
-                                        }}
-                                        style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '3px', padding: '1px 2px', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--text-secondary)' }}
-                                        title="Di chuyển sang phải / xuống"
-                                      >
-                                        <ArrowDown size={10} />
-                                      </button>
-                                    </div>
-                                  )}
-                                  <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                                    {f.checkItem}
-                                  </div>
-                                  <div style={{ fontSize: '0.65rem', fontStyle: 'italic', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
-                                    {f.reactionProtocol ? (f.reactionProtocol.startsWith('(') ? f.reactionProtocol : `(${f.reactionProtocol})`) : '(Ký và ghi rõ họ tên)'}
-                                  </div>
-                                  <div style={{ height: '36px' }} />
-                                  <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', borderTop: '1px dotted #cbd5e1', paddingTop: '4px', width: '80%', margin: '0 auto' }}>
-                                    Họ và tên
-                                  </div>
+                                  <Plus size={14} />
+                                  <span>Thêm người ký</span>
                                 </div>
-                              );
-                            })}
-                          </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       );
                     })()}
@@ -11319,14 +11513,14 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <label style={{ fontWeight: 600, color: 'var(--text-secondary)', fontSize: '0.8rem' }}>Columns</label>
                       
-                      {/* Mini Segmented Pill [ 1 | 2 | 3 ] */}
+                      {/* Mini Segmented Pill [ 1 | 2 | 3 | 4 ] */}
                       <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: '6px', padding: '2px', border: '1px solid #cbd5e1' }}>
-                        {[1, 2, 3].map((cols) => (
+                        {(activeBlock.type === 'SIGN' ? [1, 2, 3, 4] : [1, 2, 3]).map((cols) => (
                           <button
                             key={cols}
                             type="button"
                             disabled={isLocked}
-                            onClick={() => handleUpdateBlockColumns(activeBlockId!, cols as 1 | 2 | 3)}
+                            onClick={() => handleUpdateBlockColumns(activeBlockId!, cols as 1 | 2 | 3 | 4)}
                             style={{
                               padding: '2px 10px',
                               fontSize: '0.75rem',

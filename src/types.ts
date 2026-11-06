@@ -236,7 +236,7 @@ export interface LayoutBlockISO {
    */
   type: 'TITLE' | 'INFO_GRID' | 'CHECKLIST_TABLE' | 'MATRIX_TABLE' | 'SIGN' | 'TABLE' | 'SECTION_LABEL';
 
-  columns: 1 | 2 | 3;
+  columns: 1 | 2 | 3 | 4;
   columnWidths?: number[];
   title: string;
   fields: FormFieldISO[];

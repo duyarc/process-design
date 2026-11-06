@@ -244,7 +244,7 @@ export const INFO_GRID_3COL_PRESETS: [number, number, number][] = [
 /**
  * Calculates CSS Grid gridTemplateColumns for INFO_GRID block with minmax protection against overflow.
  */
-export function getInfoGridTemplateColumns(block?: { columns: 1 | 2 | 3; columnWidths?: number[] }): string {
+export function getInfoGridTemplateColumns(block?: { columns: 1 | 2 | 3 | 4; columnWidths?: number[] }): string {
   if (!block || block.columns === 1) return '1fr';
 
   if (block.columns === 2) {
