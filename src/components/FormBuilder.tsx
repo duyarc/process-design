@@ -1492,6 +1492,7 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
   const [viewingRevisionVersion, setViewingRevisionVersion] = useState<string | null>(null);
   const [rightTab, setRightTab] = useState<'properties' | 'versions'>('properties');
   const [hoveredTableRowKey, setHoveredTableRowKey] = useState<string | null>(null);
+  const [hoveredBlockId, setHoveredBlockId] = useState<string | null>(null);
   const [activeLineCountRowKey, setActiveLineCountRowKey] = useState<string | null>(null);
   const [activeCellKey, setActiveCellKey] = useState<string | null>(null);
   const [activeUnitInputCellKey, setActiveUnitInputCellKey] = useState<string | null>(null);
@@ -3957,6 +3958,8 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                 return (
                   <div 
                     key={block.id}
+                    onMouseEnter={() => !isLocked && setHoveredBlockId(block.id)}
+                    onMouseLeave={() => setHoveredBlockId((prev) => (prev === block.id ? null : prev))}
                     onClick={(e) => {
                       e.stopPropagation();
                       setActiveBlockId(block.id);
@@ -5891,39 +5894,49 @@ export default function FormBuilder({ formName, initialData, onSave, onClose, li
                                   </div>
                                 );
                               })}
-                            </div>
 
-                            {!isLocked && (
-                              <div 
-                                onClick={(e) => { e.stopPropagation(); handleAddField(block.id, 'text'); }}
-                                style={{ 
-                                  marginTop: '0.5rem',
-                                  display: 'flex', 
-                                  alignItems: 'center', 
-                                  justifyContent: 'center', 
-                                  border: '1px dashed #cbd5e1', 
-                                  borderRadius: '4px', 
-                                  padding: '5px', 
-                                  fontSize: '0.72rem', 
-                                  fontWeight: 500,
-                                  color: 'var(--text-muted)', 
-                                  cursor: 'pointer',
-                                  transition: 'all 0.15s ease'
-                                }}
-                                onMouseEnter={(e) => { 
-                                  e.currentTarget.style.borderColor = 'var(--primary)'; 
-                                  e.currentTarget.style.color = 'var(--primary)'; 
-                                  e.currentTarget.style.background = 'rgba(13, 148, 136, 0.04)';
-                                }}
-                                onMouseLeave={(e) => { 
-                                  e.currentTarget.style.borderColor = '#cbd5e1'; 
-                                  e.currentTarget.style.color = 'var(--text-muted)'; 
-                                  e.currentTarget.style.background = 'transparent';
-                                }}
-                              >
-                                <Plus size={11} style={{ marginRight: '3px' }} /> Thêm trường vào khối
-                              </div>
-                            )}
+                              {/* In-Grid Ghost Slot for Adding Fields (Option 1 + 3 Hover-Reveal) */}
+                              {!isLocked && (block.fields.length === 0 || isBlockSelected || hoveredBlockId === block.id) && (
+                                <div
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleAddField(block.id, 'text');
+                                  }}
+                                  style={{
+                                    gridColumn: block.fields.length === 0 ? '1 / -1' : undefined,
+                                    border: '1px dashed #cbd5e1',
+                                    borderRadius: '4px',
+                                    padding: '6px 10px',
+                                    fontSize: '0.74rem',
+                                    fontWeight: 500,
+                                    color: 'var(--text-muted)',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '5px',
+                                    minHeight: '38px',
+                                    background: 'rgba(248, 250, 252, 0.6)',
+                                    transition: 'all 0.15s ease',
+                                    userSelect: 'none'
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.borderColor = 'var(--primary)';
+                                    e.currentTarget.style.color = 'var(--primary)';
+                                    e.currentTarget.style.background = 'rgba(13, 148, 136, 0.06)';
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.borderColor = '#cbd5e1';
+                                    e.currentTarget.style.color = 'var(--text-muted)';
+                                    e.currentTarget.style.background = 'rgba(248, 250, 252, 0.6)';
+                                  }}
+                                  title="Thêm trường mới vào khối"
+                                >
+                                  <Plus size={12} />
+                                  <span>Thêm trường</span>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         );
                       })()}
